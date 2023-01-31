@@ -2,7 +2,12 @@
 #include <glew.h>
 #include <freeglut.h>
 #include <glm/glm.hpp>
+#include <sstream>
+#include <fstream>
 #include <iostream>
+#include "../Include/shaderhandling.h"
+
+
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\
     x;\
@@ -22,6 +27,7 @@ static bool GLLogCall(const char* function, const char* file, int line) {
 	}
 	return true;
 }
+
 
 static void RenderSceneCB() {
 	GLCall(glClear(GL_COLOR_BUFFER_BIT));
@@ -84,6 +90,14 @@ int main(int argc, char** argv) {
 
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 	printf("window id: %d\n", win);
+
+	ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
+	unsigned int shader = CreateShader(source.vertexSource, source.fragmentSource);
+	GLCall(glUseProgram(shader));
+
+	GLCall(int location = glGetUniformLocation(shader, "u_Color"));
+	ASSERT(location != -1)
+	GLCall(glUniform4f(location, 0.2f, 0.3f, 0.8f, 1.0f));
 
 	GLclampf Red = 1.0f, Green = 0.0f, Blue = 0.0f, Alpha = 0.0f;
 	CreateVertexBuffer();
