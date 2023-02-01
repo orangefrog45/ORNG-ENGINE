@@ -5,6 +5,8 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include "WorldTransform.h"
+#include "Camera.h"
 #include "../Include/shaderhandling.h"
 
 
@@ -14,10 +16,13 @@
     ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 
 const double pi = atan(1) * 4;
+int WINDOW_WIDTH = 1920;
+int WINDOW_HEIGHT = 1080;
 unsigned int VBO;
 unsigned int IBO;
 int gTransformLocation;
-
+WorldTransform transform;
+Camera camera;
 
 static void GLClearError() {
 	while (glGetError() != GL_NO_ERROR);
@@ -37,6 +42,7 @@ struct Vertex {
 
 	Vertex() {}
 
+
 	Vertex(float x, float y, float z) {
 		pos = glm::fvec3(x, y, z);
 
@@ -44,6 +50,7 @@ struct Vertex {
 		float green = (float)rand() / (float)RAND_MAX;
 		float blue = (float)rand() / (float)RAND_MAX;
 		color = glm::fvec3(red, green, blue);
+
 	}
 };
 
@@ -65,6 +72,7 @@ static void CreateVertexBuffer() {
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, VBO));
 	//knows to look in ARRAY_BUFFER for data which is bound
 	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW));
+
 }
 
 static void CreateIndexBuffer() {
@@ -88,25 +96,38 @@ static void CreateIndexBuffer() {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
 }
 
+static void ReshapeCallback(int w, int h) {
+	WINDOW_WIDTH = w;
+	WINDOW_HEIGHT = h;
+}
 
+static void KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
+{
+	camera.OnKeyboard(key);
+}
+
+static void SpecialKeyboardCB(int key, int mouse_x, int mouse_y)
+{
+	camera.OnKeyboard(key);
+}
 
 static void RenderSceneCB() {
 	GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
-	static float angleInRadians = 0.0f;
+	static float angle = 0.0f;
 	static float scale = 1.0f;
 
 #ifdef _WIN64
-	angleInRadians += 0.01;
+	angle += 1.0f;
 #else
-	angleInRadians += 0.01f;
+	angle += 1.0f;
 #endif
 
 	//PERPRO * (TRA * (ROT * (SCA * POS)))
-	glm::fmat4x4 translationMatrix (
+	/*glm::fmat4x4 translationMatrix(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 3.0f,
+		0.0f, 0.0f, 1.0f, 2.0f,
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
@@ -117,37 +138,59 @@ static void RenderSceneCB() {
 		0.0f,  0.0f,  0.0f,  1.0f
 	);
 
+	glm::fmat4x4 rotationMatrix(
+		cosf(angleInRadians),  0.0f, sinf(angleInRadians), 0.0f,
+		0.0f,				   1.0f, 0.0f,				    0.0f,
+		-sinf(angleInRadians),  0.0f, cosf(angleInRadians),  0.0f,
+		0.0f,				   0.0f, 0.0f,				    1.0f
+	); */
+
+	transform.SetRotation(angle, angle, angle);
+	transform.SetPosition(0.0f, 0.0f, 2.0f);
+
+	glm::fmat4x4 worldMatrix = transform.GetMatrix();
+	glm::fmat4x4 cameraMatrix = camera.GetMatrix();
+
+	/*glm::fvec3 cameraPos(0.0f, 0.0f, -2.0f);
+	glm::fvec3 u(1.0f, 0.0f, 0.0f);
+	glm::fvec3 v(0.0f, 1.0f, 0.0f);
+	glm::fvec3 n(0.0f, 0.0f, 1.0f);
+
+	glm::fmat4x4 cameraMatrix(
+		u.x, u.y, u.z, -cameraPos.x,
+		v.x, v.y, v.z, -cameraPos.y,
+		n.x, n.y, n.z, -cameraPos.z,
+		0.0f, 0.0f, 0.0f, 1.0f
+	);*/
+
 	float FOV = 90.0f;
 	float tanHalfFOV = tanf((FOV / 2.0f) * (pi / 180.0f));
 	float f = 1 / tanHalfFOV;
 
-	float ar = 1.0;
+	float ar = (float)glutGet(GLUT_SCREEN_WIDTH) / (float)glutGet(GLUT_SCREEN_HEIGHT);
 
 	float nearZ = 1.0f;
 	float farZ = 10.0f;
 
 	float zRange = nearZ - farZ;
 
+	//normalize, due to precision keep z-values low anyway
 	float A = (-farZ - nearZ) / zRange;
 	float B = 2.0f * farZ * nearZ / zRange;
 
 
+
 	glm::fmat4x4 projectionMatrix(
-		f, 0.0f, 0.0f, 0.0f,
-		0.0f, f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
+		f/ar, 0.0f, 0.0f, 0.0f,
+		0.0f, f,    0.0f, 0.0f,
+		0.0f, 0.0f, A,    B,
 		0.0f, 0.0f, 1.0f, 0.0f
 	);
 
+	glm::fmat4x4 WVP = worldMatrix * cameraMatrix * projectionMatrix;
 
-	glm::fmat4x4 rotationMatrix(
-		cosf(angleInRadians),  0.0f, -sinf(angleInRadians), 0.0f,
-		0.0f,				   1.0f, 0.0f,				    0.0f,
-		sinf(angleInRadians),  0.0f, cosf(angleInRadians),  0.0f,
-		0.0f,				   0.0f, 0.0f,				    1.0f
-	);
-
-	glm::fmat4x4 finalTransform = (rotationMatrix * translationMatrix) * projectionMatrix;
+	glm::fmat4x4 finalTransform = WVP;
+	//glm::fmat4x4 finalTransform = (rotationMatrix * translationMatrix) * projectionMatrix;
 
 
 	GLCall(glUniformMatrix4fv(gTransformLocation, 1, GL_TRUE, &finalTransform[0][0]));
@@ -187,8 +230,7 @@ int main(int argc, char** argv) {
 	srand(time(nullptr));
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-
-	glutInitWindowSize(1000, 1000);
+	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	glutInitWindowPosition(200, 100);
 
@@ -218,12 +260,20 @@ int main(int argc, char** argv) {
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
 
-	CreateVertexBuffer();
 	CreateIndexBuffer();
+	CreateVertexBuffer();
+
 
 	glutDisplayFunc(RenderSceneCB);
+	glutKeyboardFunc(KeyboardCB);
+	glutSpecialFunc(SpecialKeyboardCB);
+
+	//allow resizing of window without breaking graphics
+	glutReshapeFunc(ReshapeCallback);
 
 	glutMainLoop();
+
+	GLCall(glDeleteProgram(shader));
 
 	return 0;
 }
