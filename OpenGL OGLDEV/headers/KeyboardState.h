@@ -4,6 +4,8 @@ struct KeyboardState {
 	bool aPressed;
 	bool sPressed;
 	bool dPressed;
+	bool ePressed;
+	bool qPressed;
 	bool shiftPressed;
 	bool ctrlPressed;
 	KeyboardState();

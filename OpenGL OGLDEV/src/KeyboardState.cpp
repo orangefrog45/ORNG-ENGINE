@@ -4,6 +4,8 @@
 KeyboardState::KeyboardState() {
 	wPressed = false;
 	aPressed = false;
+	ePressed = false;
+	qPressed = false;
 	sPressed = false;
 	dPressed = false;
 	shiftPressed = false;
@@ -29,7 +31,16 @@ void KeyboardState::KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 	case 'd':
 		dPressed = true;
 		break;
+	
+	case 'q':
+		qPressed = true;
+		break;
+	
+	case 'e':
+		ePressed = true;
+		break;
 	}
+
 }
 
 void KeyboardState::SpecialKeysUp(int key, int x, int y) {
@@ -63,6 +74,14 @@ void KeyboardState::KeysUp(unsigned char key, int x, int y) {
 
 	case 'd':
 		dPressed = false;
+		break;
+
+	case 'q':
+		qPressed = false;
+		break;
+
+	case 'e':
+		ePressed = false;
 		break;
 	}
 }

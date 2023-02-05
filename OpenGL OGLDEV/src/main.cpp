@@ -126,7 +126,6 @@ static void RenderSceneCB() {
 	static float scale = 1.0f;
 	timeStep.timeInterval = glutGet(GLUT_ELAPSED_TIME) - timeStep.lastTime;
 	timeStep.lastTime = glutGet(GLUT_ELAPSED_TIME);
-	std::cout << timeStep.timeInterval << std::endl;
 #ifdef _WIN64
 	angle += 1.0f;
 #else

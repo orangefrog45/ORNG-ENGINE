@@ -36,7 +36,7 @@ void Camera::SetPosition(float x, float y, float z) {
 void Camera::HandleInput(KeyboardState* keyboard) {
 
 	KeyboardState keyboardState = *keyboard;
-
+	if (!keyboardState.shiftPressed && !keyboardState.ctrlPressed) {
 	if (keyboardState.wPressed == true) {
 		MoveForward();
 	};
@@ -49,10 +49,11 @@ void Camera::HandleInput(KeyboardState* keyboard) {
 	if (keyboardState.dPressed == true) {
 		StrafeRight();
 	};
-	if (keyboardState.shiftPressed == true) {
+	}
+	if (keyboardState.ePressed == true) {
 		MoveUp();
 	};
-	if (keyboardState.ctrlPressed == true) {
+	if (keyboardState.qPressed == true) {
 		MoveDown();
 	};
 }
