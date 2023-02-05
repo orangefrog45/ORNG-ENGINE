@@ -4,7 +4,7 @@
 #include <iostream>
 #include <freeglut.h>
 #include <fstream>
-#include "../Include/shaderhandling.h"
+#include "shaderhandling.h"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\

@@ -2,12 +2,17 @@
 #include <glew.h>
 #include <freeglut.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 #include <sstream>
 #include <fstream>
 #include <iostream>
-#include "WorldTransform.h"
-#include "Camera.h"
-#include "../Include/shaderhandling.h"
+#include "../OpenGL OGLDEV/headers/Camera.h"
+#include "../OpenGL OGLDEV/headers/shaderhandling.h"
+#include "../OpenGL OGLDEV/headers/ExtraMath.h"
+#include "../OpenGL OGLDEV/headers/WorldTransform.h"
+#include "../OpenGL OGLDEV/headers/KeyboardState.h"
+#include "../OpenGL OGLDEV/headers/TimeStep.h"
+
 
 
 #define ASSERT(x) if (!(x)) __debugbreak();
@@ -15,14 +20,21 @@
     x;\
     ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 
-const double pi = atan(1) * 4;
-int WINDOW_WIDTH = 1920;
-int WINDOW_HEIGHT = 1080;
 unsigned int VBO;
 unsigned int IBO;
 int gTransformLocation;
+int WINDOW_WIDTH = 1920;
+int WINDOW_HEIGHT = 1080;
+float FOV = 60.0f;
+float zNear = 0.1f;
+float zFar = 10.0f;
 WorldTransform transform;
-Camera camera;
+TimeStep timeStep;
+Camera camera(WINDOW_WIDTH, WINDOW_HEIGHT, &timeStep);
+PersProjData persProjData = { FOV, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT, zNear, zFar };
+KeyboardState keyboardState;
+double lastTime = 0;
+
 
 static void GLClearError() {
 	while (glGetError() != GL_NO_ERROR);
@@ -101,96 +113,39 @@ static void ReshapeCallback(int w, int h) {
 	WINDOW_HEIGHT = h;
 }
 
-static void KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
+static void PassiveMouseCB(int x, int y)
 {
-	camera.OnKeyboard(key);
+	camera.OnMouse(glm::vec2(x, y));
 }
 
-static void SpecialKeyboardCB(int key, int mouse_x, int mouse_y)
-{
-	camera.OnKeyboard(key);
-}
 
 static void RenderSceneCB() {
 	GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
 	static float angle = 0.0f;
 	static float scale = 1.0f;
-
+	timeStep.timeInterval = glutGet(GLUT_ELAPSED_TIME) - timeStep.lastTime;
+	timeStep.lastTime = glutGet(GLUT_ELAPSED_TIME);
+	std::cout << timeStep.timeInterval << std::endl;
 #ifdef _WIN64
 	angle += 1.0f;
 #else
 	angle += 1.0f;
 #endif
 
-	//PERPRO * (TRA * (ROT * (SCA * POS)))
-	/*glm::fmat4x4 translationMatrix(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 2.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-
-	glm::fmat4x4 scaleMatrix(
-		scale, 0.0f,  0.0f,  0.0f,
-		0.0f,  scale, 0.0f,  0.0f,
-		0.0f,  0.0f,  scale, 0.0f,
-		0.0f,  0.0f,  0.0f,  1.0f
-	);
-
-	glm::fmat4x4 rotationMatrix(
-		cosf(angleInRadians),  0.0f, sinf(angleInRadians), 0.0f,
-		0.0f,				   1.0f, 0.0f,				    0.0f,
-		-sinf(angleInRadians),  0.0f, cosf(angleInRadians),  0.0f,
-		0.0f,				   0.0f, 0.0f,				    1.0f
-	); */
-
-	transform.SetRotation(angle, angle, angle);
-	transform.SetPosition(0.0f, 0.0f, 2.0f);
+	//transform.SetRotation(0.0f, 25.0f, 0.0f);
+	transform.SetPosition(0.0f, 0.0f, -5.0f);
+	//camera.SetPosition(3.0f, 0.0f, -8.0f);
+	camera.HandleInput(&keyboardState);
 
 	glm::fmat4x4 worldMatrix = transform.GetMatrix();
 	glm::fmat4x4 cameraMatrix = camera.GetMatrix();
+	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 
-	/*glm::fvec3 cameraPos(0.0f, 0.0f, -2.0f);
-	glm::fvec3 u(1.0f, 0.0f, 0.0f);
-	glm::fvec3 v(0.0f, 1.0f, 0.0f);
-	glm::fvec3 n(0.0f, 0.0f, 1.0f);
-
-	glm::fmat4x4 cameraMatrix(
-		u.x, u.y, u.z, -cameraPos.x,
-		v.x, v.y, v.z, -cameraPos.y,
-		n.x, n.y, n.z, -cameraPos.z,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);*/
-
-	float FOV = 90.0f;
-	float tanHalfFOV = tanf((FOV / 2.0f) * (pi / 180.0f));
-	float f = 1 / tanHalfFOV;
-
-	float ar = (float)glutGet(GLUT_SCREEN_WIDTH) / (float)glutGet(GLUT_SCREEN_HEIGHT);
-
-	float nearZ = 1.0f;
-	float farZ = 10.0f;
-
-	float zRange = nearZ - farZ;
-
-	//normalize, due to precision keep z-values low anyway
-	float A = (-farZ - nearZ) / zRange;
-	float B = 2.0f * farZ * nearZ / zRange;
-
-
-
-	glm::fmat4x4 projectionMatrix(
-		f/ar, 0.0f, 0.0f, 0.0f,
-		0.0f, f,    0.0f, 0.0f,
-		0.0f, 0.0f, A,    B,
-		0.0f, 0.0f, 1.0f, 0.0f
-	);
 
 	glm::fmat4x4 WVP = worldMatrix * cameraMatrix * projectionMatrix;
-
 	glm::fmat4x4 finalTransform = WVP;
-	//glm::fmat4x4 finalTransform = (rotationMatrix * translationMatrix) * projectionMatrix;
+
 
 
 	GLCall(glUniformMatrix4fv(gTransformLocation, 1, GL_TRUE, &finalTransform[0][0]));
@@ -206,11 +161,11 @@ static void RenderSceneCB() {
 	//index offset of pos
 	GLCall(glEnableVertexAttribArray(0));
 	//specify format of "enabled" attribute (pos)
-	GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0));
+	GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0));
 
 	//color
 	GLCall(glEnableVertexAttribArray(1));
-	GLCall(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void*)(3*sizeof(float))));
+	GLCall(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))));
 
 	GLCall(glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0));
 
@@ -224,10 +179,31 @@ static void RenderSceneCB() {
 	glutPostRedisplay();
 
 	glutSwapBuffers();
+
+}
+
+static void CallKeyboardCB(unsigned char key, int x, int y) {
+	keyboardState.KeyboardCB(key, x, y);
+}
+static void CallSpecialKeyboardCB(int key, int x, int y) {
+	keyboardState.SpecialKeyboardCB(key, x, y);
+}
+static void CallSpecialKeysUp(int key, int x, int y) {
+	keyboardState.SpecialKeysUp(key, x, y);
+}
+static void CallKeysUp(unsigned char key, int x, int y) {
+	keyboardState.KeysUp(key, x, y);
+}
+static void InitializeGlutCallbacks() {
+	glutDisplayFunc(RenderSceneCB);
+	glutKeyboardFunc(CallKeyboardCB);
+	glutSpecialFunc(CallSpecialKeyboardCB);
+	glutSpecialUpFunc(CallSpecialKeysUp);
+	glutKeyboardUpFunc(CallKeysUp);
+	glutPassiveMotionFunc(PassiveMouseCB);
 }
 
 int main(int argc, char** argv) {
-	srand(time(nullptr));
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -235,6 +211,11 @@ int main(int argc, char** argv) {
 	glutInitWindowPosition(200, 100);
 
 	int win = glutCreateWindow("UNREAL 8.0");
+
+	char game_mode_string[64];
+	snprintf(game_mode_string, sizeof(game_mode_string), "%dx%d@32", WINDOW_WIDTH, WINDOW_HEIGHT);
+	glutGameModeString(game_mode_string);
+	glutEnterGameMode();
 
 	unsigned int res = glewInit();
 	if (GLEW_OK != res)
@@ -246,6 +227,8 @@ int main(int argc, char** argv) {
 
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 	printf("window id: %d\n", win);
+
+	InitializeGlutCallbacks();
 
 	ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
 	unsigned int shader = CreateShader(source.vertexSource, source.fragmentSource);
@@ -263,10 +246,6 @@ int main(int argc, char** argv) {
 	CreateIndexBuffer();
 	CreateVertexBuffer();
 
-
-	glutDisplayFunc(RenderSceneCB);
-	glutKeyboardFunc(KeyboardCB);
-	glutSpecialFunc(SpecialKeyboardCB);
 
 	//allow resizing of window without breaking graphics
 	glutReshapeFunc(ReshapeCallback);

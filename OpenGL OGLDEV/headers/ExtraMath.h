@@ -2,6 +2,17 @@
 #include <glm/glm.hpp>
 #include <math.h>
 
+struct PersProjData {
+
+	PersProjData(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar);
+
+	float FOV;
+	float WINDOW_WIDTH;
+	float WINDOW_HEIGHT;
+	float zNear;
+	float zFar;
+};
+
 class ExtraMath
 {
 public:
@@ -15,6 +26,6 @@ public:
 	static glm::fmat4x4 Init3DScaleTransform(float scaleX, float scaleY, float scaleZ);
 	static glm::fmat4x4 Init3DTranslationTransform(float tranX, float tranY, float tranZ);
 	static glm::fmat4x4 Init3DCameraTransform(const glm::fvec3& pos, const glm::fvec3& target, const glm::fvec3& up);
+	static glm::fmat4x4 InitPersProjTransform(PersProjData& p);
 
 };
-
