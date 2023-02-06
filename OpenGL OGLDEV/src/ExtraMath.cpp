@@ -115,3 +115,7 @@ PersProjData::PersProjData(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, f
 	this->zNear = zNear;
 	this->zFar = zFar;
 }
+
+PersProjData::PersProjData() {
+
+}

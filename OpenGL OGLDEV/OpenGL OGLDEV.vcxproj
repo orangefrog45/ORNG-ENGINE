@@ -139,15 +139,19 @@
   <ItemGroup>
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
+    <ClCompile Include="src\GLErrorHandling.cpp" />
     <ClCompile Include="src\KeyboardState.cpp" />
     <ClCompile Include="src\main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="src\MainFramework.cpp" />
     <ClCompile Include="src\shaderhandling.cpp" />
+    <ClCompile Include="src\stb_image.cpp" />
+    <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\TimeStep.cpp" />
+    <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -156,9 +160,13 @@
   <ItemGroup>
     <ClInclude Include="headers\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
+    <ClInclude Include="headers\GLErrorHandling.h" />
     <ClInclude Include="headers\KeyboardState.h" />
-    <ClInclude Include="headers\shaderhandling.h" />
+    <ClInclude Include="headers\MainFramework.h" />
+    <ClInclude Include="headers\ShaderHandling.h" />
+    <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="headers\TimeStep.h" />
+    <ClInclude Include="headers\Vertex.h" />
     <ClInclude Include="headers\WorldTransform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

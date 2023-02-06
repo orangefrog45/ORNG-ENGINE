@@ -4,27 +4,18 @@
 #include <iostream>
 #include <freeglut.h>
 #include <fstream>
-#include "shaderhandling.h"
+#include "GLErrorHandling.h"
+#include "ShaderHandling.h"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
 #define GLCall(x) GLClearError();\
     x;\
     ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 
-
-
-static void GLClearError() {
-	while (glGetError() != GL_NO_ERROR);
+ShaderProgramSource::ShaderProgramSource(std::string v, std::string f) {
+	vertexSource = v;
+	fragmentSource = f;
 }
-
-static bool GLLogCall(const char* function, const char* file, int line) {
-	while (GLenum error = glGetError()) {
-		std::cout << "[OpenGL Error] (" << error << ")" << " " << function << " : " << file << " : " << line << std::endl;
-		return false;
-	}
-	return true;
-}
-
 
  ShaderProgramSource ParseShader(const std::string& filepath) {
 	std::ifstream stream(filepath);

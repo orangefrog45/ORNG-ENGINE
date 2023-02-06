@@ -4,6 +4,7 @@
 
 struct PersProjData {
 
+	PersProjData();
 	PersProjData(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar);
 
 	float FOV;

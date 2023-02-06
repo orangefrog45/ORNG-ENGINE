@@ -2,6 +2,7 @@
 
 struct ShaderProgramSource
 {
+	ShaderProgramSource(std::string v, std::string f);
 	std::string vertexSource;
 	std::string fragmentSource;
 };

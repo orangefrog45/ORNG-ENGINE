@@ -46,7 +46,7 @@ void Camera::HandleInput(KeyboardState* keyboard) {
 
 void Camera::OnMouse(const glm::vec2& newMousePos) {
 	const float rotationSpeed = 0.005f;
-	float maxDelta = 10.0f;
+	float maxDelta = 50.0f;
 
 	glm::vec2 mouseDelta = glm::vec2(newMousePos.x-m_windowWidth/2, newMousePos.y-m_windowHeight/2);
 	if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta ) {
@@ -55,7 +55,7 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 	if (mouseDelta.y > -maxDelta && mouseDelta.y < maxDelta) {
 		glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotationSpeed, glm::cross(m_target, m_up)) * glm::fvec4(m_target, 0);
 		//constraint to stop lookAt flipping from y axis alignment
-		if (m_targetNew.y <= 0.99f && m_targetNew.y >= -0.99f) {
+		if (m_targetNew.y <= 0.999f && m_targetNew.y >= -0.999f) {
 			m_target = m_targetNew;
 		}
 	}
