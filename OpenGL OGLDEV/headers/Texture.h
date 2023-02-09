@@ -8,7 +8,7 @@ public:
 
 	bool Load();
 
-	void Bind(unsigned int textureUnit);
+	void Bind(unsigned int textureUnit) const;
 
 private:
 	std::string m_filename;

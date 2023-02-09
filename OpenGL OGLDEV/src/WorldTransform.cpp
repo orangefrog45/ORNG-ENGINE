@@ -43,7 +43,7 @@ glm::fmat4x4 WorldTransform::GetMatrix() {
 	glm::fmat4x4 transMat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
 
 
-	glm::fmat4x4 worldTransMat = rotMat * transMat;
+	glm::fmat4x4 worldTransMat = rotMat * transMat * scaleMat;
 
 	return worldTransMat;
 }

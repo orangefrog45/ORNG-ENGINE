@@ -15,11 +15,7 @@
 #include "MainFramework.h"
 #include "KeyboardState.h"
 #include "TimeStep.h"
-#include "GLErrorHandling.h"
-#define ASSERT(x) if (!(x)) __debugbreak();
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
+
 
 MainFramework mainFramework;
 
@@ -55,7 +51,7 @@ int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitContextVersion(3, 3);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(mainFramework.WINDOW_WIDTH, mainFramework.WINDOW_HEIGHT);
 
 	glutInitWindowPosition(200, 100);

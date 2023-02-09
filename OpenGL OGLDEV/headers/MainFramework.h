@@ -13,6 +13,7 @@
 #include "ExtraMath.h"
 #include "WorldTransform.h"
 #include "Texture.h"
+#include "BasicMesh.h"
 #include "KeyboardState.h"
 #include "TimeStep.h"
 
@@ -30,30 +31,19 @@ public:
 	void CallSpecialKeyboardCB(int key, int mouse_x, int mouse_y);
 	void CallSpecialKeysUp(int key, int x, int y);
 	void CallKeysUp(unsigned char key, int x, int y);
-	void InitializeGlutCallbacks();
 	void PassiveMouseCB(int x, int y);
 	int WINDOW_WIDTH;
 	int WINDOW_HEIGHT;
 
 private:
 
-	int TransformLocation = -1;
-	int SamplerLocation = -1;
-	void CreateCubeVAO();
-	void CreatePyramindVAO();
-	void CompileShaders();
-	GLuint cubeVAO = -1;
-	GLuint cubeIBO = -1;
-	GLuint cubeVBO = -1;
-
-	void AttachShader(const std::string filePath);
-
-	WorldTransform cubeWorldTransform;
+	unsigned int WVPLocation;
+	unsigned int samplerLocation;
 	TimeStep* pTimeStep = nullptr;
 	Texture* pTexture = nullptr;
 	Camera* pCamera = nullptr;
 	KeyboardState* pKeyboardState = nullptr;
+	BasicMesh* pMesh = nullptr;
 	PersProjData persProjData;
-
 
 };
