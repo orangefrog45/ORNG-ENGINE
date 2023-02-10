@@ -56,10 +56,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\Basic.shader" />
     <None Include="res\shaders\Skybox.shader" />
-    <None Include="res\shaders\Basic.vs" />
-    <None Include="res\shaders\Basic.fs" />
+    <None Include="res\shaders\BasicVS.shader" />
+    <None Include="res\shaders\BasicFS.shader" />
+    <None Include="res\shaders\TestFS.shader" />
+    <None Include="res\shaders\TestVS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\KeyboardState.h">

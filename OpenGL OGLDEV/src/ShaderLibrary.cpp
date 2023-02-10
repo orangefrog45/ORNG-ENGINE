@@ -5,15 +5,25 @@
 #include <iostream>
 #include <freeglut.h>
 #include <fstream>
+#include <vector>
 #include "GLErrorHandling.h"
 #include "util.h"
 
 void ShaderLibrary::Init() {
-	GLCall(program = glCreateProgram());
+	GLCall(basicProgram = glCreateProgram());
+	GLCall(testProgram = glCreateProgram());
 
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/Basic.vs"), basicVertShaderID);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/Basic.fs"), basicFragShaderID);
 
+	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/BasicVS.shader"), basicVertShaderID);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/BasicFS.shader"), basicFragShaderID);
+	UseShader(basicVertShaderID, basicProgram);
+	UseShader(basicFragShaderID, basicProgram);
+
+
+	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/TestVS.shader"), testVertShaderID);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/TestFS.shader"), testFragShaderID);
+	UseShader(testVertShaderID, testProgram);
+	UseShader(testFragShaderID, testProgram);
 }
 
 
@@ -69,14 +79,13 @@ void ShaderLibrary::CompileShader(unsigned int type, const std::string& source, 
 
 
 }*/
-void ShaderLibrary::UseShader(unsigned int& id) {
-	GLCall(glAttachShader(program, id));
-	GLCall(glDeleteShader(id));
-
+void ShaderLibrary::UseShader(unsigned int& id, unsigned int& program) {
+	GLCall(glAttachShader(program, id))
+		GLCall(glDeleteShader(id))
 }
 
-void ShaderLibrary::ActivateProgram() {
-	GLCall(glLinkProgram(program));
-	GLCall(glValidateProgram(program));
-	GLCall(glUseProgram(program));
+void ShaderLibrary::ActivateProgram(unsigned int& program) {
+	GLCall(glLinkProgram(program))
+		GLCall(glValidateProgram(program))
+		GLCall(glUseProgram(program))
 }

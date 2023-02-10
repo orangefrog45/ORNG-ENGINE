@@ -48,15 +48,14 @@ bool MainFramework::Init() {
 	glEnable(GL_DEPTH_TEST);
 
 	pShaderLibrary->Init();
-	pShaderLibrary->UseShader(pShaderLibrary->basicVertShaderID);
-	pShaderLibrary->UseShader(pShaderLibrary->basicFragShaderID);
-	pShaderLibrary->ActivateProgram();
+	pShaderLibrary->ActivateProgram(pShaderLibrary->basicProgram);
 
 
 
-	GLCall(WVPLocation = glGetUniformLocation(pShaderLibrary->program, "gTransform"));
+
+	GLCall(WVPLocation = glGetUniformLocation(pShaderLibrary->basicProgram, "gTransform"));
 	ASSERT(WVPLocation != -1);
-	GLCall(samplerLocation = glGetUniformLocation(pShaderLibrary->program, "gSampler"));
+	GLCall(samplerLocation = glGetUniformLocation(pShaderLibrary->basicProgram, "gSampler"));
 	ASSERT(samplerLocation != -1);
 
 	glUniform1i(samplerLocation, 0);
