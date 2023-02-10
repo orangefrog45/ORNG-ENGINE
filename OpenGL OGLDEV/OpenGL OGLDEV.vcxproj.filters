@@ -18,9 +18,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\shaderhandling.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\WorldTransform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -54,18 +51,21 @@
     <ClCompile Include="src\BasicMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ShaderLibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\Basic.shader" />
+    <None Include="res\shaders\Skybox.shader" />
+    <None Include="res\shaders\Basic.vs" />
+    <None Include="res\shaders\Basic.fs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\KeyboardState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\WorldTransform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\ShaderHandling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\ExtraMath.h">
@@ -93,6 +93,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\ShaderLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

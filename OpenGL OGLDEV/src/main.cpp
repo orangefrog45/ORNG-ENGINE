@@ -1,20 +1,8 @@
 #include <stdio.h>
 #include <glew.h>
 #include <freeglut.h>
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <sstream>
-#include <fstream>
-#include <iostream>
-#include <stb/stb_image.h>
-#include "Camera.h"
-#include "ShaderHandling.h"
-#include "ExtraMath.h"
-#include "WorldTransform.h"
-#include "Texture.h"
 #include "MainFramework.h"
-#include "KeyboardState.h"
-#include "TimeStep.h"
+
 
 
 MainFramework mainFramework;

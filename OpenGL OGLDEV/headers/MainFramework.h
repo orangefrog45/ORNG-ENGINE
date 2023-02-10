@@ -8,13 +8,14 @@
 #include <fstream>
 #include <iostream>
 #include <stb/stb_image.h>
+#include <vector>
 #include "Camera.h"
-#include "ShaderHandling.h"
 #include "ExtraMath.h"
 #include "WorldTransform.h"
 #include "Texture.h"
 #include "BasicMesh.h"
 #include "KeyboardState.h"
+#include "ShaderLibrary.h"
 #include "TimeStep.h"
 
 class MainFramework
@@ -40,10 +41,10 @@ private:
 	unsigned int WVPLocation;
 	unsigned int samplerLocation;
 	TimeStep* pTimeStep = nullptr;
-	Texture* pTexture = nullptr;
 	Camera* pCamera = nullptr;
+	ShaderLibrary* pShaderLibrary = nullptr;
 	KeyboardState* pKeyboardState = nullptr;
-	BasicMesh* pMesh = nullptr;
+	std::vector<BasicMesh*> meshArray;
 	PersProjData persProjData;
 
 };

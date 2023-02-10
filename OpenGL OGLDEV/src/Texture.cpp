@@ -11,13 +11,15 @@ bool Texture::Load() {
 	int width = 0;
 	int	height = 0;
 	int	bpp = 0;
+	int mode = GL_RGB;
+
 	unsigned char* image_data = stbi_load(m_filename.c_str(), &width, &height, &bpp, 0);
 	printf("width: %d", width);
 
-	if (image_data == nullptr) {
-		printf("Can't load texture from '%s' - '%s \n", m_filename.c_str(), stbi_failure_reason);
-		exit(0);
-	}
+		if (image_data == nullptr) {
+			printf("Can't load texture from '%s' - '%s \n", m_filename.c_str(), stbi_failure_reason);
+			exit(0);
+		}
 
 	GLCall(glGenTextures(1, &m_textureObj));
 	GLCall(glBindTexture(m_textureTarget, m_textureObj));
@@ -38,7 +40,7 @@ bool Texture::Load() {
 
 	GLCall(glBindTexture(m_textureTarget, 0));
 	return true;
-		
+
 }
 
 void Texture::Bind(unsigned int textureUnit) const {
