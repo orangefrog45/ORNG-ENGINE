@@ -6,10 +6,14 @@
 #include <freeglut.h>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include "GLErrorHandling.h"
 #include "util.h"
 
 void ShaderLibrary::Init() {
+	programIDs = { 0, 0 };
+	unsigned int& basicProgram = programIDs[basicProgramIndex];
+	unsigned int& testProgram = programIDs[testProgramIndex];
 	GLCall(basicProgram = glCreateProgram());
 	GLCall(testProgram = glCreateProgram());
 
@@ -41,20 +45,20 @@ std::string ShaderLibrary::ParseShader(const std::string& filepath) {
 }
 
 
-void ShaderLibrary::CompileShader(unsigned int type, const std::string& source, unsigned int& id) {
-	GLCall(id = glCreateShader(type));
+void ShaderLibrary::CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID) {
+	GLCall(shaderID = glCreateShader(type));
 	const char* src = source.c_str();
-	GLCall(glShaderSource(id, 1, &src, nullptr));
-	GLCall(glCompileShader(id));
+	GLCall(glShaderSource(shaderID, 1, &src, nullptr));
+	GLCall(glCompileShader(shaderID));
 
 	int result;
-	GLCall(glGetShaderiv(id, GL_COMPILE_STATUS, &result));
+	GLCall(glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result));
 
 	if (result == GL_FALSE) {
 		int length;
-		GLCall(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
+		GLCall(glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &length));
 		char* message = (char*)alloca(length * sizeof(char));
-		GLCall(glGetShaderInfoLog(id, length, &length, message));
+		GLCall(glGetShaderInfoLog(shaderID, length, &length, message));
 
 		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << std::endl;
 		std::cout << message << std::endl;
@@ -80,12 +84,14 @@ void ShaderLibrary::CompileShader(unsigned int type, const std::string& source, 
 
 }*/
 void ShaderLibrary::UseShader(unsigned int& id, unsigned int& program) {
-	GLCall(glAttachShader(program, id))
-		GLCall(glDeleteShader(id))
+	GLCall(glAttachShader(program, id));
+	GLCall(glDeleteShader(id));
 }
 
 void ShaderLibrary::ActivateProgram(unsigned int& program) {
-	GLCall(glLinkProgram(program))
-		GLCall(glValidateProgram(program))
-		GLCall(glUseProgram(program))
+	GLCall(glLinkProgram(program));
+	GLCall(glValidateProgram(program));
+	GLCall(glUseProgram(program));
+
+	activeProgramIndex = std::find(programIDs.begin(), programIDs.end(), program) - programIDs.begin();
 }

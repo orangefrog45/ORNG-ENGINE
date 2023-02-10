@@ -44,7 +44,7 @@ private:
 	Camera* pCamera = nullptr;
 	ShaderLibrary* pShaderLibrary = nullptr;
 	KeyboardState* pKeyboardState = nullptr;
-	std::vector<BasicMesh*> meshArray;
+	std::vector<std::vector<BasicMesh*>> meshArray{ numShaders };
 	PersProjData persProjData;
 
 };

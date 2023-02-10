@@ -42,9 +42,6 @@
     <ClCompile Include="src\MainFramework.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Vertex.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\GLErrorHandling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -56,11 +53,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\Skybox.shader" />
+    <None Include="res\shaders\SkyboxVS.shader" />
     <None Include="res\shaders\BasicVS.shader" />
     <None Include="res\shaders\BasicFS.shader" />
     <None Include="res\shaders\TestFS.shader" />
     <None Include="res\shaders\TestVS.shader" />
+    <None Include="res\shaders\SkyboxFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\KeyboardState.h">
@@ -82,9 +80,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\MainFramework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\Vertex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\GLErrorHandling.h">

@@ -10,7 +10,6 @@
 #include "Camera.h"
 #include "ExtraMath.h"
 #include "WorldTransform.h"
-#include "Vertex.h"
 #include "Texture.h"
 #include "MainFramework.h"
 #include "KeyboardState.h"
@@ -48,22 +47,27 @@ bool MainFramework::Init() {
 	glEnable(GL_DEPTH_TEST);
 
 	pShaderLibrary->Init();
-	pShaderLibrary->ActivateProgram(pShaderLibrary->basicProgram);
-
-
-
-
-	GLCall(WVPLocation = glGetUniformLocation(pShaderLibrary->basicProgram, "gTransform"));
-	ASSERT(WVPLocation != -1);
-	GLCall(samplerLocation = glGetUniformLocation(pShaderLibrary->basicProgram, "gSampler"));
-	ASSERT(samplerLocation != -1);
+	pShaderLibrary->ActivateProgram(pShaderLibrary->programIDs[basicProgramIndex]);
 
 	glUniform1i(samplerLocation, 0);
 
-	meshArray.push_back(new BasicMesh);
-	if (!meshArray[0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
+	meshArray[basicProgramIndex].push_back(new BasicMesh);
+	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
 		return false;
 	}
+
+	meshArray[testProgramIndex].push_back(new BasicMesh);
+	if (!meshArray[testProgramIndex][0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
+		return false;
+	}
+
+	WorldTransform& worldTransform = meshArray[basicProgramIndex][0]->GetWorldTransform();
+	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
+	worldTransform.SetScale(0.3f, 0.3f, 0.3f);
+
+	WorldTransform& worldTransform2 = meshArray[testProgramIndex][0]->GetWorldTransform();
+	worldTransform2.SetPosition(17.0f, 0.0f, -5.0f);
+	worldTransform2.SetScale(0.3f, 0.3f, 0.3f);
 
 	return true;
 
@@ -105,23 +109,29 @@ void MainFramework::RenderSceneCB() {
 	pTimeStep->lastTime = glutGet(GLUT_ELAPSED_TIME);
 
 	pCamera->HandleInput(pKeyboardState);
-	WorldTransform worldTransform = meshArray[0]->GetWorldTransform();
-
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
-	glm::fmat4x4 cameraMatrix = pCamera->GetMatrix();
-
-	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
-
-	worldTransform.SetScale(0.3f, 0.3f, 0.3f);
-	glm::fmat4x4 worldMatrix = worldTransform.GetMatrix();
-
-	glm::fmat4x4 WVP = worldMatrix * cameraMatrix * projectionMatrix;
-	glUniformMatrix4fv(WVPLocation, 1, GL_TRUE, &WVP[0][0]);
-
 
 	for (unsigned int i = 0; i < meshArray.size(); i++) {
-		meshArray[i]->Render();
+		//iterate over arrays of meshes with same program, i == shader position in programIDs
+		pShaderLibrary->ActivateProgram(pShaderLibrary->programIDs[i]);
+
+		GLCall(WVPLocation = glGetUniformLocation(pShaderLibrary->programIDs[i], "gTransform"));
+		ASSERT(WVPLocation != -1);
+		GLCall(samplerLocation = glGetUniformLocation(pShaderLibrary->programIDs[i], "gSampler"));
+		ASSERT(samplerLocation != -1);
+
+		glm::fmat4x4 cameraMatrix = pCamera->GetMatrix();
+
+		for (unsigned int y = 0; y < meshArray[i].size(); y++) {
+
+			WorldTransform worldTransform = meshArray[i][y]->GetWorldTransform();
+
+			glm::fmat4x4 WVP = worldTransform.GetMatrix() * cameraMatrix * projectionMatrix;
+			glUniformMatrix4fv(WVPLocation, 1, GL_TRUE, &WVP[0][0]);
+
+			meshArray[i][y]->Render();
+		}
 	}
 
 	glutPostRedisplay();
@@ -133,8 +143,11 @@ MainFramework::~MainFramework() {
 	delete pTimeStep;
 	delete pCamera;
 	delete pKeyboardState;
+	delete pShaderLibrary;
 
 	for (unsigned int i = 0; i < meshArray.size(); i++) {
-		delete meshArray[i];
+		for (unsigned int y = 0; y < meshArray[i].size(); y++) {
+			delete meshArray[i][y];
+		}
 	}
 }

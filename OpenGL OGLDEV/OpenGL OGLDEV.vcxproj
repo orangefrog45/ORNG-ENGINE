@@ -158,13 +158,13 @@
     <ClCompile Include="src\stb_image.cpp" />
     <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\TimeStep.cpp" />
-    <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\BasicFS.shader" />
     <None Include="res\shaders\BasicVS.shader" />
-    <None Include="res\shaders\Skybox.shader" />
+    <None Include="res\shaders\SkyboxFS.shader" />
+    <None Include="res\shaders\SkyboxVS.shader" />
     <None Include="res\shaders\TestFS.shader" />
     <None Include="res\shaders\TestVS.shader" />
   </ItemGroup>
@@ -179,7 +179,6 @@
     <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="headers\TimeStep.h" />
     <ClInclude Include="headers\util.h" />
-    <ClInclude Include="headers\Vertex.h" />
     <ClInclude Include="headers\WorldTransform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
