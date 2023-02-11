@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 #include <glew.h>
 
 class Texture {
@@ -9,6 +10,8 @@ public:
 	bool Load();
 
 	void Bind(unsigned int textureUnit) const;
+
+	static unsigned int LoadCubeMap(std::vector<const char*> faces);
 
 private:
 	std::string m_filename;

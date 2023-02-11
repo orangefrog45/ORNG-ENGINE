@@ -15,6 +15,7 @@ public:
 	void MoveUp();
 	void MoveDown();
 	void HandleInput(KeyboardState*);
+	glm::fvec3 GetPos();
 	glm::fmat4x4 GetMatrix();
 
 private:

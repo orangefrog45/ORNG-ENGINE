@@ -11,24 +11,24 @@ glm::fmat4x4 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ
 	float rZ = ToRadians(rotZ);
 
 	glm::fmat4x4 rotationXMatrix(
-		1.0f, 0.0f,		0.0f,	   0.0f,
+		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, cosf(rX), -sinf(rX), 0.0f,
-		0.0f, sinf(rX), cosf(rX),  0.0f,
-		0.0f, 0.0f,		0.0f,	   1.0f
+		0.0f, sinf(rX), cosf(rX), 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
 	glm::fmat4x4 rotationYMatrix(
-		cosf(rY),  0.0f,  sinf(rY), 0.0f,
-		0.0f,      1.0f,  0.0f,     0.0f,
-		-sinf(rY), 0.0f,  cosf(rY), 0.0f,
-		0.0f,      0.0f,  0.0f,	    1.0f
+		cosf(rY), 0.0f, sinf(rY), 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		-sinf(rY), 0.0f, cosf(rY), 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
 	glm::fmat4x4 rotationZMatrix(
 		cosf(rZ), -sinf(rZ), 0.0f, 0.0f,
-		sinf(rZ), cosf(rZ),  0.0f, 0.0f,
-		0.0f,	  0.0f,		 1.0f, 0.0f,
-		0.0f,	  0.0f,		 0.0f, 1.0f
+		sinf(rZ), cosf(rZ), 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
 	return rotationXMatrix * rotationYMatrix * rotationZMatrix;
@@ -60,6 +60,16 @@ glm::fmat4x4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, flo
 
 }
 
+glm::fmat4 ExtraMath::GetCameraTransMatrix(glm::fvec3 pos) {
+	glm::fmat4x4 cameraTransMatrix(
+		1.0f, 0.0f, 0.0f, pos.x,
+		0.0f, 1.0f, 0.0f, pos.y,
+		0.0f, 0.0f, 1.0f, pos.z,
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
+	return cameraTransMatrix;
+}
+
 glm::fmat4x4 ExtraMath::Init3DCameraTransform(const glm::fvec3& pos, const glm::fvec3& target, const glm::fvec3& up) {
 	glm::fvec3 n = target;
 	glm::normalize(n);
@@ -71,11 +81,11 @@ glm::fmat4x4 ExtraMath::Init3DCameraTransform(const glm::fvec3& pos, const glm::
 	glm::normalize(v);
 
 	glm::fmat4x4 cameraRotMatrix(
-		u.x, u.y, u.z,    0.0f,
-		v.x, v.y, v.z,    0.0f,
-		n.x, n.y, n.z,	  0.0f,
+		u.x, u.y, u.z, 0.0f,
+		v.x, v.y, v.z, 0.0f,
+		n.x, n.y, n.z, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f
-	); 
+	);
 
 	glm::fmat4x4 cameraTransMatrix(
 		1.0f, 0.0f, 0.0f, -pos.x,
@@ -108,7 +118,7 @@ glm::fmat4x4 ExtraMath::InitPersProjTransform(PersProjData& const p) {
 }
 
 
-PersProjData::PersProjData(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar): 
+PersProjData::PersProjData(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar) :
 	FOV(FOV), WINDOW_WIDTH(WINDOW_WIDTH), WINDOW_HEIGHT(WINDOW_HEIGHT), zNear(zNear), zFar(zFar) {}
 
 

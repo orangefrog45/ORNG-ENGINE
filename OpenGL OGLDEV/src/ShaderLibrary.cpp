@@ -11,9 +11,12 @@
 #include "util.h"
 
 void ShaderLibrary::Init() {
-	programIDs = { 0, 0 };
+	programIDs = { 0, 0, 0 };
+	unsigned int& skyboxProgram = programIDs[skyboxProgramIndex];
 	unsigned int& basicProgram = programIDs[basicProgramIndex];
 	unsigned int& testProgram = programIDs[testProgramIndex];
+
+	GLCall(skyboxProgram = glCreateProgram());
 	GLCall(basicProgram = glCreateProgram());
 	GLCall(testProgram = glCreateProgram());
 
@@ -23,11 +26,15 @@ void ShaderLibrary::Init() {
 	UseShader(basicVertShaderID, basicProgram);
 	UseShader(basicFragShaderID, basicProgram);
 
-
 	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/TestVS.shader"), testVertShaderID);
 	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/TestFS.shader"), testFragShaderID);
 	UseShader(testVertShaderID, testProgram);
 	UseShader(testFragShaderID, testProgram);
+
+	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/SkyboxVS.shader"), skyboxVertShaderID);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/SkyboxFS.shader"), skyboxFragShaderID);
+	UseShader(skyboxVertShaderID, skyboxProgram);
+	UseShader(skyboxFragShaderID, skyboxProgram);
 }
 
 

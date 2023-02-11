@@ -4,9 +4,10 @@
 #include <vector>
 #include <sstream>
 
-constexpr unsigned int basicProgramIndex = 0;
-constexpr unsigned int testProgramIndex = 1;
-constexpr unsigned int numShaders = 2;
+constexpr unsigned int skyboxProgramIndex = 0;
+constexpr unsigned int basicProgramIndex = 1;
+constexpr unsigned int testProgramIndex = 2;
+constexpr unsigned int numShaders = 3;
 
 class ShaderLibrary {
 public:
@@ -30,11 +31,15 @@ private:
 	unsigned int CreateShader(const std::string& shaderSource, ShaderType shader_type);
 	void CompileShader(unsigned int type, const std::string& source, unsigned int& id);
 
+	unsigned int skyboxVertShaderID;
+	unsigned int skyboxFragShaderID;
+
 	unsigned int basicVertShaderID;
 	unsigned int basicFragShaderID;
 
-	unsigned int testFragShaderID;
 	unsigned int testVertShaderID;
+	unsigned int testFragShaderID;
+
 
 
 };

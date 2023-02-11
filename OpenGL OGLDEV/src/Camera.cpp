@@ -21,6 +21,10 @@ void Camera::SetPosition(float x, float y, float z) {
 	m_pos.z = z;
 }
 
+glm::fvec3 Camera::GetPos() {
+	return m_pos;
+}
+
 void Camera::HandleInput(KeyboardState* keyboard) {
 
 	KeyboardState keyboardState = *keyboard;
@@ -48,8 +52,8 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 	const float rotationSpeed = 0.005f;
 	float maxDelta = 50.0f;
 
-	glm::vec2 mouseDelta = glm::vec2(newMousePos.x-m_windowWidth/2, newMousePos.y-m_windowHeight/2);
-	if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta ) {
+	glm::vec2 mouseDelta = glm::vec2(newMousePos.x - m_windowWidth / 2, newMousePos.y - m_windowHeight / 2);
+	if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
 		m_target = glm::rotate(mouseDelta.x * rotationSpeed, m_up) * glm::fvec4(m_target, 0);
 	}
 	if (mouseDelta.y > -maxDelta && mouseDelta.y < maxDelta) {
@@ -61,7 +65,7 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 	}
 
 	glm::normalize(m_target);
-	glutWarpPointer(m_windowWidth/2, m_windowHeight/2);
+	glutWarpPointer(m_windowWidth / 2, m_windowHeight / 2);
 }
 
 
@@ -87,6 +91,6 @@ void Camera::MoveDown() {
 }
 
 glm::fmat4x4 Camera::GetMatrix() {
-	return glm::rowMajor4(glm::lookAt(m_pos, m_pos + m_target, m_up));;
+	return glm::rowMajor4(glm::lookAt(m_pos, m_pos + m_target, m_up));
 }
 

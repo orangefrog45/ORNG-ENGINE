@@ -17,6 +17,8 @@
 #include "KeyboardState.h"
 #include "ShaderLibrary.h"
 #include "TimeStep.h"
+#include "Skybox.h"
+
 
 class MainFramework
 {
@@ -42,6 +44,7 @@ private:
 	unsigned int samplerLocation;
 	TimeStep* pTimeStep = nullptr;
 	Camera* pCamera = nullptr;
+	Skybox* pSkybox = nullptr;
 	ShaderLibrary* pShaderLibrary = nullptr;
 	KeyboardState* pKeyboardState = nullptr;
 	std::vector<std::vector<BasicMesh*>> meshArray{ numShaders };

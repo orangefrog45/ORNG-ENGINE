@@ -3,6 +3,7 @@
 #include <freeglut.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/matrix_major_storage.hpp>
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -16,6 +17,7 @@
 #include "TimeStep.h"
 #include "util.h"
 #include "ShaderLibrary.h"
+#include "Skybox.h"
 
 MainFramework::MainFramework() {
 	GLclampf Red = 0.0f, Green = 0.0f, Blue = 0.0f, Alpha = 0.0f;
@@ -24,8 +26,8 @@ MainFramework::MainFramework() {
 	WINDOW_WIDTH = 1920;
 	WINDOW_HEIGHT = 1080;
 	float FOV = 60.0f;
-	float zNear = 0.1f;
-	float zFar = 100.0f;
+	float zNear = 0.01f;
+	float zFar = 1000.0f;
 
 
 	persProjData = { FOV, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT, zNear, zFar };
@@ -39,6 +41,7 @@ bool MainFramework::Init() {
 	pTimeStep = new TimeStep();
 	pCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, pTimeStep);
 	pShaderLibrary = new ShaderLibrary();
+	pSkybox = new Skybox();
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
@@ -47,12 +50,11 @@ bool MainFramework::Init() {
 	glEnable(GL_DEPTH_TEST);
 
 	pShaderLibrary->Init();
-	pShaderLibrary->ActivateProgram(pShaderLibrary->programIDs[basicProgramIndex]);
 
-	glUniform1i(samplerLocation, 0);
+	pSkybox->Init();
 
 	meshArray[basicProgramIndex].push_back(new BasicMesh);
-	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
+	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/Robot.obj")) {
 		return false;
 	}
 
@@ -63,11 +65,12 @@ bool MainFramework::Init() {
 
 	WorldTransform& worldTransform = meshArray[basicProgramIndex][0]->GetWorldTransform();
 	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
-	worldTransform.SetScale(0.3f, 0.3f, 0.3f);
+	worldTransform.SetScale(0.01f, 0.01f, 0.01f);
 
 	WorldTransform& worldTransform2 = meshArray[testProgramIndex][0]->GetWorldTransform();
-	worldTransform2.SetPosition(17.0f, 0.0f, -5.0f);
-	worldTransform2.SetScale(0.3f, 0.3f, 0.3f);
+	worldTransform2.SetPosition(10.0f, 10.0f, -10.0f);
+	worldTransform2.SetScale(0.1f, 0.1f, 0.1f);
+
 
 	return true;
 
@@ -123,15 +126,28 @@ void MainFramework::RenderSceneCB() {
 
 		glm::fmat4x4 cameraMatrix = pCamera->GetMatrix();
 
-		for (unsigned int y = 0; y < meshArray[i].size(); y++) {
+		if (i == skyboxProgramIndex) {
 
-			WorldTransform worldTransform = meshArray[i][y]->GetWorldTransform();
+			glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(pCamera->GetPos());
 
-			glm::fmat4x4 WVP = worldTransform.GetMatrix() * cameraMatrix * projectionMatrix;
+			glm::fmat4x4 WVP = cameraTransMatrix * cameraMatrix * projectionMatrix;
 			glUniformMatrix4fv(WVPLocation, 1, GL_TRUE, &WVP[0][0]);
-
-			meshArray[i][y]->Render();
+			pSkybox->Draw();
 		}
+		else {
+
+			for (unsigned int y = 0; y < meshArray[i].size(); y++) {
+
+				WorldTransform worldTransform = meshArray[i][y]->GetWorldTransform();
+
+				glm::fmat4x4 WVP = worldTransform.GetMatrix() * cameraMatrix * projectionMatrix;
+				glUniformMatrix4fv(WVPLocation, 1, GL_TRUE, &WVP[0][0]);
+
+				meshArray[i][y]->Render();
+			}
+
+		}
+
 	}
 
 	glutPostRedisplay();
@@ -144,6 +160,7 @@ MainFramework::~MainFramework() {
 	delete pCamera;
 	delete pKeyboardState;
 	delete pShaderLibrary;
+	delete pSkybox;
 
 	for (unsigned int i = 0; i < meshArray.size(); i++) {
 		for (unsigned int y = 0; y < meshArray[i].size(); y++) {
