@@ -10,31 +10,31 @@
 #include "GLErrorHandling.h"
 #include "util.h"
 
+ShaderLibrary::ShaderLibrary() {
+	paths = { "res/shaders/SkyboxVS.shader",
+		"res/shaders/SkyboxFS.shader",
+		"res/shaders/BasicVS.shader",
+		"res/shaders/BasicFS.shader",
+		"res/shaders/TestVS.shader",
+		"res/shaders/TestFS.shader" };
+
+}
+
 void ShaderLibrary::Init() {
-	programIDs = { 0, 0, 0 };
-	unsigned int& skyboxProgram = programIDs[skyboxProgramIndex];
-	unsigned int& basicProgram = programIDs[basicProgramIndex];
-	unsigned int& testProgram = programIDs[testProgramIndex];
+	for (unsigned int i = 0; i < paths.size(); i += 2) {
+		unsigned int vertID;
+		unsigned int fragID;
+		GLCall(unsigned int programID = glCreateProgram());
 
-	GLCall(skyboxProgram = glCreateProgram());
-	GLCall(basicProgram = glCreateProgram());
-	GLCall(testProgram = glCreateProgram());
+		CompileShader(GL_VERTEX_SHADER, ParseShader(paths[i]), vertID);
+		CompileShader(GL_FRAGMENT_SHADER, ParseShader(paths[i + 1]), fragID);
 
+		UseShader(vertID, programID);
+		UseShader(fragID, programID);
 
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/BasicVS.shader"), basicVertShaderID);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/BasicFS.shader"), basicFragShaderID);
-	UseShader(basicVertShaderID, basicProgram);
-	UseShader(basicFragShaderID, basicProgram);
+		programIDs.push_back(programID);
+	}
 
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/TestVS.shader"), testVertShaderID);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/TestFS.shader"), testFragShaderID);
-	UseShader(testVertShaderID, testProgram);
-	UseShader(testFragShaderID, testProgram);
-
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/SkyboxVS.shader"), skyboxVertShaderID);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/SkyboxFS.shader"), skyboxFragShaderID);
-	UseShader(skyboxVertShaderID, skyboxProgram);
-	UseShader(skyboxFragShaderID, skyboxProgram);
 }
 
 
@@ -73,23 +73,7 @@ void ShaderLibrary::CompileShader(unsigned int type, const std::string& source, 
 	}
 }
 
-/*unsigned int ShaderLibrary::CreateShader(const std::string& shaderSource, ShaderType shader_type) {
-	unsigned int shaderid;
 
-	switch (shader_type) {
-	case(ShaderType::VERTEX):
-		shaderid = CompileShader(GL_VERTEX_SHADER, shaderSource);
-		break;
-
-	case(ShaderType::FRAGMENT):
-		shaderid = CompileShader(GL_FRAGMENT_SHADER, shaderSource);
-		break;
-	}
-
-	return shaderid;
-
-
-}*/
 void ShaderLibrary::UseShader(unsigned int& id, unsigned int& program) {
 	GLCall(glAttachShader(program, id));
 	GLCall(glDeleteShader(id));

@@ -2,6 +2,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "BasicMesh.h"
+#include "freeglut.h"
 #include "glew.h"
 #include "util.h"
 
@@ -11,6 +12,9 @@
 #define COLOR_TEXTURE_UNIT GL_TEXTURE0
 
 bool BasicMesh::LoadMesh(const std::string& filename) {
+
+	printf("Loading mesh\n");
+	int time = glutGet(GLUT_ELAPSED_TIME);
 
 	GLCall(glGenVertexArrays(1, &m_VAO));
 	GLCall(glBindVertexArray(m_VAO));
@@ -31,7 +35,9 @@ bool BasicMesh::LoadMesh(const std::string& filename) {
 
 	//unbind to ensure no changes
 	glBindVertexArray(0);
+	int timeElapsed = glutGet(GLUT_ELAPSED_TIME) - time;
 
+	printf("Mesh loaded in %sms\n", std::to_string(timeElapsed).c_str());
 	return ret;
 }
 
@@ -54,6 +60,7 @@ bool BasicMesh::InitFromScene(const aiScene* pScene, const std::string& filename
 
 	PopulateBuffers();
 
+	return true;
 }
 
 void BasicMesh::CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices) {
@@ -151,7 +158,7 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 					ret = false;
 				}
 				else {
-					printf("Loaded texture as '%s'\n", fullPath.c_str());
+					//printf("Loaded texture as '%s'\n", fullPath.c_str());
 				}
 			}
 		}

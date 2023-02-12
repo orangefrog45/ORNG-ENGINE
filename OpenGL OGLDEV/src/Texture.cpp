@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stb/stb_image.h>
+#include <string>
 #include "util.h"
 #include "Texture.h"
 
@@ -14,7 +15,6 @@ bool Texture::Load() {
 	int mode = GL_RGB;
 
 	unsigned char* image_data = stbi_load(m_filename.c_str(), &width, &height, &bpp, 0);
-	printf("width: %d", width);
 
 	if (image_data == nullptr) {
 		printf("Can't load texture from '%s' - '%s \n", m_filename.c_str(), stbi_failure_reason);
@@ -24,15 +24,18 @@ bool Texture::Load() {
 	GLCall(glGenTextures(1, &m_textureObj));
 	GLCall(glBindTexture(m_textureTarget, m_textureObj));
 
-	//if (m_textureTarget == GL_TEXTURE_2D) {
-	glTexImage2D(m_textureTarget, 0, mode, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
-	//}
-	/*else if (m_textureTarget >= GL_TEXTURE_CUBE_MAP_POSITIVE_X && m_textureTarget <= GL_TEXTURE_CUBE_MAP_NEGATIVE_Z) {
-		glTexImage2D(m_textureTarget, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
-	}*/
-	//else {
-	//	printf("Unsupported texture target %x\n", m_textureTarget);
-	//}
+	if (m_textureTarget == GL_TEXTURE_2D) {
+		if (m_filename.find(".png") != std::string::npos) {
+			mode = GL_RGBA;
+		}
+		else {
+			mode = GL_RGB;
+		}
+		glTexImage2D(m_textureTarget, 0, mode, width, height, 0, mode, GL_UNSIGNED_BYTE, image_data);
+	}
+	else {
+		printf("Unsupported texture target %x\n", m_textureTarget);
+	}
 
 	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
 	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
@@ -76,13 +79,8 @@ unsigned int Texture::LoadCubeMap(std::vector<const char*> faces) {
 			printf("Can't load texture from '%s' - '%s \n", faces[i], stbi_failure_reason);
 			exit(0);
 		}
-		else {
-			printf("Width: %d", width);
-		}
 
 		stbi_image_free(image_data);
-
-
 
 	}
 	GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, 0));

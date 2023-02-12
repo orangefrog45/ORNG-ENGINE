@@ -46,10 +46,13 @@ int main(int argc, char** argv) {
 
 	int win = glutCreateWindow("UNREAL 8.0");
 
+	InitializeGlutCallbacks();
 	char game_mode_string[64];
-	snprintf(game_mode_string, sizeof(game_mode_string), "%dx%d@32", mainFramework.WINDOW_WIDTH, mainFramework.WINDOW_HEIGHT);
+	snprintf(game_mode_string, sizeof(game_mode_string), "%dx%d.10@32", mainFramework.WINDOW_WIDTH, mainFramework.WINDOW_HEIGHT);
 	glutGameModeString(game_mode_string);
-	glutEnterGameMode();
+	//glutFullScreen();
+	glutSetCursor(GLUT_CURSOR_NONE);
+	//glutEnterGameMode();
 
 	unsigned int res = glewInit();
 	if (GLEW_OK != res)
@@ -63,7 +66,6 @@ int main(int argc, char** argv) {
 	printf("window id: %d\n", win);
 
 
-	InitializeGlutCallbacks();
 
 	if (!mainFramework.Init()) {
 		return 1;

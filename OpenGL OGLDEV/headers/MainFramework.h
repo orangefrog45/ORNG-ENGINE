@@ -32,6 +32,7 @@ public:
 	void ReshapeCB(int w, int h);
 	void CallKeyboardCB(unsigned char key, int mouse_x, int mouse_y);
 	void CallSpecialKeyboardCB(int key, int mouse_x, int mouse_y);
+	void MonitorFrames();
 	void CallSpecialKeysUp(int key, int x, int y);
 	void CallKeysUp(unsigned char key, int x, int y);
 	void PassiveMouseCB(int x, int y);
@@ -41,8 +42,12 @@ public:
 private:
 
 	unsigned int WVPLocation;
+	unsigned int currentFrames;
+	unsigned int lastFrames;
+	unsigned int FPS;
 	unsigned int samplerLocation;
 	TimeStep* pTimeStep = nullptr;
+	TimeStep* pTimeStepFrames;
 	Camera* pCamera = nullptr;
 	Skybox* pSkybox = nullptr;
 	ShaderLibrary* pShaderLibrary = nullptr;

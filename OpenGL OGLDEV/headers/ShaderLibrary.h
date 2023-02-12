@@ -11,7 +11,7 @@ constexpr unsigned int numShaders = 3;
 
 class ShaderLibrary {
 public:
-	ShaderLibrary() = default;
+	ShaderLibrary();
 
 	void Init();
 
@@ -22,7 +22,8 @@ public:
 	void UseShader(unsigned int& id, unsigned int& program);
 	void ActivateProgram(unsigned int& program);
 
-	std::vector<unsigned int> programIDs{ numShaders };
+	std::vector<unsigned int> programIDs;
+	std::vector<std::string> paths;
 
 	unsigned int activeProgramIndex;
 

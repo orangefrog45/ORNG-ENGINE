@@ -39,9 +39,12 @@ bool MainFramework::Init() {
 
 	pKeyboardState = new KeyboardState();
 	pTimeStep = new TimeStep();
+	pTimeStepFrames = new TimeStep();
 	pCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, pTimeStep);
 	pShaderLibrary = new ShaderLibrary();
 	pSkybox = new Skybox();
+	currentFrames = 0;
+	lastFrames = 0;
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
@@ -53,21 +56,21 @@ bool MainFramework::Init() {
 
 	pSkybox->Init();
 
+	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
+	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
+		return false;
+	}*/
+
 	meshArray[basicProgramIndex].push_back(new BasicMesh);
-	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/Robot.obj")) {
+	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
 		return false;
 	}
 
-	meshArray[testProgramIndex].push_back(new BasicMesh);
-	if (!meshArray[testProgramIndex][0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
-		return false;
-	}
-
-	WorldTransform& worldTransform = meshArray[basicProgramIndex][0]->GetWorldTransform();
+	/*WorldTransform& worldTransform = meshArray[basicProgramIndex][0]->GetWorldTransform();
 	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
-	worldTransform.SetScale(0.01f, 0.01f, 0.01f);
+	worldTransform.SetScale(0.01f, 0.01f, 0.01f);*/
 
-	WorldTransform& worldTransform2 = meshArray[testProgramIndex][0]->GetWorldTransform();
+	WorldTransform& worldTransform2 = meshArray[basicProgramIndex][0]->GetWorldTransform();
 	worldTransform2.SetPosition(10.0f, 10.0f, -10.0f);
 	worldTransform2.SetScale(0.1f, 0.1f, 0.1f);
 
@@ -103,11 +106,23 @@ void MainFramework::ReshapeCB(int w, int h) {
 	WINDOW_HEIGHT = h;
 }
 
+void MainFramework::MonitorFrames() {
+	currentFrames++;
+
+	if (glutGet(GLUT_ELAPSED_TIME) - pTimeStepFrames->lastTime > 1000) {
+		pTimeStepFrames->lastTime = glutGet(GLUT_ELAPSED_TIME);
+		FPS = currentFrames - lastFrames;
+		lastFrames = currentFrames;
+		printf("FPS: %s\n", std::to_string(FPS).c_str());
+	}
+
+}
 
 void MainFramework::RenderSceneCB() {
 
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
+	MonitorFrames();
 	pTimeStep->timeInterval = glutGet(GLUT_ELAPSED_TIME) - pTimeStep->lastTime;
 	pTimeStep->lastTime = glutGet(GLUT_ELAPSED_TIME);
 
@@ -157,6 +172,7 @@ void MainFramework::RenderSceneCB() {
 
 MainFramework::~MainFramework() {
 	delete pTimeStep;
+	delete pTimeStepFrames;
 	delete pCamera;
 	delete pKeyboardState;
 	delete pShaderLibrary;
