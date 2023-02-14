@@ -2,12 +2,36 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <glew.h>
 #include <sstream>
+#include "util.h"
 
 constexpr unsigned int skyboxProgramIndex = 0;
 constexpr unsigned int basicProgramIndex = 1;
 constexpr unsigned int testProgramIndex = 2;
 constexpr unsigned int numShaders = 3;
+
+struct Shader {
+	Shader() : WVPLocation(0), samplerLocation(0), programID(0) {};
+	Shader(GLuint WVP, GLuint samp, GLuint programID) : WVPLocation(WVP), samplerLocation(samp), programID(programID) {};
+	GLint WVPLocation;
+	GLint samplerLocation;
+	GLuint programID;
+
+	void ActivateProgram() {
+		GLCall(glLinkProgram(programID));
+		GLCall(glValidateProgram(programID));
+		GLCall(glUseProgram(programID));
+
+		if (!WVPLocation) {
+			GLCall(WVPLocation = glGetUniformLocation(programID, "gTransform"));
+			ASSERT(WVPLocation != -1);
+			GLCall(samplerLocation = glGetUniformLocation(programID, "gSampler"));
+			ASSERT(samplerLocation != -1);
+		}
+
+	}
+};
 
 class ShaderLibrary {
 public:
@@ -20,27 +44,14 @@ public:
 	};
 
 	void UseShader(unsigned int& id, unsigned int& program);
-	void ActivateProgram(unsigned int& program);
 
-	std::vector<unsigned int> programIDs;
 	std::vector<std::string> paths;
 
-	unsigned int activeProgramIndex;
+	std::vector<Shader> shaderData;
+
 
 private:
 	std::string ParseShader(const std::string& filepath);
-	unsigned int CreateShader(const std::string& shaderSource, ShaderType shader_type);
 	void CompileShader(unsigned int type, const std::string& source, unsigned int& id);
-
-	unsigned int skyboxVertShaderID;
-	unsigned int skyboxFragShaderID;
-
-	unsigned int basicVertShaderID;
-	unsigned int basicFragShaderID;
-
-	unsigned int testVertShaderID;
-	unsigned int testFragShaderID;
-
-
 
 };

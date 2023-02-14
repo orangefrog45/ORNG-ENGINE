@@ -24,6 +24,7 @@ void ShaderLibrary::Init() {
 	for (unsigned int i = 0; i < paths.size(); i += 2) {
 		unsigned int vertID;
 		unsigned int fragID;
+		Shader shader;
 		GLCall(unsigned int programID = glCreateProgram());
 
 		CompileShader(GL_VERTEX_SHADER, ParseShader(paths[i]), vertID);
@@ -32,7 +33,8 @@ void ShaderLibrary::Init() {
 		UseShader(vertID, programID);
 		UseShader(fragID, programID);
 
-		programIDs.push_back(programID);
+		shader.programID = programID;
+		shaderData.push_back(shader);
 	}
 
 }
@@ -77,12 +79,4 @@ void ShaderLibrary::CompileShader(unsigned int type, const std::string& source, 
 void ShaderLibrary::UseShader(unsigned int& id, unsigned int& program) {
 	GLCall(glAttachShader(program, id));
 	GLCall(glDeleteShader(id));
-}
-
-void ShaderLibrary::ActivateProgram(unsigned int& program) {
-	GLCall(glLinkProgram(program));
-	GLCall(glValidateProgram(program));
-	GLCall(glUseProgram(program));
-
-	activeProgramIndex = std::find(programIDs.begin(), programIDs.end(), program) - programIDs.begin();
 }

@@ -41,11 +41,9 @@ public:
 
 private:
 
-	unsigned int WVPLocation;
 	unsigned int currentFrames;
 	unsigned int lastFrames;
 	unsigned int FPS;
-	unsigned int samplerLocation;
 	TimeStep* pTimeStep = nullptr;
 	TimeStep* pTimeStepFrames;
 	Camera* pCamera = nullptr;

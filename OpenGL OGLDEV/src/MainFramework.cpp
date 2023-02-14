@@ -132,31 +132,21 @@ void MainFramework::RenderSceneCB() {
 
 	for (unsigned int i = 0; i < meshArray.size(); i++) {
 		//iterate over arrays of meshes with same program, i == shader position in programIDs
-		pShaderLibrary->ActivateProgram(pShaderLibrary->programIDs[i]);
-
-		GLCall(WVPLocation = glGetUniformLocation(pShaderLibrary->programIDs[i], "gTransform"));
-		ASSERT(WVPLocation != -1);
-		GLCall(samplerLocation = glGetUniformLocation(pShaderLibrary->programIDs[i], "gSampler"));
-		ASSERT(samplerLocation != -1);
-
+		pShaderLibrary->shaderData[i].ActivateProgram();
 		glm::fmat4x4 cameraMatrix = pCamera->GetMatrix();
 
+
 		if (i == skyboxProgramIndex) {
-
 			glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(pCamera->GetPos());
-
 			glm::fmat4x4 WVP = cameraTransMatrix * cameraMatrix * projectionMatrix;
-			glUniformMatrix4fv(WVPLocation, 1, GL_TRUE, &WVP[0][0]);
+			glUniformMatrix4fv(pShaderLibrary->shaderData[i].WVPLocation, 1, GL_TRUE, &WVP[0][0]);
 			pSkybox->Draw();
 		}
 		else {
-
 			for (unsigned int y = 0; y < meshArray[i].size(); y++) {
-
 				WorldTransform worldTransform = meshArray[i][y]->GetWorldTransform();
-
 				glm::fmat4x4 WVP = worldTransform.GetMatrix() * cameraMatrix * projectionMatrix;
-				glUniformMatrix4fv(WVPLocation, 1, GL_TRUE, &WVP[0][0]);
+				glUniformMatrix4fv(pShaderLibrary->shaderData[i].WVPLocation, 1, GL_TRUE, &WVP[0][0]);
 
 				meshArray[i][y]->Render();
 			}
