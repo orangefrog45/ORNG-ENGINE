@@ -1,11 +1,36 @@
-#include <glm/glm.hpp>
 #include <glew.h>
-#include "BasicShader.h"
+#include <freeglut.h>
+#include "shaders/BasicShader.h"
+#include <iostream>
 #include "util.h"
+
+void BasicShader::Init() {
+	unsigned int vertID;
+	unsigned int fragID;
+	GLCall(unsigned int tprogramID = glCreateProgram());
+
+	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/BasicVS.shader"), vertID);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/BasicFS.shader"), fragID);
+
+	UseShader(vertID, tprogramID);
+	UseShader(fragID, tprogramID);
+
+	SetProgramID(tprogramID);
+
+
+}
 
 void BasicShader::InitUniforms() {
 	GLCall(WVPLocation = glGetUniformLocation(GetProgramID(), "gTransform"));
-	ASSERT(WVPLocation != -1);
 	GLCall(samplerLocation = glGetUniformLocation(GetProgramID(), "gSampler"));
-	ASSERT(samplerLocation != -1);
 }
+
+const GLint& BasicShader::GetWVPLocation() {
+	return WVPLocation;
+}
+
+const GLint& BasicShader::GetSamplerLocation() {
+	return samplerLocation;
+}
+
+

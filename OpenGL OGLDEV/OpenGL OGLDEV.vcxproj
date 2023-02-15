@@ -144,7 +144,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\BasicMesh.cpp" />
-    <ClCompile Include="src\BasicShader.cpp" />
+    <ClCompile Include="src\shaders\BasicShader.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
     <ClCompile Include="src\GLErrorHandling.cpp" />
@@ -158,6 +158,7 @@
     <ClCompile Include="src\MeshLibrary.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\ShaderLibrary.cpp" />
+    <ClCompile Include="src\shaders\SkyboxShader.cpp" />
     <ClCompile Include="src\Skybox.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
     <ClCompile Include="src\Texture.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\BasicShader.h" />
+    <ClInclude Include="headers\shaders\SkyboxShader.h" />
     <ClInclude Include="headers\Skybox.h" />
     <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="headers\TimeStep.h" />

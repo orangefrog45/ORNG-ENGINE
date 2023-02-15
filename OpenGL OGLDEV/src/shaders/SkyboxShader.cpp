@@ -1,12 +1,37 @@
-#include <glm/glm.hpp>
 #include <glew.h>
-#include "SkyboxShader.h"
+#include <freeglut.h>
+#include "shaders/BasicShader.h"
+#include <iostream>
+#include "shaders/SkyboxShader.h"
 #include "util.h"
+
+void SkyboxShader::Init() {
+	unsigned int vertID;
+	unsigned int fragID;
+	GLCall(unsigned int tprogramID = glCreateProgram());
+
+	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/SkyboxVS.shader"), vertID);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/SkyboxFS.shader"), fragID);
+
+	UseShader(vertID, tprogramID);
+	UseShader(fragID, tprogramID);
+
+	SetProgramID(tprogramID);
+
+
+}
 
 void SkyboxShader::InitUniforms() {
 	GLCall(WVPLocation = glGetUniformLocation(GetProgramID(), "gTransform"));
-	ASSERT(WVPLocation != -1);
 	GLCall(samplerLocation = glGetUniformLocation(GetProgramID(), "gSampler"));
-	ASSERT(samplerLocation != -1);
 }
+
+const GLint& SkyboxShader::GetWVPLocation() {
+	return WVPLocation;
+}
+
+const GLint& SkyboxShader::GetSamplerLocation() {
+	return samplerLocation;
+}
+
 

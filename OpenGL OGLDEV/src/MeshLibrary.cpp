@@ -17,6 +17,7 @@ void MeshLibrary::Init() {
 	shaderLibrary.Init();
 }
 
+
 void MeshLibrary::RenderTestShaderMeshes() {
 	for (unsigned int i = 0; i < testShaderMeshes.size(); i++) {
 		testShaderMeshes[i].Render();

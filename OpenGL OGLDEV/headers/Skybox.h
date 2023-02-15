@@ -4,12 +4,15 @@
 #include <string>
 #include <array>
 #include "Texture.h"
+#include "shaders/SkyboxShader.h"
 
 class Skybox {
 public:
 
 	void Init();
-	void Draw();
+	void Draw(const glm::fmat4& WVP);
+
+	SkyboxShader skyboxShader;
 
 private:
 	std::array<float, 108> skyboxVertices = {

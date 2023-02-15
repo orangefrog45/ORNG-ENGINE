@@ -52,7 +52,7 @@ bool MainFramework::Init() {
 	glEnable(GL_DEPTH_TEST);
 
 	meshLibrary.Init();
-	//pSkybox->Init();
+	pSkybox->Init();
 
 	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
 	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
@@ -127,10 +127,9 @@ void MainFramework::RenderSceneCB() {
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(pCamera->GetPos());
-	pSkybox->Draw();
+	pSkybox->Draw(cameraTransMatrix * pCamera->GetMatrix() * projectionMatrix);
 
 	meshLibrary.RenderBasicShaderMeshes(WorldData(pCamera->GetMatrix(), cameraTransMatrix, projectionMatrix));
-
 
 	glutPostRedisplay();
 
