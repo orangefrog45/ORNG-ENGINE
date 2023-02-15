@@ -44,6 +44,7 @@ bool BasicMesh::LoadMesh(const std::string& filename) {
 bool BasicMesh::InitFromScene(const aiScene* pScene, const std::string& filename) {
 	m_meshes.resize(pScene->mNumMeshes);
 	m_textures.resize(pScene->mNumMaterials);
+	m_materials.resize(pScene->mNumMaterials);
 
 	unsigned int numVertices = 0;
 	unsigned int numIndices = 0;
@@ -162,7 +163,13 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 				}
 			}
 		}
+		aiColor3D AmbientColor(0.0f, 0.0f, 0.0f);
 
+		if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS) {
+			m_materials[i].ambientColor.r = AmbientColor.r;
+			m_materials[i].ambientColor.g = AmbientColor.g;
+			m_materials[i].ambientColor.b = AmbientColor.b;
+		}
 
 	}
 	return ret;
@@ -208,4 +215,12 @@ void BasicMesh::Render() {
 	}
 
 	GLCall(glBindVertexArray(0))
+}
+
+const Material& BasicMesh::GetMaterial() {
+	for (unsigned int i = 0; i < m_materials.size(); i++) {
+		if (m_materials[i].ambientColor != glm::fvec3(0.0f, 0.0f, 0.0f)) {
+			return m_materials[i];
+		}
+	}
 }

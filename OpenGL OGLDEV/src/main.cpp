@@ -37,6 +37,7 @@ static void InitializeGlutCallbacks() {
 
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
+	glewInit();
 	glutInitContextVersion(3, 3);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);

@@ -8,6 +8,7 @@
 #include <assimp/postprocess.h>
 #include "WorldTransform.h"
 #include "Texture.h"
+#include "Material.h"
 
 class BasicMesh {
 public:
@@ -39,6 +40,8 @@ private:
 
 	void CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices);
 
+	const Material& GetMaterial();
+
 	void PopulateBuffers();
 
 	enum BUFFER_TYPE {
@@ -68,6 +71,7 @@ private:
 
 	std::vector<BasicMeshEntry> m_meshes;
 	std::vector<Texture*> m_textures;
+	std::vector<Material> m_materials;
 
 	//temp space before loading into gpu
 	std::vector<glm::fvec3> m_positions;

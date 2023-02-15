@@ -1,28 +1,25 @@
+#include <glew.h>
+#include <freeglut.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include "Shader.h"
-#include "glew.h"
-#include "util.h"
 
 
-unsigned int Shader::Init() {
-	unsigned int vertID;
-	unsigned int fragID;
-	GLCall(unsigned int programID = glCreateProgram());
+void Shader::ActivateProgram() {
+	GLCall(glLinkProgram(programID));
+	GLCall(glValidateProgram(programID));
+	GLCall(glUseProgram(programID));
 
-	CompileShader(GL_VERTEX_SHADER, ParseShader(vertexShaderPath), vertID);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader(fragmentShaderPath), fragID);
+}
 
-	UseShader(vertID, programID);
-	UseShader(fragID, programID);
-
-	m_programID = programID;
+const GLint& Shader::GetProgramID() {
 	return programID;
 }
 
-unsigned int Shader::GetProgramID() {
-	return m_programID;
+void Shader::SetProgramID(const GLint id) {
+	programID = id;
 }
-
 
 std::string Shader::ParseShader(const std::string& filepath) {
 	std::ifstream stream(filepath);
@@ -64,4 +61,3 @@ void Shader::UseShader(unsigned int& id, unsigned int& program) {
 	GLCall(glAttachShader(program, id));
 	GLCall(glDeleteShader(id));
 }
-

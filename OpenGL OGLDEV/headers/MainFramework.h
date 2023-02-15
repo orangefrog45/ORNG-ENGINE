@@ -18,6 +18,7 @@
 #include "ShaderLibrary.h"
 #include "TimeStep.h"
 #include "Skybox.h"
+#include "MeshLibrary.h"
 
 
 class MainFramework
@@ -48,9 +49,8 @@ private:
 	TimeStep* pTimeStepFrames;
 	Camera* pCamera = nullptr;
 	Skybox* pSkybox = nullptr;
-	ShaderLibrary* pShaderLibrary = nullptr;
 	KeyboardState* pKeyboardState = nullptr;
-	std::vector<std::vector<BasicMesh*>> meshArray{ numShaders };
+	MeshLibrary meshLibrary;
 	PersProjData persProjData;
 
 };

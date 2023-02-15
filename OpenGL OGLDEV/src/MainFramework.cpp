@@ -16,7 +16,7 @@
 #include "KeyboardState.h"
 #include "TimeStep.h"
 #include "util.h"
-#include "ShaderLibrary.h"
+#include "MeshLibrary.h"
 #include "Skybox.h"
 
 MainFramework::MainFramework() {
@@ -41,7 +41,6 @@ bool MainFramework::Init() {
 	pTimeStep = new TimeStep();
 	pTimeStepFrames = new TimeStep();
 	pCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, pTimeStep);
-	pShaderLibrary = new ShaderLibrary();
 	pSkybox = new Skybox();
 	currentFrames = 0;
 	lastFrames = 0;
@@ -52,17 +51,15 @@ bool MainFramework::Init() {
 
 	glEnable(GL_DEPTH_TEST);
 
-	pShaderLibrary->Init();
-
-	pSkybox->Init();
+	meshLibrary.Init();
+	//pSkybox->Init();
 
 	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
 	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
 		return false;
 	}*/
-
-	meshArray[basicProgramIndex].push_back(new BasicMesh);
-	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj")) {
+	meshLibrary.basicShaderMeshes.push_back(BasicMesh());
+	if (!(meshLibrary.basicShaderMeshes[0].LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj"))) {
 		return false;
 	}
 
@@ -70,7 +67,7 @@ bool MainFramework::Init() {
 	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
 	worldTransform.SetScale(0.01f, 0.01f, 0.01f);*/
 
-	WorldTransform& worldTransform2 = meshArray[basicProgramIndex][0]->GetWorldTransform();
+	WorldTransform& worldTransform2 = meshLibrary.basicShaderMeshes[0].GetWorldTransform();
 	worldTransform2.SetPosition(10.0f, 10.0f, -10.0f);
 	worldTransform2.SetScale(0.1f, 0.1f, 0.1f);
 
@@ -129,31 +126,11 @@ void MainFramework::RenderSceneCB() {
 	pCamera->HandleInput(pKeyboardState);
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
+	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(pCamera->GetPos());
+	pSkybox->Draw();
 
-	for (unsigned int i = 0; i < meshArray.size(); i++) {
-		//iterate over arrays of meshes with same program, i == shader position in programIDs
-		pShaderLibrary->shaderData[i].ActivateProgram();
-		glm::fmat4x4 cameraMatrix = pCamera->GetMatrix();
+	meshLibrary.RenderBasicShaderMeshes(WorldData(pCamera->GetMatrix(), cameraTransMatrix, projectionMatrix));
 
-
-		if (i == skyboxProgramIndex) {
-			glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(pCamera->GetPos());
-			glm::fmat4x4 WVP = cameraTransMatrix * cameraMatrix * projectionMatrix;
-			glUniformMatrix4fv(pShaderLibrary->shaderData[i].WVPLocation, 1, GL_TRUE, &WVP[0][0]);
-			pSkybox->Draw();
-		}
-		else {
-			for (unsigned int y = 0; y < meshArray[i].size(); y++) {
-				WorldTransform worldTransform = meshArray[i][y]->GetWorldTransform();
-				glm::fmat4x4 WVP = worldTransform.GetMatrix() * cameraMatrix * projectionMatrix;
-				glUniformMatrix4fv(pShaderLibrary->shaderData[i].WVPLocation, 1, GL_TRUE, &WVP[0][0]);
-
-				meshArray[i][y]->Render();
-			}
-
-		}
-
-	}
 
 	glutPostRedisplay();
 
@@ -165,12 +142,5 @@ MainFramework::~MainFramework() {
 	delete pTimeStepFrames;
 	delete pCamera;
 	delete pKeyboardState;
-	delete pShaderLibrary;
 	delete pSkybox;
-
-	for (unsigned int i = 0; i < meshArray.size(); i++) {
-		for (unsigned int y = 0; y < meshArray[i].size(); y++) {
-			delete meshArray[i][y];
-		}
-	}
 }
