@@ -45,11 +45,11 @@ private:
 	unsigned int currentFrames;
 	unsigned int lastFrames;
 	unsigned int FPS;
-	TimeStep* pTimeStep = nullptr;
-	TimeStep* pTimeStepFrames;
-	Camera* pCamera = nullptr;
-	Skybox* pSkybox = nullptr;
-	KeyboardState* pKeyboardState = nullptr;
+	TimeStep timeStep;
+	TimeStep timeStepFrames;
+	Camera camera;
+	Skybox skybox;
+	KeyboardState keyboardState;
 	MeshLibrary meshLibrary;
 	PersProjData persProjData;
 

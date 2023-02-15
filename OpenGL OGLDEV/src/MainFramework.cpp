@@ -37,11 +37,7 @@ MainFramework::MainFramework() {
 
 bool MainFramework::Init() {
 
-	pKeyboardState = new KeyboardState();
-	pTimeStep = new TimeStep();
-	pTimeStepFrames = new TimeStep();
-	pCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, pTimeStep);
-	pSkybox = new Skybox();
+	camera = Camera(WINDOW_WIDTH, WINDOW_HEIGHT, &timeStep);
 	currentFrames = 0;
 	lastFrames = 0;
 
@@ -52,7 +48,7 @@ bool MainFramework::Init() {
 	glEnable(GL_DEPTH_TEST);
 
 	meshLibrary.Init();
-	pSkybox->Init();
+	skybox.Init();
 
 	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
 	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
@@ -77,24 +73,24 @@ bool MainFramework::Init() {
 }
 
 void MainFramework::CallKeysUp(unsigned char key, int x, int y) {
-	pKeyboardState->KeysUp(key, x, y);
+	keyboardState.KeysUp(key, x, y);
 }
 
 void MainFramework::CallSpecialKeysUp(int key, int x, int y) {
-	pKeyboardState->SpecialKeysUp(key, x, y);
+	keyboardState.SpecialKeysUp(key, x, y);
 }
 
 void MainFramework::CallKeyboardCB(unsigned char key, int x, int y) {
-	pKeyboardState->KeyboardCB(key, x, y);
+	keyboardState.KeyboardCB(key, x, y);
 }
 
 void MainFramework::CallSpecialKeyboardCB(int key, int x, int y) {
-	pKeyboardState->SpecialKeyboardCB(key, x, y);
+	keyboardState.SpecialKeyboardCB(key, x, y);
 }
 
 void MainFramework::PassiveMouseCB(int x, int y)
 {
-	pCamera->OnMouse(glm::vec2(x, y));
+	camera.OnMouse(glm::vec2(x, y));
 }
 
 
@@ -106,8 +102,8 @@ void MainFramework::ReshapeCB(int w, int h) {
 void MainFramework::MonitorFrames() {
 	currentFrames++;
 
-	if (glutGet(GLUT_ELAPSED_TIME) - pTimeStepFrames->lastTime > 1000) {
-		pTimeStepFrames->lastTime = glutGet(GLUT_ELAPSED_TIME);
+	if (glutGet(GLUT_ELAPSED_TIME) - timeStepFrames.lastTime > 1000) {
+		timeStepFrames.lastTime = glutGet(GLUT_ELAPSED_TIME);
 		FPS = currentFrames - lastFrames;
 		lastFrames = currentFrames;
 		printf("FPS: %s\n", std::to_string(FPS).c_str());
@@ -120,16 +116,16 @@ void MainFramework::RenderSceneCB() {
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	MonitorFrames();
-	pTimeStep->timeInterval = glutGet(GLUT_ELAPSED_TIME) - pTimeStep->lastTime;
-	pTimeStep->lastTime = glutGet(GLUT_ELAPSED_TIME);
+	timeStep.timeInterval = glutGet(GLUT_ELAPSED_TIME) - timeStep.lastTime;
+	timeStep.lastTime = glutGet(GLUT_ELAPSED_TIME);
 
-	pCamera->HandleInput(pKeyboardState);
+	camera.HandleInput(&keyboardState);
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
-	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(pCamera->GetPos());
-	pSkybox->Draw(cameraTransMatrix * pCamera->GetMatrix() * projectionMatrix);
+	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
+	skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 
-	meshLibrary.RenderBasicShaderMeshes(WorldData(pCamera->GetMatrix(), cameraTransMatrix, projectionMatrix));
+	meshLibrary.RenderBasicShaderMeshes(WorldData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix));
 
 	glutPostRedisplay();
 
@@ -137,9 +133,4 @@ void MainFramework::RenderSceneCB() {
 }
 
 MainFramework::~MainFramework() {
-	delete pTimeStep;
-	delete pTimeStepFrames;
-	delete pCamera;
-	delete pKeyboardState;
-	delete pSkybox;
 }

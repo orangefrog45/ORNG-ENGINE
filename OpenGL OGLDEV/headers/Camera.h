@@ -5,6 +5,7 @@
 
 class Camera {
 public:
+	Camera() = default;
 	Camera(int windowWidth, int windowHeight, TimeStep* timeStep);
 	void SetPosition(float x, float y, float z);
 	void OnMouse(const glm::vec2& newMousePos);
