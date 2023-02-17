@@ -18,10 +18,12 @@ void SkyboxShader::Init() {
 
 	SetProgramID(tprogramID);
 
+	InitUniforms();
 
 }
 
 void SkyboxShader::InitUniforms() {
+	ActivateProgram();
 	GLCall(WVPLocation = glGetUniformLocation(GetProgramID(), "gTransform"));
 	GLCall(samplerLocation = glGetUniformLocation(GetProgramID(), "gSampler"));
 }

@@ -17,10 +17,13 @@ void BasicShader::Init() {
 
 	SetProgramID(tprogramID);
 
+	//store uniforms only once
+	InitUniforms();
 
 }
 
 void BasicShader::InitUniforms() {
+	ActivateProgram();
 	GLCall(WVPLocation = glGetUniformLocation(GetProgramID(), "gTransform"));
 	GLCall(samplerLocation = glGetUniformLocation(GetProgramID(), "gSampler"));
 }

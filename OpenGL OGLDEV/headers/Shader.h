@@ -13,7 +13,6 @@ public:
 
 	void ActivateProgram();
 
-	virtual void InitUniforms() {};
 
 	void CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID);
 
@@ -26,5 +25,6 @@ public:
 	void SetProgramID(const GLint);
 
 private:
+	virtual void InitUniforms() {};
 	unsigned int programID;
 };

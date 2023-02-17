@@ -15,8 +15,6 @@ void Skybox::Init() {
 	cubemapTexture = Texture::LoadCubeMap(faces);
 
 	skyboxShader.Init();
-	skyboxShader.ActivateProgram();
-	skyboxShader.InitUniforms();
 
 	glGenVertexArrays(1, &skyboxVAO);
 	glGenBuffers(1, &skyboxVBO);

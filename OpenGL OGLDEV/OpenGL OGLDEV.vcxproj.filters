@@ -127,5 +127,8 @@
     <ClInclude Include="headers\shaders\SkyboxShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="headers\WorldData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

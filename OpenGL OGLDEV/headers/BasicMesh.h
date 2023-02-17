@@ -9,20 +9,23 @@
 #include "WorldTransform.h"
 #include "Texture.h"
 #include "Material.h"
+#include "WorldData.h"
 
 class BasicMesh {
 public:
 
-	BasicMesh() {};
+	BasicMesh(unsigned int instances);
 	~BasicMesh() {};
 
 	bool LoadMesh(const std::string& filename);
 
 	void Render();
 
+	void UpdateTransformBuffers(const WorldData& data);
+
 	void Render(unsigned int NumInstances, const glm::fmat4x4* WVPMats, const glm::fmat4x4* WorldMats);
 
-	WorldTransform& GetWorldTransform() { return m_worldTransform; };
+	std::vector<WorldTransform>& GetWorldTransforms() { return m_worldTransforms; };
 
 private:
 
@@ -49,12 +52,13 @@ private:
 		POS_VB = 1,
 		TEXCOORD_VB = 2,
 		NORMAL_VB = 3,
-		WVP_MAT_VB = 4,
-		WORLD_MAT_VB = 5,
+		WORLD_MAT_VB = 4,
+		WVP_MAT_VB = 5,
 		NUM_BUFFERS = 6
 	};
 
-	WorldTransform m_worldTransform;
+	std::vector<WorldTransform> m_worldTransforms;
+	unsigned int m_instances;
 	GLuint m_VAO = 0;
 	unsigned int m_buffers[NUM_BUFFERS] = { 0 };
 

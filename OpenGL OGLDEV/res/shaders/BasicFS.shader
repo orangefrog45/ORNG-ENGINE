@@ -1,6 +1,6 @@
-#version 330 core
+#version 430 core
 
-in vec2 TexCoord0;
+layout(location = 0) in vec2 TexCoord0;
 
 out vec4 FragColor;
 

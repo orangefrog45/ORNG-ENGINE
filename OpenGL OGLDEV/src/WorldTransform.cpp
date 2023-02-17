@@ -23,6 +23,10 @@ void WorldTransform::SetPosition(float x, float y, float z) {
 	m_pos.z = z;
 }
 
+glm::fvec3 WorldTransform::GetPosition() {
+	return m_pos;
+}
+
 
 void WorldTransform::SetRotation(float x, float y, float z) {
 	m_rotation.x = x;
@@ -43,7 +47,7 @@ glm::fmat4x4 WorldTransform::GetMatrix() {
 	glm::fmat4x4 transMat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
 
 
-	glm::fmat4x4 worldTransMat = rotMat * transMat * scaleMat;
+	glm::fmat4x4 worldTransMat = rotMat * scaleMat * transMat;
 
 	return worldTransMat;
 }

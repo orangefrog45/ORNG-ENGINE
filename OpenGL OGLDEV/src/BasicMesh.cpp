@@ -5,11 +5,26 @@
 #include "freeglut.h"
 #include "glew.h"
 #include "util.h"
+#include "WorldData.h"
+#include <glm/gtx/matrix_major_storage.hpp>
+#include <iostream>
+#include <random>
 
-#define POSITION_LOCATION 0
-#define TEX_COORD_LOCATION 1
-#define NORMAL_LOCATION 2
+constexpr unsigned int POSITION_LOCATION = 0;
+constexpr unsigned int TEX_COORD_LOCATION = 1;
+constexpr unsigned int NORMAL_LOCATION = 2;
+constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
+constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
+constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
+constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
+
+
 #define COLOR_TEXTURE_UNIT GL_TEXTURE0
+
+BasicMesh::BasicMesh(unsigned int instances) : m_instances(instances) {
+	m_worldTransforms.insert(m_worldTransforms.begin(), instances, WorldTransform());
+	std::cout << m_worldTransforms.size();
+}
 
 bool BasicMesh::LoadMesh(const std::string& filename) {
 
@@ -194,6 +209,53 @@ void BasicMesh::PopulateBuffers() {
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[INDEX_BUFFER]));
 	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), &m_indices[0], GL_STATIC_DRAW));
 
+	/*std::vector<glm::fmat4> transforms;
+
+	for (WorldTransform& worldTransform : m_worldTransforms) {
+		glm::mat4 mat = glm::rowMajor4(worldTransform.GetMatrix());
+		transforms.push_back(mat);
+	}
+
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));*/
+
+
+}
+
+void BasicMesh::UpdateTransformBuffers(const WorldData& data) {
+	std::vector<glm::fmat4> transforms;
+
+	for (WorldTransform& worldTransform : m_worldTransforms) {
+		glm::mat4 mat = glm::rowMajor4(data.projectionMatrix) * glm::rowMajor4(data.cameraMatrix) * glm::rowMajor4(worldTransform.GetMatrix());
+		transforms.push_back(mat);
+	}
+	GLCall(glBindVertexArray(m_VAO));
+
+
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
+
+	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_1));
+	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0));
+	GLCall(glVertexAttribDivisor(WORLD_MAT_LOCATION_1, 1));
+
+	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_2));
+	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4))));
+	GLCall(glVertexAttribDivisor(WORLD_MAT_LOCATION_2, 1));
+
+	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_3));
+	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 2)));
+	GLCall(glVertexAttribDivisor(WORLD_MAT_LOCATION_3, 1));
+
+	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_4));
+	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 3)));
+	GLCall(glVertexAttribDivisor(WORLD_MAT_LOCATION_4, 1));
+
+
+	GLCall(glBindVertexArray(0));
+
+
+
 }
 
 void BasicMesh::Render() {
@@ -207,11 +269,13 @@ void BasicMesh::Render() {
 			m_textures[materialIndex]->Bind(COLOR_TEXTURE_UNIT);
 		}
 
-		GLCall(glDrawElementsBaseVertex(GL_TRIANGLES,
+		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 			m_meshes[i].numIndices,
 			GL_UNSIGNED_INT,
 			(void*)(sizeof(unsigned int) * m_meshes[i].baseIndex),
+			m_instances,
 			m_meshes[i].baseVertex))
+
 	}
 
 	GLCall(glBindVertexArray(0))
