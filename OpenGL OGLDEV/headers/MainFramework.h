@@ -17,6 +17,7 @@
 #include "KeyboardState.h"
 #include "ShaderLibrary.h"
 #include "TimeStep.h"
+#include "shaders/LightingShader.h"
 #include "Skybox.h"
 #include "MeshLibrary.h"
 

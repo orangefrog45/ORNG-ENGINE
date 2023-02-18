@@ -27,6 +27,7 @@ public:
 
 	std::vector<WorldTransform>& GetWorldTransforms() { return m_worldTransforms; };
 
+	const Material& GetMaterial();
 private:
 
 	void Clear();
@@ -43,7 +44,6 @@ private:
 
 	void CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices);
 
-	const Material& GetMaterial();
 
 	void PopulateBuffers();
 
@@ -54,13 +54,19 @@ private:
 		NORMAL_VB = 3,
 		WORLD_MAT_VB = 4,
 		WVP_MAT_VB = 5,
-		NUM_BUFFERS = 6
+		UNIFORM_BUFFER = 6,
+		NUM_BUFFERS = 7
 	};
 
 	std::vector<WorldTransform> m_worldTransforms;
+
 	unsigned int m_instances;
+
 	GLuint m_VAO = 0;
+
 	unsigned int m_buffers[NUM_BUFFERS] = { 0 };
+
+	bool positionsUpdated = true;
 
 #define INVALID_MATERIAL 0xFFFFFFFF
 
@@ -74,7 +80,7 @@ private:
 	};
 
 	std::vector<BasicMeshEntry> m_meshes;
-	std::vector<Texture*> m_textures;
+	std::vector<Texture> m_textures;
 	std::vector<Material> m_materials;
 
 	//temp space before loading into gpu

@@ -6,6 +6,7 @@
 #include <sstream>
 #include "util.h"
 #include "Shader.h"
+#include "shaders/LightingShader.h"
 #include "shaders/BasicShader.h"
 
 class ShaderLibrary {
@@ -13,7 +14,9 @@ public:
 
 	void Init();
 
-	BasicShader basicShader;
+	BaseLight base_light;
+	LightingShader lighting_shader;
+	BasicShader basic_shader;
 
 private:
 

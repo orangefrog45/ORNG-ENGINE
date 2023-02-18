@@ -51,39 +51,42 @@ bool MainFramework::Init() {
 	meshLibrary.Init();
 	skybox.Init();
 
+
 	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
 	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
 		return false;
 	}*/
 
 
-	meshLibrary.basicShaderMeshes.push_back(BasicMesh(2000));
-	if (!(meshLibrary.basicShaderMeshes[0].LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj"))) {
+	meshLibrary.lightingShaderMeshes.push_back(BasicMesh(1000));
+	if (!(meshLibrary.lightingShaderMeshes[0].LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj"))) {
 		return false;
 	}
 
-	static float offset = 0.01f;
-	std::random_device rd;
-	std::mt19937 gen(rd()); // seed the generator
 
-	auto& transforms = meshLibrary.basicShaderMeshes[0].GetWorldTransforms();
+	auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = -10.0f;
+	float angle = 0.0f;
 
 	for (unsigned int i = 0; i < transforms.size(); i++) {
-		x += 4.0f;
-		if (x == 32.0f) {
+		angle += 10.0f;
+		x += 4 * cosf(ExtraMath::ToRadians(angle));
+		y += 4 * sinf(ExtraMath::ToRadians(angle));
+		if (angle == 360) {
+			angle = 0.0f;
 			x = 0.0f;
-			y += 4.0f;
+			y = 0.0f;
+			z -= 4.0f;
 		}
-		if (y == 32.0f) {
+		/*if (y == 32.0f) {
 			y = 0.0f;
 			z += 4.0f;
 		}
 		if (z == 32.0f) {
 			z == 0.0f;
-		}
+		}*/
 		transforms[i].SetPosition(x, y, z);
 		transforms[i].SetScale(0.4f, 0.4f, 0.4f);
 	}
@@ -96,7 +99,7 @@ bool MainFramework::Init() {
 	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
 	worldTransform.SetScale(0.01f, 0.01f, 0.01f);*/
 
-	WorldTransform& worldTransform2 = meshLibrary.basicShaderMeshes[0].GetWorldTransforms()[0];
+	WorldTransform& worldTransform2 = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms()[0];
 	worldTransform2.SetPosition(10.0f, 10.0f, -10.0f);
 	worldTransform2.SetScale(0.1f, 0.1f, 0.1f);
 
@@ -158,9 +161,10 @@ void MainFramework::RenderSceneCB() {
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
 	skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 
+
 	WorldData data = WorldData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix);
 
-	meshLibrary.RenderBasicShaderMeshes(data);
+	meshLibrary.RenderAllMeshes(data);
 
 	glutPostRedisplay();
 

@@ -148,10 +148,10 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 
 	bool ret = true;
 
+
 	for (unsigned int i = 0; i < pScene->mNumMaterials; i++) {
 		const aiMaterial* pMaterial = pScene->mMaterials[i];
 
-		m_textures[i] = NULL;
 
 		if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
 			aiString path;
@@ -165,16 +165,14 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 
 				std::string fullPath = dir + "/" + p;
 
-				m_textures[i] = new Texture(GL_TEXTURE_2D, fullPath.c_str());
+				m_textures[i] = Texture{ GL_TEXTURE_2D, fullPath.c_str() };
 
-				if (!m_textures[i]->Load()) {
+				if (!m_textures[i].Load()) {
 					printf("Error loading texture '%s'\n", fullPath.c_str());
-					delete m_textures[i];
-					m_textures[i] = NULL;
 					ret = false;
 				}
 				else {
-					//printf("Loaded texture as '%s'\n", fullPath.c_str());
+					printf("Loaded texture as '%s'\n", fullPath.c_str());
 				}
 			}
 		}
@@ -209,7 +207,8 @@ void BasicMesh::PopulateBuffers() {
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[INDEX_BUFFER]));
 	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), &m_indices[0], GL_STATIC_DRAW));
 
-	/*std::vector<glm::fmat4> transforms;
+
+	std::vector<glm::fmat4> transforms;
 
 	for (WorldTransform& worldTransform : m_worldTransforms) {
 		glm::mat4 mat = glm::rowMajor4(worldTransform.GetMatrix());
@@ -217,23 +216,23 @@ void BasicMesh::PopulateBuffers() {
 	}
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));*/
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
 
 
 }
 
 void BasicMesh::UpdateTransformBuffers(const WorldData& data) {
+
 	std::vector<glm::fmat4> transforms;
 
 	for (WorldTransform& worldTransform : m_worldTransforms) {
-		glm::mat4 mat = glm::rowMajor4(data.projectionMatrix) * glm::rowMajor4(data.cameraMatrix) * glm::rowMajor4(worldTransform.GetMatrix());
-		transforms.push_back(mat);
+		transforms.push_back(glm::rowMajor4(worldTransform.GetMatrix()));
 	}
 	GLCall(glBindVertexArray(m_VAO));
 
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_STATIC_DRAW));
 
 	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_1));
 	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0));
@@ -256,6 +255,8 @@ void BasicMesh::UpdateTransformBuffers(const WorldData& data) {
 
 
 
+
+
 }
 
 void BasicMesh::Render() {
@@ -265,8 +266,11 @@ void BasicMesh::Render() {
 		unsigned int materialIndex = m_meshes[i].materialIndex;
 		ASSERT(materialIndex < m_textures.size());
 
-		if (m_textures[materialIndex]) {
-			m_textures[materialIndex]->Bind(COLOR_TEXTURE_UNIT);
+		try {
+			m_textures[materialIndex].Bind(COLOR_TEXTURE_UNIT);
+		}
+		catch (int index) {
+			printf("Error accessing texture from material index %d", index);
 		}
 
 		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,

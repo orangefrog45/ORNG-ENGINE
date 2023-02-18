@@ -159,6 +159,7 @@
     <ClCompile Include="src\MeshLibrary.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\ShaderLibrary.cpp" />
+    <ClCompile Include="src\shaders\LightingShader.cpp" />
     <ClCompile Include="src\shaders\SkyboxShader.cpp" />
     <ClCompile Include="src\Skybox.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
@@ -171,8 +172,8 @@
     <None Include="res\shaders\BasicVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
     <None Include="res\shaders\SkyboxVS.shader" />
-    <None Include="res\shaders\TestFS.shader" />
-    <None Include="res\shaders\TestVS.shader" />
+    <None Include="res\shaders\LightingFS.shader" />
+    <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\BasicMesh.h" />
@@ -186,6 +187,7 @@
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\BasicShader.h" />
+    <ClInclude Include="headers\shaders\LightingShader.h" />
     <ClInclude Include="headers\shaders\SkyboxShader.h" />
     <ClInclude Include="headers\Skybox.h" />
     <ClInclude Include="headers\Texture.h" />

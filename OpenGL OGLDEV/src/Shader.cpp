@@ -7,18 +7,22 @@
 
 
 void Shader::ActivateProgram() {
-	GLCall(glLinkProgram(programID));
-	GLCall(glValidateProgram(programID));
-	GLCall(glUseProgram(programID));
+	GLCall(glLinkProgram(m_programID));
+	GLCall(glValidateProgram(m_programID));
+	GLCall(glUseProgram(m_programID));
 
 }
 
-const GLint& Shader::GetProgramID() {
-	return programID;
+const GLint Shader::GetProgramID() {
+	return m_programID;
+}
+
+Shader::~Shader() {
+	GLCall(glDeleteProgram(GetProgramID()));
 }
 
 void Shader::SetProgramID(const GLint id) {
-	programID = id;
+	m_programID = id;
 }
 
 std::string Shader::ParseShader(const std::string& filepath) {

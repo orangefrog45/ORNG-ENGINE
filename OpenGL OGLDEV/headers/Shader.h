@@ -7,12 +7,18 @@
 class Shader {
 public:
 
+	~Shader();
+
 	enum class ShaderType {
 		NONE = -1, VERTEX = 0, FRAGMENT = 1
 	};
 
-	void ActivateProgram();
+	virtual void Init() {};
 
+	virtual void ActivateProgram();
+	const GLint GetProgramID();
+
+protected:
 
 	void CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID);
 
@@ -20,11 +26,10 @@ public:
 
 	std::string ParseShader(const std::string& filepath);
 
-	const GLint& GetProgramID();
-
 	void SetProgramID(const GLint);
+
 
 private:
 	virtual void InitUniforms() {};
-	unsigned int programID;
+	unsigned int m_programID;
 };

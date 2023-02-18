@@ -66,13 +66,16 @@
     <ClCompile Include="src\shaders\SkyboxShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\shaders\LightingShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
     <None Include="res\shaders\BasicVS.shader" />
     <None Include="res\shaders\BasicFS.shader" />
-    <None Include="res\shaders\TestFS.shader" />
-    <None Include="res\shaders\TestVS.shader" />
+    <None Include="res\shaders\LightingFS.shader" />
+    <None Include="res\shaders\LightingVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
   </ItemGroup>
   <ItemGroup>
@@ -128,6 +131,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\WorldData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\LightingShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

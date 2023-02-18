@@ -5,6 +5,7 @@
 
 class Texture {
 public:
+	Texture() = default;
 	Texture(unsigned int textureTarget, const std::string& filename);
 
 	bool Load();
