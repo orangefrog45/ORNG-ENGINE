@@ -5,6 +5,7 @@
 
 class MeshLibrary {
 public:
+	MeshLibrary() {};
 	void Init();
 	std::vector<BasicMesh> basicShaderMeshes;
 	std::vector<BasicMesh> lightingShaderMeshes;

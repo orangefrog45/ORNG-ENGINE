@@ -6,13 +6,6 @@
 #include "Shader.h"
 
 
-void Shader::ActivateProgram() {
-	GLCall(glLinkProgram(m_programID));
-	GLCall(glValidateProgram(m_programID));
-	GLCall(glUseProgram(m_programID));
-
-}
-
 const GLint Shader::GetProgramID() {
 	return m_programID;
 }
@@ -36,6 +29,15 @@ std::string Shader::ParseShader(const std::string& filepath) {
 		ss << line << "\n";
 	}
 	return ss.str();
+}
+
+unsigned int Shader::GetUniform(const std::string& name) {
+	GLCall(int location = glGetUniformLocation(GetProgramID(), name.c_str()));
+	if (location == -1) {
+		std::cout << "ERROR: COULD NOT FIND UNIFORM '" << name << "'" << std::endl;
+		exit(1);
+	}
+	return location;
 }
 
 

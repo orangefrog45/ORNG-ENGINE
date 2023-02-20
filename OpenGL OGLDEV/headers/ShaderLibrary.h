@@ -11,7 +11,7 @@
 
 class ShaderLibrary {
 public:
-
+	ShaderLibrary() {};
 	void Init();
 
 	BaseLight base_light;

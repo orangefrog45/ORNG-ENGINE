@@ -10,13 +10,13 @@
 #include <iostream>
 #include <random>
 
-constexpr unsigned int POSITION_LOCATION = 0;
-constexpr unsigned int TEX_COORD_LOCATION = 1;
-constexpr unsigned int NORMAL_LOCATION = 2;
-constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
-constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
-constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
-constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
+static constexpr unsigned int POSITION_LOCATION = 0;
+static constexpr unsigned int TEX_COORD_LOCATION = 1;
+static constexpr unsigned int NORMAL_LOCATION = 2;
+static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
+static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
+static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
+static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
 #define COLOR_TEXTURE_UNIT GL_TEXTURE0

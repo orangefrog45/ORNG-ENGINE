@@ -13,12 +13,16 @@ public:
 		NONE = -1, VERTEX = 0, FRAGMENT = 1
 	};
 
-	virtual void Init() {};
+	virtual void Init() = 0;
 
-	virtual void ActivateProgram();
+	virtual void ActivateProgram() = 0;
+
 	const GLint GetProgramID();
 
 protected:
+	unsigned int GetUniform(const std::string& name);
+
+	virtual void InitUniforms() = 0;
 
 	void CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID);
 
@@ -30,6 +34,5 @@ protected:
 
 
 private:
-	virtual void InitUniforms() {};
 	unsigned int m_programID;
 };

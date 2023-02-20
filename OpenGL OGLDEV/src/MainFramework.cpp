@@ -58,8 +58,8 @@ bool MainFramework::Init() {
 	}*/
 
 
-	meshLibrary.lightingShaderMeshes.push_back(BasicMesh(1000));
-	if (!(meshLibrary.lightingShaderMeshes[0].LoadMesh("./res/meshes/oranges/10195_Orange-L2.obj"))) {
+	meshLibrary.lightingShaderMeshes.push_back(BasicMesh(50000));
+	if (!(meshLibrary.lightingShaderMeshes[0].LoadMesh("./res/meshes/Rock1/rock2.obj"))) {
 		return false;
 	}
 
@@ -78,7 +78,7 @@ bool MainFramework::Init() {
 			angle = 0.0f;
 			x = 0.0f;
 			y = 0.0f;
-			z -= 4.0f;
+			z -= 2.0f;
 		}
 		/*if (y == 32.0f) {
 			y = 0.0f;
@@ -159,8 +159,37 @@ void MainFramework::RenderSceneCB() {
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
-	skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
+	//skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 
+	auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
+	float x = 0.0f;
+	float y = 0.0f;
+	float z = 0.0f;
+	float angle = 0.0f;
+	static double offset = 0.0f;
+	float rowOffset = 0.0f;
+	static float coefficient = 1.0f;
+
+	for (unsigned int i = 0; i < transforms.size(); i++) {
+		angle += 10.0f;
+		x += 4 * cosf(ExtraMath::ToRadians(angle + rowOffset)) * coefficient;
+		y += 4 * sinf(ExtraMath::ToRadians(angle + rowOffset)) *- coefficient;
+		if (angle == 180.0f) {
+			coefficient *= -1.0;
+		}
+		if (angle >= 360) {
+			coefficient *= 1.0f;
+			angle = 0.0f;
+			z -= 4.0f;
+			x = 0.0f;
+			y = 0.0f;
+			rowOffset += 9.0f;
+		}
+		offset += 0.00005f;
+		transforms[i].SetPosition((cosf(ExtraMath::ToRadians(offset)) * x) - (sinf(ExtraMath::ToRadians(offset)) * y), (sinf(ExtraMath::ToRadians(offset)) * x) + (cosf(ExtraMath::ToRadians(offset)) * y), z);
+		transforms[i].SetScale(0.4f, 0.4f, 0.4f);
+
+	}
 
 	WorldData data = WorldData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix);
 

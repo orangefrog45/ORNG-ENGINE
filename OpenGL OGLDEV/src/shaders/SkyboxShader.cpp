@@ -6,19 +6,27 @@
 #include "util.h"
 
 void SkyboxShader::Init() {
-	unsigned int vertID;
-	unsigned int fragID;
 	GLCall(unsigned int tprogramID = glCreateProgram());
 
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/SkyboxVS.shader"), vertID);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/SkyboxFS.shader"), fragID);
+	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/SkyboxVS.shader"), vert_shader_id);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/SkyboxFS.shader"), frag_shader_id);
 
-	UseShader(vertID, tprogramID);
-	UseShader(fragID, tprogramID);
+	UseShader(vert_shader_id, tprogramID);
+	UseShader(frag_shader_id, tprogramID);
 
 	SetProgramID(tprogramID);
 
 	InitUniforms();
+
+}
+
+void SkyboxShader::ActivateProgram() {
+	GLCall(glLinkProgram(GetProgramID()));
+	GLCall(glValidateProgram(GetProgramID()));
+	GLCall(glUseProgram(GetProgramID()));
+
+	GLCall(glDeleteShader(vert_shader_id));
+	GLCall(glDeleteShader(frag_shader_id));
 
 }
 

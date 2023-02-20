@@ -28,7 +28,8 @@ void MeshLibrary::RenderLightingShaderMeshes(const WorldData& data) {
 	shaderLibrary.lighting_shader.SetCamera(glm::colMajor4(data.cameraMatrix));
 
 	BaseLight base_light = BaseLight();
-	if (lightColor.x > 1.0f || lightColor.x < 0.0f) {
+	PointLight point_light = PointLight(glm::fvec3(-100.0f, 0.0f, -100.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
+	/*if (lightColor.x > 1.0f || lightColor.x < 0.0f) {
 		deltaX *= -1.0f;
 	}
 	if (lightColor.y > 1.0f || lightColor.y < 0.0f) {
@@ -37,11 +38,12 @@ void MeshLibrary::RenderLightingShaderMeshes(const WorldData& data) {
 	if (lightColor.z > 1.0f || lightColor.z < 0.0f) {
 		deltaZ *= -1.0f;
 	}
-	lightColor = glm::fvec3(lightColor.x + deltaX, lightColor.y + deltaY, lightColor.z + deltaZ);
-	base_light.color = lightColor;
+	lightColor = glm::fvec3(lightColor.x + deltaX, lightColor.y + deltaY, lightColor.z + deltaZ)*/;
+	base_light.color = glm::fvec3(0.02f, 0.02f, 0.02f);
 	base_light.ambient_intensity = 1.0f;
 	shaderLibrary.lighting_shader.SetTextureUnit(GL_TEXTURE0);
-	shaderLibrary.lighting_shader.SetLight(base_light);
+	shaderLibrary.lighting_shader.SetPointLight(point_light);
+	shaderLibrary.lighting_shader.SetAmbientLight(base_light);
 
 	for (BasicMesh& mesh : lightingShaderMeshes) {
 

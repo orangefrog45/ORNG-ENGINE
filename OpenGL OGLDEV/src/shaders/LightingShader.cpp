@@ -23,13 +23,18 @@ void LightingShader::SetProjection(const glm::fmat4& proj) {
 	glUniformMatrix4fv(GetProjectionLocation(), 1, GL_TRUE, &proj[0][0]);
 }
 
-void LightingShader::SetLight(const BaseLight& light) {
-	glUniform3f(light_color_loc, light.color.x, light.color.y, light.color.z);
-	glUniform1f(light_ambient_intensity_loc, light.ambient_intensity);
+void LightingShader::SetAmbientLight(const BaseLight& light) {
+	glUniform3f(m_ambient_light_color_loc, light.color.x, light.color.y, light.color.z);
+	glUniform1f(m_light_ambient_intensity_loc, light.ambient_intensity);
+}
+
+void LightingShader::SetPointLight(const PointLight& light) {
+	glUniform3f(m_point_light_color_loc, light.color.x, light.color.y, light.color.z);
+	glUniform3f(m_point_light_position_loc, light.position.x, light.position.y, light.position.z);
 }
 
 void LightingShader::SetMaterial(const Material& material) {
-	glUniform3f(light_color_loc, material.ambientColor.r, material.ambientColor.g, material.ambientColor.b);
+	glUniform3f(m_ambient_light_color_loc, material.ambientColor.r, material.ambientColor.g, material.ambientColor.b);
 }
 
 void LightingShader::SetTextureUnit(unsigned int unit) {
@@ -49,16 +54,14 @@ void LightingShader::ActivateProgram() {
 
 void LightingShader::InitUniforms() {
 	ActivateProgram();
-	GLCall(m_projection_location = glGetUniformLocation(GetProgramID(), "projection"));
-	ASSERT(m_projection_location != -1);
-	GLCall(m_camera_location = glGetUniformLocation(GetProgramID(), "camera"));
-	ASSERT(m_camera_location != -1);
-	GLCall(m_sampler_location = glGetUniformLocation(GetProgramID(), "gSampler"));
-	GLCall(light_ambient_intensity_loc = glGetUniformLocation(GetProgramID(), "g_light.ambient_intensity"));
-	ASSERT(light_ambient_intensity_loc != -1);
-	GLCall(light_color_loc = glGetUniformLocation(GetProgramID(), "g_light.color"));
-	ASSERT(light_color_loc != -1);
-	GLCall(material_ambient_intensity_loc = glGetUniformLocation(GetProgramID(), "g_material.ambient_color"));
+	m_projection_location = GetUniform("projection");
+	m_camera_location = GetUniform("camera");
+	m_sampler_location = GetUniform("gSampler");
+	m_light_ambient_intensity_loc = GetUniform("g_light.ambient_intensity");
+	m_ambient_light_color_loc = GetUniform("g_light.color");
+	m_point_light_color_loc = GetUniform("g_point_light.color");
+	m_point_light_position_loc = GetUniform("g_point_light.pos");
+	//GLCall(material_ambient_intensity_loc = glGetUniformLocation(GetProgramID(), "g_material.ambient_color"));
 	//ASSERT(material_ambient_intensity_loc != -1);
 }
 
