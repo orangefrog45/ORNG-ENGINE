@@ -4,31 +4,28 @@
 #include <glm/gtx/matrix_major_storage.hpp>
 #include "MeshLibrary.h"
 
-void MeshLibrary::RenderBasicShaderMeshes(const WorldData& data) {
-	shaderLibrary.basic_shader.ActivateProgram();
-	shaderLibrary.basic_shader.SetProjection(glm::colMajor4(data.projectionMatrix));
-	shaderLibrary.basic_shader.SetCamera(glm::colMajor4(data.cameraMatrix));
-
-
-	for (BasicMesh& mesh : basicShaderMeshes) {
-
-		mesh.UpdateTransformBuffers(data);
-		mesh.Render();
-	}
-}
 
 void MeshLibrary::Init() {
 	shaderLibrary.Init();
+	grid_mesh.Init();
 }
 
-void MeshLibrary::RenderLightingShaderMeshes(const WorldData& data) {
+void MeshLibrary::DrawGrid(const ViewData& data) {
+	shaderLibrary.grid_shader.ActivateProgram();
+	shaderLibrary.grid_shader.SetProjection(glm::colMajor4(data.projectionMatrix));
+	shaderLibrary.grid_shader.SetCamera(glm::colMajor4(data.cameraMatrix));
+	shaderLibrary.grid_shader.SetCameraPos(data.camera_pos);
+	grid_mesh.Draw();
+}
+
+void MeshLibrary::RenderLightingShaderMeshes(const ViewData& data) {
 
 	shaderLibrary.lighting_shader.ActivateProgram();
 	shaderLibrary.lighting_shader.SetProjection(glm::colMajor4(data.projectionMatrix));
 	shaderLibrary.lighting_shader.SetCamera(glm::colMajor4(data.cameraMatrix));
 
 	BaseLight base_light = BaseLight();
-	PointLight point_light = PointLight(glm::fvec3(-100.0f, 0.0f, -100.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
+	PointLight point_light = PointLight(glm::fvec3(-100.0f, 0.0f, -100.0f), glm::fvec3(0.5f, 0.0f, 0.0f));
 	/*if (lightColor.x > 1.0f || lightColor.x < 0.0f) {
 		deltaX *= -1.0f;
 	}
@@ -39,7 +36,7 @@ void MeshLibrary::RenderLightingShaderMeshes(const WorldData& data) {
 		deltaZ *= -1.0f;
 	}
 	lightColor = glm::fvec3(lightColor.x + deltaX, lightColor.y + deltaY, lightColor.z + deltaZ)*/;
-	base_light.color = glm::fvec3(0.02f, 0.02f, 0.02f);
+	base_light.color = glm::fvec3(0.2f, 0.2f, 0.2f);
 	base_light.ambient_intensity = 1.0f;
 	shaderLibrary.lighting_shader.SetTextureUnit(GL_TEXTURE0);
 	shaderLibrary.lighting_shader.SetPointLight(point_light);
@@ -52,7 +49,6 @@ void MeshLibrary::RenderLightingShaderMeshes(const WorldData& data) {
 	}
 }
 
-void MeshLibrary::RenderAllMeshes(const WorldData& data) {
-	RenderBasicShaderMeshes(data);
+void MeshLibrary::RenderAllMeshes(const ViewData& data) {
 	RenderLightingShaderMeshes(data);
 }

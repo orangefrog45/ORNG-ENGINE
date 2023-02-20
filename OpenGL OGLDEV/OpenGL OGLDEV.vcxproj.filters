@@ -60,7 +60,7 @@
     <ClCompile Include="src\MeshLibrary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\shaders\BasicShader.cpp">
+    <ClCompile Include="src\shaders\GridShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\shaders\SkyboxShader.cpp">
@@ -69,11 +69,14 @@
     <ClCompile Include="src\shaders\LightingShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\GridMesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
-    <None Include="res\shaders\BasicVS.shader" />
-    <None Include="res\shaders\BasicFS.shader" />
+    <None Include="res\shaders\GridVS.shader" />
+    <None Include="res\shaders\GridFS.shader" />
     <None Include="res\shaders\LightingFS.shader" />
     <None Include="res\shaders\LightingVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
@@ -118,7 +121,7 @@
     <ClInclude Include="headers\MeshLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\shaders\BasicShader.h">
+    <ClInclude Include="headers\shaders\GridShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\Shader.h">
@@ -130,10 +133,13 @@
     <ClInclude Include="headers\shaders\SkyboxShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\WorldData.h">
+    <ClInclude Include="headers\ViewData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\LightingShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\GridMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

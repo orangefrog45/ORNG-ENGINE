@@ -11,7 +11,7 @@
 #include "util.h"
 
 void ShaderLibrary::Init() {
-	basic_shader.Init();
+	grid_shader.Init();
 	lighting_shader.Init();
 }
 

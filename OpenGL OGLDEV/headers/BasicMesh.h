@@ -9,7 +9,7 @@
 #include "WorldTransform.h"
 #include "Texture.h"
 #include "Material.h"
-#include "WorldData.h"
+#include "ViewData.h"
 
 class BasicMesh {
 public:
@@ -21,7 +21,7 @@ public:
 
 	void Render();
 
-	void UpdateTransformBuffers(const WorldData& data);
+	void UpdateTransformBuffers(const ViewData& data);
 
 	void Render(unsigned int NumInstances, const glm::fmat4x4* WVPMats, const glm::fmat4x4* WorldMats);
 

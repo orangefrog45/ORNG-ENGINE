@@ -9,7 +9,7 @@
 #include "TimeStep.h"
 
 
-Camera::Camera(int windowWidth, int windowHeight, TimeStep* timeStep) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), timeStep(timeStep), m_speed(0.1f) {
+Camera::Camera(int windowWidth, int windowHeight, TimeStep* timeStep) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), timeStep(timeStep), m_speed(0.03f) {
 	m_target = glm::fvec3(0.0f, 0.0f, -1.0f);
 	m_pos = glm::fvec3(0.0f, 0.0f, 0.0f);
 	m_up = glm::fvec3(0.0f, 1.0f, 0.0f);

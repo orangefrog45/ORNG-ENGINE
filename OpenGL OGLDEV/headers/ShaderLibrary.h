@@ -7,7 +7,7 @@
 #include "util.h"
 #include "Shader.h"
 #include "shaders/LightingShader.h"
-#include "shaders/BasicShader.h"
+#include "shaders/GridShader.h"
 
 class ShaderLibrary {
 public:
@@ -16,7 +16,7 @@ public:
 
 	BaseLight base_light;
 	LightingShader lighting_shader;
-	BasicShader basic_shader;
+	GridShader grid_shader;
 
 private:
 

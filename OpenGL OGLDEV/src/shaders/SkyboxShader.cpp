@@ -1,6 +1,5 @@
 #include <glew.h>
 #include <freeglut.h>
-#include "shaders/BasicShader.h"
 #include <iostream>
 #include "shaders/SkyboxShader.h"
 #include "util.h"

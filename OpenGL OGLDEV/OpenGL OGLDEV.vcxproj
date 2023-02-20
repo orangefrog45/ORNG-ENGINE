@@ -145,7 +145,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\BasicMesh.cpp" />
-    <ClCompile Include="src\shaders\BasicShader.cpp" />
+    <ClCompile Include="src\GridMesh.cpp" />
+    <ClCompile Include="src\shaders\GridShader.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
     <ClCompile Include="src\GLErrorHandling.cpp" />
@@ -168,8 +169,8 @@
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\BasicFS.shader" />
-    <None Include="res\shaders\BasicVS.shader" />
+    <None Include="res\shaders\GridFS.shader" />
+    <None Include="res\shaders\GridVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
     <None Include="res\shaders\SkyboxVS.shader" />
     <None Include="res\shaders\LightingFS.shader" />
@@ -180,20 +181,21 @@
     <ClInclude Include="headers\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
     <ClInclude Include="headers\GLErrorHandling.h" />
+    <ClInclude Include="headers\GridMesh.h" />
     <ClInclude Include="headers\KeyboardState.h" />
     <ClInclude Include="headers\MainFramework.h" />
     <ClInclude Include="headers\Material.h" />
     <ClInclude Include="headers\MeshLibrary.h" />
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\ShaderLibrary.h" />
-    <ClInclude Include="headers\shaders\BasicShader.h" />
+    <ClInclude Include="headers\shaders\GridShader.h" />
     <ClInclude Include="headers\shaders\LightingShader.h" />
     <ClInclude Include="headers\shaders\SkyboxShader.h" />
     <ClInclude Include="headers\Skybox.h" />
     <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="headers\TimeStep.h" />
     <ClInclude Include="headers\util.h" />
-    <ClInclude Include="headers\WorldData.h" />
+    <ClInclude Include="headers\ViewData.h" />
     <ClInclude Include="headers\WorldTransform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

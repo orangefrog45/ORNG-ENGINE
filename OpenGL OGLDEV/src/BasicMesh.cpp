@@ -5,7 +5,6 @@
 #include "freeglut.h"
 #include "glew.h"
 #include "util.h"
-#include "WorldData.h"
 #include <glm/gtx/matrix_major_storage.hpp>
 #include <iostream>
 #include <random>
@@ -221,7 +220,7 @@ void BasicMesh::PopulateBuffers() {
 
 }
 
-void BasicMesh::UpdateTransformBuffers(const WorldData& data) {
+void BasicMesh::UpdateTransformBuffers(const ViewData& data) {
 
 	std::vector<glm::fmat4> transforms;
 
@@ -232,7 +231,7 @@ void BasicMesh::UpdateTransformBuffers(const WorldData& data) {
 
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_STATIC_DRAW));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
 
 	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_1));
 	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0));

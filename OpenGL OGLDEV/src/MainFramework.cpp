@@ -51,7 +51,6 @@ bool MainFramework::Init() {
 	meshLibrary.Init();
 	skybox.Init();
 
-
 	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
 	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
 		return false;
@@ -80,32 +79,20 @@ bool MainFramework::Init() {
 			y = 0.0f;
 			z -= 2.0f;
 		}
-		/*if (y == 32.0f) {
+		if (y == 32.0f) {
 			y = 0.0f;
 			z += 4.0f;
 		}
 		if (z == 32.0f) {
 			z == 0.0f;
-		}*/
+		}
 		transforms[i].SetPosition(x, y, z);
 		transforms[i].SetScale(0.4f, 0.4f, 0.4f);
 	}
-	/*std::uniform_int_distribution<> distr(-10.0f, 10.0f);
-	glm::fvec3 pos = transforms[i].GetPosition();
-	offset += -20.0f;
-	transforms[i].SetPosition(pos.x + offset, pos.y + offset, -50.0f + offset);*/
 
-	/*WorldTransform& worldTransform = meshArray[basicProgramIndex][0]->GetWorldTransform();
-	worldTransform.SetPosition(0.0f, 0.0f, -5.0f);
-	worldTransform.SetScale(0.01f, 0.01f, 0.01f);*/
-
-	WorldTransform& worldTransform2 = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms()[0];
-	worldTransform2.SetPosition(10.0f, 10.0f, -10.0f);
-	worldTransform2.SetScale(0.1f, 0.1f, 0.1f);
 
 
 	return true;
-
 }
 
 void MainFramework::CallKeysUp(unsigned char key, int x, int y) {
@@ -161,7 +148,7 @@ void MainFramework::RenderSceneCB() {
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
 	//skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 
-	auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
+	/*auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = 0.0f;
@@ -173,7 +160,7 @@ void MainFramework::RenderSceneCB() {
 	for (unsigned int i = 0; i < transforms.size(); i++) {
 		angle += 10.0f;
 		x += 4 * cosf(ExtraMath::ToRadians(angle + rowOffset)) * coefficient;
-		y += 4 * sinf(ExtraMath::ToRadians(angle + rowOffset)) *- coefficient;
+		y += 4 * sinf(ExtraMath::ToRadians(angle + rowOffset)) * coefficient;
 		if (angle == 180.0f) {
 			coefficient *= -1.0;
 		}
@@ -190,9 +177,10 @@ void MainFramework::RenderSceneCB() {
 		transforms[i].SetScale(0.4f, 0.4f, 0.4f);
 
 	}
+	*/
+	ViewData data = ViewData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix, camera.GetPos());
 
-	WorldData data = WorldData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix);
-
+	meshLibrary.DrawGrid(data);
 	meshLibrary.RenderAllMeshes(data);
 
 	glutPostRedisplay();
