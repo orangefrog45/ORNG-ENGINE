@@ -8,31 +8,13 @@
 MainFramework mainFramework;
 
 
-static void CallKeyboardCB(unsigned char key, int x, int y) {
-	mainFramework.CallKeyboardCB(key, x, y);
-}
-static void CallSpecialKeyboardCB(int key, int x, int y) {
-	mainFramework.CallSpecialKeyboardCB(key, x, y);
-}
-static void CallSpecialKeysUp(int key, int x, int y) {
-	mainFramework.CallSpecialKeysUp(key, x, y);
-}
-static void CallKeysUp(unsigned char key, int x, int y) {
-	mainFramework.CallKeysUp(key, x, y);
-}
-static void CallRenderSceneCB() {
-	mainFramework.RenderSceneCB();
-}
-static void CallPassiveMouseCB(int x, int y) {
-	mainFramework.PassiveMouseCB(x, y);
-}
 static void InitializeGlutCallbacks() {
-	glutDisplayFunc(CallRenderSceneCB);
-	glutKeyboardFunc(CallKeyboardCB);
-	glutSpecialFunc(CallSpecialKeyboardCB);
-	glutSpecialUpFunc(CallSpecialKeysUp);
-	glutKeyboardUpFunc(CallKeysUp);
-	glutPassiveMotionFunc(CallPassiveMouseCB);
+	glutDisplayFunc([]() {mainFramework.RenderSceneCB(); });
+	glutKeyboardFunc([](unsigned char key, int x, int y) {mainFramework.GetKeyboard().KeyboardCB(key, x, y); });
+	glutSpecialFunc([](int key, int x, int y) {mainFramework.GetKeyboard().SpecialKeyboardCB(key, x, y); });
+	glutSpecialUpFunc([](int key, int x, int y) {mainFramework.GetKeyboard().SpecialKeysUp(key, x, y); });
+	glutKeyboardUpFunc([](unsigned char key, int x, int y) {mainFramework.GetKeyboard().KeysUp(key, x, y); });
+	glutPassiveMotionFunc([](int x, int y) {mainFramework.PassiveMouseCB(x, y); });
 }
 
 int main(int argc, char** argv) {
@@ -41,15 +23,14 @@ int main(int argc, char** argv) {
 	glutInitContextVersion(3, 3);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-	glutInitWindowSize(mainFramework.WINDOW_WIDTH, mainFramework.WINDOW_HEIGHT);
+	glutInitWindowSize(mainFramework.GetWindowWidth(), mainFramework.GetWindowHeight());
 
 	glutInitWindowPosition(200, 100);
 
 	int win = glutCreateWindow("UNREAL 8.0");
 
-	InitializeGlutCallbacks();
 	char game_mode_string[64];
-	snprintf(game_mode_string, sizeof(game_mode_string), "%dx%d.10@32", mainFramework.WINDOW_WIDTH, mainFramework.WINDOW_HEIGHT);
+	snprintf(game_mode_string, sizeof(game_mode_string), "%dx%d.10@32", mainFramework.GetWindowWidth(), mainFramework.GetWindowHeight());
 	glutGameModeString(game_mode_string);
 	//glutFullScreen();
 	glutSetCursor(GLUT_CURSOR_NONE);
@@ -71,6 +52,7 @@ int main(int argc, char** argv) {
 	if (!mainFramework.Init()) {
 		return 1;
 	}
+	InitializeGlutCallbacks();
 
 	glutMainLoop();
 

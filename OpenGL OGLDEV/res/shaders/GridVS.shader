@@ -17,7 +17,7 @@ out vec3 vs_position;
 void main() {
 	cam_pos = camera_pos;
 	TexCoord0 = TexCoord;
-	vec4 world_pos = transform * vec4(position.x, position.y, position.z, 1.0);
+	vec4 world_pos = transform * vec4(position, 1.0);
 	vs_position = vec3(world_pos);
 	vec4 pos = projection * camera * vec4(world_pos.x, world_pos.y, world_pos.z, 1.0);
 	gl_Position = pos;

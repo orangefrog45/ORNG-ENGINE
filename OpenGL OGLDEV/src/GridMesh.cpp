@@ -12,27 +12,24 @@ static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
 void GridMesh::CheckBoundary(glm::fvec3 camera_pos) {
-	if (abs(camera_pos.x - center_x) > 100.0f || abs(camera_pos.z - center_z) > 100.0f) {
+	if (abs(camera_pos.x - center_x) > grid_width / 5 || abs(camera_pos.z - center_z) > grid_width / 5) {
 		transform_array.clear();
 
 		float rounded_z = glm::round(camera_pos.z / 100.f) * 100.f;
 		float rounded_x = glm::round(camera_pos.x / 100.f) * 100.f;
 		center_x = rounded_x;
 		center_z = rounded_z;
-		std::cout << "Z: " << rounded_z << std::endl;
-		std::cout << "X: " << rounded_x << std::endl;
-		std::cout << "CAMERA Z: " << camera_pos.z << std::endl;
-		for (float z = rounded_z; z <= rounded_z + 500.0f; z += 10.0f) {
+		for (float z = rounded_z; z <= rounded_z + grid_width; z += 10.0f) {
 			WorldTransform transform;
-			transform.SetPosition(rounded_x - 250.0f, 0.0f, z - 250.f);
+			transform.SetPosition(rounded_x - grid_width / 2, 0.0f, z - grid_width / 2);
 			transform_array.push_back(glm::rowMajor4(transform.GetMatrix()));
 			transform_array.push_back(transform.GetMatrix());
 
 		}
 
-		for (float x = rounded_x; x <= rounded_x + 500.0f; x += 10.0f) {
+		for (float x = rounded_x; x <= rounded_x + grid_width; x += 10.0f) {
 			WorldTransform transform;
-			transform.SetPosition(x - 250.0f, 0.0f, rounded_z + 250.0f);
+			transform.SetPosition(x - grid_width / 2, 0.0f, rounded_z + grid_width / 2);
 			transform.SetRotation(0.0f, 90.f, 0.f);
 			transform_array.push_back(glm::rowMajor4(transform.GetMatrix()));
 		}

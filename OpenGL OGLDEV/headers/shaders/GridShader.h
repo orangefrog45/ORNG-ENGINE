@@ -6,9 +6,9 @@ class GridShader : public Shader {
 public:
 	void Init() override;
 	void ActivateProgram() override;
-	const GLint& GetProjectionLocation();
-	const GLint& GetCameraLocation();
-	const GLint& GetSamplerLocation();
+	const GLint& GetProjectionLocation() const;
+	const GLint& GetCameraLocation() const;
+	const GLint& GetSamplerLocation() const;
 	void SetProjection(const glm::fmat4& proj);
 	void SetCameraPos(const glm::fvec3 pos);
 	void SetCamera(const glm::fmat4& cam);

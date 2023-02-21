@@ -21,26 +21,21 @@
 #include "Skybox.h"
 
 MainFramework::MainFramework() {
-	GLclampf Red = 0.0f, Green = 0.0f, Blue = 0.0f, Alpha = 0.0f;
-	glClearColor(Red, Green, Blue, Alpha);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	WINDOW_WIDTH = 1920;
-	WINDOW_HEIGHT = 1080;
-	float FOV = 60.0f;
-	float zNear = 0.01f;
-	float zFar = 1000.0f;
+	constexpr float FOV = 60.0f;
+	constexpr float zNear = 0.01f;
+	constexpr float zFar = 1000.0f;
 
-
-	persProjData = { FOV, (float)WINDOW_WIDTH, (float)WINDOW_HEIGHT, zNear, zFar };
+	persProjData = { FOV, (float)m_window_width, (float)m_window_height, zNear, zFar };
 
 }
 
 
 bool MainFramework::Init() {
-
-	camera = Camera(WINDOW_WIDTH, WINDOW_HEIGHT, &timeStep);
-	currentFrames = 0;
-	lastFrames = 0;
+	camera = Camera(m_window_width, m_window_height, &time_step_camera);
+	m_current_frames = 0;
+	m_last_frames = 0;
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
@@ -52,64 +47,13 @@ bool MainFramework::Init() {
 	meshLibrary.Init();
 	skybox.Init();
 
-	/*meshArray[basicProgramIndex].push_back(new BasicMesh);
-	if (!meshArray[basicProgramIndex][0]->LoadMesh("./res/meshes/robot/robot.obj")) {
-		return false;
-	}*/
-
-
-	meshLibrary.lightingShaderMeshes.push_back(BasicMesh(50000));
+	meshLibrary.lightingShaderMeshes.emplace_back(BasicMesh(50000));
 	if (!(meshLibrary.lightingShaderMeshes[0].LoadMesh("./res/meshes/Rock1/rock2.obj"))) {
 		return false;
 	}
 
 
-	auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = -10.0f;
-	float angle = 0.0f;
-
-	for (unsigned int i = 0; i < transforms.size(); i++) {
-		angle += 10.0f;
-		x += 4 * cosf(ExtraMath::ToRadians(angle));
-		y += 4 * sinf(ExtraMath::ToRadians(angle));
-		if (angle == 360) {
-			angle = 0.0f;
-			x = 0.0f;
-			y = 0.0f;
-			z -= 2.0f;
-		}
-		if (y == 32.0f) {
-			y = 0.0f;
-			z += 4.0f;
-		}
-		if (z == 32.0f) {
-			z == 0.0f;
-		}
-		transforms[i].SetPosition(x, y, z);
-		transforms[i].SetScale(0.4f, 0.4f, 0.4f);
-	}
-
-
-
 	return true;
-}
-
-void MainFramework::CallKeysUp(unsigned char key, int x, int y) {
-	keyboardState.KeysUp(key, x, y);
-}
-
-void MainFramework::CallSpecialKeysUp(int key, int x, int y) {
-	keyboardState.SpecialKeysUp(key, x, y);
-}
-
-void MainFramework::CallKeyboardCB(unsigned char key, int x, int y) {
-	keyboardState.KeyboardCB(key, x, y);
-}
-
-void MainFramework::CallSpecialKeyboardCB(int key, int x, int y) {
-	keyboardState.SpecialKeyboardCB(key, x, y);
 }
 
 void MainFramework::PassiveMouseCB(int x, int y)
@@ -117,20 +61,24 @@ void MainFramework::PassiveMouseCB(int x, int y)
 	camera.OnMouse(glm::vec2(x, y));
 }
 
+KeyboardState& MainFramework::GetKeyboard() {
+	return keyboardState;
+}
+
 
 void MainFramework::ReshapeCB(int w, int h) {
-	WINDOW_WIDTH = w;
-	WINDOW_HEIGHT = h;
+	m_window_width = w;
+	m_window_height = h;
 }
 
 void MainFramework::MonitorFrames() {
-	currentFrames++;
+	m_current_frames++;
 
-	if (glutGet(GLUT_ELAPSED_TIME) - timeStepFrames.lastTime > 1000) {
-		timeStepFrames.lastTime = glutGet(GLUT_ELAPSED_TIME);
-		FPS = currentFrames - lastFrames;
-		lastFrames = currentFrames;
-		printf("FPS: %s\n", std::to_string(FPS).c_str());
+	if (glutGet(GLUT_ELAPSED_TIME) - time_step_frames.lastTime > 1000) {
+		time_step_frames.lastTime = glutGet(GLUT_ELAPSED_TIME);
+		m_fps = m_current_frames - m_last_frames;
+		m_last_frames = m_current_frames;
+		printf("FPS: %s\n", std::to_string(m_fps).c_str());
 	}
 
 }
@@ -140,48 +88,18 @@ void MainFramework::RenderSceneCB() {
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	MonitorFrames();
-	timeStep.timeInterval = glutGet(GLUT_ELAPSED_TIME) - timeStep.lastTime;
-	timeStep.lastTime = glutGet(GLUT_ELAPSED_TIME);
+	time_step_camera.timeInterval = glutGet(GLUT_ELAPSED_TIME) - time_step_camera.lastTime;
+	time_step_camera.lastTime = glutGet(GLUT_ELAPSED_TIME);
 
-	camera.HandleInput(&keyboardState);
+	camera.HandleInput(keyboardState);
+
+	meshLibrary.AnimateGeometry();
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
-	skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
-
-	/*auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
-	float x = 0.0f;
-	float y = 0.0f;
-	float z = 0.0f;
-	float angle = 0.0f;
-	static double offset = 0.0f;
-	float rowOffset = 0.0f;
-	static float coefficient = 1.0f;
-
-	for (unsigned int i = 0; i < transforms.size(); i++) {
-		angle += 10.0f;
-		x += 4 * cosf(ExtraMath::ToRadians(angle + rowOffset)) * coefficient;
-		y += 4 * sinf(ExtraMath::ToRadians(angle + rowOffset)) * coefficient;
-		if (angle == 180.0f) {
-			coefficient *= -1.0;
-		}
-		if (angle >= 360) {
-			coefficient *= 1.0f;
-			angle = 0.0f;
-			z -= 4.0f;
-			x = 0.0f;
-			y = 0.0f;
-			rowOffset += 9.0f;
-		}
-		offset += 0.00005f;
-		transforms[i].SetPosition((cosf(ExtraMath::ToRadians(offset)) * x) - (sinf(ExtraMath::ToRadians(offset)) * y), (sinf(ExtraMath::ToRadians(offset)) * x) + (cosf(ExtraMath::ToRadians(offset)) * y), z);
-		transforms[i].SetScale(0.4f, 0.4f, 0.4f);
-
-	}
-	*/
+	//skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 	ViewData data = ViewData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix, camera.GetPos());
 
-	meshLibrary.DrawGrid(data);
 	meshLibrary.RenderAllMeshes(data);
 
 	glutPostRedisplay();

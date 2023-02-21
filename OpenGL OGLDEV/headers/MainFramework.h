@@ -27,31 +27,29 @@ class MainFramework
 public:
 	MainFramework();
 	~MainFramework();
-
 	bool Init();
-
 	void RenderSceneCB();
 	void ReshapeCB(int w, int h);
-	void CallKeyboardCB(unsigned char key, int mouse_x, int mouse_y);
-	void CallSpecialKeyboardCB(int key, int mouse_x, int mouse_y);
-	void MonitorFrames();
-	void CallSpecialKeysUp(int key, int x, int y);
-	void CallKeysUp(unsigned char key, int x, int y);
 	void PassiveMouseCB(int x, int y);
-	int WINDOW_WIDTH;
-	int WINDOW_HEIGHT;
+	KeyboardState& GetKeyboard();
+	unsigned int GetWindowWidth() const { return m_window_width; };
+	unsigned int GetWindowHeight() const { return m_window_height; };
+
 
 private:
 
-	unsigned int currentFrames;
-	unsigned int lastFrames;
-	unsigned int FPS;
-	TimeStep timeStep;
-	TimeStep timeStepFrames;
+	void MonitorFrames();
+	unsigned int m_current_frames;
+	unsigned int m_last_frames;
+	unsigned int m_fps;
+	TimeStep time_step_camera;
+	TimeStep time_step_frames;
 	Camera camera;
 	Skybox skybox;
 	KeyboardState keyboardState;
 	MeshLibrary meshLibrary;
 	PersProjData persProjData;
+	unsigned int m_window_width = 1920;
+	unsigned int m_window_height = 1080;
 
 };

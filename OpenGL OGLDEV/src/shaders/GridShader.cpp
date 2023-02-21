@@ -16,7 +16,6 @@ void GridShader::Init() {
 
 	SetProgramID(tprogramID);
 
-	//store uniforms only once
 	InitUniforms();
 
 }
@@ -42,7 +41,7 @@ void GridShader::InitUniforms() {
 }
 
 
-const GLint& GridShader::GetProjectionLocation() {
+const GLint& GridShader::GetProjectionLocation() const {
 	return projectionLocation;
 }
 
@@ -56,11 +55,11 @@ void GridShader::SetProjection(const glm::fmat4& proj) {
 
 
 
-const GLint& GridShader::GetCameraLocation() {
+const GLint& GridShader::GetCameraLocation() const {
 	return cameraLocation;
 }
 
-const GLint& GridShader::GetSamplerLocation() {
+const GLint& GridShader::GetSamplerLocation() const {
 	return samplerLocation;
 }
 

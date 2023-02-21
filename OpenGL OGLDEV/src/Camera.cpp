@@ -9,10 +9,7 @@
 #include "TimeStep.h"
 
 
-Camera::Camera(int windowWidth, int windowHeight, TimeStep* timeStep) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), timeStep(timeStep), m_speed(0.03f) {
-	m_target = glm::fvec3(0.0f, 0.0f, -1.0f);
-	m_pos = glm::fvec3(0.0f, 0.0f, 100.0f);
-	m_up = glm::fvec3(0.0f, 1.0f, 0.0f);
+Camera::Camera(int windowWidth, int windowHeight, const TimeStep* time_step) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), time_step(time_step) {
 }
 
 void Camera::SetPosition(float x, float y, float z) {
@@ -21,31 +18,29 @@ void Camera::SetPosition(float x, float y, float z) {
 	m_pos.z = z;
 }
 
-glm::fvec3 Camera::GetPos() {
+glm::fvec3 Camera::GetPos() const {
 	return m_pos;
 }
 
-void Camera::HandleInput(KeyboardState* keyboard) {
+void Camera::HandleInput(const KeyboardState& keyboard_state) {
 
-	KeyboardState keyboardState = *keyboard;
-	if (keyboardState.wPressed == true) {
+	if (keyboard_state.wPressed)
 		MoveForward();
-	};
-	if (keyboardState.aPressed == true) {
+
+	if (keyboard_state.aPressed)
 		StrafeLeft();
-	};
-	if (keyboardState.sPressed == true) {
+
+	if (keyboard_state.sPressed)
 		MoveBackward();
-	};
-	if (keyboardState.dPressed == true) {
+
+	if (keyboard_state.dPressed)
 		StrafeRight();
-	};
-	if (keyboardState.ePressed == true) {
+
+	if (keyboard_state.ePressed)
 		MoveUp();
-	};
-	if (keyboardState.qPressed == true) {
+
+	if (keyboard_state.qPressed)
 		MoveDown();
-	};
 }
 
 void Camera::OnMouse(const glm::vec2& newMousePos) {
@@ -70,27 +65,27 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 
 
 void Camera::MoveForward() {
-	m_pos -= m_target * m_speed * (float)timeStep->timeInterval;
+	m_pos -= m_target * m_speed * (float)time_step->timeInterval;
 }
 void Camera::MoveBackward() {
-	m_pos += m_target * m_speed * (float)timeStep->timeInterval;
+	m_pos += m_target * m_speed * (float)time_step->timeInterval;
 }
 void Camera::StrafeLeft() {
 	glm::fvec3 left = glm::normalize(glm::cross(m_up, m_target));
-	m_pos += left * m_speed * (float)timeStep->timeInterval;
+	m_pos += left * m_speed * (float)time_step->timeInterval;
 }
 void Camera::StrafeRight() {
 	glm::fvec3 right = glm::normalize(glm::cross(m_target, m_up));
-	m_pos += right * m_speed * (float)timeStep->timeInterval;
+	m_pos += right * m_speed * (float)time_step->timeInterval;
 }
 void Camera::MoveUp() {
-	m_pos += m_speed * m_up * (float)timeStep->timeInterval;
+	m_pos += m_speed * m_up * (float)time_step->timeInterval;
 }
 void Camera::MoveDown() {
-	m_pos -= m_speed * m_up * (float)timeStep->timeInterval;
+	m_pos -= m_speed * m_up * (float)time_step->timeInterval;
 }
 
-glm::fmat4x4 Camera::GetMatrix() {
+glm::fmat4x4 Camera::GetMatrix() const {
 	return glm::rowMajor4(glm::lookAt(m_pos, m_pos + m_target, m_up));
 }
 
