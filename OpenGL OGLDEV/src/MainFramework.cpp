@@ -45,7 +45,8 @@ bool MainFramework::Init() {
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
-
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 
 	meshLibrary.Init();
@@ -146,7 +147,7 @@ void MainFramework::RenderSceneCB() {
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
-	//skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
+	skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 
 	/*auto& transforms = meshLibrary.lightingShaderMeshes[0].GetWorldTransforms();
 	float x = 0.0f;

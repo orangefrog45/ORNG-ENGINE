@@ -15,6 +15,7 @@ void MeshLibrary::DrawGrid(const ViewData& data) {
 	shaderLibrary.grid_shader.SetProjection(glm::colMajor4(data.projectionMatrix));
 	shaderLibrary.grid_shader.SetCamera(glm::colMajor4(data.cameraMatrix));
 	shaderLibrary.grid_shader.SetCameraPos(data.camera_pos);
+	grid_mesh.CheckBoundary(data.camera_pos);
 	grid_mesh.Draw();
 }
 

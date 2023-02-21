@@ -9,5 +9,5 @@ out vec4 FragColor;
 void main()
 {
 	float distance = length(vec2(cam_pos.xz - vs_position.xz)) * 0.05;
-	FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f) * ((1 / distance) - 0.15);
+	FragColor = vec4(1.0f, 1.0f, 1.0f, (1.0f * ((1 / distance) - 0.15)));
 };

@@ -52,7 +52,7 @@ glm::fmat4x4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, flo
 	glm::fmat4x4 translationMatrix(
 		1.0f, 0.0f, 0.0f, tranX,
 		0.0f, 1.0f, 0.0f, tranY,
-		0.0f, 0.0f, 1.0f, -tranZ,
+		0.0f, 0.0f, 1.0f, tranZ,
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
