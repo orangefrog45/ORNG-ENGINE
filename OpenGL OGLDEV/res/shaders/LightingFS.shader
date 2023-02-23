@@ -21,8 +21,9 @@ struct Material {
 };
 
 uniform PointLight g_point_light;
-uniform BaseLight g_light;
+uniform BaseLight g_light; // ambient
 uniform Material g_material;
+uniform vec3 view_pos;
 
 
 uniform sampler2D gSampler;
@@ -31,13 +32,23 @@ void main()
 {
 
 	//ambient
-	vec4 ambient_light = vec4(g_light.color, 1.0f) * g_light.ambient_intensity;
+	vec3 ambient_light = g_light.color * g_light.ambient_intensity;
+
 	//diffuse
+	vec3 norm = normalize(vs_normal);
 	vec3 pos_to_light_dir_vec = normalize(g_point_light.pos - vs_position);
-	float diffuse = clamp(dot(pos_to_light_dir_vec, vs_normal), 0, 1);
-	vec3 diffuse_final = g_point_light.color * diffuse;
+	float diffuse = clamp(dot(pos_to_light_dir_vec, norm), 0, 1);
+	vec3 diffuse_final = g_point_light.color * diffuse * g_material.ambient_color;
 
-	FragColor = texture2D(gSampler, TexCoord0) * ambient_light * vec4(g_material.ambient_color.xyz, 1.0) + vec4(diffuse_final, 1.0f);
+	//specular
+	float specular_strength = 0.5;
+	vec3 view_dir = normalize(view_pos - vs_position);
+	vec3 reflect_dir = reflect(-pos_to_light_dir_vec, norm);
+	float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
+	vec3 specular = specular_strength * spec * g_point_light.color;
 
-	//FragColor = texture2D(gSampler, TexCoord0) * vec4(g_material.ambient_color, 1.0f) * vec4(g_light.color, 1.0f) * g_light.ambient_intensity;
+	vec3 result = (ambient_light + diffuse_final + specular);
+
+	FragColor = vec4(result, 1.0) * texture2D(gSampler, TexCoord0);
+
 };

@@ -31,10 +31,13 @@ void LightingShader::SetAmbientLight(const BaseLight& light) {
 
 void LightingShader::SetPointLight(PointLight& light) {
 	glUniform3f(m_point_light_color_loc, light.color.x, light.color.y, light.color.z);
-	glm::fmat4 transform = light.transform.GetMatrix();
 	glm::fvec3 pos = light.transform.GetPosition();
 
 	glUniform3f(m_point_light_position_loc, pos.x, pos.y, pos.z);
+}
+
+void LightingShader::SetViewPos(const glm::fvec3& pos) {
+	glUniform3f(m_camera_view_pos_loc, pos.x, pos.y, pos.z);
 }
 
 void LightingShader::SetMaterial(const Material& material) {
@@ -66,6 +69,7 @@ void LightingShader::InitUniforms() {
 	m_point_light_color_loc = GetUniform("g_point_light.color");
 	m_point_light_position_loc = GetUniform("g_point_light.pos");
 	m_material_ambient_intensity_loc = GetUniform("g_material.ambient_color");
+	m_camera_view_pos_loc = GetUniform("view_pos");
 }
 
 const GLint& LightingShader::GetProjectionLocation() {

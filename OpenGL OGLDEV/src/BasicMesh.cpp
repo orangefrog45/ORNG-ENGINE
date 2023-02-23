@@ -283,6 +283,9 @@ const Material& BasicMesh::GetMaterial() {
 			return m_materials[i];
 		}
 	}
-	std::cout << "ERROR: NO MATERIAL FOUND" << std::endl;
-	ASSERT(false);
+	Material placeholder = Material();
+	placeholder.ambientColor = glm::fvec3(1.0f, 1.0f, 1.0f);
+	//std::cout << "ERROR: NO MATERIAL FOUND" << std::endl;
+	return placeholder;
+	//ASSERT(false);
 }

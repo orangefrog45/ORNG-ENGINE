@@ -34,6 +34,7 @@ public:
 	const GLint& GetSamplerLocation();
 	void SetProjection(const glm::fmat4& proj);
 	void SetCamera(const glm::fmat4& cam);
+	void SetViewPos(const glm::fvec3& pos);
 	void SetAmbientLight(const BaseLight& light);
 	void SetPointLight(PointLight& light);
 	void SetTextureUnit(unsigned int unit);
@@ -45,6 +46,7 @@ private:
 	unsigned int frag_shader_id;
 	void InitUniforms() override;
 	GLint m_ambient_light_color_loc;
+	GLint m_camera_view_pos_loc;
 	GLint m_point_light_position_loc;
 	GLint m_point_light_color_loc;
 	GLint m_light_ambient_intensity_loc;

@@ -37,6 +37,14 @@ bool MainFramework::Init() {
 	m_current_frames = 0;
 	m_last_frames = 0;
 
+	std::shared_ptr<BasicMesh> mesh = std::make_shared<BasicMesh>(1);
+
+	meshLibrary.lightingShaderMeshes.emplace_back(mesh);
+	if (!(mesh->LoadMesh("./res/meshes/oranges/orange.obj"))) {
+		return false;
+	}
+	meshLibrary.AnimateGeometry();
+
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
@@ -46,14 +54,6 @@ bool MainFramework::Init() {
 
 	meshLibrary.Init();
 	skybox.Init();
-
-	std::shared_ptr<BasicMesh> mesh = std::make_shared<BasicMesh>(10000);
-
-	meshLibrary.lightingShaderMeshes.emplace_back(mesh);
-	if (!(mesh->LoadMesh("./res/meshes/Rock1/rock2.obj"))) {
-		return false;
-	}
-	meshLibrary.AnimateGeometry();
 
 
 	return true;
@@ -95,10 +95,13 @@ void MainFramework::RenderSceneCB() {
 
 	camera.HandleInput(keyboardState);
 
+	meshLibrary.AnimateGeometry();
+
+
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());
-	//skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
+	skybox.Draw(cameraTransMatrix * camera.GetMatrix() * projectionMatrix);
 	ViewData data = ViewData(camera.GetMatrix(), cameraTransMatrix, projectionMatrix, camera.GetPos());
 
 	meshLibrary.RenderAllMeshes(data);

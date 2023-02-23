@@ -49,7 +49,7 @@ void MeshLibrary::AnimateGeometry() {
 		offset += 0.00005f;
 		transforms[i].SetPosition((cosf(ExtraMath::ToRadians(offset)) * x) - (sinf(ExtraMath::ToRadians(offset)) * y), (sinf(ExtraMath::ToRadians(offset)) * x) + (cosf(ExtraMath::ToRadians(offset)) * y), z);
 		transforms[i].SetRotation(offset, -offset, offset);
-		transforms[i].SetScale(1.0f, 10.0f, 1.f);
+		transforms[i].SetScale(1.0f, 1.0f, 1.f);
 
 	}
 }
@@ -62,13 +62,14 @@ void MeshLibrary::RenderLightingShaderMeshes(const ViewData& data) {
 	shaderLibrary.lighting_shader.SetCamera(glm::colMajor4(data.cameraMatrix));
 
 	BaseLight base_light = BaseLight();
-	PointLight point_light = PointLight(glm::fvec3(100.0f, 0.0f, 0.0f), glm::fvec3(0.0f, 0.5f, 0.0f));
+	PointLight point_light = PointLight(glm::fvec3(100.0f, 0.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
 
 	base_light.color = glm::fvec3(1.0f, 1.0f, 1.0f);
 	base_light.ambient_intensity = 0.2f;
 	shaderLibrary.lighting_shader.SetTextureUnit(GL_TEXTURE0);
 	shaderLibrary.lighting_shader.SetPointLight(point_light);
 	shaderLibrary.lighting_shader.SetAmbientLight(base_light);
+	shaderLibrary.lighting_shader.SetViewPos(data.camera_pos);
 
 	for (std::shared_ptr<BasicMesh> mesh : lightingShaderMeshes) {
 		shaderLibrary.lighting_shader.SetMaterial(mesh->GetMaterial());
@@ -79,7 +80,8 @@ void MeshLibrary::RenderLightingShaderMeshes(const ViewData& data) {
 }
 
 void MeshLibrary::RenderAllMeshes(const ViewData& data) {
-	DrawGrid(data);
 	RenderLightingShaderMeshes(data);
+	//GRID MUST BE DRAWN LAST
+	DrawGrid(data);
 }
 
