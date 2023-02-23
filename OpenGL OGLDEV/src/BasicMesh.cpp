@@ -22,7 +22,6 @@ static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 BasicMesh::BasicMesh(unsigned int instances) : m_instances(instances) {
 	m_worldTransforms.insert(m_worldTransforms.begin(), instances, WorldTransform());
-	std::cout << m_worldTransforms.size();
 }
 
 bool BasicMesh::LoadMesh(const std::string& filename) {
@@ -48,7 +47,7 @@ bool BasicMesh::LoadMesh(const std::string& filename) {
 	}
 
 	//unbind to ensure no changes
-	glBindVertexArray(0);
+	GLCall(glBindVertexArray(0));
 	int timeElapsed = glutGet(GLUT_ELAPSED_TIME) - time;
 
 	printf("Mesh loaded in %sms\n", std::to_string(timeElapsed).c_str());
@@ -207,7 +206,7 @@ void BasicMesh::PopulateBuffers() {
 	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), &m_indices[0], GL_STATIC_DRAW));
 
 
-	std::vector<glm::fmat4> transforms;
+	/*std::vector<glm::fmat4> transforms;
 
 	for (WorldTransform& worldTransform : m_worldTransforms) {
 		glm::mat4 mat = glm::rowMajor4(worldTransform.GetMatrix());
@@ -216,7 +215,7 @@ void BasicMesh::PopulateBuffers() {
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
 	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
-
+	*/
 
 }
 
@@ -228,7 +227,6 @@ void BasicMesh::UpdateTransformBuffers(const ViewData& data) {
 		transforms.push_back(glm::rowMajor4(worldTransform.GetMatrix()));
 	}
 	GLCall(glBindVertexArray(m_VAO));
-
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
 	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
@@ -249,12 +247,7 @@ void BasicMesh::UpdateTransformBuffers(const ViewData& data) {
 	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4) * 3)));
 	GLCall(glVertexAttribDivisor(WORLD_MAT_LOCATION_4, 1));
 
-
 	GLCall(glBindVertexArray(0));
-
-
-
-
 
 }
 
@@ -286,8 +279,10 @@ void BasicMesh::Render() {
 
 const Material& BasicMesh::GetMaterial() {
 	for (unsigned int i = 0; i < m_materials.size(); i++) {
-		if (m_materials[i].ambientColor != glm::fvec3(0.0f, 0.0f, 0.0f)) {
+		if (m_materials[i].ambientColor != glm::vec3(0.0f, 0.0f, 0.0f)) {
 			return m_materials[i];
 		}
 	}
+	std::cout << "ERROR: NO MATERIAL FOUND" << std::endl;
+	ASSERT(false);
 }

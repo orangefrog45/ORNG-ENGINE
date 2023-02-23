@@ -14,7 +14,7 @@ out vec3 vs_normal;
 
 void main() {
 	gl_Position = (projection * camera * transform) * vec4(position, 1.0);
-	vs_normal = mat3(transform) * vertex_normal;
+	vs_normal = transpose(inverse(mat3(transform))) * vertex_normal;
 	vs_position = vec4(transform * vec4(position, 1.0f)).xyz;
 	TexCoord0 = TexCoord;
 }

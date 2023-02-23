@@ -45,7 +45,7 @@ void Camera::HandleInput(const KeyboardState& keyboard_state) {
 
 void Camera::OnMouse(const glm::vec2& newMousePos) {
 	const float rotationSpeed = 0.005f;
-	float maxDelta = 250.0f;
+	float maxDelta = 100.0f;
 
 	glm::vec2 mouseDelta = glm::vec2(newMousePos.x - m_windowWidth / 2, newMousePos.y - m_windowHeight / 2);
 	if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {

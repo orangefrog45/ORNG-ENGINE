@@ -1,12 +1,13 @@
 #pragma once
 #include "Shader.h"
 #include "Material.h"
+#include "WorldTransform.h"
 
 class PointLight {
 public:
 	PointLight() = default;
-	PointLight(const glm::fvec3& position, const glm::fvec3& color) : position(position), color(color) {};
-	glm::fvec3 position;
+	PointLight(const glm::fvec3& position, const glm::fvec3& color) : color(color) { transform.SetPosition(position.x, position.y, position.z); };
+	WorldTransform transform;
 	glm::fvec3 color;
 };
 
@@ -34,7 +35,7 @@ public:
 	void SetProjection(const glm::fmat4& proj);
 	void SetCamera(const glm::fmat4& cam);
 	void SetAmbientLight(const BaseLight& light);
-	void SetPointLight(const PointLight& light);
+	void SetPointLight(PointLight& light);
 	void SetTextureUnit(unsigned int unit);
 	void SetMaterial(const Material& material);
 

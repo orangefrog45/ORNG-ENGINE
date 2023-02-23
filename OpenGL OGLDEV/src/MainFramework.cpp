@@ -47,10 +47,13 @@ bool MainFramework::Init() {
 	meshLibrary.Init();
 	skybox.Init();
 
-	meshLibrary.lightingShaderMeshes.emplace_back(BasicMesh(50000));
-	if (!(meshLibrary.lightingShaderMeshes[0].LoadMesh("./res/meshes/Rock1/rock2.obj"))) {
+	std::shared_ptr<BasicMesh> mesh = std::make_shared<BasicMesh>(10000);
+
+	meshLibrary.lightingShaderMeshes.emplace_back(mesh);
+	if (!(mesh->LoadMesh("./res/meshes/Rock1/rock2.obj"))) {
 		return false;
 	}
+	meshLibrary.AnimateGeometry();
 
 
 	return true;
@@ -76,9 +79,8 @@ void MainFramework::MonitorFrames() {
 
 	if (glutGet(GLUT_ELAPSED_TIME) - time_step_frames.lastTime > 1000) {
 		time_step_frames.lastTime = glutGet(GLUT_ELAPSED_TIME);
-		m_fps = m_current_frames - m_last_frames;
+		printf("FPS: %s\n", std::to_string(m_current_frames - m_last_frames).c_str());
 		m_last_frames = m_current_frames;
-		printf("FPS: %s\n", std::to_string(m_fps).c_str());
 	}
 
 }
@@ -93,7 +95,6 @@ void MainFramework::RenderSceneCB() {
 
 	camera.HandleInput(keyboardState);
 
-	meshLibrary.AnimateGeometry();
 
 	glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(persProjData);
 	glm::fmat4 cameraTransMatrix = ExtraMath::GetCameraTransMatrix(camera.GetPos());

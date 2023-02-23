@@ -6,13 +6,30 @@
 #include "shaders/SkyboxShader.h"
 
 void Skybox::Init() {
-	faces.push_back("res/textures/clouds1_east.bmp");
+	faces.push_back("res/textures/kurt/mountain/posx.jpg");
+	faces.push_back("res/textures/kurt/mountain/negx.jpg");
+	faces.push_back("res/textures/kurt/mountain/posy.jpg");
+	faces.push_back("res/textures/kurt/mountain/negy.jpg");
+	faces.push_back("res/textures/kurt/mountain/posz.jpg");
+	faces.push_back("res/textures/kurt/mountain/negz.jpg");
+	cubemapTexture = Texture::LoadCubeMap(faces);
+
+	/*	faces.push_back("res/textures/clouds1_east.bmp");
 	faces.push_back("res/textures/clouds1_west.bmp");
 	faces.push_back("res/textures/clouds1_up.bmp");
 	faces.push_back("res/textures/clouds1_down.bmp");
 	faces.push_back("res/textures/clouds1_north.bmp");
 	faces.push_back("res/textures/clouds1_south.bmp");
-	cubemapTexture = Texture::LoadCubeMap(faces);
+
+	--------------------------------------------------------------
+
+	faces.push_back("res/textures/kurt/xpos.png");
+	faces.push_back("res/textures/kurt/xneg.png");
+	faces.push_back("res/textures/kurt/ypos.png");
+	faces.push_back("res/textures/kurt/yneg.png");
+	faces.push_back("res/textures/kurt/zpos.png");
+	faces.push_back("res/textures/kurt/zneg.png");
+	*/
 
 	skyboxShader.Init();
 

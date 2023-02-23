@@ -5,8 +5,8 @@
 
 
 
-MainFramework mainFramework;
 
+MainFramework mainFramework;
 
 static void InitializeGlutCallbacks() {
 	glutDisplayFunc([]() {mainFramework.RenderSceneCB(); });

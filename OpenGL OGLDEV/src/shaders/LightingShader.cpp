@@ -1,5 +1,6 @@
 #include "shaders/LightingShader.h"
 #include "GLErrorHandling.h"
+#include <iostream>
 
 void LightingShader::Init() {
 	GLCall(unsigned int tprogramID = glCreateProgram());
@@ -28,13 +29,16 @@ void LightingShader::SetAmbientLight(const BaseLight& light) {
 	glUniform1f(m_light_ambient_intensity_loc, light.ambient_intensity);
 }
 
-void LightingShader::SetPointLight(const PointLight& light) {
+void LightingShader::SetPointLight(PointLight& light) {
 	glUniform3f(m_point_light_color_loc, light.color.x, light.color.y, light.color.z);
-	glUniform3f(m_point_light_position_loc, light.position.x, light.position.y, light.position.z);
+	glm::fmat4 transform = light.transform.GetMatrix();
+	glm::fvec3 pos = light.transform.GetPosition();
+
+	glUniform3f(m_point_light_position_loc, pos.x, pos.y, pos.z);
 }
 
 void LightingShader::SetMaterial(const Material& material) {
-	glUniform3f(m_ambient_light_color_loc, material.ambientColor.r, material.ambientColor.g, material.ambientColor.b);
+	glUniform3f(m_material_ambient_intensity_loc, material.ambientColor.r, material.ambientColor.g, material.ambientColor.b);
 }
 
 void LightingShader::SetTextureUnit(unsigned int unit) {
@@ -61,8 +65,7 @@ void LightingShader::InitUniforms() {
 	m_ambient_light_color_loc = GetUniform("g_light.color");
 	m_point_light_color_loc = GetUniform("g_point_light.color");
 	m_point_light_position_loc = GetUniform("g_point_light.pos");
-	//GLCall(material_ambient_intensity_loc = glGetUniformLocation(GetProgramID(), "g_material.ambient_color"));
-	//ASSERT(material_ambient_intensity_loc != -1);
+	m_material_ambient_intensity_loc = GetUniform("g_material.ambient_color");
 }
 
 const GLint& LightingShader::GetProjectionLocation() {

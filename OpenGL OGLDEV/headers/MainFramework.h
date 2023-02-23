@@ -41,7 +41,6 @@ private:
 	void MonitorFrames();
 	unsigned int m_current_frames;
 	unsigned int m_last_frames;
-	unsigned int m_fps;
 	TimeStep time_step_camera;
 	TimeStep time_step_frames;
 	Camera camera;

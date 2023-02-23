@@ -46,11 +46,11 @@ const GLint& GridShader::GetProjectionLocation() const {
 }
 
 void GridShader::SetCamera(const glm::fmat4& cam) {
-	glUniformMatrix4fv(this->GetCameraLocation(), 1, GL_TRUE, &cam[0][0]);
+	glUniformMatrix4fv(GetCameraLocation(), 1, GL_TRUE, &cam[0][0]);
 }
 
 void GridShader::SetProjection(const glm::fmat4& proj) {
-	glUniformMatrix4fv(this->GetProjectionLocation(), 1, GL_TRUE, &proj[0][0]);
+	glUniformMatrix4fv(GetProjectionLocation(), 1, GL_TRUE, &proj[0][0]);
 }
 
 
