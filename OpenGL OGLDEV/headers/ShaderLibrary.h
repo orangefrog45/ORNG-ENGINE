@@ -4,7 +4,7 @@
 #include <vector>
 #include <glew.h>
 #include <sstream>
-#include "util.h"
+#include "util/util.h"
 #include "Shader.h"
 #include "shaders/LightingShader.h"
 #include "shaders/GridShader.h"

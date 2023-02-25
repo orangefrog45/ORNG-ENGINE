@@ -1,7 +1,7 @@
 #include <iostream>
 #include <stb/stb_image.h>
 #include <string>
-#include "util.h"
+#include "util/util.h"
 #include "Texture.h"
 
 Texture::Texture(unsigned int textureTarget, const std::string& filename) : m_textureTarget(textureTarget), m_filename(filename) {
@@ -13,28 +13,51 @@ bool Texture::Load() {
 	int	height = 0;
 	int	bpp = 0;
 	int mode = GL_RGB;
+	bool ret = true;
 
 	unsigned char* image_data = stbi_load(m_filename.c_str(), &width, &height, &bpp, 0);
 
-	if (image_data == nullptr) {
+	if (image_data == NULL) {
 		printf("Can't load texture from '%s' - '%s \n", m_filename.c_str(), stbi_failure_reason);
-		exit(0);
+		ret = false;
 	}
 
 	GLCall(glGenTextures(1, &m_textureObj));
 	GLCall(glBindTexture(m_textureTarget, m_textureObj));
 
 	if (m_textureTarget == GL_TEXTURE_2D) {
+
 		if (m_filename.find(".png") != std::string::npos) {
 			mode = GL_RGBA;
 		}
 		else {
 			mode = GL_RGB;
 		}
-		glTexImage2D(m_textureTarget, 0, mode, width, height, 0, mode, GL_UNSIGNED_BYTE, image_data);
+
+
+		if (bpp == 1) {
+			GLCall(glTexImage2D(m_textureTarget, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image_data))
+		}
+		else {
+			GLCall(glTexImage2D(m_textureTarget, 0, mode, width, height, 0, mode, GL_UNSIGNED_BYTE, image_data));
+
+		}
+
+		/*switch (bpp) {
+		case 1:
+			GLCall(glTexImage2D(m_textureTarget, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image_data));
+			break;
+		case 3:
+			GLCall(glTexImage2D(m_textureTarget, 0, mode, width, height, 0, mode, GL_UNSIGNED_BYTE, image_data));
+			break;
+		default:
+			std::cout << "Unsupported bit depth" << std::endl;
+		}*/
+
 	}
 	else {
 		printf("Unsupported texture target %x\n", m_textureTarget);
+		ret = false;
 	}
 
 	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
@@ -45,8 +68,12 @@ bool Texture::Load() {
 	stbi_image_free(image_data);
 
 	GLCall(glBindTexture(m_textureTarget, 0));
-	return true;
+	return ret;
 
+}
+
+unsigned int Texture::GetTextureTarget() const {
+	return m_textureTarget;
 }
 
 unsigned int Texture::LoadCubeMap(std::vector<const char*> faces) {
@@ -77,7 +104,7 @@ unsigned int Texture::LoadCubeMap(std::vector<const char*> faces) {
 
 		if (image_data == nullptr) {
 			printf("Can't load texture from '%s' - '%s \n", faces[i], stbi_failure_reason);
-			exit(0);
+			exit(3);
 		}
 
 		stbi_image_free(image_data);

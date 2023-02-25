@@ -10,6 +10,9 @@
 void MeshLibrary::Init() {
 	shaderLibrary.Init();
 	grid_mesh.Init();
+
+	shaderLibrary.lighting_shader.SetDiffuseTextureUnit(TextureUnits::COLOR_TEXTURE_UNIT);
+	shaderLibrary.lighting_shader.SetSpecularTextureUnit(TextureUnits::SPECULAR_TEXTURE_UNIT);
 }
 
 void MeshLibrary::DrawGrid(const ViewData& data) {
@@ -66,7 +69,6 @@ void MeshLibrary::RenderLightingShaderMeshes(const ViewData& data) {
 
 	base_light.color = glm::fvec3(1.0f, 1.0f, 1.0f);
 	base_light.ambient_intensity = 0.2f;
-	shaderLibrary.lighting_shader.SetTextureUnit(GL_TEXTURE0);
 	shaderLibrary.lighting_shader.SetPointLight(point_light);
 	shaderLibrary.lighting_shader.SetAmbientLight(base_light);
 	shaderLibrary.lighting_shader.SetViewPos(data.camera_pos);

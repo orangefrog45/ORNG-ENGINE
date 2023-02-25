@@ -72,6 +72,9 @@
     <ClCompile Include="src\GridMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\util\util.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
@@ -109,7 +112,7 @@
     <ClInclude Include="headers\BasicMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\util.h">
+    <ClInclude Include="headers\util\util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\Skybox.h">

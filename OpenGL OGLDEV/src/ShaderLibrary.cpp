@@ -8,7 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include "GLErrorHandling.h"
-#include "util.h"
+#include "util/util.h"
 
 void ShaderLibrary::Init() {
 	grid_shader.Init();

@@ -19,6 +19,7 @@ public:
 
 	bool LoadMesh(const std::string& filename);
 
+
 	void Render();
 
 	void UpdateTransformBuffers(const ViewData& data);
@@ -31,6 +32,14 @@ public:
 private:
 
 	void Clear();
+
+	void LoadTextures(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index);
+
+	void LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index);
+
+	void LoadSpecularTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index);
+
+	void LoadColors(const aiMaterial* pMaterial, unsigned int index);
 
 	bool InitFromScene(const aiScene* pScene, const std::string& filename);
 

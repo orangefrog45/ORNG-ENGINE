@@ -166,6 +166,7 @@
     <ClCompile Include="src\stb_image.cpp" />
     <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\TimeStep.cpp" />
+    <ClCompile Include="src\util\util.cpp" />
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -194,7 +195,7 @@
     <ClInclude Include="headers\Skybox.h" />
     <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="headers\TimeStep.h" />
-    <ClInclude Include="headers\util.h" />
+    <ClInclude Include="headers\util\util.h" />
     <ClInclude Include="headers\ViewData.h" />
     <ClInclude Include="headers\WorldTransform.h" />
   </ItemGroup>

@@ -3,7 +3,7 @@
 #include "shaders/GridShader.h"
 #include <iostream>
 #include <glm/glm.hpp>
-#include "util.h"
+#include "util/util.h"
 
 void GridShader::Init() {
 	GLCall(unsigned int tprogramID = glCreateProgram());

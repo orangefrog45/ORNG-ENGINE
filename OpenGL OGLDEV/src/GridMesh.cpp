@@ -1,5 +1,5 @@
 #include "GridMesh.h"
-#include "util.h"
+#include "util/util.h"
 #include <glm/gtx/matrix_major_storage.hpp>
 #include "WorldTransform.h"
 #include <iostream>

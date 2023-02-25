@@ -2,7 +2,7 @@
 #include <freeglut.h>
 #include <iostream>
 #include "shaders/SkyboxShader.h"
-#include "util.h"
+#include "util/util.h"
 
 void SkyboxShader::Init() {
 	GLCall(unsigned int tprogramID = glCreateProgram());

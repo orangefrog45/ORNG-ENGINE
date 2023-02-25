@@ -16,7 +16,7 @@
 #include "MainFramework.h"
 #include "KeyboardState.h"
 #include "TimeStep.h"
-#include "util.h"
+#include "util/util.h"
 #include "MeshLibrary.h"
 #include "Skybox.h"
 
@@ -37,13 +37,12 @@ bool MainFramework::Init() {
 	m_current_frames = 0;
 	m_last_frames = 0;
 
-	std::shared_ptr<BasicMesh> mesh = std::make_shared<BasicMesh>(1);
+	auto mesh = std::make_shared<BasicMesh>(1);
 
 	meshLibrary.lightingShaderMeshes.emplace_back(mesh);
 	if (!(mesh->LoadMesh("./res/meshes/oranges/orange.obj"))) {
 		return false;
 	}
-	meshLibrary.AnimateGeometry();
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
@@ -79,7 +78,7 @@ void MainFramework::MonitorFrames() {
 
 	if (glutGet(GLUT_ELAPSED_TIME) - time_step_frames.lastTime > 1000) {
 		time_step_frames.lastTime = glutGet(GLUT_ELAPSED_TIME);
-		printf("FPS: %s\n", std::to_string(m_current_frames - m_last_frames).c_str());
+		PrintUtils::PrintDebug("FPS: " + std::to_string(m_current_frames - m_last_frames));
 		m_last_frames = m_current_frames;
 	}
 

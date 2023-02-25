@@ -1,13 +1,13 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <stdlib.h>
+#include <glm/gtx/matrix_major_storage.hpp>
+#include <iostream>
 #include "BasicMesh.h"
 #include "freeglut.h"
 #include "glew.h"
-#include "util.h"
-#include <glm/gtx/matrix_major_storage.hpp>
-#include <iostream>
-#include <random>
+#include "util/util.h"
 
 static constexpr unsigned int POSITION_LOCATION = 0;
 static constexpr unsigned int TEX_COORD_LOCATION = 1;
@@ -18,15 +18,13 @@ static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
-#define COLOR_TEXTURE_UNIT GL_TEXTURE0
-
 BasicMesh::BasicMesh(unsigned int instances) : m_instances(instances) {
 	m_worldTransforms.insert(m_worldTransforms.begin(), instances, WorldTransform());
 }
 
 bool BasicMesh::LoadMesh(const std::string& filename) {
 
-	printf("Loading mesh\n");
+	PrintUtils::PrintDebug("Loading mesh: " + filename);
 	int time = glutGet(GLUT_ELAPSED_TIME);
 
 	GLCall(glGenVertexArrays(1, &m_VAO));
@@ -50,7 +48,7 @@ bool BasicMesh::LoadMesh(const std::string& filename) {
 	GLCall(glBindVertexArray(0));
 	int timeElapsed = glutGet(GLUT_ELAPSED_TIME) - time;
 
-	printf("Mesh loaded in %sms\n", std::to_string(timeElapsed).c_str());
+	PrintUtils::PrintSuccess("Mesh loaded in " + std::to_string(timeElapsed) + "ms : " + filename);
 	return ret;
 }
 
@@ -144,47 +142,115 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 		dir = filename.substr(0, slashIndex);
 	}
 
-	bool ret = true;
-
 
 	for (unsigned int i = 0; i < pScene->mNumMaterials; i++) {
 		const aiMaterial* pMaterial = pScene->mMaterials[i];
+		LoadTextures(dir, pMaterial, i);
+		LoadColors(pMaterial, i);
+
+	}
+	return true;
+}
+
+void BasicMesh::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
+	aiColor3D AmbientColor(0.0f, 0.0f, 0.0f);
+
+	if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS) {
+		m_materials[index].ambient_color.r = AmbientColor.r;
+		m_materials[index].ambient_color.g = AmbientColor.g;
+		m_materials[index].ambient_color.b = AmbientColor.b;
+	}
+
+	aiColor3D diffuse_color(0.0f, 0.0f, 0.0f);
+
+	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, diffuse_color) == aiReturn_SUCCESS) {
+		m_materials[index].diffuse_color.r = diffuse_color.r;
+		m_materials[index].diffuse_color.g = diffuse_color.g;
+		m_materials[index].diffuse_color.b = diffuse_color.b;
+	}
+
+	aiColor3D specular_color(0.0f, 0.0f, 0.0f);
+
+	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular_color) == aiReturn_SUCCESS) {
+		m_materials[index].specular_color.r = specular_color.r;
+		m_materials[index].specular_color.g = specular_color.g;
+		m_materials[index].specular_color.b = specular_color.b;
+	}
+};
 
 
-		if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
-			aiString path;
+void BasicMesh::LoadTextures(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+	LoadDiffuseTexture(t_dir, pMaterial, index);
+	LoadSpecularTexture(t_dir, pMaterial, index);
+}
 
-			if (pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL) == aiReturn_SUCCESS) {
-				std::string p(path.data);
+void BasicMesh::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+	m_materials[index].diffuse_texture = nullptr;
 
-				if (p.substr(0, 2) == ".\\") {
-					p = p.substr(2, p.size() - 2);
-				}
+	if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+		aiString path;
 
-				std::string fullPath = dir + "/" + p;
+		if (pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL) == aiReturn_SUCCESS) {
+			std::string p(path.data);
 
-				m_textures[i] = Texture{ GL_TEXTURE_2D, fullPath.c_str() };
-
-				if (!m_textures[i].Load()) {
-					printf("Error loading texture '%s'\n", fullPath.c_str());
-					ret = false;
-				}
-				else {
-					printf("Loaded texture as '%s'\n", fullPath.c_str());
-				}
+			if (p.substr(0, 2) == ".\\") {
+				p = p.substr(2, p.size() - 2);
 			}
-		}
-		aiColor3D AmbientColor(0.0f, 0.0f, 0.0f);
 
-		if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS) {
-			m_materials[i].ambientColor.r = AmbientColor.r;
-			m_materials[i].ambientColor.g = AmbientColor.g;
-			m_materials[i].ambientColor.b = AmbientColor.b;
+			std::string fullPath = t_dir + "/" + p;
+
+			m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, fullPath.c_str());
+
+			if (!m_materials[index].diffuse_texture->Load()) {
+				PrintUtils::PrintError("Error loading diffuse texture at: " + fullPath);
+				m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.png");
+				m_materials[index].diffuse_texture->Load();
+			}
+			else {
+				PrintUtils::PrintSuccess("Loaded diffuse texture: " + fullPath);
+			}
 		}
 
 	}
-	return ret;
+	else {
+		PrintUtils::PrintWarning("No diffuse texture found at: " + t_dir);
+		m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.png");
+		m_materials[index].diffuse_texture->Load();
+	}
 }
+
+void BasicMesh::LoadSpecularTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+	m_materials[index].specular_texture = nullptr;
+
+	if (pMaterial->GetTextureCount(aiTextureType_SHININESS) > 0) {
+		aiString path;
+
+		if (pMaterial->GetTexture(aiTextureType_SHININESS, 0, &path, NULL, NULL, NULL, NULL, NULL) == aiReturn_SUCCESS) {
+			std::string p(path.data);
+
+			if (p.substr(0, 2) == ".\\") {
+				p = p.substr(2, p.size() - 2);
+			}
+
+			std::string fullPath = t_dir + "/" + p;
+
+			m_materials[index].specular_texture = std::make_shared<Texture>(GL_TEXTURE_2D, fullPath.c_str());
+
+			if (!m_materials[index].specular_texture->Load()) {
+				PrintUtils::PrintError("Error loading specular texture: " + fullPath);
+			}
+			else {
+				PrintUtils::PrintSuccess("Loaded specular texture: " + fullPath);
+			}
+		}
+
+	}
+	else {
+		PrintUtils::PrintWarning("No shininess texture found at: " + t_dir);
+		m_materials[index].specular_texture = nullptr;
+	}
+}
+
 
 void BasicMesh::PopulateBuffers() {
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[POS_VB]));
@@ -204,18 +270,6 @@ void BasicMesh::PopulateBuffers() {
 
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[INDEX_BUFFER]));
 	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), &m_indices[0], GL_STATIC_DRAW));
-
-
-	/*std::vector<glm::fmat4> transforms;
-
-	for (WorldTransform& worldTransform : m_worldTransforms) {
-		glm::mat4 mat = glm::rowMajor4(worldTransform.GetMatrix());
-		transforms.push_back(mat);
-	}
-
-	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
-	*/
 
 }
 
@@ -258,12 +312,11 @@ void BasicMesh::Render() {
 		unsigned int materialIndex = m_meshes[i].materialIndex;
 		ASSERT(materialIndex < m_textures.size());
 
-		try {
-			m_textures[materialIndex].Bind(COLOR_TEXTURE_UNIT);
-		}
-		catch (int index) {
-			printf("Error accessing texture from material index %d", index);
-		}
+		if (m_materials[materialIndex].specular_texture != nullptr) m_materials[materialIndex].specular_texture->Bind(TextureUnits::SPECULAR_TEXTURE_UNIT);
+
+		m_materials[materialIndex].diffuse_texture->Bind(TextureUnits::COLOR_TEXTURE_UNIT);
+
+
 
 		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 			m_meshes[i].numIndices,
@@ -276,16 +329,14 @@ void BasicMesh::Render() {
 
 	GLCall(glBindVertexArray(0))
 }
-
 const Material& BasicMesh::GetMaterial() {
 	for (unsigned int i = 0; i < m_materials.size(); i++) {
-		if (m_materials[i].ambientColor != glm::vec3(0.0f, 0.0f, 0.0f)) {
+		if (m_materials[i].ambient_color != glm::vec3(0.0f, 0.0f, 0.0f)) {
 			return m_materials[i];
 		}
 	}
 	Material placeholder = Material();
-	placeholder.ambientColor = glm::fvec3(1.0f, 1.0f, 1.0f);
-	//std::cout << "ERROR: NO MATERIAL FOUND" << std::endl;
+	//std::cout << "ERROR: NO MATERIAL FOUND, USING PLACEHOLDER" << std::endl;
 	return placeholder;
 	//ASSERT(false);
 }

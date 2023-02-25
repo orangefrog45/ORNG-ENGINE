@@ -41,12 +41,21 @@ void LightingShader::SetViewPos(const glm::fvec3& pos) {
 }
 
 void LightingShader::SetMaterial(const Material& material) {
-	glUniform3f(m_material_ambient_intensity_loc, material.ambientColor.r, material.ambientColor.g, material.ambientColor.b);
+	glUniform1i(m_specular_sampler_active_loc, material.specular_texture == nullptr ? 0 : 1);
+	glUniform3f(m_material_specular_color_loc, material.specular_color.r, material.specular_color.g, material.specular_color.b);
+	glUniform3f(m_material_ambient_color_loc, material.ambient_color.r, material.ambient_color.g, material.ambient_color.b);
+	glUniform3f(m_material_diffuse_color_loc, material.diffuse_color.r, material.diffuse_color.g, material.diffuse_color.b);
 }
 
-void LightingShader::SetTextureUnit(unsigned int unit) {
-	glUniform1i(GetSamplerLocation(), unit);
+void LightingShader::SetDiffuseTextureUnit(unsigned int unit) {
+	glUniform1i(GetDiffuseSamplerLocation(), unit);
 }
+
+void LightingShader::SetSpecularTextureUnit(unsigned int unit) {
+	glUniform1i(GetSpecularSamplerLocation(), unit);
+}
+
+// TODO : CHECK FOR SPECULAR = NULLPTR WHEN SETTING SPECULAR DATA, CONNECT SPECULAR 2D SAMPLER
 
 void LightingShader::ActivateProgram() {
 	GLCall(glLinkProgram(GetProgramID()));
@@ -68,8 +77,13 @@ void LightingShader::InitUniforms() {
 	m_ambient_light_color_loc = GetUniform("g_light.color");
 	m_point_light_color_loc = GetUniform("g_point_light.color");
 	m_point_light_position_loc = GetUniform("g_point_light.pos");
-	m_material_ambient_intensity_loc = GetUniform("g_material.ambient_color");
 	m_camera_view_pos_loc = GetUniform("view_pos");
+	m_material_ambient_color_loc = GetUniform("g_material.ambient_color");
+	m_material_specular_color_loc = GetUniform("g_material.specular_color");
+	m_material_diffuse_color_loc = GetUniform("g_material.diffuse_color");
+	m_sampler_specular_loc = GetUniform("specular_sampler");
+	m_specular_sampler_active_loc = GetUniform("specular_sampler_active");
+
 }
 
 const GLint& LightingShader::GetProjectionLocation() {
@@ -81,6 +95,10 @@ const GLint& LightingShader::GetCameraLocation() {
 	return m_camera_location;
 }
 
-const GLint& LightingShader::GetSamplerLocation() {
+const GLint& LightingShader::GetDiffuseSamplerLocation() {
 	return m_sampler_location;
+}
+
+const GLint& LightingShader::GetSpecularSamplerLocation() {
+	return m_sampler_specular_loc;
 }

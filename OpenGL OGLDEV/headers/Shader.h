@@ -2,7 +2,7 @@
 #include <glew.h>
 #include <vector>
 #include <string>
-#include "util.h"
+#include "util/util.h"
 
 class Shader {
 public:

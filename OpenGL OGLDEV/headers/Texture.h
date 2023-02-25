@@ -14,6 +14,8 @@ public:
 
 	static unsigned int LoadCubeMap(std::vector<const char*> faces);
 
+	unsigned int GetTextureTarget() const;
+
 private:
 	std::string m_filename;
 	unsigned int m_textureTarget;
