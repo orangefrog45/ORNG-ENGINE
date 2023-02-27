@@ -97,15 +97,15 @@ glm::fmat4x4 ExtraMath::Init3DCameraTransform(const glm::fvec3& pos, const glm::
 	return cameraRotMatrix * cameraTransMatrix;
 }
 
-glm::fmat4x4 ExtraMath::InitPersProjTransform(PersProjData& const p) {
-	const float ar = p.WINDOW_WIDTH / p.WINDOW_HEIGHT;
-	const float zRange = p.zNear - p.zFar;
-	const float tanHalfFOV = tanf(ToRadians(p.FOV / 2.0f));
+glm::fmat4x4 ExtraMath::InitPersProjTransform(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar) {
+	const float ar = WINDOW_WIDTH / WINDOW_HEIGHT;
+	const float zRange = zNear - zFar;
+	const float tanHalfFOV = tanf(ToRadians(FOV / 2.0f));
 	const float f = 1.0f / tanHalfFOV;
 
 	//normalize, due to precision keep z-values low anyway
-	const float A = (-p.zFar - p.zNear) / zRange;
-	const float B = 2.0f * p.zFar * p.zNear / zRange;
+	const float A = (-zFar - zNear) / zRange;
+	const float B = 2.0f * zFar * zNear / zRange;
 
 	glm::fmat4x4 projectionMatrix(
 		f / ar, 0.0f, 0.0f, 0.0f,
@@ -117,10 +117,4 @@ glm::fmat4x4 ExtraMath::InitPersProjTransform(PersProjData& const p) {
 	return projectionMatrix;
 }
 
-
-PersProjData::PersProjData(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar) :
-	FOV(FOV), WINDOW_WIDTH(WINDOW_WIDTH), WINDOW_HEIGHT(WINDOW_HEIGHT), zNear(zNear), zFar(zFar) {}
-
-
-PersProjData::PersProjData() = default;
 

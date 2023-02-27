@@ -7,12 +7,17 @@
 Texture::Texture(unsigned int textureTarget, const std::string& filename) : m_textureTarget(textureTarget), m_filename(filename) {
 }
 
+Texture::~Texture() {
+	GLCall(glDeleteTextures(1, &m_textureObj));
+}
+
 bool Texture::Load() {
 	stbi_set_flip_vertically_on_load(1);
 	int width = 0;
 	int	height = 0;
 	int	bpp = 0;
 	int mode = GL_RGB;
+	int internal_mode = GL_RGB;
 	bool ret = true;
 
 	unsigned char* image_data = stbi_load(m_filename.c_str(), &width, &height, &bpp, 0);
@@ -28,10 +33,12 @@ bool Texture::Load() {
 	if (m_textureTarget == GL_TEXTURE_2D) {
 
 		if (m_filename.find(".png") != std::string::npos) {
-			mode = GL_RGBA;
+			mode = GL_RGBA8;
+			internal_mode = GL_RGBA;
 		}
 		else {
 			mode = GL_RGB;
+			internal_mode = GL_RGB;
 		}
 
 
@@ -39,7 +46,7 @@ bool Texture::Load() {
 			GLCall(glTexImage2D(m_textureTarget, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image_data))
 		}
 		else {
-			GLCall(glTexImage2D(m_textureTarget, 0, mode, width, height, 0, mode, GL_UNSIGNED_BYTE, image_data));
+			GLCall(glTexImage2D(m_textureTarget, 0, mode, width, height, 0, internal_mode, GL_UNSIGNED_BYTE, image_data));
 
 		}
 

@@ -39,7 +39,7 @@
     <ClCompile Include="src\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\MainFramework.cpp">
+    <ClCompile Include="src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\GLErrorHandling.cpp">
@@ -57,7 +57,7 @@
     <ClCompile Include="src\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\MeshLibrary.cpp">
+    <ClCompile Include="src\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\shaders\GridShader.cpp">
@@ -103,7 +103,7 @@
     <ClInclude Include="headers\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\MainFramework.h">
+    <ClInclude Include="headers\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\GLErrorHandling.h">
@@ -121,7 +121,7 @@
     <ClInclude Include="headers\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\MeshLibrary.h">
+    <ClInclude Include="headers\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\GridShader.h">
@@ -134,9 +134,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\SkyboxShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\ViewData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\LightingShader.h">

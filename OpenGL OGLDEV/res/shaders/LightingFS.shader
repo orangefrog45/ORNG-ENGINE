@@ -58,7 +58,6 @@ void main()
 			float spec = pow(specular_factor, specular_exponent);
 			specular_final = specular_strength * spec * g_point_light.color * g_material.specular_color;
 		}
-
 	};
 
 

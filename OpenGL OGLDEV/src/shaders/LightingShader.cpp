@@ -55,8 +55,6 @@ void LightingShader::SetSpecularTextureUnit(unsigned int unit) {
 	glUniform1i(GetSpecularSamplerLocation(), unit);
 }
 
-// TODO : CHECK FOR SPECULAR = NULLPTR WHEN SETTING SPECULAR DATA, CONNECT SPECULAR 2D SAMPLER
-
 void LightingShader::ActivateProgram() {
 	GLCall(glLinkProgram(GetProgramID()));
 	GLCall(glValidateProgram(GetProgramID()));

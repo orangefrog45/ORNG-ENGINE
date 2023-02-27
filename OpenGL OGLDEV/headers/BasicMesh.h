@@ -22,7 +22,7 @@ public:
 
 	void Render();
 
-	void UpdateTransformBuffers(const ViewData& data);
+	void UpdateTransformBuffers();
 
 	void Render(unsigned int NumInstances, const glm::fmat4x4* WVPMats, const glm::fmat4x4* WorldMats);
 

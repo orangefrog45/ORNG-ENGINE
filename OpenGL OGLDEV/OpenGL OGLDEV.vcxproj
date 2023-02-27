@@ -156,8 +156,8 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <ClCompile Include="src\MainFramework.cpp" />
-    <ClCompile Include="src\MeshLibrary.cpp" />
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\Shader.cpp" />
     <ClCompile Include="src\ShaderLibrary.cpp" />
     <ClCompile Include="src\shaders\LightingShader.cpp" />
@@ -184,9 +184,9 @@
     <ClInclude Include="headers\GLErrorHandling.h" />
     <ClInclude Include="headers\GridMesh.h" />
     <ClInclude Include="headers\KeyboardState.h" />
-    <ClInclude Include="headers\MainFramework.h" />
+    <ClInclude Include="headers\Application.h" />
     <ClInclude Include="headers\Material.h" />
-    <ClInclude Include="headers\MeshLibrary.h" />
+    <ClInclude Include="headers\Renderer.h" />
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\GridShader.h" />
@@ -196,7 +196,6 @@
     <ClInclude Include="headers\Texture.h" />
     <ClInclude Include="headers\TimeStep.h" />
     <ClInclude Include="headers\util\util.h" />
-    <ClInclude Include="headers\ViewData.h" />
     <ClInclude Include="headers\WorldTransform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

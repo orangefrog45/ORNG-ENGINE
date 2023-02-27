@@ -20,6 +20,11 @@ namespace PrintUtils {
 	void PrintError(const std::string& text);
 }
 
+namespace RenderData {
+	constexpr int WINDOW_WIDTH = 1920;
+	constexpr int WINDOW_HEIGHT = 1080;
+}
+
 namespace TextureUnits {
 	constexpr int COLOR_TEXTURE_UNIT = GL_TEXTURE0;
 	constexpr int SPECULAR_TEXTURE_UNIT = GL_TEXTURE1;

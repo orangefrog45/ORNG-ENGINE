@@ -3,10 +3,8 @@
 #include <glew.h>
 #include <freeglut.h>
 #include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <sstream>
 #include <fstream>
-#include <iostream>
+#include <memory>
 #include <stb/stb_image.h>
 #include <vector>
 #include "Camera.h"
@@ -19,36 +17,33 @@
 #include "TimeStep.h"
 #include "shaders/LightingShader.h"
 #include "Skybox.h"
-#include "MeshLibrary.h"
+#include "Renderer.h"
 
 
-class MainFramework
+class Application
 {
 public:
-	MainFramework();
-	~MainFramework();
+	Application();
+	~Application();
 	bool Init();
-	void RenderSceneCB();
-	void ReshapeCB(int w, int h);
-	void PassiveMouseCB(int x, int y);
 	KeyboardState& GetKeyboard();
-	unsigned int GetWindowWidth() const { return m_window_width; };
-	unsigned int GetWindowHeight() const { return m_window_height; };
+	void PassiveMouseCB(int x, int y);
+	void RenderSceneCB();
 
 
 private:
 
 	void MonitorFrames();
+	void InitGlutCallbacks();
+	void ReshapeCB(int w, int h);
 	unsigned int m_current_frames;
 	unsigned int m_last_frames;
+	unsigned int m_window_width = RenderData::WINDOW_WIDTH;
+	unsigned int m_window_height = RenderData::WINDOW_HEIGHT;
 	TimeStep time_step_camera;
 	TimeStep time_step_frames;
-	Camera camera;
-	Skybox skybox;
-	KeyboardState keyboardState;
-	MeshLibrary meshLibrary;
-	PersProjData persProjData;
-	unsigned int m_window_width = 1920;
-	unsigned int m_window_height = 1080;
+	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera);
+	KeyboardState keyboard_state;
+	Renderer renderer = Renderer(p_camera);
 
 };

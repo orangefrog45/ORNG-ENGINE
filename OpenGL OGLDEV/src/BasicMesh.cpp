@@ -273,7 +273,7 @@ void BasicMesh::PopulateBuffers() {
 
 }
 
-void BasicMesh::UpdateTransformBuffers(const ViewData& data) {
+void BasicMesh::UpdateTransformBuffers() {
 
 	std::vector<glm::fmat4> transforms;
 
