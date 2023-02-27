@@ -2,26 +2,7 @@
 #include "Shader.h"
 #include "Material.h"
 #include "WorldTransform.h"
-
-class PointLight {
-public:
-	PointLight() = default;
-	PointLight(const glm::fvec3& position, const glm::fvec3& color) : color(color) { transform.SetPosition(position.x, position.y, position.z); };
-	WorldTransform transform;
-	glm::fvec3 color;
-};
-
-
-class BaseLight {
-public:
-	glm::fvec3 color;
-	float ambient_intensity;
-
-	BaseLight() {
-		color = glm::fvec3(1.0f, 1.0f, 1.0f);
-		ambient_intensity = 0.0f;
-	}
-};
+#include "Light.h"
 
 class LightingShader : public Shader {
 public:

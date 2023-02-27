@@ -6,6 +6,7 @@
 #include "ViewData.h"
 #include "GridMesh.h"
 #include "Skybox.h"
+#include "Scene.h"
 #include "Camera.h"
 
 
@@ -14,17 +15,15 @@ public:
 	Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
 	void Init();
 	std::vector<std::shared_ptr<BasicMesh>> lightingShaderMeshes;
-	std::vector<std::shared_ptr<BasicMesh>> active_meshes;
 
 
 	glm::fvec3 lightColor = glm::fvec3(1.0f, 0.0f, 0.5f);
 
 	void AnimateGeometry();
 	void RenderScene();
-	void RenderLightingShaderMeshes();
 	void DrawGrid();
-	void RenderAllMeshes();
-	void LoadActiveMeshes();
+
+	Scene scene;
 
 private:
 	float FOV = 60.0f;

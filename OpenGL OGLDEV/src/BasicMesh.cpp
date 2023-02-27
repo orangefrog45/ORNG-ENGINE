@@ -18,13 +18,22 @@ static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
-BasicMesh::BasicMesh(unsigned int instances) : m_instances(instances) {
-	m_worldTransforms.insert(m_worldTransforms.begin(), instances, WorldTransform());
+BasicMesh::BasicMesh(const std::string& filename) : m_filename(filename) {};
+
+void BasicMesh::UnloadMesh() {
+	m_meshes.clear();
+	m_textures.clear();
+	m_materials.clear();
+	m_positions.clear();
+	m_normals.clear();
+	m_texCoords.clear();
+	m_indices.clear();
+	PrintUtils::PrintSuccess("Mesh unloaded: " + m_filename);
 }
 
-bool BasicMesh::LoadMesh(const std::string& filename) {
+bool BasicMesh::LoadMesh() {
 
-	PrintUtils::PrintDebug("Loading mesh: " + filename);
+	PrintUtils::PrintDebug("Loading mesh: " + m_filename);
 	int time = glutGet(GLUT_ELAPSED_TIME);
 
 	GLCall(glGenVertexArrays(1, &m_VAO));
@@ -35,20 +44,20 @@ bool BasicMesh::LoadMesh(const std::string& filename) {
 	bool ret = false;
 	Assimp::Importer Importer;
 
-	const aiScene* pScene = Importer.ReadFile(filename.c_str(), ASSIMP_LOAD_FLAGS);
+	const aiScene* pScene = Importer.ReadFile(m_filename.c_str(), ASSIMP_LOAD_FLAGS);
 
 	if (pScene) {
-		ret = InitFromScene(pScene, filename);
+		ret = InitFromScene(pScene, m_filename);
 	}
 	else {
-		printf("Error parsing '%s': '%s'\n", filename.c_str(), Importer.GetErrorString());
+		printf("Error parsing '%s': '%s'\n", m_filename.c_str(), Importer.GetErrorString());
 	}
 
 	//unbind to ensure no changes
 	GLCall(glBindVertexArray(0));
 	int timeElapsed = glutGet(GLUT_ELAPSED_TIME) - time;
 
-	PrintUtils::PrintSuccess("Mesh loaded in " + std::to_string(timeElapsed) + "ms : " + filename);
+	PrintUtils::PrintSuccess("Mesh loaded in " + std::to_string(timeElapsed) + "ms : " + m_filename);
 	return ret;
 }
 
@@ -273,17 +282,17 @@ void BasicMesh::PopulateBuffers() {
 
 }
 
-void BasicMesh::UpdateTransformBuffers() {
+void BasicMesh::UpdateTransformBuffers(std::vector<WorldTransform>& transforms) {
 
-	std::vector<glm::fmat4> transforms;
+	std::vector<glm::fmat4> gl_transforms;
 
-	for (WorldTransform& worldTransform : m_worldTransforms) {
-		transforms.push_back(glm::rowMajor4(worldTransform.GetMatrix()));
+	for (WorldTransform& worldTransform : transforms) {
+		gl_transforms.push_back(glm::rowMajor4(worldTransform.GetMatrix()));
 	}
 	GLCall(glBindVertexArray(m_VAO));
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transforms[0]) * transforms.size(), &transforms[0], GL_DYNAMIC_DRAW));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(gl_transforms[0]) * gl_transforms.size(), &gl_transforms[0], GL_DYNAMIC_DRAW));
 
 	GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_1));
 	GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0));
@@ -305,7 +314,7 @@ void BasicMesh::UpdateTransformBuffers() {
 
 }
 
-void BasicMesh::Render() {
+void BasicMesh::Render(unsigned int t_instances) {
 	GLCall(glBindVertexArray(m_VAO));
 
 	for (unsigned int i = 0; i < m_meshes.size(); i++) {
@@ -317,19 +326,18 @@ void BasicMesh::Render() {
 		m_materials[materialIndex].diffuse_texture->Bind(TextureUnits::COLOR_TEXTURE_UNIT);
 
 
-
 		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 			m_meshes[i].numIndices,
 			GL_UNSIGNED_INT,
 			(void*)(sizeof(unsigned int) * m_meshes[i].baseIndex),
-			m_instances,
+			1,
 			m_meshes[i].baseVertex))
 
 	}
 
 	GLCall(glBindVertexArray(0))
 }
-const Material& BasicMesh::GetMaterial() {
+const Material BasicMesh::GetMaterial() {
 	for (unsigned int i = 0; i < m_materials.size(); i++) {
 		if (m_materials[i].ambient_color != glm::vec3(0.0f, 0.0f, 0.0f)) {
 			return m_materials[i];

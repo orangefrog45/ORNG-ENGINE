@@ -114,7 +114,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;$(SolutionDir)OpenGL OGLDEV\headers\rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -132,7 +132,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;$(SolutionDir)OpenGL OGLDEV\headers\rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -146,6 +147,8 @@
   <ItemGroup>
     <ClCompile Include="src\BasicMesh.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
+    <ClCompile Include="src\rendering\MeshEntity.cpp" />
+    <ClCompile Include="src\rendering\Scene.cpp" />
     <ClCompile Include="src\shaders\GridShader.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
@@ -186,7 +189,10 @@
     <ClInclude Include="headers\KeyboardState.h" />
     <ClInclude Include="headers\Application.h" />
     <ClInclude Include="headers\Material.h" />
-    <ClInclude Include="headers\Renderer.h" />
+    <ClInclude Include="headers\rendering\MeshEntity.h" />
+    <ClInclude Include="headers\rendering\Light.h" />
+    <ClInclude Include="headers\rendering\Renderer.h" />
+    <ClInclude Include="headers\rendering\Scene.h" />
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\GridShader.h" />

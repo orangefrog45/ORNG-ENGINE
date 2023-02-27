@@ -37,17 +37,20 @@ void Renderer::Init() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LINE_SMOOTH);
+	glLineWidth(3.0);
 
 	shaderLibrary.Init();
 	grid_mesh.Init();
 	skybox.Init();
 
-	auto mesh = std::make_shared<BasicMesh>(1);
 
-	lightingShaderMeshes.emplace_back(mesh);
-	mesh->LoadMesh("./res/meshes/oranges/orange.obj");
+
+	scene.CreateMeshEntity(1, "./res/meshes/oranges/orange.obj");
+	scene.LoadScene();
 
 }
+
 
 void Renderer::DrawGrid() {
 	shaderLibrary.grid_shader.ActivateProgram();
@@ -58,8 +61,8 @@ void Renderer::DrawGrid() {
 	grid_mesh.Draw();
 }
 
-void Renderer::AnimateGeometry() {
-	auto& transforms = lightingShaderMeshes[0]->GetWorldTransforms();
+/*void Renderer::AnimateGeometry() {
+	auto& transforms = scene.GetMeshEntities()[0].;
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = 0.0f;
@@ -89,14 +92,13 @@ void Renderer::AnimateGeometry() {
 		transforms[i].SetScale(1.f, 1.f, 1.f);
 
 	}
-}
+}*/
 
-
-void Renderer::RenderLightingShaderMeshes() {
-
+void Renderer::RenderScene() {
 	shaderLibrary.lighting_shader.ActivateProgram();
 	shaderLibrary.lighting_shader.SetProjection(glm::colMajor4(projectionMatrix));
 	shaderLibrary.lighting_shader.SetCamera(glm::colMajor4(p_camera->GetMatrix()));
+
 
 	BaseLight base_light = BaseLight();
 	PointLight point_light = PointLight(glm::fvec3(100.0f, 0.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
@@ -107,17 +109,15 @@ void Renderer::RenderLightingShaderMeshes() {
 	shaderLibrary.lighting_shader.SetAmbientLight(base_light);
 	shaderLibrary.lighting_shader.SetViewPos(p_camera->GetPos());
 
-	for (std::shared_ptr<BasicMesh> mesh : lightingShaderMeshes) {
-		shaderLibrary.lighting_shader.SetMaterial(mesh->GetMaterial());
-		mesh->UpdateTransformBuffers();
-		mesh->Render();
+	for (MeshEntity& mesh : scene.GetMeshEntities()) {
+		//TODO : add multiple shader functionality to scene (shadertype member in meshentity probably)
+		//TODO : make transformbuffers only update when worldtransforms have been modified
+		shaderLibrary.lighting_shader.SetMaterial(mesh.m_mesh_data->GetMaterial());
+		mesh.m_mesh_data->UpdateTransformBuffers(mesh.m_world_transforms);
+		mesh.m_mesh_data->Render(mesh.instances);
 	}
-}
 
-void Renderer::RenderAllMeshes() {
 	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()) * p_camera->GetMatrix() * projectionMatrix);
-	RenderLightingShaderMeshes();
-	//GRID MUST BE DRAWN LAST
 	DrawGrid();
 }
 

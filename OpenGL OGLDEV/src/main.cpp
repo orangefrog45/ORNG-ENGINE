@@ -6,7 +6,7 @@
 
 
 
-Application application;
+static Application application;
 
 static void InitializeGlutCallbacks() {
 	glutDisplayFunc([]() {application.RenderSceneCB(); });

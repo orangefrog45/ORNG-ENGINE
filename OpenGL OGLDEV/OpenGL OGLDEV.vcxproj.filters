@@ -75,6 +75,12 @@
     <ClCompile Include="src\util\util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\Scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\MeshEntity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
@@ -121,7 +127,7 @@
     <ClInclude Include="headers\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Renderer.h">
+    <ClInclude Include="headers\rendering\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\GridShader.h">
@@ -140,6 +146,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\GridMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\MeshEntity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

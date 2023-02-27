@@ -70,9 +70,9 @@ void Application::RenderSceneCB() {
 
 	p_camera->HandleInput(keyboard_state);
 
-	renderer.AnimateGeometry();
+	//renderer.AnimateGeometry();
 
-	renderer.RenderAllMeshes();
+	renderer.RenderScene();
 
 	glutPostRedisplay();
 

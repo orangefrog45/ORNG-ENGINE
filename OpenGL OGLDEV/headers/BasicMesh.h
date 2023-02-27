@@ -13,22 +13,20 @@
 
 class BasicMesh {
 public:
-
-	BasicMesh(unsigned int instances);
+	BasicMesh(const std::string& filename);
 	~BasicMesh() {};
 
-	bool LoadMesh(const std::string& filename);
+	bool LoadMesh();
 
+	void UnloadMesh();
 
-	void Render();
+	void Render(unsigned int t_instances);
 
-	void UpdateTransformBuffers();
+	void UpdateTransformBuffers(std::vector<WorldTransform>& transforms);
 
-	void Render(unsigned int NumInstances, const glm::fmat4x4* WVPMats, const glm::fmat4x4* WorldMats);
+	std::string GetFilename() { return m_filename; };
 
-	std::vector<WorldTransform>& GetWorldTransforms() { return m_worldTransforms; };
-
-	const Material& GetMaterial();
+	const Material GetMaterial();
 private:
 
 	void Clear();
@@ -56,6 +54,8 @@ private:
 
 	void PopulateBuffers();
 
+	std::string m_filename;
+
 	enum BUFFER_TYPE {
 		INDEX_BUFFER = 0,
 		POS_VB = 1,
@@ -67,15 +67,10 @@ private:
 		NUM_BUFFERS = 7
 	};
 
-	std::vector<WorldTransform> m_worldTransforms;
-
-	unsigned int m_instances;
 
 	GLuint m_VAO = 0;
 
 	unsigned int m_buffers[NUM_BUFFERS] = { 0 };
-
-	bool positionsUpdated = true;
 
 #define INVALID_MATERIAL 0xFFFFFFFF
 
