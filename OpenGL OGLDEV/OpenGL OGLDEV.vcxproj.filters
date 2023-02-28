@@ -45,7 +45,7 @@
     <ClCompile Include="src\GLErrorHandling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\BasicMesh.cpp">
+    <ClCompile Include="src\rendering\BasicMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ShaderLibrary.cpp">
@@ -79,6 +79,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\MeshEntity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\EntityInstanceGroup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -115,7 +118,7 @@
     <ClInclude Include="headers\GLErrorHandling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\BasicMesh.h">
+    <ClInclude Include="headers\rendering\BasicMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\util\util.h">
@@ -155,6 +158,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\rendering\Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\EntityInstanceGroup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

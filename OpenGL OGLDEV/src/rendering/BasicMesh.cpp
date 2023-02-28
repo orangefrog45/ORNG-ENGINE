@@ -282,13 +282,14 @@ void BasicMesh::PopulateBuffers() {
 
 }
 
-void BasicMesh::UpdateTransformBuffers(std::vector<WorldTransform>& transforms) {
+void BasicMesh::UpdateTransformBuffers(const std::vector<WorldTransform const*>* transforms) {
 
 	std::vector<glm::fmat4> gl_transforms;
 
-	for (WorldTransform& worldTransform : transforms) {
-		gl_transforms.push_back(glm::rowMajor4(worldTransform.GetMatrix()));
+	for (WorldTransform const* transform : *transforms) {
+		gl_transforms.push_back(glm::rowMajor4(transform->GetMatrix()));
 	}
+
 	GLCall(glBindVertexArray(m_VAO));
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[WORLD_MAT_VB]));
@@ -325,12 +326,11 @@ void BasicMesh::Render(unsigned int t_instances) {
 
 		m_materials[materialIndex].diffuse_texture->Bind(TextureUnits::COLOR_TEXTURE_UNIT);
 
-
 		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 			m_meshes[i].numIndices,
 			GL_UNSIGNED_INT,
 			(void*)(sizeof(unsigned int) * m_meshes[i].baseIndex),
-			1,
+			t_instances,
 			m_meshes[i].baseVertex))
 
 	}

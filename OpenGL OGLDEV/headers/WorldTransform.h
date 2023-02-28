@@ -10,7 +10,7 @@ public:
 	void SetPosition(float x, float y, float z);
 
 	void Rotate(float x, float y, float z);
-	glm::fmat4x4 GetMatrix();
+	glm::fmat4x4 GetMatrix() const;
 	glm::fvec3 GetPosition();
 
 

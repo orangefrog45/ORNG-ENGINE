@@ -6,6 +6,7 @@
 #include "MeshEntity.h"
 #include "util/util.h"
 #include "Light.h"
+#include "EntityInstanceGroup.h"
 //TODO : add multiple shader functionality to scene (shadertype member in meshentity probably)
 //TODO: add light support
 
@@ -13,17 +14,16 @@ class Scene {
 public:
 	~Scene();
 	void Init();
-	void CreateMeshData(const std::string& filename);
-	MeshEntity* CreateMeshEntity(unsigned int instances, const std::string& filename);
-	BaseLight& GetAmbientLighting() { return m_scene_global_ambient_lighting; };
+	BasicMesh* CreateMeshData(const std::string& filename);
+	MeshEntity* CreateMeshEntity(const std::string& filename);
+	BaseLight& GetAmbientLighting() { return m_global_ambient_lighting; };
 	void LoadScene();
 	void UnloadScene();
-	std::vector<MeshEntity*>& GetMeshEntities() { return m_scene_mesh_entities; };
-	auto& GetMeshData() { return m_scene_mesh_data; };
+	auto& GetGroupMeshEntities() { return m_group_mesh_instance_groups; };
+
 private:
-	BaseLight m_scene_global_ambient_lighting;
-	std::vector <PointLight*> m_scene_lights;
-	std::vector<MeshEntity*> m_scene_mesh_entities;
-	std::vector<BasicMesh*> m_scene_mesh_data;
+	BaseLight m_global_ambient_lighting;
+	std::vector<EntityInstanceGroup*> m_group_mesh_instance_groups;
+	std::vector <PointLight*> m_lights;
 
 };

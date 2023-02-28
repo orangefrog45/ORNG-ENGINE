@@ -9,7 +9,6 @@
 #include "WorldTransform.h"
 #include "Texture.h"
 #include "Material.h"
-#include "ViewData.h"
 
 class BasicMesh {
 public:
@@ -22,7 +21,7 @@ public:
 
 	void Render(unsigned int t_instances);
 
-	void UpdateTransformBuffers(std::vector<WorldTransform>& transforms);
+	void UpdateTransformBuffers(const std::vector<WorldTransform const*>* transforms);
 
 	std::string GetFilename() { return m_filename; };
 

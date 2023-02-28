@@ -3,7 +3,6 @@
 #include "ExtraMath.h"
 #include "ShaderLibrary.h"
 #include "BasicMesh.h"
-#include "ViewData.h"
 #include "GridMesh.h"
 #include "Skybox.h"
 #include "Scene.h"
@@ -14,7 +13,6 @@
 class Renderer {
 public:
 	Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
-	~Renderer() { scene.UnloadScene(); };
 	void Init();
 	std::vector<std::shared_ptr<BasicMesh>> lightingShaderMeshes;
 

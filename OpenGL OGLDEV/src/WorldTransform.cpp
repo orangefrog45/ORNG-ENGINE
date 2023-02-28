@@ -40,7 +40,7 @@ void WorldTransform::Rotate(float x, float y, float z) {
 	m_rotation.z += z;
 }
 
-glm::fmat4x4 WorldTransform::GetMatrix() {
+glm::fmat4x4 WorldTransform::GetMatrix() const {
 
 	glm::fmat4x4 rotMat = ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
 	glm::fmat4x4 scaleMat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);

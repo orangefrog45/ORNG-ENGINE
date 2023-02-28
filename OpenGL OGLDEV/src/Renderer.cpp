@@ -44,14 +44,14 @@ void Renderer::Init() {
 	grid_mesh.Init();
 	skybox.Init();
 
-
-
-	scene.CreateMeshEntity(1, "./res/meshes/oranges/orange.obj");
-	//mesh1.m_world_transforms[0].SetPosition(10.0f, 0.0f, 0.0f);
-	scene.CreateMeshEntity(1, "./res/meshes/oranges/orange.obj");
-	auto cube = scene.CreateMeshEntity(1, "./res/meshes/cube/cube.obj");
-	cube->m_world_transforms[0].SetPosition(10.0f, 0.0f, 0.0f);
 	scene.LoadScene();
+	auto cube = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
+	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
+	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
+	cube->SetPosition(10.0f, 0.0f, 0.0f);
+	cube2->SetPosition(0.0f, 0.0f, 0.0f);
+	cube3->SetPosition(5.0f, 0.0f, 0.0f);
+
 
 }
 
@@ -103,7 +103,7 @@ void Renderer::RenderScene() {
 	shaderLibrary.lighting_shader.SetProjection(glm::colMajor4(projectionMatrix));
 	shaderLibrary.lighting_shader.SetCamera(glm::colMajor4(p_camera->GetMatrix()));
 
-	PointLight point_light = PointLight(glm::fvec3(100.0f, 0.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
+	PointLight point_light = PointLight(glm::fvec3(0.0f, 10.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
 
 	BaseLight& base_light = scene.GetAmbientLighting();
 	base_light.color = glm::fvec3(1.0f, 1.0f, 1.0f);
@@ -112,12 +112,11 @@ void Renderer::RenderScene() {
 	shaderLibrary.lighting_shader.SetAmbientLight(scene.GetAmbientLighting());
 	shaderLibrary.lighting_shader.SetViewPos(p_camera->GetPos());
 
-	for (MeshEntity* mesh : scene.GetMeshEntities()) {
+	for (EntityInstanceGroup* group : scene.GetGroupMeshEntities()) {
 		//TODO : add multiple shader functionality to scene (shadertype member in meshentity probably)
 		//TODO : make transformbuffers only update when worldtransforms have been modified
-		shaderLibrary.lighting_shader.SetMaterial(mesh->m_mesh_data->GetMaterial());
-		mesh->m_mesh_data->UpdateTransformBuffers(mesh->m_world_transforms);
-		mesh->m_mesh_data->Render(mesh->instances);
+		shaderLibrary.lighting_shader.SetMaterial(group->m_mesh_data->GetMaterial());
+		group->m_mesh_data->Render(group->m_instances);
 	}
 
 	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()) * p_camera->GetMatrix() * projectionMatrix);

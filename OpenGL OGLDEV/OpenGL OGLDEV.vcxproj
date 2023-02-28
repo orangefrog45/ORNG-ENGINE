@@ -145,8 +145,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\BasicMesh.cpp" />
+    <ClCompile Include="src\rendering\BasicMesh.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
+    <ClCompile Include="src\rendering\EntityInstanceGroup.cpp" />
     <ClCompile Include="src\rendering\MeshEntity.cpp" />
     <ClCompile Include="src\rendering\Scene.cpp" />
     <ClCompile Include="src\shaders\GridShader.cpp" />
@@ -181,7 +182,7 @@
     <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\BasicMesh.h" />
+    <ClInclude Include="headers\rendering\BasicMesh.h" />
     <ClInclude Include="headers\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
     <ClInclude Include="headers\GLErrorHandling.h" />
@@ -189,6 +190,7 @@
     <ClInclude Include="headers\KeyboardState.h" />
     <ClInclude Include="headers\Application.h" />
     <ClInclude Include="headers\Material.h" />
+    <ClInclude Include="headers\rendering\EntityInstanceGroup.h" />
     <ClInclude Include="headers\rendering\MeshEntity.h" />
     <ClInclude Include="headers\rendering\Light.h" />
     <ClInclude Include="headers\rendering\Renderer.h" />

@@ -37,7 +37,7 @@ bool Texture::Load() {
 			internal_mode = GL_RGBA;
 		}
 		else {
-			mode = GL_RGB;
+			mode = GL_RGB8;
 			internal_mode = GL_RGB;
 		}
 
@@ -46,8 +46,8 @@ bool Texture::Load() {
 			GLCall(glTexImage2D(m_textureTarget, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image_data))
 		}
 		else {
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 			GLCall(glTexImage2D(m_textureTarget, 0, mode, width, height, 0, internal_mode, GL_UNSIGNED_BYTE, image_data));
-
 		}
 
 		/*switch (bpp) {
