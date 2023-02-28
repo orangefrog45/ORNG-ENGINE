@@ -39,7 +39,7 @@ void Application::PassiveMouseCB(int x, int y)
 	p_camera->OnMouse(glm::vec2(x, y));
 }
 
-KeyboardState& Application::GetKeyboard() {
+std::shared_ptr<KeyboardState> Application::GetKeyboard() {
 	return keyboard_state;
 }
 
@@ -68,7 +68,7 @@ void Application::RenderSceneCB() {
 	time_step_camera.timeInterval = glutGet(GLUT_ELAPSED_TIME) - time_step_camera.lastTime;
 	time_step_camera.lastTime = glutGet(GLUT_ELAPSED_TIME);
 
-	p_camera->HandleInput(keyboard_state);
+	p_camera->HandleInput();
 
 	//renderer.AnimateGeometry();
 

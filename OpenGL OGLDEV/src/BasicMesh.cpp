@@ -212,7 +212,7 @@ void BasicMesh::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* p
 
 			if (!m_materials[index].diffuse_texture->Load()) {
 				PrintUtils::PrintError("Error loading diffuse texture at: " + fullPath);
-				m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.png");
+				m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
 				m_materials[index].diffuse_texture->Load();
 			}
 			else {
@@ -223,7 +223,7 @@ void BasicMesh::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* p
 	}
 	else {
 		PrintUtils::PrintWarning("No diffuse texture found at: " + t_dir);
-		m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.png");
+		m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
 		m_materials[index].diffuse_texture->Load();
 	}
 }

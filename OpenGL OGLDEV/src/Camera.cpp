@@ -9,7 +9,8 @@
 #include "TimeStep.h"
 
 
-Camera::Camera(int windowWidth, int windowHeight, const TimeStep* time_step) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), time_step(time_step) {
+Camera::Camera(int windowWidth, int windowHeight, const TimeStep* time_step, const std::shared_ptr<KeyboardState> keyboard) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), time_step(time_step),
+keyboard_state(keyboard) {
 }
 
 void Camera::SetPosition(float x, float y, float z) {
@@ -22,24 +23,24 @@ glm::fvec3 Camera::GetPos() const {
 	return m_pos;
 }
 
-void Camera::HandleInput(const KeyboardState& keyboard_state) {
+void Camera::HandleInput() {
 
-	if (keyboard_state.wPressed)
+	if (keyboard_state->wPressed)
 		MoveForward();
 
-	if (keyboard_state.aPressed)
+	if (keyboard_state->aPressed)
 		StrafeLeft();
 
-	if (keyboard_state.sPressed)
+	if (keyboard_state->sPressed)
 		MoveBackward();
 
-	if (keyboard_state.dPressed)
+	if (keyboard_state->dPressed)
 		StrafeRight();
 
-	if (keyboard_state.ePressed)
+	if (keyboard_state->ePressed)
 		MoveUp();
 
-	if (keyboard_state.qPressed)
+	if (keyboard_state->qPressed)
 		MoveDown();
 }
 
@@ -47,20 +48,25 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 	const float rotationSpeed = 0.005f;
 	float maxDelta = 100.0f;
 
-	glm::vec2 mouseDelta = glm::vec2(newMousePos.x - m_windowWidth / 2, newMousePos.y - m_windowHeight / 2);
-	if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
-		m_target = glm::rotate(mouseDelta.x * rotationSpeed, m_up) * glm::fvec4(m_target, 0);
-	}
-	if (mouseDelta.y > -maxDelta && mouseDelta.y < maxDelta) {
-		glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotationSpeed, glm::cross(m_target, m_up)) * glm::fvec4(m_target, 0);
-		//constraint to stop lookAt flipping from y axis alignment
-		if (m_targetNew.y <= 0.999f && m_targetNew.y >= -0.999f) {
-			m_target = m_targetNew;
-		}
-	}
+	if (!keyboard_state->mouse_locked) {
+		glm::vec2 mouseDelta = glm::vec2(newMousePos.x - m_windowWidth / 2, newMousePos.y - m_windowHeight / 2);
 
-	glm::normalize(m_target);
-	glutWarpPointer(m_windowWidth / 2, m_windowHeight / 2);
+		if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
+			m_target = glm::rotate(mouseDelta.x * rotationSpeed, m_up) * glm::fvec4(m_target, 0);
+		}
+
+		if (mouseDelta.y > -maxDelta && mouseDelta.y < maxDelta) {
+			glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotationSpeed, glm::cross(m_target, m_up)) * glm::fvec4(m_target, 0);
+			//constraint to stop lookAt flipping from y axis alignment
+			if (m_targetNew.y <= 0.999f && m_targetNew.y >= -0.999f) {
+				m_target = m_targetNew;
+			}
+		}
+
+		glutWarpPointer(m_windowWidth / 2, m_windowHeight / 2);
+		glm::normalize(m_target);
+
+	}
 }
 
 

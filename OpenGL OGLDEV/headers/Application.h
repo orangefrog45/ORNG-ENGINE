@@ -26,7 +26,7 @@ public:
 	Application();
 	~Application();
 	bool Init();
-	KeyboardState& GetKeyboard();
+	std::shared_ptr<KeyboardState> GetKeyboard();
 	void PassiveMouseCB(int x, int y);
 	void RenderSceneCB();
 
@@ -42,8 +42,9 @@ private:
 	unsigned int m_window_height = RenderData::WINDOW_HEIGHT;
 	TimeStep time_step_camera;
 	TimeStep time_step_frames;
-	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera);
-	KeyboardState keyboard_state;
+
+	std::shared_ptr<KeyboardState> keyboard_state = std::make_shared<KeyboardState>();
+	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera, keyboard_state);
 	Renderer renderer = Renderer(p_camera);
 
 };

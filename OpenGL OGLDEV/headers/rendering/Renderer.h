@@ -10,9 +10,11 @@
 #include "Camera.h"
 
 
+
 class Renderer {
 public:
 	Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
+	~Renderer() { scene.UnloadScene(); };
 	void Init();
 	std::vector<std::shared_ptr<BasicMesh>> lightingShaderMeshes;
 

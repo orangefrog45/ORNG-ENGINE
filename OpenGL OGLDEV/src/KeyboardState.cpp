@@ -14,8 +14,10 @@ KeyboardState::KeyboardState() {
 
 void KeyboardState::KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 {
-	switch (key) {
-
+	switch (static_cast<char>(tolower(key))) {
+	case 27: //ESC
+		mouse_locked = !mouse_locked;
+		break;
 	case 'w':
 		wPressed = true;
 		break;
@@ -31,11 +33,11 @@ void KeyboardState::KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 	case 'd':
 		dPressed = true;
 		break;
-	
+
 	case 'q':
 		qPressed = true;
 		break;
-	
+
 	case 'e':
 		ePressed = true;
 		break;
@@ -45,7 +47,6 @@ void KeyboardState::KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 
 void KeyboardState::SpecialKeysUp(int key, int x, int y) {
 	switch (key) {
-
 	case GLUT_KEY_SHIFT_L:
 		shiftPressed = false;
 		break;
@@ -58,8 +59,7 @@ void KeyboardState::SpecialKeysUp(int key, int x, int y) {
 
 void KeyboardState::KeysUp(unsigned char key, int x, int y) {
 
-	switch (key) {
-
+	switch (static_cast<char>(tolower(key))) {
 	case 'w':
 		wPressed = false;
 		break;
