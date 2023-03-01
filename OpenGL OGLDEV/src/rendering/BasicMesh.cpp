@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <glm/gtx/matrix_major_storage.hpp>
 #include <iostream>
+#include <future>
 #include "BasicMesh.h"
 #include "freeglut.h"
 #include "glew.h"
@@ -28,33 +29,39 @@ void BasicMesh::UnloadMesh() {
 	m_normals.clear();
 	m_texCoords.clear();
 	m_indices.clear();
+	importer.FreeScene();
 	PrintUtils::PrintSuccess("Mesh unloaded: " + m_filename);
+	is_loaded = false;
 }
 
-bool BasicMesh::LoadMesh() {
+void BasicMesh::LoadIntoGL() {
+	GLCall(glGenVertexArrays(1, &m_VAO));
+	GLCall(glGenBuffers(ARRAY_SIZE_IN_ELEMENTS(m_buffers), m_buffers));
+	GLCall(glBindVertexArray(m_VAO));
+	InitMaterials(p_scene, m_filename);
+	PopulateBuffers();
+	importer.FreeScene();
+	GLCall(glBindVertexArray(0));
+	is_loaded = true;
+}
+
+
+bool BasicMesh::LoadMeshData() {
 
 	PrintUtils::PrintDebug("Loading mesh: " + m_filename);
 	int time = glutGet(GLUT_ELAPSED_TIME);
 
-	GLCall(glGenVertexArrays(1, &m_VAO));
-	GLCall(glBindVertexArray(m_VAO));
-
-	GLCall(glGenBuffers(ARRAY_SIZE_IN_ELEMENTS(m_buffers), m_buffers));
-
 	bool ret = false;
-	Assimp::Importer Importer;
 
-	const aiScene* pScene = Importer.ReadFile(m_filename.c_str(), ASSIMP_LOAD_FLAGS);
+	p_scene = importer.ReadFile(m_filename.c_str(), ASSIMP_LOAD_FLAGS);
 
-	if (pScene) {
-		ret = InitFromScene(pScene, m_filename);
+	if (p_scene) {
+		ret = InitFromScene(p_scene, m_filename);
 	}
 	else {
-		printf("Error parsing '%s': '%s'\n", m_filename.c_str(), Importer.GetErrorString());
+		printf("Error parsing '%s': '%s'\n", m_filename.c_str(), importer.GetErrorString());
 	}
 
-	//unbind to ensure no changes
-	GLCall(glBindVertexArray(0));
 	int timeElapsed = glutGet(GLUT_ELAPSED_TIME) - time;
 
 	PrintUtils::PrintSuccess("Mesh loaded in " + std::to_string(timeElapsed) + "ms : " + m_filename);
@@ -74,12 +81,6 @@ bool BasicMesh::InitFromScene(const aiScene* pScene, const std::string& filename
 	ReserveSpace(numVertices, numIndices);
 
 	InitAllMeshes(pScene);
-
-	if (!InitMaterials(pScene, filename)) {
-		return false;
-	}
-
-	PopulateBuffers();
 
 	return true;
 }

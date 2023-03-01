@@ -7,21 +7,21 @@ void PrintUtils::PrintDebug(const std::string& text) {
 }
 
 void PrintUtils::PrintWarning(const std::string& text) {
-	std::cout << "\033[33m";
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x06);
 	PrintDebug("WRN: " + text);
-	std::cout << "\033[37m";
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07);
 }
 
 void PrintUtils::PrintSuccess(const std::string& text) {
-	std::cout << "\033[32m";
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x0A);
 	PrintDebug("OK: " + text);
-	std::cout << "\033[37m";
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07);
 }
 
 void PrintUtils::PrintError(const std::string& text) {
-	std::cout << "\033[31m";
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x04);
 	PrintDebug("ERR: " + text);
-	std::cout << "\033[37m";
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07);
 }
 
 std::string PrintUtils::GetFormattedTime() {

@@ -30,6 +30,7 @@ void Renderer::Init() {
 
 	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 	printf("window id: %d\n", win);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CW);
@@ -44,17 +45,17 @@ void Renderer::Init() {
 	grid_mesh.Init();
 	skybox.Init();
 
-	scene.LoadScene();
+	//TODO : make mesh loading multithreaded, going to require re-working the insta-load system, load meshes all at once in LoadScene().
+	auto robot = scene.CreateMeshEntity("./res/meshes/robot/Robot.obj");
 	auto cube = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
+	auto orange = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj");
+	scene.LoadScene();
 	cube->SetPosition(10.0f, 0.0f, 0.0f);
 	cube2->SetPosition(0.0f, 0.0f, 0.0f);
 	cube3->SetPosition(5.0f, 0.0f, 0.0f);
-
-
 }
-
 
 void Renderer::DrawGrid() {
 	shaderLibrary.grid_shader.ActivateProgram();
@@ -114,9 +115,10 @@ void Renderer::RenderScene() {
 
 	for (EntityInstanceGroup* group : scene.GetGroupMeshEntities()) {
 		//TODO : add multiple shader functionality to scene (shadertype member in meshentity probably)
-		//TODO : make transformbuffers only update when worldtransforms have been modified
-		shaderLibrary.lighting_shader.SetMaterial(group->m_mesh_data->GetMaterial());
-		group->m_mesh_data->Render(group->m_instances);
+		if (group->m_mesh_data->GetLoadStatus() == true) {
+			shaderLibrary.lighting_shader.SetMaterial(group->m_mesh_data->GetMaterial());
+			group->m_mesh_data->Render(group->m_instances);
+		}
 	}
 
 	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()) * p_camera->GetMatrix() * projectionMatrix);

@@ -9,8 +9,9 @@
 
 class EntityInstanceGroup {
 public:
-	EntityInstanceGroup(BasicMesh* t_mesh_data) : m_mesh_data(t_mesh_data) { m_mesh_data->LoadMesh(); };
+	EntityInstanceGroup(BasicMesh* t_mesh_data) : m_mesh_data(t_mesh_data) {};
 	~EntityInstanceGroup();
+	void InitializeTransformBuffers();
 	void AddInstance(MeshEntity* entity);
 	//void ModifyInstance(unsigned int index, glm::fmat4& transform);
 	//void DeleteInstance(unsigned int index);

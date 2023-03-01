@@ -15,7 +15,9 @@ public:
 	BasicMesh(const std::string& filename);
 	~BasicMesh() {};
 
-	bool LoadMesh();
+	void LoadIntoGL();
+
+	bool LoadMeshData();
 
 	void UnloadMesh();
 
@@ -25,8 +27,17 @@ public:
 
 	std::string GetFilename() { return m_filename; };
 
+
+	bool GetLoadStatus() { return is_loaded; };
+
 	const Material GetMaterial();
 private:
+
+	bool is_loaded = false;
+
+	const aiScene* p_scene;
+
+	Assimp::Importer importer;
 
 	void Clear();
 

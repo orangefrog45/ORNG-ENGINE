@@ -41,6 +41,9 @@ void KeyboardState::KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 	case 'e':
 		ePressed = true;
 		break;
+	case 'g':
+		g_pressed = true;
+		break;
 	}
 
 }
@@ -82,6 +85,9 @@ void KeyboardState::KeysUp(unsigned char key, int x, int y) {
 
 	case 'e':
 		ePressed = false;
+		break;
+	case 'g':
+		g_pressed = false;
 		break;
 	}
 }

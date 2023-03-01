@@ -17,6 +17,7 @@ public:
 	void MoveDown();
 	void HandleInput();
 	glm::fvec3 GetPos() const;
+	glm::fvec3 GetTarget() const { return m_target; };
 	glm::fmat4x4 GetMatrix() const;
 
 private:
@@ -28,6 +29,6 @@ private:
 	glm::fvec3 m_pos = glm::fvec3(0.0f, 0.0f, 0.0f);
 	glm::fvec3 m_target = glm::fvec3(0.0f, 0.0f, 1.0f);
 	glm::fvec3 m_up = glm::fvec3(0.0f, 1.0f, 0.0f);
-	float m_speed = 0.003f;
+	float m_speed = 0.03f;
 
 };

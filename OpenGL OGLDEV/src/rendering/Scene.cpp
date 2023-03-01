@@ -1,12 +1,39 @@
-#include <algorithm>
+#include <future>
+#include <glew.h>
+#include <freeglut.h>
 #include "Scene.h"
 
 Scene::~Scene() {
 	UnloadScene();
 }
 
-void Scene::LoadScene() {
+/*void Scene::LoadScene() {
+	for (auto& group : m_group_mesh_instance_groups) {
+		if (group->m_mesh_data->GetLoadStatus() == false) {
+			group->m_mesh_data->LoadMesh();
+			group->InitializeTransformBuffers();
+		}
+	}
+}*/
 
+
+void Scene::LoadScene() {
+	int time_start = glutGet(GLUT_ELAPSED_TIME);
+	for (auto& group : m_group_mesh_instance_groups) {
+		if (group->m_mesh_data->GetLoadStatus() == false) {
+			m_futures.push_back(std::async(std::launch::async, [&] {group->m_mesh_data->LoadMeshData(); }));
+		}
+	}
+	for (unsigned int i = 0; i < m_futures.size(); i++) {
+		m_futures[i].get();
+	}
+	for (auto& group : m_group_mesh_instance_groups) {
+		if (group->m_mesh_data->GetLoadStatus() == false) {
+			group->m_mesh_data->LoadIntoGL();
+			group->InitializeTransformBuffers();
+		}
+	}
+	PrintUtils::PrintSuccess("All meshes loaded in " + std::to_string(glutGet(GLUT_ELAPSED_TIME) - time_start));
 }
 
 void Scene::UnloadScene() {

@@ -3,8 +3,6 @@
 #include "WorldTransform.h"
 class MeshEntity {
 public:
-	//TODO: entities need to unload too
-	//TODO: add worldtransform modification functions (tie in with transformbufferupdate optimization)
 	MeshEntity(BasicMesh* t_mesh_data);
 	~MeshEntity();
 

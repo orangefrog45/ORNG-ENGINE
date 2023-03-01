@@ -6,6 +6,9 @@ void EntityInstanceGroup::AddInstance(MeshEntity* entity) {
 	m_transforms->push_back(entity->GetWorldTransform());
 	m_mesh_entities.push_back(entity);
 	m_instances++;
+}
+
+void EntityInstanceGroup::InitializeTransformBuffers() {
 	m_mesh_data->UpdateTransformBuffers(m_transforms);
 }
 
