@@ -71,7 +71,7 @@ void Application::RenderSceneCB() {
 	p_camera->HandleInput();
 	static int instances = 0;
 	if (keyboard_state->g_pressed) {
-		auto entity = renderer.scene.CreateMeshEntity("./res/meshes/oranges/orange.obj");
+		auto entity = renderer.scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 		glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(-p_camera->GetTarget().x * 15.0f, -p_camera->GetTarget().y * 15.0f, -p_camera->GetTarget().z * 15.0f));
 		instances++;
 		entity->SetPosition(place_position.x, place_position.y, place_position.z);

@@ -19,7 +19,7 @@ static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
-BasicMesh::BasicMesh(const std::string& filename) : m_filename(filename) {};
+BasicMesh::BasicMesh(const std::string& filename, MeshShaderMode mode) : m_filename(filename), m_shader_mode(mode) {};
 
 void BasicMesh::UnloadMesh() {
 	m_meshes.clear();

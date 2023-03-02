@@ -148,8 +148,10 @@
     <ClCompile Include="src\rendering\BasicMesh.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
     <ClCompile Include="src\rendering\EntityInstanceGroup.cpp" />
+    <ClCompile Include="src\rendering\Light.cpp" />
     <ClCompile Include="src\rendering\MeshEntity.cpp" />
     <ClCompile Include="src\rendering\Scene.cpp" />
+    <ClCompile Include="src\shaders\FlatColorShader.cpp" />
     <ClCompile Include="src\shaders\GridShader.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
@@ -174,6 +176,8 @@
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\shaders\FlatColourFS.shader" />
+    <None Include="res\shaders\FlatColourVS.shader" />
     <None Include="res\shaders\GridFS.shader" />
     <None Include="res\shaders\GridVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
@@ -197,6 +201,7 @@
     <ClInclude Include="headers\rendering\Scene.h" />
     <ClInclude Include="headers\Shader.h" />
     <ClInclude Include="headers\ShaderLibrary.h" />
+    <ClInclude Include="headers\shaders\FlatColourShader.h" />
     <ClInclude Include="headers\shaders\GridShader.h" />
     <ClInclude Include="headers\shaders\LightingShader.h" />
     <ClInclude Include="headers\shaders\SkyboxShader.h" />

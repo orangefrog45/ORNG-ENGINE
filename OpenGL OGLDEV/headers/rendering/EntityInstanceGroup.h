@@ -13,8 +13,12 @@ public:
 	~EntityInstanceGroup();
 	void InitializeTransformBuffers();
 	void AddInstance(MeshEntity* entity);
+	const auto& GetMeshEntities() { return m_mesh_entities; };
+	const unsigned int GetInstances() { return m_instances; }
+	const auto GetMeshData() { return m_mesh_data; }
 	//void ModifyInstance(unsigned int index, glm::fmat4& transform);
 	//void DeleteInstance(unsigned int index);
+private:
 
 	unsigned int m_instances;
 	std::vector<MeshEntity*> m_mesh_entities;

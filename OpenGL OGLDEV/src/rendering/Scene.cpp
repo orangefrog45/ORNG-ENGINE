@@ -20,16 +20,16 @@ Scene::~Scene() {
 void Scene::LoadScene() {
 	int time_start = glutGet(GLUT_ELAPSED_TIME);
 	for (auto& group : m_group_mesh_instance_groups) {
-		if (group->m_mesh_data->GetLoadStatus() == false) {
-			m_futures.push_back(std::async(std::launch::async, [&] {group->m_mesh_data->LoadMeshData(); }));
+		if (group->GetMeshData()->GetLoadStatus() == false) {
+			m_futures.push_back(std::async(std::launch::async, [&] {group->GetMeshData()->LoadMeshData(); }));
 		}
 	}
 	for (unsigned int i = 0; i < m_futures.size(); i++) {
 		m_futures[i].get();
 	}
 	for (auto& group : m_group_mesh_instance_groups) {
-		if (group->m_mesh_data->GetLoadStatus() == false) {
-			group->m_mesh_data->LoadIntoGL();
+		if (group->GetMeshData()->GetLoadStatus() == false) {
+			group->GetMeshData()->LoadIntoGL();
 			group->InitializeTransformBuffers();
 		}
 	}
@@ -38,7 +38,7 @@ void Scene::LoadScene() {
 
 void Scene::UnloadScene() {
 	PrintUtils::PrintDebug("Unloading scene");
-	for (PointLight* light : m_lights) {
+	for (PointLight* light : m_point_lights) {
 		delete light;
 	}
 	for (auto group : m_group_mesh_instance_groups) {
@@ -47,21 +47,29 @@ void Scene::UnloadScene() {
 	PrintUtils::PrintSuccess("Scene unloaded");
 }
 
-MeshEntity* Scene::CreateMeshEntity(const std::string& filename) {
+PointLight* Scene::CreateLight() {
+	PointLight* light = new PointLight(glm::fvec3(0.0f, 0.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
+	auto light_cube = CreateMeshEntity("./res/meshes/cube/cube_light.obj", MeshShaderMode::FLAT_COLOR);
+	light->cube_visual = light_cube;
+	m_point_lights.push_back(light);
+	return light;
+};
+
+MeshEntity* Scene::CreateMeshEntity(const std::string& filename, MeshShaderMode shader_mode) {
 	int data_index = -1;
 	for (int i = 0; i < m_group_mesh_instance_groups.size(); i++) {
-		if (m_group_mesh_instance_groups[i]->m_mesh_data->GetFilename() == filename) data_index = i;
+		if (m_group_mesh_instance_groups[i]->GetMeshData()->GetFilename() == filename && m_group_mesh_instance_groups[i]->GetMeshData()->GetShaderMode() == shader_mode) data_index = i;
 	}
 
 	if (data_index != -1) {
-		MeshEntity* mesh_entity = new MeshEntity(m_group_mesh_instance_groups[data_index]->m_mesh_data);
+		MeshEntity* mesh_entity = new MeshEntity(m_group_mesh_instance_groups[data_index]->GetMeshData());
 		m_group_mesh_instance_groups[data_index]->AddInstance(mesh_entity);
 
 		PrintUtils::PrintDebug("Mesh data found, loading into entity: " + filename);
 		return mesh_entity;
 	}
 	else {
-		BasicMesh* mesh_data = CreateMeshData(filename);
+		BasicMesh* mesh_data = CreateMeshData(filename, shader_mode);
 		EntityInstanceGroup* instance_group = new EntityInstanceGroup(mesh_data);
 		MeshEntity* mesh_entity = new MeshEntity(mesh_data);
 
@@ -72,15 +80,15 @@ MeshEntity* Scene::CreateMeshEntity(const std::string& filename) {
 	}
 }
 
-BasicMesh* Scene::CreateMeshData(const std::string& filename) {
+BasicMesh* Scene::CreateMeshData(const std::string& filename, MeshShaderMode shader_mode) {
 	for (EntityInstanceGroup* group : m_group_mesh_instance_groups) {
-		if (group->m_mesh_data->GetFilename() == filename) {
+		if (group->GetMeshData()->GetFilename() == filename) {
 			PrintUtils::PrintError("MESH DATA ALREADY LOADED IN EXISTING INSTANCE GROUP: " + filename);
 			return nullptr;
 		}
 	}
 
-	BasicMesh* mesh_data = new BasicMesh(filename);
+	BasicMesh* mesh_data = new BasicMesh(filename, shader_mode);
 	EntityInstanceGroup* group = new EntityInstanceGroup(mesh_data);
 	return mesh_data;
 }

@@ -84,6 +84,12 @@
     <ClCompile Include="src\rendering\EntityInstanceGroup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\rendering\Light.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shaders\FlatColorShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
@@ -92,6 +98,8 @@
     <None Include="res\shaders\LightingFS.shader" />
     <None Include="res\shaders\LightingVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
+    <None Include="res\shaders\FlatColourVS.shader" />
+    <None Include="res\shaders\FlatColourFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\KeyboardState.h">
@@ -161,6 +169,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\rendering\EntityInstanceGroup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\FlatColourShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

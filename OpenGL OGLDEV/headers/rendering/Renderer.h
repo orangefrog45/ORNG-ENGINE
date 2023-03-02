@@ -22,7 +22,6 @@ public:
 	void AnimateGeometry();
 	void RenderScene();
 	void DrawGrid();
-	std::future<void> future;
 	Scene scene;
 
 private:

@@ -23,7 +23,7 @@ void WorldTransform::SetPosition(float x, float y, float z) {
 	m_pos.z = z;
 }
 
-glm::fvec3 WorldTransform::GetPosition() {
+glm::fvec3 WorldTransform::GetPosition() const {
 	return m_pos;
 }
 

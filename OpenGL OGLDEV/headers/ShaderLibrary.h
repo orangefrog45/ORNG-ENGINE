@@ -8,13 +8,14 @@
 #include "Shader.h"
 #include "shaders/LightingShader.h"
 #include "shaders/GridShader.h"
+#include "shaders/FlatColourShader.h"
 
 class ShaderLibrary {
 public:
 	ShaderLibrary() {};
 	void Init();
 
-	BaseLight base_light;
+	FlatColorShader flat_color_shader;
 	LightingShader lighting_shader;
 	GridShader grid_shader;
 

@@ -15,17 +15,20 @@ class Scene {
 public:
 	~Scene();
 	void Init();
-	MeshEntity* CreateMeshEntity(const std::string& filename);
+	MeshEntity* CreateMeshEntity(const std::string& filename, MeshShaderMode shader_mode = MeshShaderMode::LIGHTING);
+	PointLight* CreateLight();
+	auto& GetPointLights() { return m_point_lights; }
 	BaseLight& GetAmbientLighting() { return m_global_ambient_lighting; };
 	void LoadScene();
 	void UnloadScene();
 	auto& GetGroupMeshEntities() { return m_group_mesh_instance_groups; };
+	BasicMesh* cube_data = CreateMeshData("./res/meshes/cube/cube.obj");
 
 private:
-	std::vector<std::future<void>> m_futures;
-	BasicMesh* CreateMeshData(const std::string& filename);
+	BasicMesh* CreateMeshData(const std::string& filename, MeshShaderMode shader_mode = MeshShaderMode::LIGHTING);
 	BaseLight m_global_ambient_lighting;
+	std::vector<std::future<void>> m_futures;
 	std::vector<EntityInstanceGroup*> m_group_mesh_instance_groups;
-	std::vector <PointLight*> m_lights;
+	std::vector <PointLight*> m_point_lights;
 
 };
