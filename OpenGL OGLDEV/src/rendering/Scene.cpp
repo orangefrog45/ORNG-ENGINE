@@ -1,6 +1,6 @@
-#include <future>
 #include <glew.h>
-#include <freeglut.h>
+#include <future>
+#include <glfw/glfw3.h>
 #include "Scene.h"
 
 Scene::~Scene() {
@@ -18,7 +18,7 @@ Scene::~Scene() {
 
 
 void Scene::LoadScene() {
-	int time_start = glutGet(GLUT_ELAPSED_TIME);
+	int time_start = glfwGetTime();
 	for (auto& group : m_group_mesh_instance_groups) {
 		if (group->GetMeshData()->GetLoadStatus() == false) {
 			m_futures.push_back(std::async(std::launch::async, [&] {group->GetMeshData()->LoadMeshData(); }));
@@ -33,7 +33,7 @@ void Scene::LoadScene() {
 			group->InitializeTransformBuffers();
 		}
 	}
-	PrintUtils::PrintSuccess("All meshes loaded in " + std::to_string(glutGet(GLUT_ELAPSED_TIME) - time_start));
+	PrintUtils::PrintSuccess("All meshes loaded in " + std::to_string(glfwGetTime() - time_start));
 }
 
 void Scene::UnloadScene() {

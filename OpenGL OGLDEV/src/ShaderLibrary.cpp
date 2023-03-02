@@ -1,10 +1,10 @@
+#include <glew.h>
 #include <ShaderLibrary.h>
 #include <string>
 #include <sstream>
-#include <glew.h>
 #include <iostream>
-#include <freeglut.h>
 #include <fstream>
+#include <glfw/glfw3.h>
 #include <vector>
 #include <algorithm>
 #include "GLErrorHandling.h"

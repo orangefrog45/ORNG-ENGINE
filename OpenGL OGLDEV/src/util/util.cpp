@@ -1,5 +1,6 @@
 #include <glew.h>
-#include <glut.h>
+#include <glfw/glfw3.h>
+#include <windows.h>
 #include "util/util.h"
 
 void PrintUtils::PrintDebug(const std::string& text) {
@@ -25,7 +26,7 @@ void PrintUtils::PrintError(const std::string& text) {
 }
 
 std::string PrintUtils::GetFormattedTime() {
-	int time_in_seconds = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+	int time_in_seconds = glfwGetTime() / 1000.0f;
 	int hours = time_in_seconds / 3600;
 	int minutes = (time_in_seconds / 60) - hours * 60;
 	int seconds = time_in_seconds - (hours * 3600 + minutes * 60);

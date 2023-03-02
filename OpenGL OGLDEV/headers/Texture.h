@@ -1,7 +1,8 @@
 #pragma once
+#include <glew.h>
+#include <glfw/glfw3.h>
 #include <string>
 #include <vector>
-#include <glew.h>
 
 class Texture {
 public:

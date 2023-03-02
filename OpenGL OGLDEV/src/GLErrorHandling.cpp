@@ -1,6 +1,7 @@
+#include <glew.h>
+#include <glfw/glfw3.h>
 #include "GLErrorHandling.h"
 #include <iostream>
-#include <glew.h>
 
 
 void GLClearError() {

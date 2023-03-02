@@ -43,6 +43,7 @@ uniform bool specular_sampler_active; // FALSE IF NO SHININESS TEXTURE FOUND
 
 vec3 CalcPhongLight(PointLight p_light, vec3 norm) {
 	//diffuse
+
 	vec3 pos_to_light_dir_vec = normalize(p_light.pos - vs_position);
 	float diffuse = clamp(dot(pos_to_light_dir_vec, norm), 0, 1);
 
@@ -88,14 +89,13 @@ void main()
 	vec3 total_light = vec3(0, 0, 0);
 	vec3 ambient_light = g_ambient_light.color * g_ambient_light.ambient_intensity * g_material.ambient_color;
 
-
 	for (int i = 0; i < g_num_point_lights; i++) {
 		float attenuation = CalcAttenuation(g_point_lights[i]);
-		//if (attenuation < 100.0f) {
-		total_light += (CalcPointLight(i, normal)) + ambient_light;
-		//}
+		if (attenuation < 2000.0f) {
+			total_light += ((CalcPointLight(i, normal)) / attenuation);
+		}
 	}
 
-	FragColor = vec4(total_light, 1.0) * texture2D(gSampler, TexCoord0);
+	FragColor = ((vec4(total_light, 1.0)) + vec4(ambient_light, 1.0)) * texture2D(gSampler, TexCoord0);
 
 };

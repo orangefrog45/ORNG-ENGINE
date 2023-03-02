@@ -1,5 +1,5 @@
 #include <glew.h>
-#include <freeglut.h>
+#include <glfw/glfw3.h>
 #include <glm/glm.hpp>
 #include "Texture.h"
 #include "Skybox.h"

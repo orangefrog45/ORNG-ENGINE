@@ -1,5 +1,4 @@
 #pragma once
-#include <freeglut.h>
 #include <vector>
 #include <string>
 #include <array>

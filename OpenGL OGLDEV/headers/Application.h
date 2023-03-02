@@ -1,7 +1,7 @@
 #pragma once
-#include <stdio.h>
 #include <glew.h>
-#include <freeglut.h>
+#include <glfw/glfw3.h>
+#include <stdio.h>
 #include <glm/glm.hpp>
 #include <fstream>
 #include <memory>
@@ -25,10 +25,10 @@ class Application
 public:
 	Application();
 	~Application();
-	bool Init();
+	void Init();
 	std::shared_ptr<KeyboardState> GetKeyboard();
 	void PassiveMouseCB(int x, int y);
-	void RenderSceneCB();
+	void RenderScene();
 
 
 private:

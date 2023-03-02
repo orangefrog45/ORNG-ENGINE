@@ -1,5 +1,6 @@
+#include <stdio.h>
+#include <ctype.h>
 #include "KeyboardState.h"
-#include <freeglut.h>
 
 KeyboardState::KeyboardState() {
 	wPressed = false;
@@ -49,7 +50,7 @@ void KeyboardState::KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 }
 
 void KeyboardState::SpecialKeysUp(int key, int x, int y) {
-	switch (key) {
+	/*switch (key) {
 	case GLUT_KEY_SHIFT_L:
 		shiftPressed = false;
 		break;
@@ -57,7 +58,7 @@ void KeyboardState::SpecialKeysUp(int key, int x, int y) {
 	case GLUT_KEY_CTRL_L:
 		ctrlPressed = false;
 		break;
-	}
+	}*/
 }
 
 void KeyboardState::KeysUp(unsigned char key, int x, int y) {
@@ -94,14 +95,14 @@ void KeyboardState::KeysUp(unsigned char key, int x, int y) {
 
 void KeyboardState::SpecialKeyboardCB(int key, int mouse_x, int mouse_y)
 {
-	switch (key) {
+	/*switch (key) {
 
-	case GLUT_KEY_SHIFT_L:
-		shiftPressed = true;
-		break;
+		case GLUT_KEY_SHIFT_L:
+			shiftPressed = true;
+			break;
 
-	case GLUT_KEY_CTRL_L:
-		ctrlPressed = true;
-		break;
-	}
+		case GLUT_KEY_CTRL_L:
+			ctrlPressed = true;
+			break;
+		}*/
 }

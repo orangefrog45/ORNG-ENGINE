@@ -2,7 +2,6 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/matrix_major_storage.hpp>
 #include "ExtraMath.h"
-#include "freeglut.h"
 #include <iostream>
 #include "Camera.h"
 #include "KeyboardState.h"
@@ -63,7 +62,6 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 			}
 		}
 
-		glutWarpPointer(m_windowWidth / 2, m_windowHeight / 2);
 		glm::normalize(m_target);
 
 	}

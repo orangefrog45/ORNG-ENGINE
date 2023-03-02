@@ -1,5 +1,5 @@
 #include <glew.h>
-#include <freeglut.h>
+#include <glfw/glfw3.h>
 #include "shaders/GridShader.h"
 #include <iostream>
 #include <glm/glm.hpp>

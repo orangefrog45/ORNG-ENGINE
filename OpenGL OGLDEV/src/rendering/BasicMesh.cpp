@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <glm/gtx/matrix_major_storage.hpp>
 #include <iostream>
+#include <glew.h>
+#include <glfw/glfw3.h>
 #include <future>
 #include "BasicMesh.h"
-#include "freeglut.h"
-#include "glew.h"
 #include "util/util.h"
 
 static constexpr unsigned int POSITION_LOCATION = 0;
@@ -49,7 +49,7 @@ void BasicMesh::LoadIntoGL() {
 bool BasicMesh::LoadMeshData() {
 
 	PrintUtils::PrintDebug("Loading mesh: " + m_filename);
-	int time = glutGet(GLUT_ELAPSED_TIME);
+	int time = glfwGetTime();
 
 	bool ret = false;
 
@@ -62,7 +62,7 @@ bool BasicMesh::LoadMeshData() {
 		printf("Error parsing '%s': '%s'\n", m_filename.c_str(), importer.GetErrorString());
 	}
 
-	int timeElapsed = glutGet(GLUT_ELAPSED_TIME) - time;
+	int timeElapsed = glfwGetTime() - time;
 
 	PrintUtils::PrintSuccess("Mesh loaded in " + std::to_string(timeElapsed) + "ms : " + m_filename);
 	return ret;

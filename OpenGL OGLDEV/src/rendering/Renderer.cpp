@@ -1,4 +1,3 @@
-#include <glew.h>
 #include <iostream>
 #include <execution>
 #include <glm/gtx/matrix_major_storage.hpp>
@@ -8,44 +7,11 @@
 
 
 void Renderer::Init() {
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-	glewInit();
-	glutInitContextVersion(3, 3);
-	glutInitContextProfile(GLUT_CORE_PROFILE);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-	glutInitWindowSize(m_window_width, m_window_height);
-
-	glutInitWindowPosition(200, 100);
-
-	int win = glutCreateWindow("UNREAL 8.0");
-
-	unsigned int res = glewInit();
-	if (GLEW_OK != res)
-	{
-		/* Problem: glewInit failed, something is seriously wrong. */
-		fprintf(stderr, "Error: %s\n", glewGetErrorString(res));
-		exit(1);
-	}
-
-	fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-	printf("window id: %d\n", win);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
-	glCullFace(GL_BACK);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(3.0);
 
 	shaderLibrary.Init();
 	grid_mesh.Init();
 	skybox.Init();
 
-	//TODO : make mesh loading multithreaded, going to require re-working the insta-load system, load meshes all at once in LoadScene().
 	auto cube = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
@@ -133,8 +99,8 @@ void Renderer::RenderScene() {
 
 
 
+	shaderLibrary.flat_color_shader.ActivateProgram();
 	for (auto light : scene.GetPointLights()) {
-		shaderLibrary.flat_color_shader.ActivateProgram();
 		shaderLibrary.flat_color_shader.SetWVP(glm::colMajor4(light->GetWorldTransform().GetMatrix()) * glm::colMajor4(p_camera->GetMatrix()) * glm::colMajor4(projectionMatrix));
 		shaderLibrary.flat_color_shader.SetColor(light->color.x, light->color.y, light->color.z);
 		light->cube_visual->GetMeshData()->Render(1);

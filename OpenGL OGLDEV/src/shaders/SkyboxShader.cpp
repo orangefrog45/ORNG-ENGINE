@@ -1,5 +1,5 @@
 #include <glew.h>
-#include <freeglut.h>
+#include <glfw/glfw3.h>
 #include <iostream>
 #include "shaders/SkyboxShader.h"
 #include "util/util.h"
