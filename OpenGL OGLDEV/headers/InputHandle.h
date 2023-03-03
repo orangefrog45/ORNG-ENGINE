@@ -13,8 +13,8 @@ struct InputHandle {
 	bool ctrlPressed = false;
 	bool ESC_pressed = false;
 	bool mouse_locked = false;
-	float mouse_x = 0;
-	float mouse_y = 0;
+	double mouse_x = 0;
+	double mouse_y = 0;
 	InputHandle();
 	void SetMouseLocked(bool t) { mouse_locked = t; };
 	void HandleInput(GLFWwindow* window, int window_width, int window_height);

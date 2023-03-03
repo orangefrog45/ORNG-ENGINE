@@ -66,10 +66,10 @@ void InputHandle::HandleInput(GLFWwindow* window, int window_width, int window_h
 	else {
 		g_pressed = false;
 	}
+	glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
 	if (mouse_locked) glfwSetCursorPos(window, window_width / 2, window_height / 2);
 
-	glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
 }
 

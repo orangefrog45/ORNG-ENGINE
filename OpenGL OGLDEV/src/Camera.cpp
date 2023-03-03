@@ -49,7 +49,7 @@ void Camera::OnMouse(float mouse_x, float mouse_y) {
 	const float rotationSpeed = 0.005f;
 	float maxDelta = 100.0f;
 
-	if (!input_handle->mouse_locked) {
+	if (input_handle->mouse_locked) {
 		glm::vec2 mouseDelta = glm::vec2(mouse_x - m_windowWidth / 2, mouse_y - m_windowHeight / 2);
 
 		if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
