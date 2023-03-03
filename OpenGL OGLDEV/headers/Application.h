@@ -12,7 +12,7 @@
 #include "WorldTransform.h"
 #include "Texture.h"
 #include "BasicMesh.h"
-#include "KeyboardState.h"
+#include "InputHandle.h"
 #include "ShaderLibrary.h"
 #include "TimeStep.h"
 #include "shaders/LightingShader.h"
@@ -26,15 +26,13 @@ public:
 	Application();
 	~Application();
 	void Init();
-	std::shared_ptr<KeyboardState> GetKeyboard();
-	void PassiveMouseCB(int x, int y);
+	std::shared_ptr<InputHandle> GetInputHandle() const;
 	void RenderScene();
 
 
 private:
 
 	void MonitorFrames();
-	void InitGlutCallbacks();
 	void ReshapeCB(int w, int h);
 	unsigned int m_current_frames;
 	unsigned int m_last_frames;
@@ -43,8 +41,8 @@ private:
 	TimeStep time_step_camera;
 	TimeStep time_step_frames;
 
-	std::shared_ptr<KeyboardState> keyboard_state = std::make_shared<KeyboardState>();
-	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera, keyboard_state);
+	std::shared_ptr<InputHandle> input_handle = std::make_shared<InputHandle>();
+	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera, input_handle);
 	Renderer renderer = Renderer(p_camera);
 
 };

@@ -1,5 +1,7 @@
 #pragma once
-struct KeyboardState {
+#include <glew.h>
+#include <glfw/glfw3.h>
+struct InputHandle {
 	bool wPressed = false;
 	bool aPressed = false;
 	bool sPressed = false;
@@ -11,12 +13,10 @@ struct KeyboardState {
 	bool ctrlPressed = false;
 	bool ESC_pressed = false;
 	bool mouse_locked = false;
-	KeyboardState();
+	float mouse_x = 0;
+	float mouse_y = 0;
+	InputHandle();
 	void SetMouseLocked(bool t) { mouse_locked = t; };
-	void KeyboardCB(unsigned char key, int mouse_x, int mouse_y);
-	void KeysUp(unsigned char key, int x, int y);
-	void SpecialKeyboardCB(int key, int mouse_x, int mouse_y);
-	void SpecialKeysUp(int key, int x, int y);
-
+	void HandleInput(GLFWwindow* window, int window_width, int window_height);
 };
 

@@ -14,7 +14,6 @@
 #include "WorldTransform.h"
 #include "Texture.h"
 #include "Application.h"
-#include "KeyboardState.h"
 #include "TimeStep.h"
 #include "util/util.h"
 #include "Renderer.h"
@@ -45,7 +44,11 @@ void Application::Init() {
 
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
+
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
+
 	GLint GlewInitResult = glewInit();
+
 	if (GLEW_OK != GlewInitResult)
 	{
 		printf("ERROR: %s", glewGetErrorString(GlewInitResult));
@@ -74,18 +77,18 @@ void Application::Init() {
 
 		/* Poll for and process events */
 		glfwPollEvents();
+
+		input_handle->HandleInput(window, m_window_width, m_window_height); // handle mouse-locking, caching key states
+		p_camera->HandleInput();
+
 	}
 
 	glfwTerminate();
 }
 
-void Application::PassiveMouseCB(int x, int y)
-{
-	p_camera->OnMouse(glm::vec2(x, y));
-}
 
-std::shared_ptr<KeyboardState> Application::GetKeyboard() {
-	return keyboard_state;
+std::shared_ptr<InputHandle> Application::GetInputHandle() const {
+	return input_handle;
 }
 
 
@@ -97,7 +100,7 @@ void Application::ReshapeCB(int w, int h) {
 void Application::MonitorFrames() {
 	m_current_frames++;
 
-	if (glfwGetTime() - time_step_frames.lastTime > 1000) {
+	if (glfwGetTime() - time_step_frames.lastTime > 1) {
 		time_step_frames.lastTime = glfwGetTime();
 		PrintUtils::PrintDebug("FPS: " + std::to_string(m_current_frames - m_last_frames));
 		m_last_frames = m_current_frames;
@@ -115,7 +118,7 @@ void Application::RenderScene() {
 
 	p_camera->HandleInput();
 	static int instances = 0;
-	if (keyboard_state->g_pressed) {
+	if (input_handle->g_pressed) {
 		auto entity = renderer.scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 		glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(-p_camera->GetTarget().x * 15.0f, -p_camera->GetTarget().y * 15.0f, -p_camera->GetTarget().z * 15.0f));
 		instances++;

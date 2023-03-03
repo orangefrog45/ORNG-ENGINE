@@ -1,15 +1,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/matrix_major_storage.hpp>
-#include "ExtraMath.h"
 #include <iostream>
+#include <util/util.h>
+#include "ExtraMath.h"
 #include "Camera.h"
-#include "KeyboardState.h"
 #include "TimeStep.h"
 
 
-Camera::Camera(int windowWidth, int windowHeight, const TimeStep* time_step, const std::shared_ptr<KeyboardState> keyboard) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), time_step(time_step),
-keyboard_state(keyboard) {
+Camera::Camera(int windowWidth, int windowHeight, const TimeStep* time_step, const std::shared_ptr<InputHandle> keyboard) : m_windowWidth(windowWidth), m_windowHeight(windowHeight), time_step(time_step),
+input_handle(keyboard) {
 }
 
 void Camera::SetPosition(float x, float y, float z) {
@@ -24,31 +24,33 @@ glm::fvec3 Camera::GetPos() const {
 
 void Camera::HandleInput() {
 
-	if (keyboard_state->wPressed)
+	if (input_handle->wPressed)
 		MoveForward();
 
-	if (keyboard_state->aPressed)
+	if (input_handle->aPressed)
 		StrafeLeft();
 
-	if (keyboard_state->sPressed)
+	if (input_handle->sPressed)
 		MoveBackward();
 
-	if (keyboard_state->dPressed)
+	if (input_handle->dPressed)
 		StrafeRight();
 
-	if (keyboard_state->ePressed)
+	if (input_handle->ePressed)
 		MoveUp();
 
-	if (keyboard_state->qPressed)
+	if (input_handle->qPressed)
 		MoveDown();
+
+	OnMouse(input_handle->mouse_x, input_handle->mouse_y);
 }
 
-void Camera::OnMouse(const glm::vec2& newMousePos) {
+void Camera::OnMouse(float mouse_x, float mouse_y) {
 	const float rotationSpeed = 0.005f;
 	float maxDelta = 100.0f;
 
-	if (!keyboard_state->mouse_locked) {
-		glm::vec2 mouseDelta = glm::vec2(newMousePos.x - m_windowWidth / 2, newMousePos.y - m_windowHeight / 2);
+	if (!input_handle->mouse_locked) {
+		glm::vec2 mouseDelta = glm::vec2(mouse_x - m_windowWidth / 2, mouse_y - m_windowHeight / 2);
 
 		if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
 			m_target = glm::rotate(mouseDelta.x * rotationSpeed, m_up) * glm::fvec4(m_target, 0);
@@ -61,7 +63,6 @@ void Camera::OnMouse(const glm::vec2& newMousePos) {
 				m_target = m_targetNew;
 			}
 		}
-
 		glm::normalize(m_target);
 
 	}

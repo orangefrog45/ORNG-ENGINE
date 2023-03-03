@@ -156,7 +156,7 @@
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
     <ClCompile Include="src\GLErrorHandling.cpp" />
-    <ClCompile Include="src\KeyboardState.cpp" />
+    <ClCompile Include="src\InputHandle.cpp" />
     <ClCompile Include="src\main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
@@ -191,7 +191,7 @@
     <ClInclude Include="headers\ExtraMath.h" />
     <ClInclude Include="headers\GLErrorHandling.h" />
     <ClInclude Include="headers\GridMesh.h" />
-    <ClInclude Include="headers\KeyboardState.h" />
+    <ClInclude Include="headers\InputHandle.h" />
     <ClInclude Include="headers\Application.h" />
     <ClInclude Include="headers\Material.h" />
     <ClInclude Include="headers\rendering\EntityInstanceGroup.h" />

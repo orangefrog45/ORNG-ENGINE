@@ -27,7 +27,7 @@
     <ClCompile Include="src\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\KeyboardState.cpp">
+    <ClCompile Include="src\InputHandle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\TimeStep.cpp">
@@ -102,7 +102,7 @@
     <None Include="res\shaders\FlatColourFS.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\KeyboardState.h">
+    <ClInclude Include="headers\InputHandle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\WorldTransform.h">
