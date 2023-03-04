@@ -27,8 +27,9 @@ void LightingShader::SetProjection(const glm::fmat4& proj) {
 }
 
 void LightingShader::SetAmbientLight(const BaseLight& light) {
-	glUniform3f(m_ambient_light_color_loc, light.color.x, light.color.y, light.color.z);
-	glUniform1f(m_light_ambient_intensity_loc, light.ambient_intensity);
+	glm::fvec3 light_color = light.GetColor();
+	glUniform3f(m_ambient_light_color_loc, light_color.x, light_color.y, light_color.z);
+	glUniform1f(m_light_ambient_intensity_loc, light.GetAmbientIntensity());
 }
 
 
@@ -106,11 +107,13 @@ void LightingShader::InitUniforms() {
 
 void LightingShader::SetPointLights(std::vector< PointLight*>& p_lights) {
 	for (unsigned int i = 0; i < p_lights.size(); i++) {
-		glUniform3f(m_point_light_locations[i].color, p_lights[i]->color.x, p_lights[i]->color.y, p_lights[i]->color.z);
 
-		glUniform1f(m_point_light_locations[i].ambient_intensity, p_lights[i]->ambient_intensity);
+		glm::fvec3 light_color = p_lights[i]->GetColor();
+		glUniform3f(m_point_light_locations[i].color, light_color.x, light_color.y, light_color.z);
 
-		glUniform1f(m_point_light_locations[i].diffuse_intensity, p_lights[i]->diffuse_intensity);
+		glUniform1f(m_point_light_locations[i].ambient_intensity, p_lights[i]->GetAmbientIntensity());
+
+		glUniform1f(m_point_light_locations[i].diffuse_intensity, p_lights[i]->GetDiffuseIntensity());
 
 		glm::fvec3 pos = p_lights[i]->GetWorldTransform().GetPosition();
 		glUniform3f(m_point_light_locations[i].position, pos.x, pos.y, pos.z);

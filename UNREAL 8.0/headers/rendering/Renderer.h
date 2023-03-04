@@ -13,14 +13,9 @@
 
 class Renderer {
 public:
-	Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
+	explicit Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
 	void Init();
-	std::vector<std::shared_ptr<BasicMesh>> lightingShaderMeshes;
 
-
-	glm::fvec3 lightColor = glm::fvec3(1.0f, 0.0f, 0.5f);
-
-	void AnimateGeometry();
 	void RenderScene();
 	void DrawGrid();
 	Scene scene;

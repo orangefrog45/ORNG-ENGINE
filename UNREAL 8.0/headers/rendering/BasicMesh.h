@@ -19,6 +19,7 @@ enum class MeshShaderMode {
 class BasicMesh {
 public:
 	BasicMesh(const std::string& filename, MeshShaderMode mode = MeshShaderMode::LIGHTING);
+	BasicMesh(const BasicMesh& other) = default;
 	~BasicMesh() {};
 
 	void LoadIntoGL();
@@ -44,7 +45,7 @@ private:
 
 	bool is_loaded = false;
 
-	const aiScene* p_scene;
+	const aiScene* p_scene = nullptr;
 
 	Assimp::Importer importer;
 

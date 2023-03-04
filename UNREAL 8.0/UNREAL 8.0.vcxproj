@@ -161,7 +161,7 @@
     <ClCompile Include="src\rendering\Scene.cpp" />
     <ClCompile Include="src\shaders\FlatColorShader.cpp" />
     <ClCompile Include="src\shaders\GridShader.cpp" />
-    <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\rendering\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
     <ClCompile Include="src\GLErrorHandling.cpp" />
     <ClCompile Include="src\InputHandle.cpp" />

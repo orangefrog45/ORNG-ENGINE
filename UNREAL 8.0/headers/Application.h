@@ -24,21 +24,17 @@ class Application
 {
 public:
 	Application();
-	~Application();
+	~Application() = default;
 	void Init();
 	void RenderScene();
-	std::shared_ptr<InputHandle> GetInputHandle() const;
-
+	const std::shared_ptr<InputHandle>& GetInputHandle() const { return input_handle; };
 
 private:
-
-	void ReshapeCB(int w, int h);
 	unsigned int m_window_width = RenderData::WINDOW_WIDTH;
 	unsigned int m_window_height = RenderData::WINDOW_HEIGHT;
-	TimeStep time_step_camera;
 
 	std::shared_ptr<InputHandle> input_handle = std::make_shared<InputHandle>();
-	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera, input_handle);
+	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, input_handle);
 	Renderer renderer = Renderer(p_camera);
 
 };
