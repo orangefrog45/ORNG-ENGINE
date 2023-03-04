@@ -10,9 +10,9 @@ Scene::~Scene() {
 
 void Scene::LoadScene() {
 	double time_start = glfwGetTime();
-	for (auto& group : m_mesh_instance_groups) {
-		if (group->GetMeshData()->GetLoadStatus() == false) {
-			m_futures.push_back(std::async(std::launch::async, [&group] {group->GetMeshData()->LoadMeshData(); }));
+	for (auto& mesh : m_mesh_data) {
+		if (mesh->GetLoadStatus() == false) {
+			m_futures.push_back(std::async(std::launch::async, [&mesh, this] {mesh->LoadMeshData(); }));
 		}
 	}
 	for (unsigned int i = 0; i < m_futures.size(); i++) {
@@ -69,13 +69,13 @@ MeshEntity* Scene::CreateMeshEntity(const std::string& filename, MeshShaderMode 
 
 	}
 
-	if (group_index != -1) { // if group exists, merge
+	if (group_index != -1) { // if instance group exists, merge
 		PrintUtils::PrintDebug("Group found for entity: " + filename);
 		auto entity = new MeshEntity(m_mesh_instance_groups[group_index]->GetMeshData());
 		m_mesh_instance_groups[group_index]->AddInstance(entity);
 		return entity;
 	}
-	else if (mesh_data_index != -1) { //else if group doesn't exist but mesh data exists, create group with existing data
+	else if (mesh_data_index != -1) { //else if instance group doesn't exist but mesh data exists, create group with existing data
 		PrintUtils::PrintDebug("Mesh data found for entity: " + filename);
 		auto entity = new MeshEntity(m_mesh_data[mesh_data_index]);
 		auto group = new EntityInstanceGroup(m_mesh_data[mesh_data_index]);
@@ -83,11 +83,10 @@ MeshEntity* Scene::CreateMeshEntity(const std::string& filename, MeshShaderMode 
 		group->AddInstance(entity);
 		return entity;
 	}
-	else { // no group, no mesh data -  create mesh data and instance group
+	else { // no instance group, no mesh data -  create mesh data and instance group
 		PrintUtils::PrintDebug("Mesh data not found, creating for entity: " + filename);
 
 		BasicMesh* mesh_data = CreateMeshData(filename, shader_mode);
-		m_mesh_data.push_back(mesh_data);
 		auto entity = new MeshEntity(mesh_data);
 		auto group = new EntityInstanceGroup(mesh_data);
 		m_mesh_instance_groups.push_back(group);
