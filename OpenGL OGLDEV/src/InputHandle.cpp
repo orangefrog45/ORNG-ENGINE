@@ -16,11 +16,11 @@ InputHandle::InputHandle() {
 
 void InputHandle::HandleInput(GLFWwindow* window, int window_width, int window_height)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 	{
 		mouse_locked = true;
 	}
-	else if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS) {
+	else if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
 		mouse_locked = false;
 	}
 

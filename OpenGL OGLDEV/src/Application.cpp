@@ -1,3 +1,6 @@
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 #include <glew.h>
 #include <glfw/glfw3.h>
 #include <stdio.h>
@@ -18,7 +21,6 @@
 #include "util/util.h"
 #include "Renderer.h"
 #include "Skybox.h"
-#include <imgui/imgui.h>
 
 
 
@@ -27,8 +29,6 @@ Application::Application() {
 
 
 void Application::Init() {
-	m_current_frames = 0;
-	m_last_frames = 0;
 	GLFWwindow* window;
 
 	if (!glfwInit())
@@ -41,9 +41,21 @@ void Application::Init() {
 	{
 		glfwTerminate();
 	}
+	glfwMakeContextCurrent(window);
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	io.FontDefault = io.Fonts->AddFontFromFileTTF("./res/fonts/PlatNomor-WyVnn.ttf", 18.0f);
+
 
 	/* Make the window's context current */
-	glfwMakeContextCurrent(window);
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
 
@@ -65,6 +77,7 @@ void Application::Init() {
 	glLineWidth(3.0);
 	renderer.Init();
 
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -75,14 +88,24 @@ void Application::Init() {
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
 
+
 		/* Poll for and process events */
 		glfwPollEvents();
 
 		input_handle->HandleInput(window, m_window_width, m_window_height); // handle mouse-locking, caching key states
 		p_camera->HandleInput();
 
+
+
+
 	}
 
+	// Cleanup
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+
+	glfwDestroyWindow(window);
 	glfwTerminate();
 }
 
@@ -97,22 +120,11 @@ void Application::ReshapeCB(int w, int h) {
 	m_window_height = h;
 }
 
-void Application::MonitorFrames() {
-	m_current_frames++;
-
-	if (glfwGetTime() - time_step_frames.lastTime > 1) {
-		time_step_frames.lastTime = glfwGetTime();
-		PrintUtils::PrintDebug("FPS: " + std::to_string(m_current_frames - m_last_frames));
-		m_last_frames = m_current_frames;
-	}
-
-}
 
 void Application::RenderScene() {
 
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	MonitorFrames();
 	time_step_camera.timeInterval = glfwGetTime() - time_step_camera.lastTime;
 	time_step_camera.lastTime = glfwGetTime();
 

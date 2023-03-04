@@ -1,5 +1,4 @@
 #include <iostream>
-#include <execution>
 #include <glm/gtx/matrix_major_storage.hpp>
 #include "Renderer.h"
 #include "ExtraMath.h"
@@ -96,11 +95,11 @@ void Renderer::DrawGrid() {
 }*/
 
 void Renderer::RenderScene() {
-
-
+	static glm::fvec3 atten_vals = glm::fvec3(0, 0, 0);
 
 	shaderLibrary.flat_color_shader.ActivateProgram();
 	for (auto light : scene.GetPointLights()) {
+		light->SetAttenuation(atten_vals.x, atten_vals.y, atten_vals.z);
 		shaderLibrary.flat_color_shader.SetWVP(glm::colMajor4(light->GetWorldTransform().GetMatrix()) * glm::colMajor4(p_camera->GetMatrix()) * glm::colMajor4(projectionMatrix));
 		shaderLibrary.flat_color_shader.SetColor(light->color.x, light->color.y, light->color.z);
 		light->cube_visual->GetMeshData()->Render(1);
@@ -124,5 +123,12 @@ void Renderer::RenderScene() {
 
 	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()) * p_camera->GetMatrix() * projectionMatrix);
 	DrawGrid();
+
+	ControlWindow::CreateBaseWindow();
+	atten_vals = ControlWindow::DisplayAttenuationControls();
+	ControlWindow::Render();
+
+
+
 }
 

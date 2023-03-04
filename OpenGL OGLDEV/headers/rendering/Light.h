@@ -25,6 +25,7 @@ public:
 	PointLight() = default;
 	PointLight(const glm::fvec3& position, const glm::fvec3& t_color) { transform.SetPosition(position.x, position.y, position.z); color = t_color; };
 	const LightAttenuation& GetAttentuation() const { return attenuation; }
+	void SetAttenuation(float constant, float lin, float exp) { attenuation.constant = constant; attenuation.linear = lin; attenuation.exp = exp; }
 	const WorldTransform& GetWorldTransform() const { return transform; };
 	MeshEntity* cube_visual = nullptr;
 	void SetPosition(float x, float y, float z) { if (cube_visual) { transform.SetPosition(x, y, z); cube_visual->SetPosition(x, y, z); } };

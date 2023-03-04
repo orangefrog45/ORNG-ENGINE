@@ -26,20 +26,16 @@ public:
 	Application();
 	~Application();
 	void Init();
-	std::shared_ptr<InputHandle> GetInputHandle() const;
 	void RenderScene();
+	std::shared_ptr<InputHandle> GetInputHandle() const;
 
 
 private:
 
-	void MonitorFrames();
 	void ReshapeCB(int w, int h);
-	unsigned int m_current_frames;
-	unsigned int m_last_frames;
 	unsigned int m_window_width = RenderData::WINDOW_WIDTH;
 	unsigned int m_window_height = RenderData::WINDOW_HEIGHT;
 	TimeStep time_step_camera;
-	TimeStep time_step_frames;
 
 	std::shared_ptr<InputHandle> input_handle = std::make_shared<InputHandle>();
 	std::shared_ptr<Camera> p_camera = std::make_shared<Camera>(m_window_width, m_window_height, &time_step_camera, input_handle);

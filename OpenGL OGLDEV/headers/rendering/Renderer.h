@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <gui/ControlWindow.h>
 #include "ExtraMath.h"
 #include "ShaderLibrary.h"
 #include "BasicMesh.h"

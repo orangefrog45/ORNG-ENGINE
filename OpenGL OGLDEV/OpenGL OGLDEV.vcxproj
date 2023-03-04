@@ -114,7 +114,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;$(SolutionDir)OpenGL OGLDEV\headers\rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OpenGL OGLDEV\Include;$(SolutionDir)OpenGL OGLDEV\headers;$(SolutionDir)OpenGL OGLDEV\headers\rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -132,7 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;$(SolutionDir)OpenGL OGLDEV\headers\rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OpenGL OGLDEV\Include;$(SolutionDir)OpenGL OGLDEV\headers;$(SolutionDir)OpenGL OGLDEV\headers\rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -140,11 +140,19 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;glfw3dll.lib;glew32.lib;assimp-vc143-mt.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;glew32.lib;assimp-vc143-mt.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Include\imgui\imgui.cpp" />
+    <ClCompile Include="Include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="Include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="Include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="Include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\gui\ControlWindow.cpp" />
     <ClCompile Include="src\rendering\BasicMesh.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
     <ClCompile Include="src\rendering\EntityInstanceGroup.cpp" />
@@ -186,6 +194,7 @@
     <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="headers\gui\ControlWindow.h" />
     <ClInclude Include="headers\rendering\BasicMesh.h" />
     <ClInclude Include="headers\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
@@ -210,6 +219,15 @@
     <ClInclude Include="headers\TimeStep.h" />
     <ClInclude Include="headers\util\util.h" />
     <ClInclude Include="headers\WorldTransform.h" />
+    <ClInclude Include="Include\imgui\imconfig.h" />
+    <ClInclude Include="Include\imgui\imgui.h" />
+    <ClInclude Include="Include\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="Include\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="Include\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="Include\imgui\imgui_internal.h" />
+    <ClInclude Include="Include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="Include\imgui\imstb_textedit.h" />
+    <ClInclude Include="Include\imgui\imstb_truetype.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

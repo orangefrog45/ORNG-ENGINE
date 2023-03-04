@@ -79,7 +79,6 @@ float CalcAttenuation(PointLight p_light) {
 
 vec3 CalcPointLight(int index, vec3 normal) {
 	vec3 color = CalcPhongLight(g_point_lights[index], normal);
-
 	return color;
 }
 
@@ -91,9 +90,7 @@ void main()
 
 	for (int i = 0; i < g_num_point_lights; i++) {
 		float attenuation = CalcAttenuation(g_point_lights[i]);
-		if (attenuation < 2000.0f) {
-			total_light += ((CalcPointLight(i, normal)) / attenuation);
-		}
+		total_light += ((CalcPointLight(i, normal)) / attenuation);
 	}
 
 	FragColor = ((vec4(total_light, 1.0)) + vec4(ambient_light, 1.0)) * texture2D(gSampler, TexCoord0);
