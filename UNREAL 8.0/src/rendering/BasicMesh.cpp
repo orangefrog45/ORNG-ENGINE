@@ -345,7 +345,7 @@ const Material BasicMesh::GetMaterial() {
 		}
 	}
 	Material placeholder = Material();
-	//std::cout << "ERROR: NO MATERIAL FOUND, USING PLACEHOLDER" << std::endl;
+	PrintUtils::PrintDebug("ERROR: NO MATERIAL FOUND, USING PLACEHOLDER");
 	return placeholder;
 	//ASSERT(false);
 }

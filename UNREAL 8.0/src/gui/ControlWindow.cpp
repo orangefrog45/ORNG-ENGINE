@@ -12,9 +12,9 @@ void ControlWindow::CreateBaseWindow() {
 }
 
 glm::fvec3& ControlWindow::DisplayAttenuationControls() {
-	static float atten_constant = 0.0f;
-	static float atten_linear = 0.0f;
-	static float atten_exp = 0.0f;
+	static float atten_constant = 1.0f;
+	static float atten_linear = 0.05f;
+	static float atten_exp = 0.01f;
 	ImGui::Text("ATTENUATION CONTROLS");
 	ImGui::SliderFloat("constant", &atten_constant, 0.0f, 1.0f);
 	ImGui::SliderFloat("linear", &atten_linear, 0.0f, 1.0f);

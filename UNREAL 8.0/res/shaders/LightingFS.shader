@@ -74,7 +74,7 @@ float CalcAttenuation(PointLight p_light) {
 		p_light.atten.a_linear * distance +
 		p_light.atten.exp * pow(distance, 2);
 
-	return attenuation;
+	return abs(attenuation);
 }
 
 vec3 CalcPointLight(int index, vec3 normal) {
@@ -85,14 +85,20 @@ vec3 CalcPointLight(int index, vec3 normal) {
 void main()
 {
 	vec3 normal = normalize(vs_normal);
-	vec3 total_light = vec3(0, 0, 0);
-	vec3 ambient_light = g_ambient_light.color * g_ambient_light.ambient_intensity * g_material.ambient_color;
+	vec3 total_light = vec3(0.0, 0.0, 0.0);
+	vec3 ambient_light = vec3(0, 0, 0);
+
+	ambient_light = g_ambient_light.color * g_ambient_light.ambient_intensity * g_material.ambient_color;
 
 	for (int i = 0; i < g_num_point_lights; i++) {
 		float attenuation = CalcAttenuation(g_point_lights[i]);
+		//if (attenuation < 200.0) {
 		total_light += ((CalcPointLight(i, normal)) / attenuation);
+		//}
 	}
+	vec3 color = vec3(0, 0, 0);
+	color = max(vec3(total_light), (0.0, 0.0, 0.0)) + ambient_light;
 
-	FragColor = ((vec4(total_light, 1.0)) + vec4(ambient_light, 1.0)) * texture2D(gSampler, TexCoord0);
+	FragColor = vec4(color, 1) * texture2D(gSampler, TexCoord0);
 
 };

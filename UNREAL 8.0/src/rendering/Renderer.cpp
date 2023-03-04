@@ -95,7 +95,7 @@ void Renderer::DrawGrid() {
 }*/
 
 void Renderer::RenderScene() {
-	static glm::fvec3 atten_vals = glm::fvec3(0, 0, 0);
+	static glm::fvec3 atten_vals = glm::fvec3(1.0f, 0.05f, 0.01f);
 
 	shaderLibrary.flat_color_shader.ActivateProgram();
 	for (auto light : scene.GetPointLights()) {
