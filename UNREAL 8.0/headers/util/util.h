@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#include <cmath>
 #include "GLErrorHandling.h"
 
 #define ASSERT(x) if (!(x)) __debugbreak();
@@ -18,6 +19,7 @@ namespace PrintUtils {
 	void PrintDebug(const std::string& text);
 	void PrintSuccess(const std::string& text);
 	void PrintError(const std::string& text);
+	std::string RoundDouble(double value);
 }
 
 namespace RenderData {
@@ -29,6 +31,11 @@ namespace TextureUnits {
 	constexpr int COLOR_TEXTURE_UNIT = GL_TEXTURE0;
 	constexpr int SPECULAR_TEXTURE_UNIT = GL_TEXTURE1;
 }
+
+enum class MeshShaderMode {
+	LIGHTING = 0,
+	FLAT_COLOR = 1
+};
 
 #define BASIC_VERTEX 0
 #define BASIC_FRAGMENT 1

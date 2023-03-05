@@ -1,10 +1,6 @@
 #include "MeshEntity.h"
 #include "util/util.h"
 
-MeshEntity::MeshEntity(BasicMesh* t_mesh_data) : m_mesh_data(t_mesh_data) {
-
-};
-
 MeshEntity::~MeshEntity() {
 	delete m_transform;
 }

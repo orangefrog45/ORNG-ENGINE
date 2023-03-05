@@ -94,6 +94,9 @@ void LightingShader::InitUniforms() {
 		ref = std::format("g_point_lights[{}].pos", i);
 		m_point_light_locations[i].position = GetUniform(ref);
 
+		ref = std::format("g_point_lights[{}].max_distance", i);
+		m_point_light_locations[i].max_distance = GetUniform(ref);
+
 		ref = std::format("g_point_lights[{}].atten.constant", i);
 		m_point_light_locations[i].constant = GetUniform(ref);
 
@@ -117,6 +120,8 @@ void LightingShader::SetPointLights(std::vector< PointLight*>& p_lights) {
 
 		glm::fvec3 pos = p_lights[i]->GetWorldTransform().GetPosition();
 		glUniform3f(m_point_light_locations[i].position, pos.x, pos.y, pos.z);
+
+		glUniform1f(m_point_light_locations[i].max_distance, p_lights[i]->GetMaxDistance());
 
 		glUniform1f(m_point_light_locations[i].constant, p_lights[i]->GetAttentuation().constant);
 

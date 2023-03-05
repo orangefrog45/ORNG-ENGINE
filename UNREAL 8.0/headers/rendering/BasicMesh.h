@@ -10,17 +10,13 @@
 #include "Texture.h"
 #include "Material.h"
 
-
-enum class MeshShaderMode {
-	LIGHTING = 0,
-	FLAT_COLOR = 1
-};
-
 class BasicMesh {
 public:
-	BasicMesh(const std::string& filename, MeshShaderMode mode = MeshShaderMode::LIGHTING);
+	BasicMesh(const std::string& filename) : m_filename(filename) {};
 	BasicMesh(const BasicMesh& other) = default;
 	~BasicMesh() {};
+
+	friend class Renderer; // renderer needs access to basically everything for the draw call
 
 	void LoadIntoGL();
 
@@ -28,20 +24,13 @@ public:
 
 	void UnloadMesh();
 
-	void Render(unsigned int t_instances);
-
 	void UpdateTransformBuffers(const std::vector<WorldTransform const*>* transforms);
 
 	std::string GetFilename() const { return m_filename; };
 
-	auto GetShaderMode() const { return m_shader_mode; }
-
 	bool GetLoadStatus() const { return is_loaded; };
 
-	const Material GetMaterial();
 private:
-
-	MeshShaderMode m_shader_mode;
 
 	bool is_loaded = false;
 

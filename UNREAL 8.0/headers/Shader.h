@@ -2,6 +2,7 @@
 #include <glew.h>
 #include <vector>
 #include <string>
+#include "Material.h"
 #include "util/util.h"
 
 class Shader {
@@ -18,6 +19,8 @@ public:
 	virtual void ActivateProgram() = 0;
 
 	const GLint GetProgramID();
+
+	virtual void SetMaterial(const Material& material) {};//not all shaders need materials e.g flat colour shader
 
 protected:
 	unsigned int GetUniform(const std::string& name);

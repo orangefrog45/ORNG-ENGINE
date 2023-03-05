@@ -29,6 +29,6 @@ private:
 	glm::fvec3 m_pos = glm::fvec3(0.0f, 0.0f, 0.0f);
 	glm::fvec3 m_target = glm::fvec3(0.0f, 0.0f, 1.0f);
 	glm::fvec3 m_up = glm::fvec3(0.0f, 1.0f, 0.0f);
-	float m_speed = 3.0f;
+	float m_speed = 8.0f;
 
 };

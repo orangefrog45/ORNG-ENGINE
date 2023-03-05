@@ -15,9 +15,11 @@ class Renderer {
 public:
 	explicit Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
 	void Init();
-
 	void RenderScene();
 	void DrawGrid();
+	void DrawLightingEntities();
+	void DrawPointLights();
+	template <typename T> static void DrawMeshWithShader(BasicMesh* mesh_data, unsigned int t_instances, T& shader);
 	Scene scene;
 
 private:

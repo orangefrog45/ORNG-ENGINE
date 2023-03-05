@@ -19,7 +19,7 @@ public:
 private:
 	glm::fvec3 color = glm::fvec3(1.0f, 1.0f, 1.0f);
 	float ambient_intensity = 0.2f;
-	float diffuse_intensity = 2.0f;
+	float diffuse_intensity = 1.0f;
 };
 
 
@@ -36,12 +36,15 @@ public:
 
 	const LightAttenuation& GetAttentuation() const { return attenuation; }
 	const WorldTransform& GetWorldTransform() const { return transform; };
-	const MeshEntity* GetCubeVisual() const { return cube_visual; }
+	const MeshEntity* GetCubeVisual() const { return cube_visual; };
+	float GetMaxDistance() { return max_distance; }
 
 	void SetCubeVisual(MeshEntity* p) { cube_visual = p; }
 	void SetAttenuation(const float constant, const float lin, const float exp) { attenuation.constant = constant; attenuation.linear = lin; attenuation.exp = exp; }
 	void SetPosition(const float x, const float y, const float z) { if (cube_visual != nullptr) { transform.SetPosition(x, y, z); cube_visual->SetPosition(x, y, z); } };
+	void SetMaxDistance(const float d) { max_distance = d; };
 private:
+	float max_distance = 48.0f;
 	MeshEntity* cube_visual = nullptr;
 	LightAttenuation attenuation;
 	WorldTransform transform = WorldTransform();

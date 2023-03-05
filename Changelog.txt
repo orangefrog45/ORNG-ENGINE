@@ -1,0 +1,5 @@
+5/3/23:
+-Added fixed distance limits for point lights
+-Improved multi-shader support for scenes
+-Removed render functionality from BasicMesh class
+-Added draw call functions to Renderer 

@@ -4,7 +4,7 @@
 #include "WorldTransform.h"
 #include "Light.h"
 
-static const unsigned int max_point_lights = 128;
+static const unsigned int max_point_lights = 112;
 
 class LightingShader : public Shader {
 public:
@@ -32,6 +32,7 @@ private:
 		GLuint ambient_intensity;
 		GLuint diffuse_intensity;
 		GLuint position;
+		GLuint max_distance;
 
 		struct {
 			GLuint constant;

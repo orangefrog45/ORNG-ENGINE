@@ -7,6 +7,7 @@
 #include <glew.h>
 #include <glfw/glfw3.h>
 #include <future>
+#include <format>
 #include "BasicMesh.h"
 #include "util/util.h"
 
@@ -18,8 +19,6 @@ static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
 static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
-
-BasicMesh::BasicMesh(const std::string& filename, MeshShaderMode mode) : m_filename(filename), m_shader_mode(mode) {};
 
 void BasicMesh::UnloadMesh() {
 	m_meshes.clear();
@@ -49,7 +48,7 @@ void BasicMesh::LoadIntoGL() {
 bool BasicMesh::LoadMeshData() {
 
 	PrintUtils::PrintDebug("Loading mesh: " + m_filename);
-	int time = glfwGetTime();
+	double start_time = glfwGetTime();
 
 	bool ret = false;
 
@@ -62,9 +61,8 @@ bool BasicMesh::LoadMeshData() {
 		printf("Error parsing '%s': '%s'\n", m_filename.c_str(), importer.GetErrorString());
 	}
 
-	int timeElapsed = glfwGetTime() - time;
 
-	PrintUtils::PrintSuccess("Mesh loaded in " + std::to_string(timeElapsed) + "ms : " + m_filename);
+	PrintUtils::PrintSuccess(std::format("Mesh loaded in {}ms: {}", PrintUtils::RoundDouble((glfwGetTime() - start_time) * 1000), m_filename));
 	return ret;
 }
 
@@ -165,7 +163,7 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 void BasicMesh::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 	aiColor3D AmbientColor(0.0f, 0.0f, 0.0f);
 
-	if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS) {
+	if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS && AmbientColor != aiColor3D(0.0f, 0.0f, 0.0f)) {
 		m_materials[index].ambient_color.r = AmbientColor.r;
 		m_materials[index].ambient_color.g = AmbientColor.g;
 		m_materials[index].ambient_color.b = AmbientColor.b;
@@ -173,7 +171,7 @@ void BasicMesh::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 
 	aiColor3D diffuse_color(0.0f, 0.0f, 0.0f);
 
-	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, diffuse_color) == aiReturn_SUCCESS) {
+	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, diffuse_color) == aiReturn_SUCCESS && diffuse_color != aiColor3D(0.0f, 0.0f, 0.0f)) {
 		m_materials[index].diffuse_color.r = diffuse_color.r;
 		m_materials[index].diffuse_color.g = diffuse_color.g;
 		m_materials[index].diffuse_color.b = diffuse_color.b;
@@ -181,7 +179,7 @@ void BasicMesh::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 
 	aiColor3D specular_color(0.0f, 0.0f, 0.0f);
 
-	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular_color) == aiReturn_SUCCESS) {
+	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular_color) == aiReturn_SUCCESS && specular_color != aiColor3D(0.0f, 0.0f, 0.0f)) {
 		m_materials[index].specular_color.r = specular_color.r;
 		m_materials[index].specular_color.g = specular_color.g;
 		m_materials[index].specular_color.b = specular_color.b;
@@ -316,7 +314,7 @@ void BasicMesh::UpdateTransformBuffers(const std::vector<WorldTransform const*>*
 
 }
 
-void BasicMesh::Render(unsigned int t_instances) {
+/*void BasicMesh::Render(unsigned int t_instances) {
 	GLCall(glBindVertexArray(m_VAO));
 
 	for (unsigned int i = 0; i < m_meshes.size(); i++) {
@@ -345,7 +343,7 @@ const Material BasicMesh::GetMaterial() {
 		}
 	}
 	Material placeholder = Material();
-	PrintUtils::PrintDebug("ERROR: NO MATERIAL FOUND, USING PLACEHOLDER");
+	PrintUtils::PrintError("ERROR: NO MATERIAL FOUND, USING PLACEHOLDER");
 	return placeholder;
 	//ASSERT(false);
-}
+}*/

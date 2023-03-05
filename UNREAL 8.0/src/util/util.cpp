@@ -25,6 +25,11 @@ void PrintUtils::PrintError(const std::string& text) {
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07);
 }
 
+std::string PrintUtils::RoundDouble(double value) {
+	std::string value1 = std::to_string(value);
+	return value1.substr(0, value1.find(".") + 2);
+}
+
 std::string PrintUtils::GetFormattedTime() {
 	int time_in_seconds = glfwGetTime() / 1000.0f;
 	int hours = time_in_seconds / 3600;

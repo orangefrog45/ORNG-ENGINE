@@ -43,6 +43,7 @@ void Application::Init() {
 	}
 
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(0);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
 
 	//GLEW INIT

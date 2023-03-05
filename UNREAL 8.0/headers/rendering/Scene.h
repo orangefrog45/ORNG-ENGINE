@@ -24,7 +24,7 @@ public:
 	auto& GetGroupMeshEntities() { return m_mesh_instance_groups; };
 
 private:
-	BasicMesh* CreateMeshData(const std::string& filename, MeshShaderMode shader_mode = MeshShaderMode::LIGHTING);
+	BasicMesh* CreateMeshData(const std::string& filename);
 	BaseLight m_global_ambient_lighting;
 	std::vector<std::future<void>> m_futures;
 	std::vector<EntityInstanceGroup*> m_mesh_instance_groups;
