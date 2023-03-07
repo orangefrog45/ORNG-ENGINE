@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <format>
 #include "Shader.h"
 
 
@@ -34,7 +35,7 @@ std::string Shader::ParseShader(const std::string& filepath) {
 unsigned int Shader::GetUniform(const std::string& name) {
 	GLCall(int location = glGetUniformLocation(GetProgramID(), name.c_str()));
 	if (location == -1) {
-		std::cout << "ERROR: COULD NOT FIND UNIFORM '" << name << "'" << std::endl;
+		PrintUtils::PrintError(std::format("ERROR: COULD NOT FIND UNIFORM '{}'", name));
 		exit(1);
 	}
 	return location;
@@ -56,9 +57,7 @@ void Shader::CompileShader(unsigned int type, const std::string& source, unsigne
 		char* message = (char*)alloca(length * sizeof(char));
 		GLCall(glGetShaderInfoLog(shaderID, length, &length, message));
 
-		std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << std::endl;
-		std::cout << message << std::endl;
-
+		PrintUtils::PrintError(std::format("FAILED TO COMPILE {} SHADER: {}", GL_VERTEX_SHADER ? "vertex" : "fragment", message));
 	}
 }
 

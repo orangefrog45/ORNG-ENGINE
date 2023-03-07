@@ -31,7 +31,7 @@ std::string PrintUtils::RoundDouble(double value) {
 }
 
 std::string PrintUtils::GetFormattedTime() {
-	int time_in_seconds = glfwGetTime() / 1000.0f;
+	int time_in_seconds = glfwGetTime();
 	int hours = time_in_seconds / 3600;
 	int minutes = (time_in_seconds / 60) - hours * 60;
 	int seconds = time_in_seconds - (hours * 3600 + minutes * 60);

@@ -25,7 +25,7 @@ void Scene::LoadScene() {
 			group->InitializeTransformBuffers();
 		}
 	}
-	PrintUtils::PrintSuccess(std::format("All meshes loaded in {}ms", PrintUtils::RoundDouble((glfwGetTime() - time_start) * 1000).substr(0, 4)));
+	PrintUtils::PrintSuccess(std::format("Scene loaded in {}ms", PrintUtils::RoundDouble((glfwGetTime() - time_start) * 1000)));
 }
 
 void Scene::UnloadScene() {
@@ -39,16 +39,29 @@ void Scene::UnloadScene() {
 	for (PointLight* light : m_point_lights) {
 		delete light;
 	}
+	for (SpotLight* light : m_spot_lights) {
+		delete light;
+	}
 	PrintUtils::PrintSuccess("Scene unloaded");
 }
 
-PointLight* Scene::CreateLight() {
+PointLight* Scene::CreatePointLight() {
 	PointLight* light = new PointLight(glm::fvec3(0.0f, 0.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
-	light->SetCubeVisual(CreateMeshEntity("./res/meshes/cube/cube_light.obj", MeshShaderMode::FLAT_COLOR));
+	light->SetMeshVisual(CreateMeshEntity("./res/meshes/light meshes/cube_light.obj", MeshShaderMode::FLAT_COLOR));
 	m_point_lights.push_back(light);
 
 	return light;
 };
+
+SpotLight* Scene::CreateSpotLight() {
+	SpotLight* light = new SpotLight(glm::fvec3(0, -1, 0), 20.0f);
+	light->SetMeshVisual(CreateMeshEntity("./res/meshes/light meshes/cone.obj", MeshShaderMode::FLAT_COLOR));
+	m_spot_lights.push_back(light);
+
+	return light;
+}
+
+
 
 MeshEntity* Scene::CreateMeshEntity(const std::string& filename, MeshShaderMode shader_mode) {
 	int group_index = -1;

@@ -18,7 +18,7 @@ public:
 	void RenderScene();
 	void DrawGrid();
 	void DrawLightingEntities();
-	void DrawPointLights();
+	void DrawLightMeshVisuals();
 	template <typename T> static void DrawMeshWithShader(BasicMesh* mesh_data, unsigned int t_instances, T& shader);
 	Scene scene;
 

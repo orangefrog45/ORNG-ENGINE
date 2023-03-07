@@ -1,5 +1,6 @@
 #version 330 core
 const int MAX_POINT_LIGHTS = 112;
+const int MAX_SPOT_LIGHTS = 1;
 
 in vec2 TexCoord0;
 in vec3 vs_position;
@@ -26,6 +27,12 @@ struct PointLight {
 	Attenuation atten;
 };
 
+struct SpotLight {
+	PointLight base;
+	vec3 dir;
+	float aperture;
+};
+
 struct Material {
 	vec3 ambient_color;
 	vec3 diffuse_color;
@@ -34,6 +41,8 @@ struct Material {
 
 uniform int g_num_point_lights;
 uniform PointLight g_point_lights[MAX_POINT_LIGHTS];
+uniform int g_num_spot_lights;
+uniform SpotLight g_spot_lights[MAX_SPOT_LIGHTS];
 uniform BaseLight g_ambient_light; // ambient
 uniform Material g_material;
 uniform vec3 view_pos;
@@ -69,17 +78,30 @@ vec3 CalcPhongLight(PointLight p_light, vec3 norm) {
 	return (diffuse_final + specular_final);
 }
 
-float CalcAttenuation(PointLight p_light, float distance) {
-	float attenuation = p_light.atten.constant +
-		p_light.atten.a_linear * distance +
-		p_light.atten.exp * pow(distance, 2);
 
-	return attenuation;
+vec3 CalcPointLight(PointLight light, vec3 normal) {
+	vec3 color = CalcPhongLight(light, normal);
+	float distance = length(light.pos - vs_position);
+
+	float attenuation = light.atten.constant +
+		light.atten.a_linear * distance +
+		light.atten.exp * pow(distance, 2);
+
+	return color / attenuation;
 }
 
-vec3 CalcPointLight(int index, vec3 normal) {
-	vec3 color = CalcPhongLight(g_point_lights[index], normal);
-	return color;
+vec3 CalcSpotLight(SpotLight light, vec3 normal) {
+	vec3 light_to_pixel_dir = normalize(vs_position - light.base.pos);
+	float spot_factor = dot(light_to_pixel_dir, light.dir);
+
+	if (spot_factor > light.aperture) {
+		vec3 color = CalcPointLight(light.base, normal);
+		float spotlight_intensity = (1.0 - (1.0 - spot_factor) / (1.0 - light.aperture));
+		return color * spotlight_intensity;
+	}
+	else {
+		return vec3(0, 0, 0);
+	}
 }
 
 void main()
@@ -88,15 +110,19 @@ void main()
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
 	vec3 ambient_light = g_ambient_light.color * g_ambient_light.ambient_intensity * g_material.ambient_color;
 
+	//THESE TWO LOOPS NEED TO BE OPTIMISED
 	for (int i = 0; i < g_num_point_lights; i++) {
 		float distance = length(g_point_lights[i].pos - vs_position);
 		if (distance <= g_point_lights[i].max_distance) {
-			float attenuation = CalcAttenuation(g_point_lights[i], distance);
-			total_light += (CalcPointLight(i, normal)) / attenuation;
+			total_light += (CalcPointLight(g_point_lights[i], normal));
 		}
 	}
+
+	for (int i = 0; i < g_num_spot_lights; i++) {
+		total_light += (CalcSpotLight(g_spot_lights[i], normal));
+	}
+
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0)) + ambient_light;
 
 	FragColor = vec4(color.xyz, 1.0) * texture2D(gSampler, TexCoord0);
-
 };

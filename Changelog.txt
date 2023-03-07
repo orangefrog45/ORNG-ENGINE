@@ -1,5 +1,12 @@
+7/3/23:
+-Added spotlights with a visualization cone angled with the cameras target vector (needs some work)
+-Fixed world matrix bug caused by incorrect multiplication order
+-Fixed flat colour shader WVP uniform bug caused by WVP being taken from light instead of its mesh visual
+
+
 5/3/23:
 -Added fixed distance limits for point lights
 -Improved multi-shader support for scenes
 -Removed render functionality from BasicMesh class
 -Added draw call functions to Renderer 
+-Fixed black texture issue caused by bad materials

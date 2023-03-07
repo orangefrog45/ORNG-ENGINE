@@ -1,3 +1,4 @@
+#include <format>
 #include "gui/ControlWindow.h"
 
 void ControlWindow::CreateBaseWindow() {
@@ -11,17 +12,23 @@ void ControlWindow::CreateBaseWindow() {
 
 }
 
-glm::fvec3& ControlWindow::DisplayAttenuationControls() {
+std::vector<double>& ControlWindow::DisplayPointLightControls(unsigned int num_lights) {
 	static float atten_constant = 1.0f;
 	static float atten_linear = 0.05f;
 	static float atten_exp = 0.01f;
-	ImGui::Text("ATTENUATION CONTROLS");
+	static float max_distance = 48.0f;
+	static bool lights_enabled = 1.0f;
+	static std::vector<double> vals;
+	ImGui::Text("POINTLIGHT CONTROLS");
 	ImGui::SliderFloat("constant", &atten_constant, 0.0f, 1.0f);
 	ImGui::SliderFloat("linear", &atten_linear, 0.0f, 1.0f);
-	ImGui::SliderFloat("exp", &atten_exp, 0.0f, 1.0f);
+	ImGui::SliderFloat("exp", &atten_exp, 0.0f, 0.1f);
+	ImGui::SliderFloat("max distance", &max_distance, 0.0f, 200.0f);
+	ImGui::Text(std::format("Pointlights: {}", num_lights).c_str());
+	ImGui::Checkbox("Toggle Pointlights", &lights_enabled);
 
-	glm::fvec3 val = glm::fvec3(atten_constant, atten_linear, atten_exp);
-	return val;
+	vals = std::vector<double>{ atten_constant, atten_linear, atten_exp, max_distance, static_cast<double>(lights_enabled) };
+	return vals;
 }
 
 void ControlWindow::Render() {

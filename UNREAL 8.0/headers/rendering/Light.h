@@ -29,6 +29,7 @@ struct LightAttenuation {
 	float exp = 0.01f;
 };
 
+
 class PointLight : public BaseLight {
 public:
 	PointLight() = default;
@@ -36,19 +37,32 @@ public:
 
 	const LightAttenuation& GetAttentuation() const { return attenuation; }
 	const WorldTransform& GetWorldTransform() const { return transform; };
-	const MeshEntity* GetCubeVisual() const { return cube_visual; };
+	const MeshEntity* GetMeshVisual() const { return mesh_visual; };
 	float GetMaxDistance() { return max_distance; }
 
-	void SetCubeVisual(MeshEntity* p) { cube_visual = p; }
+	void SetMeshVisual(MeshEntity* p) { mesh_visual = p; }
 	void SetAttenuation(const float constant, const float lin, const float exp) { attenuation.constant = constant; attenuation.linear = lin; attenuation.exp = exp; }
-	void SetPosition(const float x, const float y, const float z) { if (cube_visual != nullptr) { transform.SetPosition(x, y, z); cube_visual->SetPosition(x, y, z); } };
+	void SetPosition(const float x, const float y, const float z) { if (mesh_visual != nullptr) { transform.SetPosition(x, y, z); mesh_visual->SetPosition(x, y, z); } };
 	void SetMaxDistance(const float d) { max_distance = d; };
-private:
+protected:
 	float max_distance = 48.0f;
-	MeshEntity* cube_visual = nullptr;
+	MeshEntity* mesh_visual = nullptr;
 	LightAttenuation attenuation;
-	WorldTransform transform = WorldTransform();
+	WorldTransform transform;
 };
 
+class SpotLight : public PointLight {
+public:
+	SpotLight() = default;
+	SpotLight(const glm::fvec3& dir_vec, const float t_aperture) : light_direction_vec(dir_vec), aperture(cosf(glm::radians(t_aperture))) { SetAttenuation(0.1f, 0.0f, 0.0f); };
+	void SetLightDirection(float i, float j, float k) { light_direction_vec = glm::normalize(glm::fvec3(i, j, k)); mesh_visual->SetRotation(i * 90.0f - 90.0f, k * 90.0f + 90.0f, j * 90.0f - 90.0f); }
+	void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
+
+	auto GetLightDirection() const { return light_direction_vec; }
+	auto GetAperture() const { return aperture; }
+private:
+	glm::fvec3 light_direction_vec = glm::fvec3(1, 0, 0);
+	float aperture = 0.9396f;
+};
 
 

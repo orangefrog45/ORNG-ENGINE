@@ -14,7 +14,6 @@ void LightingShader::Init() {
 
 	SetProgramID(tprogramID);
 
-	ActivateProgram();
 	InitUniforms();
 }
 
@@ -53,14 +52,13 @@ void LightingShader::SetSpecularTextureUnit(unsigned int unit) {
 }
 
 void LightingShader::ActivateProgram() {
+	//if this crashes it is most likely due to an array in the fragment shader being too small to hold some data, switch to UBO'S soon
 	GLCall(glLinkProgram(GetProgramID()));
 	GLCall(glValidateProgram(GetProgramID()));
 	GLCall(glUseProgram(GetProgramID()));
 
 	GLCall(glDeleteShader(vert_shader_id));
 	GLCall(glDeleteShader(frag_shader_id));
-
-
 }
 
 void LightingShader::InitUniforms() {
@@ -75,6 +73,7 @@ void LightingShader::InitUniforms() {
 	m_sampler_specular_loc = GetUniform("specular_sampler");
 	m_specular_sampler_active_loc = GetUniform("specular_sampler_active");
 	m_num_point_light_loc = GetUniform("g_num_point_lights");
+	m_num_spot_light_loc = GetUniform("g_num_spot_lights");
 	m_light_ambient_intensity_loc = GetUniform("g_ambient_light.ambient_intensity");
 	m_ambient_light_color_loc = GetUniform("g_ambient_light.color");
 
@@ -98,13 +97,47 @@ void LightingShader::InitUniforms() {
 		m_point_light_locations[i].max_distance = GetUniform(ref);
 
 		ref = std::format("g_point_lights[{}].atten.constant", i);
-		m_point_light_locations[i].constant = GetUniform(ref);
+		m_point_light_locations[i].Atten.constant = GetUniform(ref);
 
 		ref = std::format("g_point_lights[{}].atten.a_linear", i);
-		m_point_light_locations[i].linear = GetUniform(ref);
+		m_point_light_locations[i].Atten.linear = GetUniform(ref);
 
 		ref = std::format("g_point_lights[{}].atten.exp", i);
-		m_point_light_locations[i].exp = GetUniform(ref);
+		m_point_light_locations[i].Atten.exp = GetUniform(ref);
+	}
+
+	for (unsigned int i = 0; i < max_spot_lights; i++) {
+		std::string ref;
+
+		ref = std::format("g_spot_lights[{}].base.base.color", i);
+		m_spot_light_locations[i].base.color = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.base.ambient_intensity", i);
+		m_spot_light_locations[i].base.ambient_intensity = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.base.diffuse_intensity", i);
+		m_spot_light_locations[i].base.diffuse_intensity = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.pos", i);
+		m_spot_light_locations[i].base.position = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.max_distance", i);
+		m_spot_light_locations[i].base.max_distance = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.atten.constant", i);
+		m_spot_light_locations[i].base.Atten.constant = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.atten.a_linear", i);
+		m_spot_light_locations[i].base.Atten.linear = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].base.atten.exp", i);
+		m_spot_light_locations[i].base.Atten.exp = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].dir", i);
+		m_spot_light_locations[i].direction = GetUniform(ref);
+
+		ref = std::format("g_spot_lights[{}].aperture", i);
+		m_spot_light_locations[i].aperture = GetUniform(ref);
 	}
 }
 
@@ -123,13 +156,42 @@ void LightingShader::SetPointLights(std::vector< PointLight*>& p_lights) {
 
 		glUniform1f(m_point_light_locations[i].max_distance, p_lights[i]->GetMaxDistance());
 
-		glUniform1f(m_point_light_locations[i].constant, p_lights[i]->GetAttentuation().constant);
+		glUniform1f(m_point_light_locations[i].Atten.constant, p_lights[i]->GetAttentuation().constant);
 
-		glUniform1f(m_point_light_locations[i].linear, p_lights[i]->GetAttentuation().linear);
+		glUniform1f(m_point_light_locations[i].Atten.linear, p_lights[i]->GetAttentuation().linear);
 
-		glUniform1f(m_point_light_locations[i].exp, p_lights[i]->GetAttentuation().exp);
+		glUniform1f(m_point_light_locations[i].Atten.exp, p_lights[i]->GetAttentuation().exp);
 	}
 	glUniform1i(m_num_point_light_loc, p_lights.size());
+}
+
+void LightingShader::SetSpotLights(std::vector<SpotLight*>& s_lights) {
+	for (unsigned int i = 0; i < s_lights.size(); i++) {
+
+		glm::fvec3 light_color = s_lights[i]->GetColor();
+		glUniform3f(m_spot_light_locations[i].base.color, light_color.x, light_color.y, light_color.z);
+
+		glUniform1f(m_spot_light_locations[i].base.ambient_intensity, s_lights[i]->GetAmbientIntensity());
+
+		glUniform1f(m_spot_light_locations[i].base.diffuse_intensity, s_lights[i]->GetDiffuseIntensity());
+
+		glm::fvec3 pos = s_lights[i]->GetWorldTransform().GetPosition();
+		glUniform3f(m_spot_light_locations[i].base.position, pos.x, pos.y, pos.z);
+
+		glUniform1f(m_spot_light_locations[i].base.max_distance, s_lights[i]->GetMaxDistance());
+
+		glUniform1f(m_spot_light_locations[i].base.Atten.constant, s_lights[i]->GetAttentuation().constant);
+
+		glUniform1f(m_spot_light_locations[i].base.Atten.linear, s_lights[i]->GetAttentuation().linear);
+
+		glUniform1f(m_spot_light_locations[i].base.Atten.exp, s_lights[i]->GetAttentuation().exp);
+
+		GLCall(glUniform1f(m_spot_light_locations[i].aperture, s_lights[i]->GetAperture()));
+
+		glm::fvec3 light_dir = s_lights[i]->GetLightDirection();
+		glUniform3f(m_spot_light_locations[i].direction, light_dir.x, light_dir.y, light_dir.z);
+	}
+	glUniform1i(m_num_spot_light_loc, s_lights.size());
 }
 
 const GLint& LightingShader::GetProjectionLocation() {
