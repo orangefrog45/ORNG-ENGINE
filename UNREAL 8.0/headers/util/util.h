@@ -30,6 +30,7 @@ namespace RenderData {
 namespace UniformBindingPoints { // these layouts are set manually in shaders, remember to change those with these
 	constexpr unsigned int PVMATRICES = 0;
 	constexpr unsigned int POINT_LIGHTS = 1;
+	constexpr unsigned int SPOT_LIGHTS = 2;
 }
 
 namespace TextureUnits {

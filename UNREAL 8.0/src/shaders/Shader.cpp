@@ -57,7 +57,7 @@ void Shader::CompileShader(unsigned int type, const std::string& source, unsigne
 		char* message = (char*)alloca(length * sizeof(char));
 		GLCall(glGetShaderInfoLog(shaderID, length, &length, message));
 
-		PrintUtils::PrintError(std::format("FAILED TO COMPILE {} SHADER: {}", GL_VERTEX_SHADER ? "vertex" : "fragment", message));
+		PrintUtils::PrintError(std::format("FAILED TO COMPILE {} SHADER: {}", type == GL_VERTEX_SHADER ? "vertex" : "fragment", message));
 	}
 }
 

@@ -4,7 +4,7 @@
 #include "WorldTransform.h"
 #include "Light.h"
 
-static const unsigned int max_point_lights = 112;
+static const unsigned int max_point_lights = 108;
 static const unsigned int max_spot_lights = 1;
 
 class LightingShader : public Shader {
@@ -63,4 +63,5 @@ private:
 	GLint m_sampler_location;
 	GLuint m_matrix_UBO;
 	GLuint m_point_light_UBO;
+	GLuint m_spot_light_UBO;
 };

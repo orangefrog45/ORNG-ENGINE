@@ -1,3 +1,8 @@
+9/3/23:
+-Switched to UBOs for lights (~30% increased perfomance)
+-Switched to UBOs for view/projection matrices.
+
+
 7/3/23:
 -Added spotlights with a visualization cone angled with the cameras target vector (needs some work)
 -Fixed world matrix bug caused by incorrect multiplication order
