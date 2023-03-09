@@ -12,12 +12,8 @@ public:
 	LightingShader() = default;
 	void Init() override;
 	void ActivateProgram() override;
-	const GLint& GetProjectionLocation();
-	const GLint& GetCameraLocation();
 	const GLint& GetDiffuseSamplerLocation();
 	const GLint& GetSpecularSamplerLocation();
-	void SetProjection(const glm::fmat4& proj);
-	void SetCamera(const glm::fmat4& cam);
 	void SetViewPos(const glm::fvec3& pos);
 	void SetAmbientLight(const BaseLight& light);
 	void SetBaseColor(const glm::fvec3& color);
@@ -26,6 +22,8 @@ public:
 	void SetDiffuseTextureUnit(unsigned int unit);
 	void SetSpecularTextureUnit(unsigned int unit);
 	void SetMaterial(const Material& material) override;
+	void GenUBOs();
+	void SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view);
 
 private:
 	void InitUniforms() override;
@@ -62,7 +60,7 @@ private:
 	GLint m_specular_sampler_active_loc;
 	GLint m_num_point_light_loc;
 	GLint m_num_spot_light_loc;
-	GLint m_projection_location;
-	GLint m_camera_location;
 	GLint m_sampler_location;
+	GLuint m_matrix_UBO;
+	GLuint m_point_light_UBO;
 };

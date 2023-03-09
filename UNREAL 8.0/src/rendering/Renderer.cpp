@@ -91,18 +91,17 @@ void Renderer::RenderScene() {
 }
 
 void Renderer::DrawLightMeshVisuals() {
-	shaderLibrary.lighting_shader.ActivateProgram();
 	shaderLibrary.flat_color_shader.ActivateProgram();
 	for (auto light : scene.GetPointLights()) {
 		glm::fvec3 light_color = light->GetColor();
-		shaderLibrary.flat_color_shader.SetWVP(light->GetMeshVisual()->GetWorldTransform()->GetMatrix() * p_camera->GetMatrix() * projectionMatrix);
+		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
 		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
 		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
 	}
 
 	for (auto light : scene.GetSpotLights()) {
 		glm::fvec3 light_color = light->GetColor();
-		shaderLibrary.flat_color_shader.SetWVP(light->GetMeshVisual()->GetWorldTransform()->GetMatrix() * p_camera->GetMatrix() * projectionMatrix);
+		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
 		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
 		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
 	}
@@ -111,13 +110,13 @@ void Renderer::DrawLightMeshVisuals() {
 void Renderer::DrawLightingEntities() {
 
 	shaderLibrary.lighting_shader.ActivateProgram();
-	shaderLibrary.lighting_shader.SetProjection(glm::colMajor4(projectionMatrix));
-	shaderLibrary.lighting_shader.SetCamera(glm::colMajor4(p_camera->GetMatrix()));
+	auto cam_mat = p_camera->GetMatrix();
 
 	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
 	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());
 	shaderLibrary.lighting_shader.SetAmbientLight(scene.GetAmbientLighting());
 	shaderLibrary.lighting_shader.SetViewPos(p_camera->GetPos());
+	shaderLibrary.lighting_shader.SetMatrixUBOs(projectionMatrix, cam_mat);
 
 	for (auto& group : scene.GetGroupMeshEntities()) {
 		if (group->GetMeshData()->GetLoadStatus() == true && group->GetShaderType() == MeshShaderMode::LIGHTING) {

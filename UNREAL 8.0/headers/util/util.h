@@ -27,6 +27,11 @@ namespace RenderData {
 	constexpr int WINDOW_HEIGHT = 1080;
 }
 
+namespace UniformBindingPoints { // these layouts are set manually in shaders, remember to change those with these
+	constexpr unsigned int PVMATRICES = 0;
+	constexpr unsigned int POINT_LIGHTS = 1;
+}
+
 namespace TextureUnits {
 	constexpr int COLOR_TEXTURE_UNIT = GL_TEXTURE0;
 	constexpr int SPECULAR_TEXTURE_UNIT = GL_TEXTURE1;

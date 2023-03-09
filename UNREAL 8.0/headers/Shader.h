@@ -35,7 +35,8 @@ protected:
 
 	void SetProgramID(const GLint);
 
-
-private:
+	unsigned int m_vert_shader_id;
+	unsigned int m_frag_shader_id;
 	unsigned int m_programID;
+
 };

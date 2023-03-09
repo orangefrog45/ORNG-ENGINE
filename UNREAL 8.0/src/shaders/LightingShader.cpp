@@ -14,15 +14,31 @@ void LightingShader::Init() {
 
 	SetProgramID(tprogramID);
 
+	GenUBOs();
 	InitUniforms();
 }
 
-void LightingShader::SetCamera(const glm::fmat4& cam) {
-	glUniformMatrix4fv(GetCameraLocation(), 1, GL_TRUE, &cam[0][0]);
+
+void LightingShader::GenUBOs() {
+	GLCall(glGenBuffers(1, &m_matrix_UBO));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_matrix_UBO));
+	GLCall(glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::fmat4), NULL, GL_STATIC_DRAW));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, UniformBindingPoints::PVMATRICES, m_matrix_UBO));
+
+	GLCall(glGenBuffers(1, &m_point_light_UBO));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_point_light_UBO));
+	GLCall(glBufferData(GL_UNIFORM_BUFFER, 56 * max_point_lights, NULL, GL_STATIC_DRAW));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, UniformBindingPoints::POINT_LIGHTS, m_point_light_UBO));
+
 }
 
-void LightingShader::SetProjection(const glm::fmat4& proj) {
-	glUniformMatrix4fv(GetProjectionLocation(), 1, GL_TRUE, &proj[0][0]);
+void LightingShader::SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view) {
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_matrix_UBO));
+	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::fmat4), &proj[0][0]));
+	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::fmat4), sizeof(glm::fmat4), &view[0][0]));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 }
 
 void LightingShader::SetAmbientLight(const BaseLight& light) {
@@ -63,8 +79,6 @@ void LightingShader::ActivateProgram() {
 
 void LightingShader::InitUniforms() {
 	ActivateProgram();
-	m_projection_location = GetUniform("projection");
-	m_camera_location = GetUniform("camera");
 	m_sampler_location = GetUniform("gSampler");
 	m_camera_view_pos_loc = GetUniform("view_pos");
 	m_material_ambient_color_loc = GetUniform("g_material.ambient_color");
@@ -142,6 +156,7 @@ void LightingShader::InitUniforms() {
 }
 
 void LightingShader::SetPointLights(std::vector< PointLight*>& p_lights) {
+
 	for (unsigned int i = 0; i < p_lights.size(); i++) {
 
 		glm::fvec3 light_color = p_lights[i]->GetColor();
@@ -192,15 +207,6 @@ void LightingShader::SetSpotLights(std::vector<SpotLight*>& s_lights) {
 		glUniform3f(m_spot_light_locations[i].direction, light_dir.x, light_dir.y, light_dir.z);
 	}
 	glUniform1i(m_num_spot_light_loc, s_lights.size());
-}
-
-const GLint& LightingShader::GetProjectionLocation() {
-	return m_projection_location;
-}
-
-
-const GLint& LightingShader::GetCameraLocation() {
-	return m_camera_location;
 }
 
 const GLint& LightingShader::GetDiffuseSamplerLocation() {

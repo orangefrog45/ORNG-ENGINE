@@ -1,6 +1,8 @@
-#version 330 core
+#version 420 core
 const int MAX_POINT_LIGHTS = 112;
 const int MAX_SPOT_LIGHTS = 1;
+const unsigned int POINT_LIGHT_BINDING = 1;
+
 
 in vec2 TexCoord0;
 in vec3 vs_position;
@@ -27,11 +29,16 @@ struct PointLight {
 	Attenuation atten;
 };
 
+//layout(std140, binding = POINT_LIGHT_BINDING) PointLights { // 56 BYTES
+	//PointLight lights[MAX_POINT_LIGHTS];
+//} PointLights;
+
 struct SpotLight {
 	PointLight base;
 	vec3 dir;
 	float aperture;
 };
+
 
 struct Material {
 	vec3 ambient_color;
