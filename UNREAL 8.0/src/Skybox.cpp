@@ -44,7 +44,7 @@ void Skybox::Init() {
 
 void Skybox::Draw(const glm::fmat4& WVP) {
 	skyboxShader.ActivateProgram();
-	glUniformMatrix4fv(skyboxShader.GetWVPLocation(), 1, GL_TRUE, &WVP[0][0]);
+	glUniformMatrix4fv(skyboxShader.GetWorldTransformLocation(), 1, GL_TRUE, &WVP[0][0]);
 	glDepthFunc(GL_LEQUAL);
 	glBindVertexArray(skyboxVAO);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);

@@ -1,6 +1,7 @@
 #include "shaders/LightingShader.h"
 #include "GLErrorHandling.h"
 #include <iostream>
+#include <future>
 #include <format>
 
 void LightingShader::Init() {
@@ -28,13 +29,13 @@ void LightingShader::GenUBOs() {
 
 	GLCall(glGenBuffers(1, &m_point_light_UBO));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_point_light_UBO));
-	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * 16 * max_point_lights, NULL, GL_DYNAMIC_DRAW));
+	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * point_light_fs_num_float * max_point_lights, NULL, GL_DYNAMIC_DRAW));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, UniformBindingPoints::POINT_LIGHTS, m_point_light_UBO));
 
 	GLCall(glGenBuffers(1, &m_spot_light_UBO));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_spot_light_UBO));
-	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * 20 * max_spot_lights, NULL, GL_DYNAMIC_DRAW));
+	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * spot_light_fs_num_float * max_spot_lights, NULL, GL_DYNAMIC_DRAW));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, UniformBindingPoints::SPOT_LIGHTS, m_spot_light_UBO));
 }
@@ -98,31 +99,33 @@ void LightingShader::InitUniforms() {
 
 }
 
+
+
 void LightingShader::SetPointLights(std::vector< PointLight*>& p_lights) {
 
 	glUniform1i(m_num_point_light_loc, p_lights.size());
-	float light_array[max_point_lights * 16] = { 0 }; // point light struct in fs has 14 floats
+	float light_array[max_point_lights * point_light_fs_num_float] = { 0 };
 
-	for (unsigned int i = 0; i < p_lights.size() * 16; i += 16) {
+	for (unsigned int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
 		//0 - START COLOR
-		auto color = p_lights[i / 16]->GetColor();
+		auto color = p_lights[i / point_light_fs_num_float]->GetColor();
 		light_array[i] = color.x;
 		light_array[i + 1] = color.y;
 		light_array[i + 2] = color.z;
 		light_array[i + 3] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = p_lights[i / 16]->GetWorldTransform().GetPosition();
+		auto pos = p_lights[i / point_light_fs_num_float]->GetWorldTransform().GetPosition();
 		light_array[i + 4] = pos.x;
 		light_array[i + 5] = pos.y;
 		light_array[i + 6] = pos.z;
 		light_array[i + 7] = 0; //padding
 		//32 - END POS, START INTENSITY
-		light_array[i + 8] = p_lights[i / 16]->GetAmbientIntensity();
-		light_array[i + 9] = p_lights[i / 16]->GetDiffuseIntensity();
+		light_array[i + 8] = p_lights[i / point_light_fs_num_float]->GetAmbientIntensity();
+		light_array[i + 9] = p_lights[i / point_light_fs_num_float]->GetDiffuseIntensity();
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 10] = p_lights[i / 16]->GetMaxDistance();
+		light_array[i + 10] = p_lights[i / point_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
-		auto& atten = p_lights[i / 16]->GetAttentuation();
+		auto& atten = p_lights[i / point_light_fs_num_float]->GetAttentuation();
 		light_array[i + 11] = atten.constant;
 		light_array[i + 12] = atten.linear;
 		light_array[i + 13] = atten.exp;
@@ -132,52 +135,53 @@ void LightingShader::SetPointLights(std::vector< PointLight*>& p_lights) {
 		//64 BYTES TOTAL
 	}
 
+
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_point_light_UBO));
-	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * 16 * p_lights.size(), &light_array[0]));
+	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * point_light_fs_num_float * p_lights.size(), &light_array[0]));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 
 }
 
 void LightingShader::SetSpotLights(std::vector<SpotLight*>& s_lights) {
 	glUniform1i(m_num_spot_light_loc, s_lights.size());
-	float light_array[max_spot_lights * 20] = { 0 }; // point light struct in fs has 14 floats
+	float light_array[max_spot_lights * spot_light_fs_num_float] = { 0 };
 
-	for (unsigned int i = 0; i < s_lights.size() * 20; i += 20) {
+	for (unsigned int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
 		//0 - START COLOR
-		auto color = s_lights[i / 20]->GetColor();
+		auto color = s_lights[i / spot_light_fs_num_float]->GetColor();
 		light_array[i] = color.x;
 		light_array[i + 1] = color.y;
 		light_array[i + 2] = color.z;
 		light_array[i + 3] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = s_lights[i / 20]->GetWorldTransform().GetPosition();
+		auto pos = s_lights[i / spot_light_fs_num_float]->GetWorldTransform().GetPosition();
 		light_array[i + 4] = pos.x;
 		light_array[i + 5] = pos.y;
 		light_array[i + 6] = pos.z;
 		light_array[i + 7] = 0; //padding
 		//32 - END POS, START DIR
-		auto dir = s_lights[i / 20]->GetLightDirection();
+		auto dir = s_lights[i / spot_light_fs_num_float]->GetLightDirection();
 		light_array[i + 8] = dir.x;
 		light_array[i + 9] = dir.y;
 		light_array[i + 10] = dir.z;
 		light_array[i + 11] = 0; // padding
 		//48 - END DIR, START INTENSITY
-		light_array[i + 12] = s_lights[i / 20]->GetAmbientIntensity();
-		light_array[i + 13] = s_lights[i / 20]->GetDiffuseIntensity();
+		light_array[i + 12] = s_lights[i / spot_light_fs_num_float]->GetAmbientIntensity();
+		light_array[i + 13] = s_lights[i / spot_light_fs_num_float]->GetDiffuseIntensity();
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 14] = s_lights[i / 20]->GetMaxDistance();
+		light_array[i + 14] = s_lights[i / spot_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
-		auto& atten = s_lights[i / 16]->GetAttentuation();
+		auto& atten = s_lights[i / spot_light_fs_num_float]->GetAttentuation();
 		light_array[i + 15] = atten.constant;
 		light_array[i + 16] = atten.linear;
 		light_array[i + 17] = atten.exp;
 		//52 - END ATTENUATION - START APERTURE
-		light_array[i + 18] = s_lights[i / 20]->GetAperture();
+		light_array[i + 18] = s_lights[i / spot_light_fs_num_float]->GetAperture();
 		light_array[i + 19] = 0; //padding
 	}
 
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_spot_light_UBO));
-	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * 20 * s_lights.size(), &light_array[0]));
+	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * spot_light_fs_num_float * s_lights.size(), &light_array[0]));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 }
 

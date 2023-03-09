@@ -54,7 +54,7 @@ protected:
 class SpotLight : public PointLight {
 public:
 	SpotLight() = default;
-	SpotLight(const glm::fvec3& dir_vec, const float t_aperture) : light_direction_vec(dir_vec), aperture(cosf(glm::radians(t_aperture))) { SetAttenuation(0.1f, 0.0f, 0.0f); };
+	SpotLight(const glm::fvec3& dir_vec, const float t_aperture) : light_direction_vec(dir_vec), aperture(cosf(glm::radians(t_aperture))) { SetAttenuation(0.1f, 0.005f, 0.00001f); SetMaxDistance(480.0f); };
 	void SetLightDirection(float i, float j, float k) { light_direction_vec = glm::normalize(glm::fvec3(i, j, k)); mesh_visual->SetRotation(glm::degrees(sinf(j)) - 90.0f, -glm::degrees(atan2f(k, i)) - 90.0f, 0.0f); }
 	void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
 

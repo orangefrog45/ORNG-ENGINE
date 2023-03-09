@@ -1,6 +1,7 @@
 9/3/23:
 -Switched to UBOs for lights (~30% increased perfomance)
 -Switched to UBOs for view/projection matrices.
+-Scene entities can now be edited before being loaded
 
 
 7/3/23:

@@ -31,15 +31,15 @@ void SkyboxShader::ActivateProgram() {
 
 void SkyboxShader::InitUniforms() {
 	ActivateProgram();
-	GLCall(WVPLocation = glGetUniformLocation(GetProgramID(), "gTransform"));
+	GLCall(m_world_transform_loc = glGetUniformLocation(GetProgramID(), "gTransform"));
 	GLCall(samplerLocation = glGetUniformLocation(GetProgramID(), "gSampler"));
 }
 
-const GLint& SkyboxShader::GetWVPLocation() {
-	return WVPLocation;
+const GLint& SkyboxShader::GetWorldTransformLocation() const {
+	return m_world_transform_loc;
 }
 
-const GLint& SkyboxShader::GetSamplerLocation() {
+const GLint& SkyboxShader::GetSamplerLocation() const {
 	return samplerLocation;
 }
 

@@ -12,23 +12,15 @@ void ControlWindow::CreateBaseWindow() {
 
 }
 
-std::vector<double>& ControlWindow::DisplayPointLightControls(unsigned int num_lights) {
-	static float atten_constant = 1.0f;
-	static float atten_linear = 0.05f;
-	static float atten_exp = 0.01f;
-	static float max_distance = 48.0f;
-	static bool lights_enabled = 1.0f;
+const void ControlWindow::DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values) {
 	static std::vector<double> vals;
 	ImGui::Text("POINTLIGHT CONTROLS");
-	ImGui::SliderFloat("constant", &atten_constant, 0.0f, 1.0f);
-	ImGui::SliderFloat("linear", &atten_linear, 0.0f, 1.0f);
-	ImGui::SliderFloat("exp", &atten_exp, 0.0f, 0.1f);
-	ImGui::SliderFloat("max distance", &max_distance, 0.0f, 200.0f);
+	ImGui::SliderFloat("constant", &light_values.atten_constant, 0.0f, 1.0f);
+	ImGui::SliderFloat("linear", &light_values.atten_linear, 0.0f, 1.0f);
+	ImGui::SliderFloat("exp", &light_values.atten_exp, 0.0f, 0.1f);
+	ImGui::SliderFloat("max distance", &light_values.max_distance, 0.0f, 200.0f);
 	ImGui::Text(std::format("Pointlights: {}", num_lights).c_str());
-	ImGui::Checkbox("Toggle Pointlights", &lights_enabled);
-
-	vals = std::vector<double>{ atten_constant, atten_linear, atten_exp, max_distance, static_cast<double>(lights_enabled) };
-	return vals;
+	ImGui::Checkbox("Toggle Pointlights", &light_values.lights_enabled);
 }
 
 void ControlWindow::Render() {

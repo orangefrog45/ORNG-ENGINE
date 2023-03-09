@@ -5,8 +5,16 @@
 #include <vector>
 #pragma once
 
+struct LightConfigValues {
+	float atten_constant = 1.0f;
+	float atten_linear = 0.05f;
+	float atten_exp = 0.01f;
+	float max_distance = 48.0f;
+	bool lights_enabled = 1.0f;
+};
+
 struct ControlWindow {
 	static void Render();
 	static void CreateBaseWindow();
-	static std::vector<double>& DisplayPointLightControls(unsigned int num_lights);
+	static const void DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values);
 };

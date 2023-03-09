@@ -19,6 +19,7 @@ public:
 	void DrawGrid();
 	void DrawLightingEntities();
 	void DrawLightMeshVisuals();
+	LightConfigValues& ActivateLightingControls(LightConfigValues& light_vals);
 	template <typename T> static void DrawMeshWithShader(BasicMesh* mesh_data, unsigned int t_instances, T& shader);
 	Scene scene;
 

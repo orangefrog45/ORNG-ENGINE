@@ -1,6 +1,6 @@
 #version 420 core
 const int MAX_POINT_LIGHTS = 108;
-const int MAX_SPOT_LIGHTS = 1;
+const int MAX_SPOT_LIGHTS = 128;
 const unsigned int POINT_LIGHT_BINDING = 1;
 const unsigned int SPOT_LIGHT_BINDING = 2;
 
@@ -96,9 +96,8 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 light_
 }
 
 
-vec3 CalcPointLight(PointLight light, vec3 normal) {
+vec3 CalcPointLight(PointLight light, vec3 normal, float distance) {
 	vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, light.pos.xyz, normal);
-	float distance = length(light.pos.xyz - vs_position);
 
 	float attenuation = light.constant +
 		light.a_linear * distance +
@@ -107,13 +106,12 @@ vec3 CalcPointLight(PointLight light, vec3 normal) {
 	return color / attenuation;
 }
 
-vec3 CalcSpotLight(SpotLight light, vec3 normal) {
+vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance) {
 	vec3 light_to_pixel_dir = normalize(vs_position - light.pos.xyz);
 	float spot_factor = dot(light_to_pixel_dir, light.dir.xyz);
 
 	if (spot_factor > light.aperture) {
 		vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, light.pos.xyz, normal);
-		float distance = length(light.pos.xyz - vs_position);
 
 		float attenuation = light.constant +
 			light.a_linear * distance +
@@ -134,16 +132,18 @@ void main()
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
 	vec3 ambient_light = g_ambient_light.color.xyz * g_ambient_light.ambient_intensity * g_material.ambient_color;
 
-	//THESE TWO LOOPS NEED TO BE OPTIMISED
 	for (int i = 0; i < g_num_point_lights; i++) {
 		float distance = length(point_lights.lights[i].pos.xyz - vs_position);
 		if (distance <= point_lights.lights[i].max_distance) {
-			total_light += (CalcPointLight(point_lights.lights[i], normal));
+			total_light += (CalcPointLight(point_lights.lights[i], normal, distance));
 		}
 	}
 
 	for (int i = 0; i < g_num_spot_lights; i++) {
-		total_light += (CalcSpotLight(spot_lights.lights[i], normal));
+		float distance = length(spot_lights.lights[i].pos.xyz - vs_position);
+		if (distance <= spot_lights.lights[i].max_distance) {
+			total_light += (CalcSpotLight(spot_lights.lights[i], normal, distance));
+		}
 	}
 
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0)) + ambient_light;

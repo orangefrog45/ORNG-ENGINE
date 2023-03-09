@@ -1,11 +1,12 @@
 #pragma once
+#include <future>
 #include "Shader.h"
 #include "Material.h"
 #include "WorldTransform.h"
 #include "Light.h"
 
 static const unsigned int max_point_lights = 108;
-static const unsigned int max_spot_lights = 1;
+static const unsigned int max_spot_lights = 128;
 
 class LightingShader : public Shader {
 public:
@@ -25,7 +26,12 @@ public:
 	void GenUBOs();
 	void SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view);
 
+
+
 private:
+
+	static const unsigned int point_light_fs_num_float = 16;
+	static const unsigned int spot_light_fs_num_float = 20;
 	void InitUniforms() override;
 
 	struct PointLightLocationStruct {
@@ -48,6 +54,7 @@ private:
 		GLuint direction;
 	} m_spot_light_locations[max_spot_lights];
 
+	std::vector<std::future<void>> m_futures;
 	unsigned int vert_shader_id;
 	unsigned int frag_shader_id;
 	GLint m_ambient_light_color_loc;

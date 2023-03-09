@@ -21,7 +21,7 @@ void MeshEntity::SetScale(float x, float y, float z) {
 };
 
 void MeshEntity::UpdateInstanceTransformBuffers() {
-	m_mesh_data->UpdateTransformBuffers(m_instance_transforms);
+	if (m_mesh_data->GetLoadStatus() == true) m_mesh_data->UpdateTransformBuffers(m_instance_transforms);
 }
 
 

@@ -1,13 +1,19 @@
-#version 410 core
+#version 430 core
 
 layout(location = 0) in vec3 position;
+
+layout(row_major, std140, binding = 0) uniform Matrices{
+	mat4 projection; //base=16, aligned=0-64
+	mat4 view; //base=16, aligned=64-128
+} PVMatrices;
+
 
 uniform mat4 gTransform;
 
 out vec3 TexCoord0;
 
 void main() {
-	vec4 pos = gTransform * vec4(position, 1.0);
+	vec4 pos = PVMatrices.projection * PVMatrices.view * gTransform * vec4(position, 1.0);
 	gl_Position = pos.xyzz;
 	TexCoord0 = position;
 }
