@@ -14,9 +14,9 @@ public:
 		NONE = -1, VERTEX = 0, FRAGMENT = 1
 	};
 
-	virtual void Init() = 0;
+	virtual void Init();
 
-	virtual void ActivateProgram() = 0;
+	virtual void ActivateProgram();
 
 	const GLint GetProgramID();
 
@@ -38,5 +38,7 @@ protected:
 	unsigned int m_vert_shader_id;
 	unsigned int m_frag_shader_id;
 	unsigned int m_programID;
+
+	std::vector<std::string> paths;
 
 };

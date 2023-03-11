@@ -1,3 +1,10 @@
+11/3/23:
+-Changes to Blinn-Phong lighting algorithm to fix ambient lighting issues
+-Rough shadow mapping implemented
+-Display now drawn to as a textured quad
+-Shaders restructured to remove repeated code
+
+
 9/3/23:
 -Switched to UBOs for lights (~30% increased perfomance)
 -Switched to UBOs for view/projection matrices.

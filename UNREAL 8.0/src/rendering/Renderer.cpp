@@ -1,18 +1,21 @@
 #include <iostream>
 #include <glm/gtx/matrix_major_storage.hpp>
+#include <glm/gtx/transform.hpp>
 #include <format>
 #include <GLErrorHandling.h>
 #include "Renderer.h"
 #include "ExtraMath.h"
-#include <future>
 
 
 void Renderer::Init() {
 	double time_start = glfwGetTime();
 
 	shaderLibrary.Init();
+	framebuffer_library.Init();
 	grid_mesh.Init();
 	skybox.Init();
+	render_quad.Load();
+
 
 	auto cube = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
@@ -22,7 +25,7 @@ void Renderer::Init() {
 		auto l = scene.CreatePointLight();
 		l->SetColor(i / 108.0f, cosf(ExtraMath::ToRadians(i * 10.0f / 3.0f)), sinf(ExtraMath::ToRadians(i * 10.0f / 3.0f)));
 	}
-	auto sl = scene.CreateSpotLight();
+	/*auto sl = scene.CreateSpotLight();
 	auto sl2 = scene.CreateSpotLight();
 	auto sl3 = scene.CreateSpotLight();
 	auto sl4 = scene.CreateSpotLight();
@@ -38,12 +41,13 @@ void Renderer::Init() {
 	sl2->SetLightDirection(1.0f, 0.0f, 0.0f);
 	sl3->SetLightDirection(-1.0f, 0.0f, 0.0f);
 	sl4->SetLightDirection(0.0f, 0.0f, 1.0f);
-	sl->SetLightDirection(0.0f, 0.0f, -1.0f);
-	orange->SetPosition(100.0f, 10.0f, 0.0f);
-	cube->SetPosition(10.0f, 0.0f, 0.0f);
-	cube->SetRotation(45.0f, 45.0f, 0.0f);
-	cube2->SetPosition(10.0f, 0.0f, 0.0f);
-	cube3->SetScale(200.0f, 5.0f, 200.0f);
+	sl->SetLightDirection(0.0f, 0.0f, -1.0f); */
+	orange->SetPosition(0.0f, 7.0f, 0.0f);
+	cube->SetPosition(0.0f, 0.0f, -25.0f);
+	cube->SetScale(50.0f, 50.0f, 1.0f);
+	cube->SetRotation(0.0f, 0.0f, 0.0f);
+	cube2->SetPosition(50.0f, 10.0f, 0.0f);
+	cube3->SetScale(50.0f, 1.0f, 50.0f);
 	cube3->SetRotation(0.0f, 0.0f, 0.0f);
 	static float angle = 0;
 	static float x = 0.0f;
@@ -62,27 +66,80 @@ void Renderer::Init() {
 	PrintUtils::PrintSuccess(std::format("Renderer initialized in {}ms", PrintUtils::RoundDouble((glfwGetTime() - time_start) * 1000)));
 }
 
-void Renderer::DrawGrid() {
-	shaderLibrary.grid_shader.ActivateProgram();
-	shaderLibrary.grid_shader.SetProjection(glm::colMajor4(projectionMatrix));
-	shaderLibrary.grid_shader.SetCamera(glm::colMajor4(p_camera->GetMatrix()));
-	shaderLibrary.grid_shader.SetCameraPos(p_camera->GetPos());
-	grid_mesh.CheckBoundary(p_camera->GetPos());
-	grid_mesh.Draw();
-}
-
 void Renderer::RenderScene() {
 	static LightConfigValues light_vals;
+	static DebugConfigValues config_vals;
 
-	DrawLightingEntities();
+	DrawShadowMap();
 
-	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()));
-	DrawGrid();
+	//MAIN DRAW
+	DrawScene();
+
+	//DRAW TO QUAD
+	glClear(GL_COLOR_BUFFER_BIT);
+	shaderLibrary.basic_sampler_shader.ActivateProgram();
+	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
+
+	if (config_vals.depth_map_view) {
+		GLCall(glViewport(0, 0, 1024, 1024));
+		glBindTexture(GL_TEXTURE_2D, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
+	}
+	else {
+		glBindTexture(GL_TEXTURE_2D, framebuffer_library.main_view_framebuffer.GetTexture());
+	}
+
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_CULL_FACE);
+	render_quad.Draw();
+
+
 
 	ControlWindow::CreateBaseWindow();
 	ControlWindow::DisplayPointLightControls(scene.GetPointLights().size(), ActivateLightingControls(light_vals));
+	ControlWindow::DisplayDebugControls(config_vals);
 	ControlWindow::Render();
 
+}
+void Renderer::DrawToQuad() {
+
+}
+
+void Renderer::DrawScene() {
+	glCullFace(GL_CCW);
+	glViewport(0, 0, m_window_width, m_window_height);
+
+	framebuffer_library.main_view_framebuffer.Bind();
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glActiveTexture(TextureUnits::SHADOW_MAP_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_2D, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
+
+	DrawLightMeshVisuals();
+	DrawLightingEntities();
+	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()));
+	DrawGrid();
+
+	framebuffer_library.shadow_map_framebuffer.Unbind();
+}
+
+void Renderer::DrawShadowMap() {
+	//BIND FOR DRAW
+
+	shaderLibrary.depth_shader.ActivateProgram();
+	glm::mat4 light_projection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 100.f);
+	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 40.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	framebuffer_library.shadow_map_framebuffer.BindForDraw();
+
+	shaderLibrary.depth_shader.SetPVMatrix(light_projection * light_view);
+	for (auto& group : scene.GetGroupMeshEntities()) {
+		if (group->GetMeshData()->GetLoadStatus() == true && group->GetShaderType() == MeshShaderMode::LIGHTING) {
+			BasicMesh* mesh_data = group->GetMeshData();
+			DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.depth_shader);
+		}
+	}
+
+	framebuffer_library.shadow_map_framebuffer.Unbind();
 }
 
 LightConfigValues& Renderer::ActivateLightingControls(LightConfigValues& light_vals) {
@@ -95,7 +152,6 @@ LightConfigValues& Renderer::ActivateLightingControls(LightConfigValues& light_v
 		}
 	}
 
-	if (light_vals.lights_enabled) DrawLightMeshVisuals();
 
 	return light_vals;
 }
@@ -122,18 +178,35 @@ void Renderer::DrawLightingEntities() {
 	shaderLibrary.lighting_shader.ActivateProgram();
 	auto cam_mat = p_camera->GetMatrix();
 
+	glm::mat4 light_projection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 100.f);
+
+
+	auto light_dir = glm::normalize(scene.GetDirectionalLight().GetLightDirection());
+	glm::mat4 light_view = glm::lookAt(light_dir * 40.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
 	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
 	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());
 	shaderLibrary.lighting_shader.SetAmbientLight(scene.GetAmbientLighting());
+	shaderLibrary.lighting_shader.SetDirectionLight(scene.GetDirectionalLight());
 	shaderLibrary.lighting_shader.SetViewPos(p_camera->GetPos());
 	shaderLibrary.lighting_shader.SetMatrixUBOs(projectionMatrix, cam_mat);
 
 	for (auto& group : scene.GetGroupMeshEntities()) {
 		if (group->GetMeshData()->GetLoadStatus() == true && group->GetShaderType() == MeshShaderMode::LIGHTING) {
+			shaderLibrary.lighting_shader.SetLightSpaceMatrix(light_projection * light_view);
 			BasicMesh* mesh_data = group->GetMeshData();
 			DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.lighting_shader);
 		}
 	}
+}
+
+void Renderer::DrawGrid() {
+	shaderLibrary.grid_shader.ActivateProgram();
+	shaderLibrary.grid_shader.SetProjection(projectionMatrix);
+	shaderLibrary.grid_shader.SetCamera(p_camera->GetMatrix());
+	shaderLibrary.grid_shader.SetCameraPos(p_camera->GetPos());
+	grid_mesh.CheckBoundary(p_camera->GetPos());
+	grid_mesh.Draw();
 }
 
 template <typename T> void Renderer::DrawMeshWithShader(BasicMesh* mesh_data, unsigned int t_instances, T& shader) {

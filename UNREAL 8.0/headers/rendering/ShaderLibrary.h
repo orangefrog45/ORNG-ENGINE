@@ -8,6 +8,8 @@
 #include "shaders/LightingShader.h"
 #include "shaders/GridShader.h"
 #include "shaders/FlatColourShader.h"
+#include "DepthShader.h"
+#include "BasicSampler.h"
 
 class ShaderLibrary {
 public:
@@ -17,6 +19,8 @@ public:
 	FlatColorShader flat_color_shader;
 	LightingShader lighting_shader;
 	GridShader grid_shader;
+	DepthShader depth_shader;
+	BasicSampler basic_sampler_shader;
 
 private:
 

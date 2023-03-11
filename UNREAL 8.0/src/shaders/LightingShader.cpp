@@ -4,21 +4,6 @@
 #include <future>
 #include <format>
 
-void LightingShader::Init() {
-	GLCall(unsigned int tprogramID = glCreateProgram());
-
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/LightingVS.shader"), vert_shader_id);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/LightingFS.shader"), frag_shader_id);
-
-	UseShader(vert_shader_id, tprogramID);
-	UseShader(frag_shader_id, tprogramID);
-
-	SetProgramID(tprogramID);
-
-	GenUBOs();
-	InitUniforms();
-}
-
 
 void LightingShader::GenUBOs() {
 	GLCall(glGenBuffers(1, &m_matrix_UBO));
@@ -38,6 +23,21 @@ void LightingShader::GenUBOs() {
 	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * spot_light_fs_num_float * max_spot_lights, NULL, GL_DYNAMIC_DRAW));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, UniformBindingPoints::SPOT_LIGHTS, m_spot_light_UBO));
+}
+
+void LightingShader::Init() {
+	GLCall(unsigned int tprogramID = glCreateProgram());
+
+	CompileShader(GL_VERTEX_SHADER, ParseShader(paths[0]), m_vert_shader_id);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader(paths[1]), m_frag_shader_id);
+
+	UseShader(m_vert_shader_id, tprogramID);
+	UseShader(m_frag_shader_id, tprogramID);
+
+	SetProgramID(tprogramID);
+
+	GenUBOs();
+	InitUniforms();
 }
 
 void LightingShader::SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view) {
@@ -66,26 +66,21 @@ void LightingShader::SetMaterial(const Material& material) {
 }
 
 void LightingShader::SetDiffuseTextureUnit(unsigned int unit) {
-	glUniform1i(GetDiffuseSamplerLocation(), unit);
+	glUniform1i(m_sampler_texture_col_location, unit);
 }
 
 void LightingShader::SetSpecularTextureUnit(unsigned int unit) {
-	glUniform1i(GetSpecularSamplerLocation(), unit);
+	glUniform1i(m_sampler_specular_loc, unit);
 }
 
-void LightingShader::ActivateProgram() {
-	//if this crashes it is most likely due to an array in the fragment shader being too small to hold some data, switch to UBO'S soon
-	GLCall(glLinkProgram(GetProgramID()));
-	GLCall(glValidateProgram(GetProgramID()));
-	GLCall(glUseProgram(GetProgramID()));
-
-	GLCall(glDeleteShader(vert_shader_id));
-	GLCall(glDeleteShader(frag_shader_id));
+void LightingShader::SetShadowMapTextureUnit(unsigned int unit) {
+	glUniform1i(m_sampler_shadow_map_loc, unit);
 }
+
 
 void LightingShader::InitUniforms() {
 	ActivateProgram();
-	m_sampler_location = GetUniform("gSampler");
+	m_sampler_texture_col_location = GetUniform("gSampler");
 	m_camera_view_pos_loc = GetUniform("view_pos");
 	m_material_ambient_color_loc = GetUniform("g_material.ambient_color");
 	m_material_specular_color_loc = GetUniform("g_material.specular_color");
@@ -96,7 +91,25 @@ void LightingShader::InitUniforms() {
 	m_num_spot_light_loc = GetUniform("g_num_spot_lights");
 	m_light_ambient_intensity_loc = GetUniform("g_ambient_light.ambient_intensity");
 	m_ambient_light_color_loc = GetUniform("g_ambient_light.color");
+	m_dir_light_color_loc = GetUniform("directional_light.color");
+	m_dir_light_dir_loc = GetUniform("directional_light.direction");
+	m_dir_light_diffuse_intensity_loc = GetUniform("directional_light.diffuse_intensity");
+	//m_dir_light_ambient_intensity_loc = GetUniform("directional_light.ambient_intensity");
+	m_light_space_mat_loc = GetUniform("dir_light_matrix");
+	m_sampler_shadow_map_loc = GetUniform("shadow_map");
 
+	SetDiffuseTextureUnit(TextureUnitIndexes::COLOR_TEXTURE_UNIT_INDEX);
+	SetSpecularTextureUnit(TextureUnitIndexes::SPECULAR_TEXTURE_UNIT_INDEX);
+	SetShadowMapTextureUnit(TextureUnitIndexes::SHADOW_MAP_TEXTURE_UNIT_INDEX);
+}
+
+void LightingShader::SetDirectionLight(const DirectionalLight& light) {
+	auto color = light.GetColor();
+	glUniform3f(m_dir_light_color_loc, color.x, color.y, color.z);
+	auto dir = glm::normalize(light.GetLightDirection());
+	glUniform3f(m_dir_light_dir_loc, dir.x, dir.y, dir.z);
+	glUniform1f(m_dir_light_diffuse_intensity_loc, light.GetDiffuseIntensity());
+	glUniform1f(m_dir_light_ambient_intensity_loc, light.GetAmbientIntensity());
 }
 
 
@@ -185,10 +198,3 @@ void LightingShader::SetSpotLights(std::vector<SpotLight*>& s_lights) {
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 }
 
-const GLint& LightingShader::GetDiffuseSamplerLocation() {
-	return m_sampler_location;
-}
-
-const GLint& LightingShader::GetSpecularSamplerLocation() {
-	return m_sampler_specular_loc;
-}

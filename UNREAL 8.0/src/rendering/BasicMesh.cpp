@@ -313,37 +313,3 @@ void BasicMesh::UpdateTransformBuffers(const std::vector<WorldTransform const*>*
 	GLCall(glBindVertexArray(0));
 
 }
-
-/*void BasicMesh::Render(unsigned int t_instances) {
-	GLCall(glBindVertexArray(m_VAO));
-
-	for (unsigned int i = 0; i < m_meshes.size(); i++) {
-		unsigned int materialIndex = m_meshes[i].materialIndex;
-		ASSERT(materialIndex < m_textures.size());
-
-		if (m_materials[materialIndex].specular_texture != nullptr) m_materials[materialIndex].specular_texture->Bind(TextureUnits::SPECULAR_TEXTURE_UNIT);
-
-		m_materials[materialIndex].diffuse_texture->Bind(TextureUnits::COLOR_TEXTURE_UNIT);
-
-		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
-			m_meshes[i].numIndices,
-			GL_UNSIGNED_INT,
-			(void*)(sizeof(unsigned int) * m_meshes[i].baseIndex),
-			t_instances,
-			m_meshes[i].baseVertex))
-
-	}
-
-	GLCall(glBindVertexArray(0))
-}
-const Material BasicMesh::GetMaterial() {
-	for (unsigned int i = 0; i < m_materials.size(); i++) {
-		if (m_materials[i].ambient_color != glm::vec3(0.0f, 0.0f, 0.0f)) {
-			return m_materials[i];
-		}
-	}
-	Material placeholder = Material();
-	PrintUtils::PrintError("ERROR: NO MATERIAL FOUND, USING PLACEHOLDER");
-	return placeholder;
-	//ASSERT(false);
-}*/

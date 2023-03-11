@@ -69,7 +69,7 @@ void Application::Init() {
 
 	//GL CONFIG
 	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CW);
+	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -85,7 +85,6 @@ void Application::Init() {
 	while (!glfwWindowShouldClose(window))
 	{
 		/* Render here */
-		glClear(GL_COLOR_BUFFER_BIT);
 		RenderScene();
 
 		/* Swap front and back buffers */
@@ -102,7 +101,7 @@ void Application::Init() {
 
 			if (input_handle->g_pressed) {
 				auto entity = renderer.scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
-				glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(-p_camera->GetTarget().x * 15.0f, -p_camera->GetTarget().y * 15.0f, -p_camera->GetTarget().z * 15.0f));
+				glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(p_camera->GetTarget().x * 15.0f, p_camera->GetTarget().y * 15.0f, p_camera->GetTarget().z * 15.0f));
 				instances++;
 				entity->SetPosition(place_position.x, place_position.y, place_position.z);
 

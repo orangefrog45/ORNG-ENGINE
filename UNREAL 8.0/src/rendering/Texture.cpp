@@ -125,4 +125,5 @@ unsigned int Texture::LoadCubeMap(std::vector<const char*> faces) {
 void Texture::Bind(unsigned int textureUnit) const {
 	glActiveTexture(textureUnit);
 	glBindTexture(m_textureTarget, m_textureObj);
+	glActiveTexture(GL_NONE);
 }

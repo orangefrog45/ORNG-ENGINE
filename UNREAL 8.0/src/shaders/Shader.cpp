@@ -32,6 +32,29 @@ std::string Shader::ParseShader(const std::string& filepath) {
 	return ss.str();
 }
 
+void Shader::Init() {
+	GLCall(unsigned int tprogramID = glCreateProgram());
+
+	CompileShader(GL_VERTEX_SHADER, ParseShader(paths[0]), m_vert_shader_id);
+	CompileShader(GL_FRAGMENT_SHADER, ParseShader(paths[1]), m_frag_shader_id);
+
+	UseShader(m_vert_shader_id, tprogramID);
+	UseShader(m_frag_shader_id, tprogramID);
+
+	SetProgramID(tprogramID);
+
+	InitUniforms();
+}
+
+void Shader::ActivateProgram() {
+	GLCall(glLinkProgram(GetProgramID()));
+	GLCall(glValidateProgram(GetProgramID()));
+	GLCall(glUseProgram(GetProgramID()));
+
+	GLCall(glDeleteShader(m_vert_shader_id));
+	GLCall(glDeleteShader(m_frag_shader_id));
+}
+
 unsigned int Shader::GetUniform(const std::string& name) {
 	GLCall(int location = glGetUniformLocation(GetProgramID(), name.c_str()));
 	if (location == -1) {

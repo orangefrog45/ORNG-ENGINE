@@ -18,6 +18,7 @@ public:
 	SpotLight* CreateSpotLight();
 	auto& GetPointLights() { return m_point_lights; }
 	auto& GetSpotLights() { return m_spot_lights; }
+	auto& GetDirectionalLight() { return m_directional_light; }
 	BaseLight& GetAmbientLighting() { return m_global_ambient_lighting; };
 	void LoadScene();
 	void UnloadScene();
@@ -26,6 +27,7 @@ public:
 private:
 	BasicMesh* CreateMeshData(const std::string& filename);
 	BaseLight m_global_ambient_lighting;
+	DirectionalLight m_directional_light;
 	std::vector<std::future<void>> m_futures;
 	std::vector<EntityInstanceGroup*> m_mesh_instance_groups;
 	std::vector<SpotLight*> m_spot_lights;

@@ -28,6 +28,7 @@ void Scene::LoadScene() {
 	PrintUtils::PrintSuccess(std::format("Scene loaded in {}ms", PrintUtils::RoundDouble((glfwGetTime() - time_start) * 1000)));
 }
 
+
 void Scene::UnloadScene() {
 	PrintUtils::PrintDebug("Unloading scene");
 	for (BasicMesh* mesh_data : m_mesh_data) {
@@ -45,6 +46,7 @@ void Scene::UnloadScene() {
 	PrintUtils::PrintSuccess("Scene unloaded");
 }
 
+
 PointLight* Scene::CreatePointLight() {
 	PointLight* light = new PointLight(glm::fvec3(0.0f, 0.0f, 0.0f), glm::fvec3(1.0f, 1.0f, 1.0f));
 	light->SetMeshVisual(CreateMeshEntity("./res/meshes/light meshes/cube_light.obj", MeshShaderMode::FLAT_COLOR));
@@ -52,6 +54,7 @@ PointLight* Scene::CreatePointLight() {
 
 	return light;
 };
+
 
 SpotLight* Scene::CreateSpotLight() {
 	SpotLight* light = new SpotLight(glm::fvec3(0, -1, 0), 20.0f);

@@ -14,8 +14,7 @@ void ShaderLibrary::Init() {
 	grid_shader.Init();
 	lighting_shader.Init();
 	flat_color_shader.Init();
-
-	lighting_shader.SetDiffuseTextureUnit(TextureUnits::COLOR_TEXTURE_UNIT);
-	lighting_shader.SetSpecularTextureUnit(TextureUnits::SPECULAR_TEXTURE_UNIT);
+	depth_shader.Init();
+	basic_sampler_shader.Init();
 }
 

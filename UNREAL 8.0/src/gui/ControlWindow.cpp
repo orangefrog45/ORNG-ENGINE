@@ -12,8 +12,13 @@ void ControlWindow::CreateBaseWindow() {
 
 }
 
+const void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values) {
+	ImGui::Text("DEBUG CONTROLS");
+	ImGui::Checkbox("Toggle depth view", &config_values.depth_map_view);
+}
+
+
 const void ControlWindow::DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values) {
-	static std::vector<double> vals;
 	ImGui::Text("POINTLIGHT CONTROLS");
 	ImGui::SliderFloat("constant", &light_values.atten_constant, 0.0f, 1.0f);
 	ImGui::SliderFloat("linear", &light_values.atten_linear, 0.0f, 1.0f);

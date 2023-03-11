@@ -36,7 +36,7 @@
     <ClCompile Include="src\stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Texture.cpp">
+    <ClCompile Include="src\rendering\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Application.cpp">
@@ -90,19 +90,25 @@
     <ClCompile Include="src\shaders\FlatColorShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\gui\ControlWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shaders\DepthShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\framebuffers\MainViewFramebuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shaders\BasicSampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\Quad.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Include\imgui\imgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Include\imgui\imgui_demo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Include\imgui\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Include\imgui\imgui_impl_glfw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Include\imgui\imgui_impl_opengl3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Include\imgui\imgui_tables.cpp">
@@ -111,7 +117,13 @@
     <ClCompile Include="Include\imgui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\gui\ControlWindow.cpp">
+    <ClCompile Include="Include\imgui\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Include\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\framebuffers\ShadowMapFramebuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -124,6 +136,10 @@
     <None Include="res\shaders\SkyboxFS.shader" />
     <None Include="res\shaders\FlatColourVS.shader" />
     <None Include="res\shaders\FlatColourFS.shader" />
+    <None Include="res\shaders\DepthVS.shader" />
+    <None Include="res\shaders\DepthFS.shader" />
+    <None Include="res\shaders\BasicSamplerVS.shader" />
+    <None Include="res\shaders\BasicSamplerFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\InputHandle.h">
@@ -168,10 +184,10 @@
     <ClInclude Include="headers\shaders\GridShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Shader.h">
+    <ClInclude Include="headers\shaders\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\ShaderLibrary.h">
+    <ClInclude Include="headers\rendering\ShaderLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\SkyboxShader.h">
@@ -226,6 +242,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\gui\ControlWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\DepthShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\framebuffers\MainViewFramebuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\FramebufferLibrary.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\BasicSampler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\Quad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\framebuffers\ShadowMapFramebuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

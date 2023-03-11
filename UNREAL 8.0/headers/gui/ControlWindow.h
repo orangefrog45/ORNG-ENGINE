@@ -13,8 +13,13 @@ struct LightConfigValues {
 	bool lights_enabled = 1.0f;
 };
 
+struct DebugConfigValues {
+	bool depth_map_view = false;
+};
+
 struct ControlWindow {
 	static void Render();
 	static void CreateBaseWindow();
 	static const void DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values);
+	static const void DisplayDebugControls(DebugConfigValues& config_values);
 };

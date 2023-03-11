@@ -4,8 +4,7 @@
 
 class GridShader : public Shader {
 public:
-	void Init() override;
-	void ActivateProgram() override;
+	GridShader() { paths.push_back("res/shaders/GridVS.shader"); paths.push_back("res/shaders/GridFS.shader"); }
 	const GLint& GetProjectionLocation() const;
 	const GLint& GetCameraLocation() const;
 	const GLint& GetSamplerLocation() const;
@@ -14,9 +13,6 @@ public:
 	void SetCamera(const glm::fmat4& cam);
 private:
 	void InitUniforms() override;
-	unsigned int vert_shader_id;
-	unsigned int frag_shader_id;
-	unsigned int programID;
 	GLint camera_pos_location;
 	GLint projectionLocation;
 	GLint cameraLocation;

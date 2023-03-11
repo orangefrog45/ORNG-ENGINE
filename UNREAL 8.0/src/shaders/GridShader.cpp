@@ -5,30 +5,6 @@
 #include <glm/glm.hpp>
 #include "util/util.h"
 
-void GridShader::Init() {
-	GLCall(unsigned int tprogramID = glCreateProgram());
-
-	CompileShader(GL_VERTEX_SHADER, ParseShader("res/shaders/GridVS.shader"), vert_shader_id);
-	CompileShader(GL_FRAGMENT_SHADER, ParseShader("res/shaders/GridFS.shader"), frag_shader_id);
-
-	UseShader(vert_shader_id, tprogramID);
-	UseShader(frag_shader_id, tprogramID);
-
-	SetProgramID(tprogramID);
-
-	InitUniforms();
-
-}
-
-void GridShader::ActivateProgram() {
-	GLCall(glLinkProgram(GetProgramID()));
-	GLCall(glValidateProgram(GetProgramID()));
-	GLCall(glUseProgram(GetProgramID()));
-
-	GLCall(glDeleteShader(vert_shader_id));
-	GLCall(glDeleteShader(frag_shader_id));
-}
-
 void GridShader::SetCameraPos(const glm::fvec3 pos) {
 	glUniform3f(camera_pos_location, pos.x, pos.y, pos.z);
 }

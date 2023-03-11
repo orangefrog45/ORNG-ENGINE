@@ -53,7 +53,7 @@ void Camera::OnMouse(float mouse_x, float mouse_y) {
 	float maxDelta = 100.0f;
 
 	if (input_handle->mouse_locked) {
-		auto mouseDelta = glm::vec2(mouse_x - static_cast<float>(m_windowWidth) / 2, mouse_y - static_cast<float>(m_windowHeight) / 2);
+		auto mouseDelta = -glm::vec2(mouse_x - static_cast<float>(m_windowWidth) / 2, mouse_y - static_cast<float>(m_windowHeight) / 2);
 
 		if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
 			m_target = glm::rotate(mouseDelta.x * rotationSpeed, m_up) * glm::fvec4(m_target, 0);
@@ -73,10 +73,10 @@ void Camera::OnMouse(float mouse_x, float mouse_y) {
 
 
 void Camera::MoveForward() {
-	m_pos -= m_target * m_speed * static_cast<float>(time_step.timeInterval);
+	m_pos += m_target * m_speed * static_cast<float>(time_step.timeInterval);
 }
 void Camera::MoveBackward() {
-	m_pos += m_target * m_speed * static_cast<float>(time_step.timeInterval);
+	m_pos -= m_target * m_speed * static_cast<float>(time_step.timeInterval);
 }
 void Camera::StrafeLeft() {
 	glm::fvec3 left = glm::normalize(glm::cross(m_up, m_target));

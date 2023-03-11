@@ -1,10 +1,10 @@
-#version 410 core
+#version 430 core
 
 in vec3 TexCoord0;
 
 out vec4 FragColor;
 
-uniform samplerCube gSampler;
+layout(location = 1) uniform samplerCube gSampler;
 
 void main()
 {
