@@ -18,17 +18,17 @@ public:
 
 private:
 	glm::fvec3 color = glm::fvec3(1.0f, 1.0f, 1.0f);
-	float ambient_intensity = 0.5f;
+	float ambient_intensity = 0.2f;
 	float diffuse_intensity = 1.0f;
 };
 
 class DirectionalLight : public BaseLight {
 public:
-	DirectionalLight() { SetDiffuseIntensity(0.2); SetColor(1.0f, 1.0f, 1.0f); }
+	DirectionalLight() { SetDiffuseIntensity(3.0f); SetColor(1.0f, 1.0f, 1.0f); }
 	auto GetLightDirection() const { return light_direction; };
 	void SetLightDirection(const glm::fvec3& dir) { light_direction = dir; }
 private:
-	glm::fvec3 light_direction = glm::fvec3(0.5f, 1.0f, 1.f);
+	glm::fvec3 light_direction = glm::fvec3(0.5f, 0.5f, 1.f);
 };
 
 struct LightAttenuation {

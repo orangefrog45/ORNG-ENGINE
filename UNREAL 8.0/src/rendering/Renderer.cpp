@@ -20,17 +20,20 @@ void Renderer::Init() {
 	auto cube = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
-	auto orange = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj");
-	for (float i = 0; i < 18.0f; i++) {
+	auto orange = scene.CreateMeshEntity("./res/meshes/light meshes/cone.obj");
+	auto orange2 = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj");
+	/*for (float i = 0; i < 18.0f; i++) {
 		auto l = scene.CreatePointLight();
 		l->SetColor(i / 108.0f, cosf(ExtraMath::ToRadians(i * 10.0f / 3.0f)), sinf(ExtraMath::ToRadians(i * 10.0f / 3.0f)));
-	}
-	/*auto sl = scene.CreateSpotLight();
-	auto sl2 = scene.CreateSpotLight();
+	}*/
+	//auto sl = scene.CreateSpotLight();
+	//sl->SetPosition(0.0f, 10.0f, -20.0f);
+	//sl->SetColor(1.f, 1.f, 1.f);
+	//sl->SetLightDirection(0.0f, 0.0f, -1.0f);
+	/*auto sl2 = scene.CreateSpotLight();
 	auto sl3 = scene.CreateSpotLight();
 	auto sl4 = scene.CreateSpotLight();
 
-	sl->SetPosition(0.0f, 10.0f, -5.0f);
 	sl2->SetPosition(5.0f, 10.0f, 0.0f);
 	sl3->SetPosition(-5.0f, 10.0f, 0.0f);
 	sl4->SetPosition(0.0f, 10.0f, 5.0f);
@@ -43,6 +46,7 @@ void Renderer::Init() {
 	sl4->SetLightDirection(0.0f, 0.0f, 1.0f);
 	sl->SetLightDirection(0.0f, 0.0f, -1.0f); */
 	orange->SetPosition(0.0f, 7.0f, 0.0f);
+	orange2->SetPosition(10.0f, 7.0f, 0.0f);
 	cube->SetPosition(0.0f, 0.0f, -25.0f);
 	cube->SetScale(50.0f, 50.0f, 1.0f);
 	cube->SetRotation(0.0f, 0.0f, 0.0f);
@@ -57,8 +61,8 @@ void Renderer::Init() {
 	for (auto light : scene.GetPointLights()) {
 		angle += 0.005 / 3.0f;
 		angle_offset += 10.0f / 3.0f;
-		x = 90.0f * cosf(ExtraMath::ToRadians(angle + angle_offset));
-		z = 90.0f * sinf(ExtraMath::ToRadians(angle + angle_offset));
+		x = 30.0f * cosf(ExtraMath::ToRadians(angle + angle_offset));
+		z = 30.0f * sinf(ExtraMath::ToRadians(angle + angle_offset));
 		light->SetPosition(x, 10.0f, z);
 	}
 	scene.LoadScene();
@@ -105,7 +109,6 @@ void Renderer::DrawToQuad() {
 }
 
 void Renderer::DrawScene() {
-	glCullFace(GL_CCW);
 	glViewport(0, 0, m_window_width, m_window_height);
 
 	framebuffer_library.main_view_framebuffer.Bind();

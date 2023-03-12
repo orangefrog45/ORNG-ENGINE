@@ -7,12 +7,9 @@
 void ShadowMapFramebuffer::Init() {
 	GLCall(glGenFramebuffers(1, &depth_map_fbo));
 
-	const unsigned int shadow_width = 1024;
-	const unsigned int shadow_height = 1024;
-
 	GLCall(glGenTextures(1, &depth_map_texture));
 	GLCall(glBindTexture(GL_TEXTURE_2D, depth_map_texture));
-	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, shadow_width, shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
+	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m_shadow_width, m_shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -40,7 +37,7 @@ void ShadowMapFramebuffer::BindForDraw() {
 	glCullFace(GL_CW);
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo));
 	glClear(GL_DEPTH_BUFFER_BIT);
-	glViewport(0, 0, 1024, 1024); // shadow width/height
+	glViewport(0, 0, m_shadow_width, m_shadow_height); // shadow width/height
 }
 
 void ShadowMapFramebuffer::Unbind() {

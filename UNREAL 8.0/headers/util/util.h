@@ -13,6 +13,8 @@
 
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 
+constexpr bool SHADER_DEBUG_MODE = false; // true = GetUniform throws error if uniform doesn't exist
+
 namespace PrintUtils {
 	std::string GetFormattedTime();
 	void PrintWarning(const std::string& text);

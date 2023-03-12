@@ -78,7 +78,7 @@ layout(binding = 2) uniform sampler2D specular_sampler;
 layout(binding = 3) uniform sampler2D shadow_map;
 uniform bool specular_sampler_active; // FALSE IF NO SHININESS TEXTURE FOUND
 
-float ShadowCalculation(vec4 t_frag_pos_light_space) {
+float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir) {
 	float shadow = 0.0f;
 	//perspective division
 	vec3 proj_coords = (t_frag_pos_light_space / t_frag_pos_light_space.w).xyz;
@@ -91,7 +91,7 @@ float ShadowCalculation(vec4 t_frag_pos_light_space) {
 
 	//actual depth for comparison
 	float current_depth = proj_coords.z;
-	float bias = 0.005;
+	float bias = max(0.05 * (1.0 - dot(normalize(vs_normal), light_dir)), 0.005);
 	shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
 
 	//if (proj_coords.z > 1.0)
@@ -101,6 +101,8 @@ float ShadowCalculation(vec4 t_frag_pos_light_space) {
 }
 
 vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normalized_light_dir, vec3 norm) {
+
+	vec3 ambient_light = g_ambient_light.ambient_intensity * g_ambient_light.color.xyz * g_material.ambient_color;
 
 	//diffuse
 	float diffuse = clamp(dot(normalized_light_dir, norm), 0, 1);
@@ -117,14 +119,16 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 		float specular_factor = dot(view_dir, reflect_dir);
 
 		if (specular_factor > 0) {
-			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 2;
+			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 8;
 			float spec = pow(specular_factor, specular_exponent);
 			specular_final = specular_strength * spec * light_color * g_material.specular_color;
 		}
 	};
 
+	float shadow = ShadowCalculation(frag_pos_light_space, normalized_light_dir);
 
-	return (diffuse_final + specular_final);
+
+	return (diffuse_final + specular_final) * (ambient_light + (1.0 - shadow) * 0.3);
 }
 
 
@@ -163,7 +167,8 @@ void main()
 {
 	vec3 normal = normalize(vs_normal);
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
-	vec3 ambient_light = g_ambient_light.color.xyz * g_ambient_light.ambient_intensity * g_material.ambient_color;
+
+	vec3 ambient_light = g_ambient_light.ambient_intensity * g_ambient_light.color.xyz * g_material.ambient_color;
 
 
 	//pointlights
@@ -183,11 +188,9 @@ void main()
 	}
 
 	//directional light
-	float shadow = ShadowCalculation(frag_pos_light_space);
-	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, directional_light.direction, normal);
+	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, directional_light.direction, normal) + ambient_light;
 
-	//ambient
-	total_light += ambient_light - (shadow - 1.0) * 0.1;
+
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
 	FragColor = vec4(color.xyz, 1.0) * texture2D(gSampler, TexCoord0);

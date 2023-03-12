@@ -57,7 +57,7 @@ void Shader::ActivateProgram() {
 
 unsigned int Shader::GetUniform(const std::string& name) {
 	GLCall(int location = glGetUniformLocation(GetProgramID(), name.c_str()));
-	if (location == -1) {
+	if (location == -1 && SHADER_DEBUG_MODE == true) {
 		PrintUtils::PrintError(std::format("ERROR: COULD NOT FIND UNIFORM '{}'", name));
 		exit(1);
 	}

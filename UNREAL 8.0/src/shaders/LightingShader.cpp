@@ -49,7 +49,7 @@ void LightingShader::SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view) {
 
 void LightingShader::SetAmbientLight(const BaseLight& light) {
 	glm::fvec3 light_color = light.GetColor();
-	glUniform4f(m_ambient_light_color_loc, light_color.x, light_color.y, light_color.z, 0);
+	glUniform4f(m_ambient_light_color_loc, light_color.x, light_color.y, light_color.z, 1);
 	glUniform1f(m_light_ambient_intensity_loc, light.GetAmbientIntensity());
 }
 
@@ -94,7 +94,6 @@ void LightingShader::InitUniforms() {
 	m_dir_light_color_loc = GetUniform("directional_light.color");
 	m_dir_light_dir_loc = GetUniform("directional_light.direction");
 	m_dir_light_diffuse_intensity_loc = GetUniform("directional_light.diffuse_intensity");
-	//m_dir_light_ambient_intensity_loc = GetUniform("directional_light.ambient_intensity");
 	m_light_space_mat_loc = GetUniform("dir_light_matrix");
 	m_sampler_shadow_map_loc = GetUniform("shadow_map");
 
