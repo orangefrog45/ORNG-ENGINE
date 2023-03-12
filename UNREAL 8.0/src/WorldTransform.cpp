@@ -2,12 +2,26 @@
 #include "ExtraMath.h"
 #include <glm/glm.hpp>
 
+void WorldTransform2D::SetScale(float x, float y) {
+	m_scale.x = x;
+	m_scale.y = y;
+}
 
-const double pi = atan(1) * 4;
+void WorldTransform2D::SetRotation(float rot) {
+	m_rotation = rot;
+}
 
+void WorldTransform2D::SetPosition(float x, float y) {
+	m_pos.x = x;
+	m_pos.y = y;
+}
 
-WorldTransform::WorldTransform() {
+glm::fmat3 WorldTransform2D::GetMatrix() const {
+	glm::fmat3 rot_mat = ExtraMath::Init2DRotateTransform(m_rotation);
+	glm::fmat3 trans_mat = ExtraMath::Init2DTranslationTransform(m_pos.x, m_pos.y);
+	glm::fmat3 scale_mat = ExtraMath::Init2DScaleTransform(m_scale.x, m_scale.y);
 
+	return scale_mat * rot_mat * trans_mat;
 }
 
 void WorldTransform::SetScale(float scaleX, float scaleY, float scaleZ) {

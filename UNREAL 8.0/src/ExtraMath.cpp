@@ -1,8 +1,39 @@
 #include "ExtraMath.h"
 #include <glm/glm.hpp>
 
+glm::fmat3 ExtraMath::Init2DScaleTransform(float x, float y) {
+	glm::fmat3 scale_matrix(
+		x, 0.0f, 0.0f,
+		0.0f, y, 0.0f,
+		0.0f, 0.0f, 1.0f
+	);
 
-const double ExtraMath::pi = atan(1) * 4;
+	return scale_matrix;
+}
+
+glm::fmat3 ExtraMath::Init2DRotateTransform(float rot) {
+	float rx = ToRadians(rot);
+
+	glm::fmat3 rot_matrix(
+		cosf(rot), -sin(rot), 0.0f,
+		sin(rot), cos(rot), 0.0f,
+		0.0f, 0.0f, 1.0f
+	);
+
+	return rot_matrix;
+}
+
+glm::fmat3 ExtraMath::Init2DTranslationTransform(float x, float y) {
+
+	glm::fmat3 translation_matrix(
+		1.0f, 0.0f, x,
+		0.0f, 1.0f, y,
+		0.0f, 0.0f, 1.0f
+	);
+
+	return translation_matrix;
+}
+
 
 glm::fmat4x4 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
 

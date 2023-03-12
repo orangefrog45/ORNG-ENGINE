@@ -1,3 +1,8 @@
+12/3/23:
+-Directional light controls
+-Depth map viewing window
+-Changes to shadow map biasing (still not perfect)
+
 11/3/23:
 -Changes to Blinn-Phong lighting algorithm to fix ambient lighting issues
 -Rough shadow mapping implemented

@@ -12,9 +12,27 @@ void ControlWindow::CreateBaseWindow() {
 
 }
 
-const void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values) {
+const void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture) {
 	ImGui::Text("DEBUG CONTROLS");
 	ImGui::Checkbox("Toggle depth view", &config_values.depth_map_view);
+
+	if (config_values.depth_map_view == true) {
+		ImGui::End();
+		ImGui::Begin("DEPTH MAP");
+		ImGui::Image((void*)depth_map_texture, ImVec2(512, 512), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::End();
+		ImGui::Begin("Tools");
+	}
+}
+
+const void ControlWindow::DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values) {
+
+	ImGui::Text("DIR LIGHT CONTROLS");
+	ImGui::SliderFloat("x-pos", &config_values.light_position.x, -1.0f, 1.0f);
+	ImGui::SliderFloat("y-pos", &config_values.light_position.y, -1.0f, 1.0f);
+	ImGui::SliderFloat("z-pos", &config_values.light_position.z, -1.0f, 1.0f);
+	ImGui::ColorPicker4("color", &config_values.light_color[0]);
+
 }
 
 

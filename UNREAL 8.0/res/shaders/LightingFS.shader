@@ -91,11 +91,12 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir) {
 
 	//actual depth for comparison
 	float current_depth = proj_coords.z;
-	float bias = max(0.05 * (1.0 - dot(normalize(vs_normal), light_dir)), 0.005);
+	float bias = max(0.0005 * (1.0 - dot(normalize(vs_normal), light_dir)), 0.003);
 	shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
 
-	//if (proj_coords.z > 1.0)
-		//shadow = 0.0;
+	//make fragments out of shadow bounds appear not in shadow
+	if (proj_coords.z > 1.0)
+		shadow = 0.0;
 
 	return shadow;
 }
@@ -119,7 +120,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 		float specular_factor = dot(view_dir, reflect_dir);
 
 		if (specular_factor > 0) {
-			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 8;
+			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 32;
 			float spec = pow(specular_factor, specular_exponent);
 			specular_final = specular_strength * spec * light_color * g_material.specular_color;
 		}
@@ -128,7 +129,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 	float shadow = ShadowCalculation(frag_pos_light_space, normalized_light_dir);
 
 
-	return (diffuse_final + specular_final) * (ambient_light + (1.0 - shadow) * 0.3);
+	return (diffuse_final + specular_final) * (ambient_light + (1.0 - shadow));
 }
 
 

@@ -42,7 +42,6 @@ private:
 	int m_window_width = RenderData::WINDOW_WIDTH;
 	int m_window_height = RenderData::WINDOW_HEIGHT;
 
-	//glm::fmat4x4 projectionMatrix = ExtraMath::InitPersProjTransform(FOV, m_window_width, m_window_height, zNear, zFar);
 	glm::fmat4x4 projectionMatrix = glm::rowMajor4(glm::perspective(45.0f, static_cast<float>(m_window_width) / static_cast<float>(m_window_height), zNear, zFar));
 	std::shared_ptr<Camera> p_camera = nullptr;
 	Skybox skybox;
@@ -50,5 +49,4 @@ private:
 	ShaderLibrary shaderLibrary;
 	FramebufferLibrary framebuffer_library;
 	Quad render_quad;
-
 };

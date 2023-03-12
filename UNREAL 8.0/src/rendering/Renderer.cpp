@@ -20,6 +20,7 @@ void Renderer::Init() {
 	auto cube = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
+	auto cube4 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto orange = scene.CreateMeshEntity("./res/meshes/light meshes/cone.obj");
 	auto orange2 = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj");
 	/*for (float i = 0; i < 18.0f; i++) {
@@ -46,13 +47,16 @@ void Renderer::Init() {
 	sl4->SetLightDirection(0.0f, 0.0f, 1.0f);
 	sl->SetLightDirection(0.0f, 0.0f, -1.0f); */
 	orange->SetPosition(0.0f, 7.0f, 0.0f);
-	orange2->SetPosition(10.0f, 7.0f, 0.0f);
+	orange2->SetPosition(10.0f, 4.0f, 0.0f);
 	cube->SetPosition(0.0f, 0.0f, -25.0f);
 	cube->SetScale(50.0f, 50.0f, 1.0f);
 	cube->SetRotation(0.0f, 0.0f, 0.0f);
 	cube2->SetPosition(50.0f, 10.0f, 0.0f);
 	cube3->SetScale(50.0f, 1.0f, 50.0f);
 	cube3->SetRotation(0.0f, 0.0f, 0.0f);
+	cube4->SetPosition(0.0f, 3.0f, 10.0f);
+	cube4->SetScale(3.0f, 3.0f, 3.0f);
+	cube4->SetRotation(0.0f, 45.0f, 0.0f);
 	static float angle = 0;
 	static float x = 0.0f;
 	static float z = 0.0f;
@@ -73,34 +77,34 @@ void Renderer::Init() {
 void Renderer::RenderScene() {
 	static LightConfigValues light_vals;
 	static DebugConfigValues config_vals;
+	static DirectionalLightConfigValues dir_light_vals;
 
 	DrawShadowMap();
 
 	//MAIN DRAW
+	scene.GetDirectionalLight().SetLightDirection(dir_light_vals.light_position);
+	scene.GetDirectionalLight().SetColor(dir_light_vals.light_color.x, dir_light_vals.light_color.y, dir_light_vals.light_color.z);
 	DrawScene();
 
-	//DRAW TO QUAD
+	//DRAW TO QUAD - CURRENT QUAD DRAWN OVER LAST QUAD
 	glClear(GL_COLOR_BUFFER_BIT);
 	shaderLibrary.basic_sampler_shader.ActivateProgram();
 	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
 
-	if (config_vals.depth_map_view) {
-		GLCall(glViewport(0, 0, 1024, 1024));
-		glBindTexture(GL_TEXTURE_2D, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
-	}
-	else {
-		glBindTexture(GL_TEXTURE_2D, framebuffer_library.main_view_framebuffer.GetTexture());
-	}
-
 	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_CULL_FACE);
+
+	glBindTexture(GL_TEXTURE_2D, framebuffer_library.main_view_framebuffer.GetTexture());
+	shaderLibrary.basic_sampler_shader.SetTransform(render_quad.GetTransform().GetMatrix());
 	render_quad.Draw();
+
+
 
 
 
 	ControlWindow::CreateBaseWindow();
 	ControlWindow::DisplayPointLightControls(scene.GetPointLights().size(), ActivateLightingControls(light_vals));
-	ControlWindow::DisplayDebugControls(config_vals);
+	ControlWindow::DisplayDebugControls(config_vals, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
+	ControlWindow::DisplayDirectionalLightControls(dir_light_vals);
 	ControlWindow::Render();
 
 }
@@ -129,8 +133,8 @@ void Renderer::DrawShadowMap() {
 	//BIND FOR DRAW
 
 	shaderLibrary.depth_shader.ActivateProgram();
-	glm::mat4 light_projection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 100.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 40.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
+	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	framebuffer_library.shadow_map_framebuffer.BindForDraw();
 
@@ -181,11 +185,9 @@ void Renderer::DrawLightingEntities() {
 	shaderLibrary.lighting_shader.ActivateProgram();
 	auto cam_mat = p_camera->GetMatrix();
 
-	glm::mat4 light_projection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 100.f);
-
-
+	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
 	auto light_dir = glm::normalize(scene.GetDirectionalLight().GetLightDirection());
-	glm::mat4 light_view = glm::lookAt(light_dir * 40.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_view = glm::lookAt(light_dir * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
 	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());

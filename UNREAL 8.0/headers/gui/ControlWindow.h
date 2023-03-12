@@ -17,9 +17,15 @@ struct DebugConfigValues {
 	bool depth_map_view = false;
 };
 
+struct DirectionalLightConfigValues {
+	glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 light_position = glm::vec3(0.5f, 0.5f, 1.f);
+};
+
 struct ControlWindow {
 	static void Render();
 	static void CreateBaseWindow();
 	static const void DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values);
-	static const void DisplayDebugControls(DebugConfigValues& config_values);
+	static const void DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture);
+	static const void DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values);
 };

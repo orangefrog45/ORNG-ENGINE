@@ -3,9 +3,11 @@
 in layout(location = 0) vec2 pos;
 in layout(location = 1) vec2 itex_coords;
 
+uniform mat3 transform;
+
 out vec2 tex_coords;
 
 void main() {
-	gl_Position = vec4(pos.x, pos.y, 0.0, 1.0);
-	tex_coords = itex_coords;
+	gl_Position = vec4((transform * vec3(pos.x, pos.y, 1.0)).xy, 0.0f, 1.0f);
+	tex_coords = itex_coords; // may need to transform these too
 }
