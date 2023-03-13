@@ -1,7 +1,11 @@
+13/3/23:
+-More lighting model fixes/changes, reflected light always less than light received, shadow bias depends on slope
+
 12/3/23:
 -Directional light controls
 -Depth map viewing window
 -Changes to shadow map biasing (still not perfect)
+-WorldTransform2D added to support 2D entities and windows
 
 11/3/23:
 -Changes to Blinn-Phong lighting algorithm to fix ambient lighting issues

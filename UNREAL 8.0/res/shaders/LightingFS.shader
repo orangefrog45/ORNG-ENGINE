@@ -91,7 +91,9 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir) {
 
 	//actual depth for comparison
 	float current_depth = proj_coords.z;
-	float bias = max(0.0005 * (1.0 - dot(normalize(vs_normal), light_dir)), 0.003);
+	//float bias = max(0.005 * (1.0 - dot(normalize(vs_normal), light_dir)), 0.005);
+
+	float bias = 0.001 * tan(acos(clamp(dot(normalize(vs_normal), light_dir), 0, 1)));
 	shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
 
 	//make fragments out of shadow bounds appear not in shadow
@@ -103,8 +105,6 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir) {
 
 vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normalized_light_dir, vec3 norm) {
 
-	vec3 ambient_light = g_ambient_light.ambient_intensity * g_ambient_light.color.xyz * g_material.ambient_color;
-
 	//diffuse
 	float diffuse = clamp(dot(normalized_light_dir, norm), 0, 1);
 
@@ -112,7 +112,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 	vec3 specular_final = vec3(0, 0, 0);
 
 	if (diffuse > 0) {
-		diffuse_final = light_color * diffuse * g_material.diffuse_color * light_diffuse_intensity;
+		diffuse_final = light_color * diffuse * light_diffuse_intensity; // ADD BACK MATERIAL DIFFUSE COLOR AT SOME STAGE
 
 		float specular_strength = 0.5;
 		vec3 view_dir = normalize(view_pos - vs_position);
@@ -126,10 +126,10 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 		}
 	};
 
-	float shadow = ShadowCalculation(frag_pos_light_space, normalized_light_dir);
 
+	float shadow = ShadowCalculation(frag_pos_light_space, directional_light.direction);
 
-	return (diffuse_final + specular_final) * (ambient_light + (1.0 - shadow));
+	return max(((diffuse_final + specular_final) - shadow), vec3(0));
 }
 
 
@@ -189,7 +189,11 @@ void main()
 	}
 
 	//directional light
-	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, directional_light.direction, normal) + ambient_light;
+
+	float shadow = ShadowCalculation(frag_pos_light_space, directional_light.direction);
+
+	//ambient added at the very end with shadow value subtracted with coefficient to ensure that light out does not exceed light in
+	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal) + ambient_light;
 
 
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));

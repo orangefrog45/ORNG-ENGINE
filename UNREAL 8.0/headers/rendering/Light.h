@@ -24,7 +24,7 @@ private:
 
 class DirectionalLight : public BaseLight {
 public:
-	DirectionalLight() { SetDiffuseIntensity(3.0f); SetColor(0.922f, 0.985f, 0.875f); }
+	DirectionalLight() { SetDiffuseIntensity(0.5); SetColor(0.922f, 0.985f, 0.875f); }
 	auto GetLightDirection() const { return light_direction; };
 	void SetLightDirection(const glm::fvec3& dir) { light_direction = dir; }
 private:

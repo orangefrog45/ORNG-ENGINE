@@ -133,8 +133,8 @@ void Renderer::DrawShadowMap() {
 	//BIND FOR DRAW
 
 	shaderLibrary.depth_shader.ActivateProgram();
-	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 100.f);
+	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 70.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	framebuffer_library.shadow_map_framebuffer.BindForDraw();
 
@@ -185,9 +185,9 @@ void Renderer::DrawLightingEntities() {
 	shaderLibrary.lighting_shader.ActivateProgram();
 	auto cam_mat = p_camera->GetMatrix();
 
-	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
+	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 100.f);
 	auto light_dir = glm::normalize(scene.GetDirectionalLight().GetLightDirection());
-	glm::mat4 light_view = glm::lookAt(light_dir * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_view = glm::lookAt(light_dir * 70.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
 	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());
