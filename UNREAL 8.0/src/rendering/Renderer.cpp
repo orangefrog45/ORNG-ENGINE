@@ -22,7 +22,7 @@ void Renderer::Init() {
 	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube4 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto orange = scene.CreateMeshEntity("./res/meshes/light meshes/cone.obj");
-	auto orange2 = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj");
+	auto orange2 = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj", MeshShaderMode::REFLECT);
 	/*for (float i = 0; i < 18.0f; i++) {
 		auto l = scene.CreatePointLight();
 		l->SetColor(i / 108.0f, cosf(ExtraMath::ToRadians(i * 10.0f / 3.0f)), sinf(ExtraMath::ToRadians(i * 10.0f / 3.0f)));
@@ -47,7 +47,8 @@ void Renderer::Init() {
 	sl4->SetLightDirection(0.0f, 0.0f, 1.0f);
 	sl->SetLightDirection(0.0f, 0.0f, -1.0f); */
 	orange->SetPosition(0.0f, 7.0f, 0.0f);
-	orange2->SetPosition(10.0f, 4.0f, 0.0f);
+	orange2->SetPosition(10.0f, 20.0f, 0.0f);
+	orange2->SetScale(3.0f, 3.0f, 3.0f);
 	cube->SetPosition(0.0f, 0.0f, -25.0f);
 	cube->SetScale(50.0f, 50.0f, 1.0f);
 	cube->SetRotation(0.0f, 0.0f, 0.0f);
@@ -115,6 +116,7 @@ void Renderer::DrawToQuad() {
 void Renderer::DrawScene() {
 	glViewport(0, 0, m_window_width, m_window_height);
 
+	shaderLibrary.reflection_shader.ActivateProgram();
 	framebuffer_library.main_view_framebuffer.Bind();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -123,7 +125,10 @@ void Renderer::DrawScene() {
 
 	DrawLightMeshVisuals();
 	DrawLightingEntities();
-	skybox.Draw(ExtraMath::GetCameraTransMatrix(p_camera->GetPos()));
+	DrawReflectShaderEntities();
+	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetCubeMapTexture());
+	skybox.Draw(glm::mat3(p_camera->GetMatrix()));
 	DrawGrid();
 
 	framebuffer_library.shadow_map_framebuffer.Unbind();
@@ -133,14 +138,14 @@ void Renderer::DrawShadowMap() {
 	//BIND FOR DRAW
 
 	shaderLibrary.depth_shader.ActivateProgram();
-	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 100.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 70.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
+	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	framebuffer_library.shadow_map_framebuffer.BindForDraw();
 
 	shaderLibrary.depth_shader.SetPVMatrix(light_projection * light_view);
 	for (auto& group : scene.GetGroupMeshEntities()) {
-		if (group->GetMeshData()->GetLoadStatus() == true && group->GetShaderType() == MeshShaderMode::LIGHTING) {
+		if (group->GetMeshData()->GetLoadStatus() == true && (group->GetShaderType() == MeshShaderMode::LIGHTING || group->GetShaderType() == MeshShaderMode::REFLECT)) {
 			BasicMesh* mesh_data = group->GetMeshData();
 			DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.depth_shader);
 		}
@@ -180,14 +185,30 @@ void Renderer::DrawLightMeshVisuals() {
 	}
 }
 
+void Renderer::DrawReflectShaderEntities() {
+
+	shaderLibrary.reflection_shader.ActivateProgram();
+	shaderLibrary.reflection_shader.SetCameraPos(p_camera->GetPos());
+	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetCubeMapTexture());
+
+	for (auto& group : scene.GetGroupMeshEntities()) {
+		if (group->GetMeshData()->GetLoadStatus() == true && group->GetShaderType() == MeshShaderMode::REFLECT) {
+			BasicMesh* mesh_data = group->GetMeshData();
+			DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.lighting_shader);
+		}
+	}
+}
+
+
 void Renderer::DrawLightingEntities() {
 
 	shaderLibrary.lighting_shader.ActivateProgram();
 	auto cam_mat = p_camera->GetMatrix();
 
-	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 100.f);
+	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
 	auto light_dir = glm::normalize(scene.GetDirectionalLight().GetLightDirection());
-	glm::mat4 light_view = glm::lookAt(light_dir * 70.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_view = glm::lookAt(light_dir * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
 	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());

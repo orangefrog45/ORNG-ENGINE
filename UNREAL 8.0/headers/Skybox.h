@@ -9,18 +9,19 @@ class Skybox {
 public:
 
 	void Init();
-	void Draw(const glm::fmat4& WVP);
+	void Draw(const glm::fmat3& view);
+	unsigned int GetCubeMapTexture() const { return cubemapTexture; }
 
 	SkyboxShader skyboxShader;
 
 private:
 	std::array<float, 108> skyboxVertices = {
-		// Positions
+		// positions          
 		-1.0f,  1.0f, -1.0f,
 		-1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
 		-1.0f,  1.0f, -1.0f,
 
 		-1.0f, -1.0f,  1.0f,
@@ -30,33 +31,33 @@ private:
 		-1.0f,  1.0f,  1.0f,
 		-1.0f, -1.0f,  1.0f,
 
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
 
 		-1.0f, -1.0f,  1.0f,
 		-1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
 		-1.0f, -1.0f,  1.0f,
 
 		-1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
 		-1.0f,  1.0f,  1.0f,
 		-1.0f,  1.0f, -1.0f,
 
 		-1.0f, -1.0f, -1.0f,
 		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
 		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f
+		 1.0f, -1.0f,  1.0f
 	};
 
 

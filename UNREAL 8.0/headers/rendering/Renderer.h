@@ -25,6 +25,7 @@ public:
 	void DrawGrid();
 	void DrawLightingEntities();
 	void DrawLightMeshVisuals();
+	void DrawReflectShaderEntities();
 	void DrawToQuad();
 	void DrawScene();
 	void DrawShadowMap();

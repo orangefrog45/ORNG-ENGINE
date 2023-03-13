@@ -140,6 +140,8 @@
     <None Include="res\shaders\DepthFS.shader" />
     <None Include="res\shaders\BasicSamplerVS.shader" />
     <None Include="res\shaders\BasicSamplerFS.shader" />
+    <None Include="res\shaders\ReflectionVS.shader" />
+    <None Include="res\shaders\ReflectionFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\InputHandle.h">
@@ -260,6 +262,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\framebuffers\ShadowMapFramebuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\ReflectionShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

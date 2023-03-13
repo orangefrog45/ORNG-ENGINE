@@ -196,6 +196,8 @@
     <None Include="res\shaders\FlatColourVS.shader" />
     <None Include="res\shaders\GridFS.shader" />
     <None Include="res\shaders\GridVS.shader" />
+    <None Include="res\shaders\ReflectionFS.shader" />
+    <None Include="res\shaders\ReflectionVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
     <None Include="res\shaders\SkyboxVS.shader" />
     <None Include="res\shaders\LightingFS.shader" />
@@ -221,6 +223,7 @@
     <ClInclude Include="headers\rendering\Renderer.h" />
     <ClInclude Include="headers\rendering\Scene.h" />
     <ClInclude Include="headers\shaders\BasicSampler.h" />
+    <ClInclude Include="headers\shaders\ReflectionShader.h" />
     <ClInclude Include="headers\shaders\Shader.h" />
     <ClInclude Include="headers\rendering\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\DepthShader.h" />

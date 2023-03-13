@@ -16,5 +16,6 @@ void ShaderLibrary::Init() {
 	flat_color_shader.Init();
 	depth_shader.Init();
 	basic_sampler_shader.Init();
+	reflection_shader.Init();
 }
 

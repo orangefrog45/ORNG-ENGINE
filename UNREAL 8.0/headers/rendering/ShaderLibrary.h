@@ -10,6 +10,7 @@
 #include "shaders/FlatColourShader.h"
 #include "DepthShader.h"
 #include "BasicSampler.h"
+#include "ReflectionShader.h"
 
 class ShaderLibrary {
 public:
@@ -21,7 +22,7 @@ public:
 	GridShader grid_shader;
 	DepthShader depth_shader;
 	BasicSampler basic_sampler_shader;
-
+	ReflectionShader reflection_shader;
 private:
 
 };

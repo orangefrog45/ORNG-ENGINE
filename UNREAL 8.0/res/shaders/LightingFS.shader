@@ -120,7 +120,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 		float specular_factor = dot(view_dir, reflect_dir);
 
 		if (specular_factor > 0) {
-			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 32;
+			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 64;
 			float spec = pow(specular_factor, specular_exponent);
 			specular_final = specular_strength * spec * light_color * g_material.specular_color;
 		}
@@ -189,11 +189,9 @@ void main()
 	}
 
 	//directional light
+	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal);
 
-	float shadow = ShadowCalculation(frag_pos_light_space, directional_light.direction);
-
-	//ambient added at the very end with shadow value subtracted with coefficient to ensure that light out does not exceed light in
-	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal) + ambient_light;
+	total_light += ambient_light;
 
 
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));

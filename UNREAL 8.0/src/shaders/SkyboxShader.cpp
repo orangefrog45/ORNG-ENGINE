@@ -6,13 +6,13 @@
 
 void SkyboxShader::InitUniforms() {
 	ActivateProgram();
-	m_world_transform_loc = GetUniform("gTransform");
+	m_view_loc = GetUniform("gTransform");
 	samplerLocation = GetUniform("gSampler");
 	glUniform1i(samplerLocation, TextureUnitIndexes::COLOR_TEXTURE_UNIT_INDEX);
 }
 
-const GLint& SkyboxShader::GetWorldTransformLocation() const {
-	return m_world_transform_loc;
+const GLint& SkyboxShader::GetViewLoc() const {
+	return m_view_loc;
 }
 
 const GLint& SkyboxShader::GetSamplerLocation() const {

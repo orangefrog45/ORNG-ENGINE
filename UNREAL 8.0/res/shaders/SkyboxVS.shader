@@ -13,7 +13,7 @@ uniform mat4 gTransform;
 out vec3 TexCoord0;
 
 void main() {
-	vec4 pos = PVMatrices.projection * PVMatrices.view * gTransform * vec4(position, 1.0);
-	gl_Position = pos.xyzz;
+	vec4 pos = PVMatrices.projection * gTransform * vec4(position, 1.0);
+	gl_Position = pos.xyww;
 	TexCoord0 = position;
 }

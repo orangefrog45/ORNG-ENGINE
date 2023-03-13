@@ -32,7 +32,6 @@ void Skybox::Init() {
 	*/
 
 	skyboxShader.Init();
-
 	glGenVertexArrays(1, &skyboxVAO);
 	glGenBuffers(1, &skyboxVBO);
 	glBindVertexArray(skyboxVAO);
@@ -42,14 +41,16 @@ void Skybox::Init() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void*>(0));
 }
 
-void Skybox::Draw(const glm::fmat4& WVP) {
+void Skybox::Draw(const glm::fmat3& view) {
+	glDepthMask(GL_FALSE);
+	glDepthFunc(GL_LEQUAL);
 	skyboxShader.ActivateProgram();
 	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-	glUniformMatrix4fv(skyboxShader.GetWorldTransformLocation(), 1, GL_TRUE, &WVP[0][0]);
-	glDepthFunc(GL_LEQUAL);
+	glUniformMatrix4fv(skyboxShader.GetViewLoc(), 1, GL_TRUE, &glm::fmat4(view)[0][0]);
 	glBindVertexArray(skyboxVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);
 	glDepthFunc(GL_LESS);
+	glDepthMask(GL_TRUE);
 }

@@ -49,7 +49,8 @@ namespace TextureUnitIndexes {
 
 enum class MeshShaderMode {
 	LIGHTING = 0,
-	FLAT_COLOR = 1
+	FLAT_COLOR = 1,
+	REFLECT = 2
 };
 
 #define BASIC_VERTEX 0
