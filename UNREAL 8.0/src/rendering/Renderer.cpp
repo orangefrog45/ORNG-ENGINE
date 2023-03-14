@@ -21,34 +21,34 @@ void Renderer::Init() {
 	auto cube2 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube3 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
 	auto cube4 = scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
-	auto orange = scene.CreateMeshEntity("./res/meshes/light meshes/cone.obj");
+	auto orange = scene.CreateMeshEntity("./res/meshes/light meshes/cone.obj", MeshShaderMode::REFLECT);
 	auto orange2 = scene.CreateMeshEntity("./res/meshes/oranges/orange.obj", MeshShaderMode::REFLECT);
 	/*for (float i = 0; i < 18.0f; i++) {
 		auto l = scene.CreatePointLight();
 		l->SetColor(i / 108.0f, cosf(ExtraMath::ToRadians(i * 10.0f / 3.0f)), sinf(ExtraMath::ToRadians(i * 10.0f / 3.0f)));
 	}*/
-	//auto sl = scene.CreateSpotLight();
-	//sl->SetPosition(0.0f, 10.0f, -20.0f);
-	//sl->SetColor(1.f, 1.f, 1.f);
-	//sl->SetLightDirection(0.0f, 0.0f, -1.0f);
+	auto sl = scene.CreateSpotLight();
+	sl->SetPosition(0.0f, 6.0f, 25.0f);
+	sl->SetColor(0.6f, 0.f, 0.f);
+	sl->SetLightDirection(0.5f, 0.0f, -1.0f);
 	/*auto sl2 = scene.CreateSpotLight();
 	auto sl3 = scene.CreateSpotLight();
 	auto sl4 = scene.CreateSpotLight();
 
-	sl2->SetPosition(5.0f, 10.0f, 0.0f);
+	sl2->SetPosition(5.0f, 30.0f, 0.0f);
 	sl3->SetPosition(-5.0f, 10.0f, 0.0f);
 	sl4->SetPosition(0.0f, 10.0f, 5.0f);
 	sl->SetColor(0.8f, 0.8f, 0.8f);
 	sl2->SetColor(0.8f, 0.8f, 0.8f);
 	sl3->SetColor(0.8f, 0.8f, 0.8f);
 	sl4->SetColor(0.3f, 0.3f, 0.3f);
-	sl2->SetLightDirection(1.0f, 0.0f, 0.0f);
+	sl2->SetLightDirection(0.0f, -1.0f, 0.0f);
 	sl3->SetLightDirection(-1.0f, 0.0f, 0.0f);
 	sl4->SetLightDirection(0.0f, 0.0f, 1.0f);
-	sl->SetLightDirection(0.0f, 0.0f, -1.0f); */
+	sl->SetLightDirection(0.0f, 0.0f, -1.0f);*/
 	orange->SetPosition(0.0f, 7.0f, 0.0f);
 	orange2->SetPosition(10.0f, 20.0f, 0.0f);
-	orange2->SetScale(3.0f, 3.0f, 3.0f);
+	orange2->SetScale(1.0f, 1.0f, 1.0f);
 	cube->SetPosition(0.0f, 0.0f, -25.0f);
 	cube->SetScale(50.0f, 50.0f, 1.0f);
 	cube->SetRotation(0.0f, 0.0f, 0.0f);
@@ -79,7 +79,7 @@ void Renderer::RenderScene() {
 	static LightConfigValues light_vals;
 	static DebugConfigValues config_vals;
 	static DirectionalLightConfigValues dir_light_vals;
-
+	//SHADOW MAP PASS
 	DrawShadowMap();
 
 	//MAIN DRAW
@@ -87,10 +87,11 @@ void Renderer::RenderScene() {
 	scene.GetDirectionalLight().SetColor(dir_light_vals.light_color.x, dir_light_vals.light_color.y, dir_light_vals.light_color.z);
 	DrawScene();
 
-	//DRAW TO QUAD - CURRENT QUAD DRAWN OVER LAST QUAD
+	//DRAW TO QUAD
 	glClear(GL_COLOR_BUFFER_BIT);
 	shaderLibrary.basic_sampler_shader.ActivateProgram();
 	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, framebuffer_library.main_view_framebuffer.GetTexture());
 
 	glDisable(GL_DEPTH_TEST);
 
@@ -98,8 +99,7 @@ void Renderer::RenderScene() {
 	shaderLibrary.basic_sampler_shader.SetTransform(render_quad.GetTransform().GetMatrix());
 	render_quad.Draw();
 
-
-
+	glEnable(GL_DEPTH_TEST);
 
 
 	ControlWindow::CreateBaseWindow();
@@ -121,7 +121,7 @@ void Renderer::DrawScene() {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glActiveTexture(TextureUnits::SHADOW_MAP_TEXTURE_UNIT);
-	glBindTexture(GL_TEXTURE_2D, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
+	glBindTexture(GL_TEXTURE_2D_ARRAY, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
 
 	DrawLightMeshVisuals();
 	DrawLightingEntities();
@@ -136,19 +136,42 @@ void Renderer::DrawScene() {
 
 void Renderer::DrawShadowMap() {
 	//BIND FOR DRAW
-
-	shaderLibrary.depth_shader.ActivateProgram();
-	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(scene.GetDirectionalLight().GetLightDirection()) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
 	framebuffer_library.shadow_map_framebuffer.BindForDraw();
 
-	shaderLibrary.depth_shader.SetPVMatrix(light_projection * light_view);
+	shaderLibrary.depth_shader.ActivateProgram();
+
+	//DIRECTIONAL LIGHT
+
+	framebuffer_library.shadow_map_framebuffer.SetTextureLayer(0); // index 0 = directional light depth map
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	shaderLibrary.depth_shader.SetPVMatrix(*scene.GetDirectionalLight().GetTransformMatrixPtr());
+
 	for (auto& group : scene.GetGroupMeshEntities()) {
 		if (group->GetMeshData()->GetLoadStatus() == true && (group->GetShaderType() == MeshShaderMode::LIGHTING || group->GetShaderType() == MeshShaderMode::REFLECT)) {
 			BasicMesh* mesh_data = group->GetMeshData();
 			DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.depth_shader);
 		}
+	}
+
+	//SPOT LIGHTS
+	auto& lights = scene.GetSpotLights();
+	for (unsigned int i = 0; i < lights.size(); i++) {
+
+		framebuffer_library.shadow_map_framebuffer.SetTextureLayer(i + 1); // index 0 = directional light depth map
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		shaderLibrary.depth_shader.SetPVMatrix(lights[i]->GetTransformMatrix());
+
+		//draw scene
+		for (auto& group : scene.GetGroupMeshEntities()) {
+			if (group->GetMeshData()->GetLoadStatus() == true && (group->GetShaderType() == MeshShaderMode::LIGHTING || group->GetShaderType() == MeshShaderMode::REFLECT)) {
+				BasicMesh* mesh_data = group->GetMeshData();
+				DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.depth_shader);
+			}
+		}
+
+
 	}
 
 	framebuffer_library.shadow_map_framebuffer.Unbind();
@@ -177,12 +200,12 @@ void Renderer::DrawLightMeshVisuals() {
 		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
 	}
 
-	for (auto light : scene.GetSpotLights()) {
+	/*for (auto light : scene.GetSpotLights()) {
 		glm::fvec3 light_color = light->GetColor();
 		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
 		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
 		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
-	}
+	}*/
 }
 
 void Renderer::DrawReflectShaderEntities() {
@@ -206,9 +229,7 @@ void Renderer::DrawLightingEntities() {
 	shaderLibrary.lighting_shader.ActivateProgram();
 	auto cam_mat = p_camera->GetMatrix();
 
-	glm::mat4 light_projection = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
 	auto light_dir = glm::normalize(scene.GetDirectionalLight().GetLightDirection());
-	glm::mat4 light_view = glm::lookAt(light_dir * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
 	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());
@@ -216,10 +237,10 @@ void Renderer::DrawLightingEntities() {
 	shaderLibrary.lighting_shader.SetDirectionLight(scene.GetDirectionalLight());
 	shaderLibrary.lighting_shader.SetViewPos(p_camera->GetPos());
 	shaderLibrary.lighting_shader.SetMatrixUBOs(projectionMatrix, cam_mat);
+	shaderLibrary.lighting_shader.SetLightSpaceMatrix(*scene.GetDirectionalLight().GetTransformMatrixPtr());
 
 	for (auto& group : scene.GetGroupMeshEntities()) {
 		if (group->GetMeshData()->GetLoadStatus() == true && group->GetShaderType() == MeshShaderMode::LIGHTING) {
-			shaderLibrary.lighting_shader.SetLightSpaceMatrix(light_projection * light_view);
 			BasicMesh* mesh_data = group->GetMeshData();
 			DrawMeshWithShader(mesh_data, group->GetInstances(), shaderLibrary.lighting_shader);
 		}

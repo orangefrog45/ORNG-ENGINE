@@ -28,7 +28,7 @@ public:
 
 private:
 	static const unsigned int point_light_fs_num_float = 16;
-	static const unsigned int spot_light_fs_num_float = 20;
+	static const unsigned int spot_light_fs_num_float = 36;
 	void InitUniforms() override;
 
 	struct PointLightLocationStruct {

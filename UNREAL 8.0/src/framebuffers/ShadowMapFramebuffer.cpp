@@ -7,36 +7,42 @@
 void ShadowMapFramebuffer::Init() {
 	GLCall(glGenFramebuffers(1, &depth_map_fbo));
 
+	//gen directional light texture
 	GLCall(glGenTextures(1, &depth_map_texture));
-	GLCall(glBindTexture(GL_TEXTURE_2D, depth_map_texture));
-	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, m_shadow_width, m_shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	GLCall(glBindTexture(GL_TEXTURE_2D_ARRAY, depth_map_texture));
+	//2D TEXTURE ARRAY, 8 DEEP
+	GLCall(glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, m_shadow_width, m_shadow_height, 8, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL));
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+
 
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo));
-	GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map_texture, 0));
+	GLCall(glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_map_texture, 0, 0));
 	GLCall(glDrawBuffer(GL_NONE));
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
 
 	if (GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
 		PrintUtils::PrintSuccess("FRAMEBUFFER GENERATED");
 	}
 	else {
-		PrintUtils::PrintError("FRAMEBUFFER FAILED TO BE CREATED");
+		PrintUtils::PrintError("SHADOW FRAMEBUFFER FAILED TO BE CREATED");
 		ASSERT(false);
 	}
 }
 
+void ShadowMapFramebuffer::SetTextureLayer(unsigned int layer) {
+	GLCall(glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_map_texture, 0, layer));
+};
+
+
 unsigned int ShadowMapFramebuffer::GetDepthMapTexture() { return depth_map_texture; }
 
 void ShadowMapFramebuffer::BindForDraw() {
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_CW);
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, depth_map_fbo));
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, m_shadow_width, m_shadow_height); // shadow width/height

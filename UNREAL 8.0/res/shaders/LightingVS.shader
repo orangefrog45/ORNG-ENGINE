@@ -1,6 +1,9 @@
 #version 430 core
 
 const unsigned int MATRICES_BINDING = 0;
+//const unsigned int POINT_LIGHT_BINDING = 1;
+//const unsigned int SPOT_LIGHT_BINDING = 2;
+const unsigned int LIGHT_TRANSFORM_MATRICES_BINDING = 3;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 TexCoord;
@@ -14,9 +17,8 @@ layout(row_major, std140, binding = 0) uniform Matrices{
 
 uniform mat4 dir_light_matrix;
 
-
 out vec2 TexCoord0;
-out vec3 vs_position;
+out vec4 vs_position;
 out vec3 vs_normal;
 out vec4 frag_pos_light_space;
 
@@ -24,7 +26,7 @@ out vec4 frag_pos_light_space;
 void main() {
 	gl_Position = (PVMatrices.projection * PVMatrices.view * transform) * vec4(position, 1.0);
 	vs_normal = transpose(inverse(mat3(transform))) * vertex_normal;
-	vs_position = vec3(transform * vec4(position, 1.0f));
-	frag_pos_light_space = dir_light_matrix * vec4(vs_position, 1.0);
+	vs_position = transform * vec4(position, 1.0f);
+	frag_pos_light_space = dir_light_matrix * vs_position;
 	TexCoord0 = TexCoord;
 }

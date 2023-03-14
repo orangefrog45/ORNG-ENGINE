@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "WorldTransform.h"
 #include "MeshEntity.h"
 
@@ -16,19 +17,24 @@ public:
 	float GetDiffuseIntensity() const { return diffuse_intensity; }
 	glm::fvec3 GetColor() const { return color; }
 
-private:
+protected:
+	bool shadows_enabled = true;
 	glm::fvec3 color = glm::fvec3(1.0f, 1.0f, 1.0f);
 	float ambient_intensity = 0.2f;
 	float diffuse_intensity = 1.0f;
 };
 
+
 class DirectionalLight : public BaseLight {
 public:
-	DirectionalLight() { SetDiffuseIntensity(1.0f); SetColor(0.922f, 0.985f, 0.875f); }
+	DirectionalLight();
+	~DirectionalLight() { delete mp_light_transform_matrix; }
 	auto GetLightDirection() const { return light_direction; };
-	void SetLightDirection(const glm::fvec3& dir) { light_direction = dir; }
+	void SetLightDirection(const glm::fvec3& dir);
+	auto const* GetTransformMatrixPtr() const { return mp_light_transform_matrix; }
 private:
-	glm::fvec3 light_direction = glm::fvec3(0.5f, 0.5f, 1.f);
+	glm::fmat4* mp_light_transform_matrix = nullptr;
+	glm::fvec3 light_direction = glm::fvec3(0.0f, 0.0f, -1.f);
 };
 
 struct LightAttenuation {
@@ -61,16 +67,16 @@ protected:
 
 class SpotLight : public PointLight {
 public:
-	SpotLight() = default;
-	SpotLight(const glm::fvec3& dir_vec, const float t_aperture) : light_direction_vec(dir_vec), aperture(cosf(glm::radians(t_aperture))) { SetAttenuation(0.1f, 0.005f, 0.00001f); SetMaxDistance(480.0f); };
-	void SetLightDirection(float i, float j, float k) { light_direction_vec = glm::normalize(glm::fvec3(i, j, k)); mesh_visual->SetRotation(glm::degrees(sinf(j)) - 90.0f, -glm::degrees(atan2f(k, i)) - 90.0f, 0.0f); }
+	SpotLight(const glm::fvec3& dir_vec, const float t_aperture);
+	~SpotLight() { delete mp_light_transform_matrix; }
+	void SetLightDirection(float i, float j, float k);
 	void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
 
-	auto GetLightDirection() const { return light_direction_vec; }
+	auto GetLightDirection() const { return m_light_direction_vec; }
 	auto GetAperture() const { return aperture; }
+	auto const& GetTransformMatrix() const { return *mp_light_transform_matrix; }
 private:
-	glm::fvec3 light_direction_vec = glm::fvec3(1, 0, 0);
+	glm::fmat4* mp_light_transform_matrix = nullptr;
+	glm::fvec3 m_light_direction_vec = glm::fvec3(1, 0, 0);
 	float aperture = 0.9396f;
 };
-
-

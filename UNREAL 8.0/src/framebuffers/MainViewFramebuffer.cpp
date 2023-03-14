@@ -26,7 +26,7 @@ void MainViewFramebuffer::Init() {
 		PrintUtils::PrintSuccess("FRAMEBUFFER CREATED");
 	}
 	else {
-		PrintUtils::PrintError("FRAMEBUFFER FAILED TO BE CREATED");
+		PrintUtils::PrintError("MAIN VIEW FRAMEBUFFER FAILED TO BE CREATED");
 		ASSERT(false); // cause breakpoint here
 	}
 

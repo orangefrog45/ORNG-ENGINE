@@ -177,19 +177,37 @@ void LightingShader::SetSpotLights(std::vector<SpotLight*>& s_lights) {
 		light_array[i + 9] = dir.y;
 		light_array[i + 10] = dir.z;
 		light_array[i + 11] = 0; // padding
-		//48 - END DIR, START INTENSITY
-		light_array[i + 12] = s_lights[i / spot_light_fs_num_float]->GetAmbientIntensity();
-		light_array[i + 13] = s_lights[i / spot_light_fs_num_float]->GetDiffuseIntensity();
+		//48 - END DIR, START LIGHT TRANSFORM MAT
+		glm::fmat4 mat = s_lights[i / spot_light_fs_num_float]->GetTransformMatrix();
+		light_array[i + 12] = mat[0][0];
+		light_array[i + 13] = mat[0][1];
+		light_array[i + 14] = mat[0][2];
+		light_array[i + 15] = mat[0][3];
+		light_array[i + 16] = mat[1][0];
+		light_array[i + 17] = mat[1][1];
+		light_array[i + 18] = mat[1][2];
+		light_array[i + 19] = mat[1][3];
+		light_array[i + 20] = mat[2][0];
+		light_array[i + 21] = mat[2][1];
+		light_array[i + 22] = mat[2][2];
+		light_array[i + 23] = mat[2][3];
+		light_array[i + 24] = mat[3][0];
+		light_array[i + 25] = mat[3][1];
+		light_array[i + 26] = mat[3][2];
+		light_array[i + 27] = mat[3][3];
+		//112   - END LIGHT TRANSFORM MAT, START INTENSITY
+		light_array[i + 28] = s_lights[i / spot_light_fs_num_float]->GetAmbientIntensity();
+		light_array[i + 29] = s_lights[i / spot_light_fs_num_float]->GetDiffuseIntensity();
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 14] = s_lights[i / spot_light_fs_num_float]->GetMaxDistance();
+		light_array[i + 30] = s_lights[i / spot_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
 		auto& atten = s_lights[i / spot_light_fs_num_float]->GetAttentuation();
-		light_array[i + 15] = atten.constant;
-		light_array[i + 16] = atten.linear;
-		light_array[i + 17] = atten.exp;
+		light_array[i + 31] = atten.constant;
+		light_array[i + 32] = atten.linear;
+		light_array[i + 33] = atten.exp;
 		//52 - END ATTENUATION - START APERTURE
-		light_array[i + 18] = s_lights[i / spot_light_fs_num_float]->GetAperture();
-		light_array[i + 19] = 0; //padding
+		light_array[i + 34] = s_lights[i / spot_light_fs_num_float]->GetAperture();
+		light_array[i + 35] = 0; //padding
 	}
 
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_spot_light_UBO));

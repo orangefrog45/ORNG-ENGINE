@@ -27,7 +27,7 @@ private:
 	std::shared_ptr<InputHandle> input_handle;
 	glm::vec2 m_oldMousePosition = glm::fvec2(0.0f, 0.0f);
 	glm::fvec3 m_pos = glm::fvec3(0.0f, 0.0f, 0.0f);
-	glm::fvec3 m_target = glm::fvec3(0.0f, 0.0f, 1.0f);
+	glm::fvec3 m_target = glm::fvec3(0.0f, 0.0f, -1.0f);
 	glm::fvec3 m_up = glm::fvec3(0.0f, 1.0f, 0.0f);
 	float m_speed = 16.0f;
 

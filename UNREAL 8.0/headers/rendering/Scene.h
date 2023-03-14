@@ -11,6 +11,7 @@
 
 class Scene {
 public:
+	Scene() = default;
 	~Scene();
 	void Init();
 	MeshEntity* CreateMeshEntity(const std::string& filename, MeshShaderMode shader_mode = MeshShaderMode::LIGHTING);

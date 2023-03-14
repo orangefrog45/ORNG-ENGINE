@@ -49,5 +49,6 @@ private:
 	GridMesh grid_mesh;
 	ShaderLibrary shaderLibrary;
 	FramebufferLibrary framebuffer_library;
+	Quad depth_map_quad;
 	Quad render_quad;
 };
