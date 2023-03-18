@@ -10,11 +10,11 @@
 #include "Texture.h"
 #include "Material.h"
 
-class BasicMesh {
+class MeshData {
 public:
-	BasicMesh(const std::string& filename) : m_filename(filename) {};
-	BasicMesh(const BasicMesh& other) = default;
-	~BasicMesh() {};
+	MeshData(const std::string& filename) : m_filename(filename) {};
+	MeshData(const MeshData& other) = default;
+	~MeshData() {};
 
 	friend class Renderer; // renderer needs access to basically everything for the draw call
 
@@ -24,13 +24,21 @@ public:
 
 	void UnloadMesh();
 
-	void UpdateTransformBuffers(const std::vector<WorldTransform const*>* transforms);
+	void UpdateTransformBuffers(const std::vector<WorldTransform const*>& transforms);
 
 	std::string GetFilename() const { return m_filename; };
 
 	bool GetLoadStatus() const { return is_loaded; };
 
+	void SetIsShared(const bool val) { m_is_shared_in_instance_groups = val; }
+
+	bool GetIsShared() const { return m_is_shared_in_instance_groups; }
+
 private:
+
+	/* is_shared_in_instance_groups, if true, causes GL world transform buffers to update once each frame for each different instance group using this mesh -
+(added for multiple shader support, slower performance) */
+	bool m_is_shared_in_instance_groups = false;
 
 	bool is_loaded = false;
 

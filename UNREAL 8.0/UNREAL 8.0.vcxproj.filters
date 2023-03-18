@@ -45,7 +45,7 @@
     <ClCompile Include="src\GLErrorHandling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\BasicMesh.cpp">
+    <ClCompile Include="src\rendering\MeshData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ShaderLibrary.cpp">
@@ -78,10 +78,10 @@
     <ClCompile Include="src\rendering\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\MeshEntity.cpp">
+    <ClCompile Include="src\components\MeshComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\EntityInstanceGroup.cpp">
+    <ClCompile Include="src\rendering\MeshInstanceGroup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\rendering\Light.cpp">
@@ -168,7 +168,7 @@
     <ClInclude Include="headers\GLErrorHandling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\rendering\BasicMesh.h">
+    <ClInclude Include="headers\components\MeshData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\util\util.h">
@@ -204,13 +204,13 @@
     <ClInclude Include="headers\rendering\Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\rendering\MeshEntity.h">
+    <ClInclude Include="headers\components\MeshComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\rendering\Light.h">
+    <ClInclude Include="headers\components\LightComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\rendering\EntityInstanceGroup.h">
+    <ClInclude Include="headers\rendering\MeshInstanceGroup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\FlatColourShader.h">
@@ -265,6 +265,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\ReflectionShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\RendererData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\components\SceneEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

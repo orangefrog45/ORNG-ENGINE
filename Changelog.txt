@@ -1,3 +1,9 @@
+18/3/23:
+-Changed ECS to using contiguous memory for performance, this makes creating entities slower but rendering them faster
+-SceneEntity class that all scene components derive from to allow entities to have structures with eachother
+-Mesh entities with the same mesh data can now properly support different shader types
+-ID system for entities
+
 14/3/23:
 -Shadow support for spotlights
 

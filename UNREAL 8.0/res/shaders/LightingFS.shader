@@ -1,6 +1,6 @@
-#version 420 core
-const int MAX_POINT_LIGHTS = 108;
-const int MAX_SPOT_LIGHTS = 128;
+#version 430 core
+const int MAX_POINT_LIGHTS = 8;
+const int MAX_SPOT_LIGHTS = 8;
 
 const unsigned int POINT_LIGHT_BINDING = 1;
 const unsigned int SPOT_LIGHT_BINDING = 2;
@@ -9,11 +9,15 @@ const unsigned int SPOT_LIGHT_BINDING = 2;
 const unsigned int LIGHT_TYPE_DIRECTIONAL = 0;
 const unsigned int LIGHT_TYPE_SPOTLIGHT = 1;
 
+in LightTransformedPositions{
+	vec4 spot_light_positions[MAX_SPOT_LIGHTS];
+} in_light_positions;
+
 in vec2 TexCoord0;
 in vec4 vs_position;
 in vec3 vs_normal;
 in vec4 gl_FragCoord;
-in vec4 frag_pos_light_space;
+in vec4 dir_light_frag_pos_light_space;
 
 out vec4 FragColor;
 
@@ -93,6 +97,11 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 	//depth map in range 0,1 proj in -1,1 (NDC), so convert
 	proj_coords = proj_coords * 0.5 + 0.5;
 
+	//make fragments out of shadow bounds appear not in shadow
+	if (proj_coords.z > 1.0) {
+		return 0.0; // early return, fragment out of range
+	}
+
 	//sample closest depth from lights pov from depth map
 	float closest_depth = texture(shadow_map, vec3(proj_coords.xy, depth_map_index)).r;
 
@@ -109,10 +118,6 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 	}
 
 	shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
-
-	//make fragments out of shadow bounds appear not in shadow
-	if (proj_coords.z > 1.0)
-		shadow = 0.0;
 
 	return shadow;
 }
@@ -157,16 +162,21 @@ vec3 CalcPointLight(PointLight light, vec3 normal, float distance) {
 }
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
-	vec3 light_to_pixel_dir = normalize(light.pos.xyz - vs_position.xyz);
-	float spot_factor = dot(light_to_pixel_dir, -light.dir.xyz);
+	vec3 pixel_to_light_dir = normalize(light.pos.xyz - vs_position.xyz);
+	float spot_factor = dot(pixel_to_light_dir, -light.dir.xyz);
 
 	if (spot_factor > light.aperture) {
-		vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, light_to_pixel_dir, normal);
-
 		//SHADOW
-		vec4 light_space_pos = light.light_transform_matrix * vs_position;
+		vec3 color = vec3(0);
+		vec4 light_space_pos = light.light_transform_matrix * vs_position; // ----------------OPTIMIZE-------------------
 		float shadow = ShadowCalculation(light_space_pos, light.dir.xyz, index + 1, LIGHT_TYPE_SPOTLIGHT);
-		color = max(color - shadow * 5, vec3(0));
+
+		if (shadow == 1.0) {
+			return color; // early return as no light will reach this spot
+		}
+
+		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, pixel_to_light_dir, normal);
+
 
 		//ATTENUATION
 		float attenuation = light.constant +
@@ -209,9 +219,11 @@ void main()
 	}
 
 	//directional light
-	float shadow = ShadowCalculation(frag_pos_light_space, directional_light.direction.xyz, 0, LIGHT_TYPE_DIRECTIONAL);
+	float shadow = ShadowCalculation(dir_light_frag_pos_light_space, directional_light.direction.xyz, 0, LIGHT_TYPE_DIRECTIONAL);
 
-	total_light += max(CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal) - (shadow * 5), vec3(0)); // index 0 = directional light
+	if (shadow == 0.0) {
+		total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal);
+	}
 
 	total_light += ambient_light;
 

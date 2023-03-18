@@ -1,12 +1,9 @@
 #pragma once
-#include <future>
 #include "Shader.h"
 #include "Material.h"
 #include "WorldTransform.h"
-#include "Light.h"
-
-static const unsigned int max_point_lights = 108;
-static const unsigned int max_spot_lights = 128;
+#include "LightComponent.h"
+#include "RendererData.h"
 
 class LightingShader : public Shader {
 public:
@@ -15,13 +12,13 @@ public:
 	void SetViewPos(const glm::fvec3& pos);
 	void SetAmbientLight(const BaseLight& light);
 	void SetBaseColor(const glm::fvec3& color);
-	void SetPointLights(std::vector< PointLight*>& p_lights);
-	void SetSpotLights(std::vector<SpotLight*>& s_lights);
+	void SetPointLights(std::vector< PointLightComponent>& p_lights);
+	void SetSpotLights(std::vector<SpotLightComponent>& s_lights);
 	void SetDiffuseTextureUnit(unsigned int unit);
 	void SetSpecularTextureUnit(unsigned int unit);
 	void SetShadowMapTextureUnit(unsigned int unit);
 	void SetMaterial(const Material& material) override;
-	void SetDirectionLight(const DirectionalLight& light);
+	void SetDirectionLight(const DirectionalLightComponent& light);
 	void SetLightSpaceMatrix(const glm::fmat4& mat) { glUniformMatrix4fv(m_light_space_mat_loc, 1, GL_FALSE, &mat[0][0]); }
 	void GenUBOs();
 	void SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view);
@@ -43,15 +40,14 @@ private:
 			GLuint linear;
 			GLuint exp;
 		} Atten;
-	} m_point_light_locations[max_point_lights];
+	} m_point_light_locations[RendererData::max_point_lights];
 
 	struct SpotLightLocationStruct {
 		PointLightLocationStruct base;
 		GLuint aperture;
 		GLuint direction;
-	} m_spot_light_locations[max_spot_lights];
+	} m_spot_light_locations[RendererData::max_spot_lights];
 
-	std::vector<std::future<void>> m_futures;
 	GLint m_ambient_light_color_loc;
 	GLint m_light_ambient_intensity_loc;
 	GLint m_camera_view_pos_loc;

@@ -1,13 +1,13 @@
 #pragma once
-#include <memory>
+#include "SceneEntity.h"
 #include "WorldTransform.h"
-#include "MeshEntity.h"
+#include "MeshComponent.h"
 
 
-class BaseLight {
+class BaseLight : public SceneEntity {
 public:
-	BaseLight() = default;
-	explicit BaseLight(const glm::fvec3& t_color, const float t_ambient_intensity) : color(t_color), ambient_intensity(t_ambient_intensity) {};
+	virtual ~BaseLight() = default;
+	explicit BaseLight(unsigned int entity_id) : SceneEntity(entity_id) {};
 
 	void SetColor(const float r, const float g, const float b) { color = glm::fvec3(r, g, b); }
 	void SetAmbientIntensity(const float intensity) { ambient_intensity = intensity; }
@@ -25,15 +25,14 @@ protected:
 };
 
 
-class DirectionalLight : public BaseLight {
+class DirectionalLightComponent : public BaseLight {
 public:
-	DirectionalLight();
-	~DirectionalLight() { delete mp_light_transform_matrix; }
+	DirectionalLightComponent(unsigned int entity_id);
 	auto GetLightDirection() const { return light_direction; };
 	void SetLightDirection(const glm::fvec3& dir);
-	auto const* GetTransformMatrixPtr() const { return mp_light_transform_matrix; }
+	const auto& GetTransformMatrix() const { return mp_light_transform_matrix; }
 private:
-	glm::fmat4* mp_light_transform_matrix = nullptr;
+	glm::fmat4 mp_light_transform_matrix;
 	glm::fvec3 light_direction = glm::fvec3(0.0f, 0.0f, -1.f);
 };
 
@@ -44,39 +43,40 @@ struct LightAttenuation {
 };
 
 
-class PointLight : public BaseLight {
+class PointLightComponent : public BaseLight {
 public:
-	PointLight() = default;
-	PointLight(const glm::fvec3& position, const glm::fvec3& t_color) { transform.SetPosition(position.x, position.y, position.z); SetColor(t_color.x, t_color.y, t_color.z); SetAmbientIntensity(0.2f); };
+	PointLightComponent(unsigned int entity_id) : BaseLight(entity_id) {};
+	virtual ~PointLightComponent() = default;
 
 	const LightAttenuation& GetAttentuation() const { return attenuation; }
 	const WorldTransform& GetWorldTransform() const { return transform; };
-	const MeshEntity* GetMeshVisual() const { return mesh_visual; };
+	const MeshComponent* GetMeshVisual() const { return m_mesh_visual; };
 	float GetMaxDistance() const { return max_distance; }
 
-	void SetMeshVisual(MeshEntity* p) { mesh_visual = p; }
+	void SetMeshVisual(MeshComponent* p) { m_mesh_visual = p; }
 	void SetAttenuation(const float constant, const float lin, const float exp) { attenuation.constant = constant; attenuation.linear = lin; attenuation.exp = exp; }
-	void SetPosition(const float x, const float y, const float z) { if (mesh_visual != nullptr) { transform.SetPosition(x, y, z); mesh_visual->SetPosition(x, y, z); } };
+	virtual void SetPosition(const float x, const float y, const float z) { if (m_mesh_visual != nullptr) { transform.SetPosition(x, y, z); m_mesh_visual->SetPosition(x, y, z); } };
 	void SetMaxDistance(const float d) { max_distance = d; };
 protected:
 	float max_distance = 48.0f;
-	MeshEntity* mesh_visual = nullptr;
+	MeshComponent* m_mesh_visual = nullptr;
 	LightAttenuation attenuation;
 	WorldTransform transform;
 };
 
-class SpotLight : public PointLight {
+class SpotLightComponent : public PointLightComponent {
 public:
-	SpotLight(const glm::fvec3& dir_vec, const float t_aperture);
-	~SpotLight() { delete mp_light_transform_matrix; }
+	SpotLightComponent(unsigned int ID);
 	void SetLightDirection(float i, float j, float k);
 	void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
+	void SetPosition(const float x, const float y, const float z) final;
 
 	auto GetLightDirection() const { return m_light_direction_vec; }
 	auto GetAperture() const { return aperture; }
-	auto const& GetTransformMatrix() const { return *mp_light_transform_matrix; }
+	const auto& GetTransformMatrix() const { return mp_light_transform_matrix; }
 private:
-	glm::fmat4* mp_light_transform_matrix = nullptr;
+	void UpdateLightTransform();
+	glm::fmat4 mp_light_transform_matrix;
 	glm::fvec3 m_light_direction_vec = glm::fvec3(1, 0, 0);
 	float aperture = 0.9396f;
 };

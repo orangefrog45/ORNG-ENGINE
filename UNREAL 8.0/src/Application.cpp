@@ -100,12 +100,15 @@ void Application::Init() {
 			static int instances = 0;
 
 			if (input_handle->g_pressed) {
-				auto entity = renderer.scene.CreateMeshEntity("./res/meshes/cube/cube.obj");
+				//if ((int)(glfwGetTime() * 1000.0) % 100 == 0) {
+
+				auto& entity = renderer.scene.CreateMeshComponent("./res/meshes/oranges/orange.obj");
 				glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(p_camera->GetTarget().x * 15.0f, p_camera->GetTarget().y * 15.0f, p_camera->GetTarget().z * 15.0f));
 				instances++;
-				entity->SetPosition(place_position.x, place_position.y, place_position.z);
+				entity.SetPosition(place_position.x, place_position.y, place_position.z);
 
 				PrintUtils::PrintDebug("Instances: " + std::to_string(instances));
+				//}
 			}
 		}
 
@@ -124,6 +127,6 @@ void Application::RenderScene() {
 
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-	renderer.RenderScene();
+	renderer.RenderWindow();
 
 }

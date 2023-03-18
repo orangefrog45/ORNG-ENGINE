@@ -114,7 +114,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -132,7 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -154,11 +154,11 @@
     <ClCompile Include="src\framebuffers\MainViewFramebuffer.cpp" />
     <ClCompile Include="src\framebuffers\ShadowMapFramebuffer.cpp" />
     <ClCompile Include="src\gui\ControlWindow.cpp" />
-    <ClCompile Include="src\rendering\BasicMesh.cpp" />
+    <ClCompile Include="src\rendering\MeshData.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
-    <ClCompile Include="src\rendering\EntityInstanceGroup.cpp" />
+    <ClCompile Include="src\rendering\MeshInstanceGroup.cpp" />
     <ClCompile Include="src\rendering\Light.cpp" />
-    <ClCompile Include="src\rendering\MeshEntity.cpp" />
+    <ClCompile Include="src\components\MeshComponent.cpp" />
     <ClCompile Include="src\rendering\Quad.cpp" />
     <ClCompile Include="src\rendering\Scene.cpp" />
     <ClCompile Include="src\shaders\BasicSampler.cpp" />
@@ -207,7 +207,7 @@
     <ClInclude Include="headers\framebuffers\MainViewFramebuffer.h" />
     <ClInclude Include="headers\framebuffers\ShadowMapFramebuffer.h" />
     <ClInclude Include="headers\gui\ControlWindow.h" />
-    <ClInclude Include="headers\rendering\BasicMesh.h" />
+    <ClInclude Include="headers\components\MeshData.h" />
     <ClInclude Include="headers\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
     <ClInclude Include="headers\GLErrorHandling.h" />
@@ -215,12 +215,14 @@
     <ClInclude Include="headers\InputHandle.h" />
     <ClInclude Include="headers\Application.h" />
     <ClInclude Include="headers\Material.h" />
-    <ClInclude Include="headers\rendering\EntityInstanceGroup.h" />
+    <ClInclude Include="headers\components\SceneEntity.h" />
+    <ClInclude Include="headers\rendering\MeshInstanceGroup.h" />
     <ClInclude Include="headers\rendering\FramebufferLibrary.h" />
-    <ClInclude Include="headers\rendering\MeshEntity.h" />
-    <ClInclude Include="headers\rendering\Light.h" />
+    <ClInclude Include="headers\components\MeshComponent.h" />
+    <ClInclude Include="headers\components\LightComponent.h" />
     <ClInclude Include="headers\rendering\Quad.h" />
     <ClInclude Include="headers\rendering\Renderer.h" />
+    <ClInclude Include="headers\rendering\RendererData.h" />
     <ClInclude Include="headers\rendering\Scene.h" />
     <ClInclude Include="headers\shaders\BasicSampler.h" />
     <ClInclude Include="headers\shaders\ReflectionShader.h" />

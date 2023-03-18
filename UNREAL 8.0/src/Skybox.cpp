@@ -4,6 +4,7 @@
 #include "Texture.h"
 #include "Skybox.h"
 #include "shaders/SkyboxShader.h"
+#include "RendererData.h"
 
 void Skybox::Init() {
 	faces.push_back("res/textures/kurt/mountain/posx.jpg");
@@ -45,7 +46,7 @@ void Skybox::Draw(const glm::fmat3& view) {
 	glDepthMask(GL_FALSE);
 	glDepthFunc(GL_LEQUAL);
 	skyboxShader.ActivateProgram();
-	glActiveTexture(TextureUnits::COLOR_TEXTURE_UNIT);
+	glActiveTexture(RendererData::TextureUnits::COLOR_TEXTURE_UNIT);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 	glUniformMatrix4fv(skyboxShader.GetViewLoc(), 1, GL_TRUE, &glm::fmat4(view)[0][0]);
 	glBindVertexArray(skyboxVAO);

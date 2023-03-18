@@ -8,7 +8,7 @@
 #include <glfw/glfw3.h>
 #include <future>
 #include <format>
-#include "BasicMesh.h"
+#include "MeshData.h"
 #include "util/util.h"
 
 static constexpr unsigned int POSITION_LOCATION = 0;
@@ -20,7 +20,7 @@ static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
-void BasicMesh::UnloadMesh() {
+void MeshData::UnloadMesh() {
 	m_meshes.clear();
 	m_textures.clear();
 	m_materials.clear();
@@ -33,7 +33,7 @@ void BasicMesh::UnloadMesh() {
 	is_loaded = false;
 }
 
-void BasicMesh::LoadIntoGL() {
+void MeshData::LoadIntoGL() {
 	GLCall(glGenVertexArrays(1, &m_VAO));
 	GLCall(glGenBuffers(ARRAY_SIZE_IN_ELEMENTS(m_buffers), m_buffers));
 	GLCall(glBindVertexArray(m_VAO));
@@ -45,7 +45,7 @@ void BasicMesh::LoadIntoGL() {
 }
 
 
-bool BasicMesh::LoadMeshData() {
+bool MeshData::LoadMeshData() {
 
 	PrintUtils::PrintDebug("Loading mesh: " + m_filename);
 	double start_time = glfwGetTime();
@@ -66,7 +66,7 @@ bool BasicMesh::LoadMeshData() {
 	return ret;
 }
 
-bool BasicMesh::InitFromScene(const aiScene* pScene, const std::string& filename) {
+bool MeshData::InitFromScene(const aiScene* pScene, const std::string& filename) {
 	m_meshes.resize(pScene->mNumMeshes);
 	m_textures.resize(pScene->mNumMaterials);
 	m_materials.resize(pScene->mNumMaterials);
@@ -83,7 +83,7 @@ bool BasicMesh::InitFromScene(const aiScene* pScene, const std::string& filename
 	return true;
 }
 
-void BasicMesh::CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices) {
+void MeshData::CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices) {
 
 	for (unsigned int i = 0; i < m_meshes.size(); i++) {
 
@@ -97,21 +97,21 @@ void BasicMesh::CountVerticesAndIndices(const aiScene* pScene, unsigned int& Num
 	}
 }
 
-void BasicMesh::ReserveSpace(unsigned int NumVertices, unsigned int NumIndices) {
+void MeshData::ReserveSpace(unsigned int NumVertices, unsigned int NumIndices) {
 	m_positions.reserve(NumVertices);
 	m_normals.reserve(NumVertices);
 	m_texCoords.reserve(NumVertices);
 	m_indices.reserve(NumIndices);
 }
 
-void BasicMesh::InitAllMeshes(const aiScene* pScene) {
+void MeshData::InitAllMeshes(const aiScene* pScene) {
 	for (unsigned int i = 0; i < m_meshes.size(); i++) {
 		const aiMesh* paiMesh = pScene->mMeshes[i];
 		InitSingleMesh(paiMesh);
 	}
 }
 
-void BasicMesh::InitSingleMesh(const aiMesh* paiMesh) {
+void MeshData::InitSingleMesh(const aiMesh* paiMesh) {
 
 	const aiVector3D zero3D(0.0f, 0.0f, 0.0f);
 
@@ -136,7 +136,7 @@ void BasicMesh::InitSingleMesh(const aiMesh* paiMesh) {
 
 }
 
-bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename) {
+bool MeshData::InitMaterials(const aiScene* pScene, const std::string& filename) {
 	std::string::size_type slashIndex = filename.find_last_of("/");
 	std::string dir;
 
@@ -160,7 +160,7 @@ bool BasicMesh::InitMaterials(const aiScene* pScene, const std::string& filename
 	return true;
 }
 
-void BasicMesh::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
+void MeshData::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 	aiColor3D AmbientColor(0.0f, 0.0f, 0.0f);
 
 	if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS && AmbientColor != aiColor3D(0.0f, 0.0f, 0.0f)) {
@@ -187,12 +187,12 @@ void BasicMesh::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 };
 
 
-void BasicMesh::LoadTextures(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+void MeshData::LoadTextures(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
 	LoadDiffuseTexture(t_dir, pMaterial, index);
 	LoadSpecularTexture(t_dir, pMaterial, index);
 }
 
-void BasicMesh::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+void MeshData::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
 	m_materials[index].diffuse_texture = nullptr;
 
 	if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
@@ -227,7 +227,7 @@ void BasicMesh::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* p
 	}
 }
 
-void BasicMesh::LoadSpecularTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+void MeshData::LoadSpecularTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
 	m_materials[index].specular_texture = nullptr;
 
 	if (pMaterial->GetTextureCount(aiTextureType_SHININESS) > 0) {
@@ -260,7 +260,7 @@ void BasicMesh::LoadSpecularTexture(const std::string& t_dir, const aiMaterial* 
 }
 
 
-void BasicMesh::PopulateBuffers() {
+void MeshData::PopulateBuffers() {
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[POS_VB]));
 	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(m_positions[0]) * m_positions.size(), &m_positions[0], GL_STATIC_DRAW));
 	GLCall(glEnableVertexAttribArray(POSITION_LOCATION));
@@ -281,11 +281,11 @@ void BasicMesh::PopulateBuffers() {
 
 }
 
-void BasicMesh::UpdateTransformBuffers(const std::vector<WorldTransform const*>* transforms) {
+void MeshData::UpdateTransformBuffers(const std::vector<WorldTransform const*>& transforms) {
 
 	std::vector<glm::fmat4> gl_transforms;
 
-	for (WorldTransform const* transform : *transforms) {
+	for (WorldTransform const* transform : transforms) {
 		gl_transforms.push_back(glm::rowMajor4(transform->GetMatrix()));
 	}
 
