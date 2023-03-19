@@ -43,7 +43,7 @@ void DirectionalLightComponent::SetLightDirection(const glm::fvec3& dir)
 	light_direction = dir;
 
 	auto light_perspective = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(dir) * 40.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_view = glm::lookAt(glm::normalize(dir) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
 
@@ -54,7 +54,7 @@ DirectionalLightComponent::DirectionalLightComponent(unsigned int entity_id) : B
 	SetColor(0.922f, 0.985f, 0.875f);
 
 	auto light_perspective = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(GetLightDirection()) * 40.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_view = glm::lookAt(glm::normalize(GetLightDirection()) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
 }

@@ -1,8 +1,15 @@
+19/3/23:
+-Split spotlight and directional light textures and framebuffers for more performant resolutions for different light types
+-PCF shadow softening
+-Added scene debug data GUI window
+-Fixed memory crash caused by referencing deleted mesh components
+
 18/3/23:
 -Changed ECS to using contiguous memory for performance, this makes creating entities slower but rendering them faster
 -SceneEntity class that all scene components derive from to allow entities to have structures with eachother
 -Mesh entities with the same mesh data can now properly support different shader types
 -ID system for entities
+-Lowered resolution of depth maps for spotlights
 
 14/3/23:
 -Shadow support for spotlights

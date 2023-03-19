@@ -72,11 +72,10 @@ bool MeshData::InitFromScene(const aiScene* pScene, const std::string& filename)
 	m_materials.resize(pScene->mNumMaterials);
 
 	unsigned int numVertices = 0;
-	unsigned int numIndices = 0;
 
-	CountVerticesAndIndices(pScene, numVertices, numIndices);
+	CountVerticesAndIndices(pScene, numVertices, num_indices);
 
-	ReserveSpace(numVertices, numIndices);
+	ReserveSpace(numVertices, num_indices);
 
 	InitAllMeshes(pScene);
 

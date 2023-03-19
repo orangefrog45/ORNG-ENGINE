@@ -22,10 +22,16 @@ struct DirectionalLightConfigValues {
 	glm::vec3 light_position = glm::vec3(0.5f, 0.5f, 1.f);
 };
 
+struct SceneData {
+	unsigned int total_vertices;
+	unsigned int num_lights;
+};
+
 struct ControlWindow {
 	static void Render();
 	static void CreateBaseWindow();
-	static const void DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values);
-	static const void DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture);
-	static const void DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values);
+	static  void DisplaySceneData(SceneData& data);
+	static  void DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values);
+	static  void DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture);
+	static  void DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values);
 };

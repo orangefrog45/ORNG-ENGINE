@@ -102,32 +102,43 @@ void Scene::CheckFitsMemory() {
 		/* Light mesh visuals require pointers to entities, upon invalidation of pointers (vector resize), renew them */
 		if (!m_spot_lights.empty()) {
 
-			m_mesh_components.reserve(m_mesh_components.capacity() * 2);
+			std::vector<unsigned int> spot_mesh_ids;
+			std::vector<unsigned int> point_mesh_ids;
 
-			/* Search for pointer to newly created mesh visual for spot lights */
-			for (auto& spot_light : m_spot_lights)
+
+			/* Store the ID's of the light entity visuals */
+			for (const auto& spot_light : m_spot_lights)
 			{
-				unsigned int spot_light_mesh_component_id = spot_light.GetMeshVisual()->GetID();
-				MeshComponent* mesh_ptr = nullptr;
-				for (auto& mesh : m_mesh_components) {
-					if (mesh.GetID() == spot_light_mesh_component_id) {
-						mesh_ptr = &mesh;
-						break;
-					}
-				}
-				spot_light.SetMeshVisual(mesh_ptr);
+				spot_mesh_ids.push_back(spot_light.GetMeshVisual()->GetID());
 			}
 
-			for (auto& point_light : m_spot_lights) {
-				unsigned int spot_light_mesh_component_id = point_light.GetMeshVisual()->GetID();
+			for (const auto& point_light : m_point_lights) {
+				point_mesh_ids.push_back(point_light.GetMeshVisual()->GetID());
+			}
+
+			m_mesh_components.reserve(m_mesh_components.capacity() * 2);
+
+			/* Update pointers of light entity visuals */
+			for (unsigned int i = 0; i < m_spot_lights.size(); i++) {
 				MeshComponent* mesh_ptr = nullptr;
 				for (auto& mesh : m_mesh_components) {
-					if (mesh.GetID() == spot_light_mesh_component_id) {
+					if (mesh.GetID() == spot_mesh_ids[i]) {
 						mesh_ptr = &mesh;
 						break;
 					}
 				}
-				point_light.SetMeshVisual(mesh_ptr);
+				m_spot_lights[i].SetMeshVisual(mesh_ptr);
+			}
+
+			for (unsigned int i = 0; i < m_point_lights.size(); i++) {
+				MeshComponent* mesh_ptr = nullptr;
+				for (auto& mesh : m_mesh_components) {
+					if (mesh.GetID() == point_mesh_ids[i]) {
+						mesh_ptr = &mesh;
+						break;
+					}
+				}
+				m_point_lights[i].SetMeshVisual(mesh_ptr);
 			}
 
 		}

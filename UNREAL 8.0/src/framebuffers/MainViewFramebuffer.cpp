@@ -1,8 +1,8 @@
-#include "MainViewFramebuffer.h"
+#include "MainViewFB.h"
 #include "GLErrorHandling.h"
 #include "util/util.h"
 
-void MainViewFramebuffer::Init() {
+void MainViewFB::Init() {
 	GLCall(glGenFramebuffers(1, &m_fbo));
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo));
 
@@ -33,15 +33,15 @@ void MainViewFramebuffer::Init() {
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
-MainViewFramebuffer::~MainViewFramebuffer() {
+MainViewFB::~MainViewFB() {
 	GLCall(glDeleteFramebuffers(1, &m_fbo));
 }
 
-void MainViewFramebuffer::Bind() {
+void MainViewFB::Bind() {
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo));
 }
 
-void MainViewFramebuffer::Unbind() {
+void MainViewFB::Unbind() {
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 

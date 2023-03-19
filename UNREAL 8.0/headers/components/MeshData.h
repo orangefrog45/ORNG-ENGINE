@@ -34,7 +34,11 @@ public:
 
 	bool GetIsShared() const { return m_is_shared_in_instance_groups; }
 
+	unsigned int GetIndicesCount() const { return num_indices; }
+
 private:
+
+	unsigned int num_indices = 0;
 
 	/* is_shared_in_instance_groups, if true, causes GL world transform buffers to update once each frame for each different instance group using this mesh -
 (added for multiple shader support, slower performance) */

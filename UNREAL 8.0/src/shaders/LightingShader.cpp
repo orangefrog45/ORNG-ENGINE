@@ -74,8 +74,16 @@ void LightingShader::SetSpecularTextureUnit(unsigned int unit) {
 	glUniform1i(m_sampler_specular_loc, unit);
 }
 
-void LightingShader::SetShadowMapTextureUnit(unsigned int unit) {
-	glUniform1i(m_sampler_shadow_map_loc, unit);
+void LightingShader::SetDirDepthMapTexUnit(unsigned int unit) {
+	glUniform1i(m_sampler_dir_depth_loc, unit);
+}
+
+void LightingShader::SetSpotDepthMapTexUnit(unsigned int unit) {
+	glUniform1i(m_sampler_spot_depth_loc, unit);
+}
+
+void LightingShader::SetPointDepthMapTexUnit(unsigned int unit) {
+	glUniform1i(m_sampler_point_depth_loc, unit);
 }
 
 
@@ -96,11 +104,15 @@ void LightingShader::InitUniforms() {
 	m_dir_light_dir_loc = GetUniform("directional_light.direction");
 	m_dir_light_diffuse_intensity_loc = GetUniform("directional_light.diffuse_intensity");
 	m_light_space_mat_loc = GetUniform("dir_light_matrix");
-	m_sampler_shadow_map_loc = GetUniform("shadow_map");
+	m_sampler_dir_depth_loc = GetUniform("dir_depth_map");
+	m_sampler_spot_depth_loc = GetUniform("spot_depth_map");
+	m_sampler_point_depth_loc = GetUniform("point_depth_map");
 
-	SetDiffuseTextureUnit(RendererData::TextureUnitIndexes::COLOR_TEXTURE_UNIT_INDEX);
-	SetSpecularTextureUnit(RendererData::TextureUnitIndexes::SPECULAR_TEXTURE_UNIT_INDEX);
-	SetShadowMapTextureUnit(RendererData::TextureUnitIndexes::SHADOW_MAP_TEXTURE_UNIT_INDEX);
+	SetDiffuseTextureUnit(RendererData::TextureUnitIndexes::COLOR);
+	SetSpecularTextureUnit(RendererData::TextureUnitIndexes::SPECULAR);
+	SetDirDepthMapTexUnit(RendererData::TextureUnitIndexes::DIR_SHADOW_MAP);
+	SetSpotDepthMapTexUnit(RendererData::TextureUnitIndexes::SPOT_SHADOW_MAP);
+	SetPointDepthMapTexUnit(RendererData::TextureUnitIndexes::POINT_SHADOW_MAP);
 }
 
 void LightingShader::SetDirectionLight(const DirectionalLightComponent& light) {

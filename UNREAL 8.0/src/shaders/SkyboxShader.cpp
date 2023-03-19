@@ -9,7 +9,7 @@ void SkyboxShader::InitUniforms() {
 	ActivateProgram();
 	m_view_loc = GetUniform("gTransform");
 	samplerLocation = GetUniform("gSampler");
-	glUniform1i(samplerLocation, RendererData::TextureUnitIndexes::COLOR_TEXTURE_UNIT_INDEX);
+	glUniform1i(samplerLocation, RendererData::TextureUnitIndexes::COLOR);
 }
 
 const GLint& SkyboxShader::GetViewLoc() const {

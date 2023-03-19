@@ -13,15 +13,19 @@ namespace RendererData {
 	}
 
 	namespace TextureUnits {
-		constexpr int COLOR_TEXTURE_UNIT = GL_TEXTURE1;
-		constexpr int SPECULAR_TEXTURE_UNIT = GL_TEXTURE2;
-		constexpr int SHADOW_MAP_TEXTURE_UNIT = GL_TEXTURE3;
+		constexpr int COLOR = GL_TEXTURE1;
+		constexpr int SPECULAR = GL_TEXTURE2;
+		constexpr int DIR_SHADOW_MAP = GL_TEXTURE3;
+		constexpr int SPOT_SHADOW_MAP = GL_TEXTURE4;
+		constexpr int POINT_SHADOW_MAP = GL_TEXTURE5;
 	}
 
 	namespace TextureUnitIndexes {
-		constexpr int COLOR_TEXTURE_UNIT_INDEX = 1;
-		constexpr int SPECULAR_TEXTURE_UNIT_INDEX = 2;
-		constexpr int SHADOW_MAP_TEXTURE_UNIT_INDEX = 3;
+		constexpr int COLOR = 1;
+		constexpr int SPECULAR = 2;
+		constexpr int DIR_SHADOW_MAP = 3;
+		constexpr int SPOT_SHADOW_MAP = 4;
+		constexpr int POINT_SHADOW_MAP = 5;
 	}
 
 }

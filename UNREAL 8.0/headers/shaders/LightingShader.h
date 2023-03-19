@@ -16,7 +16,9 @@ public:
 	void SetSpotLights(std::vector<SpotLightComponent>& s_lights);
 	void SetDiffuseTextureUnit(unsigned int unit);
 	void SetSpecularTextureUnit(unsigned int unit);
-	void SetShadowMapTextureUnit(unsigned int unit);
+	void SetDirDepthMapTexUnit(unsigned int unit);
+	void SetSpotDepthMapTexUnit(unsigned int unit);
+	void SetPointDepthMapTexUnit(unsigned int unit);
 	void SetMaterial(const Material& material) override;
 	void SetDirectionLight(const DirectionalLightComponent& light);
 	void SetLightSpaceMatrix(const glm::fmat4& mat) { glUniformMatrix4fv(m_light_space_mat_loc, 1, GL_FALSE, &mat[0][0]); }
@@ -64,7 +66,9 @@ private:
 	GLint m_dir_light_diffuse_intensity_loc;
 	GLint m_dir_light_ambient_intensity_loc;
 	GLint m_light_space_mat_loc;
-	GLint m_sampler_shadow_map_loc;
+	GLint m_sampler_dir_depth_loc;
+	GLint m_sampler_spot_depth_loc;
+	GLint m_sampler_point_depth_loc;
 	GLuint m_matrix_UBO;
 	GLuint m_point_light_UBO;
 	GLuint m_spot_light_UBO;

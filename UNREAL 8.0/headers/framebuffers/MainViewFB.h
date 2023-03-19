@@ -1,8 +1,8 @@
 #pragma once
-class MainViewFramebuffer {
+class MainViewFB {
 public:
-	MainViewFramebuffer(unsigned int t_window_width, unsigned int t_window_height) : m_window_width(t_window_width), m_window_height(t_window_height) {}
-	~MainViewFramebuffer();
+	MainViewFB(unsigned int t_window_width, unsigned int t_window_height) : m_window_width(t_window_width), m_window_height(t_window_height) {}
+	~MainViewFB();
 	unsigned int GetTexture() { return m_render_texture; };
 	void Init();
 	void Bind();

@@ -86,7 +86,9 @@ uniform vec3 view_pos;
 
 layout(binding = 1) uniform sampler2D gSampler;
 layout(binding = 2) uniform sampler2D specular_sampler;
-layout(binding = 3) uniform sampler2DArray shadow_map;
+layout(binding = 3) uniform sampler2D dir_depth_map;
+layout(binding = 4) uniform sampler2DArray spot_depth_map;
+
 uniform bool specular_sampler_active; // FALSE IF NO SHININESS TEXTURE FOUND
 
 float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_map_index, unsigned int type) {
@@ -102,22 +104,46 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 		return 0.0; // early return, fragment out of range
 	}
 
-	//sample closest depth from lights pov from depth map
-	float closest_depth = texture(shadow_map, vec3(proj_coords.xy, depth_map_index)).r;
-
 	//actual depth for comparison
 	float current_depth = proj_coords.z;
 
+
+	float closest_depth = 0.0f;
+
 	//dir light bias
+	//sample closest depth from lights pov from depth map
 	float bias = 0.0f;
 	if (type == LIGHT_TYPE_DIRECTIONAL) {
 		bias = 0.001 * tan(acos(clamp(dot(normalize(vs_normal), light_dir), 0, 1)));
+
+		vec2 texel_size = 1.0 / textureSize(dir_depth_map, 0);
+		for (int x = -1; x <= 1; ++x)
+		{
+			for (int y = -1; y <= 1; ++y)
+			{
+				float pcf_depth = texture(dir_depth_map, proj_coords.xy + vec2(x, y) * texel_size * 2).r;
+				shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
+			}
+		}
 	}
 	else {
-		bias = max(0.00001f * (1.0f - dot(vs_normal, light_dir)), 0.0000005f);
+		bias = max(0.00001f * (1.0f - dot(normalize(vs_normal), light_dir)), 0.0000005f);
+
+
+		vec2 texel_size = 1.0 / textureSize(spot_depth_map, 0).xy;
+		for (int x = -1; x <= 1; x++)
+		{
+			for (int y = -1; y <= 1; y++)
+			{
+				float pcf_depth = texture(spot_depth_map, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size * 2), depth_map_index)).r;
+				shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
+			}
+		}
 	}
 
-	shadow = current_depth - bias > closest_depth ? 1.0 : 0.0;
+
+	/*Take average of PCF*/
+	shadow /= 9.0;
 
 	return shadow;
 }
@@ -169,13 +195,13 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 		//SHADOW
 		vec3 color = vec3(0);
 		vec4 light_space_pos = light.light_transform_matrix * vs_position; // ----------------OPTIMIZE-------------------
-		float shadow = ShadowCalculation(light_space_pos, light.dir.xyz, index + 1, LIGHT_TYPE_SPOTLIGHT);
+		float shadow = ShadowCalculation(light_space_pos, light.dir.xyz, index, LIGHT_TYPE_SPOTLIGHT);
 
 		if (shadow == 1.0) {
 			return color; // early return as no light will reach this spot
 		}
 
-		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, pixel_to_light_dir, normal);
+		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, pixel_to_light_dir, normal) * (1 - shadow);
 
 
 		//ATTENUATION
@@ -221,9 +247,8 @@ void main()
 	//directional light
 	float shadow = ShadowCalculation(dir_light_frag_pos_light_space, directional_light.direction.xyz, 0, LIGHT_TYPE_DIRECTIONAL);
 
-	if (shadow == 0.0) {
-		total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal);
-	}
+
+	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal) * (1 - shadow);
 
 	total_light += ambient_light;
 

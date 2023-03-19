@@ -152,7 +152,8 @@
     <ClCompile Include="Include\imgui\imgui_tables.cpp" />
     <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\framebuffers\MainViewFramebuffer.cpp" />
-    <ClCompile Include="src\framebuffers\ShadowMapFramebuffer.cpp" />
+    <ClCompile Include="src\framebuffers\DirLightDepthFB.cpp" />
+    <ClCompile Include="src\framebuffers\SpotLightDepthFB.cpp" />
     <ClCompile Include="src\gui\ControlWindow.cpp" />
     <ClCompile Include="src\rendering\MeshData.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
@@ -204,8 +205,9 @@
     <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\framebuffers\MainViewFramebuffer.h" />
-    <ClInclude Include="headers\framebuffers\ShadowMapFramebuffer.h" />
+    <ClInclude Include="headers\framebuffers\DirLightDepthFB.h" />
+    <ClInclude Include="headers\framebuffers\MainViewFB.h" />
+    <ClInclude Include="headers\framebuffers\SpotLightDepthFB.h" />
     <ClInclude Include="headers\gui\ControlWindow.h" />
     <ClInclude Include="headers\components\MeshData.h" />
     <ClInclude Include="headers\Camera.h" />

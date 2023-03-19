@@ -123,7 +123,10 @@
     <ClCompile Include="Include\imgui\imgui_impl_opengl3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\framebuffers\ShadowMapFramebuffer.cpp">
+    <ClCompile Include="src\framebuffers\DirLightDepthFB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\framebuffers\SpotLightDepthFB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -249,7 +252,7 @@
     <ClInclude Include="headers\shaders\DepthShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\framebuffers\MainViewFramebuffer.h">
+    <ClInclude Include="headers\framebuffers\MainViewFB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\rendering\FramebufferLibrary.h">
@@ -261,7 +264,7 @@
     <ClInclude Include="headers\rendering\Quad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\framebuffers\ShadowMapFramebuffer.h">
+    <ClInclude Include="headers\framebuffers\SpotLightDepthFB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\ReflectionShader.h">
@@ -271,6 +274,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\components\SceneEntity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\framebuffers\DirLightDepthFB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -12,7 +12,7 @@ void ControlWindow::CreateBaseWindow() {
 
 }
 
-const void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture) {
+void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture) {
 	ImGui::Text("DEBUG CONTROLS");
 	ImGui::Checkbox("Toggle depth view", &config_values.depth_map_view);
 
@@ -25,7 +25,7 @@ const void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values,
 	}
 }
 
-const void ControlWindow::DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values) {
+void ControlWindow::DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values) {
 
 	ImGui::Text("DIR LIGHT CONTROLS");
 	ImGui::SliderFloat("x-pos", &config_values.light_position.x, -1.0f, 1.0f);
@@ -36,7 +36,7 @@ const void ControlWindow::DisplayDirectionalLightControls(DirectionalLightConfig
 }
 
 
-const void ControlWindow::DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values) {
+void ControlWindow::DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values) {
 	ImGui::Text("POINTLIGHT CONTROLS");
 	ImGui::SliderFloat("constant", &light_values.atten_constant, 0.0f, 1.0f);
 	ImGui::SliderFloat("linear", &light_values.atten_linear, 0.0f, 1.0f);
@@ -45,6 +45,12 @@ const void ControlWindow::DisplayPointLightControls(unsigned int num_lights, Lig
 	ImGui::Text(std::format("Pointlights: {}", num_lights).c_str());
 	ImGui::Checkbox("Toggle Pointlights", &light_values.lights_enabled);
 }
+
+void ControlWindow::DisplaySceneData(SceneData& data) {
+	ImGui::Text("SCENE INFO");
+	ImGui::Text(std::format("VERTEX COUNT: {}", data.total_vertices).c_str());
+	ImGui::Text(std::format("LIGHT COUNT: {}", data.num_lights).c_str());
+};
 
 void ControlWindow::Render() {
 	ImGui::End();

@@ -19,17 +19,30 @@ void Renderer::Init() {
 
 
 	auto& cube = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
+	auto& orange4 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::LIGHTING);
 	auto& cube2 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 	auto& cube3 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 	auto& cube4 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 	auto& orange = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshShaderMode::REFLECT);
-	auto& orange4 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::LIGHTING);
 	auto& orange3 = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshShaderMode::REFLECT);
-	//auto& orange2 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::REFLECT);
+	auto& orange2 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::REFLECT);
 	/*for (float i = 0; i < 18.0f; i++) {
 		auto l = scene.CreatePointLight();
 		l->SetColor(i / 108.0f, cosf(ExtraMath::ToRadians(i * 10.0f / 3.0f)), sinf(ExtraMath::ToRadians(i * 10.0f / 3.0f)));
 	}*/
+	orange.SetPosition(0.0f, 7.0f, 0.0f);
+	orange3.SetPosition(2.0f, 7.0f, 0.0f);
+	orange2.SetPosition(10.0f, 20.0f, 0.0f);
+	orange2.SetScale(1.0f, 1.0f, 1.0f);
+	cube2.SetPosition(50.0f, 10.0f, 0.0f);
+	cube3.SetScale(50.0f, 1.0f, 50.0f);
+	cube3.SetRotation(0.0f, 0.0f, 0.0f);
+	cube4.SetPosition(0.0f, 3.0f, 10.0f);
+	cube4.SetScale(3.0f, 3.0f, 3.0f);
+	cube4.SetRotation(0.0f, 45.0f, 0.0f);
+	cube.SetPosition(0.0f, 0.0f, -25.0f);
+	cube.SetScale(50.0f, 50.0f, 1.0f);
+	cube.SetRotation(0.0f, 0.0f, 0.0f);
 	auto& sl = scene.CreateSpotLight();
 	auto& sl2 = scene.CreateSpotLight();
 	auto& sl3 = scene.CreateSpotLight();
@@ -47,19 +60,6 @@ void Renderer::Init() {
 	sl3.SetLightDirection(0.0f, 0.0f, -1.0f);
 	sl4.SetLightDirection(0.0f, 0.0f, -1.0f);
 	sl.SetLightDirection(0.0f, 0.0f, -1.0f);
-	orange.SetPosition(0.0f, 7.0f, 0.0f);
-	orange3.SetPosition(2.0f, 7.0f, 0.0f);
-	//orange2.SetPosition(10.0f, 20.0f, 0.0f);
-	//orange2.SetScale(1.0f, 1.0f, 1.0f);
-	cube.SetPosition(0.0f, 0.0f, -25.0f);
-	cube.SetScale(50.0f, 50.0f, 1.0f);
-	cube.SetRotation(0.0f, 0.0f, 0.0f);
-	cube2.SetPosition(50.0f, 10.0f, 0.0f);
-	cube3.SetScale(50.0f, 1.0f, 50.0f);
-	cube3.SetRotation(0.0f, 0.0f, 0.0f);
-	cube4.SetPosition(0.0f, 3.0f, 10.0f);
-	cube4.SetScale(3.0f, 3.0f, 3.0f);
-	cube4.SetRotation(0.0f, 45.0f, 0.0f);
 	static float angle = 0;
 	static float x = 0.0f;
 	static float z = 0.0f;
@@ -81,6 +81,7 @@ void Renderer::RenderWindow() {
 	static LightConfigValues light_vals;
 	static DebugConfigValues config_vals;
 	static DirectionalLightConfigValues dir_light_vals;
+	static SceneData scene_debug_data;
 	//SHADOW MAP PASS
 	DrawShadowMap();
 
@@ -92,7 +93,7 @@ void Renderer::RenderWindow() {
 	//DRAW TO QUAD
 	glClear(GL_COLOR_BUFFER_BIT);
 	shaderLibrary.basic_sampler_shader.ActivateProgram();
-	glActiveTexture(RendererData::TextureUnits::COLOR_TEXTURE_UNIT);
+	glActiveTexture(RendererData::TextureUnits::COLOR);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, framebuffer_library.main_view_framebuffer.GetTexture());
 
 	glDisable(GL_DEPTH_TEST);
@@ -103,10 +104,23 @@ void Renderer::RenderWindow() {
 
 	glEnable(GL_DEPTH_TEST);
 
+	unsigned int total_vertices = 0;
+	unsigned int total_lights = 0;
+
+	total_lights += scene.GetSpotLights().size();
+	total_lights += scene.GetPointLights().size();
+
+	for (const auto& group : scene.GetGroupMeshEntities()) {
+		total_vertices += group.GetInstances() * group.GetMeshData()->GetIndicesCount();
+	}
+
+	scene_debug_data.total_vertices = total_vertices;
+	scene_debug_data.num_lights = total_lights;
 
 	ControlWindow::CreateBaseWindow();
+	ControlWindow::DisplaySceneData(scene_debug_data);
 	ControlWindow::DisplayPointLightControls(scene.GetPointLights().size(), ActivateLightingControls(light_vals));
-	ControlWindow::DisplayDebugControls(config_vals, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
+	ControlWindow::DisplayDebugControls(config_vals, framebuffer_library.dir_depth_fb.GetDepthMap());
 	ControlWindow::DisplayDirectionalLightControls(dir_light_vals);
 	ControlWindow::Render();
 
@@ -122,27 +136,29 @@ void Renderer::DrawScene() {
 	framebuffer_library.main_view_framebuffer.Bind();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glActiveTexture(RendererData::TextureUnits::SHADOW_MAP_TEXTURE_UNIT);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, framebuffer_library.shadow_map_framebuffer.GetDepthMapTexture());
+	glActiveTexture(RendererData::TextureUnits::DIR_SHADOW_MAP);
+	glBindTexture(GL_TEXTURE_2D, framebuffer_library.dir_depth_fb.GetDepthMap());
+
+	glActiveTexture(RendererData::TextureUnits::SPOT_SHADOW_MAP);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, framebuffer_library.spotlight_depth_fb.GetDepthMap());
 
 	RenderLightMeshVisuals();
 	RenderLightingEntities();
 	RenderReflectShaderEntities();
-	glActiveTexture(RendererData::TextureUnits::COLOR_TEXTURE_UNIT);
+	glActiveTexture(RendererData::TextureUnits::COLOR);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetCubeMapTexture());
 	skybox.Draw(glm::mat3(p_camera->GetMatrix()));
 	DrawGrid();
 
-	framebuffer_library.shadow_map_framebuffer.Unbind();
+	framebuffer_library.UnbindAllFramebuffers();
 }
 
 void Renderer::DrawShadowMap() {
 	//BIND FOR DRAW
-	framebuffer_library.shadow_map_framebuffer.BindForDraw();
 	shaderLibrary.depth_shader.ActivateProgram();
 
 	//DIRECTIONAL LIGHT
-	framebuffer_library.shadow_map_framebuffer.SetTextureLayer(0); // index 0 = directional light depth map
+	framebuffer_library.dir_depth_fb.BindForDraw();
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	shaderLibrary.depth_shader.SetPVMatrix(scene.GetDirectionalLight().GetTransformMatrix());
@@ -150,10 +166,12 @@ void Renderer::DrawShadowMap() {
 	DrawReflectGroups(shaderLibrary.depth_shader);
 
 	//SPOT LIGHTS
+	framebuffer_library.spotlight_depth_fb.BindForDraw();
+
 	auto& lights = scene.GetSpotLights();
 	for (unsigned int i = 0; i < lights.size(); i++) {
 
-		framebuffer_library.shadow_map_framebuffer.SetTextureLayer(i + 1); // index 0 = directional light depth map
+		framebuffer_library.spotlight_depth_fb.SetDepthTexLayer(i); // index 0 = directional light depth map
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		shaderLibrary.depth_shader.SetPVMatrix(lights[i].GetTransformMatrix());
@@ -163,7 +181,7 @@ void Renderer::DrawShadowMap() {
 
 	}
 
-	framebuffer_library.shadow_map_framebuffer.Unbind();
+	framebuffer_library.UnbindAllFramebuffers();
 }
 
 LightConfigValues& Renderer::ActivateLightingControls(LightConfigValues& light_vals) {
@@ -202,7 +220,7 @@ void Renderer::RenderReflectShaderEntities() {
 
 	shaderLibrary.reflection_shader.ActivateProgram();
 	shaderLibrary.reflection_shader.SetCameraPos(p_camera->GetPos());
-	glActiveTexture(RendererData::TextureUnits::COLOR_TEXTURE_UNIT);
+	glActiveTexture(RendererData::TextureUnits::COLOR);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetCubeMapTexture());
 
 	DrawReflectGroups(shaderLibrary.reflection_shader);
@@ -266,8 +284,8 @@ template <typename T> void Renderer::DrawMeshWithShader(MeshData* mesh_data, uns
 		unsigned int materialIndex = mesh_data->m_meshes[i].materialIndex;
 		ASSERT(materialIndex < mesh_data->m_textures.size());
 
-		if (mesh_data->m_materials[materialIndex].specular_texture != nullptr) mesh_data->m_materials[materialIndex].specular_texture->Bind(RendererData::TextureUnits::SPECULAR_TEXTURE_UNIT);
-		mesh_data->m_materials[materialIndex].diffuse_texture->Bind(RendererData::TextureUnits::COLOR_TEXTURE_UNIT); // no check required as there will always be a texture due to the default texture system
+		if (mesh_data->m_materials[materialIndex].specular_texture != nullptr) mesh_data->m_materials[materialIndex].specular_texture->Bind(RendererData::TextureUnits::SPECULAR);
+		mesh_data->m_materials[materialIndex].diffuse_texture->Bind(RendererData::TextureUnits::COLOR); // no check required as there will always be a texture due to the default texture system
 
 		shader.SetMaterial(mesh_data->m_materials[materialIndex]);
 
