@@ -84,7 +84,7 @@
     <ClCompile Include="src\rendering\MeshInstanceGroup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\Light.cpp">
+    <ClCompile Include="src\components\LightComponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\shaders\FlatColorShader.cpp">
@@ -129,6 +129,18 @@
     <ClCompile Include="src\framebuffers\SpotLightDepthFB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\framebuffers\PointLightDepthFB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shaders\CubemapShadowshader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\TerrainGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\Terrain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
@@ -145,6 +157,8 @@
     <None Include="res\shaders\BasicSamplerFS.shader" />
     <None Include="res\shaders\ReflectionVS.shader" />
     <None Include="res\shaders\ReflectionFS.shader" />
+    <None Include="res\shaders\CubemapShadowFS.shader" />
+    <None Include="res\shaders\CubemapShadowVS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\InputHandle.h">
@@ -277,6 +291,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\framebuffers\DirLightDepthFB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\framebuffers\PointLightDepthFB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\CubemapShadowShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\terrain\TerrainGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\terrain\Terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Terrain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

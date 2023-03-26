@@ -23,6 +23,7 @@ bool Texture::Load() {
 	unsigned char* image_data = stbi_load(m_filename.c_str(), &width, &height, &bpp, 0);
 
 	if (image_data == NULL) {
+		PrintUtils::PrintError("TEXTURE CANNOT LOAD FILEPATH");
 		printf("Can't load texture from '%s' - '%s \n", m_filename.c_str(), stbi_failure_reason);
 		ret = false;
 	}
@@ -33,12 +34,13 @@ bool Texture::Load() {
 	if (m_textureTarget == GL_TEXTURE_2D) {
 
 		if (m_filename.find(".png") != std::string::npos) {
-			mode = GL_RGBA8;
-			internal_mode = GL_RGBA;
+			internal_mode = GL_RGBA8;
+			mode = GL_RGBA;
+
 		}
 		else {
-			mode = GL_RGB8;
-			internal_mode = GL_RGB;
+			internal_mode = GL_RGB8;
+			mode = GL_RGB;
 		}
 
 
@@ -46,9 +48,9 @@ bool Texture::Load() {
 			GLCall(glTexImage2D(m_textureTarget, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, image_data))
 		}
 		else {
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			GLCall(glTexImage2D(m_textureTarget, 0, mode, width, height, 0, internal_mode, GL_UNSIGNED_BYTE, image_data));
+			GLCall(glTexImage2D(m_textureTarget, 0, internal_mode, width, height, 0, mode, GL_UNSIGNED_BYTE, image_data));
 		}
+		GLCall(glGenerateMipmap(m_textureTarget));
 
 		/*switch (bpp) {
 		case 1:
@@ -67,10 +69,10 @@ bool Texture::Load() {
 		ret = false;
 	}
 
-	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-	GLCall(glTexParameterf(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+	GLCall(glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+	GLCall(glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	GLCall(glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_REPEAT));
+	GLCall(glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_REPEAT));
 
 	stbi_image_free(image_data);
 

@@ -75,6 +75,7 @@ void Application::Init() {
 	glEnable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LINE_SMOOTH);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glLineWidth(3.0);
 
 	//RENDERER INIT
@@ -100,15 +101,13 @@ void Application::Init() {
 			static int instances = 0;
 
 			if (input_handle->g_pressed) {
-				//if ((int)(glfwGetTime() * 1000.0) % 100 == 0) {
 
-				auto& entity = renderer.scene.CreateMeshComponent("./res/meshes/oranges/orange.obj");
+				auto& entity = renderer.scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 				glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(p_camera->GetTarget().x * 15.0f, p_camera->GetTarget().y * 15.0f, p_camera->GetTarget().z * 15.0f));
 				instances++;
 				entity.SetPosition(place_position.x, place_position.y, place_position.z);
 
 				PrintUtils::PrintDebug("Instances: " + std::to_string(instances));
-				//}
 			}
 		}
 

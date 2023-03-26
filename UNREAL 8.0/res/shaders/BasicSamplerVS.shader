@@ -9,5 +9,5 @@ out vec2 tex_coords;
 
 void main() {
 	gl_Position = vec4((transform * vec3(pos.x, pos.y, 1.0)).xy, 0.0f, 1.0f);
-	tex_coords = itex_coords; // may need to transform these too
+	tex_coords = itex_coords;
 }

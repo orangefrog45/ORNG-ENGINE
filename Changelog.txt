@@ -1,3 +1,14 @@
+26/3/23:
+-Basic non-procedural terrain generation, a few modifiable parameters
+-Added auto-generated mipmaps to textures (this also fixes some black texture bugs)
+
+
+25/3/23:
+-Fixed shadow flickering bug when directional light was moved caused by updating the depth map too late
+
+22/3/23:
+Fixed diffuse colour bug caused by reading the specular colour instead of the diffuse colour from materials
+
 19/3/23:
 -Split spotlight and directional light textures and framebuffers for more performant resolutions for different light types
 -PCF shadow softening

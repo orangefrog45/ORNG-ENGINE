@@ -11,6 +11,7 @@
 #include "DepthShader.h"
 #include "BasicSampler.h"
 #include "ReflectionShader.h"
+#include "CubemapShadowShader.h"
 
 class ShaderLibrary {
 public:
@@ -23,6 +24,7 @@ public:
 	DepthShader depth_shader;
 	BasicSampler basic_sampler_shader;
 	ReflectionShader reflection_shader;
+	CubemapShadowShader cube_map_shadow_shader;
 private:
 
 };

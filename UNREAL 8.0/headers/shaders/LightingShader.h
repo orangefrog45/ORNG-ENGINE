@@ -30,46 +30,33 @@ private:
 	static const unsigned int spot_light_fs_num_float = 36;
 	void InitUniforms() override;
 
-	struct PointLightLocationStruct {
-		GLuint color;
-		GLuint ambient_intensity;
-		GLuint diffuse_intensity;
-		GLuint position;
-		GLuint max_distance;
-
-		struct {
-			GLuint constant;
-			GLuint linear;
-			GLuint exp;
-		} Atten;
-	} m_point_light_locations[RendererData::max_point_lights];
-
-	struct SpotLightLocationStruct {
-		PointLightLocationStruct base;
-		GLuint aperture;
-		GLuint direction;
-	} m_spot_light_locations[RendererData::max_spot_lights];
-
-	GLint m_ambient_light_color_loc;
-	GLint m_light_ambient_intensity_loc;
-	GLint m_camera_view_pos_loc;
-	GLint m_material_ambient_color_loc;
-	GLint m_material_specular_color_loc;
-	GLint m_material_diffuse_color_loc;
-	GLint m_sampler_specular_loc;
-	GLint m_specular_sampler_active_loc;
-	GLint m_num_point_light_loc;
-	GLint m_num_spot_light_loc;
-	GLint m_sampler_texture_col_location;
-	GLint m_dir_light_color_loc;
-	GLint m_dir_light_dir_loc;
-	GLint m_dir_light_diffuse_intensity_loc;
-	GLint m_dir_light_ambient_intensity_loc;
-	GLint m_light_space_mat_loc;
-	GLint m_sampler_dir_depth_loc;
-	GLint m_sampler_spot_depth_loc;
-	GLint m_sampler_point_depth_loc;
 	GLuint m_matrix_UBO;
 	GLuint m_point_light_UBO;
 	GLuint m_spot_light_UBO;
+
+	GLint m_ambient_light_color_loc;
+	GLint m_light_ambient_intensity_loc;
+
+	GLint m_camera_view_pos_loc;
+
+	GLint m_material_ambient_color_loc;
+	GLint m_material_specular_color_loc;
+	GLint m_material_diffuse_color_loc;
+
+	GLint m_sampler_dir_depth_loc;
+	GLint m_sampler_spot_depth_loc;
+	GLint m_sampler_point_depth_loc;
+	GLint m_sampler_specular_loc;
+	GLint m_specular_sampler_active_loc;
+	GLint m_sampler_texture_col_location;
+
+	GLint m_num_point_light_loc;
+	GLint m_num_spot_light_loc;
+
+	GLint m_dir_light_diffuse_intensity_loc;
+	GLint m_dir_light_ambient_intensity_loc;
+	GLint m_dir_light_color_loc;
+	GLint m_dir_light_dir_loc;
+	GLint m_light_space_mat_loc;
+
 };

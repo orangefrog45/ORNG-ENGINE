@@ -13,6 +13,7 @@
 #include "FramebufferLibrary.h"
 #include "Quad.h"
 #include "RendererData.h"
+#include "Terrain.h"
 
 
 
@@ -26,6 +27,7 @@ public:
 	void RenderLightingEntities();
 	void RenderLightMeshVisuals();
 	void RenderReflectShaderEntities();
+	void DrawTerrain(const Terrain& terrain);
 	void DrawToQuad();
 	void DrawScene();
 	template <typename T> void DrawLightingGroups(T& shader);
@@ -44,7 +46,9 @@ private:
 	float zFar = 1000.0f;
 	int m_window_width = RendererData::WINDOW_WIDTH;
 	int m_window_height = RendererData::WINDOW_HEIGHT;
+	GLfloat* pixels = (GLfloat*)malloc(1024 * 1024 * sizeof(GL_FLOAT));
 
+	Texture missing_texture = Texture(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
 	glm::fmat4x4 projectionMatrix = glm::rowMajor4(glm::perspective(45.0f, static_cast<float>(m_window_width) / static_cast<float>(m_window_height), zNear, zFar));
 	std::shared_ptr<Camera> p_camera = nullptr;
 	Skybox skybox;

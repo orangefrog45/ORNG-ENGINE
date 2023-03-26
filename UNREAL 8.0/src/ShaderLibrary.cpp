@@ -17,5 +17,6 @@ void ShaderLibrary::Init() {
 	depth_shader.Init();
 	basic_sampler_shader.Init();
 	reflection_shader.Init();
+	cube_map_shadow_shader.Init();
 }
 

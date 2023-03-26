@@ -89,24 +89,29 @@ void LightingShader::SetPointDepthMapTexUnit(unsigned int unit) {
 
 void LightingShader::InitUniforms() {
 	ActivateProgram();
-	m_sampler_texture_col_location = GetUniform("gSampler");
 	m_camera_view_pos_loc = GetUniform("view_pos");
+	/* Material */
 	m_material_ambient_color_loc = GetUniform("g_material.ambient_color");
 	m_material_specular_color_loc = GetUniform("g_material.specular_color");
 	m_material_diffuse_color_loc = GetUniform("g_material.diffuse_color");
+	/* Samplers */
+	m_sampler_texture_col_location = GetUniform("gSampler");
 	m_sampler_specular_loc = GetUniform("specular_sampler");
 	m_specular_sampler_active_loc = GetUniform("specular_sampler_active");
+	m_sampler_dir_depth_loc = GetUniform("dir_depth_map");
+	m_sampler_spot_depth_loc = GetUniform("spot_depth_map");
+	m_sampler_point_depth_loc = GetUniform("point_depth_map");
+
 	m_num_point_light_loc = GetUniform("g_num_point_lights");
 	m_num_spot_light_loc = GetUniform("g_num_spot_lights");
+
 	m_light_ambient_intensity_loc = GetUniform("g_ambient_light.ambient_intensity");
 	m_ambient_light_color_loc = GetUniform("g_ambient_light.color");
+
 	m_dir_light_color_loc = GetUniform("directional_light.color");
 	m_dir_light_dir_loc = GetUniform("directional_light.direction");
 	m_dir_light_diffuse_intensity_loc = GetUniform("directional_light.diffuse_intensity");
 	m_light_space_mat_loc = GetUniform("dir_light_matrix");
-	m_sampler_dir_depth_loc = GetUniform("dir_depth_map");
-	m_sampler_spot_depth_loc = GetUniform("spot_depth_map");
-	m_sampler_point_depth_loc = GetUniform("point_depth_map");
 
 	SetDiffuseTextureUnit(RendererData::TextureUnitIndexes::COLOR);
 	SetSpecularTextureUnit(RendererData::TextureUnitIndexes::SPECULAR);
@@ -131,7 +136,7 @@ void LightingShader::SetPointLights(std::vector< PointLightComponent>& p_lights)
 	glUniform1i(m_num_point_light_loc, p_lights.size());
 	float light_array[RendererData::max_point_lights * point_light_fs_num_float] = { 0 };
 
-	for (unsigned int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
+	for (int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
 		//0 - START COLOR
 		auto color = p_lights[i / point_light_fs_num_float].GetColor();
 		light_array[i] = color.x;
@@ -154,7 +159,7 @@ void LightingShader::SetPointLights(std::vector< PointLightComponent>& p_lights)
 		light_array[i + 11] = atten.constant;
 		light_array[i + 12] = atten.linear;
 		light_array[i + 13] = atten.exp;
-		//52 - END ATTENUATION
+		//56 - END ATTENUATION
 		light_array[i + 14] = 0; //padding
 		light_array[i + 15] = 0; //padding
 		//64 BYTES TOTAL
@@ -171,7 +176,7 @@ void LightingShader::SetSpotLights(std::vector<SpotLightComponent>& s_lights) {
 	glUniform1i(m_num_spot_light_loc, s_lights.size());
 	float light_array[RendererData::max_spot_lights * spot_light_fs_num_float] = { 0 };
 
-	for (unsigned int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
+	for (int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
 		//0 - START COLOR
 		auto color = s_lights[i / spot_light_fs_num_float].GetColor();
 		light_array[i] = color.x;

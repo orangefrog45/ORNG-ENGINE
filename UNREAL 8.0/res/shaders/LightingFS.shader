@@ -7,7 +7,8 @@ const unsigned int SPOT_LIGHT_BINDING = 2;
 
 //LIGHT IDENTIFIERS
 const unsigned int LIGHT_TYPE_DIRECTIONAL = 0;
-const unsigned int LIGHT_TYPE_SPOTLIGHT = 1;
+const unsigned int LIGHT_TYPE_SPOT = 1;
+const unsigned int LIGHT_TYPE_POINT = 2;
 
 in LightTransformedPositions{
 	vec4 spot_light_positions[MAX_SPOT_LIGHTS];
@@ -117,17 +118,17 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 		bias = 0.001 * tan(acos(clamp(dot(normalize(vs_normal), light_dir), 0, 1)));
 
 		vec2 texel_size = 1.0 / textureSize(dir_depth_map, 0);
-		for (int x = -1; x <= 1; ++x)
+		for (int x = -1; x <= 1; x++)
 		{
-			for (int y = -1; y <= 1; ++y)
+			for (int y = -1; y <= 1; y++)
 			{
 				float pcf_depth = texture(dir_depth_map, proj_coords.xy + vec2(x, y) * texel_size * 2).r;
 				shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
 			}
 		}
 	}
-	else {
-		bias = max(0.00001f * (1.0f - dot(normalize(vs_normal), light_dir)), 0.0000005f);
+	else if (type == LIGHT_TYPE_SPOT) {
+		bias = max(0.0001f * (1.0f - dot(normalize(vs_normal), light_dir)), 0.0000005f);
 
 
 		vec2 texel_size = 1.0 / textureSize(spot_depth_map, 0).xy;
@@ -148,6 +149,23 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 	return shadow;
 }
 
+/*float CalcShadowPointLight(vec3 light_to_pixel, int index) {
+	float current_distance = length(light_to_pixel);
+
+	light_to_pixel.y = -light_to_pixel.y;
+
+	float sampled_distance = texture(point_depth_map, vec4(light_to_pixel, index)).r;
+
+	float bias = 0.015;
+
+	if (sampled_distance < current_distance) {
+		return 0.0;
+	}
+	else {
+		return 1.0;
+	}
+}*/
+
 vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normalized_light_dir, vec3 norm) {
 
 	//diffuse
@@ -157,7 +175,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 	vec3 specular_final = vec3(0, 0, 0);
 
 	if (diffuse > 0) {
-		diffuse_final = light_color * diffuse * light_diffuse_intensity; // ADD BACK MATERIAL DIFFUSE COLOR AT SOME STAGE
+		diffuse_final = light_color * diffuse * light_diffuse_intensity * g_material.diffuse_color; // ADD BACK MATERIAL DIFFUSE COLOR AT SOME STAGE
 
 		float specular_strength = 0.5;
 		vec3 view_dir = normalize(view_pos - vs_position.xyz);
@@ -176,7 +194,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 }
 
 
-vec3 CalcPointLight(PointLight light, vec3 normal, float distance) {
+vec3 CalcPointLight(PointLight light, vec3 normal, float distance, int index) {
 	vec3 light_dir = normalize(light.pos.xyz - vs_position.xyz);
 	vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, light_dir, normal);
 
@@ -194,8 +212,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 	if (spot_factor > light.aperture) {
 		//SHADOW
 		vec3 color = vec3(0);
-		vec4 light_space_pos = light.light_transform_matrix * vs_position; // ----------------OPTIMIZE-------------------
-		float shadow = ShadowCalculation(light_space_pos, light.dir.xyz, index, LIGHT_TYPE_SPOTLIGHT);
+		vec4 light_space_pos = light.light_transform_matrix * vs_position;
+		float shadow = ShadowCalculation(light_space_pos, light.dir.xyz, index, LIGHT_TYPE_SPOT);
 
 		if (shadow == 1.0) {
 			return color; // early return as no light will reach this spot
@@ -232,7 +250,7 @@ void main()
 	for (int i = 0; i < g_num_point_lights; i++) {
 		float distance = length(point_lights.lights[i].pos.xyz - vs_position.xyz);
 		if (distance <= point_lights.lights[i].max_distance) {
-			total_light += (CalcPointLight(point_lights.lights[i], normal, distance));
+			total_light += (CalcPointLight(point_lights.lights[i], normal, distance, i));
 		}
 	}
 
@@ -246,7 +264,6 @@ void main()
 
 	//directional light
 	float shadow = ShadowCalculation(dir_light_frag_pos_light_space, directional_light.direction.xyz, 0, LIGHT_TYPE_DIRECTIONAL);
-
 
 	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal) * (1 - shadow);
 

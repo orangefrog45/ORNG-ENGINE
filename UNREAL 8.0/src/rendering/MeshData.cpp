@@ -22,7 +22,6 @@ static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 void MeshData::UnloadMesh() {
 	m_meshes.clear();
-	m_textures.clear();
 	m_materials.clear();
 	m_positions.clear();
 	m_normals.clear();
@@ -68,7 +67,6 @@ bool MeshData::LoadMeshData() {
 
 bool MeshData::InitFromScene(const aiScene* pScene, const std::string& filename) {
 	m_meshes.resize(pScene->mNumMeshes);
-	m_textures.resize(pScene->mNumMaterials);
 	m_materials.resize(pScene->mNumMaterials);
 
 	unsigned int numVertices = 0;
@@ -162,7 +160,7 @@ bool MeshData::InitMaterials(const aiScene* pScene, const std::string& filename)
 void MeshData::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 	aiColor3D AmbientColor(0.0f, 0.0f, 0.0f);
 
-	if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS && AmbientColor != aiColor3D(0.0f, 0.0f, 0.0f)) {
+	if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, AmbientColor) == aiReturn_SUCCESS) {
 		m_materials[index].ambient_color.r = AmbientColor.r;
 		m_materials[index].ambient_color.g = AmbientColor.g;
 		m_materials[index].ambient_color.b = AmbientColor.b;
@@ -170,7 +168,7 @@ void MeshData::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 
 	aiColor3D diffuse_color(0.0f, 0.0f, 0.0f);
 
-	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, diffuse_color) == aiReturn_SUCCESS && diffuse_color != aiColor3D(0.0f, 0.0f, 0.0f)) {
+	if (pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color) == aiReturn_SUCCESS) {
 		m_materials[index].diffuse_color.r = diffuse_color.r;
 		m_materials[index].diffuse_color.g = diffuse_color.g;
 		m_materials[index].diffuse_color.b = diffuse_color.b;
@@ -178,7 +176,7 @@ void MeshData::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 
 	aiColor3D specular_color(0.0f, 0.0f, 0.0f);
 
-	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular_color) == aiReturn_SUCCESS && specular_color != aiColor3D(0.0f, 0.0f, 0.0f)) {
+	if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular_color) == aiReturn_SUCCESS) {
 		m_materials[index].specular_color.r = specular_color.r;
 		m_materials[index].specular_color.g = specular_color.g;
 		m_materials[index].specular_color.b = specular_color.b;
@@ -206,12 +204,10 @@ void MeshData::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pM
 
 			std::string fullPath = t_dir + "/" + p;
 
-			m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, fullPath.c_str());
+			m_materials[index].diffuse_texture = std::make_unique<Texture>(GL_TEXTURE_2D, fullPath.c_str());
 
 			if (!m_materials[index].diffuse_texture->Load()) {
 				PrintUtils::PrintError("Error loading diffuse texture at: " + fullPath);
-				m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
-				m_materials[index].diffuse_texture->Load();
 			}
 			else {
 				PrintUtils::PrintSuccess("Loaded diffuse texture: " + fullPath);
@@ -221,8 +217,6 @@ void MeshData::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pM
 	}
 	else {
 		PrintUtils::PrintWarning("No diffuse texture found at: " + t_dir);
-		m_materials[index].diffuse_texture = std::make_shared<Texture>(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
-		m_materials[index].diffuse_texture->Load();
 	}
 }
 
@@ -241,7 +235,7 @@ void MeshData::LoadSpecularTexture(const std::string& t_dir, const aiMaterial* p
 
 			std::string fullPath = t_dir + "/" + p;
 
-			m_materials[index].specular_texture = std::make_shared<Texture>(GL_TEXTURE_2D, fullPath.c_str());
+			m_materials[index].specular_texture = std::make_unique<Texture>(GL_TEXTURE_2D, fullPath.c_str());
 
 			if (!m_materials[index].specular_texture->Load()) {
 				PrintUtils::PrintError("Error loading specular texture: " + fullPath);

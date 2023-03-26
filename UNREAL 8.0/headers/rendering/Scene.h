@@ -8,31 +8,37 @@
 #include "util/util.h"
 #include "LightComponent.h"
 #include "MeshInstanceGroup.h"
+#include "terrain/Terrain.h"
 
 class Scene {
 public:
+
+	friend class Renderer;
 	Scene();
 	~Scene();
 	void Init();
 	MeshComponent& CreateMeshComponent(const std::string& filename, MeshShaderMode shader_mode = MeshShaderMode::LIGHTING);
 	PointLightComponent& CreatePointLight();
 	SpotLightComponent& CreateSpotLight();
+
 	void DeleteMeshComponent(unsigned int entity_id);
-	auto& GetPointLights() { return m_point_lights; }
-	auto& GetSpotLights() { return m_spot_lights; }
-	auto& GetDirectionalLight() { return m_directional_light; }
+	void DeleteMeshComponent(MeshComponent* ptr);
+
+	inline auto& GetPointLights() { return m_point_lights; }
+	inline auto& GetSpotLights() { return m_spot_lights; }
+	inline auto& GetDirectionalLight() { return m_directional_light; }
+	inline BaseLight& GetAmbientLighting() { return m_global_ambient_lighting; };
+	inline auto& GetGroupMeshEntities() { return m_mesh_instance_groups; };
+	inline Terrain& GetTerrain() { return m_terrain; }
+
 	const int CreateEntityID();
-	BaseLight& GetAmbientLighting() { return m_global_ambient_lighting; };
 	void LoadScene();
 	void UnloadScene();
 	void UpdateEntityInstanceGroups();
 	/* check if instance group/mesh component vector requires a resize*/
 	void CheckFitsMemory();
-	auto& GetGroupMeshEntities() { return m_mesh_instance_groups; };
 
 private:
-	int m_last_group_id = -1;
-	int m_last_entity_id = -1; // Last ID assigned to a newly created entity
 	MeshData* CreateMeshData(const std::string& filename);
 	BaseLight m_global_ambient_lighting = BaseLight(CreateEntityID());
 	DirectionalLightComponent m_directional_light = DirectionalLightComponent(CreateEntityID());
@@ -42,4 +48,6 @@ private:
 	std::vector<SpotLightComponent> m_spot_lights;
 	std::vector<PointLightComponent> m_point_lights;
 	std::vector<MeshData*> m_mesh_data;
+	Terrain m_terrain;
+	int m_last_entity_id = -1; // Last ID assigned to a newly created entity
 };

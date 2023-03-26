@@ -105,7 +105,6 @@ private:
 	};
 
 	std::vector<BasicMeshEntry> m_meshes;
-	std::vector<Texture> m_textures;
 	std::vector<Material> m_materials;
 
 	//temp space before loading into gpu

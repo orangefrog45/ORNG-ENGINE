@@ -22,7 +22,6 @@ void SpotLightDepthFB::Init() {
 
 
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo));
-	GLCall(glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_spot_depth_array, 0, 0));
 	GLCall(glDrawBuffer(GL_NONE));
 	GLCall(glReadBuffer(GL_NONE));
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));

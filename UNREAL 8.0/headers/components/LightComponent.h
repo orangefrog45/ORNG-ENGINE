@@ -45,23 +45,27 @@ struct LightAttenuation {
 
 class PointLightComponent : public BaseLight {
 public:
-	PointLightComponent(unsigned int entity_id) : BaseLight(entity_id) {};
+	PointLightComponent(unsigned int entity_id);
 	virtual ~PointLightComponent() = default;
 
 	const LightAttenuation& GetAttentuation() const { return attenuation; }
 	const WorldTransform& GetWorldTransform() const { return transform; };
 	const MeshComponent* GetMeshVisual() const { return m_mesh_visual; };
 	float GetMaxDistance() const { return max_distance; }
+	const std::vector<glm::fmat4>& GetLightTransforms() const { return m_light_transforms; }
 
+	void SetPosition(const float x, const float y, const float z);
 	void SetMeshVisual(MeshComponent* p) { m_mesh_visual = p; }
 	void SetAttenuation(const float constant, const float lin, const float exp) { attenuation.constant = constant; attenuation.linear = lin; attenuation.exp = exp; }
-	virtual void SetPosition(const float x, const float y, const float z) { if (m_mesh_visual != nullptr) { transform.SetPosition(x, y, z); m_mesh_visual->SetPosition(x, y, z); } };
 	void SetMaxDistance(const float d) { max_distance = d; };
 protected:
+	std::vector<glm::fmat4> m_light_transforms;
 	float max_distance = 48.0f;
 	MeshComponent* m_mesh_visual = nullptr;
 	LightAttenuation attenuation;
 	WorldTransform transform;
+private:
+	void UpdateLightTransforms();
 };
 
 class SpotLightComponent : public PointLightComponent {
@@ -69,14 +73,13 @@ public:
 	SpotLightComponent(unsigned int ID);
 	void SetLightDirection(float i, float j, float k);
 	void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
-	void SetPosition(const float x, const float y, const float z) final;
+	void SetPosition(const float x, const float y, const float z);
 
 	auto GetLightDirection() const { return m_light_direction_vec; }
 	auto GetAperture() const { return aperture; }
-	const auto& GetTransformMatrix() const { return mp_light_transform_matrix; }
+	const auto& GetTransformMatrix() const { return m_light_transforms[0]; }
 private:
 	void UpdateLightTransform();
-	glm::fmat4 mp_light_transform_matrix;
 	glm::fvec3 m_light_direction_vec = glm::fvec3(1, 0, 0);
 	float aperture = 0.9396f;
 };

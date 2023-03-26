@@ -12,26 +12,37 @@ Scene::~Scene() {
 Scene::Scene() {
 	m_spot_lights.reserve(RendererData::max_spot_lights);
 	m_point_lights.reserve(RendererData::max_point_lights);
-	m_mesh_instance_groups.reserve(10);
+	m_mesh_instance_groups.reserve(20);
 	m_mesh_components.reserve(100);
 }
 
 void Scene::DeleteMeshComponent(unsigned int entity_id) {
 	for (auto& mesh : m_mesh_components) {
 		if (mesh.GetID() == entity_id) {
-			delete mesh.GetWorldTransform();
+			auto group = mesh.GetInstanceGroup();
 			mesh.~MeshComponent();
-			mesh.GetInstanceGroup()->ValidateTransformPtrs();
+			group->ValidateTransformPtrs();
 		}
 	}
+	/*DELETE FROM MESHCOMPONENT ARRAY*/
 }
+
+void Scene::DeleteMeshComponent(MeshComponent* ptr) {
+	ptr->GetInstanceGroup()->ValidateTransformPtrs();
+	ptr->~MeshComponent();
+	/*DELETE FROM MESHCOMPONENT ARRAY*/
+}
+
 
 
 void Scene::LoadScene() {
 	double time_start = glfwGetTime();
+
+	m_terrain.Init();
+
 	for (auto& mesh : m_mesh_data) {
 		if (mesh->GetLoadStatus() == false) {
-			m_futures.push_back(std::async(std::launch::async, [&mesh, this] {mesh->LoadMeshData(); }));
+			m_futures.push_back(std::async(std::launch::async, [&mesh] {mesh->LoadMeshData(); }));
 		}
 	}
 	for (unsigned int i = 0; i < m_futures.size(); i++) {
@@ -52,41 +63,47 @@ void Scene::UnloadScene() {
 	for (MeshData* mesh_data : m_mesh_data) {
 		delete mesh_data;
 	}
+	for (auto& mesh : m_mesh_components) {
+		DeleteMeshComponent(&mesh);
+	}
 	PrintUtils::PrintSuccess("Scene unloaded");
 }
 
 
 PointLightComponent& Scene::CreatePointLight() {
+	PointLightComponent* light = nullptr;
 	if (m_point_lights.size() + 1 > m_point_lights.capacity()) {
 		PrintUtils::PrintError("CANNOT CREATE POINTLIGHT, LIMIT EXCEEDED");
 	}
 	else {
-		m_point_lights.emplace_back(CreateEntityID());
-		m_point_lights.back().SetMeshVisual(&CreateMeshComponent("./res/meshes/light meshes/cube_light.obj", MeshShaderMode::FLAT_COLOR));
+		light = &m_point_lights.emplace_back(CreateEntityID());
+		light->SetMeshVisual(&CreateMeshComponent("./res/meshes/light meshes/cube_light.obj", MeshShaderMode::FLAT_COLOR));
 	}
 
-	return m_point_lights.back();
+	return *light;
 };
 
 
 SpotLightComponent& Scene::CreateSpotLight() {
+	SpotLightComponent* light = nullptr;
 	if (m_spot_lights.size() + 1 > m_spot_lights.capacity()) {
 		PrintUtils::PrintError("CANNOT CREATE SPOTLIGHT, LIMIT EXCEEDED");
 	}
 	else {
-		m_spot_lights.emplace_back(CreateEntityID());
-		m_spot_lights.back().SetMeshVisual(&CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshShaderMode::FLAT_COLOR));
+		light = &m_spot_lights.emplace_back(CreateEntityID());
+		light->SetMeshVisual(&CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshShaderMode::FLAT_COLOR));
 
 	}
-	return m_spot_lights.back();
+	return *light;
 }
 
 void Scene::UpdateEntityInstanceGroups() {
-	m_mesh_instance_groups.reserve(m_mesh_components.capacity() * 2);
-
+	/* Sort all meshes back into instance groups upon pointer invalidation (vector resize) */
 	for (auto& mesh : m_mesh_components) {
 		for (auto& group : m_mesh_instance_groups) {
+			group.ClearTransforms();
 			if (group.GetShaderType() == mesh.GetShaderMode() && group.GetMeshData()->GetFilename() == mesh.GetMeshData()->GetFilename()) {
+				group.AddTransformPtr(mesh.GetWorldTransform());
 				mesh.SetInstanceGroup(group);
 				break;
 			}
@@ -187,7 +204,7 @@ MeshComponent& Scene::CreateMeshComponent(const std::string& filename, MeshShade
 		//place mesh component in existing instance group
 		mesh_component = &m_mesh_components.emplace_back(m_mesh_instance_groups[group_index].GetMeshData(), &m_mesh_instance_groups[group_index], CreateEntityID(), shader_mode);
 
-		// add mesh component's world transform into instance group for instance rendering
+		// add mesh component's world transform into instance group for instanced rendering
 		m_mesh_instance_groups[group_index].AddTransformPtr(mesh_component->GetWorldTransform());
 
 	}
