@@ -5,9 +5,9 @@ class Quad {
 public:
 	void Load();
 	void Draw();
-	void SetScale(float x, float y) { m_world_transform.SetScale(x, y); };
-	void SetPosition(float x, float y) { m_world_transform.SetPosition(x, y); }
-	void SetRotation(float rot) { m_world_transform.SetRotation(rot); }
+	inline void SetScale(float x, float y) { m_world_transform.SetScale(x, y); };
+	inline void SetPosition(float x, float y) { m_world_transform.SetPosition(x, y); }
+	inline void SetRotation(float rot) { m_world_transform.SetRotation(rot); }
 	const WorldTransform2D& GetTransform() const { return m_world_transform; }
 
 

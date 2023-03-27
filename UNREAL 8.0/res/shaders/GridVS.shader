@@ -6,8 +6,12 @@ in layout(location = 3) mat4 transform;
 
 out vec2 TexCoord0;
 
-uniform mat4 projection;
-uniform mat4 camera;
+layout(std140, binding = 0) uniform Matrices{
+	mat4 projection; //base=16, aligned=0-64
+	mat4 view; //base=16, aligned=64-128
+} PVMatrices;
+
+
 uniform vec3 camera_pos;
 
 out vec3 cam_pos;
@@ -19,6 +23,6 @@ void main() {
 	TexCoord0 = TexCoord;
 	vec4 world_pos = transform * vec4(position, 1.0);
 	vs_position = vec3(world_pos);
-	vec4 pos = projection * camera * vec4(world_pos.x, world_pos.y, world_pos.z, 1.0);
+	vec4 pos = PVMatrices.projection * PVMatrices.view * vec4(world_pos.x, world_pos.y, world_pos.z, 1.0);
 	gl_Position = pos;
 }

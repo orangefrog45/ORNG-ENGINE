@@ -1,5 +1,4 @@
 #pragma once
-#include <assimp/config.h>
 #include <string>
 #include <vector>
 #include <glm/glm.hpp>
@@ -10,6 +9,8 @@
 #include "Texture.h"
 #include "Material.h"
 
+
+
 class MeshData {
 public:
 	MeshData(const std::string& filename) : m_filename(filename) {};
@@ -18,6 +19,11 @@ public:
 
 	friend class Renderer; // renderer needs access to basically everything for the draw call
 
+	enum class MeshShaderMode {
+		LIGHTING = 0,
+		FLAT_COLOR = 1,
+		REFLECT = 2
+	};
 	void LoadIntoGL();
 
 	bool LoadMeshData();
@@ -35,6 +41,8 @@ public:
 	bool GetIsShared() const { return m_is_shared_in_instance_groups; }
 
 	unsigned int GetIndicesCount() const { return num_indices; }
+
+
 
 private:
 

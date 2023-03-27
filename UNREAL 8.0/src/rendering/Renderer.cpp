@@ -22,18 +22,15 @@ void Renderer::Init() {
 	//auto& orange4 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::LIGHTING);
 	auto& cube2 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 	auto& cube3 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
+	auto& orange2 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshData::MeshShaderMode::REFLECT);
 	auto& cube4 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
-	auto& orange = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshShaderMode::REFLECT);
-	auto& orange3 = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshShaderMode::REFLECT);
-	auto& orange2 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::REFLECT);
-	auto& robot = scene.CreateMeshComponent("./res/meshes/robot/Robot.obj");
-	robot.SetScale(0.1, 0.1, 0.1);
-	robot.SetRotation(0.0f, 0.0f, 0.0f);
-	robot.SetPosition(-25.0f, 0.0f, 10.0f);
+	auto& orange = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshData::MeshShaderMode::REFLECT);
+	auto& orange3 = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshData::MeshShaderMode::REFLECT);
+	auto orange_ref = scene.QueryMeshComponent(orange2.GetID()).component;
 	orange.SetPosition(0.0f, 7.0f, 0.0f);
 	orange3.SetPosition(2.0f, 7.0f, 0.0f);
-	orange2.SetPosition(10.0f, 20.0f, 0.0f);
 	orange2.SetScale(1.0f, 1.0f, 1.0f);
+	orange_ref->SetScale(10, 10, 1);
 	cube2.SetPosition(50.0f, 10.0f, 0.0f);
 	cube3.SetScale(50.0f, 1.0f, 50.0f);
 	cube3.SetRotation(0.0f, 0.0f, 0.0f);
@@ -41,7 +38,6 @@ void Renderer::Init() {
 	cube4.SetScale(3.0f, 3.0f, 3.0f);
 	cube4.SetRotation(0.0f, 45.0f, 0.0f);
 	cube.SetPosition(0.0f, 0.0f, -25.0f);
-	//cube.SetScale(50.0f, 40.0f, 1.0f);
 	cube.SetRotation(0.0f, 0.0f, 0.0f);
 	auto& sl = scene.CreateSpotLight();
 	auto& sl2 = scene.CreateSpotLight();
@@ -74,10 +70,12 @@ void Renderer::Init() {
 }
 
 void Renderer::RenderWindow() {
-	static LightConfigValues light_vals;
-	static DebugConfigValues config_vals;
-	static DirectionalLightConfigValues dir_light_vals;
-	static SceneData scene_debug_data;
+	static ControlWindow::LightConfigData light_vals;
+	static ControlWindow::DebugConfigData config_vals;
+	static ControlWindow::DirectionalLightData dir_light_vals;
+	static ControlWindow::SceneData scene_debug_data;
+	static ControlWindow::TerrainConfigData terrain_data;
+	static ControlWindow::TerrainConfigData saved_terrain_data;
 	//SHADOW MAP PASS
 	scene.GetDirectionalLight().SetLightDirection(dir_light_vals.light_position);
 	scene.GetDirectionalLight().SetColor(dir_light_vals.light_color.x, dir_light_vals.light_color.y, dir_light_vals.light_color.z);
@@ -106,17 +104,22 @@ void Renderer::RenderWindow() {
 	total_lights += scene.GetPointLights().size();
 
 	for (const auto& group : scene.GetGroupMeshEntities()) {
-		total_vertices += group.GetInstances() * group.GetMeshData()->GetIndicesCount();
+		total_vertices += group->GetInstances() * group->GetMeshData()->GetIndicesCount();
 	}
 
 	scene_debug_data.total_vertices = total_vertices;
 	scene_debug_data.num_lights = total_lights;
+	if (!(saved_terrain_data == terrain_data)) {
+		saved_terrain_data = terrain_data;
+		scene.GetTerrain().UpdateTerrain(terrain_data.seed, 1000.0f, 1000.0f, glm::fvec3(0, 0, 0), terrain_data.resolution, terrain_data.height_scale, terrain_data.sampling_resolution);
+	}
 
 	ControlWindow::CreateBaseWindow();
 	ControlWindow::DisplaySceneData(scene_debug_data);
 	ControlWindow::DisplayPointLightControls(scene.GetPointLights().size(), ActivateLightingControls(light_vals));
 	ControlWindow::DisplayDebugControls(config_vals, framebuffer_library.dir_depth_fb.GetDepthMap());
 	ControlWindow::DisplayDirectionalLightControls(dir_light_vals);
+	ControlWindow::DisplayTerrainConfigControls(terrain_data);
 	ControlWindow::Render();
 
 }
@@ -181,7 +184,7 @@ void Renderer::DrawShadowMap() {
 		framebuffer_library.spotlight_depth_fb.SetDepthTexLayer(i); // index 0 = directional light depth map
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		shaderLibrary.depth_shader.SetPVMatrix(lights[i].GetTransformMatrix());
+		shaderLibrary.depth_shader.SetPVMatrix(lights[i]->GetTransformMatrix());
 		DrawLightingGroups(shaderLibrary.depth_shader);
 		DrawReflectGroups(shaderLibrary.depth_shader);
 	}
@@ -213,13 +216,13 @@ void Renderer::DrawShadowMap() {
 	framebuffer_library.UnbindAllFramebuffers();
 }
 
-LightConfigValues& Renderer::ActivateLightingControls(LightConfigValues& light_vals) {
+ControlWindow::LightConfigData& Renderer::ActivateLightingControls(ControlWindow::LightConfigData& light_vals) {
 
 	for (auto& light : scene.GetPointLights()) {
-		light.SetAttenuation(light_vals.atten_constant, light_vals.atten_linear, light_vals.atten_exp);
-		light.SetMaxDistance(light_vals.max_distance);
+		light->SetAttenuation(light_vals.atten_constant, light_vals.atten_linear, light_vals.atten_exp);
+		light->SetMaxDistance(light_vals.max_distance);
 		if (!light_vals.lights_enabled) {
-			light.SetMaxDistance(0);
+			light->SetMaxDistance(0);
 		}
 	}
 
@@ -230,17 +233,17 @@ LightConfigValues& Renderer::ActivateLightingControls(LightConfigValues& light_v
 void Renderer::RenderLightMeshVisuals() {
 	shaderLibrary.flat_color_shader.ActivateProgram();
 	for (const auto& light : scene.GetPointLights()) {
-		glm::fvec3 light_color = light.GetColor();
-		shaderLibrary.flat_color_shader.SetWorldTransform(light.GetMeshVisual()->GetWorldTransform()->GetMatrix());
+		glm::fvec3 light_color = light->GetColor();
+		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
 		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
-		DrawMeshWithShader(light.GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
+		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
 	}
 
 	for (const auto& light : scene.GetSpotLights()) {
-		glm::fvec3 light_color = light.GetColor();
-		shaderLibrary.flat_color_shader.SetWorldTransform(light.GetMeshVisual()->GetWorldTransform()->GetMatrix());
+		glm::fvec3 light_color = light->GetColor();
+		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
 		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
-		DrawMeshWithShader(light.GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
+		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
 	}
 }
 
@@ -274,40 +277,35 @@ void Renderer::RenderLightingEntities() {
 	shaderLibrary.lighting_shader.SetMaterial(scene.m_terrain.m_terrain_top_mat);
 	DrawTerrain(scene.GetTerrain());
 
-	//scene.GetTerrain().UpdateTerrain(scene.m_terrain.m_x_width, scene.m_terrain.m_z_width, glm::fvec3(0, 0, 0), scene.m_terrain.m_resolution);
 }
 
 void Renderer::DrawGrid() {
 	shaderLibrary.grid_shader.ActivateProgram();
-	shaderLibrary.grid_shader.SetProjection(projectionMatrix);
-	shaderLibrary.grid_shader.SetCamera(p_camera->GetMatrix());
 	shaderLibrary.grid_shader.SetCameraPos(p_camera->GetPos());
 	grid_mesh.CheckBoundary(p_camera->GetPos());
 	grid_mesh.Draw();
 }
 
 template <typename T> void Renderer::DrawLightingGroups(T& shader) {
-	for (auto& group : scene.GetGroupMeshEntities()) {
-		if (group.GetMeshData()->GetLoadStatus() == true && (group.GetShaderType() == MeshShaderMode::LIGHTING)) {
-			MeshData* mesh_data = group.GetMeshData();
+	for (auto group : scene.GetGroupMeshEntities()) {
+		if (group->GetMeshData()->GetLoadStatus() == true && (group->GetShaderType() == MeshData::MeshShaderMode::LIGHTING)) {
+			MeshData* mesh_data = group->GetMeshData();
 
-			if (group.GetMeshData()->GetIsShared() == true) group.UpdateMeshTransformBuffers();
+			if (group->GetMeshData()->GetIsShared() == true) group->UpdateMeshTransformBuffers();
 
-			DrawMeshWithShader(mesh_data, group.GetInstances(), shader);
-			break;
+			DrawMeshWithShader(mesh_data, group->GetInstances(), shader);
 		}
 	}
 }
 
 template <typename T> void Renderer::DrawReflectGroups(T& shader) {
-	for (auto& group : scene.GetGroupMeshEntities()) {
-		if (group.GetMeshData()->GetLoadStatus() == true && (group.GetShaderType() == MeshShaderMode::REFLECT)) {
-			MeshData* mesh_data = group.GetMeshData();
+	for (auto group : scene.GetGroupMeshEntities()) {
+		if (group->GetMeshData()->GetLoadStatus() == true && (group->GetShaderType() == MeshData::MeshShaderMode::REFLECT)) {
+			MeshData* mesh_data = group->GetMeshData();
 
-			if (group.GetMeshData()->GetIsShared() == true) group.UpdateMeshTransformBuffers();
+			if (group->GetMeshData()->GetIsShared() == true) group->UpdateMeshTransformBuffers();
 
-			DrawMeshWithShader(mesh_data, group.GetInstances(), shader);
-			break;
+			DrawMeshWithShader(mesh_data, group->GetInstances(), shader);
 		}
 	}
 };

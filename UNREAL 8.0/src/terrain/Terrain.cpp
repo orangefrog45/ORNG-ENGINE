@@ -9,10 +9,17 @@ static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
 static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
-Terrain::Terrain() : m_x_width(1000), m_z_width(2000), m_resolution(30.f) {};
+Terrain::Terrain() : m_x_width(1000), m_z_width(1000), m_resolution(3.f) {};
 
-void Terrain::UpdateTerrain(int width_x, int width_z, glm::fvec3 pos, float resolution) {
-	m_terrain_data = TerrainGenerator::GenWavyGrid(m_x_width, m_z_width, pos, m_resolution);
+void Terrain::UpdateTerrain(unsigned int seed, int width_x, int width_z, glm::fvec3 pos, float resolution, float height_scale, float amplitude) {
+	m_x_width = width_x;
+	m_z_width = width_z;
+	m_center_pos = pos;
+	m_resolution = resolution;
+	m_height_scale = height_scale;
+	m_amplitude = amplitude;
+
+	m_terrain_data = TerrainGenerator::GenPerlinNoiseGrid(seed, m_x_width, m_z_width, pos, m_resolution, m_height_scale, m_amplitude);
 
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_position_buffer));
 	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(m_terrain_data.positions[0]) * m_terrain_data.positions.size(), &m_terrain_data.positions[0], GL_STATIC_DRAW));
@@ -46,7 +53,7 @@ void Terrain::Init() {
 	WorldTransform transform;
 	m_transforms.emplace_back(transform.GetMatrix());
 
-	UpdateTerrain(m_x_width, m_z_width, glm::fvec3(0, 0.0f, 0), m_resolution);
+	UpdateTerrain(123, m_x_width, m_z_width, glm::fvec3(0, 0.0f, 0), m_resolution, 10.0f, 10.0f);
 
 	/* Attrib divisor is int max as the grid does not need to be transformed to world coordinates as it is already created in them, placeholder identity matrix
 	inserted for lighting shader compatibility */

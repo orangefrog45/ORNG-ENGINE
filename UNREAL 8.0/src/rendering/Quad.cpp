@@ -3,7 +3,6 @@
 #include "glew.h"
 #include "glfw/glfw3.h"
 #include "util/util.h"
-#include "GLErrorHandling.h"
 
 void Quad::Load() {
 	GLCall(glGenVertexArrays(1, &m_vao));

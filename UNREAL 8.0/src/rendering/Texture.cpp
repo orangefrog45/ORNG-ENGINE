@@ -1,4 +1,3 @@
-#include <iostream>
 #include <stb/stb_image.h>
 #include <string>
 #include "util/util.h"
@@ -112,6 +111,7 @@ unsigned int Texture::LoadCubeMap(std::vector<const char*> faces) {
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, mode, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
 
 		if (image_data == nullptr) {
+			PrintUtils::PrintError("PLACEHOLDER");
 			printf("Can't load texture from '%s' - '%s \n", faces[i], stbi_failure_reason);
 			exit(3);
 		}

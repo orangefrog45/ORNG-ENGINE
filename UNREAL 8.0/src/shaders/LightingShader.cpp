@@ -131,31 +131,31 @@ void LightingShader::SetDirectionLight(const DirectionalLightComponent& light) {
 
 
 
-void LightingShader::SetPointLights(std::vector< PointLightComponent>& p_lights) {
+void LightingShader::SetPointLights(std::vector< PointLightComponent*>& p_lights) {
 
 	glUniform1i(m_num_point_light_loc, p_lights.size());
 	float light_array[RendererData::max_point_lights * point_light_fs_num_float] = { 0 };
 
 	for (int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
 		//0 - START COLOR
-		auto color = p_lights[i / point_light_fs_num_float].GetColor();
+		auto color = p_lights[i / point_light_fs_num_float]->GetColor();
 		light_array[i] = color.x;
 		light_array[i + 1] = color.y;
 		light_array[i + 2] = color.z;
 		light_array[i + 3] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = p_lights[i / point_light_fs_num_float].GetWorldTransform().GetPosition();
+		auto pos = p_lights[i / point_light_fs_num_float]->GetWorldTransform().GetPosition();
 		light_array[i + 4] = pos.x;
 		light_array[i + 5] = pos.y;
 		light_array[i + 6] = pos.z;
 		light_array[i + 7] = 0; //padding
 		//32 - END POS, START INTENSITY
-		light_array[i + 8] = p_lights[i / point_light_fs_num_float].GetAmbientIntensity();
-		light_array[i + 9] = p_lights[i / point_light_fs_num_float].GetDiffuseIntensity();
+		light_array[i + 8] = p_lights[i / point_light_fs_num_float]->GetAmbientIntensity();
+		light_array[i + 9] = p_lights[i / point_light_fs_num_float]->GetDiffuseIntensity();
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 10] = p_lights[i / point_light_fs_num_float].GetMaxDistance();
+		light_array[i + 10] = p_lights[i / point_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
-		auto& atten = p_lights[i / point_light_fs_num_float].GetAttentuation();
+		auto& atten = p_lights[i / point_light_fs_num_float]->GetAttentuation();
 		light_array[i + 11] = atten.constant;
 		light_array[i + 12] = atten.linear;
 		light_array[i + 13] = atten.exp;
@@ -172,31 +172,31 @@ void LightingShader::SetPointLights(std::vector< PointLightComponent>& p_lights)
 
 }
 
-void LightingShader::SetSpotLights(std::vector<SpotLightComponent>& s_lights) {
+void LightingShader::SetSpotLights(std::vector<SpotLightComponent*>& s_lights) {
 	glUniform1i(m_num_spot_light_loc, s_lights.size());
 	float light_array[RendererData::max_spot_lights * spot_light_fs_num_float] = { 0 };
 
 	for (int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
 		//0 - START COLOR
-		auto color = s_lights[i / spot_light_fs_num_float].GetColor();
+		auto color = s_lights[i / spot_light_fs_num_float]->GetColor();
 		light_array[i] = color.x;
 		light_array[i + 1] = color.y;
 		light_array[i + 2] = color.z;
 		light_array[i + 3] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = s_lights[i / spot_light_fs_num_float].GetWorldTransform().GetPosition();
+		auto pos = s_lights[i / spot_light_fs_num_float]->GetWorldTransform().GetPosition();
 		light_array[i + 4] = pos.x;
 		light_array[i + 5] = pos.y;
 		light_array[i + 6] = pos.z;
 		light_array[i + 7] = 0; //padding
 		//32 - END POS, START DIR
-		auto dir = s_lights[i / spot_light_fs_num_float].GetLightDirection();
+		auto dir = s_lights[i / spot_light_fs_num_float]->GetLightDirection();
 		light_array[i + 8] = dir.x;
 		light_array[i + 9] = dir.y;
 		light_array[i + 10] = dir.z;
 		light_array[i + 11] = 0; // padding
 		//48 - END DIR, START LIGHT TRANSFORM MAT
-		glm::fmat4 mat = s_lights[i / spot_light_fs_num_float].GetTransformMatrix();
+		glm::fmat4 mat = s_lights[i / spot_light_fs_num_float]->GetTransformMatrix();
 		light_array[i + 12] = mat[0][0];
 		light_array[i + 13] = mat[0][1];
 		light_array[i + 14] = mat[0][2];
@@ -214,17 +214,17 @@ void LightingShader::SetSpotLights(std::vector<SpotLightComponent>& s_lights) {
 		light_array[i + 26] = mat[3][2];
 		light_array[i + 27] = mat[3][3];
 		//112   - END LIGHT TRANSFORM MAT, START INTENSITY
-		light_array[i + 28] = s_lights[i / spot_light_fs_num_float].GetAmbientIntensity();
-		light_array[i + 29] = s_lights[i / spot_light_fs_num_float].GetDiffuseIntensity();
+		light_array[i + 28] = s_lights[i / spot_light_fs_num_float]->GetAmbientIntensity();
+		light_array[i + 29] = s_lights[i / spot_light_fs_num_float]->GetDiffuseIntensity();
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 30] = s_lights[i / spot_light_fs_num_float].GetMaxDistance();
+		light_array[i + 30] = s_lights[i / spot_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
-		auto& atten = s_lights[i / spot_light_fs_num_float].GetAttentuation();
+		auto& atten = s_lights[i / spot_light_fs_num_float]->GetAttentuation();
 		light_array[i + 31] = atten.constant;
 		light_array[i + 32] = atten.linear;
 		light_array[i + 33] = atten.exp;
 		//52 - END ATTENUATION - START APERTURE
-		light_array[i + 34] = s_lights[i / spot_light_fs_num_float].GetAperture();
+		light_array[i + 34] = s_lights[i / spot_light_fs_num_float]->GetAperture();
 		light_array[i + 35] = 0; //padding
 	}
 

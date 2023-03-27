@@ -1,7 +1,12 @@
+23/3/23:
+-Procedural terrain generation using perlin noise
+-General refactoring, structural changes to codebase
+-Timestep has more functionality, supports different units
+-Switched ECS back to pointer system, easier to work with
+
 26/3/23:
 -Basic non-procedural terrain generation, a few modifiable parameters
 -Added auto-generated mipmaps to textures (this also fixes some black texture bugs)
-
 
 25/3/23:
 -Fixed shadow flickering bug when directional light was moved caused by updating the depth map too late

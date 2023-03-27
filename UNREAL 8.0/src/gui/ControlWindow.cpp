@@ -12,7 +12,15 @@ void ControlWindow::CreateBaseWindow() {
 
 }
 
-void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values, unsigned int depth_map_texture) {
+void ControlWindow::DisplayTerrainConfigControls(TerrainConfigData& config_values) {
+	ImGui::Text("TERRAIN CONTROLS");
+	ImGui::InputInt("Seed", &config_values.seed);
+	ImGui::SliderInt("Resolution", &config_values.resolution, 1, 100);
+	ImGui::SliderFloat("Noise sampling resolution", &config_values.sampling_resolution, 1, 200);
+	ImGui::SliderFloat("Height scale", &config_values.height_scale, -100, 100);
+}
+
+void ControlWindow::DisplayDebugControls(DebugConfigData& config_values, unsigned int depth_map_texture) {
 	ImGui::Text("DEBUG CONTROLS");
 	ImGui::Checkbox("Toggle depth view", &config_values.depth_map_view);
 
@@ -25,18 +33,19 @@ void ControlWindow::DisplayDebugControls(DebugConfigValues& config_values, unsig
 	}
 }
 
-void ControlWindow::DisplayDirectionalLightControls(DirectionalLightConfigValues& config_values) {
+void ControlWindow::DisplayDirectionalLightControls(DirectionalLightData& config_values) {
 
 	ImGui::Text("DIR LIGHT CONTROLS");
 	ImGui::SliderFloat("x-pos", &config_values.light_position.x, -1.0f, 1.0f);
 	ImGui::SliderFloat("y-pos", &config_values.light_position.y, -1.0f, 1.0f);
 	ImGui::SliderFloat("z-pos", &config_values.light_position.z, -1.0f, 1.0f);
-	ImGui::ColorPicker4("color", &config_values.light_color[0]);
-
+	ImGui::SliderFloat("r", &config_values.light_color.x, 0.0f, 1.0f);
+	ImGui::SliderFloat("g", &config_values.light_color.y, 0.0f, 1.0f);
+	ImGui::SliderFloat("b", &config_values.light_color.z, 0.0f, 1.0f);
 }
 
 
-void ControlWindow::DisplayPointLightControls(unsigned int num_lights, LightConfigValues& light_values) {
+void ControlWindow::DisplayPointLightControls(unsigned int num_lights, LightConfigData& light_values) {
 	ImGui::Text("POINTLIGHT CONTROLS");
 	ImGui::SliderFloat("constant", &light_values.atten_constant, 0.0f, 1.0f);
 	ImGui::SliderFloat("linear", &light_values.atten_linear, 0.0f, 1.0f);

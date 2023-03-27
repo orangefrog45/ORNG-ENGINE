@@ -30,9 +30,3 @@ namespace RendererData {
 
 }
 
-
-enum class MeshShaderMode {
-	LIGHTING = 0,
-	FLAT_COLOR = 1,
-	REFLECT = 2
-};

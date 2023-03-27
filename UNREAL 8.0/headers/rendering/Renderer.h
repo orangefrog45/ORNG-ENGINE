@@ -30,10 +30,10 @@ public:
 	void DrawTerrain(const Terrain& terrain);
 	void DrawToQuad();
 	void DrawScene();
+	void DrawShadowMap();
 	template <typename T> void DrawLightingGroups(T& shader);
 	template <typename T> void DrawReflectGroups(T& shader);
-	void DrawShadowMap();
-	LightConfigValues& ActivateLightingControls(LightConfigValues& light_vals);
+	ControlWindow::LightConfigData& ActivateLightingControls(ControlWindow::LightConfigData& light_vals);
 	template <typename T> void DrawMeshWithShader(MeshData* mesh_data, unsigned int t_instances, T& shader) const;
 	Scene scene;
 
@@ -49,7 +49,7 @@ private:
 	GLfloat* pixels = (GLfloat*)malloc(1024 * 1024 * sizeof(GL_FLOAT));
 
 	Texture missing_texture = Texture(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
-	glm::fmat4x4 projectionMatrix = glm::rowMajor4(glm::perspective(45.0f, static_cast<float>(m_window_width) / static_cast<float>(m_window_height), zNear, zFar));
+	glm::fmat4x4 projectionMatrix = glm::perspective(45.0f, static_cast<float>(m_window_width) / static_cast<float>(m_window_height), zNear, zFar);
 	std::shared_ptr<Camera> p_camera = nullptr;
 	Skybox skybox;
 	GridMesh grid_mesh;

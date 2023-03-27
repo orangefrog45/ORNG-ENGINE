@@ -12,8 +12,10 @@ public:
 
 	/*Vertices are viewed top-down on a cartesian coordinate system, x=xaxis, z=yaxis, positive right and up*/
 	struct QuadVertices {
-		TriangleVertices bot_left_triangle;
-		TriangleVertices top_right_triangle;
+		glm::fvec3 vert_1 = glm::fvec3(0, 0, 0); //BL
+		glm::fvec3 vert_2 = glm::fvec3(0, 0, 0); //TL
+		glm::fvec3 vert_3 = glm::fvec3(0, 0, 0); // BR
+		glm::fvec3 vert_4 = glm::fvec3(0, 0, 0); //TR
 	};
 
 	struct TerrainData {
@@ -23,7 +25,8 @@ public:
 	};
 
 	/* Grid centered at 3d point, resolution = quad size */
-	static TerrainData GenWavyGrid(int width_x, int width_z, glm::fvec3 center, int resolution);
+	static TerrainData GenWavyGrid(int width_x, int width_z, glm::fvec3 center, int resolution, float height_range, float amplitude);
+	static TerrainData GenPerlinNoiseGrid(unsigned int seed, int width_x, int width_z, glm::fvec3 center, int resolution, float height_scale, float sampling_resolution);
 	/* Size = width and height */
 
 private:

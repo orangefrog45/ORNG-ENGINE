@@ -48,7 +48,7 @@ void Skybox::Draw(const glm::fmat3& view) {
 	skyboxShader.ActivateProgram();
 	glActiveTexture(RendererData::TextureUnits::COLOR);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-	glUniformMatrix4fv(skyboxShader.GetViewLoc(), 1, GL_TRUE, &glm::fmat4(view)[0][0]);
+	glUniformMatrix4fv(skyboxShader.GetViewLoc(), 1, GL_FALSE, &glm::fmat4(view)[0][0]);
 	glBindVertexArray(skyboxVAO);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindVertexArray(0);

@@ -3,24 +3,7 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <glew.h>
 #include <glfw/glfw3.h>
-#include <stdio.h>
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <glm/gtx/matrix_major_storage.hpp>
-#include <sstream>
-#include <fstream>
-#include <iostream>
-#include <stb/stb_image.h>
-#include <random>
-#include "Camera.h"
-#include "ExtraMath.h"
-#include "WorldTransform.h"
-#include "Texture.h"
 #include "Application.h"
-#include "TimeStep.h"
-#include "util/util.h"
-#include "Renderer.h"
-#include "Skybox.h"
 
 
 
@@ -94,13 +77,15 @@ void Application::Init() {
 		/* Poll for and process events */
 		glfwPollEvents();
 
-		input_handle->HandleInput(window, m_window_width, m_window_height); // handle mouse-locking, caching key states
-		p_camera->HandleInput();
+
+
+		input_handle.HandleInput(window, m_window_width, m_window_height); // handle mouse-locking, caching key states
+		InputHandle::HandleCameraInput(*p_camera, input_handle);
 
 		{ // debug spawn entities
 			static int instances = 0;
 
-			if (input_handle->g_pressed) {
+			if (input_handle.g_down) {
 
 				auto& entity = renderer.scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 				glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(p_camera->GetTarget().x * 15.0f, p_camera->GetTarget().y * 15.0f, p_camera->GetTarget().z * 15.0f));

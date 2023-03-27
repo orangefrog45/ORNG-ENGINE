@@ -114,7 +114,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\extern\perlin;$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -132,7 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\extern\perlin;$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>

@@ -1,12 +1,6 @@
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <stdlib.h>
 #include <glm/gtx/matrix_major_storage.hpp>
-#include <iostream>
 #include <glew.h>
 #include <glfw/glfw3.h>
-#include <future>
 #include <format>
 #include "MeshData.h"
 #include "util/util.h"

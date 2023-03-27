@@ -1,11 +1,9 @@
 #pragma once
-#include <memory>
 #include <vector>
 #include <string>
 #include <future>
 #include "MeshData.h"
 #include "MeshComponent.h"
-#include "util/util.h"
 #include "LightComponent.h"
 #include "MeshInstanceGroup.h"
 #include "terrain/Terrain.h"
@@ -17,7 +15,7 @@ public:
 	Scene();
 	~Scene();
 	void Init();
-	MeshComponent& CreateMeshComponent(const std::string& filename, MeshShaderMode shader_mode = MeshShaderMode::LIGHTING);
+	MeshComponent& CreateMeshComponent(const std::string& filename, MeshData::MeshShaderMode shader_mode = MeshData::MeshShaderMode::LIGHTING);
 	PointLightComponent& CreatePointLight();
 	SpotLightComponent& CreateSpotLight();
 
@@ -31,22 +29,27 @@ public:
 	inline auto& GetGroupMeshEntities() { return m_mesh_instance_groups; };
 	inline Terrain& GetTerrain() { return m_terrain; }
 
+	struct MeshComponentData {
+		MeshComponent* component = nullptr;
+		unsigned int index;
+	};
+
+	/* Performs binary search on mesh component array */
+	MeshComponentData QueryMeshComponent(unsigned int id);
+
 	const int CreateEntityID();
 	void LoadScene();
 	void UnloadScene();
-	void UpdateEntityInstanceGroups();
-	/* check if instance group/mesh component vector requires a resize*/
-	void CheckFitsMemory();
 
 private:
 	MeshData* CreateMeshData(const std::string& filename);
 	BaseLight m_global_ambient_lighting = BaseLight(CreateEntityID());
 	DirectionalLightComponent m_directional_light = DirectionalLightComponent(CreateEntityID());
 	std::vector<std::future<void>> m_futures;
-	std::vector<MeshInstanceGroup> m_mesh_instance_groups;
-	std::vector<MeshComponent> m_mesh_components;
-	std::vector<SpotLightComponent> m_spot_lights;
-	std::vector<PointLightComponent> m_point_lights;
+	std::vector<MeshInstanceGroup*> m_mesh_instance_groups;
+	std::vector<MeshComponent*> m_mesh_components;
+	std::vector<SpotLightComponent*> m_spot_lights;
+	std::vector<PointLightComponent*> m_point_lights;
 	std::vector<MeshData*> m_mesh_data;
 	Terrain m_terrain;
 	int m_last_entity_id = -1; // Last ID assigned to a newly created entity

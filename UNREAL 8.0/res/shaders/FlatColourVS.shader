@@ -4,7 +4,7 @@ const unsigned int MATRICES_BINDING = 0;
 
 layout(location = 0) in vec3 pos;
 
-layout(row_major, std140, binding = 0) uniform Matrices{
+layout(std140, binding = 0) uniform Matrices{
 	mat4 projection; //base=16, aligned=0-64
 	mat4 view; //base=16, aligned=64-128
 } PVMatrices;

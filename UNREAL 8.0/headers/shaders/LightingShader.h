@@ -12,8 +12,8 @@ public:
 	void SetViewPos(const glm::fvec3& pos);
 	void SetAmbientLight(const BaseLight& light);
 	void SetBaseColor(const glm::fvec3& color);
-	void SetPointLights(std::vector< PointLightComponent>& p_lights);
-	void SetSpotLights(std::vector<SpotLightComponent>& s_lights);
+	void SetPointLights(std::vector< PointLightComponent*>& p_lights);
+	void SetSpotLights(std::vector<SpotLightComponent*>& s_lights);
 	void SetDiffuseTextureUnit(unsigned int unit);
 	void SetSpecularTextureUnit(unsigned int unit);
 	void SetDirDepthMapTexUnit(unsigned int unit);

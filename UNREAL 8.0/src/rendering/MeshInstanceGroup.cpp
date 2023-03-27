@@ -1,5 +1,4 @@
 #include "MeshInstanceGroup.h"
-#include "util/util.h"
 
 void MeshInstanceGroup::ValidateTransformPtrs() {
 	for (unsigned int i = 0; i < m_transforms.size(); i++) {
