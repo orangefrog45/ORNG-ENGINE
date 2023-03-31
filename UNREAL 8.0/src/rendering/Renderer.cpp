@@ -1,50 +1,47 @@
-#include <iostream>
 #include <glm/gtx/matrix_major_storage.hpp>
 #include <glm/gtx/transform.hpp>
-#include <format>
 #include <GLErrorHandling.h>
 #include "Renderer.h"
 #include "ExtraMath.h"
-#include "RendererData.h"
-
+#include "Log.h"
 
 void Renderer::Init() {
-	double time_start = glfwGetTime();
+	TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 
-	shaderLibrary.Init();
+	shader_library.Init();
 	framebuffer_library.Init();
 	grid_mesh.Init();
-	skybox.Init();
+	m_resources.Init();
+	m_active_camera = &scene.m_camera;
 	render_quad.Load();
-	missing_texture.Load();
-
 	auto& cube = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
-	//auto& orange4 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshShaderMode::LIGHTING);
+	auto& orange4 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj");
 	auto& cube2 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 	auto& cube3 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
-	auto& orange2 = scene.CreateMeshComponent("./res/meshes/oranges/orange.obj", MeshData::MeshShaderMode::REFLECT);
 	auto& cube4 = scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
 	auto& orange = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshData::MeshShaderMode::REFLECT);
 	auto& orange3 = scene.CreateMeshComponent("./res/meshes/light meshes/cone.obj", MeshData::MeshShaderMode::REFLECT);
-	auto orange_ref = scene.QueryMeshComponent(orange2.GetID()).component;
+	auto& tank = scene.CreateMeshComponent("./res/meshes/tank/SM_TankBase_Internal.OBJ");
+	auto& tankturret = scene.CreateMeshComponent("./res/meshes/tank/SM_TankTurret_Internal.OBJ");
+
+	tank.SetPosition(0, 10.0, 0.0);
+	tankturret.SetPosition(0, 10.0, 0.0);
 	orange.SetPosition(0.0f, 7.0f, 0.0f);
 	orange3.SetPosition(2.0f, 7.0f, 0.0f);
-	orange2.SetScale(1.0f, 1.0f, 1.0f);
-	orange_ref->SetScale(10, 10, 1);
 	cube2.SetPosition(50.0f, 10.0f, 0.0f);
-	cube3.SetScale(50.0f, 1.0f, 50.0f);
+	cube3.SetScale(10.0f, 10.0f, 10.0f);
 	cube3.SetRotation(0.0f, 0.0f, 0.0f);
 	cube4.SetPosition(0.0f, 3.0f, 10.0f);
 	cube4.SetScale(3.0f, 3.0f, 3.0f);
 	cube4.SetRotation(0.0f, 45.0f, 0.0f);
 	cube.SetPosition(0.0f, 0.0f, -25.0f);
 	cube.SetRotation(0.0f, 0.0f, 0.0f);
+	auto& pl2 = scene.CreatePointLight();
+	auto& pl = scene.CreatePointLight();
 	auto& sl = scene.CreateSpotLight();
 	auto& sl2 = scene.CreateSpotLight();
 	auto& sl3 = scene.CreateSpotLight();
 	auto& sl4 = scene.CreateSpotLight();
-	auto& pl2 = scene.CreatePointLight();
-	auto& pl = scene.CreatePointLight();
 
 	pl.SetPosition(20.0f, 3.0f, 10.0f);
 	pl.SetColor(1.0f, 0.0f, 0.0f);
@@ -66,7 +63,7 @@ void Renderer::Init() {
 	sl.SetLightDirection(0.0f, 0.0f, -1.0f);
 	scene.LoadScene();
 
-	PrintUtils::PrintSuccess(std::format("Renderer initialized in {}ms", PrintUtils::RoundDouble((glfwGetTime() - time_start) * 1000)));
+	ORO_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
 }
 
 void Renderer::RenderWindow() {
@@ -76,27 +73,41 @@ void Renderer::RenderWindow() {
 	static ControlWindow::SceneData scene_debug_data;
 	static ControlWindow::TerrainConfigData terrain_data;
 	static ControlWindow::TerrainConfigData saved_terrain_data;
+
+	/* Update UBO's immediately to stop out-of-sync draws */
+	glm::fmat4 cam_mat = m_active_camera->GetViewMatrix();
+	glm::fmat4 proj_mat = m_active_camera->GetProjectionMatrix();
+	shader_library.SetMatrixUBOs(proj_mat, cam_mat);
+
 	//SHADOW MAP PASS
-	scene.GetDirectionalLight().SetLightDirection(dir_light_vals.light_position);
+	scene.GetDirectionalLight().SetLightDirection(dir_light_vals.light_position, m_active_camera->GetPos());
 	scene.GetDirectionalLight().SetColor(dir_light_vals.light_color.x, dir_light_vals.light_color.y, dir_light_vals.light_color.z);
 	DrawShadowMap();
 
+	//GBUFFER PASS
+	glClearColor(10000, 10000, 10000, 10000);
+	framebuffer_library.deferred_fb.BindForDraw();
+	shader_library.g_buffer_shader.ActivateProgram();
+	glClearColor(0, 0, 0, 0);
+	DrawLightingGroups(shader_library.g_buffer_shader);
+	DrawReflectGroups(shader_library.g_buffer_shader);
+	DrawTerrain(scene.m_terrain);
+
 	//MAIN DRAW
-	DrawScene();
+	RenderScene();
 
 	//DRAW TO QUAD
-	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-	shaderLibrary.basic_sampler_shader.ActivateProgram();
-
-	glActiveTexture(RendererData::TextureUnits::COLOR);
-	glBindTexture(GL_TEXTURE_2D, framebuffer_library.main_view_framebuffer.GetTexture());
-	glActiveTexture(RendererData::TextureUnits::POINT_SHADOW_MAP);
-	shaderLibrary.basic_sampler_shader.SetTransform(render_quad.GetTransform().GetMatrix());
+	glClear(GL_COLOR_BUFFER_BIT);
+	shader_library.basic_sampler_shader.ActivateProgram();
+	RendererResources::BindTexture(GL_TEXTURE_2D, framebuffer_library.main_view_framebuffer.GetTexture(), RendererResources::TextureUnits::COLOR);
+	RendererResources::BindTexture(GL_TEXTURE_2D, framebuffer_library.main_view_framebuffer.GetDepthTexture(), RendererResources::TextureUnits::DIR_SHADOW_MAP);
+	shader_library.basic_sampler_shader.SetCameraPos(m_active_camera->GetPos());
+	shader_library.basic_sampler_shader.SetCameraDir(m_active_camera->GetTarget());
+	shader_library.basic_sampler_shader.SetTransform(render_quad.GetTransform().GetMatrix());
 	render_quad.Draw();
 
 	glEnable(GL_DEPTH_TEST);
-
 	unsigned int total_vertices = 0;
 	unsigned int total_lights = 0;
 
@@ -107,11 +118,13 @@ void Renderer::RenderWindow() {
 		total_vertices += group->GetInstances() * group->GetMeshData()->GetIndicesCount();
 	}
 
+	total_vertices += scene.m_terrain.m_terrain_data.positions.size();
+
 	scene_debug_data.total_vertices = total_vertices;
 	scene_debug_data.num_lights = total_lights;
 	if (!(saved_terrain_data == terrain_data)) {
 		saved_terrain_data = terrain_data;
-		scene.GetTerrain().UpdateTerrain(terrain_data.seed, 1000.0f, 1000.0f, glm::fvec3(0, 0, 0), terrain_data.resolution, terrain_data.height_scale, terrain_data.sampling_resolution);
+		scene.GetTerrain().UpdateTerrain(terrain_data.seed, 1000.0f, 1000.0f, glm::fvec3(0, -20, 0), terrain_data.resolution, terrain_data.height_scale, terrain_data.sampling_density);
 	}
 
 	ControlWindow::CreateBaseWindow();
@@ -123,32 +136,39 @@ void Renderer::RenderWindow() {
 	ControlWindow::Render();
 
 }
-void Renderer::DrawToQuad() {
 
+void Renderer::RenderSkybox(Skybox& skybox) {
+	glDepthMask(GL_FALSE);
+	glDepthFunc(GL_LEQUAL);
+
+	shader_library.skybox_shader.ActivateProgram();
+	RendererResources::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.cubemap_texture.m_texture_obj, RendererResources::TextureUnits::COLOR);
+
+	glBindVertexArray(skybox.m_vao);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+
+	glDepthFunc(GL_LESS);
+	glDepthMask(GL_TRUE);
 }
 
-void Renderer::DrawScene() {
-	glViewport(0, 0, m_window_width, m_window_height);
+void Renderer::RenderScene() {
+	glViewport(0, 0, RendererResources::GetWindowWidth(), RendererResources::GetWindowHeight());
 
-	shaderLibrary.reflection_shader.ActivateProgram();
+	shader_library.reflection_shader.ActivateProgram();
 	framebuffer_library.main_view_framebuffer.Bind();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glActiveTexture(RendererData::TextureUnits::DIR_SHADOW_MAP);
-	glBindTexture(GL_TEXTURE_2D, framebuffer_library.dir_depth_fb.GetDepthMap());
 
-	glActiveTexture(RendererData::TextureUnits::SPOT_SHADOW_MAP);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, framebuffer_library.spotlight_depth_fb.GetDepthMap());
+	RendererResources::BindTexture(GL_TEXTURE_2D, framebuffer_library.dir_depth_fb.GetDepthMap(), RendererResources::TextureUnits::DIR_SHADOW_MAP);
+	RendererResources::BindTexture(GL_TEXTURE_2D, framebuffer_library.spotlight_depth_fb.GetDepthMap(), RendererResources::TextureUnits::SPOT_SHADOW_MAP);
 
 	RenderLightMeshVisuals();
 	RenderLightingEntities();
 	RenderReflectShaderEntities();
 
-	glActiveTexture(RendererData::TextureUnits::COLOR);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetCubeMapTexture());
-	skybox.Draw(glm::mat3(p_camera->GetMatrix()));
-
-	DrawGrid();
+	RenderSkybox(scene.m_skybox);
+	RenderGrid();
 
 	framebuffer_library.UnbindAllFramebuffers();
 }
@@ -165,46 +185,49 @@ void Renderer::DrawTerrain(const Terrain& terrain) {
 
 void Renderer::DrawShadowMap() {
 	//BIND FOR DRAW
-	shaderLibrary.depth_shader.ActivateProgram();
+	shader_library.depth_shader.ActivateProgram();
 
 	//DIRECTIONAL LIGHT
 	framebuffer_library.dir_depth_fb.BindForDraw();
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	shaderLibrary.depth_shader.SetPVMatrix(scene.GetDirectionalLight().GetTransformMatrix());
-	DrawLightingGroups(shaderLibrary.depth_shader);
-	DrawReflectGroups(shaderLibrary.depth_shader);
+	shader_library.depth_shader.SetPVMatrix(scene.GetDirectionalLight().GetTransformMatrix());
+	DrawLightingGroups(shader_library.depth_shader);
+	DrawReflectGroups(shader_library.depth_shader);
+	DrawTerrain(scene.m_terrain);
 
 	//SPOT LIGHTS
 	framebuffer_library.spotlight_depth_fb.BindForDraw();
-
 	auto& lights = scene.GetSpotLights();
+
 	for (unsigned int i = 0; i < lights.size(); i++) {
 
 		framebuffer_library.spotlight_depth_fb.SetDepthTexLayer(i); // index 0 = directional light depth map
+		shader_library.depth_shader.SetPVMatrix(lights[i]->GetTransformMatrix());
 		glClear(GL_DEPTH_BUFFER_BIT);
 
-		shaderLibrary.depth_shader.SetPVMatrix(lights[i]->GetTransformMatrix());
-		DrawLightingGroups(shaderLibrary.depth_shader);
-		DrawReflectGroups(shaderLibrary.depth_shader);
+		DrawLightingGroups(shader_library.depth_shader);
+		DrawReflectGroups(shader_library.depth_shader);
+		DrawTerrain(scene.m_terrain);
 	}
+
 	//POINT LIGHTS
-	/*shaderLibrary.cube_map_shadow_shader.ActivateProgram();
+	/*shader_library.cube_map_shadow_shader.ActivateProgram();
 	framebuffer_library.pointlight_depth_fb.BindForDraw();
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	glClearColor(0.2f, 0.5f, FLT_MAX, FLT_MAX);
 	auto& point_lights = scene.GetPointLights();
 	for (int i = 0; i < point_lights.size(); i++) {
-		shaderLibrary.cube_map_shadow_shader.SetLightPos(point_lights[i].GetWorldTransform().GetPosition());
+		shader_library.cube_map_shadow_shader.SetLightPos(point_lights[i].GetWorldTransform().GetPosition());
 		for (int y = 0; y < 6; y++) {
 			framebuffer_library.pointlight_depth_fb.BindForDraw();
 			framebuffer_library.pointlight_depth_fb.SetCubemapFace(i, y);
 			GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-			shaderLibrary.cube_map_shadow_shader.SetPVMatrix(point_lights[i].GetLightTransforms()[y]);
-			DrawLightingGroups(shaderLibrary.cube_map_shadow_shader);
-			DrawReflectGroups(shaderLibrary.cube_map_shadow_shader);
+			shader_library.cube_map_shadow_shader.SetPVMatrix(point_lights[i].GetLightTransforms()[y]);
+			DrawLightingGroups(shader_library.cube_map_shadow_shader);
+			DrawReflectGroups(shader_library.cube_map_shadow_shader);
 			glReadPixels(0, 0, 1024, 1024, GL_RED, GL_FLOAT, pixels);
 
 			PrintUtils::PrintDebug(std::to_string(pixels[20000]));
@@ -231,58 +254,52 @@ ControlWindow::LightConfigData& Renderer::ActivateLightingControls(ControlWindow
 
 
 void Renderer::RenderLightMeshVisuals() {
-	shaderLibrary.flat_color_shader.ActivateProgram();
+	shader_library.flat_color_shader.ActivateProgram();
 	for (const auto& light : scene.GetPointLights()) {
 		glm::fvec3 light_color = light->GetColor();
-		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
-		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
-		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
+		shader_library.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
+		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shader_library.flat_color_shader);
 	}
 
 	for (const auto& light : scene.GetSpotLights()) {
 		glm::fvec3 light_color = light->GetColor();
-		shaderLibrary.flat_color_shader.SetWorldTransform(light->GetMeshVisual()->GetWorldTransform()->GetMatrix());
-		shaderLibrary.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
-		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shaderLibrary.flat_color_shader);
+		shader_library.flat_color_shader.SetColor(light_color.x, light_color.y, light_color.z);
+		DrawMeshWithShader(light->GetMeshVisual()->GetMeshData(), 1, shader_library.flat_color_shader);
 	}
 }
 
 void Renderer::RenderReflectShaderEntities() {
-
-	shaderLibrary.reflection_shader.ActivateProgram();
-	shaderLibrary.reflection_shader.SetCameraPos(p_camera->GetPos());
-	glActiveTexture(RendererData::TextureUnits::COLOR);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetCubeMapTexture());
-
-	DrawReflectGroups(shaderLibrary.reflection_shader);
+	shader_library.reflection_shader.ActivateProgram();
+	shader_library.reflection_shader.SetCameraPos(m_active_camera->GetPos());
+	RendererResources::BindTexture(GL_TEXTURE_CUBE_MAP, scene.m_skybox.GetCubeMapTexture().GetTextureRef(), RendererResources::TextureUnits::COLOR);
+	DrawReflectGroups(shader_library.reflection_shader);
 }
 
 
 void Renderer::RenderLightingEntities() {
 
-	shaderLibrary.lighting_shader.ActivateProgram();
-	auto cam_mat = p_camera->GetMatrix();
+	shader_library.lighting_shader.ActivateProgram();
 
-	shaderLibrary.lighting_shader.SetPointLights(scene.GetPointLights());
-	shaderLibrary.lighting_shader.SetSpotLights(scene.GetSpotLights());
-	shaderLibrary.lighting_shader.SetAmbientLight(scene.GetAmbientLighting());
-	shaderLibrary.lighting_shader.SetDirectionLight(scene.GetDirectionalLight());
-	shaderLibrary.lighting_shader.SetViewPos(p_camera->GetPos());
-	shaderLibrary.lighting_shader.SetMatrixUBOs(projectionMatrix, cam_mat);
-	shaderLibrary.lighting_shader.SetLightSpaceMatrix(scene.GetDirectionalLight().GetTransformMatrix());
+	shader_library.lighting_shader.SetPointLights(scene.GetPointLights());
+	shader_library.lighting_shader.SetSpotLights(scene.GetSpotLights());
+	shader_library.lighting_shader.SetAmbientLight(scene.GetAmbientLighting());
+	shader_library.lighting_shader.SetDirectionLight(scene.GetDirectionalLight());
+	shader_library.lighting_shader.SetViewPos(m_active_camera->GetPos());
+	shader_library.lighting_shader.SetLightSpaceMatrix(scene.GetDirectionalLight().GetTransformMatrix());
 
-	DrawLightingGroups(shaderLibrary.lighting_shader);
+	DrawLightingGroups(shader_library.lighting_shader);
 
-	scene.m_terrain.m_terrain_top_mat.diffuse_texture->Bind(RendererData::TextureUnits::COLOR);
-	shaderLibrary.lighting_shader.SetMaterial(scene.m_terrain.m_terrain_top_mat);
+	RendererResources::BindTexture(GL_TEXTURE_2D, scene.m_terrain.m_terrain_top_mat.diffuse_texture->GetTextureRef(), RendererResources::TextureUnits::COLOR);
+
+	shader_library.lighting_shader.SetMaterial(scene.m_terrain.m_terrain_top_mat);
 	DrawTerrain(scene.GetTerrain());
 
 }
 
-void Renderer::DrawGrid() {
-	shaderLibrary.grid_shader.ActivateProgram();
-	shaderLibrary.grid_shader.SetCameraPos(p_camera->GetPos());
-	grid_mesh.CheckBoundary(p_camera->GetPos());
+void Renderer::RenderGrid() {
+	shader_library.grid_shader.ActivateProgram();
+	shader_library.grid_shader.SetCameraPos(m_active_camera->GetPos());
+	grid_mesh.CheckBoundary(m_active_camera->GetPos());
 	grid_mesh.Draw();
 }
 
@@ -317,17 +334,6 @@ template <typename T> void Renderer::DrawMeshWithShader(MeshData* mesh_data, uns
 
 		unsigned int materialIndex = mesh_data->m_meshes[i].materialIndex;
 
-		if (mesh_data->m_materials[materialIndex].specular_texture != nullptr) {
-			mesh_data->m_materials[materialIndex].specular_texture->Bind(RendererData::TextureUnits::SPECULAR);
-		}
-
-		if (mesh_data->m_materials[materialIndex].diffuse_texture != nullptr) {
-			mesh_data->m_materials[materialIndex].diffuse_texture->Bind(RendererData::TextureUnits::COLOR);
-		}
-		else {
-			missing_texture.Bind(RendererData::TextureUnits::COLOR);
-		}
-
 		shader.SetMaterial(mesh_data->m_materials[materialIndex]);
 
 		GLCall(glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
@@ -338,6 +344,6 @@ template <typename T> void Renderer::DrawMeshWithShader(MeshData* mesh_data, uns
 			mesh_data->m_meshes[i].baseVertex));
 
 	}
-	GLCall(glBindVertexArray(0))
+	GLCall(glBindVertexArray(0));
 }
 

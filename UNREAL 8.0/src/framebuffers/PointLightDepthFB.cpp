@@ -3,16 +3,16 @@
 #include "util/util.h"
 #include <glew.h>
 #include <glfw/glfw3.h>
-#include "RendererData.h"
+#include "RendererResources.h"
 
 
-void PointLightDepthFB::Init() {
+bool PointLightDepthFB::Init() {
 	GLCall(glGenFramebuffers(1, &m_fbo));
 
 
 	GLCall(glGenTextures(1, &m_depth_map_texture_array));
 	GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_depth_map_texture_array));
-	GLCall(glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 1, GL_R32F, m_depth_tex_width, m_depth_tex_height, RendererData::max_point_lights * 6));
+	GLCall(glTexStorage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 1, GL_R32F, m_depth_tex_width, m_depth_tex_height, RendererResources::max_point_lights * 6));
 	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -27,18 +27,15 @@ void PointLightDepthFB::Init() {
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, m_fbo));
 	GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo));
 
-	//glDrawBuffer(GL_NONE);
-	//glReadBuffer(GL_NONE);
 	GLCall(glBindRenderbuffer(GL_RENDERBUFFER, 0));
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 	if (GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
-		PrintUtils::PrintSuccess("POINTLIGHT SHADOW FRAMEBUFFER GENERATED");
+		return true;
 	}
 	else {
-		PrintUtils::PrintError("POINTLIGHT SHADOW FRAMEBUFFER GENERATION FAILED");
-		ASSERT(false);
+		return false;
 	}
 }
 

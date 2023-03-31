@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+UNREAL*8.0/res/textures
+UNREAL*8.0/res/meshes
+
+
+
 # User-specific files
 *.rsuser
 *.suo

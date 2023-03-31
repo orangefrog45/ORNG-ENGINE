@@ -1,19 +1,22 @@
 #include <glew.h>
-#include <format>
 #include <glfw/glfw3.h>
+#include <numeric>
+#include "TimeStep.h"
 #include "Scene.h"
 #include "util/util.h"
-
+#include "RendererResources.h"
+#include "Log.h"
 Scene::~Scene() {
 	UnloadScene();
 }
 
 Scene::Scene() {
-	m_spot_lights.reserve(RendererData::max_spot_lights);
-	m_point_lights.reserve(RendererData::max_point_lights);
+	m_spot_lights.reserve(RendererResources::max_spot_lights);
+	m_point_lights.reserve(RendererResources::max_point_lights);
 	m_mesh_instance_groups.reserve(20);
 	m_mesh_components.reserve(100);
 }
+
 
 void Scene::DeleteMeshComponent(unsigned int entity_id) {
 	MeshComponentData data = QueryMeshComponent(entity_id);
@@ -29,24 +32,24 @@ void Scene::DeleteMeshComponent(MeshComponent* ptr) {
 	unsigned int index = QueryMeshComponent(ptr->GetID()).index;
 	auto group = ptr->GetInstanceGroup();
 	delete ptr;
-	ptr->GetInstanceGroup()->ValidateTransformPtrs();
+	group->ValidateTransformPtrs();
 	m_mesh_components.erase(m_mesh_components.begin() + index);
 }
 
 Scene::MeshComponentData Scene::QueryMeshComponent(unsigned int id) {
 	MeshComponentData data;
-	size_t index = (m_mesh_components.size() - 1) / 2;;
-	int low = 0;
-	int high = m_mesh_components.size() - 1;
+	size_t index = (m_mesh_components.size() - 1) / 2;
+	size_t low = 0;
+	size_t high = m_mesh_components.size() - 1;
 
 	while (m_mesh_components[index]->GetID() != id) {
 		if (m_mesh_components[index]->GetID() < id) {
 			low = index + 1;
-			index = (high + low) / 2;
+			index = std::midpoint(low, high);
 		}
 		else if (m_mesh_components[index]->GetID() > id) {
 			high = index - 1;
-			index = (high + low) / 2;
+			index = std::midpoint(low, high);
 		}
 	}
 
@@ -59,8 +62,8 @@ Scene::MeshComponentData Scene::QueryMeshComponent(unsigned int id) {
 
 
 void Scene::LoadScene() {
-	double time_start = glfwGetTime();
-
+	TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
+	m_skybox.Init();
 	m_terrain.Init();
 
 	for (auto& mesh : m_mesh_data) {
@@ -77,12 +80,12 @@ void Scene::LoadScene() {
 			group->InitializeTransformBuffers();
 		}
 	}
-	PrintUtils::PrintSuccess(std::format("Scene loaded in {}ms", PrintUtils::RoundDouble((glfwGetTime() - time_start) * 1000)));
+	ORO_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 }
 
 
 void Scene::UnloadScene() {
-	PrintUtils::PrintDebug("Unloading scene");
+	ORO_CORE_TRACE("Unloading scene");
 	for (MeshData* mesh_data : m_mesh_data) {
 		delete mesh_data;
 	}
@@ -99,14 +102,14 @@ void Scene::UnloadScene() {
 		delete light;
 	}
 
-	PrintUtils::PrintSuccess("Scene unloaded");
+	ORO_CORE_TRACE("Scene unloaded");
 }
 
 
 PointLightComponent& Scene::CreatePointLight() {
 	PointLightComponent* light = nullptr;
 	if (m_point_lights.size() + 1 > m_point_lights.capacity()) {
-		PrintUtils::PrintError("CANNOT CREATE POINTLIGHT, LIMIT EXCEEDED");
+		ORO_CORE_ERROR("Cannot create pointlight, limit of {0} exceeded", RendererResources::max_point_lights);
 	}
 	else {
 		light = new PointLightComponent(CreateEntityID());
@@ -121,7 +124,7 @@ PointLightComponent& Scene::CreatePointLight() {
 SpotLightComponent& Scene::CreateSpotLight() {
 	SpotLightComponent* light = nullptr;
 	if (m_spot_lights.size() + 1 > m_spot_lights.capacity()) {
-		PrintUtils::PrintError("CANNOT CREATE SPOTLIGHT, LIMIT EXCEEDED");
+		ORO_CORE_ERROR("Cannot create spotlight, limit of {0} exceeded", RendererResources::max_spot_lights);
 	}
 	else {
 		light = new SpotLightComponent(CreateEntityID());
@@ -159,7 +162,7 @@ MeshComponent& Scene::CreateMeshComponent(const std::string& filename, MeshData:
 	MeshComponent* mesh_component = nullptr;
 
 	if (group_index != -1) { // if instance group exists, merge
-		PrintUtils::PrintDebug("Instance group found for entity: " + filename);
+		ORO_CORE_TRACE("Instance group found for entity: {0}", filename);
 
 		//place mesh component in existing instance group
 		mesh_component = new MeshComponent(m_mesh_instance_groups[group_index]->GetMeshData(), m_mesh_instance_groups[group_index], CreateEntityID(), shader_mode);
@@ -168,7 +171,7 @@ MeshComponent& Scene::CreateMeshComponent(const std::string& filename, MeshData:
 
 	}
 	else if (mesh_data_index != -1) { //else if instance group doesn't exist but mesh data exists, create group with existing data
-		PrintUtils::PrintDebug("Mesh data found for entity: " + filename);
+		ORO_CORE_TRACE("Mesh data found for entity: {0}", filename);
 
 		auto group = new MeshInstanceGroup(m_mesh_data[mesh_data_index], shader_mode);
 		m_mesh_instance_groups.push_back(group);
@@ -177,7 +180,8 @@ MeshComponent& Scene::CreateMeshComponent(const std::string& filename, MeshData:
 		group->AddTransformPtr(mesh_component->GetWorldTransform());
 	}
 	else { // no instance group, no mesh data -  create mesh data and instance group
-		PrintUtils::PrintDebug("Mesh data not found, creating for entity: " + filename);
+
+		ORO_CORE_TRACE("Mesh data not found, creating for entity: {0}", filename);
 
 		MeshData* mesh_data = CreateMeshData(filename); // create mesh data
 		auto group = new MeshInstanceGroup(mesh_data, shader_mode);
@@ -194,7 +198,7 @@ MeshComponent& Scene::CreateMeshComponent(const std::string& filename, MeshData:
 MeshData* Scene::CreateMeshData(const std::string& filename) {
 	for (auto mesh_data : m_mesh_data) {
 		if (mesh_data->GetFilename() == filename) {
-			PrintUtils::PrintError("MESH DATA ALREADY LOADED IN EXISTING INSTANCE GROUP: " + filename);
+			ORO_CORE_TRACE("Mesh data already loaded in existing instance group: {0}", filename);
 			return mesh_data;
 		}
 	}

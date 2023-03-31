@@ -114,13 +114,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\extern\perlin;$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\extern\spdlog\include\;$(SolutionDir)UNREAL 8.0\headers\util;$(SolutionDir)UNREAL 8.0\extern\perlin;$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\spdlog;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;glew32.lib;assimp-vc143-mtd.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -132,7 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\extern\perlin;$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)UNREAL 8.0\extern\spdlog\include\;$(SolutionDir)UNREAL 8.0\headers\util;$(SolutionDir)UNREAL 8.0\extern\perlin;$(SolutionDir)UNREAL 8.0\Include;$(SolutionDir)UNREAL 8.0\headers\terrain;$(SolutionDir)UNREAL 8.0\headers;$(SolutionDir)UNREAL 8.0\headers\rendering;$(SolutionDir)UNREAL 8.0\headers\framebuffers;$(SolutionDir)UNREAL 8.0\headers\components;$(SolutionDir)UNREAL 8.0\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -140,8 +140,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;glew32.lib;assimp-vc143-mt.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
+      <AdditionalDependencies>spdlog.lib;glfw3.lib;glew32.lib;assimp-vc143-mt.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\spdlog;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -151,11 +151,14 @@
     <ClCompile Include="Include\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="Include\imgui\imgui_tables.cpp" />
     <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\framebuffers\MainViewFramebuffer.cpp" />
+    <ClCompile Include="src\framebuffers\DeferredFB.cpp" />
+    <ClCompile Include="src\framebuffers\FramebufferLibrary.cpp" />
+    <ClCompile Include="src\framebuffers\MainViewFB.cpp" />
     <ClCompile Include="src\framebuffers\DirLightDepthFB.cpp" />
     <ClCompile Include="src\framebuffers\PointLightDepthFB.cpp" />
     <ClCompile Include="src\framebuffers\SpotLightDepthFB.cpp" />
     <ClCompile Include="src\gui\ControlWindow.cpp" />
+    <ClCompile Include="src\RendererResources.cpp" />
     <ClCompile Include="src\rendering\MeshData.cpp" />
     <ClCompile Include="src\GridMesh.cpp" />
     <ClCompile Include="src\rendering\MeshInstanceGroup.cpp" />
@@ -163,6 +166,7 @@
     <ClCompile Include="src\components\MeshComponent.cpp" />
     <ClCompile Include="src\rendering\Quad.cpp" />
     <ClCompile Include="src\rendering\Scene.cpp" />
+    <ClCompile Include="src\rendering\TextureCubemap.cpp" />
     <ClCompile Include="src\shaders\BasicSampler.cpp" />
     <ClCompile Include="src\shaders\CubemapShadowshader.cpp" />
     <ClCompile Include="src\shaders\DepthShader.cpp" />
@@ -180,16 +184,16 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\rendering\Renderer.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
-    <ClCompile Include="src\ShaderLibrary.cpp" />
+    <ClCompile Include="src\shaders\ShaderLibrary.cpp" />
     <ClCompile Include="src\shaders\LightingShader.cpp" />
     <ClCompile Include="src\shaders\SkyboxShader.cpp" />
     <ClCompile Include="src\Skybox.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
-    <ClCompile Include="src\rendering\Texture.cpp" />
+    <ClCompile Include="src\rendering\Texture2D.cpp" />
     <ClCompile Include="src\terrain\Terrain.cpp" />
     <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\TimeStep.cpp" />
-    <ClCompile Include="src\util\util.cpp" />
+    <ClCompile Include="src\util\Log.cpp" />
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -201,6 +205,8 @@
     <None Include="res\shaders\DepthVS.shader" />
     <None Include="res\shaders\FlatColourFS.shader" />
     <None Include="res\shaders\FlatColourVS.shader" />
+    <None Include="res\shaders\GBufferFS.shader" />
+    <None Include="res\shaders\GBufferVS.shader" />
     <None Include="res\shaders\GridFS.shader" />
     <None Include="res\shaders\GridVS.shader" />
     <None Include="res\shaders\ReflectionFS.shader" />
@@ -211,43 +217,48 @@
     <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="headers\framebuffers\DeferredFB.h" />
     <ClInclude Include="headers\framebuffers\DirLightDepthFB.h" />
     <ClInclude Include="headers\framebuffers\MainViewFB.h" />
     <ClInclude Include="headers\framebuffers\PointLightDepthFB.h" />
     <ClInclude Include="headers\framebuffers\SpotLightDepthFB.h" />
     <ClInclude Include="headers\gui\ControlWindow.h" />
     <ClInclude Include="headers\components\MeshData.h" />
-    <ClInclude Include="headers\Camera.h" />
+    <ClInclude Include="headers\rendering\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
     <ClInclude Include="headers\GLErrorHandling.h" />
     <ClInclude Include="headers\GridMesh.h" />
     <ClInclude Include="headers\InputHandle.h" />
     <ClInclude Include="headers\Application.h" />
-    <ClInclude Include="headers\Material.h" />
+    <ClInclude Include="headers\rendering\TextureBase.h" />
+    <ClInclude Include="headers\rendering\TextureCubemap.h" />
+    <ClInclude Include="headers\rendering\Material.h" />
     <ClInclude Include="headers\components\SceneEntity.h" />
     <ClInclude Include="headers\rendering\MeshInstanceGroup.h" />
-    <ClInclude Include="headers\rendering\FramebufferLibrary.h" />
+    <ClInclude Include="headers\framebuffers\FramebufferLibrary.h" />
     <ClInclude Include="headers\components\MeshComponent.h" />
     <ClInclude Include="headers\components\LightComponent.h" />
     <ClInclude Include="headers\rendering\Quad.h" />
     <ClInclude Include="headers\rendering\Renderer.h" />
-    <ClInclude Include="headers\rendering\RendererData.h" />
     <ClInclude Include="headers\rendering\Scene.h" />
+    <ClInclude Include="headers\rendering\RendererResources.h" />
     <ClInclude Include="headers\shaders\BasicSampler.h" />
     <ClInclude Include="headers\shaders\CubemapShadowShader.h" />
+    <ClInclude Include="headers\shaders\GBufferShader.h" />
     <ClInclude Include="headers\shaders\ReflectionShader.h" />
     <ClInclude Include="headers\shaders\Shader.h" />
-    <ClInclude Include="headers\rendering\ShaderLibrary.h" />
+    <ClInclude Include="headers\shaders\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\DepthShader.h" />
     <ClInclude Include="headers\shaders\FlatColourShader.h" />
     <ClInclude Include="headers\shaders\GridShader.h" />
     <ClInclude Include="headers\shaders\LightingShader.h" />
     <ClInclude Include="headers\shaders\SkyboxShader.h" />
-    <ClInclude Include="headers\Skybox.h" />
+    <ClInclude Include="headers\rendering\Skybox.h" />
     <ClInclude Include="headers\terrain\Terrain.h" />
     <ClInclude Include="headers\terrain\TerrainGenerator.h" />
-    <ClInclude Include="headers\Texture.h" />
+    <ClInclude Include="headers\rendering\Texture2D.h" />
     <ClInclude Include="headers\TimeStep.h" />
+    <ClInclude Include="headers\util\Log.h" />
     <ClInclude Include="headers\util\util.h" />
     <ClInclude Include="headers\WorldTransform.h" />
     <ClInclude Include="Include\imgui\imconfig.h" />

@@ -36,7 +36,7 @@
     <ClCompile Include="src\stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\rendering\Texture.cpp">
+    <ClCompile Include="src\rendering\Texture2D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Application.cpp">
@@ -48,7 +48,7 @@
     <ClCompile Include="src\rendering\MeshData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ShaderLibrary.cpp">
+    <ClCompile Include="src\shaders\ShaderLibrary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Skybox.cpp">
@@ -72,9 +72,6 @@
     <ClCompile Include="src\GridMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\util\util.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\rendering\Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -96,7 +93,7 @@
     <ClCompile Include="src\shaders\DepthShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\framebuffers\MainViewFramebuffer.cpp">
+    <ClCompile Include="src\framebuffers\MainViewFB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\shaders\BasicSampler.cpp">
@@ -141,6 +138,21 @@
     <ClCompile Include="src\terrain\Terrain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\framebuffers\DeferredFB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\RendererResources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rendering\TextureCubemap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\Log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\framebuffers\FramebufferLibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\SkyboxVS.shader" />
@@ -159,6 +171,8 @@
     <None Include="res\shaders\ReflectionFS.shader" />
     <None Include="res\shaders\CubemapShadowFS.shader" />
     <None Include="res\shaders\CubemapShadowVS.shader" />
+    <None Include="res\shaders\GBufferVS.shader" />
+    <None Include="res\shaders\GBufferFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\InputHandle.h">
@@ -170,13 +184,13 @@
     <ClInclude Include="headers\ExtraMath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Camera.h">
+    <ClInclude Include="headers\rendering\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\TimeStep.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Texture.h">
+    <ClInclude Include="headers\rendering\Texture2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\Application.h">
@@ -191,10 +205,10 @@
     <ClInclude Include="headers\util\util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Skybox.h">
+    <ClInclude Include="headers\rendering\Skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Material.h">
+    <ClInclude Include="headers\rendering\Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\rendering\Renderer.h">
@@ -206,7 +220,7 @@
     <ClInclude Include="headers\shaders\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\rendering\ShaderLibrary.h">
+    <ClInclude Include="headers\shaders\ShaderLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\SkyboxShader.h">
@@ -269,7 +283,7 @@
     <ClInclude Include="headers\framebuffers\MainViewFB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="headers\rendering\FramebufferLibrary.h">
+    <ClInclude Include="headers\framebuffers\FramebufferLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\BasicSampler.h">
@@ -282,9 +296,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\shaders\ReflectionShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\rendering\RendererData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="headers\components\SceneEntity.h">
@@ -306,6 +317,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Terrain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\framebuffers\DeferredFB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\shaders\GBufferShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\RendererResources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\TextureCubemap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\util\Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\rendering\TextureBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

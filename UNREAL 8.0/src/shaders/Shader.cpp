@@ -5,6 +5,7 @@
 #include <sstream>
 #include <format>
 #include "Shader.h"
+#include "Log.h"
 
 
 const GLint Shader::GetProgramID() {
@@ -58,8 +59,8 @@ void Shader::ActivateProgram() {
 unsigned int Shader::GetUniform(const std::string& name) {
 	GLCall(int location = glGetUniformLocation(GetProgramID(), name.c_str()));
 	if (location == -1 && SHADER_DEBUG_MODE == true) {
-		PrintUtils::PrintError(std::format("ERROR: COULD NOT FIND UNIFORM '{}'", name));
-		exit(1);
+		ORO_CORE_ERROR("Could not find uniform '{0}'", name);
+		BREAKPOINT;
 	}
 	return location;
 }
@@ -80,7 +81,7 @@ void Shader::CompileShader(unsigned int type, const std::string& source, unsigne
 		char* message = (char*)alloca(length * sizeof(char));
 		GLCall(glGetShaderInfoLog(shaderID, length, &length, message));
 
-		PrintUtils::PrintError(std::format("FAILED TO COMPILE {} SHADER: {}", type == GL_VERTEX_SHADER ? "vertex" : "fragment", message));
+		ORO_CORE_CRITICAL("Failed to compile {0} shader: {1}", type == GL_VERTEX_SHADER ? "vertex" : "fragment", message);
 	}
 }
 

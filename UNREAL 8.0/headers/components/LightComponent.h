@@ -29,7 +29,7 @@ class DirectionalLightComponent : public BaseLight {
 public:
 	DirectionalLightComponent(unsigned int entity_id);
 	auto GetLightDirection() const { return light_direction; };
-	void SetLightDirection(const glm::fvec3& dir);
+	void SetLightDirection(const glm::fvec3& dir, const glm::fvec3& camera_pos);
 	const auto& GetTransformMatrix() const { return mp_light_transform_matrix; }
 private:
 	glm::fmat4 mp_light_transform_matrix;

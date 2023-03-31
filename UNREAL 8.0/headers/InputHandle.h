@@ -9,7 +9,7 @@ public:
 	InputHandle();
 	void SetMouseLocked(bool t) { mouse_locked = t; };
 	static void HandleCameraInput(Camera& camera, InputHandle& input);
-	void HandleInput(GLFWwindow* window, int window_width, int window_height);
+	void HandleInput(GLFWwindow* window);
 
 private:
 	TimeStep m_time_step = TimeStep(TimeStep::TimeUnits::MICROSECONDS);

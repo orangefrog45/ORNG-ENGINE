@@ -21,7 +21,7 @@ struct ControlWindow {
 			if (!(height_scale == other.height_scale)
 				|| !(seed == other.seed)
 				|| !(resolution == other.resolution)
-				|| !(sampling_resolution == other.sampling_resolution)) {
+				|| !(sampling_density == other.sampling_density)) {
 				return false;
 			}
 			else {
@@ -30,7 +30,7 @@ struct ControlWindow {
 		};
 		int seed = 123;
 		int resolution = 10;
-		float sampling_resolution = 20.0f;
+		float sampling_density = 20.0f;
 		float height_scale = 10.0f;
 	};
 

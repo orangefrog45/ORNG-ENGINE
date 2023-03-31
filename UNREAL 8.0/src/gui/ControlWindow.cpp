@@ -15,8 +15,8 @@ void ControlWindow::CreateBaseWindow() {
 void ControlWindow::DisplayTerrainConfigControls(TerrainConfigData& config_values) {
 	ImGui::Text("TERRAIN CONTROLS");
 	ImGui::InputInt("Seed", &config_values.seed);
-	ImGui::SliderInt("Resolution", &config_values.resolution, 1, 100);
-	ImGui::SliderFloat("Noise sampling resolution", &config_values.sampling_resolution, 1, 200);
+	ImGui::SliderInt("Resolution", &config_values.resolution, 1, 10);
+	ImGui::SliderFloat("Sampling density", &config_values.sampling_density, 1, 200);
 	ImGui::SliderFloat("Height scale", &config_values.height_scale, -100, 100);
 }
 

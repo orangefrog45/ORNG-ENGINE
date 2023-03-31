@@ -76,12 +76,12 @@ void PointLightComponent::SetPosition(const float x, const float y, const float 
 
 
 
-void DirectionalLightComponent::SetLightDirection(const glm::fvec3& dir)
+void DirectionalLightComponent::SetLightDirection(const glm::fvec3& dir, const glm::fvec3& camera_pos)
 {
 	light_direction = dir;
 
-	auto light_perspective = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
-	glm::mat4 light_view = glm::lookAt(glm::normalize(dir) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 light_perspective = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
+	glm::mat4 light_view = glm::lookAt(glm::normalize(dir) * 80.0f, glm::fvec3(0), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
 

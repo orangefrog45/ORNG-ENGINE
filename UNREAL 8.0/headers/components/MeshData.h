@@ -6,7 +6,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "WorldTransform.h"
-#include "Texture.h"
+#include "Texture2D.h"
 #include "Material.h"
 
 
@@ -66,6 +66,8 @@ private:
 
 	void LoadSpecularTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index);
 
+	void LoadNormalTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index);
+
 	void LoadColors(const aiMaterial* pMaterial, unsigned int index);
 
 	bool InitFromScene(const aiScene* pScene, const std::string& filename);
@@ -91,8 +93,8 @@ private:
 		TEXCOORD_VB = 2,
 		NORMAL_VB = 3,
 		WORLD_MAT_VB = 4,
-		WVP_MAT_VB = 5,
-		UNIFORM_BUFFER = 6,
+		TANGENT_VB = 5,
+		BITANGENT_VB = 6,
 		NUM_BUFFERS = 7
 	};
 
@@ -118,6 +120,7 @@ private:
 	//temp space before loading into gpu
 	std::vector<glm::fvec3> m_positions;
 	std::vector<glm::fvec3> m_normals;
+	std::vector<glm::fvec3> m_tangents;
 	std::vector<glm::fvec2> m_texCoords;
 	std::vector<unsigned int> m_indices;
 };

@@ -4,7 +4,7 @@
 #include <glew.h>
 #include <glfw/glfw3.h>
 #include "Application.h"
-
+#include "util/Log.h"
 
 
 Application::Application() {
@@ -12,13 +12,16 @@ Application::Application() {
 
 
 void Application::Init() {
+	Log::Init();
+
+
 	//GLFW INIT
 	GLFWwindow* window;
 
 	if (!glfwInit())
 		exit(1);
 
-	window = glfwCreateWindow(m_window_width, m_window_height, "UNREAL 8.0", NULL, NULL);
+	window = glfwCreateWindow(1920, 1080, "UNREAL 8.0", NULL, NULL);
 
 	if (!window)
 	{
@@ -34,6 +37,7 @@ void Application::Init() {
 
 	if (GLEW_OK != GlewInitResult)
 	{
+		ORO_CORE_CRITICAL("GLEW INIT FAILED");
 		printf("ERROR: %s", glewGetErrorString(GlewInitResult));
 		exit(EXIT_FAILURE);
 	}
@@ -79,8 +83,9 @@ void Application::Init() {
 
 
 
-		input_handle.HandleInput(window, m_window_width, m_window_height); // handle mouse-locking, caching key states
-		InputHandle::HandleCameraInput(*p_camera, input_handle);
+		input_handle.HandleInput(window); // handle mouse-locking, caching key states
+		ASSERT(renderer.m_active_camera != nullptr);
+		InputHandle::HandleCameraInput(*renderer.m_active_camera, input_handle);
 
 		{ // debug spawn entities
 			static int instances = 0;
@@ -88,11 +93,11 @@ void Application::Init() {
 			if (input_handle.g_down) {
 
 				auto& entity = renderer.scene.CreateMeshComponent("./res/meshes/cube/cube.obj");
-				glm::fvec3 place_position = p_camera->GetPos() + (glm::fvec3(p_camera->GetTarget().x * 15.0f, p_camera->GetTarget().y * 15.0f, p_camera->GetTarget().z * 15.0f));
+				glm::fvec3 place_position = renderer.m_active_camera->GetPos() + (glm::fvec3(renderer.m_active_camera->GetTarget() * 15.0f));
 				instances++;
 				entity.SetPosition(place_position.x, place_position.y, place_position.z);
 
-				PrintUtils::PrintDebug("Instances: " + std::to_string(instances));
+				ORO_CORE_TRACE("Positions: {0}", instances);
 			}
 		}
 
@@ -108,8 +113,6 @@ void Application::Init() {
 }
 
 void Application::RenderScene() {
-
-	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
 	renderer.RenderWindow();
 

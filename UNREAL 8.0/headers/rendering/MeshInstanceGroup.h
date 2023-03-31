@@ -2,7 +2,6 @@
 #include <vector>
 #include "WorldTransform.h"
 #include "MeshData.h"
-#include "RendererData.h"
 
 
 

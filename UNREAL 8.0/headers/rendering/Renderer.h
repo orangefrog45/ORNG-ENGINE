@@ -9,51 +9,48 @@
 #include "GridMesh.h"
 #include "Skybox.h"
 #include "Scene.h"
-#include "Camera.h"
 #include "FramebufferLibrary.h"
 #include "Quad.h"
-#include "RendererData.h"
 #include "Terrain.h"
+#include "RendererResources.h"
 
 
 
 
 class Renderer {
 public:
-	explicit Renderer(std::shared_ptr<Camera> cam) : p_camera(cam) {};
+	friend class Application;
+	Renderer() = default;
 	void Init();
+
+	/* Render methods setup appropiate shaders, textures then issue draw calls */
 	void RenderWindow();
-	void DrawGrid();
 	void RenderLightingEntities();
 	void RenderLightMeshVisuals();
 	void RenderReflectShaderEntities();
+	void RenderSkybox(Skybox& skybox);
+	void RenderGrid();
+
+	/* Draw methods don't set shaders, only issue draw calls */
 	void DrawTerrain(const Terrain& terrain);
 	void DrawToQuad();
-	void DrawScene();
+	void RenderScene();
 	void DrawShadowMap();
+
 	template <typename T> void DrawLightingGroups(T& shader);
 	template <typename T> void DrawReflectGroups(T& shader);
-	ControlWindow::LightConfigData& ActivateLightingControls(ControlWindow::LightConfigData& light_vals);
 	template <typename T> void DrawMeshWithShader(MeshData* mesh_data, unsigned int t_instances, T& shader) const;
+
+	ControlWindow::LightConfigData& ActivateLightingControls(ControlWindow::LightConfigData& light_vals);
 	Scene scene;
 
 private:
-	unsigned int depth_map_fbo;
-	unsigned int depth_map;
 	unsigned int m_display_quad_vao;
-	float FOV = 60.0f;
-	float zNear = 0.01f;
-	float zFar = 1000.0f;
-	int m_window_width = RendererData::WINDOW_WIDTH;
-	int m_window_height = RendererData::WINDOW_HEIGHT;
-	GLfloat* pixels = (GLfloat*)malloc(1024 * 1024 * sizeof(GL_FLOAT));
 
-	Texture missing_texture = Texture(GL_TEXTURE_2D, "./res/textures/missing_texture.jpeg");
-	glm::fmat4x4 projectionMatrix = glm::perspective(45.0f, static_cast<float>(m_window_width) / static_cast<float>(m_window_height), zNear, zFar);
-	std::shared_ptr<Camera> p_camera = nullptr;
-	Skybox skybox;
+	Camera* m_active_camera = nullptr;
 	GridMesh grid_mesh;
-	ShaderLibrary shaderLibrary;
+	ShaderLibrary shader_library;
 	FramebufferLibrary framebuffer_library;
-	Quad render_quad;
+	Quad render_quad; // 2D quad that is rendered to for display
+	RendererResources m_resources;
 };

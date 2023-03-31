@@ -1,10 +1,4 @@
 #pragma once
-#include <string>
-#include <fstream>
-#include <vector>
-#include <sstream>
-#include "util/util.h"
-#include "Shader.h"
 #include "shaders/LightingShader.h"
 #include "shaders/GridShader.h"
 #include "shaders/FlatColourShader.h"
@@ -12,11 +6,14 @@
 #include "BasicSampler.h"
 #include "ReflectionShader.h"
 #include "CubemapShadowShader.h"
+#include "GBufferShader.h"
+#include "SkyboxShader.h"
 
-class ShaderLibrary {
+struct ShaderLibrary {
 public:
 	ShaderLibrary() {};
 	void Init();
+	void SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view);
 
 	FlatColorShader flat_color_shader;
 	LightingShader lighting_shader;
@@ -25,6 +22,8 @@ public:
 	BasicSampler basic_sampler_shader;
 	ReflectionShader reflection_shader;
 	CubemapShadowShader cube_map_shadow_shader;
+	GBufferShader g_buffer_shader;
+	SkyboxShader skybox_shader;
 private:
-
+	unsigned int m_matrix_UBO;
 };

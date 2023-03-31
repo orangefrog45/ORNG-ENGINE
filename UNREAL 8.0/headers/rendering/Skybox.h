@@ -1,21 +1,16 @@
 #pragma once
-#include <vector>
-#include <string>
 #include <array>
-#include "Texture.h"
-#include "shaders/SkyboxShader.h"
+#include "TextureCubemap.h"
 
 class Skybox {
 public:
-
+	friend class Renderer;
 	void Init();
 	void Draw(const glm::fmat3& view);
-	unsigned int GetCubeMapTexture() const { return cubemapTexture; }
-
-	SkyboxShader skyboxShader;
+	const TextureCubemap& GetCubeMapTexture() const { return cubemap_texture; }
 
 private:
-	std::array<float, 108> skyboxVertices = {
+	std::array<float, 108> m_vertices = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
 		-1.0f, -1.0f, -1.0f,
@@ -63,7 +58,7 @@ private:
 
 	std::vector<const char*> faces;
 
-	unsigned int skyboxVAO;
-	unsigned int cubemapTexture;
-	unsigned int skyboxVBO;
+	unsigned int m_vao;
+	TextureCubemap cubemap_texture;
+	unsigned int m_vbo;
 };

@@ -3,9 +3,9 @@
 #include "util/util.h"
 #include <glew.h>
 #include <glfw/glfw3.h>
-#include "RendererData.h"
+#include "RendererResources.h"
 
-void SpotLightDepthFB::Init() {
+bool SpotLightDepthFB::Init() {
 	GLCall(glGenFramebuffers(1, &m_fbo));
 
 	constexpr float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -13,7 +13,7 @@ void SpotLightDepthFB::Init() {
 	/*Gen spotlight tex array*/
 	GLCall(glGenTextures(1, &m_spot_depth_array));
 	GLCall(glBindTexture(GL_TEXTURE_2D_ARRAY, m_spot_depth_array));
-	GLCall(glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, m_spot_light_shadow_width, m_spot_light_shadow_height, RendererData::max_spot_lights, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+	GLCall(glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24, m_spot_light_shadow_width, m_spot_light_shadow_height, RendererResources::max_spot_lights, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -28,11 +28,10 @@ void SpotLightDepthFB::Init() {
 
 
 	if (GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
-		PrintUtils::PrintSuccess("SPOTLIGHT SHADOW FRAMEBUFFER GENERATED");
+		return true;
 	}
 	else {
-		PrintUtils::PrintError("SPOTLIGHT SHADOW FRAMEBUFFER GENERATION FAILED");
-		ASSERT(false);
+		return false;
 	}
 }
 

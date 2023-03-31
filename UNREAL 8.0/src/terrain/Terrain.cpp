@@ -11,7 +11,7 @@ static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 Terrain::Terrain() : m_x_width(1000), m_z_width(1000), m_resolution(3.f) {};
 
-void Terrain::UpdateTerrain(unsigned int seed, int width_x, int width_z, glm::fvec3 pos, float resolution, float height_scale, float amplitude) {
+void Terrain::UpdateTerrain(unsigned int seed, int width_x, int width_z, glm::fvec3 pos, int resolution, float height_scale, float amplitude) {
 	m_x_width = width_x;
 	m_z_width = width_z;
 	m_center_pos = pos;
@@ -35,19 +35,28 @@ void Terrain::UpdateTerrain(unsigned int seed, int width_x, int width_z, glm::fv
 	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(m_terrain_data.normals[0]) * m_terrain_data.normals.size(), &m_terrain_data.normals[0], GL_STATIC_DRAW));
 	GLCall(glEnableVertexAttribArray(2));
 	GLCall(glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0));
+
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_tangent_buffer));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(m_terrain_data.tangents[0]) * m_terrain_data.tangents.size(), &m_terrain_data.tangents[0], GL_STATIC_DRAW));
+	GLCall(glEnableVertexAttribArray(7));
+	GLCall(glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, 0, 0));
+
 };
 
 void Terrain::Init() {
-	m_terrain_top_mat.diffuse_texture = std::make_unique<Texture>(GL_TEXTURE_2D, "./res/textures/terrain/forest-floor/forest_floor_albedo.png");
+	m_terrain_top_mat.diffuse_texture = std::make_unique<Texture2D>("./res/textures/missing_texture.jpeg");
+	m_terrain_top_mat.normal_map_texture = std::make_unique<Texture2D>("./res/textures/terrain/forest-floor/forest_floor_Normal-ogl.png");
 	m_terrain_top_mat.diffuse_texture->Load();
+	m_terrain_top_mat.normal_map_texture->Load();
 	m_terrain_top_mat.specular_color = glm::fvec3(0);
-	m_terrain_top_mat.diffuse_color = glm::fvec3(0.5);
+	m_terrain_top_mat.diffuse_color = glm::fvec3(1);
 
 	glGenVertexArrays(1, &m_vao);
 	glGenBuffers(1, &m_position_buffer);
 	glGenBuffers(1, &m_tex_coord_buffer);
 	glGenBuffers(1, &m_transform_buffer);
 	glGenBuffers(1, &m_normal_buffer);
+	glGenBuffers(1, &m_tangent_buffer);
 	glBindVertexArray(m_vao);
 
 	WorldTransform transform;

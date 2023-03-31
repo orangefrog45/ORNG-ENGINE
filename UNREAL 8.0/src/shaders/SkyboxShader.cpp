@@ -3,21 +3,13 @@
 #include <iostream>
 #include "shaders/SkyboxShader.h"
 #include "util/util.h"
-#include "RendererData.h"
+#include "RendererResources.h"
 
 void SkyboxShader::InitUniforms() {
 	ActivateProgram();
-	m_view_loc = GetUniform("gTransform");
-	samplerLocation = GetUniform("gSampler");
-	glUniform1i(samplerLocation, RendererData::TextureUnitIndexes::COLOR);
+	sampler_location = GetUniform("gSampler");
+	glUniform1i(sampler_location, RendererResources::TextureUnitIndexes::COLOR);
 }
 
-const GLint& SkyboxShader::GetViewLoc() const {
-	return m_view_loc;
-}
-
-const GLint& SkyboxShader::GetSamplerLocation() const {
-	return samplerLocation;
-}
 
 

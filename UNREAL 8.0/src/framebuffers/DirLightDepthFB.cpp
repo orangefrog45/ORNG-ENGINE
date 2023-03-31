@@ -3,9 +3,9 @@
 #include "util/util.h"
 #include <glew.h>
 #include <glfw/glfw3.h>
-#include "RendererData.h"
+#include "Log.h"
 
-void DirLightDepthFB::Init() {
+bool DirLightDepthFB::Init() {
 	GLCall(glGenFramebuffers(1, &m_fbo));
 
 	constexpr float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -29,11 +29,10 @@ void DirLightDepthFB::Init() {
 
 
 	if (GL_FRAMEBUFFER_COMPLETE == glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
-		PrintUtils::PrintSuccess("DIRECTIONAL SHADOW FRAMEBUFFER GENERATED");
+		return true;
 	}
 	else {
-		PrintUtils::PrintError("DIRECTIONAL SHADOW FRAMEBUFFER GENERATION FAILED");
-		ASSERT(false);
+		return false;
 	}
 }
 

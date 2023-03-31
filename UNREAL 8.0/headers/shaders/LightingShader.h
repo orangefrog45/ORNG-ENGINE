@@ -3,7 +3,7 @@
 #include "Material.h"
 #include "WorldTransform.h"
 #include "LightComponent.h"
-#include "RendererData.h"
+#include "RendererResources.h"
 
 class LightingShader : public Shader {
 public:
@@ -23,14 +23,12 @@ public:
 	void SetDirectionLight(const DirectionalLightComponent& light);
 	void SetLightSpaceMatrix(const glm::fmat4& mat) { glUniformMatrix4fv(m_light_space_mat_loc, 1, GL_FALSE, &mat[0][0]); }
 	void GenUBOs();
-	void SetMatrixUBOs(glm::fmat4& proj, glm::fmat4& view);
 
 private:
 	static const unsigned int point_light_fs_num_float = 16;
 	static const unsigned int spot_light_fs_num_float = 36;
 	void InitUniforms() override;
 
-	GLuint m_matrix_UBO;
 	GLuint m_point_light_UBO;
 	GLuint m_spot_light_UBO;
 
@@ -49,6 +47,8 @@ private:
 	GLint m_sampler_specular_loc;
 	GLint m_specular_sampler_active_loc;
 	GLint m_sampler_texture_col_location;
+	GLint m_sampler_normals_loc;
+	GLint m_normal_sampler_active_loc;
 
 	GLint m_num_point_light_loc;
 	GLint m_num_spot_light_loc;

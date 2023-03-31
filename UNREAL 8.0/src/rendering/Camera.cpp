@@ -4,9 +4,6 @@
 #include "TimeStep.h"
 
 
-Camera::Camera(int windowWidth, int windowHeight) : m_window_width(windowWidth), m_window_height(windowHeight) {
-}
-
 void Camera::SetPosition(float x, float y, float z) {
 	m_pos.x = x;
 	m_pos.y = y;
@@ -39,7 +36,11 @@ void Camera::MoveDown(float time_elapsed) {
 	m_pos -= m_speed * m_up * time_elapsed;
 }
 
-glm::fmat4x4 Camera::GetMatrix() const {
+glm::fmat4x4 Camera::GetViewMatrix() const {
 	return glm::lookAt(m_pos, m_pos + m_target, m_up);
+}
+
+glm::fmat4x4 Camera::GetProjectionMatrix() const {
+	return glm::perspective(m_fov / 2.0f, static_cast<float>(RendererResources::GetWindowWidth()) / static_cast<float>(RendererResources::GetWindowHeight()), m_zNear, m_zFar);
 }
 

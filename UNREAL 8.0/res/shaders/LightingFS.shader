@@ -10,17 +10,6 @@ const unsigned int LIGHT_TYPE_DIRECTIONAL = 0;
 const unsigned int LIGHT_TYPE_SPOT = 1;
 const unsigned int LIGHT_TYPE_POINT = 2;
 
-in LightTransformedPositions{
-	vec4 spot_light_positions[MAX_SPOT_LIGHTS];
-} in_light_positions;
-
-in vec2 TexCoord0;
-in vec4 vs_position;
-in vec3 vs_normal;
-in vec4 gl_FragCoord;
-in vec4 dir_light_frag_pos_light_space;
-
-out vec4 FragColor;
 
 
 struct BaseLight {
@@ -63,6 +52,7 @@ struct SpotLight { //140 BYTES
 	//ap
 	float aperture;
 };
+
 layout(std140, binding = 1) uniform PointLights{
 	PointLight lights[MAX_POINT_LIGHTS];
 } point_lights;
@@ -71,6 +61,13 @@ layout(std140, binding = 2) uniform SpotLights{
 	SpotLight lights[MAX_SPOT_LIGHTS];
 } spot_lights;
 
+in TangentSpacePositions{
+	vec3 view_pos;
+	vec3 frag_pos;
+	vec3 dir_light_dir;
+	vec3 spot_positions[MAX_SPOT_LIGHTS];
+	vec3 point_positions[MAX_SPOT_LIGHTS];
+} fs_in_tangent_positions;
 
 struct Material {
 	vec3 ambient_color;
@@ -84,13 +81,23 @@ uniform BaseLight g_ambient_light; // ambient
 uniform Material g_material;
 uniform DirectionalLight directional_light;
 uniform vec3 view_pos;
+uniform bool specular_sampler_active; // FALSE IF NO SHININESS TEXTURE FOUND
+uniform bool normal_map_active;
+
+in vec2 tex_coord0;
+in vec4 vs_position;
+in vec3 vs_normal;
+in vec4 gl_FragCoord;
+in vec4 dir_light_frag_pos_light_space;
+
+out vec4 FragColor;
 
 layout(binding = 1) uniform sampler2D gSampler;
 layout(binding = 2) uniform sampler2D specular_sampler;
 layout(binding = 3) uniform sampler2D dir_depth_map;
 layout(binding = 4) uniform sampler2DArray spot_depth_map;
+layout(binding = 7) uniform sampler2D normal_map;
 
-uniform bool specular_sampler_active; // FALSE IF NO SHININESS TEXTURE FOUND
 
 float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_map_index, unsigned int type) {
 	float shadow = 0.0f;
@@ -175,15 +182,15 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 	vec3 specular_final = vec3(0, 0, 0);
 
 	if (diffuse > 0) {
-		diffuse_final = light_color * diffuse * light_diffuse_intensity * g_material.diffuse_color; // ADD BACK MATERIAL DIFFUSE COLOR AT SOME STAGE
+		diffuse_final = light_color * diffuse * light_diffuse_intensity * g_material.diffuse_color;
 
 		float specular_strength = 0.5;
-		vec3 view_dir = normalize(view_pos - vs_position.xyz);
+		vec3 view_dir = normalize(fs_in_tangent_positions.view_pos - fs_in_tangent_positions.frag_pos);
 		vec3 reflect_dir = reflect(-normalized_light_dir, norm);
 		float specular_factor = dot(view_dir, reflect_dir);
 
 		if (specular_factor > 0) {
-			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, TexCoord0).r : 64;
+			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, tex_coord0).r : 64;
 			float spec = pow(specular_factor, specular_exponent);
 			specular_final = specular_strength * spec * light_color * g_material.specular_color;
 		}
@@ -196,7 +203,8 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 
 vec3 CalcPointLight(PointLight light, vec3 normal, float distance, int index) {
 	vec3 light_dir = normalize(light.pos.xyz - vs_position.xyz);
-	vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, light_dir, normal);
+	vec3 light_dir_tangent = normalize(fs_in_tangent_positions.point_positions[index] - fs_in_tangent_positions.frag_pos.xyz);
+	vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, light_dir_tangent, normal);
 
 	float attenuation = light.constant +
 		light.a_linear * distance +
@@ -207,6 +215,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, float distance, int index) {
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 	vec3 pixel_to_light_dir = normalize(light.pos.xyz - vs_position.xyz);
+	vec3 pixel_to_light_dir_tangent = normalize(fs_in_tangent_positions.spot_positions[index] - fs_in_tangent_positions.frag_pos.xyz); // in tangent space
 	float spot_factor = dot(pixel_to_light_dir, -light.dir.xyz);
 
 	if (spot_factor > light.aperture) {
@@ -219,7 +228,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 			return color; // early return as no light will reach this spot
 		}
 
-		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, pixel_to_light_dir, normal) * (1 - shadow);
+		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, pixel_to_light_dir_tangent, normal) * (1 - shadow);
 
 
 		//ATTENUATION
@@ -240,7 +249,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 
 void main()
 {
-	vec3 normal = normalize(vs_normal);
+	vec3 normal = normal_map_active ? texture(normal_map, tex_coord0).rgb * 2.0 - 1.0 : normalize(vs_normal);
+
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
 
 	vec3 ambient_light = g_ambient_light.ambient_intensity * g_ambient_light.color.xyz * g_material.ambient_color;
@@ -263,16 +273,16 @@ void main()
 	}
 
 	//directional light
-	float shadow = ShadowCalculation(dir_light_frag_pos_light_space, directional_light.direction.xyz, 0, LIGHT_TYPE_DIRECTIONAL);
+	float shadow = ShadowCalculation(dir_light_frag_pos_light_space, normalize(fs_in_tangent_positions.dir_light_dir), 0, LIGHT_TYPE_DIRECTIONAL);
 
-	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(directional_light.direction), normal) * (1 - shadow);
+	total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(fs_in_tangent_positions.dir_light_dir), normal) * (1 - shadow);
 
 	total_light += ambient_light;
 
 
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
-	FragColor = vec4(color.xyz, 1.0) * texture2D(gSampler, TexCoord0);
+	FragColor = vec4(color.xyz, 1.0) * texture2D(gSampler, tex_coord0);
 
 
 };

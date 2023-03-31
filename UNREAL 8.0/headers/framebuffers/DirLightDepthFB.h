@@ -2,7 +2,7 @@
 
 class DirLightDepthFB {
 public:
-	void Init();
+	bool Init();
 	void BindForDraw();
 	unsigned int GetDepthMap();
 private:

@@ -1,9 +1,12 @@
 #include <glm/gtx/matrix_major_storage.hpp>
 #include <glew.h>
 #include <glfw/glfw3.h>
-#include <format>
 #include "MeshData.h"
 #include "util/util.h"
+#include "util/Log.h"
+#include "TimeStep.h"
+
+#define ASSIMP_LOAD_FLAGS (aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace)
 
 static constexpr unsigned int POSITION_LOCATION = 0;
 static constexpr unsigned int TEX_COORD_LOCATION = 1;
@@ -12,6 +15,7 @@ static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
 static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
 static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
 static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
+static constexpr unsigned int TANGENT_LOCATION = 7;
 
 
 void MeshData::UnloadMesh() {
@@ -21,8 +25,9 @@ void MeshData::UnloadMesh() {
 	m_normals.clear();
 	m_texCoords.clear();
 	m_indices.clear();
+	m_tangents.clear();
 	importer.FreeScene();
-	PrintUtils::PrintSuccess("Mesh unloaded: " + m_filename);
+	ORO_CORE_INFO("Mesh unloaded: {0}", m_filename);
 	is_loaded = false;
 }
 
@@ -40,8 +45,8 @@ void MeshData::LoadIntoGL() {
 
 bool MeshData::LoadMeshData() {
 
-	PrintUtils::PrintDebug("Loading mesh: " + m_filename);
-	double start_time = glfwGetTime();
+	ORO_CORE_INFO("Loading mesh: {0}", m_filename);
+	TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 
 	bool ret = false;
 
@@ -51,11 +56,10 @@ bool MeshData::LoadMeshData() {
 		ret = InitFromScene(p_scene, m_filename);
 	}
 	else {
-		printf("Error parsing '%s': '%s'\n", m_filename.c_str(), importer.GetErrorString());
+		//ORO_CORE_ERROR("Error parsing '{0}' : '{1}'", m_filename.c_str(), importer.GetErrorString());
 	}
 
-
-	PrintUtils::PrintSuccess(std::format("Mesh loaded in {}ms: {}", PrintUtils::RoundDouble((glfwGetTime() - start_time) * 1000), m_filename));
+	ORO_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), m_filename);
 	return ret;
 }
 
@@ -91,6 +95,7 @@ void MeshData::CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumV
 void MeshData::ReserveSpace(unsigned int NumVertices, unsigned int NumIndices) {
 	m_positions.reserve(NumVertices);
 	m_normals.reserve(NumVertices);
+	m_tangents.reserve(NumVertices);
 	m_texCoords.reserve(NumVertices);
 	m_indices.reserve(NumIndices);
 }
@@ -111,10 +116,12 @@ void MeshData::InitSingleMesh(const aiMesh* paiMesh) {
 		const aiVector3D& pPos = paiMesh->mVertices[i];
 		const aiVector3D& pNormal = paiMesh->mNormals[i];
 		const aiVector3D& pTexCoord = paiMesh->HasTextureCoords(0) ? paiMesh->mTextureCoords[0][i] : zero3D;
+		const aiVector3D& tangent = paiMesh->HasTangentsAndBitangents() ? paiMesh->mTangents[i] : zero3D;
 
 		m_positions.push_back(glm::fvec3(pPos.x, pPos.y, pPos.z));
 		m_normals.push_back(glm::fvec3(pNormal.x, pNormal.y, pNormal.z));
 		m_texCoords.push_back(glm::fvec2(pTexCoord.x, pTexCoord.y));
+		m_tangents.push_back(glm::fvec3(tangent.x, tangent.y, tangent.z));
 	}
 
 	for (unsigned int i = 0; i < paiMesh->mNumFaces; i++) {
@@ -181,7 +188,41 @@ void MeshData::LoadColors(const aiMaterial* pMaterial, unsigned int index) {
 void MeshData::LoadTextures(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
 	LoadDiffuseTexture(t_dir, pMaterial, index);
 	LoadSpecularTexture(t_dir, pMaterial, index);
+	LoadNormalTexture(t_dir, pMaterial, index);
 }
+
+
+void MeshData::LoadNormalTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
+	m_materials[index].normal_map_texture = nullptr;
+
+	if (pMaterial->GetTextureCount(aiTextureType_NORMALS) > 0) {
+		aiString path;
+
+		if (pMaterial->GetTexture(aiTextureType_NORMALS, 0, &path, NULL, NULL, NULL, NULL, NULL) == aiReturn_SUCCESS) {
+			std::string p(path.data);
+
+			if (p.substr(0, 2) == ".\\") {
+				p = p.substr(2, p.size() - 2);
+			}
+
+			std::string fullPath = t_dir + "/" + p;
+
+			m_materials[index].normal_map_texture = std::make_unique<Texture2D>(fullPath.c_str());
+
+			if (!m_materials[index].normal_map_texture->Load()) {
+				ORO_CORE_ERROR("Error loading normal texture at: {0}", fullPath);
+			}
+			else {
+				ORO_CORE_TRACE("Loaded normal texture: {0}", fullPath);
+			}
+		}
+
+	}
+	else {
+		ORO_CORE_TRACE("No normal texture found at: {0}", t_dir);
+	}
+}
+
 
 void MeshData::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pMaterial, unsigned int index) {
 	m_materials[index].diffuse_texture = nullptr;
@@ -198,19 +239,20 @@ void MeshData::LoadDiffuseTexture(const std::string& t_dir, const aiMaterial* pM
 
 			std::string fullPath = t_dir + "/" + p;
 
-			m_materials[index].diffuse_texture = std::make_unique<Texture>(GL_TEXTURE_2D, fullPath.c_str());
+			m_materials[index].diffuse_texture = std::make_unique<Texture2D>(fullPath.c_str());
 
 			if (!m_materials[index].diffuse_texture->Load()) {
-				PrintUtils::PrintError("Error loading diffuse texture at: " + fullPath);
+				ORO_CORE_ERROR("Error loading diffuse texture at: {0}", fullPath);
+
 			}
 			else {
-				PrintUtils::PrintSuccess("Loaded diffuse texture: " + fullPath);
+				ORO_CORE_TRACE("Loaded diffuse texture: {0}", fullPath);
 			}
 		}
 
 	}
 	else {
-		PrintUtils::PrintWarning("No diffuse texture found at: " + t_dir);
+		ORO_CORE_TRACE("No diffuse texture found at: {0}", t_dir);
 	}
 }
 
@@ -229,19 +271,19 @@ void MeshData::LoadSpecularTexture(const std::string& t_dir, const aiMaterial* p
 
 			std::string fullPath = t_dir + "/" + p;
 
-			m_materials[index].specular_texture = std::make_unique<Texture>(GL_TEXTURE_2D, fullPath.c_str());
+			m_materials[index].specular_texture = std::make_unique<Texture2D>(fullPath.c_str());
 
 			if (!m_materials[index].specular_texture->Load()) {
-				PrintUtils::PrintError("Error loading specular texture: " + fullPath);
+				ORO_CORE_ERROR("Error loading specular texture at: {0}", fullPath);
 			}
 			else {
-				PrintUtils::PrintSuccess("Loaded specular texture: " + fullPath);
+				ORO_CORE_TRACE("Loaded specular texture: {0}", fullPath);
 			}
 		}
 
 	}
 	else {
-		PrintUtils::PrintWarning("No shininess texture found at: " + t_dir);
+		ORO_CORE_TRACE("No specular texture found at: {0}", t_dir);
 		m_materials[index].specular_texture = nullptr;
 	}
 }
@@ -265,6 +307,12 @@ void MeshData::PopulateBuffers() {
 
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffers[INDEX_BUFFER]));
 	GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m_indices[0]) * m_indices.size(), &m_indices[0], GL_STATIC_DRAW));
+
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_buffers[TANGENT_VB]));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(m_tangents[0]) * m_tangents.size(), &m_tangents[0], GL_STATIC_DRAW));
+	GLCall(glEnableVertexAttribArray(TANGENT_LOCATION));
+	GLCall(glVertexAttribPointer(TANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, 0));
+
 
 }
 

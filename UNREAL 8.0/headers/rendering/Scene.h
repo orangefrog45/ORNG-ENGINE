@@ -6,7 +6,9 @@
 #include "MeshComponent.h"
 #include "LightComponent.h"
 #include "MeshInstanceGroup.h"
+#include "Skybox.h"
 #include "terrain/Terrain.h"
+#include "Camera.h"
 
 class Scene {
 public:
@@ -52,5 +54,7 @@ private:
 	std::vector<PointLightComponent*> m_point_lights;
 	std::vector<MeshData*> m_mesh_data;
 	Terrain m_terrain;
+	Skybox m_skybox;
+	Camera m_camera;
 	int m_last_entity_id = -1; // Last ID assigned to a newly created entity
 };

@@ -39,7 +39,7 @@ void InputHandle::HandleCameraInput(Camera& camera, InputHandle& input) {
 	float maxDelta = 100.0f;
 
 	if (input.mouse_locked) {
-		auto mouseDelta = -glm::vec2(input.mouse_x - static_cast<float>(camera.m_window_width) / 2, input.mouse_y - static_cast<float>(camera.m_window_height) / 2);
+		auto mouseDelta = -glm::vec2(input.mouse_x - static_cast<double>(RendererResources::GetWindowWidth()) / 2, input.mouse_y - static_cast<double>(RendererResources::GetWindowHeight()) / 2);
 
 		if (mouseDelta.x > -maxDelta && mouseDelta.x < maxDelta) {
 			camera.m_target = glm::rotate(mouseDelta.x * rotationSpeed, camera.m_up) * glm::fvec4(camera.m_target, 0);
@@ -59,7 +59,7 @@ void InputHandle::HandleCameraInput(Camera& camera, InputHandle& input) {
 	input.m_time_step.UpdateLastTime();
 }
 
-void InputHandle::HandleInput(GLFWwindow* window, int window_width, int window_height)
+void InputHandle::HandleInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
 	{
@@ -113,7 +113,7 @@ void InputHandle::HandleInput(GLFWwindow* window, int window_width, int window_h
 	}
 	glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
-	if (mouse_locked) glfwSetCursorPos(window, window_width / 2, window_height / 2);
+	if (mouse_locked) glfwSetCursorPos(window, RendererResources::GetWindowWidth() / 2, RendererResources::GetWindowHeight() / 2);
 
 }
 

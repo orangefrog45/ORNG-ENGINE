@@ -2,7 +2,7 @@
 #include <array>
 class PointLightDepthFB {
 public:
-	void Init();
+	bool Init();
 	void BindForDraw();
 	void SetCubemapFace(int layer, int face);
 	unsigned int GetDepthMap();

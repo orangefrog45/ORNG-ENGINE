@@ -1,6 +1,6 @@
 #pragma once
 #include "TerrainGenerator.h"
-#include "Texture.h"
+#include "Texture2D.h"
 #include "Material.h"
 
 class Terrain {
@@ -8,7 +8,7 @@ public:
 	friend class Renderer;
 	Terrain();
 	void Init();
-	void UpdateTerrain(unsigned int seed, int width_x, int width_z, glm::fvec3 pos, float resolution, float height_scale, float amplitude);
+	void UpdateTerrain(unsigned int seed, int width_x, int width_z, glm::fvec3 pos, int resolution, float height_scale, float amplitude);
 	inline unsigned int GetVao() const { return m_vao; }
 private:
 	Material m_terrain_top_mat;
@@ -16,6 +16,7 @@ private:
 	unsigned int m_position_buffer = 0;
 	unsigned int m_transform_buffer = 0;
 	unsigned int m_normal_buffer = 0;
+	unsigned int m_tangent_buffer = 0;
 	unsigned int m_tex_coord_buffer = 0;
 	int m_x_width = 0;
 	int m_z_width = 0;

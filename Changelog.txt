@@ -1,3 +1,10 @@
+30/3/23:
+-Fog method (https://cs.gmu.edu/~jchen/cs662/fog.pdf) implemented
+-Normal mapping added
+-Multiple camera support
+-Better logging using spdlog
+-Further improvements/changes to codebase structure
+
 23/3/23:
 -Procedural terrain generation using perlin noise
 -General refactoring, structural changes to codebase

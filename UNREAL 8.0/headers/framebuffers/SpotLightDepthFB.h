@@ -1,7 +1,7 @@
 #pragma once
 class SpotLightDepthFB {
 public:
-	void Init();
+	bool Init();
 	void BindForDraw();
 	unsigned int GetDepthMap() const { return m_spot_depth_array; };
 	void SetDepthTexLayer(unsigned int layer);
