@@ -1,3 +1,6 @@
 [submodule "UNREAL 8.0/extern/perlin"]
 	path = UNREAL 8.0/extern/perlin
 	url = https://github.com/Reputeless/PerlinNoise
+[submodule "UNREAL 8.0/extern/spdlog"]
+	path = UNREAL 8.0/extern/spdlog
+	url = https://github.com/gabime/spdlog
