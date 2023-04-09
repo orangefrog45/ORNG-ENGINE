@@ -1,3 +1,15 @@
+9/4/23:
+-Terrain texture blending
+-Quadtree based dynamic terrain LOD
+-Asynchronous terrain chunk loading system
+-Frustum culling for terrain
+-Optimizations to reduce build times
+-Fixed lighting bug caused by calculating lighting only in tangent space without normal maps provided
+
+01/4/23:
+-Very basic layer system added (currently only an editor layer)
+
+
 30/3/23:
 -Fog method (https://cs.gmu.edu/~jchen/cs662/fog.pdf) implemented
 -Normal mapping added

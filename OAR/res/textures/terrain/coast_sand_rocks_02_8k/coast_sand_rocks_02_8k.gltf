@@ -1,0 +1,156 @@
+{
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v1.7.33",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "sphere_gltf"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "coast_sand_rocks_02",
+      "normalTexture": {
+        "index": 0
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0,
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Sphere.001",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/jpeg",
+      "name": "coast_sand_rocks_02_nor_gl_8k",
+      "uri": "textures/coast_sand_rocks_02_nor_gl_8k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "coast_sand_rocks_02_diff_8k",
+      "uri": "textures/coast_sand_rocks_02_diff_8k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "coast_sand_rocks_02_rough_8k",
+      "uri": "textures/coast_sand_rocks_02_rough_8k.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 53907,
+      "max": [
+        7.601363658905029,
+        7.59774112701416,
+        7.57279109954834
+      ],
+      "min": [
+        -7.601362705230713,
+        -7.578192234039307,
+        -7.570526599884033
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 53907,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 53907,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 322170,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 646884,
+      "byteOffset": 0
+    },
+    {
+      "buffer": 0,
+      "byteLength": 646884,
+      "byteOffset": 646884
+    },
+    {
+      "buffer": 0,
+      "byteLength": 431256,
+      "byteOffset": 1293768
+    },
+    {
+      "buffer": 0,
+      "byteLength": 644340,
+      "byteOffset": 1725024
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 2369364,
+      "uri": "coast_sand_rocks_02.bin"
+    }
+  ]
+}
