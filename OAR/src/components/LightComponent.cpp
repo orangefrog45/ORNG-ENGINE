@@ -6,16 +6,16 @@
 
 void SpotLightComponent::SetLightDirection(float i, float j, float k) {
 	m_light_direction_vec = glm::normalize(glm::fvec3(i, j, k));
-	m_mesh_visual->SetRotation(glm::degrees(sinf(j)) - 90.0f, -glm::degrees(atan2f(k, i)) - 90.0f, 0.0f);
+	salt_m_mesh_visual->SetRotation(glm::degrees(sinf(j)) - 90.0f, -glm::degrees(atan2f(k, i)) - 90.0f, 0.0f);
 
-	if (shadows_enabled) UpdateLightTransform();
+	if (salt_shadows_enabled) UpdateLightTransform();
 }
 
 SpotLightComponent::SpotLightComponent(unsigned int entity_id) : PointLightComponent(entity_id)
 {
 	SetMaxDistance(96.0f);
 	SetAttenuation(1.0f, 0.001f, 0.0001f);
-	if (shadows_enabled) UpdateLightTransform();
+	if (salt_shadows_enabled) UpdateLightTransform();
 };
 
 void SpotLightComponent::UpdateLightTransform() {
@@ -25,21 +25,21 @@ void SpotLightComponent::UpdateLightTransform() {
 	auto spot_light_view = glm::lookAt(GetWorldTransform().GetPosition(), GetWorldTransform().GetPosition() + m_light_direction_vec, glm::vec3(0.0f, 1.0f, 0.0f));
 
 
-	m_light_transforms[0] = glm::fmat4(light_perspective * spot_light_view);
+	salt_m_light_transforms[0] = glm::fmat4(light_perspective * spot_light_view);
 }
 
 void SpotLightComponent::SetPosition(const float x, const float y, const float z) {
-	if (m_mesh_visual != nullptr) {
-		transform.SetPosition(x, y, z);
-		m_mesh_visual->SetPosition(x, y, z);
+	if (salt_m_mesh_visual != nullptr) {
+		salt_transform.SetPosition(x, y, z);
+		salt_m_mesh_visual->SetPosition(x, y, z);
 	}
 
-	if (shadows_enabled) UpdateLightTransform();
+	if (salt_shadows_enabled) UpdateLightTransform();
 };
 
 PointLightComponent::PointLightComponent(unsigned int entity_id) : BaseLight(entity_id)
 {
-	m_light_transforms.reserve(6);
+	salt_m_light_transforms.reserve(6);
 	UpdateLightTransforms();
 };
 
@@ -55,20 +55,20 @@ void PointLightComponent::UpdateLightTransforms() {
 	glm::fmat4 light_view_pos_z = glm::lookAt(pos, pos + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::fmat4 light_view_neg_z = glm::lookAt(pos, pos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-	m_light_transforms.clear();
-	m_light_transforms.reserve(6);
-	m_light_transforms.emplace_back(light_perspective * light_view_pos_x);
-	m_light_transforms.emplace_back(light_perspective * light_view_neg_x);
-	m_light_transforms.emplace_back(light_perspective * light_view_pos_y);
-	m_light_transforms.emplace_back(light_perspective * light_view_neg_y);
-	m_light_transforms.emplace_back(light_perspective * light_view_pos_z);
-	m_light_transforms.emplace_back(light_perspective * light_view_neg_z);
+	salt_m_light_transforms.clear();
+	salt_m_light_transforms.reserve(6);
+	salt_m_light_transforms.emplace_back(light_perspective * light_view_pos_x);
+	salt_m_light_transforms.emplace_back(light_perspective * light_view_neg_x);
+	salt_m_light_transforms.emplace_back(light_perspective * light_view_pos_y);
+	salt_m_light_transforms.emplace_back(light_perspective * light_view_neg_y);
+	salt_m_light_transforms.emplace_back(light_perspective * light_view_pos_z);
+	salt_m_light_transforms.emplace_back(light_perspective * light_view_neg_z);
 }
 
 void PointLightComponent::SetPosition(const float x, const float y, const float z)
 {
-	if (m_mesh_visual != nullptr) {
-		transform.SetPosition(x, y, z); m_mesh_visual->SetPosition(x, y, z);
+	if (salt_m_mesh_visual != nullptr) {
+		salt_transform.SetPosition(x, y, z); salt_m_mesh_visual->SetPosition(x, y, z);
 	}
 	UpdateLightTransforms();
 };
@@ -79,12 +79,12 @@ void PointLightComponent::SetPosition(const float x, const float y, const float 
 
 void DirectionalLightComponent::SetLightDirection(const glm::fvec3& dir)
 {
-	light_direction = dir;
+	salt_light_direction = dir;
 
 	glm::mat4 light_perspective = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
 	glm::mat4 light_view = glm::lookAt(glm::normalize(dir) * 80.0f, glm::fvec3(0), glm::vec3(0.0f, 1.0f, 0.0f));
 
-	mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
+	salt_mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
 
 }
 
@@ -95,5 +95,5 @@ DirectionalLightComponent::DirectionalLightComponent(unsigned int entity_id) : B
 	auto light_perspective = glm::ortho(-70.0f, 70.0f, -70.0f, 70.0f, 0.0001f, 200.f);
 	glm::mat4 light_view = glm::lookAt(glm::normalize(GetLightDirection()) * 80.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-	mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
+	salt_mp_light_transform_matrix = glm::fmat4(light_perspective * light_view);
 }

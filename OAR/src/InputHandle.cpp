@@ -42,16 +42,16 @@ void InputHandle::HandleCameraInput(Camera& camera, InputHandle& input) {
 	if (input.mouse_locked) {
 		auto mouseDelta = -glm::vec2(input.mouse_x - static_cast<double>(RendererResources::GetWindowWidth()) / 2, input.mouse_y - static_cast<double>(RendererResources::GetWindowHeight()) / 2);
 
-		camera.m_target = glm::rotate(mouseDelta.x * rotationSpeed, camera.m_up) * glm::fvec4(camera.m_target, 0);
+		camera.salt_m_target = glm::rotate(mouseDelta.x * rotationSpeed, camera.salt_m_up) * glm::fvec4(camera.salt_m_target, 0);
 		camera.UpdateFrustum();
 
-		glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotationSpeed, glm::cross(camera.m_target, camera.m_up)) * glm::fvec4(camera.m_target, 0);
+		glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotationSpeed, glm::cross(camera.salt_m_target, camera.salt_m_up)) * glm::fvec4(camera.salt_m_target, 0);
 		//constraint to stop lookAt flipping from y axis alignment
 		if (m_targetNew.y <= 0.9996 && m_targetNew.y >= -0.996) {
-			camera.m_target = m_targetNew;
+			camera.salt_m_target = m_targetNew;
 		}
 		camera.UpdateFrustum();
-		glm::normalize(camera.m_target);
+		glm::normalize(camera.salt_m_target);
 
 	}
 

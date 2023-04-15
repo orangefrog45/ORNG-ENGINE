@@ -184,9 +184,9 @@ void LightingShader::SetPointLights(std::vector< PointLightComponent*>& p_lights
 		light_array[i + 10] = p_lights[i / point_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
 		auto& atten = p_lights[i / point_light_fs_num_float]->GetAttentuation();
-		light_array[i + 11] = atten.constant;
-		light_array[i + 12] = atten.linear;
-		light_array[i + 13] = atten.exp;
+		light_array[i + 11] = atten.salt_constant;
+		light_array[i + 12] = atten.salt_linear;
+		light_array[i + 13] = atten.salt_exp;
 		//56 - END ATTENUATION
 		light_array[i + 14] = 0; //padding
 		light_array[i + 15] = 0; //padding
@@ -249,9 +249,9 @@ void LightingShader::SetSpotLights(std::vector<SpotLightComponent*>& s_lights) {
 		light_array[i + 30] = s_lights[i / spot_light_fs_num_float]->GetMaxDistance();
 		//44 - END MAX_DISTANCE - START ATTENUATION
 		auto& atten = s_lights[i / spot_light_fs_num_float]->GetAttentuation();
-		light_array[i + 31] = atten.constant;
-		light_array[i + 32] = atten.linear;
-		light_array[i + 33] = atten.exp;
+		light_array[i + 31] = atten.salt_constant;
+		light_array[i + 32] = atten.salt_linear;
+		light_array[i + 33] = atten.salt_exp;
 		//52 - END ATTENUATION - START APERTURE
 		light_array[i + 34] = s_lights[i / spot_light_fs_num_float]->GetAperture();
 		light_array[i + 35] = 0; //padding

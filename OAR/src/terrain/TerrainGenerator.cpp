@@ -49,8 +49,8 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 	terrain_data.tex_coords.reserve(terrain_data.tex_coords.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
 	terrain_data.indices.reserve(terrain_data.indices.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 6);
 
-	terrain_data.bounding_box.max = bot_left_coord;
-	terrain_data.bounding_box.min = bot_left_coord;
+	terrain_data.bounding_box.salt_max = bot_left_coord;
+	terrain_data.bounding_box.salt_min = bot_left_coord;
 
 	for (float x = bot_left_coord.x; x <= bot_left_coord.x + width; x += resolution) {
 		for (float z = bot_left_coord.z; z <= bot_left_coord.z + width; z += resolution) {
@@ -87,13 +87,13 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 			verts.vert_4.y += (noise_4)*height_factor;
 
 			/* Form bounding box for chunk*/
-			terrain_data.bounding_box.max.x = terrain_data.bounding_box.max.x < x ? x : terrain_data.bounding_box.max.x;
-			terrain_data.bounding_box.max.y = terrain_data.bounding_box.max.y < verts.vert_1.y ? verts.vert_1.y : terrain_data.bounding_box.max.y;
-			terrain_data.bounding_box.max.z = terrain_data.bounding_box.max.z < z ? z : terrain_data.bounding_box.max.z;
+			terrain_data.bounding_box.salt_max.x = terrain_data.bounding_box.salt_max.x < x ? x : terrain_data.bounding_box.salt_max.x;
+			terrain_data.bounding_box.salt_max.y = terrain_data.bounding_box.salt_max.y < verts.vert_1.y ? verts.vert_1.y : terrain_data.bounding_box.salt_max.y;
+			terrain_data.bounding_box.salt_max.z = terrain_data.bounding_box.salt_max.z < z ? z : terrain_data.bounding_box.salt_max.z;
 
-			terrain_data.bounding_box.min.x = terrain_data.bounding_box.min.x > x ? x : terrain_data.bounding_box.min.x;
-			terrain_data.bounding_box.min.y = terrain_data.bounding_box.min.y > verts.vert_1.y ? verts.vert_1.y : terrain_data.bounding_box.min.y;
-			terrain_data.bounding_box.min.z = terrain_data.bounding_box.min.z > z ? z : terrain_data.bounding_box.min.z;
+			terrain_data.bounding_box.salt_min.x = terrain_data.bounding_box.salt_min.x > x ? x : terrain_data.bounding_box.salt_min.x;
+			terrain_data.bounding_box.salt_min.y = terrain_data.bounding_box.salt_min.y > verts.vert_1.y ? verts.vert_1.y : terrain_data.bounding_box.salt_min.y;
+			terrain_data.bounding_box.salt_min.z = terrain_data.bounding_box.salt_min.z > z ? z : terrain_data.bounding_box.salt_min.z;
 
 			terrain_data.positions.emplace_back(verts.vert_1);
 			int index_1 = terrain_data.positions.size() - 1;
@@ -215,7 +215,7 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 		terrain_data.tangents.emplace_back(averaged_tangent);
 
 	}
-	terrain_data.bounding_box.center = (terrain_data.bounding_box.max + terrain_data.bounding_box.min) * 0.5f;
+	terrain_data.bounding_box.salt_center = (terrain_data.bounding_box.salt_max + terrain_data.bounding_box.salt_min) * 0.5f;
 }
 
 
