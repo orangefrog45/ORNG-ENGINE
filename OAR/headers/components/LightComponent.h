@@ -89,15 +89,15 @@ class SpotLightComponent : public PointLightComponent
 public:
 	SpotLightComponent(unsigned int ID);
 	void SetLightDirection(float i, float j, float k);
-	void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
+	void SetAperture(float angle) { salt_aperture = cosf(glm::radians(angle)); }
 	void SetPosition(const float x, const float y, const float z);
 
-	auto GetLightDirection() const { return m_light_direction_vec; }
-	auto GetAperture() const { return aperture; }
+	auto GetLightDirection() const { return salt_m_light_direction_vec; }
+	auto GetAperture() const { return salt_aperture; }
 	const auto &GetTransformMatrix() const { return salt_m_light_transforms[0]; }
 
 private:
 	void UpdateLightTransform();
-	glm::vec3 m_light_direction_vec = glm::vec3(1, 0, 0);
-	float aperture = 0.9396f;
+	glm::vec3 salt_m_light_direction_vec = glm::vec3(1, 0, 0);
+	float salt_aperture = 0.9396f;
 };

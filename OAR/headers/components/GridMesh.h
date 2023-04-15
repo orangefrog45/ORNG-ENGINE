@@ -19,5 +19,5 @@ private:
 	std::vector<float> salt_vertexArray = {0.0f, 0.0f, 0.0f,
 										   salt_grid_width, 0.0f, 0.0f};
 
-	std::vector<glm::fmat4> transform_array;
+	std::vector<glm::fmat4> salt_transform_array;
 };

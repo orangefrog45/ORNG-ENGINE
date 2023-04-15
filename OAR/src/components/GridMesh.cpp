@@ -13,7 +13,7 @@ void GridMesh::CheckBoundary(glm::fvec3 camera_pos)
 {
 	if (abs(camera_pos.x - salt_center_x) > salt_grid_width / 5 || abs(camera_pos.z - salt_center_z) > salt_grid_width / 5)
 	{
-		transform_array.clear();
+		salt_transform_array.clear();
 
 		float rounded_z = glm::round(camera_pos.z / 100.f) * 100.f;
 		float rounded_x = glm::round(camera_pos.x / 100.f) * 100.f;
@@ -23,8 +23,8 @@ void GridMesh::CheckBoundary(glm::fvec3 camera_pos)
 		{
 			WorldTransform transform;
 			transform.SetPosition(rounded_x - salt_grid_width / 2, 0.0f, z - salt_grid_width / 2);
-			transform_array.push_back(glm::rowMajor4(transform.GetMatrix()));
-			transform_array.push_back(transform.GetMatrix());
+			salt_transform_array.push_back(glm::rowMajor4(transform.GetMatrix()));
+			salt_transform_array.push_back(transform.GetMatrix());
 		}
 
 		for (float x = rounded_x; x <= rounded_x + salt_grid_width; x += 10.0f)
@@ -32,7 +32,7 @@ void GridMesh::CheckBoundary(glm::fvec3 camera_pos)
 			WorldTransform transform;
 			transform.SetPosition(x - salt_grid_width / 2, 0.0f, rounded_z + salt_grid_width / 2);
 			transform.SetRotation(0.0f, 90.f, 0.f);
-			transform_array.push_back(glm::rowMajor4(transform.GetMatrix()));
+			salt_transform_array.push_back(glm::rowMajor4(transform.GetMatrix()));
 		}
 
 		GLCall(glGenVertexArrays(1, &salt_m_VAO));
@@ -47,7 +47,7 @@ void GridMesh::CheckBoundary(glm::fvec3 camera_pos)
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 		GLCall(glBindBuffer(GL_ARRAY_BUFFER, salt_m_world_mat_buffer));
-		GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(transform_array[0]) * transform_array.size(), &transform_array[0], GL_STATIC_DRAW));
+		GLCall(glBufferData(GL_ARRAY_BUFFER, sizeof(salt_transform_array[0]) * salt_transform_array.size(), &salt_transform_array[0], GL_STATIC_DRAW));
 
 		GLCall(glEnableVertexAttribArray(WORLD_MAT_LOCATION_1));
 		GLCall(glVertexAttribPointer(WORLD_MAT_LOCATION_1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void *)0));
@@ -81,6 +81,6 @@ void GridMesh::Init()
 void GridMesh::Draw()
 {
 	GLCall(glBindVertexArray(salt_m_VAO));
-	GLCall(glDrawArraysInstanced(GL_LINES, 0, 2, transform_array.size()));
+	GLCall(glDrawArraysInstanced(GL_LINES, 0, 2, salt_transform_array.size()));
 	glBindVertexArray(0);
 }
