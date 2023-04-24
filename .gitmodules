@@ -10,3 +10,13 @@
 [submodule "OAR/extern/glew-cmake"]
 	path = OAR/extern/glew-cmake
 	url = https://github.com/Perlmint/glew-cmake.git
+
+[submodule "OAR/extern/glm"]
+	path = OAR/extern/glm
+	url = https://github.com/g-truc/glm
+[submodule "OAR/extern/imgui"]
+	path = OAR/extern/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "OAR/extern/spdlog"]
+	path = OAR/extern/spdlog
+	url = https://github.com/gabime/spdlog.git
