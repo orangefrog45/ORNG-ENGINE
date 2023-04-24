@@ -1,3 +1,12 @@
 [submodule "UNREAL 8.0/extern/spdlog"]
 	path = UNREAL 8.0/extern/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "OAR/extern/assimp"]
+	path = OAR/extern/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "OAR/extern/glfw"]
+	path = OAR/extern/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "OAR/extern/glew-cmake"]
+	path = OAR/extern/glew-cmake
+	url = https://github.com/Perlmint/glew-cmake.git
