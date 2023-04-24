@@ -1,8 +1,4 @@
 #pragma once
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/mat3x3.hpp>
-#include <glm/mat4x4.hpp>
 class WorldTransform2D {
 public:
 
@@ -28,9 +24,15 @@ public:
 	void SetRotation(float x, float y, float z);
 	void SetPosition(float x, float y, float z);
 
+	void SetPosition(const glm::vec3 pos) { m_pos = pos; };
+	void SetScale(const glm::vec3 scale) { m_scale = scale; };
+	void SetRotation(const glm::vec3 rot) { m_rotation = rot; };
+
 	void Rotate(float x, float y, float z);
 	glm::mat4x4 GetMatrix() const;
 	glm::vec3 GetPosition() const;
+	glm::vec3 GetScale() const { return m_scale; };
+	glm::vec3 GetRotation() const { return m_rotation; };
 
 
 private:

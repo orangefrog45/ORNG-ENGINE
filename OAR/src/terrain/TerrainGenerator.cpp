@@ -1,7 +1,9 @@
-#include "TerrainGenerator.h"
-#include "FastNoiseLite.h"
+#include "pch/pch.h"
+
+#include "terrain/TerrainGenerator.h"
+#include "../extern/fastnoiselite/FastNoiseLite.h"
 #include "glm/gtc/round.hpp"
-#include "Log.h"
+#include "util/Log.h"
 
 
 void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolution,
@@ -23,17 +25,21 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 		noise3.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_Euclidean);
 		noise3.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Add);
 		noise3.SetFractalPingPongStrength(1.0f);
-		noise2.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-		noise2.SetFractalType(FastNoiseLite::FractalType_None);
+
+		noise2.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+		noise2.SetCellularReturnType(FastNoiseLite::CellularReturnType_CellValue);
+		noise2.SetFractalType(FastNoiseLite::FractalType_PingPong);
 		noise2.SetFractalOctaves(4.f);
 		noise2.SetFractalGain(1.f);
-		noise2.SetFrequency(0.005f);
-		noise2.SetCellularJitter(1.25);
-		noise2.SetFractalPingPongStrength(2.0f);
+		noise2.SetFrequency(0.001f);
+		noise2.SetCellularJitter(2.0);
+		noise2.SetFractalPingPongStrength(10.0f);
+
 		noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-		noise.SetFrequency(0.075f);
+		noise.SetFrequency(0.00075f);
 		noise.SetFractalType(FastNoiseLite::FractalType_FBm);
 		noise.SetFractalOctaves(5.0);
+
 		noise_is_loaded = true;
 	}
 
@@ -52,8 +58,8 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 	terrain_data.bounding_box.max = bot_left_coord;
 	terrain_data.bounding_box.min = bot_left_coord;
 
-	for (float x = bot_left_coord.x; x <= bot_left_coord.x + width; x += resolution) {
-		for (float z = bot_left_coord.z; z <= bot_left_coord.z + width; z += resolution) {
+	for (float x = bot_left_coord.x; x < bot_left_coord.x + width; x += resolution) {
+		for (float z = bot_left_coord.z; z < bot_left_coord.z + width; z += resolution) {
 			TerrainGenerator::QuadVertices verts = GenQuad(resolution, glm::vec3(x, bot_left_coord.y, z));
 
 			const double x_coord_1 = x;
@@ -61,19 +67,19 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 			const double z_coord_1 = z;
 			const double z_coord_2 = (z + resolution);
 
-			const double noise_1 = noise2.GetNoise(x_coord_1, z_coord_1) * 0.05 + noise3.GetNoise(x_coord_1, z_coord_1) * 3
-				+ 0.003 * resolution * 0.5f * noise.GetNoise(x_coord_1, z_coord_1);
+			const double noise_1 = noise2.GetNoise(x_coord_1, z_coord_1) * 0.05 + noise3.GetNoise(x_coord_1, z_coord_1) * 1
+				+ 0.03 * noise.GetNoise(x_coord_1, z_coord_1);
 
-			const double noise_2 = noise2.GetNoise(x_coord_1, z_coord_2) * 0.05 + noise3.GetNoise(x_coord_1, z_coord_2) * 3
-				+ 0.003 * resolution * 0.5f * noise.GetNoise(x_coord_1, z_coord_2);
+			const double noise_2 = noise2.GetNoise(x_coord_1, z_coord_2) * 0.05 + noise3.GetNoise(x_coord_1, z_coord_2) * 1
+				+ 0.03 * noise.GetNoise(x_coord_1, z_coord_2);
 
-			const double noise_3 = noise2.GetNoise(x_coord_2, z_coord_1) * 0.05 + noise3.GetNoise(x_coord_2, z_coord_1) * 3
-				+ 0.003 * resolution * 0.5f * noise.GetNoise(x_coord_2, z_coord_1);
+			const double noise_3 = noise2.GetNoise(x_coord_2, z_coord_1) * 0.05 + noise3.GetNoise(x_coord_2, z_coord_1) * 1
+				+ 0.03 * noise.GetNoise(x_coord_2, z_coord_1);
 
-			const double noise_4 = noise2.GetNoise(x_coord_2, z_coord_2) * 0.05 + noise3.GetNoise(x_coord_2, z_coord_2) * 3
-				+ 0.003 * (resolution * 0.5f) * noise.GetNoise(x_coord_2, z_coord_2);
+			const double noise_4 = noise2.GetNoise(x_coord_2, z_coord_2) * 0.05 + noise3.GetNoise(x_coord_2, z_coord_2) * 1
+				+ 0.03 * noise.GetNoise(x_coord_2, z_coord_2);
 
-			const float height_exponent = 6.0f;
+			const float height_exponent = 7.5f;
 
 			/*Rounding will cause shelves*/
 			const double height_factor = glm::pow(height_scale, height_exponent);
@@ -107,17 +113,17 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 			terrain_data.indices.emplace_back(index_1);
 
 
-			glm::vec3 adj_bl_coord = bot_left_coord;
-			float adj_z = (z + master_width * 0.5f) * 0.5f;
-			float adj_z_2 = (z + resolution + master_width * 0.5f) * 0.5f;
-			float adj_x = (x + master_width * 0.5f) * 0.5f;
-			float adj_x_2 = (x + resolution + master_width * 0.5f) * 0.5f;
+			const glm::vec3 adj_bl_coord = bot_left_coord;
+			const float adj_z = (z + master_width * 0.5f) * 0.5f;
+			const float adj_z_2 = (z + resolution + master_width * 0.5f) * 0.5f;
+			const float adj_x = (x + master_width * 0.5f) * 0.5f;
+			const float adj_x_2 = (x + resolution + master_width * 0.5f) * 0.5f;
 
-			float adj_z_coord = ((adj_z) * 0.01);
-			float adj_x_coord = ((adj_x) * 0.01);
+			const float adj_z_coord = ((adj_z) * 0.03);
+			const float adj_x_coord = ((adj_x) * 0.03);
 
-			float adj_z_coord_2 = (adj_z_2 * 0.01);
-			float adj_x_coord_2 = (adj_x_2 * 0.01);
+			const float adj_z_coord_2 = (adj_z_2 * 0.03);
+			const float adj_x_coord_2 = (adj_x_2 * 0.03);
 
 			glm::vec2 bl_tex_coord = { adj_x_coord, adj_z_coord };
 			glm::vec2 tl_tex_coord = { adj_x_coord, adj_z_coord_2 };
@@ -130,12 +136,12 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 			terrain_data.tex_coords.emplace_back(tr_tex_coord);
 
 			/* Calculate normals and tangents */
-			glm::vec3 edge1 = verts.vert_2 - verts.vert_1;
-			glm::vec3 edge2 = verts.vert_3 - verts.vert_1;
-			glm::vec2 delta_uv1 = verts.tex_coord_2 - verts.tex_coord_1;
-			glm::vec2 delta_uv2 = verts.tex_coord_3 - verts.tex_coord_1;
+			const glm::vec3 edge1 = verts.vert_2 - verts.vert_1;
+			const glm::vec3 edge2 = verts.vert_3 - verts.vert_1;
+			const glm::vec2 delta_uv1 = verts.tex_coord_2 - verts.tex_coord_1;
+			const glm::vec2 delta_uv2 = verts.tex_coord_3 - verts.tex_coord_1;
 
-			float f = 1.0f / (delta_uv1.x * delta_uv2.y - delta_uv2.x * delta_uv1.y);
+			const float f = 1.0f / (delta_uv1.x * delta_uv2.y - delta_uv2.x * delta_uv1.y);
 
 			verts.tangent_1.x = f * (delta_uv2.y * edge1.x - delta_uv1.y * edge2.x);
 			verts.tangent_1.y = f * (delta_uv2.y * edge1.y - delta_uv1.y * edge2.y);
@@ -143,12 +149,12 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 
 			verts.normal_1 = glm::cross(verts.vert_2 - verts.vert_1, verts.vert_3 - verts.vert_1);
 
-			glm::vec3 edge3 = verts.vert_3 - verts.vert_2;
-			glm::vec3 edge4 = verts.vert_4 - verts.vert_2;
-			glm::vec2 delta_uv3 = verts.tex_coord_3 - verts.tex_coord_2;
-			glm::vec2 delta_uv4 = verts.tex_coord_4 - verts.tex_coord_2;
+			const glm::vec3 edge3 = verts.vert_3 - verts.vert_2;
+			const glm::vec3 edge4 = verts.vert_4 - verts.vert_2;
+			const glm::vec2 delta_uv3 = verts.tex_coord_3 - verts.tex_coord_2;
+			const glm::vec2 delta_uv4 = verts.tex_coord_4 - verts.tex_coord_2;
 
-			float f2 = 1.0f / (delta_uv3.x * delta_uv4.y - delta_uv4.x * delta_uv3.y);
+			const float f2 = 1.0f / (delta_uv3.x * delta_uv4.y - delta_uv4.x * delta_uv3.y);
 
 			verts.tangent_2.x = f2 * (delta_uv4.y * edge3.x - delta_uv3.y * edge4.x);
 			verts.tangent_2.y = f2 * (delta_uv4.y * edge3.y - delta_uv3.y * edge4.y);
@@ -196,7 +202,7 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 			top_tangent = tangents_to_average[i - 1];
 			division_num++;
 		}
-		if (i + i < normals_to_average.size()) {
+		if (i + 1 < normals_to_average.size()) {
 			bottom_normal = normals_to_average[i + 1];
 			bottom_tangent = tangents_to_average[i + 1];
 			division_num++;
@@ -205,10 +211,10 @@ void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolut
 		glm::vec3 averaged_normal = glm::normalize(glm::vec3(left_normal + right_normal + top_normal + bottom_normal + original_normal) / division_num);
 		glm::vec3 averaged_tangent = glm::normalize(glm::vec3(left_tangent + right_tangent + top_tangent + bottom_tangent + original_tangent) / division_num);
 
-		terrain_data.normals.emplace_back(averaged_normal);
-		terrain_data.normals.emplace_back(averaged_normal);
-		terrain_data.normals.emplace_back(averaged_normal);
-		terrain_data.normals.emplace_back(averaged_normal);
+		terrain_data.normals.emplace_back(original_normal);
+		terrain_data.normals.emplace_back(original_normal);
+		terrain_data.normals.emplace_back(original_normal);
+		terrain_data.normals.emplace_back(original_normal);
 		terrain_data.tangents.emplace_back(averaged_tangent);
 		terrain_data.tangents.emplace_back(averaged_tangent);
 		terrain_data.tangents.emplace_back(averaged_tangent);

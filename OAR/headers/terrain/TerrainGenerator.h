@@ -1,8 +1,5 @@
 #pragma once
-#include "glm/vec3.hpp"
-#include "glm/vec2.hpp"
-#include <vector>
-#include "BoundingVolume.h"
+#include "components/BoundingVolume.h"
 
 
 class TerrainGenerator {

@@ -1,24 +1,19 @@
 #pragma once
-#include <string>
-#include "MainViewFB.h"
-#include "DirLightDepthFB.h"
-#include "SpotLightDepthFB.h"
-#include "PointLightDepthFB.h"
-#include "DeferredFB.h"
+#include "framebuffers/Framebuffer.h"
 #include "util/util.h"
-#include "RendererResources.h"
 
 
-struct FramebufferLibrary {
+class FramebufferLibrary {
+public:
 	FramebufferLibrary() = default;
 	void Init();
+	Framebuffer& CreateFramebuffer(const char* name);
+	Framebuffer& GetFramebuffer(const char* name);
 	void UnbindAllFramebuffers() { GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0)); };
 
-	MainViewFB main_view_framebuffer;
-	DirLightDepthFB dir_depth_fb;
-	SpotLightDepthFB spotlight_depth_fb;
-	PointLightDepthFB pointlight_depth_fb;
-	DeferredFB deferred_fb;
-
+private:
+	[[nodiscard]] unsigned int CreateFramebufferID() { return m_last_id++; };
+	unsigned int m_last_id = 0;
+	std::unordered_map<std::string, Framebuffer> m_framebuffers;
 
 };

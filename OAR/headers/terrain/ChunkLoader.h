@@ -1,7 +1,6 @@
 #pragma once
-#include <future>
-#include "TerrainChunk.h"
-#include <map>
+#include "terrain/TerrainChunk.h"
+
 
 class ChunkLoader {
 public:

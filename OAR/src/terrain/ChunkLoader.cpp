@@ -1,6 +1,8 @@
-#include "ChunkLoader.h"
-#include "Log.h"
-#include "util.h"
+#include "pch/pch.h"
+
+#include "terrain/ChunkLoader.h"
+#include "util/Log.h"
+#include "util/util.h"
 
 void ChunkLoader::SetChunkSettings(unsigned int seed, float height_scale, float sampling_density, unsigned int terrain_master_width) {
 	m_seed = seed;

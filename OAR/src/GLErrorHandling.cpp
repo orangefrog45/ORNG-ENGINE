@@ -1,7 +1,7 @@
-#include <glew.h>
-#include <glfw/glfw3.h>
+#include "pch/pch.h"
+
+#include "util/Log.h"
 #include "GLErrorHandling.h"
-#include <iostream>
 
 
 void GLClearError() {
@@ -10,7 +10,7 @@ void GLClearError() {
 
 bool GLLogCall(const char* function, const char* file, int line) {
 	while (GLenum error = glGetError()) {
-		std::cout << "[OpenGL Error] (" << error << ")" << " " << function << " : " << file << " : " << line << std::endl;
+		OAR_CORE_CRITICAL("[OpenGL Error]: '{0}'\nFunction: '{1}'\nFile: '{2}'\nLine: '{3}'", error, function, file, line);
 		return false;
 	}
 	return true;

@@ -1,6 +1,4 @@
 #pragma once
-#include <vector>
-#include <memory>
 #include "TerrainGenerator.h"
 
 class Camera;
@@ -58,7 +56,7 @@ private:
 	bool m_is_subdivided = false;
 	int m_subdivision_layer = 0;
 	int m_max_subdivision_layer;
-	int m_min_grid_width = 50;
+	int m_min_grid_width = 100;
 
 	/*Data for building terrain*/
 	glm::vec3 m_center_pos = glm::vec3(0, 0, 0);

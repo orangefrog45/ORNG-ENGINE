@@ -1,29 +1,24 @@
 #pragma once
 #include "shaders/LightingShader.h"
-#include "shaders/GridShader.h"
-#include "shaders/FlatColourShader.h"
-#include "DepthShader.h"
-#include "BasicSampler.h"
-#include "ReflectionShader.h"
-#include "CubemapShadowShader.h"
-#include "GBufferShader.h"
-#include "SkyboxShader.h"
 
-struct ShaderLibrary {
+class ShaderLibrary {
 public:
+	friend class Renderer;
 	ShaderLibrary() {};
 	void Init();
+
+	/* Give shader filepaths in order: Vertex, Fragment */
+	Shader& CreateShader(const char* name, const std::array<const char*, 2>& shader_filepaths);
 	void SetMatrixUBOs(glm::mat4& proj, glm::mat4& view);
 
-	FlatColorShader flat_color_shader;
+	Shader& GetShader(const char* name);
+	void DeleteShader(const char* name);
+
 	LightingShader lighting_shader;
-	GridShader grid_shader;
-	DepthShader depth_shader;
-	BasicSampler basic_sampler_shader;
-	ReflectionShader reflection_shader;
-	CubemapShadowShader cube_map_shadow_shader;
-	GBufferShader g_buffer_shader;
-	SkyboxShader skybox_shader;
 private:
+	[[nodiscard]] unsigned int CreateShaderID() { return m_last_id++; };
+
+	std::unordered_map<std::string, Shader> m_shaders;
+	unsigned int m_last_id = 1;
 	unsigned int m_matrix_UBO;
 };

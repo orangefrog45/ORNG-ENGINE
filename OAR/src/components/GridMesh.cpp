@@ -1,8 +1,9 @@
-#include "GridMesh.h"
+#include "pch/pch.h"
+
+#include "components/GridMesh.h"
 #include "util/util.h"
 #include <glm/gtx/matrix_major_storage.hpp>
 #include "WorldTransform.h"
-#include <iostream>
 
 static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
 static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
@@ -11,7 +12,7 @@ static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 
 
 
-void GridMesh::CheckBoundary(glm::fvec3 camera_pos) {
+void GridMesh::CheckBoundary(glm::vec3 camera_pos) {
 	if (abs(camera_pos.x - center_x) > grid_width / 5 || abs(camera_pos.z - center_z) > grid_width / 5) {
 		transform_array.clear();
 
@@ -76,7 +77,7 @@ void GridMesh::Init() {
 	center_x = 0.f;
 	center_z = 0.f;
 
-	CheckBoundary(glm::fvec3(1000.f, 1000.f, 1000.f));
+	CheckBoundary(glm::vec3(1000.f, 1000.f, 1000.f));
 
 }
 

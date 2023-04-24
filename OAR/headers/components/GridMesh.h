@@ -1,12 +1,9 @@
 #pragma once
-#include <glew.h>
-#include <vector>
-#include <glm/glm.hpp>
 class GridMesh {
 public:
 	void Init();
 	void Draw();
-	void CheckBoundary(glm::fvec3 camera_pos);
+	void CheckBoundary(glm::vec3 camera_pos);
 private:
 	float grid_width = 400.0f;
 	float center_x;
@@ -17,5 +14,5 @@ private:
 	std::vector<float> vertexArray = { 0.0f, 0.0f, 0.0f,
 									   grid_width, 0.0f, 0.0f };
 
-	std::vector<glm::fmat4> transform_array;
+	std::vector<glm::mat4> transform_array;
 };

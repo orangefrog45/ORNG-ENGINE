@@ -1,3 +1,19 @@
+24/4/23:
+-Basic Entity editor
+-Very underdeveloped asset viewer/editor
+-ECS improvements
+-Entity selection through mouse picking
+-Native scripting
+-Rewrote shader, shaderlibrary, framebuffer and framebufferlibrary apis to make them actually usable
+-AABB generation for meshes
+-Texture generation more customizable
+-Lighting shader optimizations (reduced branching)
+-Optimizations to transform buffer code, moving components much faster
+-CMake integration
+-Linked most dependencies as submodules, every library also now static
+-Reduced build times with precompiled headers
+-Other things
+
 9/4/23:
 -Terrain texture blending
 -Quadtree based dynamic terrain LOD

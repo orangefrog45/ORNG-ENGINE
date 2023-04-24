@@ -1,9 +1,11 @@
-#include "TerrainQuadtree.h"
-#include "Log.h"
+#include "pch/pch.h"
+
+#include "terrain/TerrainQuadtree.h"
+#include "util/Log.h"
 #include "util/util.h"
-#include "TerrainChunk.h"
-#include "ChunkLoader.h"
-#include "Camera.h"
+#include "terrain/TerrainChunk.h"
+#include "terrain/ChunkLoader.h"
+#include "components/Camera.h"
 
 void TerrainQuadtree::Subdivide() {
 	if (m_subdivision_layer == m_max_subdivision_layer || m_is_subdivided) {
@@ -22,6 +24,7 @@ void TerrainQuadtree::Subdivide() {
 }
 
 TerrainQuadtree::~TerrainQuadtree() {
+	m_loader->CancelChunkLoad(m_chunk->m_chunk_key);
 	delete m_chunk;
 }
 
@@ -31,7 +34,6 @@ TerrainQuadtree::TerrainQuadtree(unsigned int width, int height_scale, unsigned 
 {
 	/* glm::log2(m_master_width / m_min_grid_width) == no. subdivisions before min grid width is hit */
 	m_max_subdivision_layer = glm::clamp(static_cast<int>(glm::log2(static_cast<float>(m_master_width) / static_cast<float>(m_min_grid_width))), 5, 15);
-	OAR_CORE_INFO("Subdivision layer : {0}", m_max_subdivision_layer);
 
 	glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
 	m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale, m_sampling_density);
@@ -58,31 +60,30 @@ TerrainQuadtree::TerrainQuadtree(glm::vec3 center_pos, TerrainQuadtree* parent)
 	if (m_subdivision_layer >= 0 && m_subdivision_layer <= m_max_subdivision_layer * 0.15) {
 		m_resolution = 24.f;
 	}
-	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.15 && m_subdivision_layer <= m_max_subdivision_layer * 0.3) {
+	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.15f && m_subdivision_layer <= m_max_subdivision_layer * 0.3f) {
 		m_resolution = 12.f;
 	}
-	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.3 && m_subdivision_layer <= m_max_subdivision_layer * 0.45) {
+	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.3f && m_subdivision_layer <= m_max_subdivision_layer * 0.45f) {
 		m_resolution = 8.f;
 	}
-	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.45 && m_subdivision_layer <= m_max_subdivision_layer * 0.6) {
-		m_resolution = 6.f;
+	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.45f && m_subdivision_layer <= m_max_subdivision_layer * 0.6f) {
+		m_resolution = 8.f;
 	}
-	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.6 && m_subdivision_layer <= m_max_subdivision_layer * 0.7) {
-		m_resolution = 3.5f;
+	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.6f && m_subdivision_layer <= m_max_subdivision_layer * 0.7f) {
+		m_resolution = 7.5f;
 	}
-	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.7 && m_subdivision_layer <= m_max_subdivision_layer * 0.85) {
-		m_resolution = 2.5f;
+	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.7f && m_subdivision_layer <= m_max_subdivision_layer * 0.85f) {
+		m_resolution = 5.5f;
 	}
-	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.85 && m_subdivision_layer < m_max_subdivision_layer) {
-		m_resolution = 1.25f;
+	else if (m_subdivision_layer >= m_max_subdivision_layer * 0.85f && m_subdivision_layer < m_max_subdivision_layer) {
+		m_resolution = 5.f;
 	}
 	else if (m_subdivision_layer == m_max_subdivision_layer) {
-		m_resolution = 0.75f;
+		m_resolution = 5.f;
 	}
-	OAR_CORE_INFO("Subdivision layer : {0}, Width: {1}", m_subdivision_layer, m_width);
 
-	glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5, center_pos.y, center_pos.z - m_width * 0.5);
-	m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale, m_sampling_density);
+	glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
+	m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4.f, m_seed, m_height_scale, m_sampling_density);
 	m_loader->RequestChunkLoad(*m_chunk);
 
 

@@ -1,45 +1,55 @@
-#include "MeshComponent.h"
-#include "MeshInstanceGroup.h"
+#include "pch/pch.h"
+
+#include "components/MeshComponent.h"
+#include "rendering/MeshInstanceGroup.h"
 #include "util/util.h"
 #include "WorldTransform.h"
+#include "rendering/Renderer.h"
 
-MeshComponent::MeshComponent(MeshData* t_mesh_data, MeshInstanceGroup* instance_group, unsigned int entity_id, MeshData::MeshShaderMode t_shader_mode) :
-	SceneEntity(entity_id), m_mesh_data(t_mesh_data), m_instance_group(instance_group), m_shader_mode(t_shader_mode)
-{
-	m_transform = new WorldTransform();
-};
+MeshComponent::MeshComponent(unsigned long entity_id) : Component(entity_id) { mp_transform = new WorldTransform(); };
 
 MeshComponent::~MeshComponent() {
-	delete m_transform;
+	delete mp_transform;
 }
 
-MeshComponent::MeshComponent(const MeshComponent& other) : SceneEntity(other.GetID()) {
+void MeshComponent::SetPosition(const float x, const float y, const float z) {
+	mp_transform->SetPosition(x, y, z);
+	UpdateInstanceTransformBuffers();
+};
 
-	this->m_instance_group = other.GetInstanceGroup();
-	this->m_shader_mode = other.m_shader_mode;
-	this->color = other.color;
-	this->m_mesh_data = other.m_mesh_data;
-	this->m_transform = other.m_transform;
-	this->SetHierachyValue(other.GetHierachyValue());
+void MeshComponent::SetRotation(const float x, const float y, const float z) {
+	mp_transform->SetRotation(x, y, z);
+	UpdateInstanceTransformBuffers();
+};
+
+void MeshComponent::SetScale(const float x, const float y, const float z) {
+	mp_transform->SetScale(x, y, z);
+	UpdateInstanceTransformBuffers();
+};
+
+void MeshComponent::SetPosition(const glm::vec3 transform) {
+	mp_transform->SetPosition(transform.x, transform.y, transform.z);
+	UpdateInstanceTransformBuffers();
+};
+
+void MeshComponent::SetRotation(const glm::vec3 transform) {
+	mp_transform->SetRotation(transform.x, transform.y, transform.z);
+	UpdateInstanceTransformBuffers();
+};
+
+void MeshComponent::SetScale(const glm::vec3 transform) {
+	mp_transform->SetScale(transform.x, transform.y, transform.z);
+	UpdateInstanceTransformBuffers();
+};
+
+void MeshComponent::SetShaderID(unsigned int id) {
+	m_shader_id = id;
+	if (mp_mesh_asset)
+		mp_instance_group->m_scene->SortMeshIntoInstanceGroup(this, this->mp_mesh_asset);
 }
-
-void MeshComponent::SetPosition(float x, float y, float z) {
-	m_transform->SetPosition(x, y, z);
-	UpdateInstanceTransformBuffers();
-};
-
-void MeshComponent::SetRotation(float x, float y, float z) {
-	m_transform->SetRotation(x, y, z);
-	UpdateInstanceTransformBuffers();
-};
-
-void MeshComponent::SetScale(float x, float y, float z) {
-	m_transform->SetScale(x, y, z);
-	UpdateInstanceTransformBuffers();
-};
 
 void MeshComponent::UpdateInstanceTransformBuffers() {
-	if (m_mesh_data->GetLoadStatus() == true) m_instance_group->UpdateMeshTransformBuffers();
+	if (mp_mesh_asset && mp_mesh_asset->GetLoadStatus() == true) mp_instance_group->SubUpdateWorldMatBuffer(this);
 }
 
 

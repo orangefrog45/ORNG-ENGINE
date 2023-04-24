@@ -1,25 +1,15 @@
-#include <array>
-#include "shaders/LightingShader.h"
-#include "LightComponent.h"
-#include "RendererResources.h"
+#include "pch/pch.h"
 
-void LightingShader::SetLightSpaceMatrix(const glm::mat4& mat) {
-	glUniformMatrix4fv(m_light_space_mat_loc, 1, GL_FALSE, &mat[0][0]);
-}
+#include "shaders/LightingShader.h"
+#include "components/lights/PointLightComponent.h"
+#include "components/lights/SpotLightComponent.h"
+#include "rendering/Renderer.h"
+#include "components/lights/DirectionalLight.h"
 
 
 void LightingShader::GenUBOs() {
-	GLCall(glGenBuffers(1, &m_point_light_UBO));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_point_light_UBO));
-	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * point_light_fs_num_float * RendererResources::max_point_lights, nullptr, GL_DYNAMIC_DRAW));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
-	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, RendererResources::UniformBindingPoints::POINT_LIGHTS, m_point_light_UBO));
-
-	GLCall(glGenBuffers(1, &m_spot_light_UBO));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_spot_light_UBO));
-	GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeof(float) * spot_light_fs_num_float * RendererResources::max_spot_lights, nullptr, GL_DYNAMIC_DRAW));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
-	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, RendererResources::UniformBindingPoints::SPOT_LIGHTS, m_spot_light_UBO));
+	AddUBO("pointlight_ubo", sizeof(float) * point_light_fs_num_float * Renderer::max_point_lights, GL_DYNAMIC_DRAW, Renderer::UniformBindingPoints::POINT_LIGHTS);
+	AddUBO("spotlight_ubo", sizeof(float) * spot_light_fs_num_float * Renderer::max_spot_lights, GL_DYNAMIC_DRAW, Renderer::UniformBindingPoints::SPOT_LIGHTS);
 }
 
 void LightingShader::Init() {
@@ -39,151 +29,126 @@ void LightingShader::Init() {
 
 
 void LightingShader::SetAmbientLight(const BaseLight& light) {
-	glm::vec3 light_color = light.GetColor();
-	glUniform4f(m_ambient_light_color_loc, light_color.x, light_color.y, light_color.z, 1);
-	glUniform1f(m_light_ambient_intensity_loc, light.GetAmbientIntensity());
+	SetUniform("g_ambient_light.color", glm::vec4(light.color, 1));
+	SetUniform("g_ambient_light.ambient_intensity", light.ambient_intensity);
 }
 
 
 void LightingShader::SetViewPos(const glm::vec3& pos) {
-	glUniform3f(m_camera_view_pos_loc, pos.x, pos.y, pos.z);
-}
-
-void LightingShader::SetNormalMapActive(bool active) {
-	glUniform1i(m_normal_sampler_active_loc, active);
+	SetUniform("view_pos", pos);
 }
 
 void LightingShader::SetMaterial(const Material& material) {
 
-	if (material.diffuse_texture == nullptr) {
-		RendererResources::BindTexture(GL_TEXTURE_2D, RendererResources::GetMissingTexture()->GetTextureRef(), RendererResources::TextureUnits::COLOR);
-	}
-	else {
-		RendererResources::BindTexture(GL_TEXTURE_2D, material.diffuse_texture->GetTextureRef(), RendererResources::TextureUnits::COLOR);
+	if (material.diffuse_texture != nullptr) {
+		Renderer::BindTexture(GL_TEXTURE_2D, material.diffuse_texture->GetTextureRef(), Renderer::TextureUnits::COLOR);
 	}
 
 	if (material.specular_texture == nullptr) {
-		glUniform1i(m_specular_sampler_active_loc, 0);
+		SetUniform("specular_sampler_active", 0);
 	}
 	else {
-		glUniform1i(m_specular_sampler_active_loc, 1);
-		RendererResources::BindTexture(GL_TEXTURE_2D, material.specular_texture->GetTextureRef(), RendererResources::TextureUnits::SPECULAR);
+		SetUniform("specular_sampler_active", 1);
+		Renderer::BindTexture(GL_TEXTURE_2D, material.specular_texture->GetTextureRef(), Renderer::TextureUnits::SPECULAR);
 	}
 
 	if (material.normal_map_texture == nullptr) {
-		glUniform1i(m_normal_sampler_active_loc, 0);
+		SetUniform("normal_sampler_active", 0);
 	}
 	else {
-		glUniform1i(m_normal_sampler_active_loc, 1);
-		RendererResources::BindTexture(GL_TEXTURE_2D, material.normal_map_texture->GetTextureRef(), RendererResources::TextureUnits::NORMAL_MAP);
+		SetUniform("normal_sampler_active", 1);
+		Renderer::BindTexture(GL_TEXTURE_2D, material.normal_map_texture->GetTextureRef(), Renderer::TextureUnits::NORMAL_MAP);
 	}
 
-	glUniform3f(m_material_specular_color_loc, material.specular_color.r, material.specular_color.g, material.specular_color.b);
-	glUniform3f(m_material_ambient_color_loc, material.ambient_color.r, material.ambient_color.g, material.ambient_color.b);
-	glUniform3f(m_material_diffuse_color_loc, material.diffuse_color.r, material.diffuse_color.g, material.diffuse_color.b);
+	SetUniform("g_material.ambient_color", material.ambient_color);
+	SetUniform("g_material.specular_color", material.specular_color);
+	SetUniform("g_material.diffuse_color", material.diffuse_color);
 }
 
-inline void LightingShader::SetDiffuseTextureUnit(unsigned int unit) {
-	glUniform1i(m_sampler_texture_col_location, unit);
-}
-
-inline void LightingShader::SetSpecularTextureUnit(unsigned int unit) {
-	glUniform1i(m_sampler_specular_loc, unit);
-}
-
-inline void LightingShader::SetDirDepthMapTexUnit(unsigned int unit) {
-	glUniform1i(m_sampler_dir_depth_loc, unit);
-}
-
-
-inline void LightingShader::SetSpotDepthMapTexUnit(unsigned int unit) {
-	glUniform1i(m_sampler_spot_depth_loc, unit);
-}
-
-inline void LightingShader::SetPointDepthMapTexUnit(unsigned int unit) {
-	glUniform1i(m_sampler_point_depth_loc, unit);
-}
-
-void LightingShader::SetTerrainMode(bool mode) {
-	glUniform1i(m_terrain_mode_loc, mode);
-}
 
 void LightingShader::InitUniforms() {
-	ActivateProgram();
-	m_terrain_mode_loc = GetUniform("terrain_mode");
-	m_camera_view_pos_loc = GetUniform("view_pos");
-	/* Material */
-	m_material_ambient_color_loc = GetUniform("g_material.ambient_color");
-	m_material_specular_color_loc = GetUniform("g_material.specular_color");
-	m_material_diffuse_color_loc = GetUniform("g_material.diffuse_color");
-	/* Samplers */
-	m_sampler_texture_col_location = GetUniform("gSampler");
-	m_sampler_specular_loc = GetUniform("specular_sampler");
-	m_specular_sampler_active_loc = GetUniform("specular_sampler_active");
-	m_sampler_spot_depth_loc = GetUniform("spot_depth_map");
-	m_sampler_point_depth_loc = GetUniform("point_depth_map");
-	m_sampler_normals_loc = GetUniform("normal_map");
-	m_normal_sampler_active_loc = GetUniform("normal_map_active");
-	m_sampler_terrain_diffuse_loc = GetUniform("terrain_diffuse_sampler");
+	AddUniforms({
+			"terrain_mode",
+			"view_pos",
 
-	m_num_point_light_loc = GetUniform("g_num_point_lights");
-	m_num_spot_light_loc = GetUniform("g_num_spot_lights");
+			"g_material.ambient_color",
+			"g_material.diffuse_color",
+			"g_material.specular_color",
 
-	m_light_ambient_intensity_loc = GetUniform("g_ambient_light.ambient_intensity");
-	m_ambient_light_color_loc = GetUniform("g_ambient_light.color");
+			"diffuse_sampler",
+			"specular_sampler",
+			"specular_sampler_active",
+			"spot_depth_sampler",
+			"dir_depth_sampler",
+			"point_depth_sampler",
+			"normal_map_sampler",
+			"normal_sampler_active",
+			"diffuse_array_sampler",
+			"normal_array_sampler",
+			"displacement_sampler",
+			"displacement_sampler_active",
 
-	m_dir_light_color_loc = GetUniform("directional_light.color");
-	m_dir_light_dir_loc = GetUniform("directional_light.direction");
-	m_dir_light_diffuse_intensity_loc = GetUniform("directional_light.diffuse_intensity");
-	m_light_space_mat_loc = GetUniform("dir_light_matrix");
+			"g_num_point_lights",
+			"g_num_spot_lights",
 
-	SetDiffuseTextureUnit(RendererResources::TextureUnitIndexes::COLOR);
-	SetSpecularTextureUnit(RendererResources::TextureUnitIndexes::SPECULAR);
-	SetDirDepthMapTexUnit(RendererResources::TextureUnitIndexes::DIR_SHADOW_MAP);
-	SetSpotDepthMapTexUnit(RendererResources::TextureUnitIndexes::SPOT_SHADOW_MAP);
-	SetPointDepthMapTexUnit(RendererResources::TextureUnitIndexes::POINT_SHADOW_MAP);
-	glUniform1i(m_sampler_normals_loc, RendererResources::TextureUnitIndexes::NORMAL_MAP);
-	glUniform1i(m_sampler_terrain_diffuse_loc, RendererResources::TextureUnitIndexes::TERRAIN_DIFFUSE);
+			"g_ambient_light.ambient_intensity",
+			"g_ambient_light.color",
+
+			"directional_light.color",
+			"directional_light.direction",
+			"directional_light.diffuse_intensity",
+			"dir_light_matrix"
+
+		});
+
+	SetUniform("diffuse_sampler", Renderer::TextureUnitIndexes::COLOR);
+	SetUniform("specular_sampler", Renderer::TextureUnitIndexes::SPECULAR);
+	SetUniform("spot_depth_sampler", Renderer::TextureUnitIndexes::SPOT_SHADOW_MAP);
+	SetUniform("dir_depth_sampler", Renderer::TextureUnitIndexes::DIR_SHADOW_MAP);
+	SetUniform("point_depth_sampler", Renderer::TextureUnitIndexes::POINT_SHADOW_MAP);
+	SetUniform("normal_map_sampler", Renderer::TextureUnitIndexes::NORMAL_MAP);
+	SetUniform("diffuse_array_sampler", Renderer::TextureUnitIndexes::DIFFUSE_ARRAY);
+	SetUniform("normal_array_sampler", Renderer::TextureUnitIndexes::NORMAL_ARRAY);
+	SetUniform("displacement_sampler", Renderer::TextureUnitIndexes::DISPLACEMENT);
 
 }
 
-void LightingShader::SetDirectionLight(const DirectionalLightComponent& light) {
-	auto color = light.GetColor();
-	glUniform3f(m_dir_light_color_loc, color.x, color.y, color.z);
-	auto dir = glm::normalize(light.GetLightDirection());
-	glUniform3f(m_dir_light_dir_loc, dir.x, dir.y, dir.z);
-	glUniform1f(m_dir_light_diffuse_intensity_loc, light.GetDiffuseIntensity());
-	glUniform1f(m_dir_light_ambient_intensity_loc, light.GetAmbientIntensity());
+void LightingShader::SetDirectionLight(const DirectionalLight& light) {
+	SetUniform("directional_light.color", light.color);
+	SetUniform("directional_light.direction", light.GetLightDirection());
+	SetUniform("directional_light.diffuse_intensity", light.diffuse_intensity);
+	SetUniform("dir_light_matrix", light.GetTransformMatrix());
 }
-
 
 
 void LightingShader::SetPointLights(std::vector< PointLightComponent*>& p_lights) {
 
-	glUniform1i(m_num_point_light_loc, p_lights.size());
-	constexpr int array_size = RendererResources::max_point_lights * point_light_fs_num_float;
-	std::array<float, array_size> light_array;
+	SetUniform("g_num_point_lights", static_cast<int>(p_lights.size()));
+	constexpr int array_size = Renderer::max_point_lights * point_light_fs_num_float;
+	std::array<float, array_size> light_array = { 0 };
 
 	for (int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
+		auto& light = p_lights[i / point_light_fs_num_float];
+		if (!light) continue;
 		//0 - START COLOR
-		auto color = p_lights[i / point_light_fs_num_float]->GetColor();
+		auto color = light->color;
 		light_array[i] = color.x;
 		light_array[i + 1] = color.y;
 		light_array[i + 2] = color.z;
 		light_array[i + 3] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = p_lights[i / point_light_fs_num_float]->GetWorldTransform().GetPosition();
+		auto pos = light->transform.GetPosition();
 		light_array[i + 4] = pos.x;
 		light_array[i + 5] = pos.y;
 		light_array[i + 6] = pos.z;
 		light_array[i + 7] = 0; //padding
 		//32 - END POS, START INTENSITY
-		light_array[i + 8] = p_lights[i / point_light_fs_num_float]->GetAmbientIntensity();
-		light_array[i + 9] = p_lights[i / point_light_fs_num_float]->GetDiffuseIntensity();
+		light_array[i + 8] = light->ambient_intensity;
+		light_array[i + 9] = light->diffuse_intensity;
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 10] = p_lights[i / point_light_fs_num_float]->GetMaxDistance();
+		light_array[i + 10] = light->max_distance;
 		//44 - END MAX_DISTANCE - START ATTENUATION
-		auto& atten = p_lights[i / point_light_fs_num_float]->GetAttentuation();
+		auto& atten = light->attenuation;
 		light_array[i + 11] = atten.constant;
 		light_array[i + 12] = atten.linear;
 		light_array[i + 13] = atten.exp;
@@ -194,38 +159,41 @@ void LightingShader::SetPointLights(std::vector< PointLightComponent*>& p_lights
 	}
 
 
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_point_light_UBO));
-	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * point_light_fs_num_float * p_lights.size(), &light_array[0]));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_uniforms["pointlight_ubo"]));
+	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * light_array.size(), &light_array[0]));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 
 }
 
-void LightingShader::SetSpotLights(std::vector<SpotLightComponent*>& s_lights) {
-	glUniform1i(m_num_spot_light_loc, s_lights.size());
-	constexpr int array_size = RendererResources::max_spot_lights * spot_light_fs_num_float;
-	std::array<float, array_size> light_array;
+void LightingShader::SetSpotLights(std::vector< SpotLightComponent*>& s_lights) {
+	SetUniform("g_num_spot_lights", static_cast<int>(s_lights.size()));
+
+	constexpr int array_size = Renderer::max_spot_lights * spot_light_fs_num_float;
+	std::array<float, array_size> light_array = { 0 };
 
 	for (int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
+		auto& light = s_lights[i / spot_light_fs_num_float];
+		if (!light) continue;
 		//0 - START COLOR
-		auto color = s_lights[i / spot_light_fs_num_float]->GetColor();
+		auto color = light->color;
 		light_array[i] = color.x;
 		light_array[i + 1] = color.y;
 		light_array[i + 2] = color.z;
 		light_array[i + 3] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = s_lights[i / spot_light_fs_num_float]->GetWorldTransform().GetPosition();
+		auto pos = light->transform.GetPosition();
 		light_array[i + 4] = pos.x;
 		light_array[i + 5] = pos.y;
 		light_array[i + 6] = pos.z;
 		light_array[i + 7] = 0; //padding
 		//32 - END POS, START DIR
-		auto dir = s_lights[i / spot_light_fs_num_float]->GetLightDirection();
+		auto dir = light->GetLightDirection();
 		light_array[i + 8] = dir.x;
 		light_array[i + 9] = dir.y;
 		light_array[i + 10] = dir.z;
 		light_array[i + 11] = 0; // padding
 		//48 - END DIR, START LIGHT TRANSFORM MAT
-		glm::mat4 mat = s_lights[i / spot_light_fs_num_float]->GetTransformMatrix();
+		glm::mat4 mat = light->GetLightSpaceTransformMatrix();
 		light_array[i + 12] = mat[0][0];
 		light_array[i + 13] = mat[0][1];
 		light_array[i + 14] = mat[0][2];
@@ -243,22 +211,22 @@ void LightingShader::SetSpotLights(std::vector<SpotLightComponent*>& s_lights) {
 		light_array[i + 26] = mat[3][2];
 		light_array[i + 27] = mat[3][3];
 		//112   - END LIGHT TRANSFORM MAT, START INTENSITY
-		light_array[i + 28] = s_lights[i / spot_light_fs_num_float]->GetAmbientIntensity();
-		light_array[i + 29] = s_lights[i / spot_light_fs_num_float]->GetDiffuseIntensity();
+		light_array[i + 28] = light->ambient_intensity;
+		light_array[i + 29] = light->diffuse_intensity;
 		//40 - END INTENSITY - START MAX_DISTANCE
-		light_array[i + 30] = s_lights[i / spot_light_fs_num_float]->GetMaxDistance();
+		light_array[i + 30] = light->max_distance;
 		//44 - END MAX_DISTANCE - START ATTENUATION
-		auto& atten = s_lights[i / spot_light_fs_num_float]->GetAttentuation();
+		auto& atten = light->attenuation;
 		light_array[i + 31] = atten.constant;
 		light_array[i + 32] = atten.linear;
 		light_array[i + 33] = atten.exp;
 		//52 - END ATTENUATION - START APERTURE
-		light_array[i + 34] = s_lights[i / spot_light_fs_num_float]->GetAperture();
+		light_array[i + 34] = light->GetAperture();
 		light_array[i + 35] = 0; //padding
 	}
 
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_spot_light_UBO));
-	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * spot_light_fs_num_float * s_lights.size(), &light_array[0]));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, m_uniforms["spotlight_ubo"]));
+	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(float) * light_array.size(), &light_array[0]));
 	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 }
 

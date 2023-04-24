@@ -114,14 +114,17 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\fastnoiselite;$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\headers\util;$(SolutionDir)OAR\Include;$(SolutionDir)OAR\headers\terrain;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\headers\rendering;$(SolutionDir)OAR\headers\framebuffers;$(SolutionDir)OAR\headers\components;$(SolutionDir)OAR\headers\layers;$(SolutionDir)OAR\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\spdlog;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;glew32.lib;assimp-vc143-mtd.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw/build/src/Debug/glfw3.lib;glew-cmake/lib/Debug/x64/glew32sd.lib;assimp/build/lib/Debug/assimp-vc143-mtd.lib;assimp/build/contrib/zlib/Debug/zlibstaticd.lib;opengl32.lib;kernel32.lib;%(AdditionalDependencies);user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -132,51 +135,80 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\fastnoiselite;$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\headers\util;$(SolutionDir)OAR\Include;$(SolutionDir)OAR\headers\terrain;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\headers\rendering;$(SolutionDir)OAR\headers\framebuffers;$(SolutionDir)OAR\headers\components;$(SolutionDir)OAR\headers\layers;$(SolutionDir)OAR\headers\shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>spdlog.lib;glfw3.lib;glew32.lib;assimp-vc143-mt.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)Lib;$(SolutionDir)Lib\spdlog;$(SolutionDir)Lib\assimp</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);$(ProjectDir)extern/glfw/build/src/Release/glfw3.lib;$(ProjectDir)extern/assimp/build/lib/Release/assimp-vc143-mt.lib;$(ProjectDir)extern/glew-cmake/lib/Release/x64/glew32s.lib;$(ProjectDir)extern/assimp/build/contrib/zlib/Release/zlibstatic.lib;opengl32.lib;%(AdditionalDependencies);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Include\imgui\imgui.cpp" />
-    <ClCompile Include="Include\imgui\imgui_draw.cpp" />
-    <ClCompile Include="Include\imgui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="Include\imgui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="Include\imgui\imgui_tables.cpp" />
-    <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\framebuffers\DeferredFB.cpp" />
+    <ClCompile Include="extern\imgui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_impl_glfw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_impl_opengl3.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_stdlib.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_tables.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\components\Component.cpp" />
+    <ClCompile Include="src\components\lights\DirectionalLight.cpp" />
+    <ClCompile Include="src\components\lights\SpotLightComponent.cpp" />
+    <ClCompile Include="src\components\SceneEntity.cpp" />
+    <ClCompile Include="src\framebuffers\Framebuffer.cpp" />
     <ClCompile Include="src\framebuffers\FramebufferLibrary.cpp" />
-    <ClCompile Include="src\framebuffers\MainViewFB.cpp" />
-    <ClCompile Include="src\framebuffers\DirLightDepthFB.cpp" />
-    <ClCompile Include="src\framebuffers\PointLightDepthFB.cpp" />
-    <ClCompile Include="src\framebuffers\SpotLightDepthFB.cpp" />
     <ClCompile Include="src\layers\EditorLayer.cpp" />
-    <ClCompile Include="src\RendererResources.cpp" />
-    <ClCompile Include="src\rendering\MeshData.cpp" />
+    <ClCompile Include="src\pch\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="src\rendering\MeshAsset.cpp" />
     <ClCompile Include="src\components\GridMesh.cpp" />
     <ClCompile Include="src\rendering\MeshInstanceGroup.cpp" />
-    <ClCompile Include="src\components\LightComponent.cpp" />
     <ClCompile Include="src\components\MeshComponent.cpp" />
     <ClCompile Include="src\rendering\Quad.cpp" />
+    <ClCompile Include="src\rendering\RenderPasses.cpp" />
     <ClCompile Include="src\rendering\Scene.cpp" />
-    <ClCompile Include="src\rendering\Texture2DArray.cpp" />
-    <ClCompile Include="src\rendering\TextureCubemap.cpp" />
-    <ClCompile Include="src\shaders\BasicSampler.cpp" />
-    <ClCompile Include="src\shaders\CubemapShadowshader.cpp" />
-    <ClCompile Include="src\shaders\DepthShader.cpp" />
-    <ClCompile Include="src\shaders\FlatColorShader.cpp" />
-    <ClCompile Include="src\shaders\GridShader.cpp" />
     <ClCompile Include="src\components\Camera.cpp" />
     <ClCompile Include="src\ExtraMath.cpp" />
     <ClCompile Include="src\GLErrorHandling.cpp" />
-    <ClCompile Include="src\InputHandle.cpp" />
+    <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
@@ -184,26 +216,27 @@
     </ClCompile>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\rendering\Renderer.cpp" />
-    <ClCompile Include="src\shaders\ReflectionShader.cpp" />
+    <ClCompile Include="src\rendering\Textures.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
     <ClCompile Include="src\shaders\ShaderLibrary.cpp" />
     <ClCompile Include="src\shaders\LightingShader.cpp" />
-    <ClCompile Include="src\shaders\SkyboxShader.cpp" />
     <ClCompile Include="src\Skybox.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
-    <ClCompile Include="src\rendering\Texture2D.cpp" />
     <ClCompile Include="src\terrain\ChunkLoader.cpp" />
     <ClCompile Include="src\terrain\Terrain.cpp" />
     <ClCompile Include="src\terrain\TerrainChunk.cpp" />
     <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\terrain\TerrainQuadtree.cpp" />
     <ClCompile Include="src\TimeStep.cpp" />
+    <ClCompile Include="src\util\ImGuiLib.cpp" />
     <ClCompile Include="src\util\Log.cpp" />
     <ClCompile Include="src\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\BasicSamplerFS.shader" />
-    <None Include="res\shaders\BasicSamplerVS.shader" />
+    <None Include="res\shaders\HighlightFS.shader" />
+    <None Include="res\shaders\HighlightVS.shader" />
+    <None Include="res\shaders\QuadFS.shader" />
+    <None Include="res\shaders\QuadVS.shader" />
     <None Include="res\shaders\CubemapShadowFS.shader" />
     <None Include="res\shaders\CubemapShadowVS.shader" />
     <None Include="res\shaders\DepthFS.shader" />
@@ -214,6 +247,8 @@
     <None Include="res\shaders\GBufferVS.shader" />
     <None Include="res\shaders\GridFS.shader" />
     <None Include="res\shaders\GridVS.shader" />
+    <None Include="res\shaders\PickingFS.shader" />
+    <None Include="res\shaders\PickingVS.shader" />
     <None Include="res\shaders\ReflectionFS.shader" />
     <None Include="res\shaders\ReflectionVS.shader" />
     <None Include="res\shaders\SkyboxFS.shader" />
@@ -222,64 +257,59 @@
     <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="extern\Icons.h" />
     <ClInclude Include="headers\components\BoundingVolume.h" />
-    <ClInclude Include="headers\framebuffers\DeferredFB.h" />
-    <ClInclude Include="headers\framebuffers\DirLightDepthFB.h" />
-    <ClInclude Include="headers\framebuffers\MainViewFB.h" />
-    <ClInclude Include="headers\framebuffers\PointLightDepthFB.h" />
-    <ClInclude Include="headers\framebuffers\SpotLightDepthFB.h" />
-    <ClInclude Include="headers\rendering\MeshData.h" />
+    <ClInclude Include="headers\components\Component.h" />
+    <ClInclude Include="headers\components\lights\BaseLight.h" />
+    <ClInclude Include="headers\components\lights\PointLightComponent.h" />
+    <ClInclude Include="headers\components\lights\SpotLightComponent.h" />
+    <ClInclude Include="headers\components\ScriptComponent.h" />
+    <ClInclude Include="headers\framebuffers\Framebuffer.h" />
+    <ClInclude Include="headers\pch\pch.h" />
+    <ClInclude Include="headers\rendering\MeshAsset.h" />
     <ClInclude Include="headers\layers\EditorLayer.h" />
     <ClInclude Include="headers\components\Camera.h" />
     <ClInclude Include="headers\ExtraMath.h" />
     <ClInclude Include="headers\GLErrorHandling.h" />
     <ClInclude Include="headers\components\GridMesh.h" />
-    <ClInclude Include="headers\InputHandle.h" />
+    <ClInclude Include="headers\Input.h" />
     <ClInclude Include="headers\Application.h" />
-    <ClInclude Include="headers\rendering\TextureBase.h" />
-    <ClInclude Include="headers\rendering\TextureCubemap.h" />
+    <ClInclude Include="headers\rendering\Renderpasses.h" />
+    <ClInclude Include="headers\rendering\renderpasses\Renderpasses.h" />
     <ClInclude Include="headers\rendering\Material.h" />
     <ClInclude Include="headers\components\SceneEntity.h" />
     <ClInclude Include="headers\rendering\MeshInstanceGroup.h" />
     <ClInclude Include="headers\framebuffers\FramebufferLibrary.h" />
     <ClInclude Include="headers\components\MeshComponent.h" />
-    <ClInclude Include="headers\components\LightComponent.h" />
+    <ClInclude Include="headers\components\lights\DirectionalLight.h" />
     <ClInclude Include="headers\rendering\Quad.h" />
     <ClInclude Include="headers\rendering\Renderer.h" />
     <ClInclude Include="headers\rendering\Scene.h" />
-    <ClInclude Include="headers\rendering\RendererResources.h" />
-    <ClInclude Include="headers\shaders\BasicSampler.h" />
-    <ClInclude Include="headers\shaders\CubemapShadowShader.h" />
-    <ClInclude Include="headers\shaders\GBufferShader.h" />
-    <ClInclude Include="headers\shaders\ReflectionShader.h" />
+    <ClInclude Include="headers\rendering\Textures.h" />
     <ClInclude Include="headers\shaders\Shader.h" />
     <ClInclude Include="headers\shaders\ShaderLibrary.h" />
-    <ClInclude Include="headers\shaders\DepthShader.h" />
-    <ClInclude Include="headers\shaders\FlatColourShader.h" />
-    <ClInclude Include="headers\shaders\GridShader.h" />
     <ClInclude Include="headers\shaders\LightingShader.h" />
-    <ClInclude Include="headers\shaders\SkyboxShader.h" />
     <ClInclude Include="headers\rendering\Skybox.h" />
     <ClInclude Include="headers\terrain\ChunkLoader.h" />
     <ClInclude Include="headers\terrain\Terrain.h" />
     <ClInclude Include="headers\terrain\TerrainChunk.h" />
     <ClInclude Include="headers\terrain\TerrainGenerator.h" />
-    <ClInclude Include="headers\rendering\Texture2D.h" />
     <ClInclude Include="headers\terrain\TerrainQuadtree.h" />
     <ClInclude Include="headers\TimeStep.h" />
+    <ClInclude Include="headers\util\ImGuiLib.h" />
     <ClInclude Include="headers\util\Log.h" />
     <ClInclude Include="headers\util\util.h" />
     <ClInclude Include="headers\WorldTransform.h" />
-    <ClInclude Include="Include\imgui\imconfig.h" />
-    <ClInclude Include="Include\imgui\imgui.h" />
-    <ClInclude Include="Include\imgui\imgui_impl_glfw.h" />
-    <ClInclude Include="Include\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="Include\imgui\imgui_impl_opengl3_loader.h" />
-    <ClInclude Include="Include\imgui\imgui_internal.h" />
-    <ClInclude Include="Include\imgui\imstb_rectpack.h" />
-    <ClInclude Include="Include\imgui\imstb_textedit.h" />
-    <ClInclude Include="Include\imgui\imstb_truetype.h" />
-    <ClInclude Include="headers\rendering\Texture2DArray.h" />
+    <ClInclude Include="extern\imgui\imconfig.h" />
+    <ClInclude Include="extern\imgui\imgui.h" />
+    <ClInclude Include="extern\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="extern\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="extern\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="extern\imgui\imgui_internal.h" />
+    <ClInclude Include="extern\imgui\imgui_stdlib.h" />
+    <ClInclude Include="extern\imgui\imstb_rectpack.h" />
+    <ClInclude Include="extern\imgui\imstb_textedit.h" />
+    <ClInclude Include="extern\imgui\imstb_truetype.h" />
     <ClInclude Include="src\Terrain.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

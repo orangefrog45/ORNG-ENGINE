@@ -1,6 +1,6 @@
 #pragma once
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include "../extern/spdlog/include/spdlog/spdlog.h"
+#include "../extern/spdlog/include/spdlog/sinks/stdout_color_sinks.h"
 
 
 class Log {

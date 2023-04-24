@@ -1,3 +1,4 @@
+#include "pch/pch.h"
 #include "ExtraMath.h"
 
 glm::mat3 ExtraMath::Init2DScaleTransform(float x, float y) {

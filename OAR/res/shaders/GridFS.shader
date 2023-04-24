@@ -1,8 +1,7 @@
 #version 430 core
 
-layout(location = 0) in vec2 TexCoord0;
-layout(location = 1) in vec3 cam_pos;
-layout(location = 3) in vec3 vs_position;
+in vec3 cam_pos;
+in vec3 vs_position;
 
 out vec4 FragColor;
 

@@ -1,5 +1,7 @@
+#include "pch/pch.h"
+
 #include "Application.h"
-#include "Log.h"
+#include "util/Log.h"
 
 int main() {
 	Log::Init();

@@ -1,3 +1,5 @@
+#include "pch/pch.h"
+
 #include "TimeStep.h"
 
 long long TimeStep::GetTimeInterval() const {

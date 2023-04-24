@@ -1,35 +1,41 @@
 #pragma once
-#include "MeshData.h"
-#include "SceneEntity.h"
+#include "rendering/MeshAsset.h"
+#include "components/Component.h"
 
-class MeshData;
 class MeshInstanceGroup;
 class WorldTransform;
 
-class MeshComponent : public SceneEntity {
+class MeshComponent : public Component {
 public:
-	MeshComponent(MeshData* t_mesh_data, MeshInstanceGroup* instance_group, unsigned int entity_id, MeshData::MeshShaderMode t_shader_mode = MeshData::MeshShaderMode::LIGHTING);
+	friend class Scene;
+	friend class Renderer;
+	friend class EditorLayer;
+	explicit MeshComponent(unsigned long entity_id);
 	~MeshComponent();
-	MeshComponent(const MeshComponent& other);
+	MeshComponent(const MeshComponent& other) = delete;
 
 	void UpdateInstanceTransformBuffers();
 
 	void SetPosition(const float x, const float y, const float z);
 	void SetRotation(const float x, const float y, const float z);
 	void SetScale(const float x, const float y, const float z);
-	inline void SetColor(const glm::vec3& t_color) { color = t_color; }
-	inline void SetInstanceGroup(MeshInstanceGroup* group) { m_instance_group = group; };
 
-	inline MeshData::MeshShaderMode GetShaderMode() const { return m_shader_mode; }
-	inline auto& GetMeshData() const { return m_mesh_data; }
-	inline auto& GetInstanceGroup() const { return m_instance_group; };
-	inline glm::vec3 GetColor() const { return color; };
-	inline WorldTransform const* GetWorldTransform() const { return m_transform; };
+	void SetPosition(const glm::vec3 transform);
+	void SetRotation(const glm::vec3 transform);
+	void SetScale(const glm::vec3 transform);
+
+	void SetShaderID(unsigned int id);
+	inline void SetColor(const glm::vec3 t_color) { m_color = t_color; }
+
+	inline int GetShaderMode() const { return m_shader_id; }
+	inline const MeshAsset* GetMeshData() const { return mp_mesh_asset; }
+	inline glm::vec3 GetColor() const { return m_color; };
+	inline const WorldTransform* GetWorldTransform() const { return mp_transform; };
 
 private:
-	MeshInstanceGroup* m_instance_group = nullptr;
-	MeshData::MeshShaderMode m_shader_mode = MeshData::MeshShaderMode::LIGHTING;
-	glm::vec3 color = glm::vec3(0.5f, 0.5f, 0.5f);
-	MeshData* m_mesh_data = nullptr;
-	WorldTransform* m_transform = nullptr;
+	unsigned int m_shader_id = 0; // 0 = lighting (default shader)
+	glm::vec3 m_color = glm::vec3(1.f, 1.f, 1.f);
+	MeshInstanceGroup* mp_instance_group = nullptr;
+	MeshAsset* mp_mesh_asset = nullptr;
+	WorldTransform* mp_transform = nullptr;
 };

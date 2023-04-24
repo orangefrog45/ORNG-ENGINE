@@ -78,7 +78,8 @@ uniform Material g_material;
 uniform DirectionalLight directional_light;
 uniform vec3 view_pos;
 uniform bool specular_sampler_active; // FALSE IF NO SHININESS TEXTURE FOUND
-uniform bool normal_map_active;
+uniform bool normal_sampler_active;
+uniform bool displacement_sampler_active;
 uniform bool terrain_mode;
 
 
@@ -100,11 +101,13 @@ in vec4 dir_light_frag_pos_light_space;
 out vec4 FragColor;
 
 layout(binding = 1) uniform sampler2D diffuse_sampler;
-layout(binding = 8) uniform sampler2DArray terrain_diffuse_sampler;
 layout(binding = 2) uniform sampler2D specular_sampler;
-layout(binding = 3) uniform sampler2D dir_depth_map;
-layout(binding = 4) uniform sampler2DArray spot_depth_map;
-layout(binding = 7) uniform sampler2D normal_map;
+layout(binding = 3) uniform sampler2D dir_depth_sampler;
+layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
+layout(binding = 7) uniform sampler2D normal_map_sampler;
+layout(binding = 8) uniform sampler2DArray diffuse_array_sampler;
+layout(binding = 9) uniform sampler2D displacement_sampler;
+layout(binding = 10) uniform sampler2DArray normal_array_sampler;
 
 
 
@@ -134,12 +137,12 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 	if (type == LIGHT_TYPE_DIRECTIONAL) {
 		bias = 0.001 * tan(acos(clamp(dot(normalize(vs_normal), light_dir), 0, 1)));
 
-		vec2 texel_size = 1.0 / textureSize(dir_depth_map, 0);
+		vec2 texel_size = 1.0 / textureSize(dir_depth_sampler, 0);
 		for (int x = -1; x <= 1; x++)
 		{
 			for (int y = -1; y <= 1; y++)
 			{
-				float pcf_depth = texture(dir_depth_map, proj_coords.xy + vec2(x, y) * texel_size * 2).r;
+				float pcf_depth = texture(dir_depth_sampler, proj_coords.xy + vec2(x, y) * texel_size * 2).r;
 				shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
 			}
 		}
@@ -148,12 +151,12 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 		bias = max(0.0001f * (1.0f - dot(normalize(vs_normal), light_dir)), 0.0000005f);
 
 
-		vec2 texel_size = 1.0 / textureSize(spot_depth_map, 0).xy;
+		vec2 texel_size = 1.0 / textureSize(spot_depth_sampler, 0).xy;
 		for (int x = -1; x <= 1; x++)
 		{
 			for (int y = -1; y <= 1; y++)
 			{
-				float pcf_depth = texture(spot_depth_map, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size * 2), depth_map_index)).r;
+				float pcf_depth = texture(spot_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size * 2), depth_map_index)).r;
 				shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
 			}
 		}
@@ -173,25 +176,21 @@ float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_m
 vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normalized_light_dir, vec3 norm) {
 
 	//diffuse
-	float diffuse = clamp(dot(normalized_light_dir, norm), 0, 1);
+	float diffuse_factor = clamp(dot(normalized_light_dir, norm), 0, 1);
 
 	vec3 diffuse_final = vec3(0, 0, 0);
 	vec3 specular_final = vec3(0, 0, 0);
 
-	if (diffuse > 0) {
-		diffuse_final = light_color * diffuse * light_diffuse_intensity * g_material.diffuse_color;
+	diffuse_final = light_color * diffuse_factor * light_diffuse_intensity * g_material.diffuse_color;
 
-		float specular_strength = 0.5;
-		vec3 view_dir = normalize(fs_in_tangent_positions.view_pos - fs_in_tangent_positions.frag_pos);
-		vec3 reflect_dir = reflect(-normalized_light_dir, norm);
-		float specular_factor = dot(view_dir, reflect_dir);
+	float specular_strength = 0.5;
+	vec3 view_dir = normalize(fs_in_tangent_positions.view_pos - fs_in_tangent_positions.frag_pos);
+	vec3 reflect_dir = reflect(-normalized_light_dir, norm);
+	float specular_factor = max(dot(view_dir, reflect_dir), 0.0);
 
-		if (specular_factor > 0) {
-			float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, tex_coord0).r : 8;
-			float spec = pow(specular_factor, specular_exponent);
-			specular_final = specular_strength * spec * light_color * g_material.specular_color;
-		}
-	};
+	float specular_exponent = specular_sampler_active ? texture2D(specular_sampler, tex_coord0).r : 8;
+	float spec_highlight = pow(specular_factor, specular_exponent);
+	specular_final = specular_strength * spec_highlight * light_color * g_material.specular_color;
 
 	return (diffuse_final + specular_final);
 }
@@ -204,7 +203,7 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 vec3 CalcPointLight(PointLight light, vec3 normal, float distance, int index) {
 	vec3 frag_to_light_dir = vec3(0);
 
-	if (normal_map_active) {
+	if (normal_sampler_active) {
 		/* Light direction in tangent space */
 		frag_to_light_dir = normalize(fs_in_tangent_positions.point_positions[index] - fs_in_tangent_positions.frag_pos.xyz);
 	}
@@ -229,7 +228,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, float distance, int index) {
 vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 	vec3 frag_to_light_dir = vec3(0);
 
-	if (normal_map_active) {
+	if (normal_sampler_active) {
 		frag_to_light_dir = normalize(fs_in_tangent_positions.spot_positions[index] - fs_in_tangent_positions.frag_pos.xyz); // in tangent space
 	}
 	else {
@@ -266,25 +265,42 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 	}
 }
 
+vec2 ParallaxMap() {
+	const float num_layers = 10;
+	float layer_depth = 1.0 / num_layers;
+	float current_layer_depth = 0.0f;
+	vec2 current_tex_coords = tex_coord0;
+	float current_depth_map_value = texture(displacement_sampler, tex_coord0).r;
+	vec3 view_dir = normalize(fs_in_tangent_positions.view_pos - fs_in_tangent_positions.frag_pos);
+	vec2 p = view_dir.xy * 0.1;
+	vec2 delta_tex_coords = p / num_layers;
 
+	while (current_layer_depth < current_depth_map_value) {
+		current_tex_coords -= delta_tex_coords;
+		current_depth_map_value = texture(displacement_sampler, current_tex_coords).r;
+		current_layer_depth += layer_depth;
+	}
 
+	return current_tex_coords;
+}
 
 
 
 void main()
 {
-	vec3 normal = normal_map_active ? texture(normal_map, tex_coord0).rgb * 2.0 - 1.0 : normalize(vs_normal);
+	vec2 adj_tex_coord = displacement_sampler_active ? ParallaxMap() : tex_coord0;
 
 	/* Terrain factor is how much different terrain textures should be blended depending on some factors, in this case height
 	* Textures arranged in diffuse, normal, diffuse etc order
 	*/
-	float terrain_factor = clamp(1 - (abs(vs_position.y) - 200.f) / 200.f, 0.f, 1.f);
+	float terrain_factor = clamp(vs_position.y / 100.f, 0.f, 1.f);
 
-	if (vs_position.y > 200) {
-		terrain_factor = 1;
-	}
+	vec3 normal = vec3(0);
 	if (terrain_mode) {
-		normal = texture(terrain_diffuse_sampler, vec3(tex_coord0, 1.0)).rgb * 2.0 - 1.0;
+		normal = normalize(mix(texture(normal_array_sampler, vec3(adj_tex_coord, 1.0)), texture(normal_array_sampler, vec3(adj_tex_coord, 0.0)), terrain_factor).rgb * 2.0 - 1.0);
+	}
+	else {
+		normal = normal_sampler_active ? normalize(texture(normal_map_sampler, tex_coord0).rgb * 2.0 - 1.0) : normalize(vs_normal);
 	}
 
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
@@ -306,9 +322,10 @@ void main()
 	}
 
 	/* Directional light */
-	float shadow = ShadowCalculation(dir_light_frag_pos_light_space, normalize(directional_light.direction), 0, LIGHT_TYPE_DIRECTIONAL);
+	//float shadow = ShadowCalculation(dir_light_frag_pos_light_space, normalize(directional_light.direction), 0, LIGHT_TYPE_DIRECTIONAL);
+	float shadow = 0;
 
-	if (normal_map_active) {
+	if (normal_sampler_active) {
 		total_light += CalcPhongLight(directional_light.color, directional_light.diffuse_intensity, normalize(fs_in_tangent_positions.dir_light_dir), normal) * (1 - shadow);
 	}
 	else {
@@ -322,12 +339,9 @@ void main()
 	vec3 color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
 	if (terrain_mode) {
-		FragColor = vec4(color.xyz, 1.0) * mix(texture(terrain_diffuse_sampler, vec3(tex_coord0, 2.0)), texture(terrain_diffuse_sampler, vec3(tex_coord0, 0.0)), terrain_factor);
-
+		FragColor = vec4(color.xyz, 1.0) * mix(texture(diffuse_array_sampler, vec3(adj_tex_coord, 1.0)), texture(diffuse_array_sampler, vec3(adj_tex_coord, 0.0)), terrain_factor);
 	}
 	else {
-		FragColor = vec4(color.xyz, 1.0) * texture(diffuse_sampler, tex_coord0);
+		FragColor = vec4(color.xyz, 1.0) * texture(diffuse_sampler, adj_tex_coord);
 	}
-
-
 };

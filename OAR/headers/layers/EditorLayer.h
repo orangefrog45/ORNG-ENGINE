@@ -1,45 +1,34 @@
 #pragma once
-#include <glm/vec3.hpp>
-#include <vector>
-#include <memory>
-#include "Quad.h"
+#include "rendering//Quad.h"
+#include "components/Camera.h"
+#include "rendering/Scene.h"
 
 class Scene;
 class Renderer;
 
 class EditorLayer {
 public:
-	EditorLayer(Renderer* renderer) : mp_renderer(renderer) {};
+	friend class Application;
+	EditorLayer() = default;
 	void Init();
 	void ShowDisplayWindow();
 	void ShowUIWindow();
+	void Update();
 private:
-	Renderer* mp_renderer = nullptr;
 
-	struct LightConfigData {
-		float atten_constant = 1.0f;
-		float atten_linear = 0.05f;
-		float atten_exp = 0.01f;
-		float max_distance = 48.0f;
-		bool lights_enabled = 1.0f;
+	struct PointLightConfigData {
+		float atten_constant;
+		float atten_linear;
+		float atten_exp;
+		float max_distance;
+		glm::vec3 color;
+		glm::vec3 pos;
 	};
 
-	struct TerrainConfigData {
-		bool operator==(const TerrainConfigData& other) {
-			if (!(height_scale == other.height_scale)
-				|| !(seed == other.seed)
-				|| !(resolution == other.resolution)
-				|| !(sampling_density == other.sampling_density)) {
-				return false;
-			}
-			else {
-				return true;
-			}
-		};
-		int seed = 123;
-		int resolution = 10;
-		float sampling_density = 20.0f;
-		float height_scale = 10.0f;
+	struct SpotLightConfigData {
+		PointLightConfigData base;
+		float aperture;
+		glm::vec3 direction;
 	};
 
 	struct DebugConfigData {
@@ -56,18 +45,29 @@ private:
 		unsigned int num_lights;
 	};
 
+	struct MeshComponentData {
+		glm::vec3 scale;
+		glm::vec3 rotation;
+		glm::vec3 position;
+	};
+
+	void DisplayEntityEditor();
 	void CreateBaseWindow();
 	void DisplaySceneData();
-	void DisplayPointLightControls();
+	void DisplayPointLightControls(PointLightComponent* light);
 	void DisplayDebugControls(unsigned int depth_map_texture);
 	void DisplayDirectionalLightControls();
-	void DisplayTerrainConfigControls();
+	void DisplaySceneEntities();
+	void DisplaySpotlightControls(SpotLightComponent* light);
+	void ShowAssetManager();
 
 	SceneData m_scene_data;
 	DirectionalLightData m_dir_light_data;
 	DebugConfigData m_debug_config_data;
-	TerrainConfigData m_terrain_config_data;
-	LightConfigData m_light_config_data;
+	PointLightConfigData m_pointlight_config_data;
+	SpotLightConfigData m_spotlight_config_data;
 	Quad m_display_quad;
+	Camera m_editor_camera;
+	MeshComponentData m_selected_mesh_data;
 	std::unique_ptr<Scene> m_active_scene = std::make_unique<Scene>();
 };

@@ -1,6 +1,6 @@
-#include "TerrainChunk.h"
-#include <glew.h>
-#include <glfw3.h>
+#include "pch/pch.h"
+
+#include "terrain/TerrainChunk.h"
 #include "util/util.h"
 
 static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;

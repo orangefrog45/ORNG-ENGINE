@@ -1,6 +1,7 @@
-#include "Skybox.h"
-#include "util.h"
-#include "RendererResources.h"
+#include "pch/pch.h"
+
+#include "rendering/Skybox.h"
+#include "util/util.h"
 
 void Skybox::Init() {
 	/*faces.push_back("res/textures/kurt/mountain/posx.jpg");
@@ -23,13 +24,24 @@ void Skybox::Init() {
 	faces.push_back("res/textures/kurt/zpos.png");
 	faces.push_back("res/textures/kurt/zneg.png");*/
 
-	faces.push_back("res/textures/clouds1_east.bmp");
-	faces.push_back("res/textures/clouds1_west.bmp");
-	faces.push_back("res/textures/clouds1_up.bmp");
-	faces.push_back("res/textures/clouds1_down.bmp");
-	faces.push_back("res/textures/clouds1_north.bmp");
-	faces.push_back("res/textures/clouds1_south.bmp");
-	m_cubemap_texture.SetFaces(faces);
+
+	TextureCubemapSpec spec;
+
+	spec.filepaths = {
+		"res/textures/kurt/mountain/posx.jpg",
+		"res/textures/kurt/mountain/negx.jpg",
+		"res/textures/kurt/mountain/posy.jpg",
+		"res/textures/kurt/mountain/negy.jpg",
+		"res/textures/kurt/mountain/posz.jpg",
+		"res/textures/kurt/mountain/negz.jpg",
+	};
+
+	spec.generate_mipmaps = false;
+	spec.internal_format = GL_SRGB8;
+	spec.format = GL_RGB;
+	spec.wrap_params = GL_CLAMP_TO_EDGE;
+
+	m_cubemap_texture.SetSpec(spec);
 	m_cubemap_texture.Load();
 
 

@@ -1,12 +1,8 @@
-#include <glew.h>
-#include <glfw/glfw3.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <format>
-#include "util.h"
-#include "Shader.h"
-#include "Log.h"
+#include "pch/pch.h"
+
+#include "util/util.h"
+#include "shaders/Shader.h"
+#include "util/Log.h"
 
 
 const unsigned int Shader::GetProgramID() {
@@ -34,6 +30,17 @@ std::string Shader::ParseShader(const std::string& filepath) {
 	return ss.str();
 }
 
+void Shader::AddUBO(const std::string& name, unsigned int storage_size, int draw_type, unsigned int buffer_base) {
+	m_uniforms[name] = 0;
+	const unsigned int* ubo = &(m_uniforms.at(name));
+
+	GLCall(glGenBuffers(1, &m_uniforms[name]));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, *ubo));
+	GLCall(glBufferData(GL_UNIFORM_BUFFER, storage_size, nullptr, draw_type));
+	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, buffer_base, *ubo));
+}
+
 void Shader::Init() {
 	GLCall(unsigned int tprogramID = glCreateProgram());
 
@@ -44,8 +51,6 @@ void Shader::Init() {
 	UseShader(m_frag_shader_id, tprogramID);
 
 	SetProgramID(tprogramID);
-
-	InitUniforms();
 }
 
 void Shader::ActivateProgram() {
@@ -57,7 +62,7 @@ void Shader::ActivateProgram() {
 	GLCall(glDeleteShader(m_frag_shader_id));
 }
 
-unsigned int Shader::GetUniform(const std::string& name) {
+unsigned int Shader::CreateUniform(const std::string& name) {
 	GLCall(int location = glGetUniformLocation(GetProgramID(), name.c_str()));
 	if (location == -1 && SHADER_DEBUG_MODE == true) {
 		OAR_CORE_ERROR("Could not find uniform '{0}'", name);
