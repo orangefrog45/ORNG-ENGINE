@@ -1,42 +1,68 @@
 #pragma once
+#include "rendering/Textures.h"
+#include "util/Log.h"
 
-class Framebuffer {
-public:
-	Framebuffer() = default;
-	Framebuffer(unsigned int id, const char* name) : m_name(name), m_framebuffer_id(id) { };
+namespace ORNG {
 
-	struct FB_TextureObject {
-		FB_TextureObject() = default;
-		FB_TextureObject(unsigned int t_type, unsigned int t_tex_ref, const char* t_name) : type(t_type), tex_ref(t_tex_ref), name(t_name) {};
-		unsigned int type;
-		unsigned int tex_ref;
-		const char* name;
+	class Framebuffer {
+	public:
+		Framebuffer() = default;
+		Framebuffer(unsigned int id, const char* name) : m_name(name), m_framebuffer_id(id) { };
+
+
+		const Texture2D& Add2DTexture(const std::string& name, unsigned int attachment_point, const Texture2DSpec& spec);
+
+		const Texture2DArray& Add2DTextureArray(const std::string& name, const Texture2DArraySpec& spec);
+
+
+		void AddRenderbuffer();
+
+		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
+
+		void EnableReadBuffer(unsigned int buffer);
+
+		void EnableDrawBuffers(unsigned int amount, unsigned int buffers[]);
+
+		template<std::derived_from<TextureBase> T>
+		T& GetTexture(const std::string& name) {
+			if (!m_textures.contains(name)) {
+				OAR_CORE_ERROR("No texture with name '{0}' found in framebuffer '{1}'", name, m_name);
+				BREAKPOINT;
+			}
+
+			TextureBase* tex = m_textures[name];
+			bool is_valid_type = true;
+
+			if constexpr (std::is_same<T, Texture2D>::value) {
+				if (tex->m_texture_target != GL_TEXTURE_2D)
+					is_valid_type = false;
+
+			}
+			else if constexpr (std::is_same<T, Texture2DArray>::value) {
+				if (tex->m_texture_target != GL_TEXTURE_2D_ARRAY)
+					is_valid_type = false;
+
+
+			}
+
+
+			if (!is_valid_type) {
+				OAR_CORE_ERROR("Invalid type specified for GetTexture, texture name: '{0}'", name);
+				BREAKPOINT;
+			}
+
+			return *static_cast<T*>(tex);
+		};
+
+		virtual ~Framebuffer();
+		void Init();
+		void Bind() const;
+	protected:
+		unsigned int m_framebuffer_id;
+		const char* m_name = "Unnamed framebuffer";
+		std::unordered_map <std::string, TextureBase*> m_textures;
+		unsigned int m_fbo = 0;
+		unsigned int m_rbo = 0;
 	};
 
-	FB_TextureObject& Add2DTexture(const std::string& name, unsigned int width, unsigned int height, unsigned int attachment_point, unsigned int internal_format,
-		unsigned int format, unsigned int gl_type);
-
-	FB_TextureObject& Add2DTextureArray(const std::string& name, unsigned int width, unsigned int height, unsigned int layers, unsigned int internal_format,
-		unsigned int format, unsigned int gl_type);
-
-
-	void AddRenderbuffer();
-
-	void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
-
-	void EnableReadBuffer(unsigned int buffer);
-
-	void EnableDrawBuffers(unsigned int amount, unsigned int buffers[]);
-
-	FB_TextureObject& GetTexture(const std::string& name);
-
-	virtual ~Framebuffer();
-	void Init();
-	void Bind() const;
-protected:
-	unsigned int m_framebuffer_id;
-	const char* m_name = "Unnamed framebuffer";
-	std::unordered_map <std::string, FB_TextureObject> m_textures;
-	unsigned int m_fbo = 0;
-	unsigned int m_rbo = 0;
-};
+}

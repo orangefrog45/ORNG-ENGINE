@@ -1,3 +1,14 @@
+UNDATED:
+-Volumetric fog
+-Fog controls
+-Made textures and framebuffers work more nicely together
+-Switched from GLCall to more modern debug message callback for opengl debugging.
+-Switched to deferred rendering pipeline
+-Modular materials, can be changed on meshes now
+-More transform buffer optimizations, moved to ssbos, ~5x increased performance on many moving objects
+-Fixed dreadful activateprogram function which was re-linking the program every time it was called (400 to 1400fps in some areas)
+
+
 24/4/23:
 -Basic Entity editor
 -Very underdeveloped asset viewer/editor

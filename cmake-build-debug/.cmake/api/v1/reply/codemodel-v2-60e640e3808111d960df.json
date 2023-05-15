@@ -1,0 +1,282 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						5
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.8"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "OAR/extern/glew-cmake",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-OAR.extern.glew-cmake-Debug-c9bf89fd0cf0ce03b14e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "OAR/extern/glew-cmake",
+					"targetIndexes" : 
+					[
+						3,
+						4
+					]
+				},
+				{
+					"build" : "OAR/extern/assimp",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-OAR.extern.assimp-Debug-a77195515a427f480fd0.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "OAR/extern/assimp",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "OAR/extern/assimp/contrib/zlib",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-OAR.extern.assimp.contrib.zlib-Debug-8034e15675ee5188efac.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.0"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 3,
+					"source" : "OAR/extern/assimp/contrib/zlib",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "OAR/extern/assimp/code",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-OAR.extern.assimp.code-Debug-f6410f850d219944a83f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "OAR/extern/assimp/code",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "OAR/extern/glfw",
+					"childIndexes" : 
+					[
+						6
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-OAR.extern.glfw-Debug-e16302f4de1a4d404a0f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 4,
+					"source" : "OAR/extern/glfw"
+				},
+				{
+					"build" : "OAR/extern/glfw/src",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-OAR.extern.glfw.src-Debug-5846981436476e695a21.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 4,
+					"source" : "OAR/extern/glfw/src",
+					"targetIndexes" : 
+					[
+						2,
+						6
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						4
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "OAR",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "glew",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						4
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						3
+					],
+					"directoryIndexes" : 
+					[
+						2,
+						4
+					],
+					"name" : "Assimp",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1,
+						5
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "zlib",
+					"parentIndex" : 2,
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6
+					],
+					"name" : "GLFW",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						6
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "OAR::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-OAR-Debug-84df5d41a7c22861aff0.json",
+					"name" : "OAR",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "assimp::@98f2de73bb360eda6e9b",
+					"jsonFile" : "target-assimp-Debug-1d56279bb17c6784b905.json",
+					"name" : "assimp",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "glfw::@6dc3bf80f10127099268",
+					"jsonFile" : "target-glfw-Debug-785a54a2fd2cd088d311.json",
+					"name" : "glfw",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "libglew_shared::@a601ed5933d917565888",
+					"jsonFile" : "target-libglew_shared-Debug-8161fa78c2a2d80294c9.json",
+					"name" : "libglew_shared",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "libglew_static::@a601ed5933d917565888",
+					"jsonFile" : "target-libglew_static-Debug-46e10260bfe3eeaada39.json",
+					"name" : "libglew_static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "uninstall::@60e587dac8bf2772c3cb",
+					"jsonFile" : "target-uninstall-Debug-f4c2bee7018b03948774.json",
+					"name" : "uninstall",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "update_mappings::@6dc3bf80f10127099268",
+					"jsonFile" : "target-update_mappings-Debug-3595ad135952ad725901.json",
+					"name" : "update_mappings",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "zlibstatic::@41a2d307b5678866ea6b",
+					"jsonFile" : "target-zlibstatic-Debug-dd2e71f5b144a9b18866.json",
+					"name" : "zlibstatic",
+					"projectIndex" : 3
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/carol/Documents/vscode/OAR/cmake-build-debug",
+		"source" : "C:/Users/carol/Documents/vscode/OAR"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 4
+	}
+}

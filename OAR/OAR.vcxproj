@@ -114,7 +114,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
@@ -135,11 +135,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,6 +153,42 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_avx2.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_avx512.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_internal.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_neon.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_sse2.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_sse41.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\backends\imgui_impl_glfw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\backends\imgui_impl_opengl3.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="extern\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -163,18 +201,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="extern\imgui\imgui_impl_glfw.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="extern\imgui\imgui_impl_opengl3.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="extern\imgui\imgui_stdlib.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="extern\imgui\imgui_tables.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -183,12 +209,19 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="extern\imgui\misc\cpp\imgui_stdlib.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
+    </ClCompile>
     <ClCompile Include="src\components\Component.cpp" />
     <ClCompile Include="src\components\lights\DirectionalLight.cpp" />
     <ClCompile Include="src\components\lights\SpotLightComponent.cpp" />
-    <ClCompile Include="src\components\SceneEntity.cpp" />
+    <ClCompile Include="src\core\Window.cpp" />
+    <ClCompile Include="src\scene\SceneEntity.cpp" />
     <ClCompile Include="src\framebuffers\Framebuffer.cpp" />
     <ClCompile Include="src\framebuffers\FramebufferLibrary.cpp" />
+    <ClCompile Include="src\core\GLStateManager.cpp" />
     <ClCompile Include="src\layers\EditorLayer.cpp" />
     <ClCompile Include="src\pch\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -199,40 +232,42 @@
       </PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="src\rendering\MeshAsset.cpp" />
-    <ClCompile Include="src\components\GridMesh.cpp" />
+    <ClCompile Include="src\scene\GridMesh.cpp" />
     <ClCompile Include="src\rendering\MeshInstanceGroup.cpp" />
     <ClCompile Include="src\components\MeshComponent.cpp" />
     <ClCompile Include="src\rendering\Quad.cpp" />
     <ClCompile Include="src\rendering\RenderPasses.cpp" />
-    <ClCompile Include="src\rendering\Scene.cpp" />
+    <ClCompile Include="src\scene\Scene.cpp" />
     <ClCompile Include="src\components\Camera.cpp" />
-    <ClCompile Include="src\ExtraMath.cpp" />
-    <ClCompile Include="src\GLErrorHandling.cpp" />
-    <ClCompile Include="src\Input.cpp" />
+    <ClCompile Include="src\util\ExtraMath.cpp" />
+    <ClCompile Include="src\core\Input.cpp" />
     <ClCompile Include="src\main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\Include</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\Include;$(SolutionDir)OpenGL OGLDEV\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\core\Application.cpp" />
     <ClCompile Include="src\rendering\Renderer.cpp" />
     <ClCompile Include="src\rendering\Textures.cpp" />
+    <ClCompile Include="src\rendering\VAO.cpp" />
     <ClCompile Include="src\shaders\Shader.cpp" />
     <ClCompile Include="src\shaders\ShaderLibrary.cpp" />
     <ClCompile Include="src\shaders\LightingShader.cpp" />
-    <ClCompile Include="src\Skybox.cpp" />
+    <ClCompile Include="src\scene\Skybox.cpp" />
     <ClCompile Include="src\stb_image.cpp" />
     <ClCompile Include="src\terrain\ChunkLoader.cpp" />
     <ClCompile Include="src\terrain\Terrain.cpp" />
     <ClCompile Include="src\terrain\TerrainChunk.cpp" />
     <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\terrain\TerrainQuadtree.cpp" />
-    <ClCompile Include="src\TimeStep.cpp" />
+    <ClCompile Include="src\util\TimeStep.cpp" />
     <ClCompile Include="src\util\ImGuiLib.cpp" />
     <ClCompile Include="src\util\Log.cpp" />
-    <ClCompile Include="src\WorldTransform.cpp" />
+    <ClCompile Include="src\components\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\shaders\BlurFS.shader" />
+    <None Include="res\shaders\FogCS.shader" />
     <None Include="res\shaders\HighlightFS.shader" />
     <None Include="res\shaders\HighlightVS.shader" />
     <None Include="res\shaders\QuadFS.shader" />
@@ -257,7 +292,13 @@
     <None Include="res\shaders\LightingVS.shader" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD.h" />
+    <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_internal.h" />
     <ClInclude Include="extern\Icons.h" />
+    <ClInclude Include="extern\imgui\backends\imgui_impl_glfw.h" />
+    <ClInclude Include="extern\imgui\backends\imgui_impl_opengl3.h" />
+    <ClInclude Include="extern\imgui\backends\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="extern\imgui\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="headers\components\BoundingVolume.h" />
     <ClInclude Include="headers\components\Component.h" />
     <ClInclude Include="headers\components\lights\BaseLight.h" />
@@ -265,48 +306,46 @@
     <ClInclude Include="headers\components\lights\SpotLightComponent.h" />
     <ClInclude Include="headers\components\ScriptComponent.h" />
     <ClInclude Include="headers\framebuffers\Framebuffer.h" />
+    <ClInclude Include="headers\core\GLStateManager.h" />
     <ClInclude Include="headers\pch\pch.h" />
     <ClInclude Include="headers\rendering\MeshAsset.h" />
     <ClInclude Include="headers\layers\EditorLayer.h" />
     <ClInclude Include="headers\components\Camera.h" />
-    <ClInclude Include="headers\ExtraMath.h" />
-    <ClInclude Include="headers\GLErrorHandling.h" />
-    <ClInclude Include="headers\components\GridMesh.h" />
-    <ClInclude Include="headers\Input.h" />
-    <ClInclude Include="headers\Application.h" />
+    <ClInclude Include="headers\util\ExtraMath.h" />
+    <ClInclude Include="headers\scene\GridMesh.h" />
+    <ClInclude Include="headers\core\Input.h" />
+    <ClInclude Include="headers\core\Application.h" />
     <ClInclude Include="headers\rendering\Renderpasses.h" />
     <ClInclude Include="headers\rendering\renderpasses\Renderpasses.h" />
     <ClInclude Include="headers\rendering\Material.h" />
-    <ClInclude Include="headers\components\SceneEntity.h" />
+    <ClInclude Include="headers\scene\SceneEntity.h" />
     <ClInclude Include="headers\rendering\MeshInstanceGroup.h" />
     <ClInclude Include="headers\framebuffers\FramebufferLibrary.h" />
     <ClInclude Include="headers\components\MeshComponent.h" />
     <ClInclude Include="headers\components\lights\DirectionalLight.h" />
     <ClInclude Include="headers\rendering\Quad.h" />
     <ClInclude Include="headers\rendering\Renderer.h" />
-    <ClInclude Include="headers\rendering\Scene.h" />
+    <ClInclude Include="headers\scene\Scene.h" />
     <ClInclude Include="headers\rendering\Textures.h" />
+    <ClInclude Include="headers\rendering\VAO.h" />
     <ClInclude Include="headers\shaders\Shader.h" />
     <ClInclude Include="headers\shaders\ShaderLibrary.h" />
     <ClInclude Include="headers\shaders\LightingShader.h" />
-    <ClInclude Include="headers\rendering\Skybox.h" />
+    <ClInclude Include="headers\scene\Skybox.h" />
     <ClInclude Include="headers\terrain\ChunkLoader.h" />
     <ClInclude Include="headers\terrain\Terrain.h" />
     <ClInclude Include="headers\terrain\TerrainChunk.h" />
     <ClInclude Include="headers\terrain\TerrainGenerator.h" />
     <ClInclude Include="headers\terrain\TerrainQuadtree.h" />
-    <ClInclude Include="headers\TimeStep.h" />
+    <ClInclude Include="headers\util\TimeStep.h" />
     <ClInclude Include="headers\util\ImGuiLib.h" />
     <ClInclude Include="headers\util\Log.h" />
     <ClInclude Include="headers\util\util.h" />
-    <ClInclude Include="headers\WorldTransform.h" />
+    <ClInclude Include="headers\core\Window.h" />
+    <ClInclude Include="headers\components\WorldTransform.h" />
     <ClInclude Include="extern\imgui\imconfig.h" />
     <ClInclude Include="extern\imgui\imgui.h" />
-    <ClInclude Include="extern\imgui\imgui_impl_glfw.h" />
-    <ClInclude Include="extern\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="extern\imgui\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="extern\imgui\imgui_internal.h" />
-    <ClInclude Include="extern\imgui\imgui_stdlib.h" />
     <ClInclude Include="extern\imgui\imstb_rectpack.h" />
     <ClInclude Include="extern\imgui\imstb_textedit.h" />
     <ClInclude Include="extern\imgui\imstb_truetype.h" />

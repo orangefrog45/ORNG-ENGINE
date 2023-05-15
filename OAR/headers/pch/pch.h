@@ -1,8 +1,11 @@
 #pragma once
 #define GLEW_STATIC
+#define FASTNOISE_STATIC_LIB
 
 #include <GL/glew.h>
-#include <glm/glm.hpp>
+#include <glm/glm/glm.hpp>
+#include <glm/glm/gtx/transform.hpp>
+#include <glm/glm/gtx/matrix_major_storage.hpp>
 #include <stb/stb_image.h>
 
 #include <memory>

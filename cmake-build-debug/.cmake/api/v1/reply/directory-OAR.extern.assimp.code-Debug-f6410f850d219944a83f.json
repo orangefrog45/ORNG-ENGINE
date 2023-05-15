@@ -1,0 +1,164 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"INSTALL"
+		],
+		"files" : 
+		[
+			"OAR/extern/assimp/code/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1399,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1407,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 1408,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "libassimp5.2.5-dev",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"OAR/extern/assimp/lib/libassimpd.a"
+			],
+			"targetId" : "assimp::@98f2de73bb360eda6e9b",
+			"targetIndex" : 1,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "assimp-dev",
+			"destination" : "include/assimp",
+			"paths" : 
+			[
+				"OAR/extern/assimp/code/../include/assimp/anim.h",
+				"OAR/extern/assimp/code/../include/assimp/aabb.h",
+				"OAR/extern/assimp/code/../include/assimp/ai_assert.h",
+				"OAR/extern/assimp/code/../include/assimp/camera.h",
+				"OAR/extern/assimp/code/../include/assimp/color4.h",
+				"OAR/extern/assimp/code/../include/assimp/color4.inl",
+				"cmake-build-debug/OAR/extern/assimp/code/../include/assimp/config.h",
+				"OAR/extern/assimp/code/../include/assimp/ColladaMetaData.h",
+				"OAR/extern/assimp/code/../include/assimp/commonMetaData.h",
+				"OAR/extern/assimp/code/../include/assimp/defs.h",
+				"OAR/extern/assimp/code/../include/assimp/cfileio.h",
+				"OAR/extern/assimp/code/../include/assimp/light.h",
+				"OAR/extern/assimp/code/../include/assimp/material.h",
+				"OAR/extern/assimp/code/../include/assimp/material.inl",
+				"OAR/extern/assimp/code/../include/assimp/matrix3x3.h",
+				"OAR/extern/assimp/code/../include/assimp/matrix3x3.inl",
+				"OAR/extern/assimp/code/../include/assimp/matrix4x4.h",
+				"OAR/extern/assimp/code/../include/assimp/matrix4x4.inl",
+				"OAR/extern/assimp/code/../include/assimp/mesh.h",
+				"OAR/extern/assimp/code/../include/assimp/ObjMaterial.h",
+				"OAR/extern/assimp/code/../include/assimp/pbrmaterial.h",
+				"OAR/extern/assimp/code/../include/assimp/GltfMaterial.h",
+				"OAR/extern/assimp/code/../include/assimp/postprocess.h",
+				"OAR/extern/assimp/code/../include/assimp/quaternion.h",
+				"OAR/extern/assimp/code/../include/assimp/quaternion.inl",
+				"OAR/extern/assimp/code/../include/assimp/scene.h",
+				"OAR/extern/assimp/code/../include/assimp/metadata.h",
+				"OAR/extern/assimp/code/../include/assimp/texture.h",
+				"OAR/extern/assimp/code/../include/assimp/types.h",
+				"OAR/extern/assimp/code/../include/assimp/vector2.h",
+				"OAR/extern/assimp/code/../include/assimp/vector2.inl",
+				"OAR/extern/assimp/code/../include/assimp/vector3.h",
+				"OAR/extern/assimp/code/../include/assimp/vector3.inl",
+				"OAR/extern/assimp/code/../include/assimp/version.h",
+				"OAR/extern/assimp/code/../include/assimp/cimport.h",
+				"OAR/extern/assimp/code/../include/assimp/AssertHandler.h",
+				"OAR/extern/assimp/code/../include/assimp/importerdesc.h",
+				"OAR/extern/assimp/code/../include/assimp/Importer.hpp",
+				"OAR/extern/assimp/code/../include/assimp/DefaultLogger.hpp",
+				"OAR/extern/assimp/code/../include/assimp/ProgressHandler.hpp",
+				"OAR/extern/assimp/code/../include/assimp/IOStream.hpp",
+				"OAR/extern/assimp/code/../include/assimp/IOSystem.hpp",
+				"OAR/extern/assimp/code/../include/assimp/Logger.hpp",
+				"OAR/extern/assimp/code/../include/assimp/LogStream.hpp",
+				"OAR/extern/assimp/code/../include/assimp/NullLogger.hpp",
+				"OAR/extern/assimp/code/../include/assimp/cexport.h",
+				"OAR/extern/assimp/code/../include/assimp/Exporter.hpp",
+				"OAR/extern/assimp/code/../include/assimp/DefaultIOStream.h",
+				"OAR/extern/assimp/code/../include/assimp/DefaultIOSystem.h",
+				"OAR/extern/assimp/code/../include/assimp/ZipArchiveIOSystem.h",
+				"OAR/extern/assimp/code/../include/assimp/SceneCombiner.h",
+				"OAR/extern/assimp/code/../include/assimp/fast_atof.h",
+				"OAR/extern/assimp/code/../include/assimp/qnan.h",
+				"OAR/extern/assimp/code/../include/assimp/BaseImporter.h",
+				"OAR/extern/assimp/code/../include/assimp/Hash.h",
+				"OAR/extern/assimp/code/../include/assimp/MemoryIOWrapper.h",
+				"OAR/extern/assimp/code/../include/assimp/ParsingUtils.h",
+				"OAR/extern/assimp/code/../include/assimp/StreamReader.h",
+				"OAR/extern/assimp/code/../include/assimp/StreamWriter.h",
+				"OAR/extern/assimp/code/../include/assimp/StringComparison.h",
+				"OAR/extern/assimp/code/../include/assimp/StringUtils.h",
+				"OAR/extern/assimp/code/../include/assimp/SGSpatialSort.h",
+				"OAR/extern/assimp/code/../include/assimp/GenericProperty.h",
+				"OAR/extern/assimp/code/../include/assimp/SpatialSort.h",
+				"OAR/extern/assimp/code/../include/assimp/SkeletonMeshBuilder.h",
+				"OAR/extern/assimp/code/../include/assimp/SmallVector.h",
+				"OAR/extern/assimp/code/../include/assimp/SmoothingGroups.h",
+				"OAR/extern/assimp/code/../include/assimp/SmoothingGroups.inl",
+				"OAR/extern/assimp/code/../include/assimp/StandardShapes.h",
+				"OAR/extern/assimp/code/../include/assimp/RemoveComments.h",
+				"OAR/extern/assimp/code/../include/assimp/Subdivision.h",
+				"OAR/extern/assimp/code/../include/assimp/Vertex.h",
+				"OAR/extern/assimp/code/../include/assimp/LineSplitter.h",
+				"OAR/extern/assimp/code/../include/assimp/TinyFormatter.h",
+				"OAR/extern/assimp/code/../include/assimp/Profiler.h",
+				"OAR/extern/assimp/code/../include/assimp/LogAux.h",
+				"OAR/extern/assimp/code/../include/assimp/Bitmap.h",
+				"OAR/extern/assimp/code/../include/assimp/XMLTools.h",
+				"OAR/extern/assimp/code/../include/assimp/IOStreamBuffer.h",
+				"OAR/extern/assimp/code/../include/assimp/CreateAnimMesh.h",
+				"OAR/extern/assimp/code/../include/assimp/XmlParser.h",
+				"OAR/extern/assimp/code/../include/assimp/BlobIOSystem.h",
+				"OAR/extern/assimp/code/../include/assimp/MathFunctions.h",
+				"OAR/extern/assimp/code/../include/assimp/Exceptional.h",
+				"OAR/extern/assimp/code/../include/assimp/ByteSwapper.h",
+				"OAR/extern/assimp/code/../include/assimp/Base64.hpp"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "assimp-dev",
+			"destination" : "include/assimp/Compiler",
+			"paths" : 
+			[
+				"OAR/extern/assimp/code/../include/assimp/Compiler/pushpack1.h",
+				"OAR/extern/assimp/code/../include/assimp/Compiler/poppack1.h",
+				"OAR/extern/assimp/code/../include/assimp/Compiler/pstdint.h"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "OAR/extern/assimp/code",
+		"source" : "OAR/extern/assimp/code"
+	}
+}

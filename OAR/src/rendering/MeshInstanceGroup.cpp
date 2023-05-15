@@ -1,74 +1,107 @@
 #include "pch/pch.h"
 
-#include <glm/gtx/matrix_major_storage.hpp>
 #include "rendering/MeshInstanceGroup.h"
-#include "WorldTransform.h"
+#include "components/WorldTransform.h"
 #include "util/Log.h"
+#include "scene/Scene.h"
 
-void MeshInstanceGroup::DeleteMeshPtr(const MeshComponent* ptr) {
-	int index = FindMeshPtrIndex(ptr);
-	m_meshes.erase(m_meshes.begin() + index);
-	UpdateWorldMatBuffer();
-}
+namespace ORNG {
 
-void MeshInstanceGroup::AddMeshPtr(MeshComponent* ptr) {
+	void MeshInstanceGroup::DeleteMeshPtr(MeshComponent* ptr) {
+		int index = FindMeshPtrIndex(ptr);
+		m_meshes.erase(m_meshes.begin() + index);
+		ptr->mp_instance_group = nullptr;
+		m_update_world_mat_buffer_flag = true;
+	}
 
-	m_meshes.push_back(ptr);
-	UpdateWorldMatBuffer();
+	void MeshInstanceGroup::ClearMeshes() {
+		for (int i = 0; i < m_meshes.size(); i++) {
+			m_meshes[i]->mp_instance_group = nullptr;
+			m_meshes.erase(m_meshes.begin() + i);
+		}
+	}
 
+	void MeshInstanceGroup::ResortMesh(MeshComponent* ptr) {
+		if (m_mesh_asset && m_mesh_asset->is_loaded) {
+			DeleteMeshPtr(ptr);
+			m_scene->SortMeshIntoInstanceGroup(ptr, ptr->mp_mesh_asset);
+		}
+	}
 
-	//Code currently not needed, newly created meshes always have higher id's so auto-sort themselves. When shader switching during runtime, will need this.
+	void MeshInstanceGroup::ProcessUpdates() {
 
-	/*unsigned int low = 0;
-	unsigned int high = m_meshes.size() - 1;
-	unsigned int index = (low + high) / 2;
+		// If the whole buffer needs to be updated, just do that, ignore sub updates as they'll happen anyway in the full buffer update 
+		if (m_update_world_mat_buffer_flag) {
+			m_update_world_mat_buffer_flag = false;
+			UpdateTransformSSBO();
+		}
+		else if (m_sub_update_world_mat_buffer_flag) {
+			m_sub_update_world_mat_buffer_flag = false;
+			std::vector<glm::mat4> transforms;
+			transforms.reserve(m_meshes.size() * 0.1); // Rough guess on how many transforms will need to be updated, could be way off, ideally want proper way of estimating this
 
-	/* Sort mesh component by id into vector */
-	/*while (true) {
+			// Used for saving the first position of a "chunk" of transforms to be updated, so they can be more efficiently updated with fewer subbuffer calls 
+			int first_index_of_chunk = -1;
 
-		if (m_meshes[index]->GetEntityHandle() > ptr->GetEntityHandle()) {
-			if (m_meshes[index - 1]->GetEntityHandle() < ptr->GetEntityHandle()) {
-				m_meshes.insert(m_meshes.begin() + index - 1, ptr);
-				UpdateWorldMatBuffer();
-				break;
+			for (int i = 0; i < m_meshes.size(); i++) {
+				if (m_meshes[i]->m_transform_update_flag)
+				{
+					m_meshes[i]->m_transform_update_flag = false;
+					if (first_index_of_chunk == -1)
+						first_index_of_chunk = i;
+
+					transforms.push_back(glm::transpose(m_meshes[i]->GetWorldTransform()->GetMatrix()));
+				}
+				else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk 
+				{
+					m_mesh_asset->m_vao.SubUpdateTransformSSBO(m_transform_ssbo_handle, first_index_of_chunk, transforms);
+					transforms.clear();
+					transforms.reserve((m_meshes.size() - i) * 0.1);
+					first_index_of_chunk = -1;
+				}
 			}
 
-			high = index;
+			// Last check, if the chunk persisted until the end of the array 
+			if (first_index_of_chunk != -1) {
+				m_mesh_asset->m_vao.SubUpdateTransformSSBO(m_transform_ssbo_handle, first_index_of_chunk, transforms);
+			}
+
 		}
-		else if (m_meshes[index]->GetEntityHandle() < ptr->GetEntityHandle()) {
-			low = index;
+	}
+
+	void MeshInstanceGroup::AddMeshPtr(MeshComponent* ptr) {
+		ptr->mp_instance_group = this;
+		ptr->mp_mesh_asset = m_mesh_asset;
+		m_meshes.push_back(ptr);
+
+		m_update_world_mat_buffer_flag = true;
+	}
+
+	void MeshInstanceGroup::UpdateTransformSSBO() {
+		if (!m_mesh_asset->GetLoadStatus() || m_meshes.empty()) {
+			return;
 		}
 
-		index = (low + high) / 2;
-	}*/
-}
+		std::vector<glm::mat4> transforms;
+		transforms.reserve(m_meshes.size());
 
-void MeshInstanceGroup::UpdateWorldMatBuffer() {
-	if (!m_mesh_asset->GetLoadStatus()) {
-		return;
+		for (auto& p_mesh : m_meshes) {
+			transforms.emplace_back(glm::transpose(p_mesh->GetWorldTransform()->GetMatrix()));
+		}
+
+		m_mesh_asset->m_vao.FullUpdateTransformSSBO(m_transform_ssbo_handle, &transforms);
+
 	}
 
-	static std::vector<glm::mat4> transforms;
-	transforms.reserve(m_meshes.size());
+	int MeshInstanceGroup::FindMeshPtrIndex(const MeshComponent* ptr) {
+		auto it = std::find(m_meshes.begin(), m_meshes.end(), ptr);
 
-	for (auto& p_mesh : m_meshes) {
-		transforms.emplace_back(glm::rowMajor4(p_mesh->GetWorldTransform()->GetMatrix()));
+		if (it == m_meshes.end()) {
+			OAR_CORE_ERROR("Mesh component ptr not found in instance group with asset '{0}'\nShader '{1}'\nMaterial'{2}'", m_mesh_asset->m_filename, m_group_shader_id, m_group_material_id);
+			return -1;
+		}
+
+		return it - m_meshes.begin();
 	}
 
-	m_mesh_asset->UpdateWorldTransformBuffer(transforms);
-}
-
-unsigned int MeshInstanceGroup::FindMeshPtrIndex(const MeshComponent* ptr) {
-	return std::find(m_meshes.begin(), m_meshes.end(), ptr) - m_meshes.begin();
-}
-
-void MeshInstanceGroup::SubUpdateWorldMatBuffer(const MeshComponent* ptr) {
-
-	if (m_meshes.empty()) {
-		OAR_CORE_ERROR("Transform buffer update failed for entity with ID '{0}', entity not in instance group", ptr->GetEntityHandle());
-		return;
-	}
-	unsigned int index = FindMeshPtrIndex(ptr);
-
-	m_mesh_asset->SubUpdateWorldTransformBuffer(index, glm::rowMajor4(m_meshes[index]->GetWorldTransform()->GetMatrix()));
 }
