@@ -20,3 +20,6 @@
 [submodule "OAR/extern/spdlog"]
 	path = OAR/extern/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "OAR/extern/fastnoise2"]
+	path = OAR/extern/fastnoise2
+	url = https://github.com/Auburn/FastNoise2.git
