@@ -17,6 +17,7 @@ namespace ORNG {
 		friend class Renderer;
 		friend class EditorLayer;
 		friend class MeshInstanceGroup;
+		friend class SceneRenderer;
 
 		MeshAsset() = default;
 		MeshAsset(const std::string& filename) : m_filename(filename) {};
@@ -71,8 +72,8 @@ namespace ORNG {
 
 #define INVALID_MATERIAL 0xFFFFFFFF
 
-		struct BasicMeshEntry {
-			BasicMeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
+		struct MeshEntry {
+			MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
 
 			unsigned int num_indices;
 			unsigned int base_vertex;
@@ -80,8 +81,11 @@ namespace ORNG {
 			unsigned int material_index;
 		};
 
-		std::vector<BasicMeshEntry> m_meshes;
-		std::vector<Material> m_materials;
+		std::vector<MeshEntry> m_submeshes;
+		std::vector<Material> m_original_materials;
+
+		// Pointers to the material assets created in a scene with this asset
+		std::vector<Material*> m_scene_materials;
 
 	};
 }

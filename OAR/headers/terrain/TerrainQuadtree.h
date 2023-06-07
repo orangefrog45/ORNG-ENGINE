@@ -11,10 +11,9 @@ namespace ORNG {
 	public:
 		friend class Terrain;
 		friend class EditorLayer;
-		friend class Renderer;
 
 		/*This constructor only to be used for master quadtree*/
-		TerrainQuadtree(unsigned int width, int height_scale, unsigned int sampling_density, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader);
+		TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader);
 
 		void Init(Camera& camera);
 		void Update();
@@ -24,6 +23,9 @@ namespace ORNG {
 
 		void Subdivide();
 		void Unsubdivide();
+		const TerrainChunk* GetChunk() const {
+			return m_chunk;
+		}
 
 		/* Look for nodes within radius "boundary" from center_pos, leaf node matches stored in chunk_array, inclusive
 		* Chunk pointers only guaranteed to be valid for one frame
@@ -63,9 +65,8 @@ namespace ORNG {
 		/*Data for building terrain*/
 		glm::vec3 m_center_pos = glm::vec3(0, 0, 0);
 		int m_width;
-		int m_sampling_density;
 		unsigned int m_seed;
-		int m_height_scale;
+		float m_height_scale;
 		float m_resolution;
 
 	};

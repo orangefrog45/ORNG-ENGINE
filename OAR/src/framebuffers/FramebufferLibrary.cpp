@@ -8,18 +8,6 @@ namespace ORNG {
 
 	void FramebufferLibrary::Init() {
 
-		/* LIGHTING FB */
-		Texture2DSpec lighting_spec;
-		lighting_spec.format = GL_RGB;
-		lighting_spec.internal_format = GL_RGB16;
-		lighting_spec.storage_type = GL_UNSIGNED_BYTE;
-		lighting_spec.width = Window::GetWidth();
-		lighting_spec.height = Window::GetHeight();
-
-		Framebuffer& lighting_fb = CreateFramebuffer("lighting");
-		lighting_fb.AddRenderbuffer();
-		lighting_fb.Add2DTexture("render_texture", GL_COLOR_ATTACHMENT0, lighting_spec);
-
 	}
 
 	Framebuffer& FramebufferLibrary::GetFramebuffer(const char* name) {

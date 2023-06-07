@@ -9,70 +9,45 @@
 
 namespace ORNG {
 
-	void ImGuiLib::ShowVec3Editor(const char* name, glm::vec3& vec) {
+	bool ImGuiLib::ShowVec3Editor(const char* name, glm::vec3& vec, float min, float max) {
+		bool ret = false;
+		glm::vec3 vec_copy = vec;
 		ImGui::PushID(&vec);
 		ImGui::Text(name);
-		ImGui::SameLine(ImGui::GetWindowWidth() - 400);
 		ImGui::PushItemWidth(100.f);
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
 		ImGui::SameLine();
-		ImGui::InputFloat("##x", &vec.x);
+
+		if (ImGui::InputFloat("##x", &vec_copy.x) && vec_copy.x > min && vec_copy.x < max) {
+			vec.x = vec_copy.x;
+			ret = true;
+		}
+
+
 		ImGui::SameLine();
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Y");
 		ImGui::SameLine();
-		ImGui::InputFloat("##y", &vec.y);
+
+		if (ImGui::InputFloat("##y", &vec_copy.y) && vec_copy.y > min && vec_copy.y < max) {
+			vec.y = vec_copy.y;
+			ret = true;
+		}
+
 		ImGui::SameLine();
 		ImGui::TextColored(ImVec4(0, 0, 1, 1), "Z");
 		ImGui::SameLine();
-		ImGui::InputFloat("##z", &vec.z);
+
+		if (ImGui::InputFloat("##z", &vec_copy.z) && vec_copy.z > min && vec_copy.z < max) {
+			vec.z = vec_copy.z;
+			ret = true;
+		}
+
 		ImGui::PopItemWidth();
 		ImGui::PopID();
+
+		return ret;
 	}
 
-	void ImGuiLib::ShowTextureEditor(Texture2D* selected_texture, Texture2DSpec& spec) {
-		if (ImGui::TreeNode("Texture Editor")) {
-
-			ImGui::Text(selected_texture->GetSpec().filepath.c_str());
-
-			const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
-			const char* internal_formats[] = { "SRGB8", "RGB8", "RGBA8", "SRGB8_A8" };
-			const char* formats[] = { "RGB", "RGBA" };
-
-			static int selected_wrap_mode = spec.wrap_params == GL_LINEAR ? 0 : 1;
-			static int selected_format = 0;
-			static int selected_internal_format = 0;
-
-			ImGui::Text("Wrap mode");
-			ImGui::SameLine();
-			ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
-			spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
-
-			ImGui::Text("Format");
-			ImGui::SameLine();
-			ImGui::Combo("##Format", &selected_format, formats, IM_ARRAYSIZE(formats));
-			spec.format = selected_format == 0 ? GL_RGB : GL_RGBA;
-
-			ImGui::Text("Internal format");
-			ImGui::SameLine();
-			ImGui::Combo("##Internal format", &selected_internal_format, internal_formats, IM_ARRAYSIZE(internal_formats));
-			switch (selected_internal_format) {
-			case 0:
-				spec.internal_format = GL_SRGB8;
-			case 1:
-				spec.internal_format = GL_RGB8;
-			case 2:
-				spec.internal_format = GL_RGBA8;
-			case 3:
-				spec.internal_format = GL_SRGB8_ALPHA8;
-			}
-
-			if (ImGui::Button("Load")) {
-				selected_texture->SetSpec(spec, false);
-				selected_texture->LoadFromFile();
-			}
-			ImGui::TreePop();
-		}
-	}
 
 	void ImGuiLib::ShowFileExplorer(std::string& path_name, std::string& t_entry_name, const std::vector<std::string>& valid_extensions, std::function<void()> valid_file_callback, std::function<void()> invalid_file_callback) {
 		ImGui::GetStyle().ChildBorderSize = 1.f;
@@ -129,18 +104,36 @@ namespace ORNG {
 
 	}
 
-	void ImGuiLib::ShowColorVec3Editor(const char* name, glm::vec3& vec) {
+	bool ImGuiLib::ShowColorVec3Editor(const char* name, glm::vec3& vec) {
+		bool ret = false;
 		ImGui::PushID(&vec);
 		ImGui::Text(name);
-		ImGui::SameLine(ImGui::GetWindowWidth() - 400);
 		ImGui::PushItemWidth(50.f);
+
+		ImGui::SameLine();
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "R");
-		ImGui::InputFloat("##r", &vec.x);
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##r", &vec.x))
+			ret = true;
+
+		ImGui::SameLine();
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "G");
-		ImGui::InputFloat("##g", &vec.y);
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##g", &vec.y))
+			ret = true;
+
+		ImGui::SameLine();
 		ImGui::TextColored(ImVec4(0, 0, 1, 1), "B");
-		ImGui::InputFloat("##b", &vec.z);
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##b", &vec.z))
+			ret = true;
+
 		ImGui::PopItemWidth();
 		ImGui::PopID();
+
+		return ret;
 	}
 }

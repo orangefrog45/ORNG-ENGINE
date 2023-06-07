@@ -1,6 +1,7 @@
 #include "pch/pch.h"
 #include "core/GLStateManager.h"
 #include "rendering/VAO.h"
+#include "util/Log.h"
 
 namespace ORNG {
 
@@ -16,6 +17,30 @@ namespace ORNG {
 
 		glActiveTexture(tex_unit);
 		glBindTexture(target, texture);
+	}
+
+	void GL_StateManager::IActivateShaderProgram(unsigned int shader_handle) {
+		if (m_current_active_shader_handle == shader_handle)
+			return;
+
+		glUseProgram(shader_handle);
+		m_current_active_shader_handle = shader_handle;
+
+	}
+
+	void GL_StateManager::I_InitGL() {
+		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CCW);
+		glCullFace(GL_BACK);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
+		glShadeModel(GL_SMOOTH);
+		glLineWidth(3.f);
+
+		glDebugMessageCallback(Log::GLLogMessage, nullptr);
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	}
 
 

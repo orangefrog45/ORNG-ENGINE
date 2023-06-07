@@ -11,6 +11,7 @@
 #include "components/ScriptComponent.h"
 #include "util/Log.h"
 #include "rendering/MeshInstanceGroup.h"
+#include "scene/GlobalFog.h"
 
 namespace ORNG {
 
@@ -22,15 +23,14 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class Renderer;
 		friend class Component;
-		friend class RenderPasses;
+		friend class SceneRenderer;
 		Scene();
 		~Scene();
-		void Init();
 
 		SceneEntity& CreateEntity(const char* name = "Unnamed entity");
 
 		//Runs any scripts in script components and updates transform and instance group data
-		void UpdateScene();
+		void Update();
 
 
 		template<std::derived_from<Component> T, typename... Args>
@@ -111,10 +111,12 @@ namespace ORNG {
 
 		// Creates material and returns ID, get actual material with GetMaterial(id)
 		unsigned int CreateMaterial();
+
+
 		MeshAsset* CreateMeshAsset(const std::string& filename);
 		Texture2D* CreateTexture2DAsset(const std::string& filename);
 
-		bool LoadMeshAssetIntoGPU(MeshAsset* asset);
+		void LoadMeshAssetIntoGPU(MeshAsset* asset);
 
 		/* Removes asset from all components using it, then deletes asset */
 		void DeleteMeshAsset(MeshAsset* data);
@@ -143,6 +145,7 @@ namespace ORNG {
 			unsigned int index;
 		};
 
+
 		[[nodiscard]] unsigned long CreateEntityID();
 		void LoadScene(Camera* cam);
 		void UnloadScene();
@@ -153,7 +156,7 @@ namespace ORNG {
 		BaseLight m_global_ambient_lighting = BaseLight(0);
 		DirectionalLight m_directional_light;
 
-		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector 
+		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector
 		std::vector<SceneEntity*> m_entities;
 		std::vector<MeshInstanceGroup*> m_mesh_instance_groups;
 		std::vector<MeshComponent*> m_mesh_components;
@@ -165,6 +168,10 @@ namespace ORNG {
 
 		Terrain m_terrain;
 		Skybox m_skybox;
+		GlobalFog m_global_fog;
+
+		float m_exposure_level = 1.0f;
+
 		unsigned long m_last_entity_id = 1; // Last ID assigned to a newly created entity
 
 		std::vector<std::future<void>> m_futures;

@@ -6,9 +6,6 @@
 
 namespace ORNG {
 
-	Texture2D::Texture2D() : TextureBase(GL_TEXTURE_2D) {
-	}
-
 
 	bool Texture2D::LoadFromFile() {
 
@@ -17,23 +14,38 @@ namespace ORNG {
 			return false;
 		}
 
-		if (m_texture_obj != 0) {
-			OAR_CORE_WARN("Texture2D containing '{0}'...  is already loaded, overwriting...", m_spec.filepath);
-		}
 
 		stbi_set_flip_vertically_on_load(1);
 		int width = 0;
 		int	height = 0;
 		int	bpp = 0;
 
-		unsigned char* image_data = stbi_load(m_spec.filepath.c_str(), &width, &height, &bpp, 0);
 
-		if (image_data == nullptr) {
-			OAR_CORE_ERROR("Can't load texture from '{0}', - '{1}'", m_spec.filepath.c_str(), stbi_failure_reason());
+
+		if (m_spec.storage_type == GL_FLOAT) {
+			float* image_data = stbi_loadf(m_spec.filepath.c_str(), &width, &height, &bpp, 0);
+
+			if (image_data == nullptr) {
+				OAR_CORE_ERROR("Can't load texture from '{0}', - '{1}'", m_spec.filepath.c_str(), stbi_failure_reason());
+			}
+
+			GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
+			glTexImage2D(m_texture_target, 0, m_spec.internal_format, width, height, 0, m_spec.format, m_spec.storage_type, image_data);
+			stbi_image_free(image_data);
 		}
 
-		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
-		glTexImage2D(m_texture_target, 0, m_spec.internal_format, width, height, 0, m_spec.format, m_spec.storage_type, image_data);
+		else {
+			unsigned char* image_data = stbi_load(m_spec.filepath.c_str(), &width, &height, &bpp, 0);
+
+			if (image_data == nullptr) {
+				OAR_CORE_ERROR("Can't load texture from '{0}', - '{1}'", m_spec.filepath.c_str(), stbi_failure_reason());
+			}
+
+			GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
+			glTexImage2D(m_texture_target, 0, m_spec.internal_format, width, height, 0, m_spec.format, m_spec.storage_type, image_data);
+			stbi_image_free(image_data);
+		}
+
 
 		GLenum wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : m_spec.wrap_params;
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : m_spec.min_filter);
@@ -44,22 +56,12 @@ namespace ORNG {
 		if (m_spec.generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
 
-		stbi_image_free(image_data);
 		return true;
 	}
 
 
 
-	Texture2DArray::Texture2DArray() : TextureBase(GL_TEXTURE_2D_ARRAY)
-	{
-	};
-
-
 	bool Texture2DArray::LoadFromFile() {
-
-		if (m_texture_obj != 0) {
-			OAR_CORE_WARN("Texture2DArray containing '{0}'...  is already loaded, overwriting...", m_spec.filepaths[0]);
-		}
 
 		if (!ValidateSpec(m_spec) || m_spec.filepaths.empty()) {
 			OAR_CORE_ERROR("Texture2DArray failed loading: Invalid spec");
@@ -115,22 +117,12 @@ namespace ORNG {
 
 
 
-	TextureCubemap::TextureCubemap() : TextureBase(GL_TEXTURE_CUBE_MAP)
-	{
-	};
-
-
-
 
 	bool TextureCubemap::LoadFromFile() {
 
 		if (!ValidateSpec(m_spec) || m_spec.filepaths.size() != 6) {
 			OAR_CORE_ERROR("TextureCubemap failed to load, invalid spec");
 			return false;
-		}
-
-		if (m_texture_obj != 0) {
-			OAR_CORE_WARN("TextureCubemap containing '{0}'... is already loaded, overwriting", m_spec.filepaths[0]);
 		}
 
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, m_texture_obj, GL_TEXTURE0, true);
@@ -171,61 +163,7 @@ namespace ORNG {
 		return true;
 	}
 
-	bool Texture2D::ValidateSpec(const Texture2DSpec& spec) {
-		if (spec.width == 1 || spec.height == 1) {
-			OAR_CORE_WARN("Texture2D has default height/width of 1px, this will be changed to fit if loading texture from a file");
-		}
 
-		if (spec.internal_format == GL_NONE || spec.format == GL_NONE) {
-			OAR_CORE_ERROR("Texture2D failed setting spec: Invalid spec");
-			return false;
-		}
-		else {
-			return true;
-		}
-	}
-
-	bool Texture2DArray::ValidateSpec(const Texture2DArraySpec& spec) {
-		if (spec.width == 1 || spec.height == 1) {
-			OAR_CORE_WARN("Texture2DArray has default height/width of 1px/1px, this will be changed to fit if loading texture from a file");
-		}
-
-		if (spec.internal_format == GL_NONE || spec.format == GL_NONE) {
-			OAR_CORE_ERROR("Texture2DArray failed setting spec: Invalid spec");
-			return false;
-		}
-		else {
-			return true;
-		}
-	}
-
-
-	bool Texture3D::ValidateSpec(const Texture3DSpec& spec) {
-		if (spec.width == 1 || spec.height == 1) {
-			OAR_CORE_WARN("Texture3D has default height/width of 1px/1px, this will be changed to fit if loading texture from a file");
-		}
-
-		if (spec.internal_format == GL_NONE || spec.format == GL_NONE) {
-			OAR_CORE_ERROR("Texture3D failed setting spec: Invalid spec");
-			return false;
-		}
-		else {
-			return true;
-		}
-	}
-	bool TextureCubemap::ValidateSpec(const TextureCubemapSpec& spec) {
-		if (spec.width == 1 || spec.height == 1) {
-			OAR_CORE_WARN("TextureCubemap has default height/width of 1px/1px, this will be changed to fit if loading texture from a file");
-		}
-
-		if (spec.internal_format == GL_NONE || spec.format == GL_NONE) {
-			OAR_CORE_ERROR("TextureCubemap failed setting spec: Invalid spec");
-			return false;
-		}
-		else {
-			return true;
-		}
-	}
 
 	bool Texture2D::SetSpec(const Texture2DSpec& spec, bool should_allocate_space) {
 		if (ValidateSpec(spec)) {

@@ -23,18 +23,6 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		inline static void DrawTerrain() {
-			Get().IDrawTerrain();
-		}
-
-		inline static Scene* GetScene() {
-			return Get().mp_active_scene;
-		}
-
-		/* Draw all mesh components in scene, does not bind shaders */
-		inline static void DrawAllMeshesInstanced(bool bind_materials) {
-			Get().IDrawAllMeshesInstanced(bind_materials);
-		}
 
 		static void DrawQuad() {
 			Get().IDrawQuad();
@@ -44,12 +32,21 @@ namespace ORNG {
 			Get().IDrawUnitCube();
 		};
 
-		inline static void DrawMesh(const MeshAsset* data, bool bind_materials) {
-			Get().IDrawMesh(data, bind_materials);
+
+		static void DrawVAO_Elements(GLenum primitive_type, const VAO& vao) {
+			Get().IDrawVAO_Elements(primitive_type, vao);
 		}
 
-		inline static void DrawMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, bool bind_materials) {
-			Get().IDrawMeshInstanced(mesh_data, t_instances, bind_materials);
+		static void DrawVAO_ArraysInstanced(GLenum primitive_type, const VAO& vao, unsigned int instance_count) {
+			Get().IDrawVAO_ArraysInstanced(primitive_type, vao, instance_count);
+		}
+
+		inline static void DrawSubMesh(const MeshAsset* data, unsigned int submesh_index) {
+			Get().IDrawSubMesh(data, submesh_index);
+		}
+
+		inline static void DrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index) {
+			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index);
 		}
 
 		inline static ShaderLibrary& GetShaderLibrary() {
@@ -60,32 +57,13 @@ namespace ORNG {
 			return Get().m_framebuffer_library;
 		}
 
-		inline static void SetActiveScene(Scene& scene) {
-			Get().mp_active_scene = &scene;
+		static void ResetDrawCallCounter() {
+			Get().m_draw_call_amount = 0;
 		}
 
 		static void DrawBoundingBox(const MeshAsset& asset);
 
-		inline static void SetActiveCamera(Camera* camera) {
-			Get().m_active_camera = camera;
-		}
-
-		inline static void DrawSkybox() {
-			Get().IDrawSkybox();
-		}
-
-		inline static void RenderGrid() {
-			Get().IRenderGrid();
-		}
-
-		inline static Camera* GetActiveCamera() {
-			return Get().m_active_camera;
-		}
-
-		static const unsigned int max_point_lights = 8;
-		static const unsigned int max_spot_lights = 8;
 		static const unsigned int max_materials = 128;
-
 
 	private:
 		void I_Init();
@@ -94,20 +72,16 @@ namespace ORNG {
 
 		Renderer() = default;
 
-		void IDrawTerrain();
-		void IDrawAllMeshesInstanced(bool bind_materials);
-		void IDrawMesh(const MeshAsset* data, bool bind_materials);
-		void IDrawMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, bool bind_materials);
+		void IDrawVAO_Elements(GLenum primitive_type, const VAO& vao);
+		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const VAO& vao, unsigned int instance_count);
+		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);
+		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index);
 		void IDrawUnitCube() const;
 		void IDrawQuad() const;
 
-		void IDrawSkybox();
-		void IRenderGrid();
 
 		MeshAsset* mp_unit_cube = nullptr;
 		Quad* mp_quad = nullptr;
-		Scene* mp_active_scene = nullptr;
-		Camera* m_active_camera = nullptr;
 		FramebufferLibrary m_framebuffer_library;
 		ShaderLibrary m_shader_library;
 	};

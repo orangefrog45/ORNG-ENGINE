@@ -49,8 +49,8 @@ namespace ORNG {
 	}
 
 	bool MeshAsset::InitFromScene(const aiScene* pScene, const std::string& filename) {
-		m_meshes.resize(pScene->mNumMeshes);
-		m_materials.resize(pScene->mNumMaterials);
+		m_submeshes.resize(pScene->mNumMeshes);
+		m_original_materials.resize(pScene->mNumMaterials);
 
 		unsigned int num_vertices = 0;
 
@@ -65,15 +65,15 @@ namespace ORNG {
 
 	void MeshAsset::CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices) {
 
-		for (unsigned int i = 0; i < m_meshes.size(); i++) {
+		for (unsigned int i = 0; i < m_submeshes.size(); i++) {
 
-			m_meshes[i].material_index = pScene->mMeshes[i]->mMaterialIndex;
-			m_meshes[i].num_indices = pScene->mMeshes[i]->mNumFaces * 3;
-			m_meshes[i].base_vertex = NumVertices;
-			m_meshes[i].base_index = NumIndices;
+			m_submeshes[i].material_index = pScene->mMeshes[i]->mMaterialIndex;
+			m_submeshes[i].num_indices = pScene->mMeshes[i]->mNumFaces * 3;
+			m_submeshes[i].base_vertex = NumVertices;
+			m_submeshes[i].base_index = NumIndices;
 
 			NumVertices += pScene->mMeshes[i]->mNumVertices;
-			NumIndices += m_meshes[i].num_indices;
+			NumIndices += m_submeshes[i].num_indices;
 		}
 
 	}
@@ -87,7 +87,7 @@ namespace ORNG {
 	}
 
 	void MeshAsset::InitAllMeshes(const aiScene* pScene) {
-		for (unsigned int i = 0; i < m_meshes.size(); i++) {
+		for (unsigned int i = 0; i < m_submeshes.size(); i++) {
 			const aiMesh* paiMesh = pScene->mMeshes[i];
 			InitSingleMesh(paiMesh);
 		}

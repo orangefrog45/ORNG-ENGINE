@@ -6,12 +6,6 @@
 
 namespace ORNG {
 
-	void ChunkLoader::SetChunkSettings(unsigned int seed, float height_scale, float sampling_density, unsigned int terrain_master_width) {
-		m_seed = seed;
-		m_height_scale = height_scale;
-		m_sampling_density = sampling_density;
-		m_terrain_master_width = terrain_master_width;
-	};
 
 	int ChunkLoader::CreateKey() {
 		m_last_id++;
@@ -19,10 +13,6 @@ namespace ORNG {
 	}
 
 	void ChunkLoader::RequestChunkLoad(TerrainChunk& chunk) {
-		if (m_terrain_master_width == -1) {
-			OAR_CORE_CRITICAL("Chunk load request denied, chunk loader does not have valid settings");
-			BREAKPOINT;
-		}
 		int key = CreateKey();
 		m_chunks_to_load[key] = &chunk;
 		chunk.m_chunk_key = key;
@@ -35,10 +25,9 @@ namespace ORNG {
 
 	void ChunkLoader::LoadChunk(TerrainChunk* chunk) {
 		chunk->is_loading = true;
-		TerrainGenerator::GenNoiseChunk(chunk->m_seed, chunk->m_width, chunk->m_resolution, chunk->m_height_scale, chunk->m_sampling_density, chunk->m_bot_left_coord, chunk->m_vao.vertex_data, chunk->m_bounding_box, m_terrain_master_width);
+		TerrainGenerator::GenNoiseChunk(chunk->m_seed, chunk->m_width, chunk->m_resolution, chunk->m_height_scale, chunk->m_bot_left_coord, chunk->m_vao.vertex_data, chunk->m_bounding_box);
 		chunk->m_data_is_loaded = true;
 		chunk->is_loading = false;
-		OAR_CORE_CRITICAL("CHUNK LOADED");
 		this->m_active_processes--;
 	}
 

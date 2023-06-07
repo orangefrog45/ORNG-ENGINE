@@ -13,6 +13,7 @@ namespace ORNG {
 		friend class Renderer;
 		friend class EditorLayer;
 		friend class MeshInstanceGroup;
+		friend class SceneRenderer;
 		explicit MeshComponent(unsigned long entity_id);
 		~MeshComponent();
 		MeshComponent(const MeshComponent& other) = delete;
@@ -27,7 +28,8 @@ namespace ORNG {
 		void SetScale(const glm::vec3 transform);
 
 		void SetShaderID(unsigned int id);
-		void SetMaterialID(unsigned int id);
+		void SetMaterialID(unsigned int index, unsigned int id);
+		void SetMeshAsset(MeshAsset* p_asset);
 		inline void SetColor(const glm::vec3 t_color) { m_color = t_color; }
 
 		inline int GetShaderMode() const { return m_shader_id; }
@@ -38,7 +40,9 @@ namespace ORNG {
 	private:
 		void RequestTransformSSBOUpdate();
 
-		unsigned int m_material_id = 0;
+		//ID's of materials associated with each submesh of the mesh asset
+		std::vector<unsigned int> m_material_ids;
+
 		unsigned int m_shader_id = 1; // 1 = lighting (default shader)
 		bool m_transform_update_flag = false;
 

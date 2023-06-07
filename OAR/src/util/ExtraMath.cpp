@@ -127,7 +127,7 @@ namespace ORNG {
 	glm::mat4x4 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
 
 		glm::quat quat(glm::radians(glm::vec3(rotX, rotY, rotZ)));
-		glm::mat4 rotation_matrix = glm::mat4_cast(quat);
+		glm::mat4 rotation_matrix = glm::colMajor4(glm::mat4_cast(quat));
 
 		return rotation_matrix;
 	}
@@ -148,10 +148,10 @@ namespace ORNG {
 	glm::mat4x4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, float tranZ) {
 
 		glm::mat4x4 translationMatrix(
-			1.0f, 0.0f, 0.0f, tranX,
-			0.0f, 1.0f, 0.0f, tranY,
-			0.0f, 0.0f, 1.0f, tranZ,
-			0.0f, 0.0f, 0.0f, 1.0f
+			1.f, 0.f, 0.f, 0.f,
+			0.0f, 1.0f, 0.0f, 0.f,
+			0.0f, 0.0f, 1.0f, 0.f,
+			tranX, tranY, tranZ, 1.0f
 		);
 
 		return translationMatrix;

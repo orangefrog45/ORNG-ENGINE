@@ -4,8 +4,20 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 [Bb][Uu][Ii][Ll][Dd]
+OAR/res/meshes
+OAR/res/textures
 
-
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
 
 # User-specific files
 *.rsuser

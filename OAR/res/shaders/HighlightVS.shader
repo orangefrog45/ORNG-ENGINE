@@ -11,5 +11,5 @@ layout(std140, binding = 0) uniform Matrices{
 uniform mat4 transform;
 
 void main() {
-	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1) * 1.04;
+	gl_Position = PVMatrices.proj_view * transform * vec4(pos * 1.01f, 1.f);
 }

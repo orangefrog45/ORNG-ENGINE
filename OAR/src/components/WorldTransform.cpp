@@ -31,6 +31,7 @@ namespace ORNG {
 		m_scale.x = scaleX;
 		m_scale.y = scaleY;
 		m_scale.z = scaleZ;
+		RebuildMatrix();
 
 	}
 
@@ -38,6 +39,7 @@ namespace ORNG {
 		m_pos.x = x;
 		m_pos.y = y;
 		m_pos.z = z;
+		RebuildMatrix();
 	}
 
 
@@ -45,22 +47,35 @@ namespace ORNG {
 		return m_pos;
 	}
 
+	glm::mat4 WorldTransform::GetRotationMatrix() const {
+		return ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
+	}
+
+	glm::mat4 WorldTransform::GetScaleMatrix() const {
+		return ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
+	}
+
+	glm::mat4 WorldTransform::GetTranslationMatrix() const {
+		return ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
+	}
 
 	void WorldTransform::SetOrientation(float x, float y, float z) {
 		m_rotation.x = x;
 		m_rotation.y = y;
 		m_rotation.z = z;
+		RebuildMatrix();
 	}
 
-	glm::mat4x4 WorldTransform::GetMatrix() const {
+	void WorldTransform::RebuildMatrix() {
+		glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
+		glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
+		glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
 
-		glm::mat4x4 rotMat = ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
-		glm::mat4x4 scaleMat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
-		glm::mat4x4 transMat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
 
+		m_transform = trans_mat * rot_mat * scale_mat;
+	}
 
-		glm::mat4x4 worldTransMat = scaleMat * rotMat * transMat;
-
-		return worldTransMat;
+	const glm::mat4x4& WorldTransform::GetMatrix() const {
+		return m_transform;
 	}
 }

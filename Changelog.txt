@@ -1,4 +1,21 @@
-UNDATED:
+7/5/23:
+-Engine events system
+-Basic terrain configuration and regeneration
+-Gizmos for transforming meshes using ImGuizmo
+-Scene renderer
+-Basic material editing
+-Basic HDR implemented (no luminance maps yet)
+-Atmospheric scattering in fog
+-All lights work with volumetric fog
+-Fog optimizations (looks terrible currently, need depth-aware upsampling)
+-Fixed spotlight shadows
+-Modified render pipeline to support post-lighting passes using a shared depth buffer
+-Shared framebuffer textures
+-Switched to column-major matrix standard
+-Adjustments to debug editor UI
+-General refactoring
+
+17/5/23:
 -Volumetric fog
 -Fog controls
 -Made textures and framebuffers work more nicely together

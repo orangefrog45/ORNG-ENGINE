@@ -24,7 +24,7 @@ namespace ORNG {
 		template<std::derived_from<Component> T>
 		void DeleteComponent() {
 			if (!GetComponent<T>()) {
-				OAR_CORE_ERROR("Error deleting component for entity '{0}', does not have valid component", name);
+				OAR_CORE_ERROR("Error deleting component for entity '{0}', does not have specified component", name);
 				return;
 			}
 			mp_scene->DeleteComponent<T>(m_id);

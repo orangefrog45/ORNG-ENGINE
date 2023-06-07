@@ -1,41 +1,41 @@
 #include "pch/pch.h"
 
 #include "components/Camera.h"
-#include "core/Input.h"
 #include "rendering/Renderer.h"
 #include "core/Window.h"
+#include "core/FrameTiming.h"
 
 namespace ORNG {
 
 	void Camera::Update() {
-		if (Input::IsKeyDown('W'))
-			MoveForward(Input::GetTimeStep());
+		if (Window::IsKeyDown('W'))
+			MoveForward(FrameTiming::GetTimeStep());
 
-		if (Input::IsKeyDown('A'))
-			StrafeLeft(Input::GetTimeStep());
+		if (Window::IsKeyDown('A'))
+			StrafeLeft(FrameTiming::GetTimeStep());
 
-		if (Input::IsKeyDown('S'))
-			MoveBackward(Input::GetTimeStep());
+		if (Window::IsKeyDown('S'))
+			MoveBackward(FrameTiming::GetTimeStep());
 
-		if (Input::IsKeyDown('D'))
-			StrafeRight(Input::GetTimeStep());
+		if (Window::IsKeyDown('D'))
+			StrafeRight(FrameTiming::GetTimeStep());
 
-		if (Input::IsKeyDown('Q'))
-			MoveDown(Input::GetTimeStep());
+		if (Window::IsKeyDown('Q'))
+			MoveDown(FrameTiming::GetTimeStep());
 
-		if (Input::IsKeyDown('E'))
-			MoveUp(Input::GetTimeStep());
+		if (Window::IsKeyDown('E'))
+			MoveUp(FrameTiming::GetTimeStep());
 
-		if (Input::IsKeyDown('R'))
+		if (Window::IsKeyDown('R'))
 			m_mouse_locked = true;
 
-		if (Input::IsKeyDown('T'))
+		if (Window::IsKeyDown('T'))
 			m_mouse_locked = false;
 
 
 
 		if (!m_mouse_locked) {
-			glm::vec2 mouse_coords = Input::GetMousePos();
+			glm::vec2 mouse_coords = Window::GetMousePos();
 			float rotation_speed = 0.005f;
 			auto mouseDelta = -glm::vec2(mouse_coords.x - static_cast<double>(Window::GetWidth()) / 2, mouse_coords.y - static_cast<double>(Window::GetHeight()) / 2);
 
@@ -44,12 +44,12 @@ namespace ORNG {
 
 			glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotation_speed, glm::cross(m_target, m_up)) * glm::vec4(m_target, 0);
 			//constraint to stop lookAt flipping from y axis alignment
-			if (m_targetNew.y <= 0.9996 && m_targetNew.y >= -0.996) {
+			if (m_targetNew.y <= 0.9996f && m_targetNew.y >= -0.996f) {
 				m_target = m_targetNew;
 			}
 			glm::normalize(m_target);
 
-			Input::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
+			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
 		}
 
 		UpdateFrustum();

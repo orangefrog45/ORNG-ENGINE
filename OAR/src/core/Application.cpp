@@ -6,9 +6,13 @@
 #include <glfw/glfw3.h>
 #include "rendering/Renderer.h"
 #include "core/Application.h"
-#include "core/Input.h"
 #include "util/Log.h"
 #include "core/Window.h"
+#include "rendering/SceneRenderer.h"
+#include "util/ImGuiLib.h"
+#include "core/GLStateManager.h"
+#include "events/EventManager.h"
+
 
 namespace ORNG {
 
@@ -47,37 +51,30 @@ namespace ORNG {
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 
-		//GL CONFIG
-		glEnable(GL_CULL_FACE);
-		glFrontFace(GL_CCW);
-		glCullFace(GL_BACK);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_BLEND);
-		glEnable(GL_DEPTH_TEST);
-		glShadeModel(GL_SMOOTH);
-
-		Input::Init(window);
-
-		glDebugMessageCallback(Log::GLLogMessage, nullptr);
-		glEnable(GL_DEBUG_OUTPUT);
-		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-
+		GL_StateManager::InitGL();
 		Renderer::Init();
+		SceneRenderer::Init();
 		editor_layer.Init();
+		ImGuiLib::Init();
 
-		/* Loop until the user closes the window */
+		// Game loop
+
+		Events::EngineCoreEvent render_event;
+		render_event.event_type = Events::EventType::ENGINE_RENDER;
+
+		Events::EngineCoreEvent update_event;
+		update_event.event_type = Events::EventType::ENGINE_UPDATE;
 
 		while (!glfwWindowShouldClose(window))
 		{
 
-			Input::UpdateTimeStep();
-			/* Render here */
-			editor_layer.ShowDisplayWindow();
-			editor_layer.ShowUIWindow();
 
-			glfwSwapBuffers(window);
 			glfwPollEvents();
-			editor_layer.Update();
+			Events::EventManager::DispatchEvent(update_event);
+
+			/* Render here */
+			Events::EventManager::DispatchEvent(render_event);
+			glfwSwapBuffers(window);
 
 		}
 
@@ -88,10 +85,6 @@ namespace ORNG {
 
 		glfwDestroyWindow(window);
 		glfwTerminate();
-	}
-
-	void Application::RenderScene() {
-
 	}
 
 }

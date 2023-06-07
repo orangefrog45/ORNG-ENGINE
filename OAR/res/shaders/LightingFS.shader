@@ -1,13 +1,9 @@
 #version 430 core
 
-//LIGHT IDENTIFIERS
-const unsigned int LIGHT_TYPE_DIRECTIONAL = 0;
-const unsigned int LIGHT_TYPE_SPOT = 1;
-const unsigned int LIGHT_TYPE_POINT = 2;
+out vec4 FragColor;
+in vec2 tex_coord;
 
 const unsigned int NUM_SHADOW_CASCADES = 3;
-
-
 
 struct BaseLight {
 	vec4 color;
@@ -18,6 +14,9 @@ struct BaseLight {
 struct DirectionalLight {
 	vec4 direction;
 	BaseLight base;
+
+	//stored in vec3 instead of array due to easier alignment
+	vec3 cascade_ranges;
 };
 
 
@@ -68,7 +67,7 @@ layout(std140, binding = 2) buffer SpotLights {
 
 layout(std140, binding = 1) uniform GlobalLighting{
 	DirectionalLight directional_light;
-	BaseLight ambient_lighting;
+	BaseLight ambient_light;
 } ubo_global_lighting;
 
 
@@ -79,24 +78,24 @@ layout(std140, binding = 3) uniform Materials{
 } u_materials;
 
 
-uniform BaseLight u_ambient_light; // ambient
+layout(std140, binding = 2) uniform commons{
+	vec4 camera_pos;
+	vec4 camera_target;
+} ubo_common;
+
+
+
 uniform Material u_material;
-uniform vec3 u_view_pos;
 uniform mat4 u_dir_light_matrices[NUM_SHADOW_CASCADES];
 
 
 /*in TangentSpacePositions{
-	vec3 u_view_pos;
+	vec3 ubo_common.camera_pos.xyz;
 	vec3 frag_pos;
 	vec3 dir_light_dir;
 	vec3 spot_positions[MAX_SPOT_LIGHTS];
 	vec3 point_positions[MAX_SPOT_LIGHTS];
 } fs_in_tangent_positions;*/
-
-
-in vec2 tex_coord;
-
-out vec4 FragColor;
 
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
@@ -114,10 +113,12 @@ vec3 sampled_normal = normalize(texture(normal_sampler, tex_coord).xyz);
 vec3 sampled_albedo = texture(albedo_sampler, tex_coord).xyz;
 
 
-/*float ShadowCalculation(vec4 t_frag_pos_light_space, vec3 light_dir, int depth_map_index, unsigned int type) {
-	float shadow = 0.0f;
+
+float ShadowCalculationSpotlight(SpotLight light, float light_index) {
+	vec4 frag_pos_light_space = light.light_transform_matrix * vec4(sampled_world_pos, 1.0);
+
 	//perspective division
-	vec3 proj_coords = (t_frag_pos_light_space / t_frag_pos_light_space.w).xyz;
+	vec3 proj_coords = (frag_pos_light_space / frag_pos_light_space.w).xyz;
 
 	//depth map in range 0,1 proj in -1,1 (NDC), so convert
 	proj_coords = proj_coords * 0.5 + 0.5;
@@ -130,24 +131,17 @@ vec3 sampled_albedo = texture(albedo_sampler, tex_coord).xyz;
 	//actual depth for comparison
 	float current_depth = proj_coords.z;
 
+	float bias = max(0.0001f * (1.0f - dot(normalize(sampled_normal), light.dir.xyz)), 0.0000005f);
 
-	float closest_depth = 0.0f;
+	float shadow = 0.0f;
 
-	//sample closest depth from lights pov from depth map
-	float bias = 0.0f;
-
-	if (type == LIGHT_TYPE_SPOT) {
-		bias = max(0.0001f * (1.0f - dot(normalize(sampled_normal), light_dir)), 0.0000005f);
-
-
-		vec2 texel_size = 1.0 / textureSize(spot_depth_sampler, 0).xy;
-		for (int x = -1; x <= 1; x++)
+	vec2 texel_size = 1.0 / textureSize(spot_depth_sampler, 0).xy;
+	for (int x = -1; x <= 1; x++)
+	{
+		for (int y = -1; y <= 1; y++)
 		{
-			for (int y = -1; y <= 1; y++)
-			{
-				float pcf_depth = texture(spot_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size * 2), depth_map_index)).r;
-				shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
-			}
+			float pcf_depth = texture(spot_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size * 2), light_index)).r;
+			shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
 		}
 	}
 
@@ -157,30 +151,33 @@ vec3 sampled_albedo = texture(albedo_sampler, tex_coord).xyz;
 
 	return shadow;
 }
-*/
 
 float ShadowCalculationDirectional(vec3 light_dir) {
 	float shadow = 0.0f;
 	//perspective division
 	vec3 proj_coords = vec3(0);
-	float frag_distance_from_cam = length(sampled_world_pos.xyz - u_view_pos);
+	float frag_distance_from_cam = length(sampled_world_pos.xyz - ubo_common.camera_pos.xyz);
 
-	if (frag_distance_from_cam > 2000.f) // out of range of cascades
+	if (frag_distance_from_cam > ubo_global_lighting.directional_light.cascade_ranges[2]) // out of range of cascades
 		return 0.f;
 
 	vec4 frag_pos_light_space = vec4(0);
 
 	unsigned int depth_map_index = 0;
 
-	if (frag_distance_from_cam <= 200.f) { // cascades
-		frag_pos_light_space = u_dir_light_matrices[0] * vec4(sampled_world_pos, 1);
+	// Push fragment position into light slightly to reduce acne, looks especially good when shadow on a material with normal maps
+	float normal_scaling_factor = 0.25;
+	vec3 world_pos_normal_pushed = sampled_world_pos + sampled_normal * abs(dot(sampled_normal, light_dir) * normal_scaling_factor);
+
+	if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[0]) { // cascades
+		frag_pos_light_space = u_dir_light_matrices[0] * vec4(world_pos_normal_pushed, 1);
 	}
-	else if (frag_distance_from_cam <= 500.f) {
-		frag_pos_light_space = u_dir_light_matrices[1] * vec4(sampled_world_pos, 1);
+	else if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[1]) {
+		frag_pos_light_space = u_dir_light_matrices[1] * vec4(world_pos_normal_pushed, 1);
 		depth_map_index = 1;
 	}
-	else if (frag_distance_from_cam <= 1200.f) {
-		frag_pos_light_space = u_dir_light_matrices[2] * vec4(sampled_world_pos, 1);
+	else if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[2]) {
+		frag_pos_light_space = u_dir_light_matrices[2] * vec4(world_pos_normal_pushed, 1);
 		depth_map_index = 2;
 	}
 
@@ -199,11 +196,11 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 	//sample closest depth from lights pov from depth map
 	float bias = 0.0f;
-	bias = 0.001f * tan(acos(clamp(dot(normalize(sampled_normal), light_dir), 0, 1))); // slope bias
+	bias = 0.0005f * tan(acos(clamp(dot(normalize(sampled_normal), light_dir), 0, 1))); // slope bias
 
 	vec2 texel_size = 1.0 / textureSize(dir_depth_sampler, 0).xy;
 
-	if (frag_distance_from_cam <= 200.f) {
+	if (frag_distance_from_cam <= 150.f) {
 		for (int x = -1; x <= 1; x++)
 		{
 			for (int y = -1; y <= 1; y++)
@@ -239,12 +236,12 @@ vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normal
 	diffuse_final = light_color * diffuse_factor * light_diffuse_intensity * sampled_material.diffuse_color.rgb;
 	//diffuse_final = light_color * diffuse_factor * light_diffuse_intensity * u_material.diffuse_color;
 
-	float specular_strength = 5.f;
-	vec3 view_dir = normalize(u_view_pos - sampled_world_pos);
+	float specular_strength = 0.5f;
+	vec3 view_dir = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
 	vec3 reflect_dir = reflect(-normalized_light_dir, norm);
 	float specular_factor = max(dot(view_dir, reflect_dir), 0.0);
 
-	float specular_exponent = 32; ///-------------------------------------------------------- SWITCH TO SAMPLING --------------------------------------------------------;
+	float specular_exponent = 64; ///-------------------------------------------------------- SWITCH TO SAMPLING --------------------------------------------------------;
 	float spec_highlight = pow(specular_factor, specular_exponent);
 	specular_final = specular_strength * spec_highlight * light_color * sampled_material.specular_color.rgb;
 	//specular_final = specular_strength * spec_highlight * light_color * u_material.specular_color;
@@ -286,12 +283,12 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 	if (spot_factor > light.aperture) {
 		//SHADOW
 		vec3 color = vec3(0);
-		vec4 light_space_pos = light.light_transform_matrix * vec4(sampled_world_pos, 1.0);
-		//float shadow = ShadowCalculation(light_space_pos, light.dir.xyz, index, LIGHT_TYPE_SPOT);
+		float shadow = ShadowCalculationSpotlight(light, index);
 
-		//if (shadow == 1.0) {
-			//return color; // early return as no light will reach this spot
-		//}
+		if (shadow >= 0.99) {
+			return color; // early return as no light will reach this spot
+		}
+
 
 		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, frag_to_light_dir, normal);
 
@@ -304,7 +301,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 
 		//SPOTLIGHT APERTURE
 		float spotlight_intensity = (1.0 - (1.0 - spot_factor) / (1.0 - light.aperture));
-		return color * spotlight_intensity;
+		return (color * spotlight_intensity) * (1.0 - shadow);
 	}
 	else {
 		return vec3(0, 0, 0);
@@ -317,7 +314,7 @@ vec2 ParallaxMap() {
 	float current_layer_depth = 0.0f;
 	vec2 current_tex_coords = tex_coord0;
 	float current_depth_map_value = texture(displacement_sampler, tex_coord0).r;
-	vec3 view_dir = normalize(fs_in_tangent_positions.u_view_pos - fs_in_tangent_positions.frag_pos);
+	vec3 view_dir = normalize(fs_in_tangent_positions.ubo_common.camera_pos.xyz - fs_in_tangent_positions.frag_pos);
 	vec2 p = view_dir.xy * 0.1;
 	vec2 delta_tex_coords = p / num_layers;
 
@@ -350,7 +347,7 @@ void main()
 	total_light += CalcPhongLight(ubo_global_lighting.directional_light.base.color.xyz, ubo_global_lighting.directional_light.base.diffuse_intensity, normalize(ubo_global_lighting.directional_light.direction.xyz), normalize(sampled_normal)) * (1.f - shadow);
 
 	// Ambient 
-	vec3 ambient_light = u_ambient_light.ambient_intensity * u_ambient_light.color.xyz * sampled_material.ambient_color.rgb;
+	vec3 ambient_light = ubo_global_lighting.ambient_light.ambient_intensity * ubo_global_lighting.ambient_light.color.xyz * sampled_material.ambient_color.rgb;
 	total_light += ambient_light;
 
 

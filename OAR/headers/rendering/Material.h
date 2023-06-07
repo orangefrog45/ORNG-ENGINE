@@ -13,7 +13,9 @@ namespace ORNG {
 		Texture2D* specular_texture = nullptr;
 		Texture2D* normal_map_texture = nullptr;
 
-		std::string name;
+		std::string name = "Unnamed material";
+
+		unsigned int material_id;
 	};
 
 }

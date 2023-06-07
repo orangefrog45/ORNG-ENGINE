@@ -21,6 +21,7 @@ namespace ORNG {
 	class WorldTransform
 	{
 	public:
+		friend class EditorLayer;
 		WorldTransform() = default;
 
 		void SetScale(float scaleX, float scaleY, float scaleZ);
@@ -31,13 +32,19 @@ namespace ORNG {
 		void SetScale(const glm::vec3 scale) { m_scale = scale; };
 		void SetOrientation(const glm::vec3 rot) { m_rotation = rot; };
 
-		glm::mat4x4 GetMatrix() const;
+		glm::mat4 GetTranslationMatrix() const;
+		glm::mat4 GetScaleMatrix() const;
+		glm::mat4 GetRotationMatrix() const;
+
+		const glm::mat4x4& GetMatrix() const;
 		glm::vec3 GetPosition() const;
 		glm::vec3 GetScale() const { return m_scale; };
 		glm::vec3 GetRotation() const { return m_rotation; };
 
 
 	private:
+		void RebuildMatrix();
+		glm::mat4 m_transform = glm::mat4(1);
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);

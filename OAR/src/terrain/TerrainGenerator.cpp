@@ -9,42 +9,42 @@
 namespace ORNG {
 
 	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolution,
-		float height_scale, float frequency, glm::vec3 bot_left_coord, VAO::VertexData& output_data, AABB& bounding_box, unsigned int master_width)
+		float height_scale, glm::vec3 bot_left_coord, VAO::VertexData& output_data, AABB& bounding_box)
 	{
 
 		VAO::VertexData& terrain_data = output_data;
-		TimeStep time_step{ TimeStep::TimeUnits::MILLISECONDS };
 
 		static FastNoiseLite noise;
 		static FastNoiseLite noise2;
-		static bool noise_is_loaded = false;
+		static FastNoiseLite noise3;
 
-		if (!noise_is_loaded) {
 
-			noise2.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-			noise2.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance);
-			noise2.SetFractalType(FastNoiseLite::FractalType_PingPong);
-			noise2.SetFrequency(0.00025f);
+		noise2.SetSeed(seed);
+		noise2.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+		noise2.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance);
+		noise2.SetFractalType(FastNoiseLite::FractalType_FBm);
+		noise2.SetFrequency(0.0125f);
 
-			noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-			noise.SetFrequency(0.00020f);
-			noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-			noise.SetFractalOctaves(5.0);
+		noise.SetSeed(seed);
+		noise.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
+		noise.SetFrequency(0.0005f);
+		noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+		noise.SetFractalOctaves(5.0);
 
-			noise_is_loaded = true;
-		}
+		noise3.SetSeed(seed);
+		noise3.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+		noise3.SetFrequency(0.25f);
+
 
 		int ceiled_resolution = glm::ceil(resolution);
-		std::vector<glm::vec3> normals_to_average;
 		std::vector<glm::vec3> tangents_to_average;
-		normals_to_average.reserve(((width) / ceiled_resolution) * ((width) / ceiled_resolution));
 		tangents_to_average.reserve(((width) / ceiled_resolution) * ((width) / ceiled_resolution));
 
 		terrain_data.positions.reserve(terrain_data.positions.size() + ((width)) * ((width) / ceiled_resolution) * 4);
 		terrain_data.normals.reserve(terrain_data.normals.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
 		terrain_data.tangents.reserve(terrain_data.tangents.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
 		terrain_data.tex_coords.reserve(terrain_data.tex_coords.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
-		terrain_data.indices.reserve(terrain_data.indices.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 6);
+		terrain_data.indices.reserve(terrain_data.indices.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
 
 		bounding_box.max = bot_left_coord;
 		bounding_box.min = bot_left_coord;
@@ -58,30 +58,30 @@ namespace ORNG {
 				const double z_coord_1 = z;
 				const double z_coord_2 = (z + resolution);
 
-				const float noise_1 = noise2.GetNoise(x_coord_1, z_coord_1) * 0.05f
-					+ 1.f * noise.GetNoise(x_coord_1, z_coord_1);
+				const float noise_1 = noise2.GetNoise(x_coord_1, z_coord_1) * 0.15f
+					+ 3.5f * noise.GetNoise(x_coord_1, z_coord_1) + noise3.GetNoise(x_coord_1, z_coord_1) * 0.01f;
 
-				const float noise_2 = noise2.GetNoise(x_coord_1, z_coord_2) * 0.05f
-					+ 1.f * noise.GetNoise(x_coord_1, z_coord_2);
+				const float noise_2 = noise2.GetNoise(x_coord_1, z_coord_2) * 0.15f
+					+ 3.5f * noise.GetNoise(x_coord_1, z_coord_2) + noise3.GetNoise(x_coord_1, z_coord_2) * 0.01f;
 
-				const float noise_3 = noise2.GetNoise(x_coord_2, z_coord_1) * 0.05f
-					+ 1.f * noise.GetNoise(x_coord_2, z_coord_1);
+				const float noise_3 = noise2.GetNoise(x_coord_2, z_coord_1) * 0.15f
+					+ 3.5f * noise.GetNoise(x_coord_2, z_coord_1) + noise3.GetNoise(x_coord_2, z_coord_1) * 0.01f;
 
-				const float noise_4 = noise2.GetNoise(x_coord_2, z_coord_2) * 0.05f
-					+ 1.f * noise.GetNoise(x_coord_2, z_coord_2);
+				const float noise_4 = noise2.GetNoise(x_coord_2, z_coord_2) * 0.15f
+					+ 3.5f * noise.GetNoise(x_coord_2, z_coord_2) + noise3.GetNoise(x_coord_2, z_coord_2) * 0.01f;
 
-				const float height_exponent = 3.5f;
+				const float height_exponent = 5.f;
 
 				/*Rounding will cause shelves*/
 				const float height_factor = glm::pow(height_scale, height_exponent);
 				//BL
-				verts.vert_1.y += glm::roundMultiple(noise_1 * height_factor, 2.f);
+				verts.vert_1.y += noise_1 * height_factor;
 				//TL
-				verts.vert_2.y += glm::roundMultiple(noise_2 * height_factor, 2.f);
+				verts.vert_2.y += noise_2 * height_factor;
 				//BR
-				verts.vert_3.y += glm::roundMultiple(noise_3 * height_factor, 2.f);
+				verts.vert_3.y += noise_3 * height_factor;
 				//TR
-				verts.vert_4.y += glm::roundMultiple(noise_4 * height_factor, 2.f);
+				verts.vert_4.y += noise_4 * height_factor;
 
 				// Form bounding box for chunk
 				bounding_box.max.x = bounding_box.max.x < x ? x : bounding_box.max.x;
@@ -104,16 +104,10 @@ namespace ORNG {
 				terrain_data.indices.emplace_back(index_1);
 
 
-				const float adj_z = (z + master_width * 0.5f) * 1.f;
-				const float adj_z_2 = (z + resolution + master_width * 0.5f) * 1.f;
-				const float adj_x = (x + master_width * 0.5f) * 1.f;
-				const float adj_x_2 = (x + resolution + master_width * 0.5f) * 1.f;
-
-				const float adj_z_coord = ((adj_z) * 0.03f);
-				const float adj_x_coord = ((adj_x) * 0.03f);
-
-				const float adj_z_coord_2 = (adj_z_2 * 0.03f);
-				const float adj_x_coord_2 = (adj_x_2 * 0.03f);
+				const float adj_z_coord = ((z) * 0.03f);
+				const float adj_z_coord_2 = ((z + resolution) * 0.03f);
+				const float adj_x_coord = ((x) * 0.03f);
+				const float adj_x_coord_2 = ((x + resolution) * 0.03f);
 
 				glm::vec2 bl_tex_coord = { adj_x_coord, adj_z_coord };
 				glm::vec2 tl_tex_coord = { adj_x_coord, adj_z_coord_2 };
@@ -152,7 +146,13 @@ namespace ORNG {
 
 				verts.normal_2 = glm::cross(verts.vert_3 - verts.vert_2, verts.vert_2 - verts.vert_4);
 
-				normals_to_average.emplace_back(glm::normalize((verts.normal_1 + verts.normal_2) * 0.5f));
+				//Take average of the normals of both triangles that form the quad
+				glm::vec3 normal = glm::normalize((verts.normal_1 + verts.normal_2) * 0.5f);
+				terrain_data.normals.emplace_back(normal);
+				terrain_data.normals.emplace_back(normal);
+				terrain_data.normals.emplace_back(normal);
+				terrain_data.normals.emplace_back(normal);
+
 				tangents_to_average.emplace_back(glm::normalize((verts.tangent_1 + verts.tangent_2) * 0.5f));
 
 			}
@@ -160,14 +160,9 @@ namespace ORNG {
 
 
 		/* Average normals/tangents for smoothing */
-		const int column_length_normals = width / resolution;
+		const int column_length_tangents = width / resolution;
 
-		for (int i = 0; i < normals_to_average.size(); i++) {
-			glm::vec3 left_normal = glm::vec3(0);
-			glm::vec3 right_normal = glm::vec3(0);
-			glm::vec3 top_normal = glm::vec3(0);
-			glm::vec3 bottom_normal = glm::vec3(0);
-			glm::vec3 original_normal = normals_to_average[i];
+		for (int i = 0; i < tangents_to_average.size(); i++) {
 
 			glm::vec3 left_tangent = glm::vec3(0);
 			glm::vec3 right_tangent = glm::vec3(0);
@@ -177,42 +172,32 @@ namespace ORNG {
 
 			float division_num = 1.f;
 
-			if (i - column_length_normals >= 0) {
-				left_normal = normals_to_average[i - column_length_normals];
-				left_tangent = tangents_to_average[i - column_length_normals];
+			if (i - column_length_tangents >= 0) {
+				left_tangent = tangents_to_average[i - column_length_tangents];
 				division_num++;
 			}
 
-			if (i + column_length_normals < normals_to_average.size()) {
-				right_normal = normals_to_average[i + column_length_normals];
-				right_tangent = tangents_to_average[i + column_length_normals];
+			if (i + column_length_tangents < tangents_to_average.size()) {
+				right_tangent = tangents_to_average[i + column_length_tangents];
 				division_num++;
 			}
 			if (i - 1 >= 0) {
-				top_normal = normals_to_average[i - 1];
 				top_tangent = tangents_to_average[i - 1];
 				division_num++;
 			}
-			if (i + 1 < normals_to_average.size()) {
-				bottom_normal = normals_to_average[i + 1];
+			if (i + 1 < tangents_to_average.size()) {
 				bottom_tangent = tangents_to_average[i + 1];
 				division_num++;
 			}
 
-			glm::vec3 averaged_normal = glm::normalize(glm::vec3(left_normal + right_normal + top_normal + bottom_normal + original_normal) / division_num);
 			glm::vec3 averaged_tangent = glm::normalize(glm::vec3(left_tangent + right_tangent + top_tangent + bottom_tangent + original_tangent) / division_num);
 
-			terrain_data.normals.emplace_back(original_normal);
-			terrain_data.normals.emplace_back(original_normal);
-			terrain_data.normals.emplace_back(original_normal);
-			terrain_data.normals.emplace_back(original_normal);
 			terrain_data.tangents.emplace_back(averaged_tangent);
 			terrain_data.tangents.emplace_back(averaged_tangent);
 			terrain_data.tangents.emplace_back(averaged_tangent);
 			terrain_data.tangents.emplace_back(averaged_tangent);
 
 		}
-		OAR_CORE_INFO("CHUNK SMOOTH NORMAL DATA LOADED IN {0}ms", time_step.GetTimeInterval());
 
 		bounding_box.center = (bounding_box.max + bounding_box.min) * 0.5f;
 	}

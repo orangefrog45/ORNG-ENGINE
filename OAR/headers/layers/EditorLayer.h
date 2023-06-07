@@ -1,32 +1,87 @@
 #pragma once
-#include "rendering//Quad.h"
 #include "components/Camera.h"
 #include "scene/Scene.h"
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
+#include "scene/GridMesh.h"
+#include "events/EventManager.h"
+
 
 namespace ORNG {
-
+	class Shader;
+	class Framebuffer;
 	class Renderer;
 
 	class EditorLayer {
 	public:
 		friend class Application;
-		EditorLayer() = default;
+		EditorLayer() {
+			m_core_event_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
+
+				switch (t_event.event_type) {
+
+				case Events::EventType::ENGINE_RENDER:
+					RenderDisplayWindow();
+					RenderUI();
+					break;
+				case Events::EventType::ENGINE_UPDATE:
+					Update();
+					break;
+				}
+			};
+
+			Events::EventManager::RegisterListener(m_core_event_listener);
+		}
+
+
 		void Init();
-		void ShowDisplayWindow();
-		void ShowUIWindow();
+		void RenderDisplayWindow();
+		void RenderUI();
 		void Update();
 
 
-		struct NoiseSettings {
-			float frequency = 0.1f;
-			int seed = 123;
-			float cutoff = 0.2f;
-			FastNoiseSIMD::NoiseType type = FastNoiseSIMD::Cellular;
-		};
-		NoiseSettings m_noise_settings;
-
 	private:
+
+
+		void RenderGrid();
+		void DoPickingPass();
+		void DoSelectedEntityHighlightPass();
+
+		void DisplayEntityEditor();
+		void RenderMeshComponentEditor(MeshComponent* comp);
+		void RenderPointlightEditor(PointLightComponent* light);
+		void RenderSpotlightEditor(SpotLightComponent* light);
+
+		void RenderSceneGraph();
+		void RenderDirectionalLightEditor();
+		void RenderGlobalFogEditor();
+		void RenderTerrainEditor();
+
+
+		void ShowAssetManager();
+		void RenderTextureEditor(Texture2D* selected_texture, Texture2DSpec& spec);
+
+		Events::EventListener<Events::EngineCoreEvent> m_core_event_listener;
+
+		Shader* mp_quad_shader = nullptr;
+		Shader* mp_picking_shader = nullptr;
+		Shader* mp_grid_shader = nullptr;
+		Shader* mp_highlight_shader = nullptr;
+
+		Framebuffer* mp_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
+		Framebuffer* mp_picking_fb = nullptr;
+
+		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
+		std::unique_ptr<Scene> m_active_scene = nullptr;
+
+		Camera m_editor_camera;
+
+		unsigned int m_selected_entity_id = 0;
+
+		struct DisplayWindowSettings {
+			bool depth_map_view = false;
+		};
+
+		DisplayWindowSettings m_display_settings;
 
 		struct PointLightConfigData {
 			float atten_constant;
@@ -43,13 +98,9 @@ namespace ORNG {
 			glm::vec3 direction;
 		};
 
-		struct DebugConfigData {
-			bool depth_map_view = false;
-		};
-
 		struct DirectionalLightData {
 			glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
-			glm::vec3 light_position = glm::vec3(0.5f, 0.5f, 1.f);
+			glm::vec3 light_direction = glm::vec3(0.5f, 0.5f, 1.f);
 		};
 
 		struct SceneData {
@@ -64,26 +115,6 @@ namespace ORNG {
 			int material_id;
 		};
 
-		void DisplayEntityEditor();
-		void CreateBaseWindow();
-		void DisplaySceneData();
-		void EnablePointLightControls(PointLightComponent* light);
-		void EnableMeshComponentControls(MeshComponent* comp);
-		void EnableDebugControls(unsigned int depth_map_texture);
-		void EnableDirectionalLightControls();
-		void DisplayFogHeader();
-		void DisplaySceneEntities();
-		void EnableSpotLightControls(SpotLightComponent* light);
-		void ShowAssetManager();
 
-
-		SceneData m_scene_data;
-		DirectionalLightData m_dir_light_data;
-		DebugConfigData m_debug_config_data;
-		PointLightConfigData m_pointlight_config_data;
-		SpotLightConfigData m_spotlight_config_data;
-		Camera m_editor_camera;
-		MeshComponentData m_selected_mesh_data;
-		std::unique_ptr<Scene> m_active_scene = nullptr;
 	};
 }

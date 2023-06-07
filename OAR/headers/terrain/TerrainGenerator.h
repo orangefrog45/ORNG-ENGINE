@@ -34,7 +34,7 @@ namespace ORNG {
 			glm::vec3 tangent_2 = glm::vec3(0);
 		};
 
-		static void GenNoiseChunk(unsigned int seed, int width, float resolution, float height_scale, float frequency, glm::vec3 bot_left_coord, VAO::VertexData& output_data, AABB& output_bounding_box, unsigned int master_width);
+		static void GenNoiseChunk(unsigned int seed, int width, float resolution, float height_scale, glm::vec3 bot_left_coord, VAO::VertexData& output_data, AABB& output_bounding_box);
 
 	private:
 		static QuadVertices GenQuad(float size, glm::vec3 bot_left_vert_pos);

@@ -1,12 +1,19 @@
 #version 430 core
 
-in vec3 cam_pos;
 in vec3 vs_position;
 
-out vec4 FragColor;
+out layout(location = 0) vec4 FragColor;
+
+
+
+layout(std140, binding = 2) uniform commons{
+	vec4 camera_pos;
+	vec4 camera_target;
+} ubo_common;
+
 
 void main()
 {
-	float distance = length(vec2(cam_pos.xz - vs_position.xz)) * 0.05;
-	FragColor = vec4(0.8f, 0.8f, 0.8f, (1.0f * ((1 / distance) - 0.15)));
+	float distance = length(vec2(ubo_common.camera_pos.xz - vs_position.xz)) * 0.05;
+	FragColor = vec4(1, 1, 1, max(1.f / distance - 0.25, 0.f));
 };

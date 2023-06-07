@@ -9,7 +9,6 @@ namespace ORNG {
 		Application();
 		~Application() = default;
 		void Init();
-		void RenderScene();
 
 	private:
 		EditorLayer editor_layer = EditorLayer();

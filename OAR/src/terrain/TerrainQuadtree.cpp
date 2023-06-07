@@ -1,4 +1,4 @@
-#include "pch/pch.h"
+#include "pch/pch.h" 
 
 #include "terrain/TerrainQuadtree.h"
 #include "util/Log.h"
@@ -31,15 +31,15 @@ namespace ORNG {
 		delete m_chunk;
 	}
 
-	TerrainQuadtree::TerrainQuadtree(unsigned int width, int height_scale, unsigned int sampling_density, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader) :
-		m_center_pos(center_pos), m_width(width), m_sampling_density(sampling_density), m_seed(seed), m_height_scale(height_scale), m_resolution(resolution), m_master_width(width),
+	TerrainQuadtree::TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader) :
+		m_center_pos(center_pos), m_width(width), m_seed(seed), m_height_scale(height_scale), m_resolution(resolution), m_master_width(width),
 		m_is_root_node(true), m_loader(loader)
 	{
-		/* glm::log2(m_master_width / m_min_grid_width) == no. subdivisions before min grid width is hit */
+		//no. subdivisions before min grid width is hit
 		m_max_subdivision_layer = glm::clamp(static_cast<int>(glm::log2(static_cast<float>(m_master_width) / static_cast<float>(m_min_grid_width))), 5, 15);
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
-		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale, m_sampling_density);
+		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale);
 		m_loader->RequestChunkLoad(*m_chunk);
 	};
 
@@ -53,40 +53,16 @@ namespace ORNG {
 		m_loader = parent->m_loader;
 		m_min_grid_width = parent->m_min_grid_width;
 
-		m_sampling_density = parent->m_sampling_density;
 		m_height_scale = parent->m_height_scale;
 
 		m_lod_camera = parent->m_lod_camera;
 		m_center_pos = center_pos;
 		m_master_width = parent->m_master_width;
 
-		if (m_subdivision_layer >= 0 && m_subdivision_layer <= m_max_subdivision_layer * 0.15) {
-			m_resolution = 48.f;
-		}
-		else if (m_subdivision_layer >= m_max_subdivision_layer * 0.15f && m_subdivision_layer <= m_max_subdivision_layer * 0.3f) {
-			m_resolution = 24.f;
-		}
-		else if (m_subdivision_layer >= m_max_subdivision_layer * 0.3f && m_subdivision_layer <= m_max_subdivision_layer * 0.45f) {
-			m_resolution = 12.f;
-		}
-		else if (m_subdivision_layer >= m_max_subdivision_layer * 0.45f && m_subdivision_layer <= m_max_subdivision_layer * 0.6f) {
-			m_resolution = 8.f;
-		}
-		else if (m_subdivision_layer >= m_max_subdivision_layer * 0.6f && m_subdivision_layer <= m_max_subdivision_layer * 0.7f) {
-			m_resolution = 7.5f;
-		}
-		else if (m_subdivision_layer >= m_max_subdivision_layer * 0.7f && m_subdivision_layer <= m_max_subdivision_layer * 0.85f) {
-			m_resolution = 5.5f;
-		}
-		else if (m_subdivision_layer >= m_max_subdivision_layer * 0.85f && m_subdivision_layer < m_max_subdivision_layer) {
-			m_resolution = 3.f;
-		}
-		else if (m_subdivision_layer == m_max_subdivision_layer) {
-			m_resolution = 1.5f;
-		}
+		m_resolution = glm::length(m_lod_camera->GetPos() - m_center_pos) / static_cast<float>(m_min_grid_width);
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
-		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4.f, m_seed, m_height_scale, m_sampling_density);
+		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4.f, m_seed, m_height_scale);
 		m_loader->RequestChunkLoad(*m_chunk);
 
 

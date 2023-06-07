@@ -20,7 +20,9 @@ layout(std140, binding = 0) buffer transforms {
 } transform_ssbo;
 
 
-out vec3 vs_position;
+
+
+out vec4 vs_position;
 out vec3 vs_normal;
 out vec3 vs_tex_coord;
 out vec3 vs_tangent;
@@ -38,8 +40,8 @@ void main() {
 	if (u_terrain_mode) {
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_normal = vertex_normal;
-		vs_position = position;
-		gl_Position = PVMatrices.proj_view * vec4(vs_position, 1);
+		vs_position = vec4(position, 1.f);
+		gl_Position = PVMatrices.proj_view * vs_position;
 
 	}
 	else if (u_skybox_mode)
@@ -47,16 +49,15 @@ void main() {
 		vec4 view_pos = vec4((mat3(PVMatrices.view) * position), 1.0);
 		vec4 proj_pos = PVMatrices.projection * view_pos;
 		vs_tex_coord = position;
-		vec3 camera_pos = -vec3(PVMatrices.view[0][3], PVMatrices.view[1][3], PVMatrices.view[2][3]);
-		vs_position = camera_pos + position * 1000.f; //just set skybox pos very far away and move with camera, should give correct illusion (currently used for fog)
+		vs_position = vec4(position, 1.f);
 		gl_Position = proj_pos.xyww;
 	}
 	else {
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_transform = transform_ssbo.transforms[gl_InstanceID];
 		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal; // inverse/transpose to undo unwanted transforms to normal
-		vs_position = (vs_transform * vec4(position, 1.0f)).xyz;
-		gl_Position = PVMatrices.proj_view * vec4(vs_position, 1);
+		vs_position = vs_transform * vec4(position, 1.0f);
+		gl_Position = PVMatrices.proj_view * vs_position;
 	}
 
 

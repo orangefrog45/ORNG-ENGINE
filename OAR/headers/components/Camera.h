@@ -5,7 +5,7 @@ namespace ORNG {
 
 	class Camera {
 	public:
-		friend class Renderer;
+		friend class SceneRenderer;
 		Camera() = default;
 		void SetPosition(float x, float y, float z);
 		void MoveForward(float time_elapsed);
@@ -30,10 +30,10 @@ namespace ORNG {
 		float m_zFar = 10000.0f;
 		glm::vec2 m_oldMousePosition = glm::vec2(0.0f, 0.0f);
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 m_right = { 0.f, 0.f,0.f };
+		glm::vec3 m_right = { 1.f, 0.f,0.f };
 		glm::vec3 m_target = glm::vec3(0.0f, 0.0f, -1.0f);
 		glm::vec3 m_up = glm::vec3(0.0f, 1.0f, 0.0f);
-		float m_speed = 0.0001f;
+		float m_speed = 0.00001f;
 
 	};
 }

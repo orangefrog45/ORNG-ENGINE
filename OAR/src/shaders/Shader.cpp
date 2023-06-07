@@ -26,17 +26,6 @@ namespace ORNG {
 		return ss.str();
 	}
 
-	void Shader::AddUBO(const std::string& name, unsigned int storage_size, int draw_type, unsigned int buffer_base) {
-		m_uniforms[name] = 0;
-		const unsigned int* ubo = &(m_uniforms.at(name));
-
-		glGenBuffers(1, &m_uniforms[name]);
-		glBindBuffer(GL_UNIFORM_BUFFER, *ubo);
-		glBufferData(GL_UNIFORM_BUFFER, storage_size, nullptr, draw_type);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		glBindBufferBase(GL_UNIFORM_BUFFER, buffer_base, *ubo);
-	}
-
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath) {
 		unsigned int shader_handle = 0;
 		CompileShader(shader_type, ParseShader(filepath), shader_handle);
@@ -54,7 +43,6 @@ namespace ORNG {
 
 		glLinkProgram(m_program_id);
 		glValidateProgram(m_program_id);
-		glUseProgram(m_program_id);
 	}
 
 
@@ -83,7 +71,21 @@ namespace ORNG {
 			char* message = (char*)alloca(length * sizeof(char));
 			glGetShaderInfoLog(shaderID, length, &length, message);
 
-			OAR_CORE_CRITICAL("Failed to compile {0} shader: {1}", type == GL_VERTEX_SHADER ? "vertex" : "fragment", message);
+			std::string shader_type_name;
+
+			switch (type) {
+			case GL_VERTEX_SHADER:
+				shader_type_name = "vertex";
+				break;
+			case GL_FRAGMENT_SHADER:
+				shader_type_name = "fragment";
+				break;
+			case GL_COMPUTE_SHADER:
+				shader_type_name = "compute";
+				break;
+			}
+
+			OAR_CORE_CRITICAL("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
 		}
 	}
 

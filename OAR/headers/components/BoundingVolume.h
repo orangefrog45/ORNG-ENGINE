@@ -5,7 +5,7 @@ namespace ORNG {
 	struct BoundingVolume {
 		BoundingVolume() = default;
 		virtual ~BoundingVolume() = default;
-		virtual bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) = 0;
+		virtual bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) const = 0;
 	};
 
 	struct AABB : public BoundingVolume {
@@ -24,7 +24,7 @@ namespace ORNG {
 			return -radius <= p.GetSignedDistanceToPlane(box.center);
 		}
 
-		bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) {
+		bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) const {
 
 			return (TestAABBPlane(*this, cam_frustum.top_plane) &&
 				TestAABBPlane(*this, cam_frustum.bottom_plane) &&

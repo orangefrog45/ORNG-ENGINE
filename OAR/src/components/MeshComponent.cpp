@@ -19,6 +19,12 @@ namespace ORNG {
 		RequestTransformSSBOUpdate();
 	};
 
+	void MeshComponent::SetMeshAsset(MeshAsset* p_asset) {
+		mp_mesh_asset = p_asset;
+		mp_instance_group->ResortMesh(this);
+	};
+
+
 	void MeshComponent::SetOrientation(const float x, const float y, const float z) {
 		mp_transform->SetOrientation(x, y, z);
 		RequestTransformSSBOUpdate();
@@ -50,8 +56,8 @@ namespace ORNG {
 			mp_instance_group->ResortMesh(this);
 	}
 
-	void MeshComponent::SetMaterialID(unsigned int id) {
-		m_material_id = id;
+	void MeshComponent::SetMaterialID(unsigned int index, unsigned int id) {
+		m_material_ids[index] = id;
 		if (mp_mesh_asset)
 			mp_instance_group->ResortMesh(this);
 	}

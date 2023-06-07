@@ -67,13 +67,12 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-		unsigned long long transform_array_size = sizeof(glm::mat4) * transforms->size();
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_handle);
 
 
 		if (buffer_size == -1 && transforms) // Size not specified, use automatically determined size
 		{
-			glBufferData(GL_SHADER_STORAGE_BUFFER, transform_array_size, transforms->data(), GL_DYNAMIC_DRAW);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::mat4) * transforms->size(), transforms->data(), GL_DYNAMIC_DRAW);
 		}
 		else if (transforms == nullptr) // No transforms so just resize buffer
 		{
@@ -82,7 +81,7 @@ namespace ORNG {
 		else // Resize buffer then update section with transforms
 		{
 			glBufferData(GL_SHADER_STORAGE_BUFFER, buffer_size, nullptr, GL_DYNAMIC_DRAW);
-			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, transform_array_size, transforms->data());
+			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::mat4) * transforms->size(), transforms->data());
 		}
 
 	}

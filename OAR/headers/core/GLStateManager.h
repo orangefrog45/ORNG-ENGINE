@@ -4,6 +4,11 @@
 namespace ORNG {
 	class GL_StateManager {
 	public:
+
+		static void InitGL() {
+			Get().I_InitGL();
+		}
+
 		inline static void BindVAO(unsigned int vao) {
 			Get().IBindVAO(vao);
 		}
@@ -17,15 +22,19 @@ namespace ORNG {
 		}
 
 		//Force mode will make the texture active even if it is bound to the specified unit already, use for tex parameter changes etc
-		static void BindTexture(int target, int texture, int tex_unit, bool force_mode = false) {
+		inline static void BindTexture(int target, int texture, int tex_unit, bool force_mode = false) {
 			Get().IBindTexture(target, texture, tex_unit, force_mode);
 		};
 
-		static void ClearDepthBits() {
+		inline static void ActivateShaderProgram(unsigned int shader_handle) {
+			Get().IActivateShaderProgram(shader_handle);
+		}
+
+		inline static void ClearDepthBits() {
 			glClear(GL_DEPTH_BUFFER_BIT);
 		}
 
-		static void ClearColorBits() {
+		inline static void ClearColorBits() {
 			glClear(GL_COLOR_BUFFER_BIT);
 		}
 
@@ -35,16 +44,16 @@ namespace ORNG {
 			return handle;
 		}
 
-		static void BindBuffer(unsigned int buffer_type, unsigned int buffer_handle) {
+		inline static void BindBuffer(unsigned int buffer_type, unsigned int buffer_handle) {
 			glBindBuffer(buffer_type, buffer_handle);
 		}
 
-		static void ClearBitsUnsignedInt() {
+		inline static void ClearBitsUnsignedInt() {
 			static unsigned int clear_color[] = { 0, 0, 0, 0 };
 			glClearBufferuiv(GL_COLOR, 0, clear_color);
 		}
 
-		static void DefaultClearBits() {
+		inline static void DefaultClearBits() {
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		}
 
@@ -52,6 +61,7 @@ namespace ORNG {
 			static const int PVMATRICES = 0;
 			static const int GLOBAL_LIGHTING = 1;
 			static const int MATERIALS = 3;
+			static const int GLOBALS = 2;
 		};
 
 		struct SSBO_BindingPoints {
@@ -76,6 +86,7 @@ namespace ORNG {
 			static const int COLOR_CUBEMAP = GL_TEXTURE13;
 			static const int COLOR_2 = GL_TEXTURE14;
 			static const int DATA_3D = GL_TEXTURE15;
+			static const int DEPTH = GL_TEXTURE16;
 		};
 
 		struct TextureUnitIndexes {
@@ -97,6 +108,9 @@ namespace ORNG {
 		};
 
 	private:
+
+		void I_InitGL();
+		void IActivateShaderProgram(unsigned int shader_handle);
 
 		void IBindVAO(unsigned int vao) {
 			if (m_current_bound_vao != vao) {
@@ -128,8 +142,8 @@ namespace ORNG {
 		std::unordered_map<unsigned int, unsigned int> m_current_ssbo_bindings; // currently bound ssbo object (value) to binding index (key)
 		std::unordered_map<unsigned int, TextureBindData> m_current_texture_bindings; // currently bound texture object (TextureBindData) to texture unit (key)
 
-		unsigned int m_current_bound_vao = 0;
-
+		int m_current_active_shader_handle = -1;
+		int m_current_bound_vao = -1;
 
 	};
 }

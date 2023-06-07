@@ -1,6 +1,7 @@
 #pragma once
 #include "rendering/Textures.h"
 #include "util/Log.h"
+#include "core/Window.h"
 
 namespace ORNG {
 
@@ -8,14 +9,22 @@ namespace ORNG {
 	public:
 		Framebuffer() = default;
 		Framebuffer(unsigned int id, const char* name) : m_name(name), m_framebuffer_id(id) { };
+		virtual ~Framebuffer();
+		void Init();
+		void Bind() const;
 
 
 		const Texture2D& Add2DTexture(const std::string& name, unsigned int attachment_point, const Texture2DSpec& spec);
 
+		// Binds an existing texture to the framebuffer, texture will not be deleted upon framebuffer deletion
+		void AddShared2DTexture(const std::string& name, Texture2D& tex, GLenum attachment_point);
+
 		const Texture2DArray& Add2DTextureArray(const std::string& name, const Texture2DArraySpec& spec);
 
+		const TextureCubemap& AddCubemapTexture(const std::string& name, const TextureCubemapSpec& spec);
 
-		void AddRenderbuffer();
+
+		void AddRenderbuffer(unsigned int width = Window::GetWidth(), unsigned int height = Window::GetHeight());
 
 		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
 
@@ -30,19 +39,20 @@ namespace ORNG {
 				BREAKPOINT;
 			}
 
-			TextureBase* tex = m_textures[name];
+			TextureBase* tex = m_textures[name].p_texture;
 			bool is_valid_type = true;
 
 			if constexpr (std::is_same<T, Texture2D>::value) {
 				if (tex->m_texture_target != GL_TEXTURE_2D)
 					is_valid_type = false;
-
 			}
 			else if constexpr (std::is_same<T, Texture2DArray>::value) {
 				if (tex->m_texture_target != GL_TEXTURE_2D_ARRAY)
 					is_valid_type = false;
-
-
+			}
+			else if constexpr (std::is_same<T, TextureCubemap>::value) {
+				if (tex->m_texture_target != GL_TEXTURE_CUBE_MAP)
+					is_valid_type = false;
 			}
 
 
@@ -54,15 +64,23 @@ namespace ORNG {
 			return *static_cast<T*>(tex);
 		};
 
-		virtual ~Framebuffer();
-		void Init();
-		void Bind() const;
-	protected:
-		unsigned int m_framebuffer_id;
+
+	private:
+		GLuint m_framebuffer_id;
 		const char* m_name = "Unnamed framebuffer";
-		std::unordered_map <std::string, TextureBase*> m_textures;
-		unsigned int m_fbo = 0;
-		unsigned int m_rbo = 0;
+
+		struct FramebufferTexture {
+			FramebufferTexture() = default;
+			FramebufferTexture(TextureBase* texture, bool shared) : p_texture(texture), is_shared(shared) {};
+
+			TextureBase* p_texture = nullptr;
+			bool is_shared = false;
+
+		};
+
+		std::unordered_map <std::string, FramebufferTexture> m_textures;
+		GLuint m_fbo = 0;
+		GLuint m_rbo = 0;
 	};
 
 }

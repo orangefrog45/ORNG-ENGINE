@@ -9,9 +9,6 @@
 namespace ORNG {
 
 	void ShaderLibrary::Init() {
-		lighting_shader.Init();
-		lighting_shader.InitUniforms();
-		lighting_shader.m_shader_id = 1;
 
 		m_pointlight_ssbo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindSSBO(m_pointlight_ssbo, GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
@@ -31,14 +28,36 @@ namespace ORNG {
 
 		m_global_lighting_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 22 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBAL_LIGHTING, m_global_lighting_ubo);
+
+		m_common_ubo = GL_StateManager::GenBuffer();
+		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
+		glBufferData(GL_UNIFORM_BUFFER, m_common_ubo_size, nullptr, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo);
+
+	}
+
+	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target) {
+		std::array<float, m_common_ubo_size / sizeof(float)> data;
+
+		data[0] = camera_pos.x;
+		data[1] = camera_pos.y;
+		data[2] = camera_pos.z;
+		data[3] = 0.f; //padding
+		data[4] = camera_target.x;
+		data[5] = camera_target.y;
+		data[6] = camera_target.z;
+		data[7] = 0.f; //padding
+
+		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
 	}
 
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light, const BaseLight& ambient_light) {
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
 
-		constexpr int num_floats_in_buffer = 18;
+		constexpr int num_floats_in_buffer = 22;
 		std::array<float, num_floats_in_buffer> light_data = { 0 };
 
 		glm::vec3 light_dir = dir_light.GetLightDirection();
@@ -52,58 +71,48 @@ namespace ORNG {
 		light_data[7] = 0; //padding
 		light_data[8] = dir_light.ambient_intensity;
 		light_data[9] = dir_light.diffuse_intensity;
-		light_data[10] = 0;
+		light_data[10] = 0; //padding
 		light_data[11] = 0; //padding
-		light_data[12] = ambient_light.color.x;
-		light_data[13] = ambient_light.color.y;
-		light_data[14] = ambient_light.color.z;
-		light_data[15] = 0;
-		light_data[16] = ambient_light.ambient_intensity;
-		light_data[17] = ambient_light.diffuse_intensity;
+		light_data[12] = dir_light.cascade_ranges[0];
+		light_data[13] = dir_light.cascade_ranges[1];
+		light_data[14] = dir_light.cascade_ranges[2];
+		light_data[15] = 0; //padding
+		light_data[16] = ambient_light.color.x;
+		light_data[17] = ambient_light.color.y;
+		light_data[18] = ambient_light.color.z;
+		light_data[19] = 0;
+		light_data[20] = ambient_light.ambient_intensity;
+		light_data[21] = ambient_light.diffuse_intensity;
 
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, num_floats_in_buffer * sizeof(float), &light_data[0]);
 	};
 
-	void ShaderLibrary::UpdateMaterialUBO(const std::vector<Material*>& materials) {
+	void ShaderLibrary::UpdateMaterialUBO(const std::vector<Material*>& materials) { //SHOULDNT BE A UBO
 
 		constexpr int material_size_floats = 16;
 		std::array<float, Renderer::max_materials* material_size_floats> material_arr = { 0 };
 		unsigned int index = 0;
 
 		for (const auto* material : materials) {
-			material_arr[index] = material->ambient_color.x;
-			index++;
-			material_arr[index] = material->ambient_color.y;
-			index++;
-			material_arr[index] = material->ambient_color.z;
-			index++;
-			material_arr[index] = 0; //padding
-			index++;
+			material_arr[index++] = material->ambient_color.x;
+			material_arr[index++] = material->ambient_color.y;
+			material_arr[index++] = material->ambient_color.z;
+			material_arr[index++] = 0; //padding
 
-			material_arr[index] = material->diffuse_color.x;
-			index++;
-			material_arr[index] = material->diffuse_color.y;
-			index++;
-			material_arr[index] = material->diffuse_color.z;
-			index++;
-			material_arr[index] = 0; //padding
-			index++;
+			material_arr[index++] = material->diffuse_color.x;
+			material_arr[index++] = material->diffuse_color.y;
+			material_arr[index++] = material->diffuse_color.z;
+			material_arr[index++] = 0; //padding
 
-			material_arr[index] = material->specular_color.x;
-			index++;
-			material_arr[index] = material->specular_color.y;
-			index++;
-			material_arr[index] = material->specular_color.z;
-			index++;
-			material_arr[index] = 0; //padding
-			index++;
-			material_arr[index] = material->normal_map_texture == nullptr ? 0 : 1; //if material is using normal maps
-			index++;
-			material_arr[index] = 0; //padding
-			index++;
-			material_arr[index] = 0; //padding
-			index++;
-			material_arr[index] = 0; //padding
+			material_arr[index++] = material->specular_color.x;
+			material_arr[index++] = material->specular_color.y;
+			material_arr[index++] = material->specular_color.z;
+			material_arr[index++] = 0; //padding
+
+			material_arr[index++] = material->normal_map_texture == nullptr ? 0 : 1; //if material is using normal maps
+			material_arr[index++] = 0; //padding
+			material_arr[index++] = 0; //padding
+			material_arr[index++] = 0; //padding
 
 		}
 
@@ -117,30 +126,6 @@ namespace ORNG {
 		return m_shaders[name];
 	}
 
-	void ShaderLibrary::SetGBufferMaterial(const Material& material)
-	{
-		Shader& gbuffer_shader = GetShader("gbuffer");
-
-		if (material.diffuse_texture != nullptr) {
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, material.diffuse_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
-		}
-
-		if (material.specular_texture == nullptr) {
-			gbuffer_shader.SetUniform("specular_sampler_active", 0);
-		}
-		else {
-			gbuffer_shader.SetUniform("specular_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, material.specular_texture->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR, false);
-		}
-
-		if (material.normal_map_texture == nullptr) {
-			gbuffer_shader.SetUniform("u_normal_sampler_active", 0);
-		}
-		else {
-			gbuffer_shader.SetUniform("u_normal_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, material.normal_map_texture->GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
-		}
-	}
 
 	Shader& ShaderLibrary::GetShader(const char* name) {
 		if (!m_shaders.contains(name)) {
@@ -157,5 +142,132 @@ namespace ORNG {
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &view[0][0]);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, sizeof(glm::mat4), &proj_view[0][0]);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+
+	void ShaderLibrary::SetPointLights(const std::vector<PointLightComponent*>& p_lights) {
+		constexpr unsigned int point_light_fs_num_float = 16; // amount of floats in pointlight struct in shaders
+
+		std::vector<float> light_array;
+
+		std::vector<PointLightComponent*> active_lights;
+
+		active_lights.reserve(p_lights.size());
+
+		for (auto* light : p_lights) {
+			if (light)
+				active_lights.push_back(light);
+		}
+
+		light_array.resize(active_lights.size() * point_light_fs_num_float);
+
+		for (int i = 0; i < active_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
+
+			auto& light = active_lights[i / point_light_fs_num_float];
+
+			//0 - START COLOR
+			auto color = light->color;
+			light_array[i] = color.x;
+			light_array[i + 1] = color.y;
+			light_array[i + 2] = color.z;
+			light_array[i + 3] = 0; //padding
+			//16 - END COLOR - START POS
+			auto pos = light->transform.GetPosition();
+			light_array[i + 4] = pos.x;
+			light_array[i + 5] = pos.y;
+			light_array[i + 6] = pos.z;
+			light_array[i + 7] = 0; //padding
+			//32 - END POS, START INTENSITY
+			light_array[i + 8] = light->ambient_intensity;
+			light_array[i + 9] = light->diffuse_intensity;
+			//40 - END INTENSITY - START MAX_DISTANCE
+			light_array[i + 10] = light->max_distance;
+			//44 - END MAX_DISTANCE - START ATTENUATION
+			auto& atten = light->attenuation;
+			light_array[i + 11] = atten.constant;
+			light_array[i + 12] = atten.linear;
+			light_array[i + 13] = atten.exp;
+			//56 - END ATTENUATION
+			light_array[i + 14] = 0; //padding
+			light_array[i + 15] = 0; //padding
+			//64 BYTES TOTAL
+		}
+
+		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_DYNAMIC_DRAW);
+	}
+
+	void ShaderLibrary::SetSpotLights(const std::vector< SpotLightComponent*>& s_lights) {
+
+		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
+		std::vector<float> light_array;
+
+		std::vector<SpotLightComponent*> active_lights;
+
+		active_lights.reserve(s_lights.size());
+
+		for (auto* light : s_lights) {
+			if (light)
+				active_lights.push_back(light);
+		}
+
+		light_array.resize(active_lights.size() * spot_light_fs_num_float);
+
+
+		for (int i = 0; i < active_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
+
+			auto& light = active_lights[i / spot_light_fs_num_float];
+			//0 - START COLOR
+			auto color = light->color;
+			light_array[i] = color.x;
+			light_array[i + 1] = color.y;
+			light_array[i + 2] = color.z;
+			light_array[i + 3] = 0; //padding
+			//16 - END COLOR - START POS
+			auto pos = light->transform.GetPosition();
+			light_array[i + 4] = pos.x;
+			light_array[i + 5] = pos.y;
+			light_array[i + 6] = pos.z;
+			light_array[i + 7] = 0; //padding
+			//32 - END POS, START DIR
+			auto dir = light->GetLightDirection();
+			light_array[i + 8] = dir.x;
+			light_array[i + 9] = dir.y;
+			light_array[i + 10] = dir.z;
+			light_array[i + 11] = 0; // padding
+			//48 - END DIR, START LIGHT TRANSFORM MAT
+			glm::mat4 mat = light->GetLightSpaceTransformMatrix();
+			light_array[i + 12] = mat[0][0];
+			light_array[i + 13] = mat[0][1];
+			light_array[i + 14] = mat[0][2];
+			light_array[i + 15] = mat[0][3];
+			light_array[i + 16] = mat[1][0];
+			light_array[i + 17] = mat[1][1];
+			light_array[i + 18] = mat[1][2];
+			light_array[i + 19] = mat[1][3];
+			light_array[i + 20] = mat[2][0];
+			light_array[i + 21] = mat[2][1];
+			light_array[i + 22] = mat[2][2];
+			light_array[i + 23] = mat[2][3];
+			light_array[i + 24] = mat[3][0];
+			light_array[i + 25] = mat[3][1];
+			light_array[i + 26] = mat[3][2];
+			light_array[i + 27] = mat[3][3];
+			//112   - END LIGHT TRANSFORM MAT, START INTENSITY
+			light_array[i + 28] = light->ambient_intensity;
+			light_array[i + 29] = light->diffuse_intensity;
+			//40 - END INTENSITY - START MAX_DISTANCE
+			light_array[i + 30] = light->max_distance;
+			//44 - END MAX_DISTANCE - START ATTENUATION
+			auto& atten = light->attenuation;
+			light_array[i + 31] = atten.constant;
+			light_array[i + 32] = atten.linear;
+			light_array[i + 33] = atten.exp;
+			//52 - END ATTENUATION - START APERTURE
+			light_array[i + 34] = light->GetAperture();
+			light_array[i + 35] = 0; //padding
+		}
+
+		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_spotlight_ssbo);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_DYNAMIC_DRAW);
 	}
 }

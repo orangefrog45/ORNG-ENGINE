@@ -1,6 +1,7 @@
 #pragma once
 #include "util/Log.h"
 #include "util/util.h"
+#include "core/GLStateManager.h"
 
 namespace ORNG {
 
@@ -10,6 +11,7 @@ namespace ORNG {
 	public:
 		friend class ShaderLibrary;
 		friend class Renderer;
+		friend class SceneRenderer;
 		Shader() = default;
 		Shader(const char* name, unsigned int id) : m_name(name), m_shader_id(id) {};
 		~Shader();
@@ -18,23 +20,24 @@ namespace ORNG {
 			NONE = -1, VERTEX = 0, FRAGMENT = 1
 		};
 
+		/* Links and validates shader program */
 		void Init();
-
-		inline void ActivateProgram() { glUseProgram(m_program_id); };
 
 		/* Return shader ID usable for setting shaders for meshes */
 		inline unsigned int GetShaderID() { return m_shader_id; }
 
 		void AddStage(GLenum shader_type, const std::string& filepath);
 
-		void AddUBO(const std::string& name, unsigned int storage_size, int draw_type, unsigned int buffer_base);
+		inline void ActivateProgram() {
+			GL_StateManager::ActivateShaderProgram(m_program_id);
+		};
 
 		inline void AddUniform(const std::string& name) {
 			ActivateProgram();
 			m_uniforms[name] = CreateUniform(name);
 		};
 
-		void AddUniforms(const std::vector<std::string>& names) {
+		inline void AddUniforms(const std::vector<std::string>& names) {
 			ActivateProgram();
 			for (auto& uname : names) {
 				m_uniforms[uname] = CreateUniform(uname);
@@ -59,10 +62,10 @@ namespace ORNG {
 				glUniform3f(m_uniforms[name], value.x, value.y, value.z);
 			}
 			else if constexpr (std::is_same<T, glm::mat4>::value) {
-				glUniformMatrix4fv(m_uniforms[name], 1, GL_TRUE, &value[0][0]);
+				glUniformMatrix4fv(m_uniforms[name], 1, GL_FALSE, &value[0][0]);
 			}
 			else if constexpr (std::is_same<T, glm::mat3>::value) {
-				glUniformMatrix3fv(m_uniforms[name], 1, GL_TRUE, &value[0][0]);
+				glUniformMatrix3fv(m_uniforms[name], 1, GL_FALSE, &value[0][0]);
 			}
 			else if constexpr (std::is_same<T, unsigned int>::value) {
 				glUniform1ui(m_uniforms[name], value);

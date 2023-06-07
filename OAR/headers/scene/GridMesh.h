@@ -4,16 +4,16 @@ namespace ORNG {
 
 	class GridMesh {
 	public:
+		friend class EditorLayer;
 		void Init();
 		void CheckBoundary(glm::vec3 camera_pos);
-	private:
+
+		float grid_step = 5.f;
 		float grid_width = 400.0f;
-		float center_x;
-		float center_z;
+	private:
+		glm::vec2 m_center = glm::vec2(0); // center position on XZ plane
 		VAO m_vao;
 		unsigned int m_ssbo_handle;
-		std::vector<float> vertexArray = { 0.0f, 0.0f, 0.0f,
-										   grid_width, 0.0f, 0.0f };
 
 	};
 }
