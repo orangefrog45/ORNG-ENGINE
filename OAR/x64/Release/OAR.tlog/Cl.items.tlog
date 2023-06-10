@@ -14,6 +14,7 @@ C:\Users\carol\Documents\vscode\OAR\OAR\extern\imgui\imgui_draw.cpp;C:\Users\car
 C:\Users\carol\Documents\vscode\OAR\OAR\extern\imgui\imgui_tables.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\imgui_tables.obj
 C:\Users\carol\Documents\vscode\OAR\OAR\extern\imgui\imgui_widgets.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\imgui_widgets.obj
 C:\Users\carol\Documents\vscode\OAR\OAR\extern\imgui\misc\cpp\imgui_stdlib.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\imgui_stdlib.obj
+C:\Users\carol\Documents\vscode\OAR\OAR\src\components\EditorCamera.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\EditorCamera.obj
 C:\Users\carol\Documents\vscode\OAR\OAR\src\components\lights\DirectionalLight.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\DirectionalLight.obj
 C:\Users\carol\Documents\vscode\OAR\OAR\src\components\lights\SpotLightComponent.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\SpotLightComponent.obj
 C:\Users\carol\Documents\vscode\OAR\OAR\src\core\Window.cpp;C:\Users\carol\Documents\vscode\OAR\OAR\x64\Release\Window.obj
