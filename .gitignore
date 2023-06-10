@@ -7,6 +7,9 @@
 OAR/res/meshes
 OAR/res/textures
 
+x64/
+OAR/x64/
+
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
