@@ -93,20 +93,6 @@ mat3 CalculateTbnMatrixTransform() {
 	return tbn;
 }
 
-vec4 Slerp(vec4 p0, vec4 p1, float t)
-{
-	float dotp = dot(normalize(p0), normalize(p1));
-	if ((dotp > 0.9999) || (dotp < -0.9999))
-	{
-		if (t <= 0.5)
-			return p0;
-		return p1;
-	}
-	float theta = acos(dotp);
-	vec4 P = ((p0 * sin((1 - t) * theta) + p1 * sin(t * theta)) / sin(theta));
-	P.w = 1;
-	return P;
-}
 
 
 void main() {
@@ -121,7 +107,7 @@ void main() {
 		vec3 sampled_normal_2 = texture(normal_array_sampler, vec3(adj_tex_coord, 1.0)).rgb * 2.0 - 1.0;
 
 		float terrain_factor = clamp(dot(vs_normal.xyz, vec3(0, 1.f, 0) * 0.5f), 0.f, 1.f); // slope
-		vec3 mixed_terrain_normal = tbn * normalize(Slerp(vec4(sampled_normal_1, 0.0), vec4(sampled_normal_2, 0.0), terrain_factor)).xyz;
+		vec3 mixed_terrain_normal = tbn * normalize(mix(sampled_normal_1, sampled_normal_2, terrain_factor)).xyz;
 		normal = vec4(normalize(mixed_terrain_normal), 1.f);
 		g_position = vs_position;
 
@@ -129,7 +115,7 @@ void main() {
 
 	}
 	else if (u_skybox_mode) {
-		g_position = vec4(ubo_common.camera_pos.xyz + normalize(vs_position.xyz) * 2000.f, 1.f); // give spherical appearance (used for fog)
+		g_position = vec4(ubo_common.camera_pos.xyz + normalize(vs_position.xyz) * 10000.f, 1.f); // give spherical appearance (used for fog)
 		albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
 	}
 	else {

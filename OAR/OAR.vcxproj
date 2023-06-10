@@ -218,6 +218,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
+    <ClCompile Include="src\components\EditorCamera.cpp" />
     <ClCompile Include="src\components\lights\DirectionalLight.cpp" />
     <ClCompile Include="src\components\lights\SpotLightComponent.cpp" />
     <ClCompile Include="src\core\Window.cpp" />
@@ -271,34 +272,31 @@
     <ClCompile Include="src\components\WorldTransform.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\BlurFS.shader" />
-    <None Include="res\shaders\FogCS.shader" />
-    <None Include="res\shaders\HDR_ToCubemapFS.shader" />
-    <None Include="res\shaders\HDR_ToCubemapVS.shader" />
-    <None Include="res\shaders\HighlightFS.shader" />
-    <None Include="res\shaders\HighlightVS.shader" />
-    <None Include="res\shaders\PostProcessFS.shader" />
+    <None Include="res\shaders\BlurFS.glsl" />
+    <None Include="res\shaders\FogCS.glsl" />
+    <None Include="res\shaders\HDR_ToCubemapFS.glsl" />
+    <None Include="res\shaders\HDR_ToCubemapVS.glsl" />
+    <None Include="res\shaders\HighlightFS.glsl" />
+    <None Include="res\shaders\TransformVS.glsl" />
+    <None Include="res\shaders\PostProcessFS.glsl" />
     <None Include="res\shaders\PostProcessVS.shader" />
-    <None Include="res\shaders\CubemapShadowFS.shader" />
-    <None Include="res\shaders\CubemapShadowVS.shader" />
-    <None Include="res\shaders\DepthFS.shader" />
-    <None Include="res\shaders\DepthVS.shader" />
-    <None Include="res\shaders\FlatColourFS.shader" />
-    <None Include="res\shaders\FlatColourVS.shader" />
-    <None Include="res\shaders\GBufferFS.shader" />
-    <None Include="res\shaders\GBufferVS.shader" />
-    <None Include="res\shaders\GridFS.shader" />
-    <None Include="res\shaders\GridVS.shader" />
-    <None Include="res\shaders\PickingFS.shader" />
-    <None Include="res\shaders\PickingVS.shader" />
-    <None Include="res\shaders\QuadFS.shader" />
-    <None Include="res\shaders\QuadVS.shader" />
-    <None Include="res\shaders\ReflectionFS.shader" />
-    <None Include="res\shaders\ReflectionVS.shader" />
-    <None Include="res\shaders\SkyboxFS.shader" />
-    <None Include="res\shaders\SkyboxVS.shader" />
-    <None Include="res\shaders\LightingFS.shader" />
-    <None Include="res\shaders\LightingVS.shader" />
+    <None Include="res\shaders\CubemapShadowFS.glsl" />
+    <None Include="res\shaders\CubemapShadowVS.glsl" />
+    <None Include="res\shaders\DepthFS.glsl" />
+    <None Include="res\shaders\DepthVS.glsl" />
+    <None Include="res\shaders\GBufferFS.glsl" />
+    <None Include="res\shaders\GBufferVS.glsl" />
+    <None Include="res\shaders\GridFS.glsl" />
+    <None Include="res\shaders\GridVS.glsl" />
+    <None Include="res\shaders\PickingFS.glsl" />
+    <None Include="res\shaders\QuadFS.glsl" />
+    <None Include="res\shaders\QuadVS.glsl" />
+    <None Include="res\shaders\ReflectionFS.glsl" />
+    <None Include="res\shaders\ReflectionVS.glsl" />
+    <None Include="res\shaders\SkyboxFS.glsl" />
+    <None Include="res\shaders\SkyboxVS.glsl" />
+    <None Include="res\shaders\LightingFS.glsl" />
+    <None Include="res\shaders\LightingVS.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD.h" />
@@ -311,6 +309,7 @@
     <ClInclude Include="extern\imgui\misc\cpp\imgui_stdlib.h" />
     <ClInclude Include="headers\components\BoundingVolume.h" />
     <ClInclude Include="headers\components\Component.h" />
+    <ClInclude Include="headers\components\EditorCamera.h" />
     <ClInclude Include="headers\components\FogVolumeComponent.h" />
     <ClInclude Include="headers\components\lights\BaseLight.h" />
     <ClInclude Include="headers\components\lights\PointLightComponent.h" />
@@ -325,7 +324,7 @@
     <ClInclude Include="headers\pch\pch.h" />
     <ClInclude Include="headers\rendering\MeshAsset.h" />
     <ClInclude Include="headers\layers\EditorLayer.h" />
-    <ClInclude Include="headers\components\Camera.h" />
+    <ClInclude Include="headers\components\CameraComponent.h" />
     <ClInclude Include="headers\rendering\SceneRenderer.h" />
     <ClInclude Include="headers\scene\GlobalFog.h" />
     <ClInclude Include="headers\util\ExtraMath.h" />
@@ -351,7 +350,6 @@
     <ClInclude Include="headers\terrain\TerrainChunk.h" />
     <ClInclude Include="headers\terrain\TerrainGenerator.h" />
     <ClInclude Include="headers\terrain\TerrainQuadtree.h" />
-    <ClInclude Include="headers\util\HDRCubemapConverter.h" />
     <ClInclude Include="headers\util\TimeStep.h" />
     <ClInclude Include="headers\util\ImGuiLib.h" />
     <ClInclude Include="headers\util\Log.h" />

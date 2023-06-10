@@ -165,9 +165,9 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 	unsigned int depth_map_index = 0;
 
-	// Push fragment position into light slightly to reduce acne, looks especially good when shadow on a material with normal maps
-	float normal_scaling_factor = 0.25;
-	vec3 world_pos_normal_pushed = sampled_world_pos + sampled_normal * abs(dot(sampled_normal, light_dir) * normal_scaling_factor);
+	// Push fragment position into light slightly to reduce acne
+	float normal_scaling_factor = 0.25f;
+	vec3 world_pos_normal_pushed = sampled_world_pos + sampled_normal * normal_scaling_factor;
 
 	if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[0]) { // cascades
 		frag_pos_light_space = u_dir_light_matrices[0] * vec4(world_pos_normal_pushed, 1);
@@ -195,18 +195,16 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 	float current_depth = proj_coords.z;
 
 	//sample closest depth from lights pov from depth map
-	float bias = 0.0f;
-	bias = 0.0005f * tan(acos(clamp(dot(normalize(sampled_normal), light_dir), 0, 1))); // slope bias
 
 	vec2 texel_size = 1.0 / textureSize(dir_depth_sampler, 0).xy;
 
-	if (frag_distance_from_cam <= 150.f) {
+	if (frag_distance_from_cam <=  ubo_global_lighting.directional_light.cascade_ranges[0]) {
 		for (int x = -1; x <= 1; x++)
 		{
 			for (int y = -1; y <= 1; y++)
 			{
 				float pcf_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size), depth_map_index)).r;
-				shadow += current_depth - bias > pcf_depth ? 1.0f : 0.0f;
+				shadow += current_depth > pcf_depth ? 1.0f : 0.0f;
 			}
 		}
 
@@ -215,7 +213,7 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 	}
 	else {
 		float sampled_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy), depth_map_index)).r;
-		shadow = current_depth - bias > sampled_depth ? 1.0f : 0.0f;
+		shadow = current_depth > sampled_depth ? 1.0f : 0.0f;
 	}
 
 	return shadow;

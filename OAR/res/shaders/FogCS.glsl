@@ -4,7 +4,7 @@
 
 layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in; // invocations
 
-layout(binding = 1, rgba16f) writeonly uniform image2D fog_texture;
+layout(binding = 1, rgba32f) writeonly uniform image2D fog_texture;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
 layout(binding = 6) uniform sampler2D world_position_sampler;
@@ -230,7 +230,7 @@ uniform float u_noise_coord_scale_fac;
 
 
 float phase(vec3 march_dir, vec3 light_dir) {
-	float cos_theta = dot(march_dir, light_dir);
+	float cos_theta = dot(normalize(march_dir), normalize(light_dir));
 	return (1.f / (4.f * PI)) * ((1 - pow(u_scattering_anistropy, 2)) / pow((1.f - u_scattering_anistropy * cos_theta), 2));
 }
 
@@ -248,24 +248,26 @@ void main() {
 	float noise_offset = texture(blue_noise_sampler, tex_coords.xy / (textureSize(blue_noise_sampler, 0) + 0.000001f) * noise_coord_scale_factor).r; // division as for some reason wrapping isn't working, so have to normalize coords manually
 	vec3 frag_world_pos = texelFetch(world_position_sampler, tex_coords, 0).xyz;
 
-	vec3 camera_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float camera_to_pos_dist = length(camera_to_frag);
-	float step_distance = camera_to_pos_dist / u_step_count;
+	vec3 CameraComponent_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
+	float CameraComponent_to_pos_dist = length(CameraComponent_to_frag);
+	float step_distance = CameraComponent_to_pos_dist / float(u_step_count);
 
 
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords, 0).r;
 	vec3 ray_dir = normalize(frag_world_pos - ubo_common.camera_pos.xyz);
 	vec3 step_pos = ubo_common.camera_pos.xyz + ray_dir * noise_offset * step_distance;
+
+
 	float transmittance = 1.0;
 	vec3 luminance = vec3(0.0f);
 	float extinction_coef = u_absorption_coef + u_scattering_coef;
 
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
+		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 500.f;
 		float fog_density = noise(fog_sampling_coords);
-		fog_density += 0.15f;
-		fog_density *= exp(-max(step_pos.y * 0.1f, 1.f));
+		fog_density += 0.5f * u_density_coef;
+		fog_density *= exp(-max(step_pos.y * 0.001f, 1.f));
 
 
 		vec3 in_scattering = vec3(0);
@@ -292,5 +294,7 @@ void main() {
 	vec4 fog_color = vec4(u_fog_color * luminance, 1.0 - transmittance);
 
 	imageStore(fog_texture, tex_coords / 2, fog_color);
+
+
 
 }

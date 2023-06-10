@@ -229,9 +229,9 @@
 #define ICON_FA_CALENDAR_PLUS "\xef\x89\xb1"	// U+f271
 #define ICON_FA_CALENDAR_WEEK "\xef\x9e\x84"	// U+f784
 #define ICON_FA_CALENDAR_XMARK "\xef\x89\xb3"	// U+f273
-#define ICON_FA_CAMERA "\xef\x80\xb0"	// U+f030
-#define ICON_FA_CAMERA_RETRO "\xef\x82\x83"	// U+f083
-#define ICON_FA_CAMERA_ROTATE "\xee\x83\x98"	// U+e0d8
+#define ICON_FA_CameraComponent "\xef\x80\xb0"	// U+f030
+#define ICON_FA_CameraComponent_RETRO "\xef\x82\x83"	// U+f083
+#define ICON_FA_CameraComponent_ROTATE "\xee\x83\x98"	// U+e0d8
 #define ICON_FA_CAMPGROUND "\xef\x9a\xbb"	// U+f6bb
 #define ICON_FA_CANDY_CANE "\xef\x9e\x86"	// U+f786
 #define ICON_FA_CANNABIS "\xef\x95\x9f"	// U+f55f

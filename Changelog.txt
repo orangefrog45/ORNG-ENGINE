@@ -1,4 +1,13 @@
-7/5/23:
+UNDATED:
+-Custom editor camera 
+-Camera component added
+-Window resize events with framebuffer connections
+-Frame timestep fixed
+-Automatic event listener unregistration
+-Refactoring
+
+
+7/6/23:
 -Engine events system
 -Basic terrain configuration and regeneration
 -Gizmos for transforming meshes using ImGuizmo
