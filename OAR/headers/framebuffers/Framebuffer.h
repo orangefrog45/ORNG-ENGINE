@@ -1,14 +1,14 @@
 #pragma once
 #include "rendering/Textures.h"
 #include "util/Log.h"
-#include "core/Window.h"
+#include "events/Events.h"
 
 namespace ORNG {
 
 	class Framebuffer {
 	public:
 		Framebuffer() = default;
-		Framebuffer(unsigned int id, const char* name) : m_name(name), m_framebuffer_id(id) { };
+		Framebuffer(unsigned int id, const char* name, bool scale_with_window);
 		virtual ~Framebuffer();
 		void Init();
 		void Bind() const;
@@ -24,7 +24,7 @@ namespace ORNG {
 		const TextureCubemap& AddCubemapTexture(const std::string& name, const TextureCubemapSpec& spec);
 
 
-		void AddRenderbuffer(unsigned int width = Window::GetWidth(), unsigned int height = Window::GetHeight());
+		void AddRenderbuffer(unsigned int width, unsigned int height);
 
 		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
 
@@ -66,8 +66,14 @@ namespace ORNG {
 
 
 	private:
+
+		void Resize();
+
+		Events::EventListener<Events::WindowEvent> m_window_event_listener;
+
 		GLuint m_framebuffer_id;
 		const char* m_name = "Unnamed framebuffer";
+		bool m_scales_with_window = false;
 
 		struct FramebufferTexture {
 			FramebufferTexture() = default;
@@ -75,12 +81,15 @@ namespace ORNG {
 
 			TextureBase* p_texture = nullptr;
 			bool is_shared = false;
+			glm::vec2 screen_size_ratio;
 
 		};
 
 		std::unordered_map <std::string, FramebufferTexture> m_textures;
 		GLuint m_fbo = 0;
+
 		GLuint m_rbo = 0;
+		glm::vec2 m_renderbuffer_screen_size_ratio = glm::vec2(0);
 	};
 
 }

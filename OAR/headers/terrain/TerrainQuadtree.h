@@ -3,7 +3,7 @@
 
 namespace ORNG {
 
-	class Camera;
+	class CameraComponent;
 	class ChunkLoader;
 	class TerrainChunk;
 
@@ -15,8 +15,7 @@ namespace ORNG {
 		/*This constructor only to be used for master quadtree*/
 		TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader);
 
-		void Init(Camera& camera);
-		void Update();
+		void Update(glm::vec3 center_pos);
 		TerrainQuadtree* FindParentWithChunk();
 		TerrainQuadtree(glm::vec3 center_pos, TerrainQuadtree* parent);
 		~TerrainQuadtree();
@@ -48,8 +47,6 @@ namespace ORNG {
 
 		TerrainChunk* m_chunk = nullptr;
 		ChunkLoader* m_loader = nullptr;
-		/*Point all subdivisions/lod will revolve around (currently the camera position) */
-		Camera* m_lod_camera = nullptr;
 
 		/* Nodes */
 		std::vector<TerrainQuadtree> m_child_nodes;
@@ -60,7 +57,7 @@ namespace ORNG {
 		bool m_is_subdivided = false;
 		int m_subdivision_layer = 0;
 		int m_max_subdivision_layer;
-		int m_min_grid_width = 100;
+		int m_min_grid_width = 50;
 
 		/*Data for building terrain*/
 		glm::vec3 m_center_pos = glm::vec3(0, 0, 0);

@@ -15,6 +15,10 @@ namespace ORNG {
 			return Get().p_window;
 		}
 
+		static void SetWindowDimensions(int width, int height) {
+			Get().ISetWindowDimensions(width, height);
+		}
+
 		static unsigned int GetWidth() {
 			return Get().m_window_width;
 		}
@@ -44,12 +48,6 @@ namespace ORNG {
 		}
 
 
-		enum class MouseInputs {
-			LEFT_BUTTON = 0,
-			RIGHT_BUTTON = 1,
-			SCROLL = 2,
-		};
-
 	private:
 		void I_Init();
 
@@ -57,6 +55,8 @@ namespace ORNG {
 			glfwGetCursorPos(Get().p_window, &mouse_x, &mouse_y);
 			return glm::vec2(mouse_x, mouse_y);
 		};
+
+		void ISetWindowDimensions(int width, int height);
 
 		void ISetCursorPos(float x, float y) { glfwSetCursorPos(p_window, x, y); }
 
@@ -67,6 +67,8 @@ namespace ORNG {
 		void I_Init(GLFWwindow* ptr) { p_window = ptr; }
 
 		double IGetTimeStep() const { return last_frame_time; }
+
+		void WindowResizeCallback(GLFWwindow* window, int width, int height);
 
 		static Window& Get() {
 			static Window s_instance;

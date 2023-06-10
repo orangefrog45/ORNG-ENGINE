@@ -13,12 +13,7 @@ namespace ORNG {
 		template<std::derived_from<Component> T>
 		T* GetComponent() {
 			T* comp = mp_scene->GetComponent<T>(m_id);
-			if (comp == nullptr) {
-				return nullptr;
-			}
-			else {
-				return comp;
-			}
+			return comp;
 		}
 
 		template<std::derived_from<Component> T>

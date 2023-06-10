@@ -6,16 +6,16 @@
 
 namespace ORNG {
 
-	class Camera;
+	class CameraComponent;
 
 	class Terrain {
 	public:
 		friend class EditorLayer;
 		friend class SceneRenderer;
 		Terrain() = default;
-		void Init(Camera& camera, unsigned int material_id);
-		void UpdateTerrainQuadtree();
-		void ResetTerrainQuadtree(Camera& camera);
+		void Init(unsigned int material_id);
+		void UpdateTerrainQuadtree(glm::vec3 player_pos);
+		void ResetTerrainQuadtree();
 
 		Texture2DArray m_diffuse_texture_array = Texture2DArray("Terrain diffuse");
 		Texture2DArray m_normal_texture_array = Texture2DArray("Terrain normals");

@@ -1,9 +1,10 @@
 #pragma once
-#include "components/Camera.h"
+#include "components/CameraComponent.h"
 #include "scene/Scene.h"
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "scene/GridMesh.h"
 #include "events/EventManager.h"
+#include "components/EditorCamera.h"
 
 
 namespace ORNG {
@@ -13,17 +14,16 @@ namespace ORNG {
 
 	class EditorLayer {
 	public:
-		friend class Application;
 		EditorLayer() {
 			m_core_event_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
 
 				switch (t_event.event_type) {
 
-				case Events::EventType::ENGINE_RENDER:
+				case Events::Event::ENGINE_RENDER:
 					RenderDisplayWindow();
 					RenderUI();
 					break;
-				case Events::EventType::ENGINE_UPDATE:
+				case Events::Event::ENGINE_UPDATE:
 					Update();
 					break;
 				}
@@ -32,15 +32,13 @@ namespace ORNG {
 			Events::EventManager::RegisterListener(m_core_event_listener);
 		}
 
-
 		void Init();
-		void RenderDisplayWindow();
-		void RenderUI();
-		void Update();
-
 
 	private:
 
+		void RenderDisplayWindow();
+		void RenderUI();
+		void Update();
 
 		void RenderGrid();
 		void DoPickingPass();
@@ -50,6 +48,7 @@ namespace ORNG {
 		void RenderMeshComponentEditor(MeshComponent* comp);
 		void RenderPointlightEditor(PointLightComponent* light);
 		void RenderSpotlightEditor(SpotLightComponent* light);
+		void RenderCameraEditor(CameraComponent* p_cam);
 
 		void RenderSceneGraph();
 		void RenderDirectionalLightEditor();
@@ -73,7 +72,7 @@ namespace ORNG {
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
 		std::unique_ptr<Scene> m_active_scene = nullptr;
 
-		Camera m_editor_camera;
+		EditorCamera m_editor_camera{ 0 };
 
 		unsigned int m_selected_entity_id = 0;
 
@@ -81,7 +80,6 @@ namespace ORNG {
 			bool depth_map_view = false;
 		};
 
-		DisplayWindowSettings m_display_settings;
 
 		struct PointLightConfigData {
 			float atten_constant;

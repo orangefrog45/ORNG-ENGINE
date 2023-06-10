@@ -9,7 +9,7 @@ namespace ORNG {
 	class Scene;
 	class ShaderLibrary;
 	class FramebufferLibrary;
-	class Camera;
+	class CameraComponent;
 
 	class SceneRenderer {
 	public:
@@ -32,9 +32,6 @@ namespace ORNG {
 			return Get().IRenderScene(settings);
 		};
 
-		static void SetActiveCamera(Camera* p_cam) {
-			Get().mp_active_camera = p_cam;
-		}
 
 		static void SetActiveScene(Scene* p_scene) {
 			Get().mp_scene = p_scene;
@@ -87,13 +84,11 @@ namespace ORNG {
 
 		//none of the objects the pointers below reference managed by scene renderer, just inputs
 		Scene* mp_scene = nullptr;
-		Camera* mp_active_camera = nullptr;
 		ShaderLibrary* mp_shader_library = nullptr;
 		FramebufferLibrary* mp_framebuffer_library = nullptr;
 
 		Texture2D m_blue_noise_tex{ "SR blue noise" };
 		Texture2D m_fog_output_tex{ "SR fog output" };
-		Texture3D m_3d_noise_tex{ "SR 3d noise" };
 
 		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };
 		unsigned int m_num_shadow_cascades = 3;

@@ -8,7 +8,7 @@ namespace ORNG {
 	public:
 		FramebufferLibrary() = default;
 		void Init();
-		Framebuffer& CreateFramebuffer(const char* name);
+		Framebuffer& CreateFramebuffer(const char* name, bool scale_with_window);
 		Framebuffer& GetFramebuffer(const char* name);
 		void UnbindAllFramebuffers() { glBindFramebuffer(GL_FRAMEBUFFER, 0); };
 

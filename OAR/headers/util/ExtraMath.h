@@ -40,8 +40,8 @@ namespace ORNG {
 		static glm::mat3 Init2DScaleTransform(float x, float y);
 		static glm::mat3 Init2DRotateTransform(float rot);
 		static glm::mat3 Init2DTranslationTransform(float x, float y);
-		static glm::mat4x4 Init3DCameraTransform(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up);
-		static glm::mat4 GetCameraTransMatrix(glm::vec3 pos);
+		static glm::mat4x4 Init3DCameraComponentTransform(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up);
+		static glm::mat4 GetCameraComponentTransMatrix(glm::vec3 pos);
 		static glm::mat4x4 InitPersProjTransform(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar);
 
 	};

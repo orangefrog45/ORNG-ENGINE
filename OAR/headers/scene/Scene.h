@@ -49,6 +49,9 @@ namespace ORNG {
 			else if constexpr (std::is_same<T, ScriptComponent>::value) {
 				comp = AddScriptComponent(entity_id);
 			}
+			else if constexpr (std::is_same<T, CameraComponent>::value) {
+				comp = AddCameraComponent(entity_id);
+			}
 
 			return comp;
 		};
@@ -67,6 +70,9 @@ namespace ORNG {
 			}
 			else if constexpr (std::is_same<T, ScriptComponent>::value) {
 				return m_script_components[entity_id];
+			}
+			else if constexpr (std::is_same<T, CameraComponent>::value) {
+				return m_camera_components[entity_id];
 			}
 		}
 
@@ -102,29 +108,23 @@ namespace ORNG {
 			}
 		}
 
+		void MakeCameraActive(CameraComponent* p_cam);
 
 		MeshComponent* AddMeshComponent(unsigned long entity_id, const std::string& filename, unsigned int shader_id = 1);
-		void SortMeshIntoInstanceGroup(MeshComponent* ptr, MeshAsset* asset);
 		PointLightComponent* AddPointLightComponent(unsigned long entity_id);
 		SpotLightComponent* AddSpotLightComponent(unsigned long entity_id);
 		ScriptComponent* AddScriptComponent(unsigned long entity_id);
+		CameraComponent* AddCameraComponent(unsigned long entity_id);
+
 
 		// Creates material and returns ID, get actual material with GetMaterial(id)
 		unsigned int CreateMaterial();
-
-
 		MeshAsset* CreateMeshAsset(const std::string& filename);
 		Texture2D* CreateTexture2DAsset(const std::string& filename);
 
-		void LoadMeshAssetIntoGPU(MeshAsset* asset);
-
 		/* Removes asset from all components using it, then deletes asset */
 		void DeleteMeshAsset(MeshAsset* data);
-		inline auto& GetPointLights() { return m_point_lights; }
-		inline auto& GetSpotLights() { return m_spot_lights; }
-		inline auto& GetDirectionalLight() { return m_directional_light; }
-		inline const auto& GetMeshComponents() const { return m_mesh_components; }
-		inline auto& GetGroupMeshEntities() { return m_mesh_instance_groups; };
+
 		inline Material* GetMaterial(unsigned int id) const {
 			if (id < m_materials.size()) {
 				return m_materials[id];
@@ -136,33 +136,36 @@ namespace ORNG {
 
 		}
 
-		inline BaseLight& GetAmbientLighting() { return m_global_ambient_lighting; };
-		inline Terrain& GetTerrain() { return m_terrain; }
 		inline SceneEntity* GetEntity(unsigned long id) { return m_entities[id]; }
 
-		struct MeshComponentData {
-			MeshComponent* component = nullptr;
-			unsigned int index;
-		};
 
+		[[nodiscard]] unsigned long CreateEntityID() {
+			return m_last_entity_id++;
+		}
 
-		[[nodiscard]] unsigned long CreateEntityID();
-		void LoadScene(Camera* cam);
+		void LoadScene();
 		void UnloadScene();
 
+		void SortMeshIntoInstanceGroup(MeshComponent* ptr, MeshAsset* asset);
 	private:
+		void LoadMeshAssetIntoGPU(MeshAsset* asset);
 		Texture2D* LoadMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* material);
 
 		BaseLight m_global_ambient_lighting = BaseLight(0);
 		DirectionalLight m_directional_light;
 
-		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector
+		CameraComponent* mp_active_camera = nullptr;
+
+
 		std::vector<SceneEntity*> m_entities;
-		std::vector<MeshInstanceGroup*> m_mesh_instance_groups;
 		std::vector<MeshComponent*> m_mesh_components;
 		std::vector<SpotLightComponent*> m_spot_lights;
 		std::vector<PointLightComponent*> m_point_lights;
 		std::vector<ScriptComponent*> m_script_components;
+		std::vector<CameraComponent*> m_camera_components;
+		std::vector<MeshInstanceGroup*> m_mesh_instance_groups;
+
+		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector
 		std::vector<MeshAsset*> m_mesh_assets;
 		std::vector<Texture2D*> m_texture_2d_assets;
 
@@ -172,9 +175,8 @@ namespace ORNG {
 
 		float m_exposure_level = 1.0f;
 
-		unsigned long m_last_entity_id = 1; // Last ID assigned to a newly created entity
-
 		std::vector<std::future<void>> m_futures;
+		unsigned long m_last_entity_id = 1; // Last ID assigned to a newly created entity
 	};
 
 }

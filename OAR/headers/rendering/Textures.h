@@ -106,7 +106,7 @@ namespace ORNG {
 		friend class Scene;
 		Texture2D(const char* name) : TextureBase(GL_TEXTURE_2D, name) {};
 
-		bool SetSpec(const Texture2DSpec& spec, bool should_allocate_space);
+		bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();
 		const Texture2DSpec& GetSpec() const { return m_spec; }
 
@@ -123,6 +123,7 @@ namespace ORNG {
 		bool LoadFromFile();
 
 		bool SetSpec(const Texture2DArraySpec& spec);
+		const Texture2DArraySpec& GetSpec() const { return m_spec; }
 
 	private:
 		Texture2DArraySpec m_spec;

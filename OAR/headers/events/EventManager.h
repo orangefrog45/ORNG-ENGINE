@@ -16,7 +16,7 @@ namespace ORNG::Events {
 
 
 		template <std::derived_from<Event> T>
-		inline static void RegisterListener(const EventListener<T>& listener) {
+		inline static void RegisterListener(EventListener<T>& listener) {
 			Get().IRegisterListener(listener);
 		};
 
@@ -27,7 +27,7 @@ namespace ORNG::Events {
 		}
 
 		template <std::derived_from<Event> T>
-		void IRegisterListener(const EventListener<T>& listener) {
+		void IRegisterListener(EventListener<T>& listener) {
 
 			if (!listener.OnEvent) {
 				OAR_CORE_ERROR("Failed registering listener, OnEvent callback is nullptr");
@@ -38,6 +38,12 @@ namespace ORNG::Events {
 
 			if constexpr (std::is_same<T, EngineCoreEvent>::value) {
 				m_engine_core_listeners.push_back(&listener);
+				listener.OnDestroy = [this, &listener] {m_engine_core_listeners.erase(std::find(m_engine_core_listeners.begin(), m_engine_core_listeners.end(), &listener)); };
+				is_registered = true;
+			}
+			else if constexpr (std::is_same<T, WindowEvent>::value) {
+				m_window_event_listeners.push_back(&listener);
+				listener.OnDestroy = [this, &listener] {m_window_event_listeners.erase(std::find(m_window_event_listeners.begin(), m_window_event_listeners.end(), &listener)); };
 				is_registered = true;
 			}
 
@@ -52,22 +58,26 @@ namespace ORNG::Events {
 		template <std::derived_from<Event> T>
 		void IDispatchEvent(const T& t_event) {
 
+			std::vector<const EventListener<T>*>* p_listeners = nullptr;
+
+			// Locate appropiate array for event type
 			if constexpr (std::is_same<T, EngineCoreEvent>::value) {
-				for (int i = 0; i < m_engine_core_listeners.size(); i++) {
+				p_listeners = &m_engine_core_listeners;
+			}
+			else if constexpr (std::is_same<T, WindowEvent>::value) {
+				p_listeners = &m_window_event_listeners;
+			}
 
-					// Delete any inactive listeners
-					if (!m_engine_core_listeners[i]->OnEvent) {
-						m_engine_core_listeners.erase(m_engine_core_listeners.begin() + i);
-						return;
-					}
 
-					m_engine_core_listeners[i]->OnEvent(t_event);
-				}
+			// Iterate over listeners and call callbacks
+			for (int i = 0; i < p_listeners->size(); i++) {
+				(*p_listeners)[i]->OnEvent(t_event);
 			}
 
 		}
 
 		std::vector<const EventListener<EngineCoreEvent>*> m_engine_core_listeners;
+		std::vector<const EventListener<WindowEvent>*> m_window_event_listeners;
 
 	};
 
