@@ -28,29 +28,30 @@ namespace ORNG {
 
 	void EditorLayer::Init() {
 		m_active_scene = std::make_unique<Scene>();
+		m_active_scene->mp_active_camera = &m_editor_camera;
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
 		mp_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
-		mp_grid_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GridVS.shader");
-		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.shader");
+		mp_grid_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GridVS.glsl");
+		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.shader");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.shader");
+		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
+		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.glsl");
 		mp_quad_shader->Init();
 
 		mp_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		mp_picking_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/PickingVS.shader");
-		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PickingFS.shader");
+		mp_picking_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/TransformVS.glsl");
+		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PickingFS.glsl");
 		mp_picking_shader->Init();
 		mp_picking_shader->AddUniform("comp_id");
-		mp_picking_shader->AddUniform("world_transform");
+		mp_picking_shader->AddUniform("transform");
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/HighlightVS.shader");
-		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HighlightFS.shader");
+		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/TransformVS.glsl");
+		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HighlightFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
 
@@ -63,12 +64,10 @@ namespace ORNG {
 		picking_spec.height = Window::GetHeight();
 
 
-		mp_picking_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("picking");
-		mp_picking_fb->AddRenderbuffer();
+		mp_picking_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("picking", true);
+		mp_picking_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 		mp_picking_fb->Add2DTexture("component_ids", GL_COLOR_ATTACHMENT0, picking_spec);
 
-
-		SceneRenderer::SetActiveCamera(&m_editor_camera);
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 
 
@@ -80,7 +79,7 @@ namespace ORNG {
 		color_render_texture_spec.height = Window::GetHeight();
 
 
-		mp_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes");
+		mp_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
 		mp_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
 		mp_editor_pass_fb->AddShared2DTexture("shared_render_texture", Renderer::GetFramebufferLibrary().GetFramebuffer("post_processing").GetTexture<Texture2D>("shared_render_texture"), GL_COLOR_ATTACHMENT0);
 
@@ -88,6 +87,8 @@ namespace ORNG {
 		auto& entity = m_active_scene->CreateEntity("Orange");
 		auto& entity2 = m_active_scene->CreateEntity("Cone");
 		auto& entity3 = m_active_scene->CreateEntity("Other");
+		auto& entity4 = m_active_scene->CreateEntity("cam");
+		entity4.AddComponent<CameraComponent>();
 		auto mesh = entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
 		auto mesh2 = entity2.AddComponent<MeshComponent>("./res/meshes/house-draft/source/house.fbx");
 
@@ -95,10 +96,9 @@ namespace ORNG {
 		auto script = entity.AddComponent<ScriptComponent>();
 		entity.AddComponent<PointLightComponent>();
 		entity.AddComponent<SpotLightComponent>();
-		entity.AddComponent<ScriptComponent>();
 
 
-		int width = 1;
+		int width = 5;
 		static auto fnSimplex = FastNoiseSIMD::NewFastNoiseSIMD(1);
 		fnSimplex->SetNoiseType(FastNoiseSIMD::Perlin);
 		fnSimplex->SetFractalType(FastNoiseSIMD::FBM);
@@ -108,19 +108,27 @@ namespace ORNG {
 			for (int y = 0; y < width; y++) {
 				for (int z = 0; z < width; z++) {
 					auto& ent = m_active_scene->CreateEntity();
-					auto m = ent.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
+					auto* m = ent.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
 					auto s = ent.AddComponent<ScriptComponent>();
+					m->SetScale(0.01, 0.01, 0.01);
 
+					s->OnUpdate = [m]() {
+						const long long time_step = FrameTiming::GetTimeStep();
+						glm::mat3 rotation = ExtraMath::Init3DRotateTransform(time_step * 0.0001f, time_step * 0.0001f, time_step * 0.0001f);
+						m->SetPosition(rotation * m->GetWorldTransform()->GetPosition());
+					};
 
-					glm::mat4 rot = ExtraMath::Init3DRotateTransform(0, z * (360.f / width), 0);
+					glm::mat4 rot = ExtraMath::Init3DRotateTransform(0, (z + x + y) * (360.f / width), 0);
 
-					float x_pos = sinf(glm::radians((x + (y + z) / (720.f / width)) * (360.f / width))) * 200.f;
-					float y_pos = cosf(glm::radians((x + (y + z) / (720.f / width)) * (360.f / width))) * 200.f;
+					int rand1 = rand() % 100;
+					float x_pos = sinf(glm::radians((x + (y + z) + rand1) * (360.f / width))) * 80.f;
+					float y_pos = cosf(glm::radians((x + (y + z) + rand1) * (360.f / width))) * 80.f;
 
 					glm::vec3 new_pos = glm::vec3(rot * glm::vec4(x_pos, y_pos, z, 1));
 
 					m->SetPosition(new_pos.x, new_pos.y, new_pos.z);
 					m->SetScale(1.f, 1.f, 1.f);
+
 				}
 			}
 		}
@@ -162,7 +170,7 @@ namespace ORNG {
 			}
 		}*/
 
-		m_active_scene->LoadScene(&m_editor_camera);
+		m_active_scene->LoadScene();
 
 		OAR_CORE_INFO("Editor layer initialized"); //add profiling func
 	}
@@ -174,6 +182,8 @@ namespace ORNG {
 			m_editor_camera.Update();
 		}
 
+		if (Window::IsKeyDown('K'))
+			m_active_scene->MakeCameraActive(static_cast<CameraComponent*>(&m_editor_camera));
 
 		m_active_scene->Update();
 	}
@@ -215,16 +225,11 @@ namespace ORNG {
 		GL_StateManager::DefaultClearBits();
 
 		SceneRenderer::SceneRenderingSettings settings;
-
-		settings.display_depth_map = m_display_settings.depth_map_view;
-
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
-
 
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();
 		RenderGrid();
-
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		mp_quad_shader->ActivateProgram();
@@ -253,7 +258,7 @@ namespace ORNG {
 
 			if (mesh->GetMeshData()->GetLoadStatus() == true) {
 				mp_picking_shader->SetUniform<unsigned int>("comp_id", mesh->GetEntityHandle());
-				mp_picking_shader->SetUniform("world_transform", mesh->GetWorldTransform()->GetMatrix());
+				mp_picking_shader->SetUniform("transform", mesh->GetWorldTransform()->GetMatrix());
 
 				for (int i = 0; i < mesh->mp_mesh_asset->m_submeshes.size(); i++) {
 					Renderer::DrawSubMesh(mesh->GetMeshData(), i);
@@ -318,7 +323,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderGrid() {
 		GL_StateManager::BindSSBO(m_grid_mesh->m_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
-		m_grid_mesh->CheckBoundary(m_editor_camera.GetPos());
+		m_grid_mesh->CheckBoundary(m_editor_camera.pos);
 		mp_grid_shader->ActivateProgram();
 		Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_grid_mesh->m_vao, ceil(m_grid_mesh->grid_width / m_grid_mesh->grid_step) * 2);
 	}
@@ -341,7 +346,7 @@ namespace ORNG {
 			m_active_scene->m_terrain.m_seed = terrain_seed;
 
 			if (ImGui::Button("Reload"))
-				m_active_scene->m_terrain.ResetTerrainQuadtree(m_editor_camera);
+				m_active_scene->m_terrain.ResetTerrainQuadtree();
 
 			ImGui::TreePop();
 		}
@@ -637,7 +642,7 @@ namespace ORNG {
 		}
 
 		if (ImGui::Button("Load")) {
-			selected_texture->SetSpec(spec, false);
+			selected_texture->SetSpec(spec);
 			selected_texture->LoadFromFile();
 		}
 	}
@@ -669,6 +674,7 @@ namespace ORNG {
 		auto meshc = entity->GetComponent<MeshComponent>();
 		auto plight = entity->GetComponent<PointLightComponent>();
 		auto slight = entity->GetComponent<SpotLightComponent>();
+		auto p_cam = entity->GetComponent<CameraComponent>();
 
 		if (ImGui::CollapsingHeader("Entity editor")) {
 			std::string ent_text = std::format("Entity '{}'", entity->name);
@@ -706,6 +712,7 @@ namespace ORNG {
 			}
 
 
+			ImGui::PushID(plight);
 			if (plight) {
 				if (ImGui::TreeNode("Pointlight")) {
 					ImGui::SameLine();
@@ -723,17 +730,16 @@ namespace ORNG {
 					entity->AddComponent<PointLightComponent>();
 				}
 			}
+			ImGui::PopID();
 
+			ImGui::PushID(slight);
 			if (slight) {
 				if (ImGui::TreeNode("Spotlight")) {
-					ImGui::PushID(slight);
-					ImGui::SameLine();
 					if (ImGui::Button("X", ImVec2(25, 25))) {
 						entity->DeleteComponent<SpotLightComponent>();
 					};
 					RenderSpotlightEditor(slight);
 					ImGui::TreePop();
-					ImGui::PopID();
 				}
 			}
 			else {
@@ -743,12 +749,28 @@ namespace ORNG {
 					entity->AddComponent<SpotLightComponent>();
 				}
 			}
+			ImGui::PopID();
+
+			ImGui::PushID(p_cam);
+			if (p_cam) {
+				if (ImGui::TreeNode("Camera")) {
+
+					if (ImGui::Button("X", ImVec2(25, 25))) {
+						entity->DeleteComponent<CameraComponent>();
+					}
+
+					RenderCameraEditor(p_cam);
+
+					ImGui::TreePop();
+				};
+			}
+			ImGui::PopID();
 		}
 	}
 
 
 
-	// CONTROL WINDOWS ------------------------------------------------------------------------
+	// EDITORS ------------------------------------------------------------------------
 
 
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
@@ -925,5 +947,16 @@ namespace ORNG {
 		light->transform.SetPosition(light_data.pos);
 	}
 
+	void EditorLayer::RenderCameraEditor(CameraComponent* p_cam) {
+		ImGui::PushItemWidth(200.f);
+		ImGui::SliderFloat("FOV", &p_cam->fov, 0.f, 180.f);
+		ImGui::InputFloat("ZNEAR", &p_cam->zNear);
+		ImGui::InputFloat("ZFAR", &p_cam->zFar);
+		ImGuiLib::ShowVec3Editor("Up", p_cam->up);
+
+		if (!p_cam->is_active && ImGui::Button("Make active")) {
+			m_active_scene->MakeCameraActive(p_cam);
+		}
+	}
 
 }

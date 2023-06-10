@@ -158,17 +158,17 @@ namespace ORNG {
 
 	}
 
-	glm::mat4 ExtraMath::GetCameraTransMatrix(glm::vec3 pos) {
-		glm::mat4x4 cameraTransMatrix(
+	glm::mat4 ExtraMath::GetCameraComponentTransMatrix(glm::vec3 pos) {
+		glm::mat4x4 CameraComponentTransMatrix(
 			1.0f, 0.0f, 0.0f, pos.x,
 			0.0f, 1.0f, 0.0f, pos.y,
 			0.0f, 0.0f, 1.0f, pos.z,
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
-		return cameraTransMatrix;
+		return CameraComponentTransMatrix;
 	}
 
-	glm::mat4x4 ExtraMath::Init3DCameraTransform(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up) {
+	glm::mat4x4 ExtraMath::Init3DCameraComponentTransform(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up) {
 		glm::vec3 n = target;
 		glm::normalize(n);
 
@@ -178,21 +178,21 @@ namespace ORNG {
 		glm::vec3 v = glm::cross(n, u);
 		glm::normalize(v);
 
-		glm::mat4x4 cameraRotMatrix(
+		glm::mat4x4 CameraComponentRotMatrix(
 			u.x, u.y, u.z, 0.0f,
 			v.x, v.y, v.z, 0.0f,
 			n.x, n.y, n.z, 0.0f,
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 
-		glm::mat4x4 cameraTransMatrix(
+		glm::mat4x4 CameraComponentTransMatrix(
 			1.0f, 0.0f, 0.0f, -pos.x,
 			0.0f, 1.0f, 0.0f, -pos.y,
 			0.0f, 0.0f, 1.0f, -pos.z,
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 
-		return cameraRotMatrix * cameraTransMatrix;
+		return CameraComponentRotMatrix * CameraComponentTransMatrix;
 	}
 
 	glm::mat4x4 ExtraMath::InitPersProjTransform(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar) {

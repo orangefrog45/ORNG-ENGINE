@@ -7,8 +7,9 @@
 #include "framebuffers/FramebufferLibrary.h"
 #include "core/GLStateManager.h"
 #include "scene/Scene.h"
-#include "components/Camera.h"
+#include "components/CameraComponent.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
+#include "events/EventManager.h"
 
 namespace ORNG {
 
@@ -18,8 +19,8 @@ namespace ORNG {
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
 
 		m_gbuffer_shader = &mp_shader_library->CreateShader("gbuffer");
-		m_gbuffer_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.shader");
-		m_gbuffer_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.shader");
+		m_gbuffer_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
+		m_gbuffer_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
 		m_gbuffer_shader->Init();
 		m_gbuffer_shader->AddUniforms(std::vector<std::string> {
 			"u_terrain_mode",
@@ -47,8 +48,8 @@ namespace ORNG {
 
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting");
 		m_lighting_shader->m_shader_id = ShaderLibrary::LIGHTING_SHADER_ID;
-		m_lighting_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/LightingVS.shader");
-		m_lighting_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/LightingFS.shader");
+		m_lighting_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/LightingVS.glsl");
+		m_lighting_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/LightingFS.glsl");
 		m_lighting_shader->Init();
 		m_lighting_shader->AddUniforms({
 			"u_terrain_mode",
@@ -77,8 +78,8 @@ namespace ORNG {
 
 		// Render quad
 		m_post_process_shader = &mp_shader_library->CreateShader("post_process");
-		m_post_process_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.shader");
-		m_post_process_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PostProcessFS.shader");
+		m_post_process_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
+		m_post_process_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PostProcessFS.glsl");
 		m_post_process_shader->Init();
 		m_post_process_shader->AddUniform("exposure");
 
@@ -99,11 +100,11 @@ namespace ORNG {
 		noise_spec.min_filter = GL_NEAREST;
 		noise_spec.mag_filter = GL_NEAREST;
 		noise_spec.wrap_params = GL_REPEAT;
-		noise_spec.storage_type = GL_UNSIGNED_BYTE;
+		noise_spec.storage_type = GL_FLOAT;
 		noise_spec.format = GL_RGBA;
 		noise_spec.internal_format = GL_RGBA8;
 
-		m_blue_noise_tex.SetSpec(noise_spec, false);
+		m_blue_noise_tex.SetSpec(noise_spec);
 		m_blue_noise_tex.LoadFromFile();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 
@@ -111,29 +112,29 @@ namespace ORNG {
 
 
 		/*Shader& reflection_shader = &mp_shader_library->CreateShader("reflection");
-		reflection_shader.AddStage(GL_VERTEX_SHADER, "./res/shaders/ReflectionVS.shader");
-		reflection_shader.AddStage(GL_FRAGMENT_SHADER, "./res/shaders/ReflectionFS.shader");
+		reflection_shader.AddStage(GL_VERTEX_SHADER, "./res/shaders/ReflectionVS.glsl");
+		reflection_shader.AddStage(GL_FRAGMENT_SHADER, "./res/shaders/ReflectionFS.glsl");
 		reflection_shader.Init();
 		reflection_shader.AddUniform("camera_pos");*/
 
 
 		/*Shader& skybox_shader = &mp_shader_library->CreateShader("skybox");
-		skybox_shader.AddStage(GL_VERTEX_SHADER, "res/shaders/SkyboxVS.shader");
-		skybox_shader.AddStage(GL_FRAGMENT_SHADER, "res/shaders/SkyboxFS.shader");
+		skybox_shader.AddStage(GL_VERTEX_SHADER, "res/shaders/SkyboxVS.glsl");
+		skybox_shader.AddStage(GL_FRAGMENT_SHADER, "res/shaders/SkyboxFS.glsl");
 		skybox_shader.Init();
 		skybox_shader.AddUniform("sky_texture");
 		skybox_shader.SetUniform("sky_texture", GL_StateManager::TextureUnitIndexes::COLOR);*/
 
 		m_depth_shader = &mp_shader_library->CreateShader("depth");
-		m_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.shader");
-		m_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.shader");
+		m_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
+		m_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl");
 		m_depth_shader->Init();
 		m_depth_shader->AddUniform("u_terrain_mode");
 		m_depth_shader->AddUniform("u_light_pv_matrix");
 
 		m_blur_shader = &mp_shader_library->CreateShader("gaussian_blur");
-		m_blur_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.shader");
-		m_blur_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/BlurFS.shader");
+		m_blur_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
+		m_blur_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/BlurFS.glsl");
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
 
@@ -147,16 +148,16 @@ namespace ORNG {
 		color_render_texture_spec.width = Window::GetWidth();
 		color_render_texture_spec.height = Window::GetHeight();
 
-		m_lighting_fb = &mp_framebuffer_library->CreateFramebuffer("lighting");
-		m_lighting_fb->AddRenderbuffer();
+		m_lighting_fb = &mp_framebuffer_library->CreateFramebuffer("lighting", true);
+		m_lighting_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 		m_lighting_fb->Add2DTexture("render_texture", GL_COLOR_ATTACHMENT0, color_render_texture_spec);
 
 		/* GBUFFER FB */
-		m_gbuffer_fb = &mp_framebuffer_library->CreateFramebuffer("gbuffer");
+		m_gbuffer_fb = &mp_framebuffer_library->CreateFramebuffer("gbuffer", true);
 
 		Texture2DSpec gbuffer_spec_1;
 		gbuffer_spec_1.format = GL_RGBA;
-		gbuffer_spec_1.internal_format = GL_RGBA16F;
+		gbuffer_spec_1.internal_format = GL_RGBA32F;
 		gbuffer_spec_1.storage_type = GL_FLOAT;
 		gbuffer_spec_1.width = Window::GetWidth();
 		gbuffer_spec_1.height = Window::GetHeight();
@@ -187,7 +188,7 @@ namespace ORNG {
 
 
 		/* DIRECTIONAL LIGHT DEPTH FB */
-		m_depth_fb = &mp_framebuffer_library->CreateFramebuffer("dir_depth");
+		m_depth_fb = &mp_framebuffer_library->CreateFramebuffer("dir_depth", false);
 
 		Texture2DArraySpec depth_spec;
 		depth_spec.format = GL_DEPTH_COMPONENT;
@@ -207,7 +208,7 @@ namespace ORNG {
 
 		Texture2DSpec ping_pong_spec;
 		ping_pong_spec.format = GL_RGBA;
-		ping_pong_spec.internal_format = GL_RGBA16F;
+		ping_pong_spec.internal_format = GL_RGBA32F;
 		ping_pong_spec.storage_type = GL_FLOAT;
 		ping_pong_spec.width = Window::GetWidth();
 		ping_pong_spec.height = Window::GetHeight();
@@ -216,16 +217,16 @@ namespace ORNG {
 		ping_pong_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
 		// Ping pong fb's used for gaussian blur
-		m_ping_pong_1_fb = &mp_framebuffer_library->CreateFramebuffer("ping_pong_1");
+		m_ping_pong_1_fb = &mp_framebuffer_library->CreateFramebuffer("ping_pong_1", true);
 		m_ping_pong_1_fb->Add2DTexture("tex1", GL_COLOR_ATTACHMENT0, ping_pong_spec);
 
-		m_ping_pong_2_fb = &mp_framebuffer_library->CreateFramebuffer("ping_pong_2");
+		m_ping_pong_2_fb = &mp_framebuffer_library->CreateFramebuffer("ping_pong_2", true);
 		m_ping_pong_2_fb->Add2DTexture("tex1", GL_COLOR_ATTACHMENT0, ping_pong_spec);
 
 
 		// Fog
 		m_fog_shader = &mp_shader_library->CreateShader("fog");
-		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/FogCS.shader");
+		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/FogCS.glsl");
 		m_fog_shader->Init();
 		m_fog_shader->AddUniforms({
 			"u_fog_color",
@@ -240,39 +241,36 @@ namespace ORNG {
 			"u_dir_light_matrices[2]",
 			});
 
+
+		// Fog texture
 		Texture2DSpec fog_overlay_spec;
 		fog_overlay_spec.format = GL_RGBA;
-		fog_overlay_spec.internal_format = GL_RGBA16F;
+		fog_overlay_spec.internal_format = GL_RGBA32F;
 		fog_overlay_spec.storage_type = GL_FLOAT;
 		fog_overlay_spec.width = Window::GetWidth() / 2;
 		fog_overlay_spec.height = Window::GetHeight() / 2;
 		fog_overlay_spec.min_filter = GL_NEAREST;
 		fog_overlay_spec.mag_filter = GL_NEAREST;
 		fog_overlay_spec.wrap_params = GL_CLAMP_TO_EDGE;
-		m_fog_output_tex.SetSpec(fog_overlay_spec, true);
 
-		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
-		noise->SetFrequency(0.05f);
-		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
-		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
-		float* noise_set = noise->GetCellularSet(0, 0, 0, 64, 64, 64);
 
-		Texture3DSpec fog_noise_spec;
-		fog_noise_spec.format = GL_RED;
-		fog_noise_spec.internal_format = GL_R16F;
-		fog_noise_spec.storage_type = GL_FLOAT;
-		fog_noise_spec.width = 64;
-		fog_noise_spec.height = 64;
-		fog_noise_spec.layer_count = 64;
-		fog_noise_spec.min_filter = GL_NEAREST;
-		fog_noise_spec.mag_filter = GL_NEAREST;
-		fog_noise_spec.wrap_params = GL_MIRRORED_REPEAT;
-		m_3d_noise_tex.SetSpec(fog_noise_spec);
-		glTexImage3D(GL_TEXTURE_3D, 0, fog_noise_spec.internal_format, fog_noise_spec.width, fog_noise_spec.height, fog_noise_spec.layer_count, 0, fog_noise_spec.format, fog_noise_spec.storage_type, noise_set);
+		static Events::EventListener<Events::WindowEvent> resize_listener;
+		resize_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
+			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
+				Texture2DSpec new_fog_spec = m_fog_output_tex.GetSpec();
+				new_fog_spec.width = t_event.new_window_size.x / 2;
+				new_fog_spec.height = t_event.new_window_size.y / 2;
+				m_fog_output_tex.SetSpec(new_fog_spec);
+			}
+		};
+		Events::EventManager::RegisterListener(resize_listener);
+		m_fog_output_tex.SetSpec(fog_overlay_spec);
+
+
 
 		// POST PROCESSING FB
-		m_post_processing_fb = &mp_framebuffer_library->CreateFramebuffer("post_processing");
-		m_post_processing_fb->AddRenderbuffer();
+		m_post_processing_fb = &mp_framebuffer_library->CreateFramebuffer("post_processing", true);
+		m_post_processing_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 		m_post_processing_fb->Add2DTexture("shared_render_texture", GL_COLOR_ATTACHMENT0, color_render_texture_spec);
 	}
 
@@ -280,10 +278,10 @@ namespace ORNG {
 
 
 	void SceneRenderer::IPrepRenderPasses() {
-		glm::mat4 cam_mat = mp_active_camera->GetViewMatrix();
-		glm::mat4 proj_mat = mp_active_camera->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(mp_active_camera->GetPos(), mp_active_camera->GetTarget());
-		mp_shader_library->SetMatrixUBOs(proj_mat, cam_mat);
+		glm::mat4 view_mat = mp_scene->mp_active_camera->GetViewMatrix();
+		glm::mat4 proj_mat = mp_scene->mp_active_camera->GetProjectionMatrix();
+		mp_shader_library->SetCommonUBO(mp_scene->mp_active_camera->pos, mp_scene->mp_active_camera->target);
+		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light, mp_scene->m_global_ambient_lighting);
 		mp_shader_library->SetPointLights(mp_scene->m_point_lights);
 		mp_shader_library->SetSpotLights(mp_scene->m_spot_lights);
@@ -375,7 +373,7 @@ namespace ORNG {
 
 
 		/*if (sample_world_pos) {
-			glm::vec2 mouse_coords = glm::min(glm::max(Input::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
+			glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
 
 			GLfloat* pixels = new GLfloat[4];
 			glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RGB, GL_FLOAT, pixels);
@@ -391,14 +389,14 @@ namespace ORNG {
 	void SceneRenderer::IDoDepthPass() {
 		const float aspect_ratio = static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight());
 
-		const DirectionalLight& light = mp_scene->GetDirectionalLight();
+		const DirectionalLight& light = mp_scene->m_directional_light;
 
-		const glm::mat4 cam_view_matrix = mp_active_camera->GetViewMatrix();
-		const float fov = glm::radians(mp_active_camera->GetFovDegrees() / 2.f);
+		const glm::mat4 cam_view_matrix = mp_scene->mp_active_camera->GetViewMatrix();
+		const float fov = glm::radians(mp_scene->mp_active_camera->fov / 2.f);
 
 		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0], light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1], light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution);
 
 		m_light_space_matrices[0] = dir_light_space_matrix;
 		m_light_space_matrices[1] = dir_light_space_matrix_2;
@@ -430,10 +428,9 @@ namespace ORNG {
 
 		}
 
-
 		int depth_map_index = -1;
 		for (int i = 0; i < mp_scene->m_spot_lights.size(); i++) {
-			SpotLightComponent* p_light = mp_scene->m_spot_lights[i];
+			const SpotLightComponent* p_light = mp_scene->m_spot_lights[i];
 
 			if (!p_light)
 				continue;
@@ -495,10 +492,10 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_3d_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->m_global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
 
-		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glDispatchCompute(Window::GetWidth() / 16, Window::GetHeight() / 8, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -575,7 +572,7 @@ namespace ORNG {
 		}
 
 		mp_shader_library->GetShader("reflection").ActivateProgram();
-		mp_shader_library->GetShader("reflection").SetUniform("camera_pos", Renderer::GetActiveCamera()->GetPos());
+		mp_shader_library->GetShader("reflection").SetUniform("camera_pos", Renderer::GetActiveCameraComponent()->GetPos());
 		Renderer::DrawGroupsWithShader("reflection");
 		*/
 	}
@@ -585,10 +582,10 @@ namespace ORNG {
 	void SceneRenderer::IDrawTerrain() {
 
 		std::vector<TerrainQuadtree*> node_array;
-		mp_scene->m_terrain.m_quadtree->QueryChunks(node_array, mp_active_camera->GetPos(), mp_scene->m_terrain.m_width);
+		mp_scene->m_terrain.m_quadtree->QueryChunks(node_array, mp_scene->mp_active_camera->pos, mp_scene->m_terrain.m_width);
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();
-			if (chunk->m_bounding_box.IsOnFrustum(mp_active_camera->m_view_frustum)) {
+			if (chunk->m_bounding_box.IsOnFrustum(mp_scene->mp_active_camera->view_frustum)) {
 				Renderer::DrawVAO_Elements(GL_QUADS, chunk->m_vao);
 			}
 		}

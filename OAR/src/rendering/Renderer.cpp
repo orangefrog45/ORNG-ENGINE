@@ -8,7 +8,7 @@
 #include "rendering/MeshInstanceGroup.h"
 #include "components/lights/SpotLightComponent.h"
 #include "components/lights/PointLightComponent.h"
-#include "components/Camera.h"
+#include "components/CameraComponent.h"
 #include "components/lights/DirectionalLight.h"
 #include "core/GLStateManager.h"
 

@@ -4,6 +4,7 @@
 #include "rendering/Renderer.h"
 #include "util/util.h"
 #include "core/GLStateManager.h"
+#include "core/Window.h"
 
 namespace ORNG {
 
@@ -40,13 +41,13 @@ namespace ORNG {
 		hdr_cubemap_spec.width = m_resolution;
 		hdr_cubemap_spec.height = m_resolution;
 
-		mp_hdr_converter_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("mp_hdr_converter_fb");
+		mp_hdr_converter_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("mp_hdr_converter_fb", false);
 		mp_hdr_converter_fb->AddRenderbuffer(m_resolution, m_resolution);
 		const TextureCubemap& hdr_cubemap = mp_hdr_converter_fb->AddCubemapTexture("hdr_skybox", hdr_cubemap_spec);
 
 		mp_hdr_converter_shader = &Renderer::GetShaderLibrary().CreateShader("hdr_to_cubemap");
-		mp_hdr_converter_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/HDR_ToCubemapVS.shader");
-		mp_hdr_converter_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HDR_ToCubemapFS.shader");
+		mp_hdr_converter_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/HDR_ToCubemapVS.glsl");
+		mp_hdr_converter_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HDR_ToCubemapFS.glsl");
 		mp_hdr_converter_shader->Init();
 		mp_hdr_converter_shader->AddUniform("projection");
 		mp_hdr_converter_shader->AddUniform("view");
@@ -68,7 +69,7 @@ namespace ORNG {
 
 
 
-		hdr_texture.SetSpec(hdr_spec, false);
+		hdr_texture.SetSpec(hdr_spec);
 		hdr_texture.LoadFromFile();
 
 		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -98,8 +99,7 @@ namespace ORNG {
 			Renderer::DrawCube();
 		}
 		glEnable(GL_CULL_FACE);
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, hdr_cubemap.GetTextureHandle(), GL_TEXTURE16);
-		glViewport(0, 0, 1920, 1080);
+		glViewport(0, 0, Window::GetWidth(), Window::GetHeight());
 
 
 	}

@@ -5,20 +5,18 @@
 
 namespace ORNG {
 
-	void Terrain::UpdateTerrainQuadtree() {
-		m_quadtree->Update();
+	void Terrain::UpdateTerrainQuadtree(glm::vec3 player_pos) {
+		m_quadtree->Update(player_pos);
 		m_loader.ProcessChunkLoads();
 	}
 
-	void Terrain::ResetTerrainQuadtree(Camera& camera) {
+	void Terrain::ResetTerrainQuadtree() {
 		m_quadtree = std::make_unique<TerrainQuadtree>(m_width, m_height_scale, m_seed, m_center_pos, m_resolution, &m_loader);
-		m_quadtree->Init(camera);
 	}
 
 
-	void Terrain::Init(Camera& camera, unsigned int material_id) {
+	void Terrain::Init(unsigned int material_id) {
 		m_quadtree = std::make_unique<TerrainQuadtree>(m_width, m_height_scale, m_seed, m_center_pos, m_resolution, &m_loader);
-		m_quadtree->Init(camera);
 
 		m_material_id = material_id;
 

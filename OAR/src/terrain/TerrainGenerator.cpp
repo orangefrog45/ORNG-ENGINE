@@ -5,6 +5,7 @@
 #include "glm/glm/gtc/round.hpp"
 #include "util/Log.h"
 #include "util/TimeStep.h"
+#include "../extern/glm/glm/gtc/quaternion.hpp"
 
 namespace ORNG {
 
@@ -21,9 +22,9 @@ namespace ORNG {
 
 		noise2.SetSeed(seed);
 		noise2.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-		noise2.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance);
+		noise2.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Div);
 		noise2.SetFractalType(FastNoiseLite::FractalType_FBm);
-		noise2.SetFrequency(0.0125f);
+		noise2.SetFrequency(0.00125f);
 
 		noise.SetSeed(seed);
 		noise.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
@@ -32,13 +33,15 @@ namespace ORNG {
 		noise.SetFractalOctaves(5.0);
 
 		noise3.SetSeed(seed);
-		noise3.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-		noise3.SetFrequency(0.25f);
+		noise3.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
+		noise3.SetFrequency(0.005f);
 
 
 		int ceiled_resolution = glm::ceil(resolution);
 		std::vector<glm::vec3> tangents_to_average;
+		std::vector<glm::vec3> normals_to_average;
 		tangents_to_average.reserve(((width) / ceiled_resolution) * ((width) / ceiled_resolution));
+		normals_to_average.reserve(((width) / ceiled_resolution) * ((width) / ceiled_resolution));
 
 		terrain_data.positions.reserve(terrain_data.positions.size() + ((width)) * ((width) / ceiled_resolution) * 4);
 		terrain_data.normals.reserve(terrain_data.normals.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
@@ -147,13 +150,9 @@ namespace ORNG {
 				verts.normal_2 = glm::cross(verts.vert_3 - verts.vert_2, verts.vert_2 - verts.vert_4);
 
 				//Take average of the normals of both triangles that form the quad
-				glm::vec3 normal = glm::normalize((verts.normal_1 + verts.normal_2) * 0.5f);
-				terrain_data.normals.emplace_back(normal);
-				terrain_data.normals.emplace_back(normal);
-				terrain_data.normals.emplace_back(normal);
-				terrain_data.normals.emplace_back(normal);
-
-				tangents_to_average.emplace_back(glm::normalize((verts.tangent_1 + verts.tangent_2) * 0.5f));
+				glm::vec3 normal = glm::normalize(glm::mix(verts.normal_1, verts.normal_2, 0.5f));
+				normals_to_average.emplace_back(normal);
+				tangents_to_average.emplace_back(glm::mix(verts.tangent_1, verts.tangent_2, 0.5f));
 
 			}
 		}
@@ -170,32 +169,48 @@ namespace ORNG {
 			glm::vec3 bottom_tangent = glm::vec3(0);
 			glm::vec3 original_tangent = tangents_to_average[i];
 
+			glm::vec3 original_normal = normals_to_average[i];
+			glm::vec3 left_normal = glm::vec3(0);
+			glm::vec3 right_normal = glm::vec3(0);
+			glm::vec3 top_normal = glm::vec3(0);
+			glm::vec3 bottom_normal = glm::vec3(0);
+
 			float division_num = 1.f;
 
 			if (i - column_length_tangents >= 0) {
 				left_tangent = tangents_to_average[i - column_length_tangents];
+				left_normal = normals_to_average[i - column_length_tangents];
 				division_num++;
 			}
 
 			if (i + column_length_tangents < tangents_to_average.size()) {
 				right_tangent = tangents_to_average[i + column_length_tangents];
+				right_normal = normals_to_average[i + column_length_tangents];
 				division_num++;
 			}
 			if (i - 1 >= 0) {
 				top_tangent = tangents_to_average[i - 1];
+				top_normal = normals_to_average[i - 1];
 				division_num++;
 			}
 			if (i + 1 < tangents_to_average.size()) {
 				bottom_tangent = tangents_to_average[i + 1];
+				bottom_normal = normals_to_average[i + 1];
 				division_num++;
 			}
 
 			glm::vec3 averaged_tangent = glm::normalize(glm::vec3(left_tangent + right_tangent + top_tangent + bottom_tangent + original_tangent) / division_num);
+			glm::vec3 averaged_normal = glm::normalize(glm::vec3(left_normal + right_normal + top_normal + bottom_normal + original_normal) / division_num);
 
 			terrain_data.tangents.emplace_back(averaged_tangent);
 			terrain_data.tangents.emplace_back(averaged_tangent);
 			terrain_data.tangents.emplace_back(averaged_tangent);
 			terrain_data.tangents.emplace_back(averaged_tangent);
+
+			terrain_data.normals.emplace_back(averaged_normal);
+			terrain_data.normals.emplace_back(averaged_normal);
+			terrain_data.normals.emplace_back(averaged_normal);
+			terrain_data.normals.emplace_back(averaged_normal);
 
 		}
 

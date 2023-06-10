@@ -165,7 +165,7 @@ namespace ORNG {
 
 
 
-	bool Texture2D::SetSpec(const Texture2DSpec& spec, bool should_allocate_space) {
+	bool Texture2D::SetSpec(const Texture2DSpec& spec) {
 		if (ValidateSpec(spec)) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_texture_obj, GL_TEXTURE0, true);
@@ -176,8 +176,7 @@ namespace ORNG {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_mode);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_mode);
 
-			if (should_allocate_space)
-				glTexImage2D(GL_TEXTURE_2D, 0, m_spec.internal_format, spec.width, spec.height, 0, m_spec.format, m_spec.storage_type, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, m_spec.internal_format, spec.width, spec.height, 0, m_spec.format, m_spec.storage_type, nullptr);
 
 			return true;
 		}

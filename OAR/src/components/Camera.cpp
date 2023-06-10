@@ -1,127 +1,87 @@
 #include "pch/pch.h"
 
-#include "components/Camera.h"
+#include "components/CameraComponent.h"
 #include "rendering/Renderer.h"
 #include "core/Window.h"
 #include "core/FrameTiming.h"
 
 namespace ORNG {
 
-	void Camera::Update() {
-		if (Window::IsKeyDown('W'))
-			MoveForward(FrameTiming::GetTimeStep());
+	void CameraComponent::Update() {
 
-		if (Window::IsKeyDown('A'))
-			StrafeLeft(FrameTiming::GetTimeStep());
-
-		if (Window::IsKeyDown('S'))
-			MoveBackward(FrameTiming::GetTimeStep());
-
-		if (Window::IsKeyDown('D'))
-			StrafeRight(FrameTiming::GetTimeStep());
-
-		if (Window::IsKeyDown('Q'))
-			MoveDown(FrameTiming::GetTimeStep());
-
-		if (Window::IsKeyDown('E'))
-			MoveUp(FrameTiming::GetTimeStep());
-
-		if (Window::IsKeyDown('R'))
-			m_mouse_locked = true;
-
-		if (Window::IsKeyDown('T'))
-			m_mouse_locked = false;
-
-
-
-		if (!m_mouse_locked) {
-			glm::vec2 mouse_coords = Window::GetMousePos();
-			float rotation_speed = 0.005f;
-			auto mouseDelta = -glm::vec2(mouse_coords.x - static_cast<double>(Window::GetWidth()) / 2, mouse_coords.y - static_cast<double>(Window::GetHeight()) / 2);
-
-			m_target = glm::rotate(mouseDelta.x * rotation_speed, m_up) * glm::vec4(m_target, 0);
-			UpdateFrustum();
-
-			glm::fvec3 m_targetNew = glm::rotate(mouseDelta.y * rotation_speed, glm::cross(m_target, m_up)) * glm::vec4(m_target, 0);
-			//constraint to stop lookAt flipping from y axis alignment
-			if (m_targetNew.y <= 0.9996f && m_targetNew.y >= -0.996f) {
-				m_target = m_targetNew;
-			}
-			glm::normalize(m_target);
-
-			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
-		}
+		if (!is_active)
+			return;
 
 		UpdateFrustum();
 
 	}
 
 
-	void Camera::UpdateFrustum() {
+	void CameraComponent::UpdateFrustum() {
 
-		const float half_far_plane_height = tanf(glm::radians(m_fov * 0.5f)) * m_zFar;
+		const float half_far_plane_height = tanf(glm::radians(fov * 0.5f)) * zFar;
 		const float half_far_plane_width = half_far_plane_height * (static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight()));
 
-		const glm::vec3 normalized_target = m_target;
-		m_right = glm::normalize(glm::cross(m_target, m_up));
-		const glm::vec3 up = glm::cross(m_right, m_target);
+		const glm::vec3 normalized_target = target;
+		right = glm::normalize(glm::cross(target, up));
+		const glm::vec3 up = glm::cross(right, target);
 
-		const glm::vec3 far_point = m_pos + normalized_target * m_zFar;
+		const glm::vec3 far_point = pos + normalized_target * zFar;
 
-		m_view_frustum.near_plane = { normalized_target, m_pos + m_zNear * normalized_target };
-		m_view_frustum.far_plane = { -normalized_target, far_point };
+		view_frustum.near_plane = { normalized_target, pos + zNear * normalized_target };
+		view_frustum.far_plane = { -normalized_target, far_point };
 
-		const glm::vec3 point_right_plane = far_point + m_right * half_far_plane_width;
-		m_view_frustum.right_plane = { glm::cross(up, point_right_plane - m_pos), m_pos };
+		const glm::vec3 point_right_plane = far_point + right * half_far_plane_width;
+		view_frustum.right_plane = { glm::cross(up, point_right_plane - pos), pos };
 
-		const glm::vec3 point_left_plane = far_point - m_right * half_far_plane_width;
-		m_view_frustum.left_plane = { glm::cross(up, m_pos - point_left_plane), m_pos };
+		const glm::vec3 point_left_plane = far_point - right * half_far_plane_width;
+		view_frustum.left_plane = { glm::cross(up, pos - point_left_plane), pos };
 
 		const glm::vec3 point_up_plane = far_point + up * half_far_plane_height;
-		m_view_frustum.top_plane = { glm::cross(m_right, m_pos - point_up_plane), m_pos };
+		view_frustum.top_plane = { glm::cross(right, pos - point_up_plane), pos };
 
 		const glm::vec3 point_down_plane = far_point - up * half_far_plane_height;
-		m_view_frustum.bottom_plane = { glm::cross(m_right, point_down_plane - m_pos), m_pos };
+		view_frustum.bottom_plane = { glm::cross(right, point_down_plane - pos), pos };
 	}
-	void Camera::SetPosition(float x, float y, float z) {
-		m_pos.x = x;
-		m_pos.y = y;
-		m_pos.z = z;
+	void CameraComponent::SetPosition(float x, float y, float z) {
+		pos.x = x;
+		pos.y = y;
+		pos.z = z;
 		UpdateFrustum();
 	}
 
 
-	void Camera::MoveForward(float time_elapsed) {
-		m_pos += m_target * m_speed * time_elapsed;
+	void CameraComponent::MoveForward(float time_elapsed) {
+		pos += target * speed * time_elapsed;
 		UpdateFrustum();
 	}
-	void Camera::MoveBackward(float time_elapsed) {
-		m_pos -= m_target * m_speed * time_elapsed;
+	void CameraComponent::MoveBackward(float time_elapsed) {
+		pos -= target * speed * time_elapsed;
 		UpdateFrustum();
 	}
-	void Camera::StrafeLeft(float time_elapsed) {
-		m_pos += -m_right * m_speed * time_elapsed;
+	void CameraComponent::StrafeLeft(float time_elapsed) {
+		pos += -right * speed * time_elapsed;
 		UpdateFrustum();
 	}
-	void Camera::StrafeRight(float time_elapsed) {
-		m_pos += m_right * m_speed * time_elapsed;
+	void CameraComponent::StrafeRight(float time_elapsed) {
+		pos += right * speed * time_elapsed;
 		UpdateFrustum();
 	}
-	void Camera::MoveUp(float time_elapsed) {
-		m_pos += m_speed * m_up * time_elapsed;
+	void CameraComponent::MoveUp(float time_elapsed) {
+		pos += speed * up * time_elapsed;
 		UpdateFrustum();
 	}
-	void Camera::MoveDown(float time_elapsed) {
-		m_pos -= m_speed * m_up * time_elapsed;
+	void CameraComponent::MoveDown(float time_elapsed) {
+		pos -= speed * up * time_elapsed;
 		UpdateFrustum();
 	}
 
-	glm::mat4x4 Camera::GetViewMatrix() const {
-		return glm::lookAt(m_pos, m_pos + m_target, m_up);
+	glm::mat4x4 CameraComponent::GetViewMatrix() const {
+		return glm::lookAt(pos, pos + target, up);
 	}
 
-	glm::mat4x4 Camera::GetProjectionMatrix() const {
-		return glm::perspective(glm::radians(m_fov / 2.0f), static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight()), m_zNear, m_zFar);
+	glm::mat4x4 CameraComponent::GetProjectionMatrix() const {
+		return glm::perspective(glm::radians(fov / 2.0f), static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight()), zNear, zFar);
 	}
 
 }

@@ -5,7 +5,7 @@
 #include "util/util.h"
 #include "terrain/TerrainChunk.h"
 #include "terrain/ChunkLoader.h"
-#include "components/Camera.h"
+#include "components/CameraComponent.h"
 
 
 namespace ORNG {
@@ -36,7 +36,7 @@ namespace ORNG {
 		m_is_root_node(true), m_loader(loader)
 	{
 		//no. subdivisions before min grid width is hit
-		m_max_subdivision_layer = glm::clamp(static_cast<int>(glm::log2(static_cast<float>(m_master_width) / static_cast<float>(m_min_grid_width))), 5, 15);
+		m_max_subdivision_layer = static_cast<int>(glm::log2(static_cast<float>(m_master_width) / static_cast<float>(m_min_grid_width)));
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
 		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale);
@@ -55,11 +55,10 @@ namespace ORNG {
 
 		m_height_scale = parent->m_height_scale;
 
-		m_lod_camera = parent->m_lod_camera;
 		m_center_pos = center_pos;
 		m_master_width = parent->m_master_width;
 
-		m_resolution = glm::length(m_lod_camera->GetPos() - m_center_pos) / static_cast<float>(m_min_grid_width);
+		m_resolution = pow(m_max_subdivision_layer + 1 - m_subdivision_layer, 2.f);
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
 		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4.f, m_seed, m_height_scale);
@@ -68,9 +67,6 @@ namespace ORNG {
 
 	};
 
-	void TerrainQuadtree::Init(Camera& camera) {
-		m_lod_camera = &camera;
-	};
 
 
 	void TerrainQuadtree::QueryTree(std::vector<TerrainQuadtree*>& node_array, glm::vec3 t_center_pos, int t_boundary) {
@@ -122,20 +118,22 @@ namespace ORNG {
 		}
 	}
 
-	void TerrainQuadtree::Update() {
+	void TerrainQuadtree::Update(glm::vec3 pos) {
 
-		auto pos = m_lod_camera->GetPos();
 
-		const int distance = glm::ceil(glm::length(glm::vec2(m_center_pos.x, m_center_pos.z) - glm::vec2(pos.x, pos.z))) - glm::sqrt(2 * m_width * m_width);
-		int subdivision_count = m_max_subdivision_layer - glm::min((distance) / m_max_subdivision_layer, m_max_subdivision_layer);
+		const float distance = glm::max(glm::length(glm::vec2(m_center_pos.x, m_center_pos.z) - glm::vec2(pos.x, pos.z)) - glm::sqrt(2 * m_width * m_width), 0.0);
+		// Calculate number of minimum grid widths that fit inside the chunk node path, this can then be used to calculate a subdivision count
+		int num_fitting_min_grid_widths = glm::pow(2, m_max_subdivision_layer - m_subdivision_layer);
 
-		if (subdivision_count < m_subdivision_layer) {
+		int subdivision_count = m_max_subdivision_layer - distance / (num_fitting_min_grid_widths * m_min_grid_width);
+
+		if (subdivision_count <= m_subdivision_layer) {
 			Unsubdivide();
 		}
 		else if (subdivision_count > m_subdivision_layer) {
 			if (m_is_subdivided) {
 				for (auto& node : m_child_nodes) {
-					node.Update();
+					node.Update(pos);
 				}
 			}
 			else if (m_subdivision_layer != m_max_subdivision_layer) {

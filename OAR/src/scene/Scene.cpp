@@ -7,6 +7,10 @@
 #include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
+#include "components/CameraComponent.h"
+#include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
+
+
 namespace ORNG {
 
 	Scene::~Scene() {
@@ -23,6 +27,7 @@ namespace ORNG {
 		m_spot_lights.push_back(nullptr);
 		m_point_lights.push_back(nullptr);
 		m_script_components.push_back(nullptr);
+		m_camera_components.push_back(nullptr);
 
 		Material* default_material = GetMaterial(CreateMaterial());
 		default_material->name = "Default";
@@ -52,8 +57,24 @@ namespace ORNG {
 				script->OnUpdate();
 		}
 
-		m_terrain.UpdateTerrainQuadtree();
+		if (mp_active_camera)
+			mp_active_camera->Update();
+
+		m_terrain.UpdateTerrainQuadtree(mp_active_camera->pos);
 	}
+
+	CameraComponent* Scene::AddCameraComponent(unsigned long entity_id) {
+		if (m_camera_components[entity_id]) {
+			OAR_CORE_WARN("Camera component not added, entity '{0}' already has a camera component", m_entities[entity_id]->name);
+			return nullptr;
+		}
+
+		CameraComponent* comp = new CameraComponent(entity_id);
+		m_camera_components[comp->m_entity_handle] = comp;
+		return comp;
+
+	}
+
 
 	PointLightComponent* Scene::AddPointLightComponent(unsigned long entity_id) {
 		if (m_point_lights[entity_id]) {
@@ -63,7 +84,7 @@ namespace ORNG {
 
 		PointLightComponent* comp = new PointLightComponent(entity_id);
 		m_point_lights[comp->m_entity_handle] = comp;
-		return m_point_lights[comp->m_entity_handle];
+		return comp;
 	}
 
 	SpotLightComponent* Scene::AddSpotLightComponent(unsigned long entity_id) {
@@ -73,7 +94,7 @@ namespace ORNG {
 		}
 		SpotLightComponent* comp = new SpotLightComponent(entity_id);
 		m_spot_lights[comp->m_entity_handle] = comp;
-		return m_spot_lights[comp->m_entity_handle];
+		return comp;
 	}
 
 	ScriptComponent* Scene::AddScriptComponent(unsigned long entity_id) {
@@ -151,9 +172,17 @@ namespace ORNG {
 		return p_tex;
 	}
 
-	void Scene::LoadScene(Camera* cam) {
+	void Scene::LoadScene() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 		m_skybox.Init();
+
+
+		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
+		noise->SetFrequency(0.05f);
+		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
+		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
+		m_global_fog.SetNoise(noise);
+
 
 
 		Material* p_terrain_material = GetMaterial(CreateMaterial());
@@ -162,7 +191,7 @@ namespace ORNG {
 		p_terrain_material->ambient_color = glm::vec3(1);
 		p_terrain_material->specular_color = glm::vec3(1);
 		p_terrain_material->diffuse_texture = GetMaterial(0)->diffuse_texture;
-		m_terrain.Init(*cam, p_terrain_material->material_id);
+		m_terrain.Init(p_terrain_material->material_id);
 
 		for (auto& mesh : m_mesh_assets) {
 			if (mesh->GetLoadStatus() == false) {
@@ -271,6 +300,7 @@ namespace ORNG {
 		m_spot_lights.push_back(nullptr);
 		m_point_lights.push_back(nullptr);
 		m_script_components.push_back(nullptr);
+		m_camera_components.push_back(nullptr);
 
 		return *ent;
 
@@ -416,7 +446,14 @@ namespace ORNG {
 
 	}
 
-	unsigned long Scene::CreateEntityID() {
-		return m_last_entity_id++;
+	void Scene::MakeCameraActive(CameraComponent* p_cam) {
+		mp_active_camera = p_cam;
+		p_cam->is_active = true;
+
+		for (auto* cam : m_camera_components) {
+			if (cam && p_cam != cam)
+				cam->is_active = false;
+		}
 	}
+
 }

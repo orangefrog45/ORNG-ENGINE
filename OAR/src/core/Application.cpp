@@ -12,6 +12,7 @@
 #include "util/ImGuiLib.h"
 #include "core/GLStateManager.h"
 #include "events/EventManager.h"
+#include "core/FrameTiming.h"
 
 
 namespace ORNG {
@@ -60,21 +61,21 @@ namespace ORNG {
 		// Game loop
 
 		Events::EngineCoreEvent render_event;
-		render_event.event_type = Events::EventType::ENGINE_RENDER;
+		render_event.event_type = Events::Event::ENGINE_RENDER;
 
 		Events::EngineCoreEvent update_event;
-		update_event.event_type = Events::EventType::ENGINE_UPDATE;
+		update_event.event_type = Events::Event::ENGINE_UPDATE;
 
 		while (!glfwWindowShouldClose(window))
 		{
-
-
 			glfwPollEvents();
 			Events::EventManager::DispatchEvent(update_event);
 
 			/* Render here */
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
+
+			FrameTiming::UpdateTimeStep();
 
 		}
 
