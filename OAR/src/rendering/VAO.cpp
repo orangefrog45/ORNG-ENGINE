@@ -5,10 +5,6 @@
 static constexpr unsigned int POSITION_LOCATION = 0;
 static constexpr unsigned int TEX_COORD_LOCATION = 1;
 static constexpr unsigned int NORMAL_LOCATION = 2;
-static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
-static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
-static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
-static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
 static constexpr unsigned int TANGENT_LOCATION = 7;
 
 namespace ORNG {

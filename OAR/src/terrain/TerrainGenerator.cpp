@@ -17,7 +17,6 @@ namespace ORNG {
 
 		static FastNoiseLite noise;
 		static FastNoiseLite noise2;
-		static FastNoiseLite noise3;
 
 
 		noise2.SetSeed(seed);
@@ -27,14 +26,11 @@ namespace ORNG {
 		noise2.SetFrequency(0.00125f);
 
 		noise.SetSeed(seed);
-		noise.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
-		noise.SetFrequency(0.0005f);
+		noise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+		noise.SetFrequency(0.0001f);
+		noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_CellValue);
 		noise.SetFractalType(FastNoiseLite::FractalType_FBm);
 		noise.SetFractalOctaves(5.0);
-
-		noise3.SetSeed(seed);
-		noise3.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
-		noise3.SetFrequency(0.005f);
 
 
 		int ceiled_resolution = glm::ceil(resolution);
@@ -62,16 +58,16 @@ namespace ORNG {
 				const double z_coord_2 = (z + resolution);
 
 				const float noise_1 = noise2.GetNoise(x_coord_1, z_coord_1) * 0.15f
-					+ 3.5f * noise.GetNoise(x_coord_1, z_coord_1) + noise3.GetNoise(x_coord_1, z_coord_1) * 0.01f;
+					+ 3.5f * noise.GetNoise(x_coord_1, z_coord_1);
 
 				const float noise_2 = noise2.GetNoise(x_coord_1, z_coord_2) * 0.15f
-					+ 3.5f * noise.GetNoise(x_coord_1, z_coord_2) + noise3.GetNoise(x_coord_1, z_coord_2) * 0.01f;
+					+ 3.5f * noise.GetNoise(x_coord_1, z_coord_2);
 
 				const float noise_3 = noise2.GetNoise(x_coord_2, z_coord_1) * 0.15f
-					+ 3.5f * noise.GetNoise(x_coord_2, z_coord_1) + noise3.GetNoise(x_coord_2, z_coord_1) * 0.01f;
+					+ 3.5f * noise.GetNoise(x_coord_2, z_coord_1);
 
 				const float noise_4 = noise2.GetNoise(x_coord_2, z_coord_2) * 0.15f
-					+ 3.5f * noise.GetNoise(x_coord_2, z_coord_2) + noise3.GetNoise(x_coord_2, z_coord_2) * 0.01f;
+					+ 3.5f * noise.GetNoise(x_coord_2, z_coord_2);
 
 				const float height_exponent = 5.f;
 

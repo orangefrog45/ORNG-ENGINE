@@ -72,7 +72,7 @@ namespace ORNG {
 
 		struct TextureUnits {
 			static const int COLOR = GL_TEXTURE1;
-			static const int SPECULAR = GL_TEXTURE2;
+			static const int ROUGHNESS = GL_TEXTURE2;
 			static const int DIR_SHADOW_MAP = GL_TEXTURE3;
 			static const int SPOT_SHADOW_MAP = GL_TEXTURE4;
 			static const int POINT_SHADOW_MAP = GL_TEXTURE5;
@@ -87,6 +87,9 @@ namespace ORNG {
 			static const int COLOR_2 = GL_TEXTURE14;
 			static const int DATA_3D = GL_TEXTURE15;
 			static const int DEPTH = GL_TEXTURE16;
+			static const int METALLIC = GL_TEXTURE17;
+			static const int AO = GL_TEXTURE18;
+			static const int ROUGHNESS_METALLIC_AO = GL_TEXTURE19;
 		};
 
 		struct TextureUnitIndexes {

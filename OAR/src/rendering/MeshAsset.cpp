@@ -48,6 +48,7 @@ namespace ORNG {
 		return ret;
 	}
 
+
 	bool MeshAsset::InitFromScene(const aiScene* pScene, const std::string& filename) {
 		m_submeshes.resize(pScene->mNumMeshes);
 		m_original_materials.resize(pScene->mNumMaterials);

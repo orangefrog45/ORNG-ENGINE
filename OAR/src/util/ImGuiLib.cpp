@@ -6,6 +6,7 @@
 #include <imgui/misc/cpp/imgui_stdlib.h>
 #include "rendering/Textures.h"
 #include "util/ImGuiLib.h"
+#include "core/Window.h"
 
 namespace ORNG {
 
@@ -50,15 +51,13 @@ namespace ORNG {
 
 
 	void ImGuiLib::ShowFileExplorer(std::string& path_name, std::string& t_entry_name, const std::vector<std::string>& valid_extensions, std::function<void()> valid_file_callback, std::function<void()> invalid_file_callback) {
-		ImGui::GetStyle().ChildBorderSize = 1.f;
 		if (ImGui::BeginChild(ImGuiID(&path_name), ImVec2(800, 250))) {
 			ImGui::Text(path_name.c_str());
 			if (path_name.find('/') != std::string::npos && ImGui::Button(ICON_FA_ANCHOR "BACK")) {
 				path_name = path_name.substr(0, path_name.find_last_of('/'));
 			}
-			ImGui::GetStyle().CellPadding = ImVec2(12.5f, 12.5f);
 
-			if (ImGui::BeginTable("FILES", 5, ImGuiTableFlags_SizingFixedFit, ImVec2(800.f, 200.f), 100.f)) {
+			if (ImGui::BeginTable("FILES", 5, 0, ImVec2(800.f, 200.f), 100.f)) {
 				for (const auto& entry : std::filesystem::directory_iterator(path_name)) {
 					ImGui::TableNextColumn();
 
@@ -98,9 +97,8 @@ namespace ORNG {
 				}
 				ImGui::EndTable();
 			}
-			ImGui::EndChild();
 		};
-		ImGui::GetStyle().ChildBorderSize = 0.f;
+		ImGui::EndChild();
 
 	}
 
@@ -135,5 +133,30 @@ namespace ORNG {
 		ImGui::PopID();
 
 		return ret;
+	}
+
+	void ImGuiLib::RenderMaterialTexture(const char* name, Texture2D*& p_tex, Texture2D*& p_editor_selected_tex, Texture2DSpec& spec, Texture2D*& p_editor_dragged_tex) {
+		ImGui::PushID(p_tex);
+		if (p_tex) {
+			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
+			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(100, 100))) {
+				p_editor_selected_tex = p_tex;
+				spec = p_tex->m_spec;
+			};
+		}
+		else {
+			ImGui::Text(std::format("{} texture - NONE", name).c_str());
+			ImGui::ImageButton(ImTextureID(0), ImVec2(100, 100));
+		}
+
+		if (ImGui::IsItemHovered()) {
+			if (p_editor_dragged_tex)
+				p_tex = p_editor_dragged_tex;
+
+			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2))
+				p_tex = nullptr;
+		}
+
+		ImGui::PopID();
 	}
 }

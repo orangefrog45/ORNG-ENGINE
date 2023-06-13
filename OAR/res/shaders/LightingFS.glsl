@@ -1,5 +1,7 @@
 #version 430 core
 
+#define PI 3.1415926538
+
 out vec4 FragColor;
 in vec2 tex_coord;
 
@@ -49,12 +51,6 @@ struct SpotLight { //140 BYTES
 };
 
 
-struct Material {
-	vec4 ambient_color;
-	vec4 diffuse_color;
-	vec4 specular_color;
-	bool using_normal_maps;
-};
 
 
 layout(std140, binding = 1) buffer PointLights {
@@ -71,31 +67,13 @@ layout(std140, binding = 1) uniform GlobalLighting{
 } ubo_global_lighting;
 
 
-const unsigned int MAX_MATERIALS = 128;
-
-layout(std140, binding = 3) uniform Materials{
-	Material materials[128];
-} u_materials;
-
-
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
 } ubo_common;
 
 
-
-uniform Material u_material;
 uniform mat4 u_dir_light_matrices[NUM_SHADOW_CASCADES];
-
-
-/*in TangentSpacePositions{
-	vec3 ubo_common.camera_pos.xyz;
-	vec3 frag_pos;
-	vec3 dir_light_dir;
-	vec3 spot_positions[MAX_SPOT_LIGHTS];
-	vec3 point_positions[MAX_SPOT_LIGHTS];
-} fs_in_tangent_positions;*/
 
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
@@ -104,15 +82,18 @@ layout(binding = 6) uniform sampler2D world_position_sampler;
 layout(binding = 7) uniform sampler2D normal_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 12) uniform usampler2D shader_material_id_sampler;
+layout(binding = 19) uniform sampler2D roughness_metallic_ao_sampler;
 
 unsigned int shader_id = texture(shader_material_id_sampler, tex_coord).r;
 unsigned int material_id = texture(shader_material_id_sampler, tex_coord).g;
-Material sampled_material = u_materials.materials[material_id];
 vec3 sampled_world_pos = texture(world_position_sampler, tex_coord).xyz;
 vec3 sampled_normal = normalize(texture(normal_sampler, tex_coord).xyz);
 vec3 sampled_albedo = texture(albedo_sampler, tex_coord).xyz;
 
-
+vec3 roughness_metallic_ao = texture(roughness_metallic_ao_sampler, tex_coord).rgb;
+float roughness = roughness_metallic_ao.r;
+float metallic = roughness_metallic_ao.g;
+float ao = roughness_metallic_ao.b;
 
 float ShadowCalculationSpotlight(SpotLight light, float light_index) {
 	vec4 frag_pos_light_space = light.light_transform_matrix * vec4(sampled_world_pos, 1.0);
@@ -165,19 +146,15 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 	unsigned int depth_map_index = 0;
 
-	// Push fragment position into light slightly to reduce acne
-	float normal_scaling_factor = 0.25f;
-	vec3 world_pos_normal_pushed = sampled_world_pos + sampled_normal * normal_scaling_factor;
-
 	if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[0]) { // cascades
-		frag_pos_light_space = u_dir_light_matrices[0] * vec4(world_pos_normal_pushed, 1);
+		frag_pos_light_space = u_dir_light_matrices[0] * vec4(sampled_world_pos, 1);
 	}
 	else if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[1]) {
-		frag_pos_light_space = u_dir_light_matrices[1] * vec4(world_pos_normal_pushed, 1);
+		frag_pos_light_space = u_dir_light_matrices[1] * vec4(sampled_world_pos, 1);
 		depth_map_index = 1;
 	}
 	else if (frag_distance_from_cam < ubo_global_lighting.directional_light.cascade_ranges[2]) {
-		frag_pos_light_space = u_dir_light_matrices[2] * vec4(world_pos_normal_pushed, 1);
+		frag_pos_light_space = u_dir_light_matrices[2] * vec4(sampled_world_pos, 1);
 		depth_map_index = 2;
 	}
 
@@ -198,7 +175,7 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 	vec2 texel_size = 1.0 / textureSize(dir_depth_sampler, 0).xy;
 
-	if (frag_distance_from_cam <=  ubo_global_lighting.directional_light.cascade_ranges[0]) {
+	if (frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[0]) {
 		for (int x = -1; x <= 1; x++)
 		{
 			for (int y = -1; y <= 1; y++)
@@ -223,58 +200,19 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 
 
-vec3 CalcPhongLight(vec3 light_color, float light_diffuse_intensity, vec3 normalized_light_dir, vec3 norm) {
-
-	//diffuse
-	float diffuse_factor = clamp(dot(normalized_light_dir, norm), 0, 1);
-
-	vec3 diffuse_final = vec3(0, 0, 0);
-	vec3 specular_final = vec3(0, 0, 0);
-
-	diffuse_final = light_color * diffuse_factor * light_diffuse_intensity * sampled_material.diffuse_color.rgb;
-	//diffuse_final = light_color * diffuse_factor * light_diffuse_intensity * u_material.diffuse_color;
-
-	float specular_strength = 0.5f;
-	vec3 view_dir = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
-	vec3 reflect_dir = reflect(-normalized_light_dir, norm);
-	float specular_factor = max(dot(view_dir, reflect_dir), 0.0);
-
-	float specular_exponent = 64; ///-------------------------------------------------------- SWITCH TO SAMPLING --------------------------------------------------------;
-	float spec_highlight = pow(specular_factor, specular_exponent);
-	specular_final = specular_strength * spec_highlight * light_color * sampled_material.specular_color.rgb;
-	//specular_final = specular_strength * spec_highlight * light_color * u_material.specular_color;
-
-	return (diffuse_final + specular_final);
-}
 
 
 
 
 
 
-vec3 CalcPointLight(PointLight light, vec3 normal, float distance, int index) {
-	vec3 frag_to_light_dir = vec3(0);
-
-	frag_to_light_dir = normalize(light.pos.xyz - sampled_world_pos.xyz);
-
-	vec3 color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, frag_to_light_dir, normal);
-
-	float attenuation = light.constant +
-		light.a_linear * distance +
-		light.exp * pow(distance, 2);
-
-	return color / attenuation;
-}
 
 
 
 
+/*vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 
-
-vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
-	vec3 frag_to_light_dir = vec3(0);
-
-	frag_to_light_dir = normalize(light.pos.xyz - sampled_world_pos.xyz);
+	vec3 frag_to_light_dir = normalize(light.pos.xyz - sampled_world_pos.xyz);
 
 	float spot_factor = dot(frag_to_light_dir, -light.dir.xyz);
 
@@ -305,25 +243,98 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
 		return vec3(0, 0, 0);
 	}
 }
-/*
-vec2 ParallaxMap() {
-	const float num_layers = 10;
-	float layer_depth = 1.0 / num_layers;
-	float current_layer_depth = 0.0f;
-	vec2 current_tex_coords = tex_coord0;
-	float current_depth_map_value = texture(displacement_sampler, tex_coord0).r;
-	vec3 view_dir = normalize(fs_in_tangent_positions.ubo_common.camera_pos.xyz - fs_in_tangent_positions.frag_pos);
-	vec2 p = view_dir.xy * 0.1;
-	vec2 delta_tex_coords = p / num_layers;
+*/
 
-	while (current_layer_depth < current_depth_map_value) {
-		current_tex_coords -= delta_tex_coords;
-		current_depth_map_value = texture(displacement_sampler, current_tex_coords).r;
-		current_layer_depth += layer_depth;
-	}
+vec3 FresnelSchlick(float cos_theta, vec3 f0) {
+	return f0 + (1.0 - f0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+}
 
-	return current_tex_coords;
-}*/
+float DistributionGGX(vec3 h) {
+	float a = roughness * roughness;
+	float a2 = a * a;
+	float n_dot_h = max(dot(sampled_normal, h), 0.0);
+	float n_dot_h2 = n_dot_h * n_dot_h;
+
+	float num = a2;
+	float denom = (n_dot_h2 * (a2 - 1.0) + 1.0);
+	denom = PI * denom * denom;
+
+	return num / denom;
+}
+
+float GeometrySchlickGGX(float n_dot_v) {
+	float r = (roughness + 1.0);
+	float k = (r * r) / 8.0;
+
+	return n_dot_v / (n_dot_v * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 v, vec3 l) {
+	float n_dot_v = max(dot(sampled_normal, v), 0.0);
+	float n_dot_l = max(dot(sampled_normal, l), 0.0);
+	float ggx2 = GeometrySchlickGGX(n_dot_v);
+	float ggx1 = GeometrySchlickGGX(n_dot_l);
+
+	return ggx2 * ggx1;
+}
+
+
+vec3 CalcPointLight(PointLight light, vec3 v) {
+	vec3 frag_to_light = light.pos.xyz - sampled_world_pos.xyz;
+
+	float distance = length(frag_to_light);
+	float attenuation = light.constant +
+		light.a_linear * distance +
+		light.exp * pow(distance, 2);
+
+	vec3 l = normalize(frag_to_light);
+	vec3 h = normalize(v + l);
+	vec3 f0 = vec3(0.04);
+	f0 = mix(f0, sampled_albedo.xyz, metallic);
+	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
+
+	float ndf = DistributionGGX(h);
+	float g = GeometrySmith(v, l);
+
+	vec3 num = ndf * g * f;
+	float denom = 4.0 * max(dot(sampled_normal, v), 0.0) * max(dot(sampled_normal, l), 0.0) + 0.0001;
+
+
+	vec3 kd = vec3(1.0) - f;
+	kd *= 1.0 - metallic;
+	vec3 specular = num / denom;
+
+	float n_dot_l = max(dot(sampled_normal, l), 0.0);
+
+
+	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation);
+
+}
+
+
+vec3 CalcDirectionalLight(vec3 v) {
+
+	vec3 l = ubo_global_lighting.directional_light.direction.xyz;
+	vec3 h = normalize(v + l);
+	vec3 f0 = vec3(0.04);
+	f0 = mix(f0, sampled_albedo.xyz, metallic);
+	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
+
+	float ndf = DistributionGGX(h);
+	float g = GeometrySmith(v, l);
+
+	vec3 num = ndf * g * f;
+	float denom = 4.0 * max(dot(sampled_normal, v), 0.0) * max(dot(sampled_normal, l), 0.0) + 0.0001;
+
+
+	vec3 kd = vec3(1.0) - f;
+	kd *= 1.0 - metallic;
+	vec3 specular = num / denom;
+
+	float n_dot_l = max(dot(sampled_normal, l), 0.0);
+	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * ubo_global_lighting.directional_light.base.color.xyz;
+}
+
 
 
 
@@ -339,33 +350,31 @@ void main()
 	vec2 adj_tex_coord = tex_coord; // USE PARALLAX ONCE FIXED
 
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
+	vec3 v = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
 
 	// Directional light
 	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz));
-	total_light += CalcPhongLight(ubo_global_lighting.directional_light.base.color.xyz, ubo_global_lighting.directional_light.base.diffuse_intensity, normalize(ubo_global_lighting.directional_light.direction.xyz), normalize(sampled_normal)) * (1.f - shadow);
+	total_light += CalcDirectionalLight(v) * (1.f - shadow);
 
 	// Ambient 
-	vec3 ambient_light = ubo_global_lighting.ambient_light.ambient_intensity * ubo_global_lighting.ambient_light.color.xyz * sampled_material.ambient_color.rgb;
+	vec3 ambient_light = ubo_global_lighting.ambient_light.ambient_intensity * ubo_global_lighting.ambient_light.color.xyz * sampled_albedo.xyz * ao;
 	total_light += ambient_light;
 
 
 	// Pointlights
 	for (int i = 0; i < point_lights.lights.length(); i++) {
-		float distance = length(point_lights.lights[i].pos.xyz - sampled_world_pos.xyz);
-		if (distance <= point_lights.lights[i].max_distance) {
-			total_light += (CalcPointLight(point_lights.lights[i], sampled_normal, distance, i));
-		}
+		total_light += (CalcPointLight(point_lights.lights[i], v));
 	}
 
 	// Spotlights
-	for (int i = 0; i < spot_lights.lights.length(); i++) {
+	/*for (int i = 0; i < spot_lights.lights.length(); i++) {
 		float distance = length(spot_lights.lights[i].pos.xyz - sampled_world_pos.xyz);
 		if (distance <= spot_lights.lights[i].max_distance) {
 			total_light += (CalcSpotLight(spot_lights.lights[i], sampled_normal, distance, i));
 		}
-	}
+	}*/
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
-	FragColor = vec4(light_color * sampled_albedo.xyz, 1);
+	FragColor = vec4(light_color, 1);
 };

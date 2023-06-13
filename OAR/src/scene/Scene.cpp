@@ -21,20 +21,12 @@ namespace ORNG {
 		m_mesh_instance_groups.reserve(20);
 		m_mesh_components.reserve(100);
 
-		/* Padding */
-		m_entities.push_back(nullptr);
-		m_mesh_components.push_back(nullptr);
-		m_spot_lights.push_back(nullptr);
-		m_point_lights.push_back(nullptr);
-		m_script_components.push_back(nullptr);
-		m_camera_components.push_back(nullptr);
 
 		Material* default_material = GetMaterial(CreateMaterial());
 		default_material->name = "Default";
-		default_material->diffuse_color = glm::vec3(1);
-		default_material->ambient_color = glm::vec3(1);
-		default_material->specular_color = glm::vec3(1);
-		default_material->diffuse_texture = CreateTexture2DAsset("./res/textures/missing_texture.jpeg");
+		default_material->base_color = glm::vec3(1);
+		default_material->base_color_texture = CreateTexture2DAsset("./res/textures/missing_texture.jpeg");
+
 	}
 
 
@@ -64,61 +56,58 @@ namespace ORNG {
 	}
 
 	CameraComponent* Scene::AddCameraComponent(unsigned long entity_id) {
-		if (m_camera_components[entity_id]) {
+		if (GetComponent<CameraComponent>(entity_id)) {
 			OAR_CORE_WARN("Camera component not added, entity '{0}' already has a camera component", m_entities[entity_id]->name);
 			return nullptr;
 		}
 
 		CameraComponent* comp = new CameraComponent(entity_id);
-		m_camera_components[comp->m_entity_handle] = comp;
+		m_camera_components.push_back(comp);
 		return comp;
 
 	}
 
 
 	PointLightComponent* Scene::AddPointLightComponent(unsigned long entity_id) {
-		if (m_point_lights[entity_id]) {
+		if (GetComponent<PointLightComponent>(entity_id)) {
 			OAR_CORE_WARN("Pointlight component not added, entity '{0}' already has a pointlight component", m_entities[entity_id]->name);
 			return nullptr;
 		}
 
 		PointLightComponent* comp = new PointLightComponent(entity_id);
-		m_point_lights[comp->m_entity_handle] = comp;
+		m_point_lights.push_back(comp);
 		return comp;
 	}
 
 	SpotLightComponent* Scene::AddSpotLightComponent(unsigned long entity_id) {
-		if (m_spot_lights[entity_id]) {
+		if (GetComponent<SpotLightComponent>(entity_id)) {
 			OAR_CORE_WARN("Spotlight component not added, entity '{0}' already has a spotlight component", m_entities[entity_id]->name);
 			return nullptr;
 		}
 		SpotLightComponent* comp = new SpotLightComponent(entity_id);
-		m_spot_lights[comp->m_entity_handle] = comp;
+		m_spot_lights.push_back(comp);
 		return comp;
 	}
 
 	ScriptComponent* Scene::AddScriptComponent(unsigned long entity_id) {
-		if (m_script_components[entity_id]) {
+		if (GetComponent<ScriptComponent>(entity_id)) {
 			OAR_CORE_WARN("Script component not added, entity '{0}' already has a script component", m_entities[entity_id]->name);
 			return nullptr;
 		}
-		m_script_components[entity_id] = new ScriptComponent(entity_id);
-		return m_script_components[entity_id];
+
+		auto* p_comp = new ScriptComponent(entity_id);
+		m_script_components.push_back(p_comp);
+		return p_comp;
 	}
 
 	MeshComponent* Scene::AddMeshComponent(unsigned long entity_id, const std::string& filename, unsigned int shader_id) {
 
 		// Currently any mesh components inside scene are auto-instanced and grouped together in MeshInstanceGroups, depending on shader, materials and asset
-
-		if (m_mesh_components[entity_id]) {
+		if (GetComponent<MeshComponent>(entity_id)) {
 			OAR_CORE_WARN("Mesh component not added, entity '{0}' already has a mesh component", m_entities[entity_id]->name);
 			return nullptr;
 		}
 
-		if (m_mesh_components[entity_id] != nullptr) {
-			OAR_CORE_CRITICAL("Component space already occupied, indexing misalignment");
-			BREAKPOINT;
-		}
 
 		MeshComponent* comp = new MeshComponent(entity_id);
 
@@ -136,7 +125,7 @@ namespace ORNG {
 		if (mesh_asset_index == -1) {
 
 			MeshAsset* mesh_data = CreateMeshAsset(filename);
-			auto group = new MeshInstanceGroup(mesh_data, comp->m_shader_id, this, comp->m_material_ids);
+			auto group = new MeshInstanceGroup(mesh_data, comp->m_shader_id, this, comp->m_materials);
 
 			m_mesh_instance_groups.push_back(group);
 			group->AddMeshPtr(comp);
@@ -145,9 +134,12 @@ namespace ORNG {
 			SortMeshIntoInstanceGroup(comp, m_mesh_assets[mesh_asset_index]);
 		}
 
-		m_mesh_components[comp->m_entity_handle] = comp;
-		return m_mesh_components[comp->m_entity_handle];
+		m_mesh_components.push_back(comp);
+		return comp;
 	}
+
+
+
 
 	Texture2D* Scene::LoadMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* p_material) {
 		Texture2D* p_tex = nullptr;
@@ -172,6 +164,16 @@ namespace ORNG {
 		return p_tex;
 	}
 
+
+
+	SceneEntity* Scene::GetEntity(unsigned long id) {
+		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetID() == id; });
+		return it == m_entities.end() ? nullptr : *it;
+	}
+
+
+
+
 	void Scene::LoadScene() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 		m_skybox.Init();
@@ -187,10 +189,12 @@ namespace ORNG {
 
 		Material* p_terrain_material = GetMaterial(CreateMaterial());
 		p_terrain_material->name = "Terrain";
-		p_terrain_material->diffuse_color = glm::vec3(1);
-		p_terrain_material->ambient_color = glm::vec3(1);
-		p_terrain_material->specular_color = glm::vec3(1);
-		p_terrain_material->diffuse_texture = GetMaterial(0)->diffuse_texture;
+		p_terrain_material->base_color = glm::vec3(1);
+		p_terrain_material->base_color_texture = GetMaterial(0)->base_color_texture;
+		p_terrain_material->roughness_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_roughness.png.");
+		p_terrain_material->ao_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_ao.png");
+		p_terrain_material->metallic_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_metallic.png");
+		p_terrain_material->displacement_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_height.png");
 		m_terrain.Init(p_terrain_material->material_id);
 
 		for (auto& mesh : m_mesh_assets) {
@@ -207,17 +211,13 @@ namespace ORNG {
 			}
 		}
 		for (auto& group : m_mesh_instance_groups) {
-			// Set material ID's of groups and meshes.
-			std::vector<unsigned int> asset_material_ids;
-
+			//Set materials
 			for (auto* p_material : group->m_mesh_asset->m_scene_materials) {
-				asset_material_ids.push_back(std::find(m_materials.begin(), m_materials.end(), p_material) - m_materials.begin());
+				group->m_materials.push_back(p_material);
 			}
 
-			group->m_material_ids = asset_material_ids;
-
 			for (auto* p_mesh : group->m_instances) {
-				p_mesh->m_material_ids = asset_material_ids;
+				p_mesh->m_materials = group->m_materials;
 			}
 			group->UpdateTransformSSBO();
 		}
@@ -271,7 +271,7 @@ namespace ORNG {
 			//if same data, shader and material, can be combined so instancing is possible
 			if (m_mesh_instance_groups[i]->m_mesh_asset == asset
 				&& m_mesh_instance_groups[i]->m_group_shader_id == comp->m_shader_id
-				&& m_mesh_instance_groups[i]->m_material_ids == comp->m_material_ids) {
+				&& m_mesh_instance_groups[i]->m_materials == comp->m_materials) {
 				group_index = i;
 				break;
 			}
@@ -283,7 +283,7 @@ namespace ORNG {
 			group->AddMeshPtr(comp);
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
-			MeshInstanceGroup* group = new MeshInstanceGroup(asset, comp->m_shader_id, this, comp->m_material_ids);
+			MeshInstanceGroup* group = new MeshInstanceGroup(asset, comp->m_shader_id, this, comp->m_materials);
 			m_mesh_instance_groups.push_back(group);
 			group->AddMeshPtr(comp);
 		}
@@ -294,13 +294,6 @@ namespace ORNG {
 		SceneEntity* ent = new SceneEntity(CreateEntityID(), this);
 		ent->name = name;
 		m_entities.push_back(ent);
-
-		/* Allocate space for components */
-		m_mesh_components.push_back(nullptr);
-		m_spot_lights.push_back(nullptr);
-		m_point_lights.push_back(nullptr);
-		m_script_components.push_back(nullptr);
-		m_camera_components.push_back(nullptr);
 
 		return *ent;
 
@@ -320,6 +313,10 @@ namespace ORNG {
 
 	Texture2D* Scene::CreateTexture2DAsset(const std::string& filename) {
 
+		static Texture2DSpec base_spec;
+		base_spec.mag_filter = GL_LINEAR;
+		base_spec.min_filter = GL_LINEAR;
+
 		for (auto& p_texture : m_texture_2d_assets) {
 			if (p_texture->m_spec.filepath == filename) {
 				OAR_CORE_WARN("Texture '{0}' already created", filename);
@@ -328,8 +325,11 @@ namespace ORNG {
 		}
 
 		Texture2D* p_tex = new Texture2D(filename.c_str());
-		p_tex->m_spec.filepath = filename;
+		base_spec.filepath = filename;
 		m_texture_2d_assets.push_back(p_tex);
+
+		p_tex->SetSpec(base_spec);
+		p_tex->LoadFromFile();
 		return p_tex;
 	}
 
@@ -396,35 +396,32 @@ namespace ORNG {
 			const aiMaterial* p_material = asset->p_scene->mMaterials[i];
 
 			// Load material textures
-			Texture2D* p_diffuse_texture = LoadMeshAssetTexture(dir, aiTextureType_DIFFUSE, p_material);
+			Texture2D* p_diffuse_texture = LoadMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
 			// Give the default diffuse texture if none is loaded with the material
-			asset->m_original_materials[i].diffuse_texture = p_diffuse_texture ? p_diffuse_texture : GetMaterial(0)->diffuse_texture;
+			asset->m_original_materials[i].base_color_texture = p_diffuse_texture ? p_diffuse_texture : GetMaterial(0)->base_color_texture;
 			asset->m_original_materials[i].normal_map_texture = LoadMeshAssetTexture(dir, aiTextureType_NORMALS, p_material);
-			asset->m_original_materials[i].specular_texture = LoadMeshAssetTexture(dir, aiTextureType_SHININESS, p_material);
+			asset->m_original_materials[i].roughness_texture = LoadMeshAssetTexture(dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
+			asset->m_original_materials[i].metallic_texture = LoadMeshAssetTexture(dir, aiTextureType_METALNESS, p_material);
+			asset->m_original_materials[i].ao_texture = LoadMeshAssetTexture(dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
 
-			// Load material colors 
-			aiColor3D ambient_color(0.0f, 0.0f, 0.0f);
-
-			if (p_material->Get(AI_MATKEY_COLOR_AMBIENT, ambient_color) == aiReturn_SUCCESS) {
-				asset->m_original_materials[i].ambient_color.r = ambient_color.r;
-				asset->m_original_materials[i].ambient_color.g = ambient_color.g;
-				asset->m_original_materials[i].ambient_color.b = ambient_color.b;
+			// Load material properties 
+			aiColor3D base_color(0.0f, 0.0f, 0.0f);
+			if (p_material->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
+				asset->m_original_materials[i].base_color.r = base_color.r;
+				asset->m_original_materials[i].base_color.g = base_color.g;
+				asset->m_original_materials[i].base_color.b = base_color.b;
 			}
 
-			aiColor3D diffuse_color(0.0f, 0.0f, 0.0f);
-
-			if (p_material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color) == aiReturn_SUCCESS) {
-				asset->m_original_materials[i].diffuse_color.r = diffuse_color.r;
-				asset->m_original_materials[i].diffuse_color.g = diffuse_color.g;
-				asset->m_original_materials[i].diffuse_color.b = diffuse_color.b;
+			float roughness;
+			if (p_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS) {
+				asset->m_original_materials[i].roughness = roughness;
 			}
 
-			aiColor3D specular_color(0.0f, 0.0f, 0.0f);
-			if (p_material->Get(AI_MATKEY_COLOR_SPECULAR, specular_color) == aiReturn_SUCCESS) {
-				asset->m_original_materials[i].specular_color.r = specular_color.r;
-				asset->m_original_materials[i].specular_color.g = specular_color.g;
-				asset->m_original_materials[i].specular_color.b = specular_color.b;
+			float metallic;
+			if (p_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == aiReturn_SUCCESS) {
+				asset->m_original_materials[i].roughness = metallic;
 			}
+
 
 			// Create material in scene so it can be used globally, and modified
 			unsigned int new_material_id = CreateMaterial();

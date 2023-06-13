@@ -64,6 +64,8 @@ namespace ORNG {
 		void IDrawTerrain();
 		void DrawSkybox();
 
+		void SetGBufferMaterial(const Material* p_mat);
+
 
 		std::vector<glm::mat4> m_light_space_matrices = { glm::mat4(1), glm::mat4(1), glm::mat4(1) };
 

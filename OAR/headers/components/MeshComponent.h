@@ -28,7 +28,7 @@ namespace ORNG {
 		void SetScale(const glm::vec3 transform);
 
 		void SetShaderID(unsigned int id);
-		void SetMaterialID(unsigned int index, unsigned int id);
+		void SetMaterialID(unsigned int index, const Material* p_material);
 		void SetMeshAsset(MeshAsset* p_asset);
 		inline void SetColor(const glm::vec3 t_color) { m_color = t_color; }
 
@@ -41,7 +41,7 @@ namespace ORNG {
 		void RequestTransformSSBOUpdate();
 
 		//ID's of materials associated with each submesh of the mesh asset
-		std::vector<unsigned int> m_material_ids;
+		std::vector<const Material*> m_materials;
 
 		unsigned int m_shader_id = 1; // 1 = lighting (default shader)
 		bool m_transform_update_flag = false;

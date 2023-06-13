@@ -1,4 +1,13 @@
-UNDATED:
+13/6/23:
+-Moved from blinn-phong shading to PBR pipeline
+-Parallax mapping with displacement maps
+-Safe automatic texture loading
+-Material editing UI improvements, basic drag and drop
+-Removed stacking components for entities, space only given to active components, none reserved
+-Material id's swapped for pointers in mesh comps and instance groups
+-Other minor refactoring
+
+10/6/23:
 -Custom editor camera 
 -Camera component added
 -Window resize events with framebuffer connections

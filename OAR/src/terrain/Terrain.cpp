@@ -28,7 +28,7 @@ namespace ORNG {
 		spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 		spec.mag_filter = GL_LINEAR;
 		spec.generate_mipmaps = true;
-		spec.filepaths = { "./res/textures/terrain/coast_sand_rocks_02_diff_2k.jpg", "./res/textures/terrain/aerial_rocks_02_diff_2k.jpg" };
+		spec.filepaths = { "./res/textures/rock/strata-rock1_albedo.png", "./res/textures/rock/strata-rock1_albedo.png", };
 		spec.storage_type = GL_UNSIGNED_BYTE;
 
 		Texture2DArraySpec normal_spec;
@@ -39,7 +39,7 @@ namespace ORNG {
 		normal_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 		normal_spec.mag_filter = GL_LINEAR;
 		normal_spec.generate_mipmaps = true;
-		normal_spec.filepaths = { "./res/textures/terrain/coast_sand_rocks_02_nor_gl_2k.jpg", "./res/textures/terrain/aerial_rocks_02_nor_gl_2k.jpg" };
+		normal_spec.filepaths = { "./res/textures/rock/strata-rock1_normal-ogl.png", "./res/textures/rock/strata-rock1_normal-ogl.png" };
 		normal_spec.storage_type = GL_UNSIGNED_BYTE;
 
 		m_diffuse_texture_array.SetSpec(spec);

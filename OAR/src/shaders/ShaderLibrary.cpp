@@ -89,31 +89,20 @@ namespace ORNG {
 
 	void ShaderLibrary::UpdateMaterialUBO(const std::vector<Material*>& materials) { //SHOULDNT BE A UBO
 
-		constexpr int material_size_floats = 16;
+		constexpr int material_size_floats = 8;
 		std::array<float, Renderer::max_materials* material_size_floats> material_arr = { 0 };
 		unsigned int index = 0;
 
 		for (const auto* material : materials) {
-			material_arr[index++] = material->ambient_color.x;
-			material_arr[index++] = material->ambient_color.y;
-			material_arr[index++] = material->ambient_color.z;
-			material_arr[index++] = 0; //padding
+			material_arr[index++] = material->base_color.x;
+			material_arr[index++] = material->base_color.y;
+			material_arr[index++] = material->base_color.z;
+			material_arr[index++] = material->metallic;
 
-			material_arr[index++] = material->diffuse_color.x;
-			material_arr[index++] = material->diffuse_color.y;
-			material_arr[index++] = material->diffuse_color.z;
-			material_arr[index++] = 0; //padding
-
-			material_arr[index++] = material->specular_color.x;
-			material_arr[index++] = material->specular_color.y;
-			material_arr[index++] = material->specular_color.z;
-			material_arr[index++] = 0; //padding
-
-			material_arr[index++] = material->normal_map_texture == nullptr ? 0 : 1; //if material is using normal maps
+			material_arr[index++] = material->roughness;
+			material_arr[index++] = material->ao;
 			material_arr[index++] = 0; //padding
 			material_arr[index++] = 0; //padding
-			material_arr[index++] = 0; //padding
-
 		}
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_material_ubo);
@@ -149,20 +138,11 @@ namespace ORNG {
 
 		std::vector<float> light_array;
 
-		std::vector<PointLightComponent*> active_lights;
+		light_array.resize(p_lights.size() * point_light_fs_num_float);
 
-		active_lights.reserve(p_lights.size());
+		for (int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
 
-		for (auto* light : p_lights) {
-			if (light)
-				active_lights.push_back(light);
-		}
-
-		light_array.resize(active_lights.size() * point_light_fs_num_float);
-
-		for (int i = 0; i < active_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
-
-			auto& light = active_lights[i / point_light_fs_num_float];
+			auto& light = p_lights[i / point_light_fs_num_float];
 
 			//0 - START COLOR
 			auto color = light->color;
@@ -201,21 +181,12 @@ namespace ORNG {
 		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
 		std::vector<float> light_array;
 
-		std::vector<SpotLightComponent*> active_lights;
-
-		active_lights.reserve(s_lights.size());
-
-		for (auto* light : s_lights) {
-			if (light)
-				active_lights.push_back(light);
-		}
-
-		light_array.resize(active_lights.size() * spot_light_fs_num_float);
+		light_array.resize(s_lights.size() * spot_light_fs_num_float);
 
 
-		for (int i = 0; i < active_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
+		for (int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
 
-			auto& light = active_lights[i / spot_light_fs_num_float];
+			auto& light = s_lights[i / spot_light_fs_num_float];
 			//0 - START COLOR
 			auto color = light->color;
 			light_array[i] = color.x;

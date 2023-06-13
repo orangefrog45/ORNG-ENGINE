@@ -28,7 +28,7 @@ namespace ORNG {
 		unsigned int m_width = 10000;
 		unsigned int m_resolution = 16;
 		unsigned int m_seed = 123;
-		float m_height_scale = 3.5;
+		float m_height_scale = 1.5f;
 	};
 
 }

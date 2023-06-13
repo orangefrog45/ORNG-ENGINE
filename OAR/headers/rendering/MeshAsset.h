@@ -26,6 +26,7 @@ namespace ORNG {
 
 		bool LoadMeshData();
 
+
 		std::string GetFilename() const { return m_filename; };
 
 		bool GetLoadStatus() const { return is_loaded; };

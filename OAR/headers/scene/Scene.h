@@ -60,19 +60,24 @@ namespace ORNG {
 		T* GetComponent(unsigned long entity_id) {
 
 			if constexpr (std::is_same<T, MeshComponent>::value) {
-				return m_mesh_components[entity_id];
+				auto it = std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
+				return it == m_mesh_components.end() ? nullptr : *it;
 			}
 			else if constexpr (std::is_same<T, PointLightComponent>::value) {
-				return m_point_lights[entity_id];
+				auto it = std::find_if(m_point_lights.begin(), m_point_lights.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
+				return it == m_point_lights.end() ? nullptr : *it;
 			}
 			else if constexpr (std::is_same<T, SpotLightComponent>::value) {
-				return m_spot_lights[entity_id];
+				auto it = std::find_if(m_spot_lights.begin(), m_spot_lights.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
+				return it == m_spot_lights.end() ? nullptr : *it;
 			}
 			else if constexpr (std::is_same<T, ScriptComponent>::value) {
-				return m_script_components[entity_id];
+				auto it = std::find_if(m_script_components.begin(), m_script_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
+				return it == m_script_components.end() ? nullptr : *it;
 			}
 			else if constexpr (std::is_same<T, CameraComponent>::value) {
-				return m_camera_components[entity_id];
+				auto it = std::find_if(m_camera_components.begin(), m_camera_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
+				return it == m_camera_components.end() ? nullptr : *it;
 			}
 		}
 
@@ -136,8 +141,7 @@ namespace ORNG {
 
 		}
 
-		inline SceneEntity* GetEntity(unsigned long id) { return m_entities[id]; }
-
+		SceneEntity* GetEntity(unsigned long id);
 
 		[[nodiscard]] unsigned long CreateEntityID() {
 			return m_last_entity_id++;

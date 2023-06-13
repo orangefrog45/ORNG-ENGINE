@@ -12,8 +12,8 @@ namespace ORNG {
 		friend class MeshComponent;
 		friend class Scene;
 		friend class SceneRenderer;
-		MeshInstanceGroup(MeshAsset* t_mesh_data, unsigned int shader_id, Scene* scene, const std::vector<unsigned int>& material_ids) :
-			m_mesh_asset(t_mesh_data), m_group_shader_id(shader_id), mp_scene(scene), m_material_ids(material_ids), m_transform_ssbo_handle(t_mesh_data->m_vao.GenTransformSSBO()) {};
+		MeshInstanceGroup(MeshAsset* t_mesh_data, unsigned int shader_id, Scene* scene, const std::vector<const Material*>& material_ids) :
+			m_mesh_asset(t_mesh_data), m_group_shader_id(shader_id), mp_scene(scene), m_materials(material_ids), m_transform_ssbo_handle(t_mesh_data->m_vao.GenTransformSSBO()) {};
 		~MeshInstanceGroup() {
 			glDeleteBuffers(1, &m_transform_ssbo_handle);
 		}
@@ -38,7 +38,7 @@ namespace ORNG {
 		auto GetMeshData() const { return m_mesh_asset; }
 		auto GetShaderID() const { return m_group_shader_id; }
 		unsigned int GetInstanceCount() const { return m_instances.size(); }
-		const std::vector<unsigned int>& GetMaterialIDs() const { return m_material_ids; }
+		const std::vector<const Material*>& GetMaterialIDs() const { return m_materials; }
 
 
 	private:
@@ -53,7 +53,7 @@ namespace ORNG {
 
 		std::vector< MeshComponent*> m_instances;
 		//ID's of materials associated with each submesh of the mesh asset
-		std::vector<unsigned int> m_material_ids;
+		std::vector<const Material*> m_materials;
 
 		Scene* mp_scene = nullptr;
 		MeshAsset* m_mesh_asset;

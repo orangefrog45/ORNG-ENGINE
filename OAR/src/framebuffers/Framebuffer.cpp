@@ -86,11 +86,9 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-
-
 		Texture2D* tex = new Texture2D(name.c_str());
 
-		if (!tex->ValidateSpec(spec)) {
+		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
 			OAR_CORE_ERROR("Failed adding 2D texture to framebuffer '{0}', invalid spec", m_name);
 			BREAKPOINT;
 		}
@@ -133,7 +131,7 @@ namespace ORNG {
 
 		TextureCubemap* tex = new TextureCubemap(name.c_str());
 
-		if (!tex->ValidateSpec(spec)) {
+		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
 			OAR_CORE_ERROR("Failed adding cubemap texture to framebuffer '{0}', invalid spec", m_name);
 			BREAKPOINT;
 
@@ -156,7 +154,7 @@ namespace ORNG {
 
 		Texture2DArray* tex = new Texture2DArray(name.c_str());
 
-		if (!tex->ValidateSpec(spec)) {
+		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
 			OAR_CORE_ERROR("Failed adding 2D texture array to framebuffer '{0}', invalid spec", m_name);
 			BREAKPOINT;
 

@@ -9,7 +9,7 @@ namespace ORNG {
 
 	bool Texture2D::LoadFromFile() {
 
-		if (!ValidateSpec(m_spec) || m_spec.filepath.empty()) {
+		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
 			OAR_CORE_ERROR("2D Texture failed loading: Invalid spec");
 			return false;
 		}
@@ -42,7 +42,20 @@ namespace ORNG {
 			}
 
 			GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
-			glTexImage2D(m_texture_target, 0, m_spec.internal_format, width, height, 0, m_spec.format, m_spec.storage_type, image_data);
+			switch (bpp) {
+			case 1:
+				glTexImage2D(m_texture_target, 0, GL_R8, width, height, 0, GL_RED, m_spec.storage_type, image_data);
+				break;
+			case 2:
+				glTexImage2D(m_texture_target, 0, GL_RG8, width, height, 0, GL_RG, m_spec.storage_type, image_data);
+				break;
+			case 3:
+				glTexImage2D(m_texture_target, 0, GL_RGB8, width, height, 0, GL_RGB, m_spec.storage_type, image_data);
+				break;
+			case 4:
+				glTexImage2D(m_texture_target, 0, GL_RGBA8, width, height, 0, GL_RGBA, m_spec.storage_type, image_data);
+				break;
+			}
 			stbi_image_free(image_data);
 		}
 
@@ -63,7 +76,7 @@ namespace ORNG {
 
 	bool Texture2DArray::LoadFromFile() {
 
-		if (!ValidateSpec(m_spec) || m_spec.filepaths.empty()) {
+		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepaths.empty()) {
 			OAR_CORE_ERROR("Texture2DArray failed loading: Invalid spec");
 			return false;
 		}
@@ -120,7 +133,7 @@ namespace ORNG {
 
 	bool TextureCubemap::LoadFromFile() {
 
-		if (!ValidateSpec(m_spec) || m_spec.filepaths.size() != 6) {
+		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepaths.size() != 6) {
 			OAR_CORE_ERROR("TextureCubemap failed to load, invalid spec");
 			return false;
 		}
@@ -166,7 +179,7 @@ namespace ORNG {
 
 
 	bool Texture2D::SetSpec(const Texture2DSpec& spec) {
-		if (ValidateSpec(spec)) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_texture_obj, GL_TEXTURE0, true);
 
@@ -176,7 +189,8 @@ namespace ORNG {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_mode);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_mode);
 
-			glTexImage2D(GL_TEXTURE_2D, 0, m_spec.internal_format, spec.width, spec.height, 0, m_spec.format, m_spec.storage_type, nullptr);
+			if (m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE)
+				glTexImage2D(GL_TEXTURE_2D, 0, m_spec.internal_format, spec.width, spec.height, 0, m_spec.format, m_spec.storage_type, nullptr);
 
 			return true;
 		}
@@ -187,7 +201,7 @@ namespace ORNG {
 	}
 
 	bool Texture2DArray::SetSpec(const Texture2DArraySpec& spec) {
-		if (ValidateSpec(spec)) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_texture_obj, GL_TEXTURE0, true);
 
@@ -197,7 +211,9 @@ namespace ORNG {
 			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, wrap_mode);
 			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, wrap_mode);
 
-			glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, m_spec.internal_format, m_spec.width, m_spec.height, m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
+			if (m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE)
+				glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, m_spec.internal_format, m_spec.width, m_spec.height, m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
+
 			return true;
 		}
 		else {
@@ -207,7 +223,7 @@ namespace ORNG {
 	}
 
 	bool Texture3D::SetSpec(const Texture3DSpec& spec) {
-		if (ValidateSpec(spec)) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_3D, m_texture_obj, GL_TEXTURE0, true);
 
@@ -218,7 +234,9 @@ namespace ORNG {
 			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, wrap_mode);
 			glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, wrap_mode);
 
-			glTexImage3D(GL_TEXTURE_3D, 0, m_spec.internal_format, m_spec.width, m_spec.height, m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
+			if (m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE)
+				glTexImage3D(GL_TEXTURE_3D, 0, m_spec.internal_format, m_spec.width, m_spec.height, m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
+
 			return true;
 		}
 		else {
@@ -229,10 +247,13 @@ namespace ORNG {
 
 
 	bool TextureCubemap::SetSpec(const TextureCubemapSpec& spec) {
-		if (ValidateSpec(spec)) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
+			ASSERT(m_spec.filepaths.size() == 6);
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, m_texture_obj, GL_TEXTURE0, true);
 
+
+			ASSERT(m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE);
 
 			for (unsigned int i = 0; i < 6; i++) {
 				glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, spec.internal_format, spec.width, spec.height, 0, spec.format, spec.storage_type, nullptr);

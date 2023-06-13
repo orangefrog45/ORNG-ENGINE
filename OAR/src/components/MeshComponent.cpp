@@ -56,8 +56,8 @@ namespace ORNG {
 			mp_instance_group->ResortMesh(this);
 	}
 
-	void MeshComponent::SetMaterialID(unsigned int index, unsigned int id) {
-		m_material_ids[index] = id;
+	void MeshComponent::SetMaterialID(unsigned int index, const Material* p_material) {
+		m_materials[index] = p_material;
 		if (mp_mesh_asset)
 			mp_instance_group->ResortMesh(this);
 	}

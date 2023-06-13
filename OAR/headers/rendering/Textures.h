@@ -8,53 +8,6 @@ namespace ORNG {
 	class Texture3DSpec;
 	class Texture2DArraySpec;
 	class TextureCubemapSpec;
-	class TextureBaseSpec;
-
-	class TextureBase {
-	public:
-		friend class Framebuffer;
-		TextureBase() = delete;
-		virtual ~TextureBase() { Unload(); };
-
-		void Unload() { glDeleteTextures(1, &m_texture_obj); };
-
-		template <std::derived_from<TextureBaseSpec> T>
-		bool ValidateSpec(const T& spec) {
-
-			if ((m_texture_target == GL_TEXTURE_2D && !std::is_same<T, Texture2DSpec>::value) ||
-				(m_texture_target == GL_TEXTURE_3D && !std::is_same<T, Texture3DSpec>::value) ||
-				(m_texture_target == GL_TEXTURE_2D_ARRAY && !std::is_same<T, Texture2DArraySpec>::value) ||
-				(m_texture_target == GL_TEXTURE_CUBE_MAP && !std::is_same<T, TextureCubemapSpec>::value))
-			{
-				OAR_CORE_ERROR("Texture '{0}' failed validating spec: Invalid spec type", m_name);
-				return false;
-			}
-
-			if (spec.width == 1 || spec.height == 1)
-			{
-				OAR_CORE_TRACE("Texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
-			}
-
-			if (spec.internal_format == GL_NONE || spec.format == GL_NONE)
-			{
-				OAR_CORE_ERROR("Texture '{0}' failed validating spec: Invalid spec", m_name);
-				return false;
-			}
-			else
-			{
-				return true;
-			}
-		};
-
-		unsigned int GetTextureHandle() const { return m_texture_obj; }
-
-	protected:
-		TextureBase(unsigned int texture_target, const char* name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); };
-		unsigned int m_texture_target = 0;
-		unsigned int m_texture_obj = 0;
-		const char* m_name = "Unnamed texture";
-
-	};
 
 	struct TextureBaseSpec {
 
@@ -68,6 +21,43 @@ namespace ORNG {
 		GLenum wrap_params = GL_REPEAT;
 		GLenum storage_type = GL_UNSIGNED_BYTE;
 		bool generate_mipmaps = false;
+
+	};
+	class TextureBase {
+
+	public:
+		friend class Framebuffer;
+		TextureBase() = delete;
+		virtual ~TextureBase() { Unload(); };
+
+		void Unload() { glDeleteTextures(1, &m_texture_obj); };
+
+		unsigned int GetTextureHandle() const { return m_texture_obj; }
+
+		bool ValidateBaseSpec(const TextureBaseSpec* spec, bool is_framebuffer_texture = false) {
+
+
+			if (spec->width == 1 || spec->height == 1)
+			{
+				OAR_CORE_TRACE("Texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
+			}
+
+			if (spec->internal_format == GL_NONE || spec->format == GL_NONE)
+			{
+				OAR_CORE_WARN("Texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
+
+				if (is_framebuffer_texture)
+					return false;
+			}
+
+
+			return true;
+		}
+	protected:
+		TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); };
+		unsigned int m_texture_target = 0;
+		unsigned int m_texture_obj = 0;
+		std::string m_name = "Unnamed texture";
 
 	};
 
@@ -90,7 +80,7 @@ namespace ORNG {
 	public:
 		friend class EditorLayer;
 		friend class Scene;
-		Texture3D(const char* name) : TextureBase(GL_TEXTURE_3D, name) {};
+		Texture3D(const std::string& name) : TextureBase(GL_TEXTURE_3D, name) {};
 
 		bool SetSpec(const Texture3DSpec& spec);
 		const Texture3DSpec& GetSpec() const { return m_spec; }
@@ -104,7 +94,8 @@ namespace ORNG {
 	public:
 		friend class EditorLayer;
 		friend class Scene;
-		Texture2D(const char* name) : TextureBase(GL_TEXTURE_2D, name) {};
+		friend class ImGuiLib;
+		Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
 
 		bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();
@@ -119,7 +110,7 @@ namespace ORNG {
 
 	class Texture2DArray : public TextureBase {
 	public:
-		Texture2DArray(const char* name) : TextureBase(GL_TEXTURE_2D_ARRAY, name) {};
+		Texture2DArray(const std::string& name) : TextureBase(GL_TEXTURE_2D_ARRAY, name) {};
 		bool LoadFromFile();
 
 		bool SetSpec(const Texture2DArraySpec& spec);

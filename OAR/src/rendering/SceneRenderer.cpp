@@ -25,26 +25,18 @@ namespace ORNG {
 		m_gbuffer_shader->AddUniforms(std::vector<std::string> {
 			"u_terrain_mode",
 				"u_skybox_mode",
-				"diffuse_sampler",
-				"specular_sampler",
-				"specular_sampler_active",
-				"normal_map_sampler",
+				"u_roughness_sampler_active",
+				"u_metallic_sampler_active",
 				"u_normal_sampler_active",
-				"diffuse_array_sampler",
-				"displacement_sampler",
-				"normal_array_sampler",
+				"u_ao_sampler_active",
+				"u_displacement_sampler_active",
+				"u_num_parallax_layers",
+				"u_parallax_height_scale",
 				"u_material_id",
 				"u_shader_id",
 		});
 
 
-
-		m_gbuffer_shader->SetUniform("diffuse_sampler", GL_StateManager::TextureUnitIndexes::COLOR);
-		m_gbuffer_shader->SetUniform("specular_sampler", GL_StateManager::TextureUnitIndexes::SPECULAR);
-		m_gbuffer_shader->SetUniform("normal_map_sampler", GL_StateManager::TextureUnitIndexes::NORMAL_MAP);
-		m_gbuffer_shader->SetUniform("diffuse_array_sampler", GL_StateManager::TextureUnitIndexes::DIFFUSE_ARRAY);
-		m_gbuffer_shader->SetUniform("normal_array_sampler", GL_StateManager::TextureUnitIndexes::NORMAL_ARRAY);
-		m_gbuffer_shader->SetUniform("displacement_sampler", GL_StateManager::TextureUnitIndexes::DISPLACEMENT);
 
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting");
 		m_lighting_shader->m_shader_id = ShaderLibrary::LIGHTING_SHADER_ID;
@@ -53,18 +45,6 @@ namespace ORNG {
 		m_lighting_shader->Init();
 		m_lighting_shader->AddUniforms({
 			"u_terrain_mode",
-
-			"u_material.ambient_color",
-			"u_material.diffuse_color",
-			"u_material.specular_color",
-
-			"spot_depth_sampler",
-			"dir_depth_sampler",
-			"point_depth_sampler",
-			"albedo_sampler",
-			"world_position_sampler",
-			"normal_sampler",
-			"shader_material_id_sampler",
 
 			"u_num_point_lights",
 			"u_num_spot_lights",
@@ -156,8 +136,8 @@ namespace ORNG {
 		m_gbuffer_fb = &mp_framebuffer_library->CreateFramebuffer("gbuffer", true);
 
 		Texture2DSpec gbuffer_spec_1;
-		gbuffer_spec_1.format = GL_RGBA;
-		gbuffer_spec_1.internal_format = GL_RGBA32F;
+		gbuffer_spec_1.format = GL_RGB;
+		gbuffer_spec_1.internal_format = GL_RGB32F;
 		gbuffer_spec_1.storage_type = GL_FLOAT;
 		gbuffer_spec_1.width = Window::GetWidth();
 		gbuffer_spec_1.height = Window::GetHeight();
@@ -169,6 +149,14 @@ namespace ORNG {
 		gbuffer_spec_2.width = Window::GetWidth();
 		gbuffer_spec_2.height = Window::GetHeight();
 
+		Texture2DSpec roughness_metallic_ao_spec;
+		roughness_metallic_ao_spec.format = GL_RGB;
+		roughness_metallic_ao_spec.internal_format = GL_RGB16F;
+		roughness_metallic_ao_spec.storage_type = GL_FLOAT;
+		roughness_metallic_ao_spec.width = Window::GetWidth();
+		roughness_metallic_ao_spec.height = Window::GetHeight();
+
+
 
 		Texture2DSpec gbuffer_depth_spec;
 		gbuffer_depth_spec.format = GL_DEPTH_COMPONENT;
@@ -179,8 +167,8 @@ namespace ORNG {
 
 		m_gbuffer_fb->Add2DTexture("world_positions", GL_COLOR_ATTACHMENT0, gbuffer_spec_1);
 		m_gbuffer_fb->Add2DTexture("normals", GL_COLOR_ATTACHMENT1, gbuffer_spec_1);
-		m_gbuffer_fb->Add2DTexture("albedo", GL_COLOR_ATTACHMENT2, gbuffer_spec_1);
-		m_gbuffer_fb->Add2DTexture("tangents", GL_COLOR_ATTACHMENT3, gbuffer_spec_1);
+		m_gbuffer_fb->Add2DTexture("albedo", GL_COLOR_ATTACHMENT2, roughness_metallic_ao_spec);
+		m_gbuffer_fb->Add2DTexture("roughness_metallic_ao", GL_COLOR_ATTACHMENT3, roughness_metallic_ao_spec);
 		m_gbuffer_fb->Add2DTexture("material_ids", GL_COLOR_ATTACHMENT4, gbuffer_spec_2);
 		m_gbuffer_fb->Add2DTexture("shared_depth", GL_DEPTH_ATTACHMENT, gbuffer_depth_spec);
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
@@ -308,6 +296,59 @@ namespace ORNG {
 	}
 
 
+
+	void SceneRenderer::SetGBufferMaterial(const Material* p_material) {
+		if (p_material->base_color_texture != nullptr) {
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
+		}
+
+		if (p_material->roughness_texture == nullptr) {
+			m_gbuffer_shader->SetUniform("u_roughness_sampler_active", 0);
+		}
+		else {
+			m_gbuffer_shader->SetUniform("u_roughness_sampler_active", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->roughness_texture->GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS, false);
+		}
+
+		if (p_material->metallic_texture == nullptr) {
+			m_gbuffer_shader->SetUniform("u_metallic_sampler_active", 0);
+		}
+		else {
+			m_gbuffer_shader->SetUniform("u_metallic_sampler_active", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->metallic_texture->GetTextureHandle(), GL_StateManager::TextureUnits::METALLIC, false);
+		}
+
+		if (p_material->ao_texture == nullptr) {
+			m_gbuffer_shader->SetUniform("u_ao_sampler_active", 0);
+		}
+		else {
+			m_gbuffer_shader->SetUniform("u_ao_sampler_active", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->ao_texture->GetTextureHandle(), GL_StateManager::TextureUnits::AO, false);
+		}
+
+		if (p_material->normal_map_texture == nullptr) {
+			m_gbuffer_shader->SetUniform("u_normal_sampler_active", 0);
+		}
+		else {
+			m_gbuffer_shader->SetUniform("u_normal_sampler_active", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->normal_map_texture->GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
+		}
+
+		if (p_material->displacement_texture == nullptr) {
+			m_gbuffer_shader->SetUniform("u_displacement_sampler_active", 0);
+		}
+		else {
+			m_gbuffer_shader->SetUniform("u_parallax_height_scale", p_material->parallax_height_scale);
+			m_gbuffer_shader->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
+			m_gbuffer_shader->SetUniform("u_displacement_sampler_active", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT, false);
+		}
+		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", p_material->material_id);
+	}
+
+
+
+
 	void SceneRenderer::IDoGBufferPass() {
 
 		m_gbuffer_fb->Bind();
@@ -326,28 +367,8 @@ namespace ORNG {
 
 				unsigned int material_id = group->m_mesh_asset->m_scene_materials[group->m_mesh_asset->m_submeshes[i].material_index]->material_id;
 				const Material* p_material = mp_scene->GetMaterial(material_id);
+				SetGBufferMaterial(p_material);
 
-				if (p_material->diffuse_texture != nullptr) {
-					GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->diffuse_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
-				}
-
-				if (p_material->specular_texture == nullptr) {
-					m_gbuffer_shader->SetUniform("specular_sampler_active", 0);
-				}
-				else {
-					m_gbuffer_shader->SetUniform("specular_sampler_active", 1);
-					GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->specular_texture->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR, false);
-				}
-
-				if (p_material->normal_map_texture == nullptr) {
-					m_gbuffer_shader->SetUniform("u_normal_sampler_active", 0);
-				}
-				else {
-					m_gbuffer_shader->SetUniform("u_normal_sampler_active", 1);
-					GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->normal_map_texture->GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
-				}
-
-				m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", material_id);
 				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
 			}
 		}
@@ -358,6 +379,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, mp_scene->m_terrain.m_normal_texture_array.GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_ARRAY, false);
 
 		/* uniforms */
+		SetGBufferMaterial(mp_scene->GetMaterial(mp_scene->m_terrain.m_material_id));
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 1);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", mp_scene->m_terrain.m_material_id);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->m_shader_id);
@@ -543,6 +565,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("albedo").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("normals").GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("material_ids").GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_MATERIAL_IDS, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("roughness_metallic_ao").GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
 
 		m_lighting_fb->Bind();
 		GL_StateManager::DefaultClearBits();

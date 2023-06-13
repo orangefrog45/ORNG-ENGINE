@@ -90,7 +90,7 @@ namespace ORNG {
 		auto& entity4 = m_active_scene->CreateEntity("cam");
 		entity4.AddComponent<CameraComponent>();
 		auto mesh = entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
-		auto mesh2 = entity2.AddComponent<MeshComponent>("./res/meshes/house-draft/source/house.fbx");
+		auto mesh2 = entity2.AddComponent<MeshComponent>("./res/meshes/DUCK/rubber_duck_toy_2k.fbx");
 
 		auto mesh3 = entity3.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
 		auto script = entity.AddComponent<ScriptComponent>();
@@ -135,15 +135,15 @@ namespace ORNG {
 
 		/*for (int x = -width / 2.f; x < width / 2.f; x++) {
 			for (int z = -width / 2.f; z < width / 2.f; z++) {
-				constexpr int spacing = 500;
+				constexpr int spacing = 50;
 				auto& ent = m_active_scene->CreateEntity();
 				auto m = ent.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
 				auto s = ent.AddComponent<ScriptComponent>();
 				auto* pl = ent.AddComponent<PointLightComponent>();
 				pl->max_distance = 100.f;
-				pl->attenuation.constant = 0.05f;
-				pl->attenuation.linear = 0.0f;
-				pl->attenuation.exp = 0.0001f;
+				pl->attenuation.constant = 1.0f;
+				pl->attenuation.linear = 0.007f;
+				pl->attenuation.exp = 0.0002f;
 				pl->transform.SetPosition(x * spacing, 50.f, z * spacing);
 				pl->color = glm::normalize(glm::vec3(rand() % 255, rand() % 255, rand() % 255));
 				m->SetPosition(x * spacing, 50.f, z * spacing);
@@ -285,7 +285,7 @@ namespace ORNG {
 		if (!current_entity)
 			return;
 
-		auto* meshc = m_active_scene->GetEntity(m_selected_entity_id)->GetComponent<MeshComponent>();
+		MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
 
 		if (!meshc)
 			return;
@@ -355,21 +355,13 @@ namespace ORNG {
 
 	void EditorLayer::ShowAssetManager() {
 
-		constexpr int asset_window_width = 1600;
-		constexpr int asset_window_height = 400;
-		constexpr int num_table_columns = 4;
-		constexpr int child_section_width = asset_window_width * 0.95;
-		constexpr int child_section_height = asset_window_height * 0.95;
-		constexpr int table_outer_size = 200;
-		constexpr ImVec4 edit_button_color = ImVec4(0, 0.2, 0.8, 0.5);
-		constexpr float dummy_spacing_size_vertical = 20.f;
 
 		static std::string error_message = "";
 		static std::string path = "./res/meshes";
 		static std::string entry_name = "";
 
 
-		ImGui::SetNextWindowSize(ImVec2(asset_window_width, asset_window_height));
+		ImGui::SetNextWindowSize(ImVec2(ImGuiLib::asset_window_width, ImGuiLib::asset_window_height));
 		ImGui::Begin("Assets");
 		ImGui::BeginTabBar("Selection");
 		ImGui::GetStyle().CellPadding = ImVec2(11.f, 15.f);
@@ -404,7 +396,7 @@ namespace ORNG {
 			} // END MESH FILE EXPLORER
 
 
-			if (ImGui::BeginTable("Meshes", num_table_columns, ImGuiTableFlags_Borders)) // MESH VIEWING TABLE
+			if (ImGui::BeginTable("Meshes", ImGuiLib::num_table_columns, ImGuiTableFlags_Borders)) // MESH VIEWING TABLE
 			{
 				for (auto& data : m_active_scene->m_mesh_assets)
 				{
@@ -438,6 +430,9 @@ namespace ORNG {
 		static Texture2D* p_selected_texture = nullptr;
 		static Texture2DSpec current_spec;
 
+		static Texture2D* p_dragged_texture = nullptr;
+
+
 		if (p_selected_texture) { // TEXTURE EDITOR
 			bool window_visible_flag = true;
 			ImGui::Begin("Texture Editor");
@@ -460,7 +455,7 @@ namespace ORNG {
 				ImGui::TextColored(ImVec4(1, 0, 0, 1), error_message.c_str());
 
 				static std::string file_extension = "";
-				static std::vector<std::string> valid_filepaths = { ".PNG", ".JPG", ".JPEG" };
+				static std::vector<std::string> valid_filepaths = { ".PNG", ".JPG", ".JPEG", ".TIF" };
 
 				//setting up file explorer callbacks
 				static std::function<void()> success_callback = [this] {
@@ -481,21 +476,26 @@ namespace ORNG {
 			if (ImGui::TreeNode("Texture viewer")) // TEXTURE VIEWING TREE NODE
 			{
 
-				if (ImGui::BeginChild("##Texture viewing section", ImVec2(child_section_width, child_section_height))) {
+				if (ImGui::BeginChild("##Texture viewing section", ImVec2(ImGuiLib::child_section_width, ImGuiLib::child_section_height))) {
 					// Create table for textures 
-					if (ImGui::BeginTable("Textures", num_table_columns, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX)); // TEXTURE VIEWING TABLE
+					if (ImGui::BeginTable("Textures", ImGuiLib::num_table_columns, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX)); // TEXTURE VIEWING TABLE
 					{
 						// Push textures into table 
-						for (auto& p_texture : m_active_scene->m_texture_2d_assets)
+						for (auto* p_texture : m_active_scene->m_texture_2d_assets)
 						{
 							ImGui::PushID(p_texture);
 							ImGui::TableNextColumn();
 
-
-							if (ImGui::ImageButton(ImTextureID(p_texture->GetTextureHandle()), ImVec2(table_outer_size, table_outer_size))) {
+							if (ImGui::ImageButton(ImTextureID(p_texture->GetTextureHandle()), ImVec2(ImGuiLib::table_outer_size, ImGuiLib::table_outer_size))) {
 								p_selected_texture = p_texture;
 								current_spec = p_selected_texture->m_spec;
+
 							};
+
+							if (ImGui::IsItemActivated()) {
+								p_dragged_texture = p_texture;
+							}
+
 
 							ImGui::Text(p_texture->m_spec.filepath.substr(p_texture->m_spec.filepath.find_last_of('/') + 1).c_str());
 
@@ -516,73 +516,73 @@ namespace ORNG {
 
 		static Material* p_selected_material = nullptr;
 
-		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
 
-			if (p_selected_material && ImGui::Begin("Material editor")) {
+		if (p_selected_material && ImGui::Begin("Material editor")) {
 
-				bool is_window_displayed = true;
+			bool is_window_displayed = true;
 
-				if (ImGui::SmallButton("X"))
-					is_window_displayed = false;
+			if (ImGui::SmallButton("X"))
+				is_window_displayed = false;
 
-				ImGui::Text("Name: ");
-				ImGui::SameLine();
-				ImGui::InputText("##name input", &p_selected_material->name);
-				ImGui::Spacing();
-
-				ImGui::Text(std::format("Diffuse Texture - {}", p_selected_material->diffuse_texture->m_name).c_str());
-				if (ImGui::ImageButton(ImTextureID(p_selected_material->diffuse_texture->GetTextureHandle()), ImVec2(100, 100))) {
-					p_selected_texture = p_selected_material->diffuse_texture;
-					current_spec = p_selected_material->diffuse_texture->m_spec;
-				};
-
-				if (p_selected_material->normal_map_texture) {
-					ImGui::TableNextColumn();
-					ImGui::Text(std::format("Normal Texture - {}", p_selected_material->normal_map_texture->m_name).c_str());
-					if (ImGui::ImageButton(ImTextureID(p_selected_material->normal_map_texture->GetTextureHandle()), ImVec2(100, 100))) {
-						p_selected_texture = p_selected_material->normal_map_texture;
-						current_spec = p_selected_material->normal_map_texture->m_spec;
-
-					};
-					ImGui::TableNextColumn();
-				}
-
-				if (p_selected_material->specular_texture) {
-					ImGui::TableNextColumn();
-					ImGui::Text(std::format("Specular Texture - {}", p_selected_material->specular_texture->m_name).c_str());
-					if (ImGui::ImageButton(ImTextureID(p_selected_material->specular_texture->GetTextureHandle()), ImVec2(100, 100))) {
-						p_selected_texture = p_selected_material->specular_texture;
-						current_spec = p_selected_material->specular_texture->m_spec;
-
-					};
-				}
+			ImGui::Text("Name: ");
+			ImGui::SameLine();
+			ImGui::InputText("##name input", &p_selected_material->name);
+			ImGui::Spacing();
 
 
-				ImGui::Text("Colors");
-				ImGui::Spacing();
-				ImGuiLib::ShowVec3Editor("Ambient", p_selected_material->ambient_color);
-				ImGuiLib::ShowVec3Editor("Diffuse", p_selected_material->diffuse_color);
-				ImGuiLib::ShowVec3Editor("Specular", p_selected_material->specular_color);
-
-				if (!is_window_displayed)
-					p_selected_material = nullptr;
+			ImGuiLib::RenderMaterialTexture("Base", p_selected_material->base_color_texture, p_selected_texture, current_spec, p_dragged_texture);
+			ImGuiLib::RenderMaterialTexture("Normal", p_selected_material->normal_map_texture, p_selected_texture, current_spec, p_dragged_texture);
+			ImGuiLib::RenderMaterialTexture("Roughness", p_selected_material->roughness_texture, p_selected_texture, current_spec, p_dragged_texture);
+			ImGuiLib::RenderMaterialTexture("Metallic", p_selected_material->metallic_texture, p_selected_texture, current_spec, p_dragged_texture);
+			ImGuiLib::RenderMaterialTexture("Ambient occlusion", p_selected_material->ao_texture, p_selected_texture, current_spec, p_dragged_texture);
+			ImGuiLib::RenderMaterialTexture("Displacement", p_selected_material->displacement_texture, p_selected_texture, current_spec, p_dragged_texture);
 
 
-				ImGui::End();
 
+			ImGui::Text("Colors");
+			ImGui::Spacing();
+			ImGuiLib::ShowVec3Editor("Base color", p_selected_material->base_color);
+
+			if (!p_selected_material->roughness_texture)
+				ImGui::SliderFloat("Roughness", &p_selected_material->roughness, 0.f, 1.f);
+
+			if (!p_selected_material->metallic_texture)
+				ImGui::SliderFloat("Metallic", &p_selected_material->metallic, 0.f, 1.f);
+
+			int num_parallax_layers = p_selected_material->parallax_layers;
+			if (p_selected_material->displacement_texture) {
+				ImGui::InputInt("Parallax layers", &num_parallax_layers);
+
+				if (num_parallax_layers >= 0)
+					p_selected_material->parallax_layers = num_parallax_layers;
+
+				ImGui::InputFloat("Parallax scale", &p_selected_material->parallax_height_scale);
 			}
 
 
-			if (ImGui::BeginChild("Material section", ImVec2(child_section_width, child_section_height))) {
-				if (ImGui::BeginTable("Material viewer", num_table_columns, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(child_section_width, child_section_height))) { //MATERIAL VIEWING TABLE
+			if (!is_window_displayed)
+				p_selected_material = nullptr;
+
+
+			if (!Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_1))
+				// Reset drag if mouse not held down
+				p_dragged_texture = nullptr;
+
+			ImGui::End();
+		}
+
+		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
+
+			if (ImGui::BeginChild("Material section", ImVec2(ImGuiLib::child_section_width, ImGuiLib::child_section_height))) {
+				if (ImGui::BeginTable("Material viewer", ImGuiLib::num_table_columns, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(ImGuiLib::child_section_width, ImGuiLib::child_section_height))) { //MATERIAL VIEWING TABLE
 
 					for (auto* p_material : m_active_scene->m_materials) {
 						ImGui::TableNextColumn();
 
 						ImGui::PushID(p_material);
 
-						if (p_material->diffuse_texture) {
-							if (ImGui::ImageButton(ImTextureID(p_material->diffuse_texture->m_texture_obj), ImVec2(table_outer_size, table_outer_size)))
+						if (p_material->base_color_texture) {
+							if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->m_texture_obj), ImVec2(ImGuiLib::table_outer_size, ImGuiLib::table_outer_size)))
 								p_selected_material = p_material;
 						}
 
@@ -610,36 +610,21 @@ namespace ORNG {
 		ImGui::Text(selected_texture->GetSpec().filepath.c_str());
 
 		const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
-		const char* internal_formats[] = { "SRGB8", "RGB8", "RGBA8", "SRGB8_A8" };
-		const char* formats[] = { "RGB", "RGBA" };
+		const char* filter_modes[] = { "NEAREST", "LINEAR" };
+		static int selected_wrap_mode = spec.wrap_params == GL_REPEAT ? 0 : 1;
+		static int selected_filter_mode = spec.mag_filter == GL_NEAREST ? 0 : 1;
 
-		static int selected_wrap_mode = spec.wrap_params == GL_LINEAR ? 0 : 1;
-		static int selected_format = 0;
-		static int selected_internal_format = 0;
 
 		ImGui::Text("Wrap mode");
 		ImGui::SameLine();
 		ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
 		spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 
-		ImGui::Text("Format");
+		ImGui::Text("Filtering");
 		ImGui::SameLine();
-		ImGui::Combo("##Format", &selected_format, formats, IM_ARRAYSIZE(formats));
-		spec.format = selected_format == 0 ? GL_RGB : GL_RGBA;
-
-		ImGui::Text("Internal format");
-		ImGui::SameLine();
-		ImGui::Combo("##Internal format", &selected_internal_format, internal_formats, IM_ARRAYSIZE(internal_formats));
-		switch (selected_internal_format) {
-		case 0:
-			spec.internal_format = GL_SRGB8;
-		case 1:
-			spec.internal_format = GL_RGB8;
-		case 2:
-			spec.internal_format = GL_RGBA8;
-		case 3:
-			spec.internal_format = GL_SRGB8_ALPHA8;
-		}
+		ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
+		spec.mag_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
+		spec.min_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
 
 		if (ImGui::Button("Load")) {
 			selected_texture->SetSpec(spec);
