@@ -84,7 +84,7 @@ namespace ORNG {
 
 		void CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID);
 
-		void UseShader(unsigned int& id, unsigned int& program);
+		void UseShader(unsigned int& id, unsigned int program);
 
 		std::string ParseShader(const std::string& filepath);
 
@@ -94,7 +94,7 @@ namespace ORNG {
 
 		std::unordered_map<std::string, unsigned int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;
-		const char* m_name = nullptr;
+		const char* m_name = "Unnamed shader";
 
 	};
 }

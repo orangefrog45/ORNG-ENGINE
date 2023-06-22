@@ -10,8 +10,9 @@
 #include "components/lights/SpotLightComponent.h"
 #include "components/ScriptComponent.h"
 #include "util/Log.h"
-#include "rendering/MeshInstanceGroup.h"
+#include "scene/MeshInstanceGroup.h"
 #include "scene/GlobalFog.h"
+#include "components/ComponentManagers.h"
 
 namespace ORNG {
 
@@ -34,23 +35,23 @@ namespace ORNG {
 
 
 		template<std::derived_from<Component> T, typename... Args>
-		T* AddComponent(unsigned long entity_id, Args... args) {
+		T* AddComponent(SceneEntity* p_entity, Args... args) {
 			T* comp = nullptr;
 
 			if constexpr (std::is_same<T, MeshComponent>::value) {
-				comp = AddMeshComponent(entity_id, args...);
+				comp = AddMeshComponent(p_entity, args...);
 			}
 			else if constexpr (std::is_same<T, PointLightComponent>::value) {
-				comp = AddPointLightComponent(entity_id);
+				comp = m_pointlight_component_manager.AddComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, SpotLightComponent>::value) {
-				comp = AddSpotLightComponent(entity_id);
+				comp = m_spotlight_component_manager.AddComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, ScriptComponent>::value) {
-				comp = AddScriptComponent(entity_id);
+				comp = AddScriptComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, CameraComponent>::value) {
-				comp = AddCameraComponent(entity_id);
+				comp = AddCameraComponent(p_entity);
 			}
 
 			return comp;
@@ -60,16 +61,13 @@ namespace ORNG {
 		T* GetComponent(unsigned long entity_id) {
 
 			if constexpr (std::is_same<T, MeshComponent>::value) {
-				auto it = std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
-				return it == m_mesh_components.end() ? nullptr : *it;
+				return m_mesh_component_manager.GetComponent(entity_id);
 			}
 			else if constexpr (std::is_same<T, PointLightComponent>::value) {
-				auto it = std::find_if(m_point_lights.begin(), m_point_lights.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
-				return it == m_point_lights.end() ? nullptr : *it;
+				return m_pointlight_component_manager.GetComponent(entity_id);
 			}
 			else if constexpr (std::is_same<T, SpotLightComponent>::value) {
-				auto it = std::find_if(m_spot_lights.begin(), m_spot_lights.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
-				return it == m_spot_lights.end() ? nullptr : *it;
+				return m_spotlight_component_manager.GetComponent(entity_id);
 			}
 			else if constexpr (std::is_same<T, ScriptComponent>::value) {
 				auto it = std::find_if(m_script_components.begin(), m_script_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
@@ -79,53 +77,42 @@ namespace ORNG {
 				auto it = std::find_if(m_camera_components.begin(), m_camera_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
 				return it == m_camera_components.end() ? nullptr : *it;
 			}
+			else if constexpr (std::is_same<T, TransformComponent>::value) {
+				return m_transform_component_manager.GetComponent(entity_id);
+			}
 		}
 
 		template<std::derived_from<Component> T>
-		void DeleteComponent(unsigned long entity_id) {
+		void DeleteComponent(SceneEntity* p_entity) {
 
 			if constexpr (std::is_same<T, MeshComponent>::value) {
-
-				MeshInstanceGroup* group = m_mesh_components[entity_id]->mp_instance_group;
-				MeshComponent* mesh = m_mesh_components[entity_id];
-
-				group->DeleteMeshPtr(mesh);
-				delete mesh;
-				mesh = nullptr;
-
-				OAR_CORE_TRACE("Mesh component deleted from entity '{0}'", GetEntity(entity_id)->name);
-
+				m_mesh_component_manager.DeleteComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, PointLightComponent>::value) {
-				delete m_point_lights[entity_id];
-				m_point_lights[entity_id] = nullptr;
-				OAR_CORE_TRACE("Pointlight component deleted from entity '{0}'", GetEntity(entity_id)->name);
+				m_pointlight_component_manager.DeleteComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, SpotLightComponent>::value) {
-				delete m_spot_lights[entity_id];
-				m_spot_lights[entity_id] = nullptr;
-				OAR_CORE_TRACE("Spotlight component deleted from entity '{0}'", GetEntity(entity_id)->name);
+				m_spotlight_component_manager.DeleteComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, ScriptComponent>::value) {
-				delete m_script_components[entity_id];
-				m_script_components[entity_id] = nullptr;
-				OAR_CORE_TRACE("Script component deleted from entity '{0}'", GetEntity(entity_id)->name);
+				//auto it = std::find_if(m_script_components.begin(), m_script_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); });
+				//delete* it;
+				//m_script_components.erase(it);
 			}
+
 		}
 
 		void MakeCameraActive(CameraComponent* p_cam);
 
-		MeshComponent* AddMeshComponent(unsigned long entity_id, const std::string& filename, unsigned int shader_id = 1);
-		PointLightComponent* AddPointLightComponent(unsigned long entity_id);
-		SpotLightComponent* AddSpotLightComponent(unsigned long entity_id);
-		ScriptComponent* AddScriptComponent(unsigned long entity_id);
-		CameraComponent* AddCameraComponent(unsigned long entity_id);
+		MeshComponent* AddMeshComponent(SceneEntity* p_entity, const std::string& filename);
+		ScriptComponent* AddScriptComponent(SceneEntity* p_entity);
+		CameraComponent* AddCameraComponent(SceneEntity* p_entity);
 
 
 		// Creates material and returns ID, get actual material with GetMaterial(id)
-		unsigned int CreateMaterial();
+		Material* CreateMaterial();
 		MeshAsset* CreateMeshAsset(const std::string& filename);
-		Texture2D* CreateTexture2DAsset(const std::string& filename);
+		Texture2D* CreateTexture2DAsset(const std::string& filename, bool srgb);
 
 		/* Removes asset from all components using it, then deletes asset */
 		void DeleteMeshAsset(MeshAsset* data);
@@ -150,7 +137,6 @@ namespace ORNG {
 		void LoadScene();
 		void UnloadScene();
 
-		void SortMeshIntoInstanceGroup(MeshComponent* ptr, MeshAsset* asset);
 	private:
 		void LoadMeshAssetIntoGPU(MeshAsset* asset);
 		Texture2D* LoadMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* material);
@@ -162,12 +148,13 @@ namespace ORNG {
 
 
 		std::vector<SceneEntity*> m_entities;
-		std::vector<MeshComponent*> m_mesh_components;
-		std::vector<SpotLightComponent*> m_spot_lights;
-		std::vector<PointLightComponent*> m_point_lights;
 		std::vector<ScriptComponent*> m_script_components;
 		std::vector<CameraComponent*> m_camera_components;
-		std::vector<MeshInstanceGroup*> m_mesh_instance_groups;
+
+		MeshComponentManager m_mesh_component_manager;
+		PointlightComponentManager m_pointlight_component_manager;
+		SpotlightComponentManager m_spotlight_component_manager;
+		TransformComponentManager m_transform_component_manager;
 
 		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector
 		std::vector<MeshAsset*> m_mesh_assets;

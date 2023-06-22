@@ -22,6 +22,7 @@ layout(std140, binding = 0) buffer transforms {
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
+	float time_elapsed;
 } ubo_common;
 
 
@@ -46,7 +47,7 @@ mat3 CalculateTbnMatrixTransform() {
 	t = normalize(t - dot(t, n) * n);
 	vec3 b = cross(n, t);
 
-	mat3 tbn = transpose(mat3(t, b, n));
+	mat3 tbn = mat3(t, b, n);
 
 	return tbn;
 }

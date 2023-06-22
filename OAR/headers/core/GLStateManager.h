@@ -90,6 +90,9 @@ namespace ORNG {
 			static const int METALLIC = GL_TEXTURE17;
 			static const int AO = GL_TEXTURE18;
 			static const int ROUGHNESS_METALLIC_AO = GL_TEXTURE19;
+			static const int DIFFUSE_PREFILTER = GL_TEXTURE20;
+			static const int SPECULAR_PREFILTER = GL_TEXTURE21;
+			static const int BRDF_LUT = GL_TEXTURE22;
 		};
 
 		struct TextureUnitIndexes {

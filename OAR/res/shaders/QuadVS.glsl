@@ -1,4 +1,4 @@
-#version 430 core
+#version 460 core
 
 in layout(location = 0) vec2 pos;
 in layout(location = 1) vec2 itex_coords;

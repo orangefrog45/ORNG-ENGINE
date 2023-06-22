@@ -8,7 +8,7 @@ namespace ORNG {
 		SceneEntity(unsigned long t_id, Scene* scene) : m_id(t_id), mp_scene(scene) {};
 
 		template<std::derived_from<Component> T, typename... Args>
-		T* AddComponent(Args... args) { return mp_scene->AddComponent<T>(m_id, args...); };
+		T* AddComponent(Args... args) { return mp_scene->AddComponent<T>(this, args...); };
 
 		template<std::derived_from<Component> T>
 		T* GetComponent() {
@@ -22,7 +22,7 @@ namespace ORNG {
 				OAR_CORE_ERROR("Error deleting component for entity '{0}', does not have specified component", name);
 				return;
 			}
-			mp_scene->DeleteComponent<T>(m_id);
+			mp_scene->DeleteComponent<T>(this);
 		}
 
 		int GetID() const { return m_id; };

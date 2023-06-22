@@ -5,11 +5,11 @@ namespace ORNG {
 
 	class Component {
 	public:
-		friend class Renderer;
 		friend class Scene;
-		Component(unsigned long entity_handle) : m_entity_handle(entity_handle) {};
-		inline unsigned long GetEntityHandle() const { return m_entity_handle; }
+		Component(SceneEntity* p_entity);
+		unsigned long GetEntityHandle() const;
+		SceneEntity* GetEntity() { return mp_entity; }
 	private:
-		unsigned long m_entity_handle;
+		SceneEntity* mp_entity = nullptr;
 	};
 }

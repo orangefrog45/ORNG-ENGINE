@@ -4,12 +4,6 @@
 #include "util/TimeStep.h"
 #include "util/Log.h"
 #include "rendering/Quad.h"
-#include "components/MeshComponent.h"
-#include "rendering/MeshInstanceGroup.h"
-#include "components/lights/SpotLightComponent.h"
-#include "components/lights/PointLightComponent.h"
-#include "components/CameraComponent.h"
-#include "components/lights/DirectionalLight.h"
 #include "core/GLStateManager.h"
 
 namespace ORNG {

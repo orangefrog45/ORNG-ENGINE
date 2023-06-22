@@ -9,7 +9,7 @@
 
 namespace ORNG {
 
-	class WorldTransform;
+	class TransformComponent;
 
 	class MeshAsset {
 	public:
@@ -18,6 +18,7 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class MeshInstanceGroup;
 		friend class SceneRenderer;
+		friend class MeshComponentManager;
 
 		MeshAsset() = default;
 		MeshAsset(const std::string& filename) : m_filename(filename) {};
@@ -31,10 +32,6 @@ namespace ORNG {
 
 		bool GetLoadStatus() const { return is_loaded; };
 
-		void SetIsShared(const bool val) { m_is_shared_in_instance_groups = val; }
-
-		bool GetIsShared() const { return m_is_shared_in_instance_groups; }
-
 		unsigned int GetIndicesCount() const { return num_indices; }
 
 	private:
@@ -43,10 +40,6 @@ namespace ORNG {
 		std::array<glm::vec3, 36> m_bounding_box_vertices;
 
 		unsigned int num_indices = 0;
-
-		/* is_shared_in_instance_groups, if true, causes GL world transform buffers to update once each frame for each different instance group using this mesh -
-	(added for multiple shader support, slower performance) */
-		bool m_is_shared_in_instance_groups = false;
 
 		bool is_loaded = false;
 

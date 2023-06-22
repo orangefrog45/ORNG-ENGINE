@@ -2,7 +2,7 @@
 
 #include "scene/GridMesh.h"
 #include "util/util.h"
-#include "components/WorldTransform.h"
+#include "components/TransformComponent.h"
 
 static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
 static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
@@ -21,7 +21,7 @@ namespace ORNG {
 			m_center.x = rounded_x;
 			m_center.y = rounded_z;
 
-			WorldTransform transform;
+			TransformComponent transform;
 			for (float z = rounded_z; z <= rounded_z + grid_width; z += grid_step) {
 				transform.SetPosition(rounded_x - grid_width / 2, 0.0f, z - grid_width / 2);
 				transforms.push_back(transform.GetMatrix());

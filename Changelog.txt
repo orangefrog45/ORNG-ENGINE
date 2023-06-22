@@ -1,3 +1,9 @@
+22/6/23:
+-Image based lighting with environment map loading and prefiltering
+-Material system rewrites to make swapping materials easier
+-Some texture rewrites
+-General refactoring
+
 13/6/23:
 -Moved from blinn-phong shading to PBR pipeline
 -Parallax mapping with displacement maps

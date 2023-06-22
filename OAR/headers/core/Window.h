@@ -68,7 +68,6 @@ namespace ORNG {
 
 		double IGetTimeStep() const { return last_frame_time; }
 
-		void WindowResizeCallback(GLFWwindow* window, int width, int height);
 
 		static Window& Get() {
 			static Window s_instance;

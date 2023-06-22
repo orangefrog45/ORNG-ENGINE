@@ -6,7 +6,7 @@ namespace ORNG {
 	class SpotLightComponent : public PointLightComponent {
 	public:
 		friend class EditorLayer;
-		SpotLightComponent(unsigned int entity_id);
+		explicit SpotLightComponent(SceneEntity* p_entity);
 		void SetLightDirection(float i, float j, float k);
 		void SetAperture(float angle) { aperture = cosf(glm::radians(angle)); }
 		void SetPosition(const float x, const float y, const float z);

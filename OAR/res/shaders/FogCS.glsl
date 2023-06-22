@@ -23,8 +23,8 @@ uniform vec3 u_fog_color;
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
+	float time_elapsed;
 } ubo_common;
-
 
 struct BaseLight {
 	vec4 color;

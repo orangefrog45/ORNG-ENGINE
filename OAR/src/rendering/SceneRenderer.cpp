@@ -123,7 +123,7 @@ namespace ORNG {
 		/* LIGHTING FB */
 		Texture2DSpec color_render_texture_spec;
 		color_render_texture_spec.format = GL_RGB;
-		color_render_texture_spec.internal_format = GL_RGB16F;
+		color_render_texture_spec.internal_format = GL_RGB32F;
 		color_render_texture_spec.storage_type = GL_UNSIGNED_BYTE;
 		color_render_texture_spec.width = Window::GetWidth();
 		color_render_texture_spec.height = Window::GetHeight();
@@ -144,19 +144,18 @@ namespace ORNG {
 
 		Texture2DSpec gbuffer_spec_2;
 		gbuffer_spec_2.format = GL_RG_INTEGER;
-		gbuffer_spec_2.internal_format = GL_RG32UI;
+		gbuffer_spec_2.internal_format = GL_RG16UI;
 		gbuffer_spec_2.storage_type = GL_UNSIGNED_INT;
 		gbuffer_spec_2.width = Window::GetWidth();
 		gbuffer_spec_2.height = Window::GetHeight();
 
-		Texture2DSpec roughness_metallic_ao_spec;
-		roughness_metallic_ao_spec.format = GL_RGB;
-		roughness_metallic_ao_spec.internal_format = GL_RGB16F;
-		roughness_metallic_ao_spec.storage_type = GL_FLOAT;
-		roughness_metallic_ao_spec.width = Window::GetWidth();
-		roughness_metallic_ao_spec.height = Window::GetHeight();
 
-
+		Texture2DSpec low_pres_spec;
+		low_pres_spec.format = GL_RGB;
+		low_pres_spec.internal_format = GL_RGB16F;
+		low_pres_spec.storage_type = GL_FLOAT;
+		low_pres_spec.width = Window::GetWidth();
+		low_pres_spec.height = Window::GetHeight();
 
 		Texture2DSpec gbuffer_depth_spec;
 		gbuffer_depth_spec.format = GL_DEPTH_COMPONENT;
@@ -166,9 +165,9 @@ namespace ORNG {
 		gbuffer_depth_spec.height = Window::GetHeight();
 
 		m_gbuffer_fb->Add2DTexture("world_positions", GL_COLOR_ATTACHMENT0, gbuffer_spec_1);
-		m_gbuffer_fb->Add2DTexture("normals", GL_COLOR_ATTACHMENT1, gbuffer_spec_1);
-		m_gbuffer_fb->Add2DTexture("albedo", GL_COLOR_ATTACHMENT2, roughness_metallic_ao_spec);
-		m_gbuffer_fb->Add2DTexture("roughness_metallic_ao", GL_COLOR_ATTACHMENT3, roughness_metallic_ao_spec);
+		m_gbuffer_fb->Add2DTexture("normals", GL_COLOR_ATTACHMENT1, low_pres_spec);
+		m_gbuffer_fb->Add2DTexture("albedo", GL_COLOR_ATTACHMENT2, low_pres_spec);
+		m_gbuffer_fb->Add2DTexture("roughness_metallic_ao", GL_COLOR_ATTACHMENT3, low_pres_spec);
 		m_gbuffer_fb->Add2DTexture("material_ids", GL_COLOR_ATTACHMENT4, gbuffer_spec_2);
 		m_gbuffer_fb->Add2DTexture("shared_depth", GL_DEPTH_ATTACHMENT, gbuffer_depth_spec);
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
@@ -182,8 +181,8 @@ namespace ORNG {
 		depth_spec.format = GL_DEPTH_COMPONENT;
 		depth_spec.internal_format = GL_DEPTH_COMPONENT24;
 		depth_spec.storage_type = GL_FLOAT;
-		depth_spec.min_filter = GL_NEAREST;
-		depth_spec.mag_filter = GL_NEAREST;
+		depth_spec.min_filter = GL_LINEAR;
+		depth_spec.mag_filter = GL_LINEAR;
 		depth_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		depth_spec.layer_count = 3;
 		depth_spec.width = m_shadow_map_resolution;
@@ -196,7 +195,7 @@ namespace ORNG {
 
 		Texture2DSpec ping_pong_spec;
 		ping_pong_spec.format = GL_RGBA;
-		ping_pong_spec.internal_format = GL_RGBA32F;
+		ping_pong_spec.internal_format = GL_RGBA16F;
 		ping_pong_spec.storage_type = GL_FLOAT;
 		ping_pong_spec.width = Window::GetWidth();
 		ping_pong_spec.height = Window::GetHeight();
@@ -233,7 +232,7 @@ namespace ORNG {
 		// Fog texture
 		Texture2DSpec fog_overlay_spec;
 		fog_overlay_spec.format = GL_RGBA;
-		fog_overlay_spec.internal_format = GL_RGBA32F;
+		fog_overlay_spec.internal_format = GL_RGBA16F;
 		fog_overlay_spec.storage_type = GL_FLOAT;
 		fog_overlay_spec.width = Window::GetWidth() / 2;
 		fog_overlay_spec.height = Window::GetHeight() / 2;
@@ -271,9 +270,6 @@ namespace ORNG {
 		mp_shader_library->SetCommonUBO(mp_scene->mp_active_camera->pos, mp_scene->mp_active_camera->target);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light, mp_scene->m_global_ambient_lighting);
-		mp_shader_library->SetPointLights(mp_scene->m_point_lights);
-		mp_shader_library->SetSpotLights(mp_scene->m_spot_lights);
-
 	}
 
 
@@ -358,14 +354,14 @@ namespace ORNG {
 		m_gbuffer_shader->ActivateProgram();
 
 		//Draw all meshes in scene (instanced)
-		for (const auto* group : mp_scene->m_mesh_instance_groups) {
+		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 
 			GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, 0);
 			m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", group->GetShaderID());
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
 
-				unsigned int material_id = group->m_mesh_asset->m_scene_materials[group->m_mesh_asset->m_submeshes[i].material_index]->material_id;
+				unsigned int material_id = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index]->material_id;
 				const Material* p_material = mp_scene->GetMaterial(material_id);
 				SetGBufferMaterial(p_material);
 
@@ -386,7 +382,7 @@ namespace ORNG {
 		IDrawTerrain();
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 0);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->m_skybox.GetCubeMapTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_CUBEMAP, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->m_skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_CUBEMAP, false);
 		m_gbuffer_shader->SetUniform("u_skybox_mode", 1);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", ShaderLibrary::INVALID_MATERIAL_ID);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", ShaderLibrary::INVALID_SHADER_ID);
@@ -416,9 +412,9 @@ namespace ORNG {
 		const glm::mat4 cam_view_matrix = mp_scene->mp_active_camera->GetViewMatrix();
 		const float fov = glm::radians(mp_scene->mp_active_camera->fov / 2.f);
 
-		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution, mp_scene->mp_active_camera->pos);
+		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution, mp_scene->mp_active_camera->pos);
+		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution, mp_scene->mp_active_camera->pos);
 
 		m_light_space_matrices[0] = dir_light_space_matrix;
 		m_light_space_matrices[1] = dir_light_space_matrix_2;
@@ -434,7 +430,7 @@ namespace ORNG {
 
 			m_depth_shader->SetUniform("u_light_pv_matrix", m_light_space_matrices[i]);
 
-			for (const auto* group : mp_scene->m_mesh_instance_groups) {
+			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 				const MeshAsset* mesh_data = group->GetMeshData();
 				GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
@@ -451,8 +447,9 @@ namespace ORNG {
 		}
 
 		int depth_map_index = -1;
-		for (int i = 0; i < mp_scene->m_spot_lights.size(); i++) {
-			const SpotLightComponent* p_light = mp_scene->m_spot_lights[i];
+		auto& p_spotlights = mp_scene->m_spotlight_component_manager.GetComponents();
+		for (int i = 0; i < p_spotlights.size(); i++) {
+			const SpotLightComponent* p_light = mp_scene->m_spotlight_component_manager.GetComponents()[i];
 
 			if (!p_light)
 				continue;
@@ -463,7 +460,7 @@ namespace ORNG {
 
 			m_depth_shader->SetUniform("u_light_pv_matrix", p_light->GetLightSpaceTransformMatrix());
 
-			for (const auto* group : mp_scene->m_mesh_instance_groups) {
+			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 				const MeshAsset* mesh_data = group->GetMeshData();
 				GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
@@ -566,6 +563,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("normals").GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("material_ids").GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_MATERIAL_IDS, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("roughness_metallic_ao").GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->m_skybox.GetIrradianceTexture().GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
 
 		m_lighting_fb->Bind();
 		GL_StateManager::DefaultClearBits();
@@ -590,7 +588,7 @@ namespace ORNG {
 		/*mp_shader_library->GetShader("highlight").ActivateProgram();
 		for (auto& mesh : scene->m_mesh_components) {
 			if (!mesh) continue;
-			mp_shader_library->GetShader("highlight").SetUniform("transform", mesh->GetWorldTransform()->GetMatrix());
+			mp_shader_library->GetShader("highlight").SetUniform("transform", mesh->GetTransformComponent()->GetMatrix());
 			Renderer::DrawBoundingBox(*mesh->GetMeshData());
 		}
 

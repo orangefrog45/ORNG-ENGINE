@@ -1,7 +1,8 @@
 #include "pch/pch.h"
 
-#include "rendering/MeshInstanceGroup.h"
-#include "components/WorldTransform.h"
+#include "scene/MeshInstanceGroup.h"
+#include "components/ComponentManagers.h"
+#include "components/TransformComponent.h"
 #include "util/Log.h"
 #include "scene/Scene.h"
 
@@ -24,7 +25,7 @@ namespace ORNG {
 	void MeshInstanceGroup::ResortMesh(MeshComponent* ptr) {
 		if (m_mesh_asset && m_mesh_asset->is_loaded) {
 			DeleteMeshPtr(ptr);
-			mp_scene->SortMeshIntoInstanceGroup(ptr, ptr->mp_mesh_asset);
+			mp_manager->SortMeshIntoInstanceGroup(ptr, ptr->mp_mesh_asset);
 		}
 	}
 
@@ -50,7 +51,7 @@ namespace ORNG {
 					if (first_index_of_chunk == -1)
 						first_index_of_chunk = i;
 
-					transforms.push_back(m_instances[i]->GetWorldTransform()->GetMatrix());
+					transforms.push_back(m_instances[i]->transform.GetMatrix());
 				}
 				else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk 
 				{
@@ -86,7 +87,7 @@ namespace ORNG {
 		transforms.reserve(m_instances.size());
 
 		for (auto& p_mesh : m_instances) {
-			transforms.emplace_back(p_mesh->GetWorldTransform()->GetMatrix());
+			transforms.emplace_back(p_mesh->transform.GetMatrix());
 		}
 
 		m_mesh_asset->m_vao.FullUpdateTransformSSBO(m_transform_ssbo_handle, &transforms);

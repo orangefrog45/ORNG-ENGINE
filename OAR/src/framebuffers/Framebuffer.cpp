@@ -188,10 +188,20 @@ namespace ORNG {
 
 	}
 
+	void Framebuffer::SetRenderBufferDimensions(unsigned int width, unsigned int height) {
+		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+	}
+
 
 	void Framebuffer::BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer) {
 		Bind();
 		glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, tex_ref, 0, layer);
+	}
+
+	void Framebuffer::BindTexture2D(unsigned int tex_ref, unsigned int attachment, unsigned int target, unsigned int mip_layer) {
+		Bind();
+		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, target, tex_ref, mip_layer);
 	}
 
 

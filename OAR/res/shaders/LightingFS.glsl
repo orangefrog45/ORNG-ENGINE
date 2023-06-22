@@ -1,10 +1,10 @@
 #version 430 core
 
 #define PI 3.1415926538
+#define MAX_REFLECTION_LOD 4.0
 
 out vec4 FragColor;
 in vec2 tex_coord;
-
 const unsigned int NUM_SHADOW_CASCADES = 3;
 
 struct BaseLight {
@@ -70,6 +70,7 @@ layout(std140, binding = 1) uniform GlobalLighting{
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
+	float time_elapsed;
 } ubo_common;
 
 
@@ -83,6 +84,9 @@ layout(binding = 7) uniform sampler2D normal_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 12) uniform usampler2D shader_material_id_sampler;
 layout(binding = 19) uniform sampler2D roughness_metallic_ao_sampler;
+layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
+layout(binding = 21) uniform samplerCube specular_prefilter_sampler;
+layout(binding = 22) uniform sampler2D brdf_lut_sampler;
 
 unsigned int shader_id = texture(shader_material_id_sampler, tex_coord).r;
 unsigned int material_id = texture(shader_material_id_sampler, tex_coord).g;
@@ -117,9 +121,9 @@ float ShadowCalculationSpotlight(SpotLight light, float light_index) {
 	float shadow = 0.0f;
 
 	vec2 texel_size = 1.0 / textureSize(spot_depth_sampler, 0).xy;
-	for (int x = -1; x <= 1; x++)
+	for (float x = -1.0; x <= 1.0; x++)
 	{
-		for (int y = -1; y <= 1; y++)
+		for (float y = -1.0; y <= 1.0; y++)
 		{
 			float pcf_depth = texture(spot_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size * 2), light_index)).r;
 			shadow += current_depth - bias > pcf_depth ? 1.0 : 0.0;
@@ -173,12 +177,12 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 	//sample closest depth from lights pov from depth map
 
-	vec2 texel_size = 1.0 / textureSize(dir_depth_sampler, 0).xy;
+	vec2 texel_size = vec2(1.0) / textureSize(dir_depth_sampler, 0).xy;
 
 	if (frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[0]) {
-		for (int x = -1; x <= 1; x++)
+		for (float x = -1.5; x <= 1.5; x++)
 		{
-			for (int y = -1; y <= 1; y++)
+			for (float y = -1.5; y <= 1.5; y++)
 			{
 				float pcf_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size), depth_map_index)).r;
 				shadow += current_depth > pcf_depth ? 1.0f : 0.0f;
@@ -186,14 +190,14 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 		}
 
 		/*Take average of PCF*/
-		shadow /= 9.0f;
+		return shadow / 16.0;
 	}
 	else {
 		float sampled_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy), depth_map_index)).r;
 		shadow = current_depth > sampled_depth ? 1.0f : 0.0f;
+		return shadow;
 	}
 
-	return shadow;
 }
 
 
@@ -279,7 +283,13 @@ float GeometrySmith(vec3 v, vec3 l) {
 }
 
 
-vec3 CalcPointLight(PointLight light, vec3 v) {
+
+vec3 FresnelSchlickRoughness(float cos_theta, vec3 F0)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
+}
+
+vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0) {
 	vec3 frag_to_light = light.pos.xyz - sampled_world_pos.xyz;
 
 	float distance = length(frag_to_light);
@@ -289,20 +299,18 @@ vec3 CalcPointLight(PointLight light, vec3 v) {
 
 	vec3 l = normalize(frag_to_light);
 	vec3 h = normalize(v + l);
-	vec3 f0 = vec3(0.04);
-	f0 = mix(f0, sampled_albedo.xyz, metallic);
-	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
 
+	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
 	float ndf = DistributionGGX(h);
 	float g = GeometrySmith(v, l);
 
 	vec3 num = ndf * g * f;
 	float denom = 4.0 * max(dot(sampled_normal, v), 0.0) * max(dot(sampled_normal, l), 0.0) + 0.0001;
+	vec3 specular = num / denom;
 
 
 	vec3 kd = vec3(1.0) - f;
 	kd *= 1.0 - metallic;
-	vec3 specular = num / denom;
 
 	float n_dot_l = max(dot(sampled_normal, l), 0.0);
 
@@ -312,12 +320,10 @@ vec3 CalcPointLight(PointLight light, vec3 v) {
 }
 
 
-vec3 CalcDirectionalLight(vec3 v) {
+vec3 CalcDirectionalLight(vec3 v, vec3 f0) {
 
 	vec3 l = ubo_global_lighting.directional_light.direction.xyz;
 	vec3 h = normalize(v + l);
-	vec3 f0 = vec3(0.04);
-	f0 = mix(f0, sampled_albedo.xyz, metallic);
 	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
 
 	float ndf = DistributionGGX(h);
@@ -325,11 +331,11 @@ vec3 CalcDirectionalLight(vec3 v) {
 
 	vec3 num = ndf * g * f;
 	float denom = 4.0 * max(dot(sampled_normal, v), 0.0) * max(dot(sampled_normal, l), 0.0) + 0.0001;
+	vec3 specular = num / denom;
 
 
 	vec3 kd = vec3(1.0) - f;
 	kd *= 1.0 - metallic;
-	vec3 specular = num / denom;
 
 	float n_dot_l = max(dot(sampled_normal, l), 0.0);
 	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * ubo_global_lighting.directional_light.base.color.xyz;
@@ -351,19 +357,33 @@ void main()
 
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
 	vec3 v = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
+	vec3 r = reflect(-v, sampled_normal);
+	float n_dot_v = max(dot(sampled_normal, v), 0.0);
+
+	//reflection amount
+	vec3 f0 = vec3(0.04);
+	f0 = mix(f0, sampled_albedo.xyz, metallic);
 
 	// Directional light
 	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz));
-	total_light += CalcDirectionalLight(v) * (1.f - shadow);
+	total_light += CalcDirectionalLight(v, f0) * (1.0 - shadow);
 
 	// Ambient 
-	vec3 ambient_light = ubo_global_lighting.ambient_light.ambient_intensity * ubo_global_lighting.ambient_light.color.xyz * sampled_albedo.xyz * ao;
+	vec3 ks = FresnelSchlickRoughness(n_dot_v, f0);
+	vec3 kd = 1.0 - ks;
+	vec3 diffuse = texture(diffuse_prefilter_sampler, sampled_normal).rgb * sampled_albedo.xyz;
+
+	vec3 prefiltered_colour = textureLod(specular_prefilter_sampler, r, roughness * MAX_REFLECTION_LOD).rgb;
+	vec2 env_brdf = texture(brdf_lut_sampler, vec2(n_dot_v, roughness)).rg;
+	vec3 specular = prefiltered_colour * (ks * env_brdf.x + env_brdf.y);
+
+	vec3 ambient_light = (kd * diffuse + specular) * ao;
 	total_light += ambient_light;
 
 
 	// Pointlights
 	for (int i = 0; i < point_lights.lights.length(); i++) {
-		total_light += (CalcPointLight(point_lights.lights[i], v));
+		total_light += (CalcPointLight(point_lights.lights[i], v, f0));
 	}
 
 	// Spotlights

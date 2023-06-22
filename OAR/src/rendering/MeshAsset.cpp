@@ -3,7 +3,7 @@
 #include "rendering/MeshAsset.h"
 #include "util/util.h"
 #include "util/Log.h"
-#include "components/WorldTransform.h"
+#include "components/TransformComponent.h"
 #include "util/TimeStep.h"
 
 namespace ORNG {

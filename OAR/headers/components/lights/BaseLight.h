@@ -5,7 +5,7 @@ namespace ORNG {
 
 	struct BaseLight : public Component {
 		virtual ~BaseLight() = default;
-		BaseLight(unsigned long entity_id) : Component(entity_id) {};
+		BaseLight(SceneEntity* p_entity) : Component(p_entity) {};
 
 		bool shadows_enabled = true;
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);

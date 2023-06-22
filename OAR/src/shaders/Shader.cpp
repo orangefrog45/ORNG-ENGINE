@@ -42,7 +42,23 @@ namespace ORNG {
 		m_program_id = tprogramID;
 
 		glLinkProgram(m_program_id);
+
+		int result;
+		glGetProgramiv(m_program_id, GL_LINK_STATUS, &result);
+
+		if (result == GL_FALSE) {
+			int length;
+			glGetProgramiv(m_program_id, GL_INFO_LOG_LENGTH, &length);
+			char* message = (char*)alloca(length * sizeof(char));
+			glGetProgramInfoLog(m_program_id, length, &length, message);
+
+
+			OAR_CORE_CRITICAL("Failed to link program for shader '{0}' : '{1}", m_name, message);
+			BREAKPOINT;
+		}
+
 		glValidateProgram(m_program_id);
+		glUseProgram(m_program_id);
 	}
 
 
@@ -90,7 +106,7 @@ namespace ORNG {
 	}
 
 
-	void Shader::UseShader(unsigned int& id, unsigned int& program) {
+	void Shader::UseShader(unsigned int& id, unsigned int program) {
 		glAttachShader(program, id);
 		glDeleteShader(id);
 	}

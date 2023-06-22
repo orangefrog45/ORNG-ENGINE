@@ -1,16 +1,19 @@
 #pragma once
-#include "components/WorldTransform.h"
+#include "components/TransformComponent.h"
 #include "components/lights/BaseLight.h"
 
 namespace ORNG {
 
 	struct PointLightComponent : public BaseLight {
-		PointLightComponent(unsigned int entity_id) : BaseLight(entity_id) {};
+
+		PointLightComponent(SceneEntity* p_entity) : BaseLight(p_entity) { transform.OnTransformUpdate = [] {}; };
 		virtual ~PointLightComponent() = default;
 
 		float max_distance = 48.0f;
 		LightAttenuation attenuation;
-		WorldTransform transform;
+		TransformComponent transform;
+
+		bool update_flag = false;
 	};
 
 }

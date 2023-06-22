@@ -28,9 +28,13 @@ namespace ORNG {
 
 		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
 
+		void BindTexture2D(unsigned int tex_ref, unsigned int attachment, unsigned int target, unsigned int mip_layer = 0);
+
 		void EnableReadBuffer(unsigned int buffer);
 
 		void EnableDrawBuffers(unsigned int amount, unsigned int buffers[]);
+
+		void SetRenderBufferDimensions(unsigned int width, unsigned int height);
 
 		template<std::derived_from<TextureBase> T>
 		T& GetTexture(const std::string& name) {

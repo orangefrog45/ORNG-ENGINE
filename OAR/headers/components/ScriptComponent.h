@@ -7,7 +7,7 @@ namespace ORNG {
 
 	class ScriptComponent : public Component {
 	public:
-		explicit ScriptComponent(unsigned long entity_id) : Component(entity_id) {};
+		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
 		std::function<void()> OnUpdate = nullptr;
 	private:

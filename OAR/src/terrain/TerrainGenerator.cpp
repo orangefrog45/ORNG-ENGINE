@@ -27,8 +27,8 @@ namespace ORNG {
 
 		noise.SetSeed(seed);
 		noise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-		noise.SetFrequency(0.0001f);
-		noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_CellValue);
+		noise.SetFrequency(0.001f);
+		noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2);
 		noise.SetFractalType(FastNoiseLite::FractalType_FBm);
 		noise.SetFractalOctaves(5.0);
 

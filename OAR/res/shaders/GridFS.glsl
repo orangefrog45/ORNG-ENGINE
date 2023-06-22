@@ -9,8 +9,8 @@ out layout(location = 0) vec4 FragColor;
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
+	float time_elapsed;
 } ubo_common;
-
 
 void main()
 {

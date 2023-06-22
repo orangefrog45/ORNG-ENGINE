@@ -37,6 +37,7 @@ struct Material {
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
+	float time_elapsed;
 } ubo_common;
 
 
@@ -106,7 +107,7 @@ mat3 CalculateTbnMatrixTransform() {
 	t = normalize(t - dot(t, n) * n);
 	vec3 b = cross(n, t);
 
-	mat3 tbn = transpose(mat3(t, b, n));
+	mat3 tbn = mat3(t, b, n);
 
 	return tbn;
 }
@@ -126,8 +127,8 @@ void main() {
 
 	if (u_terrain_mode) {
 		mat3 tbn = CalculateTbnMatrix();
-		vec3 sampled_normal_1 = texture(normal_array_sampler, vec3(adj_tex_coord.xy, 0.0)).rgb * 2.0 - 1.0;
-		vec3 sampled_normal_2 = texture(normal_array_sampler, vec3(adj_tex_coord.xy, 1.0)).rgb * 2.0 - 1.0;
+		vec3 sampled_normal_1 = normalize(texture(normal_array_sampler, vec3(adj_tex_coord.xy, 0.0)).rgb * 2.0 - 1.0);
+		vec3 sampled_normal_2 = normalize(texture(normal_array_sampler, vec3(adj_tex_coord.xy, 1.0)).rgb * 2.0 - 1.0);
 
 		float terrain_factor = clamp(dot(vs_normal.xyz, vec3(0, 1.f, 0) * 0.5f), 0.f, 1.f); // slope
 		vec3 mixed_terrain_normal = normalize(tbn * mix(sampled_normal_1, sampled_normal_2, terrain_factor).xyz);
@@ -146,7 +147,8 @@ void main() {
 
 		if (u_normal_sampler_active) {
 			mat3 tbn = CalculateTbnMatrixTransform();
-			normal = vec4(tbn * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0).rgb, 1);
+			vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
+			normal = vec4(normalize(tbn * sampled_normal).rgb, 1);
 		}
 		else {
 			normal = vec4(normalize(vs_normal), 1.f);

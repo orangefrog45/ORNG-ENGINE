@@ -10,7 +10,7 @@ namespace ORNG {
 		if (shadows_enabled) UpdateLightTransform();
 	}
 
-	SpotLightComponent::SpotLightComponent(unsigned int entity_id) : PointLightComponent(entity_id)
+	SpotLightComponent::SpotLightComponent(SceneEntity* p_entity) : PointLightComponent(p_entity)
 	{
 		max_distance = 128.f;
 		attenuation.constant = 1.0f;

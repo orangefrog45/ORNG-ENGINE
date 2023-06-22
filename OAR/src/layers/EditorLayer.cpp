@@ -10,7 +10,7 @@
 #include "layers/EditorLayer.h"
 #include "rendering/Renderer.h"
 #include "scene/Scene.h"
-#include "rendering/MeshInstanceGroup.h"
+#include "scene/MeshInstanceGroup.h"
 #include "components/lights/PointLightComponent.h"
 #include "components/lights/DirectionalLight.h"
 #include "components/lights/SpotLightComponent.h"
@@ -84,93 +84,37 @@ namespace ORNG {
 		mp_editor_pass_fb->AddShared2DTexture("shared_render_texture", Renderer::GetFramebufferLibrary().GetFramebuffer("post_processing").GetTexture<Texture2D>("shared_render_texture"), GL_COLOR_ATTACHMENT0);
 
 
-		auto& entity = m_active_scene->CreateEntity("Orange");
-		auto& entity2 = m_active_scene->CreateEntity("Cone");
-		auto& entity3 = m_active_scene->CreateEntity("Other");
-		auto& entity4 = m_active_scene->CreateEntity("cam");
-		entity4.AddComponent<CameraComponent>();
-		auto mesh = entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
-		auto mesh2 = entity2.AddComponent<MeshComponent>("./res/meshes/DUCK/rubber_duck_toy_2k.fbx");
-
-		auto mesh3 = entity3.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
-		auto script = entity.AddComponent<ScriptComponent>();
-		entity.AddComponent<PointLightComponent>();
-		entity.AddComponent<SpotLightComponent>();
-
-
-		int width = 5;
-		static auto fnSimplex = FastNoiseSIMD::NewFastNoiseSIMD(1);
-		fnSimplex->SetNoiseType(FastNoiseSIMD::Perlin);
-		fnSimplex->SetFractalType(FastNoiseSIMD::FBM);
-		fnSimplex->SetFrequency(0.03f);
-
-		for (int x = 0; x < width; x++) {
-			for (int y = 0; y < width; y++) {
-				for (int z = 0; z < width; z++) {
-					auto& ent = m_active_scene->CreateEntity();
-					auto* m = ent.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
-					auto s = ent.AddComponent<ScriptComponent>();
-					m->SetScale(0.01, 0.01, 0.01);
-
-					s->OnUpdate = [m]() {
-						const long long time_step = FrameTiming::GetTimeStep();
-						glm::mat3 rotation = ExtraMath::Init3DRotateTransform(time_step * 0.0001f, time_step * 0.0001f, time_step * 0.0001f);
-						m->SetPosition(rotation * m->GetWorldTransform()->GetPosition());
-					};
-
-					glm::mat4 rot = ExtraMath::Init3DRotateTransform(0, (z + x + y) * (360.f / width), 0);
-
-					int rand1 = rand() % 100;
-					float x_pos = sinf(glm::radians((x + (y + z) + rand1) * (360.f / width))) * 80.f;
-					float y_pos = cosf(glm::radians((x + (y + z) + rand1) * (360.f / width))) * 80.f;
-
-					glm::vec3 new_pos = glm::vec3(rot * glm::vec4(x_pos, y_pos, z, 1));
-
-					m->SetPosition(new_pos.x, new_pos.y, new_pos.z);
-					m->SetScale(1.f, 1.f, 1.f);
-
-				}
-			}
-		}
-
-		/*for (int x = -width / 2.f; x < width / 2.f; x++) {
-			for (int z = -width / 2.f; z < width / 2.f; z++) {
-				constexpr int spacing = 50;
-				auto& ent = m_active_scene->CreateEntity();
-				auto m = ent.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
-				auto s = ent.AddComponent<ScriptComponent>();
-				auto* pl = ent.AddComponent<PointLightComponent>();
-				pl->max_distance = 100.f;
-				pl->attenuation.constant = 1.0f;
-				pl->attenuation.linear = 0.007f;
-				pl->attenuation.exp = 0.0002f;
-				pl->transform.SetPosition(x * spacing, 50.f, z * spacing);
-				pl->color = glm::normalize(glm::vec3(rand() % 255, rand() % 255, rand() % 255));
-				m->SetPosition(x * spacing, 50.f, z * spacing);
-
-
-				s->OnUpdate = [pl, width] {
-					static float x = 0;
-					static float z = 0;
-					x += 0.01f;
-					z += 0.01f;
-					if ((pl->transform.GetPosition().x < x && pl->transform.GetPosition().z < z)) {
-						glm::vec3 old_color = pl->color;
-						//pl->color = glm::normalize(glm::abs(old_color + glm::vec3(rand() % 255 - 255 * 0.5f, rand() % 255 - 255 * 0.5f, rand() % 255 - 255 * 0.5f) * 0.001f));
-					}
-					else {
-						//pl->color = glm::normalize(glm::vec3(1));
-					}
-
-					if (x > width * spacing) {
-						x = 0;
-						z = 0;
-					}
-				};
-			}
-		}*/
 
 		m_active_scene->LoadScene();
+		Texture2D* p_orange_tex = m_active_scene->CreateTexture2DAsset("./res/meshes/oranges/orangeC.jpg", true);
+		for (float x = 0; x <= 100.f; x += 10.f) {
+			auto& t_entity = m_active_scene->CreateEntity("Orange");
+			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
+			auto* p_material = m_active_scene->CreateMaterial();
+
+			t_mesh->transform.SetPosition(x, 50.f, 0.f);
+			p_material->roughness = x / 100.f + 0.05f;
+			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
+			p_material->metallic = 0.05;
+			p_material->base_color = glm::vec3(0.0, 1.0, 1.0);
+			t_mesh->SetMaterialID(0, p_material);
+			t_mesh->SetMaterialID(1, p_material);
+		}
+
+		for (float x = 0; x <= 100.f; x += 10.f) {
+			auto& t_entity = m_active_scene->CreateEntity("Orange");
+			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
+			auto* p_material = m_active_scene->CreateMaterial();
+
+			t_mesh->transform.SetPosition(x, 60.f, 0.f);
+			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
+			p_material->ao = 1.0;
+			p_material->metallic = 1.0 - (x / 100.f) + 0.05f;
+			p_material->roughness = 0.05;
+			p_material->base_color = glm::vec3(0.0, 1.0, 1.0);
+			t_mesh->SetMaterialID(0, p_material);
+			t_mesh->SetMaterialID(1, p_material);
+		}
 
 		OAR_CORE_INFO("Editor layer initialized"); //add profiling func
 	}
@@ -253,12 +197,12 @@ namespace ORNG {
 		GL_StateManager::ClearDepthBits();
 		GL_StateManager::ClearBitsUnsignedInt();
 
-		for (auto& mesh : m_active_scene->m_mesh_components) {
+		for (auto& mesh : m_active_scene->m_mesh_component_manager.GetMeshComponents()) {
 			if (!mesh || !mesh->GetMeshData()) continue;
 
 			if (mesh->GetMeshData()->GetLoadStatus() == true) {
 				mp_picking_shader->SetUniform<unsigned int>("comp_id", mesh->GetEntityHandle());
-				mp_picking_shader->SetUniform("transform", mesh->GetWorldTransform()->GetMatrix());
+				mp_picking_shader->SetUniform("transform", mesh->transform.GetMatrix());
 
 				for (int i = 0; i < mesh->mp_mesh_asset->m_submeshes.size(); i++) {
 					Renderer::DrawSubMesh(mesh->GetMeshData(), i);
@@ -292,7 +236,7 @@ namespace ORNG {
 
 		mp_editor_pass_fb->Bind();
 		mp_highlight_shader->ActivateProgram();
-		mp_highlight_shader->SetUniform("transform", meshc->GetWorldTransform()->GetMatrix());
+		mp_highlight_shader->SetUniform("transform", meshc->transform.GetMatrix());
 
 		for (int i = 0; i < meshc->GetMeshData()->m_submeshes.size(); i++) {
 			Renderer::DrawSubMesh(meshc->GetMeshData(), i);
@@ -459,7 +403,7 @@ namespace ORNG {
 
 				//setting up file explorer callbacks
 				static std::function<void()> success_callback = [this] {
-					m_active_scene->CreateTexture2DAsset(path + "/" + entry_name);
+					m_active_scene->CreateTexture2DAsset(path + "/" + entry_name, current_spec.srgb_space);
 					error_message.clear();
 				};
 
@@ -528,7 +472,6 @@ namespace ORNG {
 			ImGui::SameLine();
 			ImGui::InputText("##name input", &p_selected_material->name);
 			ImGui::Spacing();
-
 
 			ImGuiLib::RenderMaterialTexture("Base", p_selected_material->base_color_texture, p_selected_texture, current_spec, p_dragged_texture);
 			ImGuiLib::RenderMaterialTexture("Normal", p_selected_material->normal_map_texture, p_selected_texture, current_spec, p_dragged_texture);
@@ -634,6 +577,8 @@ namespace ORNG {
 
 
 
+
+
 	void EditorLayer::RenderSceneGraph() {
 		if (ImGui::CollapsingHeader("Scene")) {
 			ImGui::SliderFloat("Exposure", &m_active_scene->m_exposure_level, 0.f, 10.f);
@@ -652,6 +597,8 @@ namespace ORNG {
 	}
 
 
+
+
 	void EditorLayer::DisplayEntityEditor() {
 		auto entity = m_active_scene->GetEntity(m_selected_entity_id);
 		if (!entity) return;
@@ -660,11 +607,30 @@ namespace ORNG {
 		auto plight = entity->GetComponent<PointLightComponent>();
 		auto slight = entity->GetComponent<SpotLightComponent>();
 		auto p_cam = entity->GetComponent<CameraComponent>();
+		auto p_transform = entity->GetComponent<TransformComponent>();
+
 
 		if (ImGui::CollapsingHeader("Entity editor")) {
 			std::string ent_text = std::format("Entity '{}'", entity->name);
 			ImGui::Text(ent_text.c_str());
 
+
+			//TRANSFORM
+			glm::vec3 matrix_translation = p_transform->m_pos;
+			glm::vec3 matrix_rotation = p_transform->m_rotation;
+			glm::vec3 matrix_scale = p_transform->m_scale;
+
+			if (ImGuiLib::ShowVec3Editor("Tr", matrix_translation))
+				p_transform->SetPosition(matrix_translation);
+
+			if (ImGuiLib::ShowVec3Editor("Rt", matrix_rotation))
+				p_transform->SetOrientation(matrix_rotation);
+
+			if (ImGuiLib::ShowVec3Editor("Sc", matrix_scale))
+				p_transform->SetScale(matrix_scale);
+
+
+			//MESH
 			if (meshc) {
 
 				if (ImGui::TreeNode("Mesh")) {
@@ -758,6 +724,8 @@ namespace ORNG {
 	// EDITORS ------------------------------------------------------------------------
 
 
+
+
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
 		static MeshComponentData mesh_data;
 
@@ -786,7 +754,7 @@ namespace ORNG {
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
 
-		ImGui::Dummy(ImVec2(0.f, 20.f));
+		ImGui::Dummy(ImVec2(0.f, ImGuiLib::dummy_spacing_size_vertical));
 		ImGui::Text("Transform");
 
 		if (ImGui::RadioButton("World", current_mode == ImGuizmo::WORLD))
@@ -802,44 +770,41 @@ namespace ORNG {
 		else if (Window::IsKeyDown(GLFW_KEY_3))
 			current_operation = ImGuizmo::ROTATE;
 
-		glm::mat4 current_operation_matrix = glm::mat4(1);
 
-		current_operation_matrix = comp->GetWorldTransform()->GetMatrix();
+		glm::mat4 current_operation_matrix = comp->transform.GetMatrix();
 
-		glm::vec3 matrix_translation = comp->mp_transform->m_pos;
-		glm::vec3 matrix_rotation = comp->mp_transform->m_rotation;
-		glm::vec3 matrix_scale = comp->mp_transform->m_scale;
+		glm::vec3 matrix_translation = comp->transform.m_pos;
+		glm::vec3 matrix_rotation = comp->transform.m_rotation;
+		glm::vec3 matrix_scale = comp->transform.m_scale;
 
 
 		if (ImGuiLib::ShowVec3Editor("Tr", matrix_translation))
-			comp->SetPosition(matrix_translation);
+			comp->transform.SetPosition(matrix_translation);
 
 		if (ImGuiLib::ShowVec3Editor("Rt", matrix_rotation))
-			comp->SetOrientation(matrix_rotation);
+			comp->transform.SetOrientation(matrix_rotation);
 
 		if (ImGuiLib::ShowVec3Editor("Sc", matrix_scale))
-			comp->SetScale(matrix_scale);
+			comp->transform.SetScale(matrix_scale);
 
 		glm::mat4 delta_matrix = glm::mat4(1);
 		if (ImGuizmo::Manipulate(&m_editor_camera.GetViewMatrix()[0][0], &m_editor_camera.GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 
+			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 			switch (current_operation) {
 			case ImGuizmo::TRANSLATE:
-				ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
-				comp->SetPosition(matrix_translation);
+				comp->transform.SetPosition(matrix_translation + comp->transform.m_pos);
 				break;
 			case ImGuizmo::SCALE:
-				ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
-				comp->SetScale(matrix_scale);
+				comp->transform.SetScale(matrix_scale * comp->transform.m_scale);
 				break;
-			case ImGuizmo::ROTATE: // Have to use rotation delta to prevent orientation bugs
-				ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
-				comp->SetOrientation(matrix_rotation);
+			case ImGuizmo::ROTATE:
+				comp->transform.SetOrientation((matrix_rotation + comp->transform.m_rotation));
 				break;
 			}
 		};
 
-		ImGui::Dummy(ImVec2(0.f, 20.f));
+		ImGui::Dummy(ImVec2(0.f, ImGuiLib::dummy_spacing_size_vertical));
 		ImGui::PopID();
 	};
 

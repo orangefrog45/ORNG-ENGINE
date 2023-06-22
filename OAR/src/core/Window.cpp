@@ -7,6 +7,9 @@ namespace ORNG {
 
 	void Window::ISetWindowDimensions(int width, int height) {
 
+		if (width == 0 || height == 0) // likely minimized
+			return;
+
 		Events::WindowEvent window_event;
 		window_event.event_type = Events::Event::WINDOW_RESIZE;
 		window_event.old_window_size = glm::vec2(m_window_width, m_window_height);

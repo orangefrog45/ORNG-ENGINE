@@ -4,17 +4,12 @@
 #include "util/util.h"
 #include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
+#include "core/FrameTiming.h"
 
 
 namespace ORNG {
 
 	void ShaderLibrary::Init() {
-
-		m_pointlight_ssbo = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_pointlight_ssbo, GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
-
-		m_spotlight_ssbo = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_spotlight_ssbo, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
 
 		m_matrix_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_matrix_ubo);
@@ -49,6 +44,7 @@ namespace ORNG {
 		data[5] = camera_target.y;
 		data[6] = camera_target.z;
 		data[7] = 0.f; //padding
+		data[8] = FrameTiming::GetTotalElapsedTime();
 
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
@@ -133,112 +129,6 @@ namespace ORNG {
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
-	void ShaderLibrary::SetPointLights(const std::vector<PointLightComponent*>& p_lights) {
-		constexpr unsigned int point_light_fs_num_float = 16; // amount of floats in pointlight struct in shaders
-
-		std::vector<float> light_array;
-
-		light_array.resize(p_lights.size() * point_light_fs_num_float);
-
-		for (int i = 0; i < p_lights.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
-
-			auto& light = p_lights[i / point_light_fs_num_float];
-
-			//0 - START COLOR
-			auto color = light->color;
-			light_array[i] = color.x;
-			light_array[i + 1] = color.y;
-			light_array[i + 2] = color.z;
-			light_array[i + 3] = 0; //padding
-			//16 - END COLOR - START POS
-			auto pos = light->transform.GetPosition();
-			light_array[i + 4] = pos.x;
-			light_array[i + 5] = pos.y;
-			light_array[i + 6] = pos.z;
-			light_array[i + 7] = 0; //padding
-			//32 - END POS, START INTENSITY
-			light_array[i + 8] = light->ambient_intensity;
-			light_array[i + 9] = light->diffuse_intensity;
-			//40 - END INTENSITY - START MAX_DISTANCE
-			light_array[i + 10] = light->max_distance;
-			//44 - END MAX_DISTANCE - START ATTENUATION
-			auto& atten = light->attenuation;
-			light_array[i + 11] = atten.constant;
-			light_array[i + 12] = atten.linear;
-			light_array[i + 13] = atten.exp;
-			//56 - END ATTENUATION
-			light_array[i + 14] = 0; //padding
-			light_array[i + 15] = 0; //padding
-			//64 BYTES TOTAL
-		}
-
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_DYNAMIC_DRAW);
-	}
-
-	void ShaderLibrary::SetSpotLights(const std::vector< SpotLightComponent*>& s_lights) {
-
-		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
-		std::vector<float> light_array;
-
-		light_array.resize(s_lights.size() * spot_light_fs_num_float);
 
 
-		for (int i = 0; i < s_lights.size() * spot_light_fs_num_float; i += spot_light_fs_num_float) {
-
-			auto& light = s_lights[i / spot_light_fs_num_float];
-			//0 - START COLOR
-			auto color = light->color;
-			light_array[i] = color.x;
-			light_array[i + 1] = color.y;
-			light_array[i + 2] = color.z;
-			light_array[i + 3] = 0; //padding
-			//16 - END COLOR - START POS
-			auto pos = light->transform.GetPosition();
-			light_array[i + 4] = pos.x;
-			light_array[i + 5] = pos.y;
-			light_array[i + 6] = pos.z;
-			light_array[i + 7] = 0; //padding
-			//32 - END POS, START DIR
-			auto dir = light->GetLightDirection();
-			light_array[i + 8] = dir.x;
-			light_array[i + 9] = dir.y;
-			light_array[i + 10] = dir.z;
-			light_array[i + 11] = 0; // padding
-			//48 - END DIR, START LIGHT TRANSFORM MAT
-			glm::mat4 mat = light->GetLightSpaceTransformMatrix();
-			light_array[i + 12] = mat[0][0];
-			light_array[i + 13] = mat[0][1];
-			light_array[i + 14] = mat[0][2];
-			light_array[i + 15] = mat[0][3];
-			light_array[i + 16] = mat[1][0];
-			light_array[i + 17] = mat[1][1];
-			light_array[i + 18] = mat[1][2];
-			light_array[i + 19] = mat[1][3];
-			light_array[i + 20] = mat[2][0];
-			light_array[i + 21] = mat[2][1];
-			light_array[i + 22] = mat[2][2];
-			light_array[i + 23] = mat[2][3];
-			light_array[i + 24] = mat[3][0];
-			light_array[i + 25] = mat[3][1];
-			light_array[i + 26] = mat[3][2];
-			light_array[i + 27] = mat[3][3];
-			//112   - END LIGHT TRANSFORM MAT, START INTENSITY
-			light_array[i + 28] = light->ambient_intensity;
-			light_array[i + 29] = light->diffuse_intensity;
-			//40 - END INTENSITY - START MAX_DISTANCE
-			light_array[i + 30] = light->max_distance;
-			//44 - END MAX_DISTANCE - START ATTENUATION
-			auto& atten = light->attenuation;
-			light_array[i + 31] = atten.constant;
-			light_array[i + 32] = atten.linear;
-			light_array[i + 33] = atten.exp;
-			//52 - END ATTENUATION - START APERTURE
-			light_array[i + 34] = light->GetAperture();
-			light_array[i + 35] = 0; //padding
-		}
-
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_spotlight_ssbo);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_DYNAMIC_DRAW);
-	}
 }

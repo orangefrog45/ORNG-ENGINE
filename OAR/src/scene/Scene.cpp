@@ -3,7 +3,7 @@
 #include "util/TimeStep.h"
 #include "scene/Scene.h"
 #include "util/util.h"
-#include "rendering/MeshInstanceGroup.h"
+#include "scene/MeshInstanceGroup.h"
 #include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
@@ -18,36 +18,26 @@ namespace ORNG {
 	}
 
 	Scene::Scene() {
-		m_mesh_instance_groups.reserve(20);
-		m_mesh_components.reserve(100);
 
-
-		Material* default_material = GetMaterial(CreateMaterial());
+		Material* default_material = CreateMaterial();
 		default_material->name = "Default";
 		default_material->base_color = glm::vec3(1);
-		default_material->base_color_texture = CreateTexture2DAsset("./res/textures/missing_texture.jpeg");
+		default_material->base_color_texture = CreateTexture2DAsset("./res/textures/missing_texture.png", true);
 
 	}
 
 
 	void Scene::Update() {
-		for (int i = 0; i < m_mesh_instance_groups.size(); i++) {
-			auto* group = m_mesh_instance_groups[i];
 
-			group->ProcessUpdates();
+		for (auto* script : m_script_components) {
+			//script->OnUpdate();
+		}
 
-			// Check if group should be deleted
-			if (group->m_instances.empty()) {
-				delete group;
-				m_mesh_instance_groups.erase(m_mesh_instance_groups.begin() + i);
-			}
-		}
-		for (auto& script : m_script_components) {
-			if (!script || !script->OnUpdate)
-				continue;
-			else
-				script->OnUpdate();
-		}
+		m_mesh_component_manager.OnUpdate();
+		m_pointlight_component_manager.OnUpdate();
+		m_spotlight_component_manager.OnUpdate();
+		m_transform_component_manager.OnUpdate();
+
 
 		if (mp_active_camera)
 			mp_active_camera->Update();
@@ -55,62 +45,45 @@ namespace ORNG {
 		m_terrain.UpdateTerrainQuadtree(mp_active_camera->pos);
 	}
 
-	CameraComponent* Scene::AddCameraComponent(unsigned long entity_id) {
-		if (GetComponent<CameraComponent>(entity_id)) {
-			OAR_CORE_WARN("Camera component not added, entity '{0}' already has a camera component", m_entities[entity_id]->name);
+
+
+
+
+
+	CameraComponent* Scene::AddCameraComponent(SceneEntity* p_entity) {
+		if (GetComponent<CameraComponent>(p_entity->GetID())) {
+			OAR_CORE_WARN("Camera component not added, entity '{0}' already has a camera component", p_entity->name);
 			return nullptr;
 		}
 
-		CameraComponent* comp = new CameraComponent(entity_id);
+		CameraComponent* comp = new CameraComponent(p_entity);
 		m_camera_components.push_back(comp);
 		return comp;
 
 	}
 
 
-	PointLightComponent* Scene::AddPointLightComponent(unsigned long entity_id) {
-		if (GetComponent<PointLightComponent>(entity_id)) {
-			OAR_CORE_WARN("Pointlight component not added, entity '{0}' already has a pointlight component", m_entities[entity_id]->name);
+
+
+
+
+	ScriptComponent* Scene::AddScriptComponent(SceneEntity* p_entity) {
+		if (GetComponent<ScriptComponent>(p_entity->GetID())) {
+			OAR_CORE_WARN("Script component not added, entity '{0}' already has a script component", p_entity->name);
 			return nullptr;
 		}
 
-		PointLightComponent* comp = new PointLightComponent(entity_id);
-		m_point_lights.push_back(comp);
-		return comp;
-	}
-
-	SpotLightComponent* Scene::AddSpotLightComponent(unsigned long entity_id) {
-		if (GetComponent<SpotLightComponent>(entity_id)) {
-			OAR_CORE_WARN("Spotlight component not added, entity '{0}' already has a spotlight component", m_entities[entity_id]->name);
-			return nullptr;
-		}
-		SpotLightComponent* comp = new SpotLightComponent(entity_id);
-		m_spot_lights.push_back(comp);
-		return comp;
-	}
-
-	ScriptComponent* Scene::AddScriptComponent(unsigned long entity_id) {
-		if (GetComponent<ScriptComponent>(entity_id)) {
-			OAR_CORE_WARN("Script component not added, entity '{0}' already has a script component", m_entities[entity_id]->name);
-			return nullptr;
-		}
-
-		auto* p_comp = new ScriptComponent(entity_id);
+		auto* p_comp = new ScriptComponent(p_entity);
 		m_script_components.push_back(p_comp);
 		return p_comp;
 	}
 
-	MeshComponent* Scene::AddMeshComponent(unsigned long entity_id, const std::string& filename, unsigned int shader_id) {
+
+
+
+	MeshComponent* Scene::AddMeshComponent(SceneEntity* p_entity, const std::string& filename) {
 
 		// Currently any mesh components inside scene are auto-instanced and grouped together in MeshInstanceGroups, depending on shader, materials and asset
-		if (GetComponent<MeshComponent>(entity_id)) {
-			OAR_CORE_WARN("Mesh component not added, entity '{0}' already has a mesh component", m_entities[entity_id]->name);
-			return nullptr;
-		}
-
-
-		MeshComponent* comp = new MeshComponent(entity_id);
-
 		//check if mesh data is already available for the instance group about to be created if new component does not have appropiate instance group
 		int mesh_asset_index = -1;
 		for (int i = 0; i < m_mesh_assets.size(); i++) {
@@ -120,22 +93,17 @@ namespace ORNG {
 			}
 		}
 
-		comp->m_shader_id = shader_id;
-
+		MeshAsset* p_mesh_data;
 		if (mesh_asset_index == -1) {
-
-			MeshAsset* mesh_data = CreateMeshAsset(filename);
-			auto group = new MeshInstanceGroup(mesh_data, comp->m_shader_id, this, comp->m_materials);
-
-			m_mesh_instance_groups.push_back(group);
-			group->AddMeshPtr(comp);
+			p_mesh_data = CreateMeshAsset(filename);
+			p_mesh_data->LoadMeshData();
+			LoadMeshAssetIntoGPU(p_mesh_data);
 		}
 		else {
-			SortMeshIntoInstanceGroup(comp, m_mesh_assets[mesh_asset_index]);
+			p_mesh_data = m_mesh_assets[mesh_asset_index];
 		}
 
-		m_mesh_components.push_back(comp);
-		return comp;
+		return m_mesh_component_manager.AddComponent(p_entity, p_mesh_data);
 	}
 
 
@@ -155,7 +123,11 @@ namespace ORNG {
 					p = p.substr(2, p.size() - 2);
 
 				full_path = dir + "/" + p;
-				p_tex = CreateTexture2DAsset(full_path);
+				if (type == aiTextureType_BASE_COLOR)
+					p_tex = CreateTexture2DAsset(full_path, true);
+				else
+					p_tex = CreateTexture2DAsset(full_path, false);
+
 
 			}
 
@@ -177,6 +149,7 @@ namespace ORNG {
 	void Scene::LoadScene() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 		m_skybox.Init();
+		m_skybox.LoadEnvironmentMap("./res/textures/belfast_sunset_puresky_4k.hdr");
 
 
 		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
@@ -187,14 +160,13 @@ namespace ORNG {
 
 
 
-		Material* p_terrain_material = GetMaterial(CreateMaterial());
+		Material* p_terrain_material = CreateMaterial();
 		p_terrain_material->name = "Terrain";
 		p_terrain_material->base_color = glm::vec3(1);
 		p_terrain_material->base_color_texture = GetMaterial(0)->base_color_texture;
-		p_terrain_material->roughness_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_roughness.png.");
-		p_terrain_material->ao_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_ao.png");
-		p_terrain_material->metallic_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_metallic.png");
-		p_terrain_material->displacement_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_height.png");
+		p_terrain_material->roughness_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_roughness.png.", false);
+		p_terrain_material->ao_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_ao.png", false);
+		p_terrain_material->metallic_texture = CreateTexture2DAsset("./res/textures/rock/strata-rock1_metallic.png", false);
 		m_terrain.Init(p_terrain_material->material_id);
 
 		for (auto& mesh : m_mesh_assets) {
@@ -210,17 +182,11 @@ namespace ORNG {
 				LoadMeshAssetIntoGPU(mesh);
 			}
 		}
-		for (auto& group : m_mesh_instance_groups) {
-			//Set materials
-			for (auto* p_material : group->m_mesh_asset->m_scene_materials) {
-				group->m_materials.push_back(p_material);
-			}
 
-			for (auto* p_mesh : group->m_instances) {
-				p_mesh->m_materials = group->m_materials;
-			}
-			group->UpdateTransformSSBO();
-		}
+
+		m_mesh_component_manager.OnLoad();
+		m_spotlight_component_manager.OnLoad();
+		m_pointlight_component_manager.OnLoad();
 
 		OAR_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}
@@ -229,18 +195,6 @@ namespace ORNG {
 		OAR_CORE_INFO("Unloading scene...");
 		for (MeshAsset* mesh_data : m_mesh_assets) {
 			delete mesh_data;
-		}
-		for (auto* mesh : m_mesh_components) {
-			delete mesh;
-		}
-		for (auto* group : m_mesh_instance_groups) {
-			delete group;
-		}
-		for (auto* light : m_point_lights) {
-			delete light;
-		}
-		for (auto* light : m_spot_lights) {
-			delete light;
 		}
 		for (auto* entity : m_entities) {
 			delete entity;
@@ -256,50 +210,29 @@ namespace ORNG {
 			delete material;
 		}
 
+		m_mesh_component_manager.OnUnload();
+		m_spotlight_component_manager.OnUnload();
+		m_pointlight_component_manager.OnUnload();
+		m_transform_component_manager.OnUnload();
+
 		OAR_CORE_INFO("Scene unloaded");
 	}
 
-	void Scene::SortMeshIntoInstanceGroup(MeshComponent* comp, MeshAsset* asset) {
 
-		// this tells the instance groups to update the transform buffers every frame before rendering to set the correct transforms, as now multiple sets of transforms are needed
-		asset->m_is_shared_in_instance_groups = true;
-
-		int group_index = -1;
-
-		// check if new entity can merge into already existing instance group
-		for (int i = 0; i < m_mesh_instance_groups.size(); i++) {
-			//if same data, shader and material, can be combined so instancing is possible
-			if (m_mesh_instance_groups[i]->m_mesh_asset == asset
-				&& m_mesh_instance_groups[i]->m_group_shader_id == comp->m_shader_id
-				&& m_mesh_instance_groups[i]->m_materials == comp->m_materials) {
-				group_index = i;
-				break;
-			}
-		}
-
-		if (group_index != -1) { // if instance group exists, place into
-			// add mesh component's world transform into instance group for instanced rendering
-			MeshInstanceGroup* group = m_mesh_instance_groups[group_index];
-			group->AddMeshPtr(comp);
-		}
-		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
-			MeshInstanceGroup* group = new MeshInstanceGroup(asset, comp->m_shader_id, this, comp->m_materials);
-			m_mesh_instance_groups.push_back(group);
-			group->AddMeshPtr(comp);
-		}
-
-	}
 
 	SceneEntity& Scene::CreateEntity(const char* name) {
 		SceneEntity* ent = new SceneEntity(CreateEntityID(), this);
 		ent->name = name;
 		m_entities.push_back(ent);
 
+		// Give transform (all entities have this)
+		m_transform_component_manager.AddComponent(ent);
+
 		return *ent;
 
 	}
 
-	unsigned int Scene::CreateMaterial() {
+	Material* Scene::CreateMaterial() {
 		Material* p_material = new Material();
 
 		//ID of material is its position in the material vector for quick material lookups in shaders.
@@ -308,10 +241,10 @@ namespace ORNG {
 		p_material->material_id = m_materials.size() - 1;
 
 		Renderer::GetShaderLibrary().UpdateMaterialUBO(m_materials);
-		return p_material->material_id;
+		return p_material;
 	}
 
-	Texture2D* Scene::CreateTexture2DAsset(const std::string& filename) {
+	Texture2D* Scene::CreateTexture2DAsset(const std::string& filename, bool srgb) {
 
 		static Texture2DSpec base_spec;
 		base_spec.mag_filter = GL_LINEAR;
@@ -326,6 +259,7 @@ namespace ORNG {
 
 		Texture2D* p_tex = new Texture2D(filename.c_str());
 		base_spec.filepath = filename;
+		base_spec.srgb_space = srgb;
 		m_texture_2d_assets.push_back(p_tex);
 
 		p_tex->SetSpec(base_spec);
@@ -346,26 +280,14 @@ namespace ORNG {
 		return mesh_data;
 	}
 
+
+
 	void Scene::DeleteMeshAsset(MeshAsset* data) {
-
-		// Remove asset from all components using it
-		for (int i = 0; i < m_mesh_instance_groups.size(); i++) {
-			MeshInstanceGroup* group = m_mesh_instance_groups[i];
-
-			if (group->m_mesh_asset == data) {
-				group->ClearMeshes();
-				for (auto& mesh : group->m_instances) {
-					mesh->mp_mesh_asset = nullptr;
-				}
-
-				// Delete all mesh instance groups using the asset as they cannot function without it
-				m_mesh_instance_groups.erase(m_mesh_instance_groups.begin() + i);
-				delete group;
-			}
-		}
 		m_mesh_assets.erase(std::find(m_mesh_assets.begin(), m_mesh_assets.end(), data));
 		delete data;
 	};
+
+
 
 	void Scene::LoadMeshAssetIntoGPU(MeshAsset* asset) {
 
@@ -424,8 +346,7 @@ namespace ORNG {
 
 
 			// Create material in scene so it can be used globally, and modified
-			unsigned int new_material_id = CreateMaterial();
-			Material* p_added_material = GetMaterial(new_material_id);
+			Material* p_added_material = CreateMaterial();
 
 			// Link to scene materials so mesh components which have this asset can link to the default materials
 			asset->m_scene_materials.push_back(p_added_material);
@@ -433,7 +354,6 @@ namespace ORNG {
 			// Make a copy to preserve original materials
 			*p_added_material = asset->m_original_materials[i];
 			p_added_material->name = std::format("{} - {}", asset->m_filename.substr(asset->m_filename.find_last_of("/") + 1), i);
-			p_added_material->material_id = new_material_id;
 		}
 
 		// Load into gpu

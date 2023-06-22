@@ -2,6 +2,7 @@
 #include "util/ExtraMath.h"
 #include "components/lights/DirectionalLight.h"
 #include "glm/glm/gtc/quaternion.hpp"
+#include "glm/glm/gtc/round.hpp"
 
 namespace ORNG {
 
@@ -38,7 +39,7 @@ namespace ORNG {
 		return translation_matrix;
 	}
 
-	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size)
+	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size, glm::vec3 camera_pos)
 	{
 		auto corners = ExtraMath::GetFrustumCornersWorldSpace(proj, view);
 
@@ -50,6 +51,7 @@ namespace ORNG {
 		}
 
 		center /= 8.0f;
+		center = glm::roundMultiple(center, glm::vec3(1.f / shadow_map_size));
 
 		const glm::mat4 light_view = glm::lookAt(center + light.GetLightDirection(), center, glm::vec3(0.f, 1.f, 0.f));
 
@@ -79,7 +81,7 @@ namespace ORNG {
 		glm::mat4 light_proj = glm::ortho(min.x, max.x, min.y, max.y, min.z, max.z);
 
 
-		glm::vec4 shadow_origin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		glm::vec4 shadow_origin = glm::vec4(0.f, 0.f, 0.f, 1.0f);
 		shadow_origin = (light_proj * light_view) * shadow_origin;
 		shadow_origin = shadow_origin * (shadow_map_size / 2.0f);
 

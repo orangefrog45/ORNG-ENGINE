@@ -59,6 +59,7 @@ namespace ORNG {
 		void ShowAssetManager();
 		void RenderTextureEditor(Texture2D* selected_texture, Texture2DSpec& spec);
 
+
 		Events::EventListener<Events::EngineCoreEvent> m_core_event_listener;
 
 		Shader* mp_quad_shader = nullptr;
@@ -72,7 +73,7 @@ namespace ORNG {
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
 		std::unique_ptr<Scene> m_active_scene = nullptr;
 
-		EditorCamera m_editor_camera{ 0 };
+		EditorCamera m_editor_camera{ nullptr };
 
 		unsigned int m_selected_entity_id = 0;
 

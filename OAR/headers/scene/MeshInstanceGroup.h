@@ -2,18 +2,20 @@
 #include "rendering/MeshAsset.h"
 #include "components/MeshComponent.h"
 
-class WorldTransform;
+class TransformComponent;
 class Scene;
+class MeshComponentManager;
 
 namespace ORNG {
 
 	class MeshInstanceGroup {
 	public:
+		friend class MeshComponentManager;
 		friend class MeshComponent;
 		friend class Scene;
 		friend class SceneRenderer;
-		MeshInstanceGroup(MeshAsset* t_mesh_data, unsigned int shader_id, Scene* scene, const std::vector<const Material*>& material_ids) :
-			m_mesh_asset(t_mesh_data), m_group_shader_id(shader_id), mp_scene(scene), m_materials(material_ids), m_transform_ssbo_handle(t_mesh_data->m_vao.GenTransformSSBO()) {};
+		MeshInstanceGroup(MeshAsset* t_mesh_data, unsigned int shader_id, MeshComponentManager* p_mcm, const std::vector<const Material*>& material_ids) :
+			m_mesh_asset(t_mesh_data), m_group_shader_id(shader_id), mp_manager(p_mcm), m_materials(material_ids), m_transform_ssbo_handle(t_mesh_data->m_vao.GenTransformSSBO()) {};
 		~MeshInstanceGroup() {
 			glDeleteBuffers(1, &m_transform_ssbo_handle);
 		}
@@ -55,7 +57,7 @@ namespace ORNG {
 		//ID's of materials associated with each submesh of the mesh asset
 		std::vector<const Material*> m_materials;
 
-		Scene* mp_scene = nullptr;
+		MeshComponentManager* mp_manager = nullptr;
 		MeshAsset* m_mesh_asset;
 		unsigned int m_transform_ssbo_handle = 0;
 		unsigned int m_group_shader_id;

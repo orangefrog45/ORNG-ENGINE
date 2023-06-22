@@ -7,7 +7,7 @@ namespace ORNG {
 	struct CameraComponent : public Component {
 		friend class SceneRenderer;
 		friend class Scene;
-		CameraComponent(unsigned int entity_id) : Component(entity_id) {};
+		CameraComponent(SceneEntity* p_entity) : Component(p_entity) {};
 		void SetPosition(float x, float y, float z);
 		void MoveForward(float time_elapsed);
 		void MoveBackward(float time_elapsed);
@@ -30,7 +30,7 @@ namespace ORNG {
 		glm::vec3 right = { 1.f, 0.f,0.f };
 		glm::vec3 target = glm::vec3(0.0f, 0.0f, -1.0f);
 		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-		float speed = 0.00001f;
+		float speed = 0.1f;
 
 	};
 }

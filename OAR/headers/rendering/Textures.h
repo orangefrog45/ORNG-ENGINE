@@ -21,7 +21,7 @@ namespace ORNG {
 		GLenum wrap_params = GL_REPEAT;
 		GLenum storage_type = GL_UNSIGNED_BYTE;
 		bool generate_mipmaps = false;
-
+		bool srgb_space = false;
 	};
 	class TextureBase {
 
@@ -36,23 +36,26 @@ namespace ORNG {
 
 		bool ValidateBaseSpec(const TextureBaseSpec* spec, bool is_framebuffer_texture = false) {
 
+			if (is_framebuffer_texture) {
+				if (spec->width == 1 || spec->height == 1)
+				{
+					OAR_CORE_WARN("Framebuffer texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
+				}
 
-			if (spec->width == 1 || spec->height == 1)
-			{
-				OAR_CORE_TRACE("Texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
+				if (spec->internal_format == GL_NONE || spec->format == GL_NONE)
+				{
+					OAR_CORE_WARN("Framebuffer texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
+
+					if (is_framebuffer_texture)
+						return false;
+				}
 			}
-
-			if (spec->internal_format == GL_NONE || spec->format == GL_NONE)
-			{
-				OAR_CORE_WARN("Texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
-
-				if (is_framebuffer_texture)
-					return false;
-			}
-
 
 			return true;
 		}
+
+		bool LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		bool LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
 	protected:
 		TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); };
 		unsigned int m_texture_target = 0;
