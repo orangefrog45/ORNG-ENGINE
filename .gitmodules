@@ -26,3 +26,6 @@
 [submodule "OAR/extern/imguizmo"]
 	path = OAR/extern/imguizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
+[submodule "OAR/extern/stb"]
+	path = OAR/extern/stb
+	url = https://github.com/nothings/stb
