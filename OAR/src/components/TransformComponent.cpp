@@ -47,27 +47,8 @@ namespace ORNG {
 		return m_pos;
 	}
 
-	glm::mat4 TransformComponent::GetRotationMatrix() const {
-		return ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
-	}
 
-	glm::mat4 TransformComponent::GetScaleMatrix() const {
-		return ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
-	}
-
-	glm::mat4 TransformComponent::GetTranslationMatrix() const {
-		return ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
-	}
-
-	void TransformComponent::SetOrientation(float x, float y, float z) {
-		m_rotation.x = x;
-		m_rotation.y = y;
-		m_rotation.z = z;
-		RebuildMatrix();
-	}
-
-	void TransformComponent::RebuildMatrix() {
-
+	std::array<glm::vec3, 3> TransformComponent::GetAbsoluteTransforms() const {
 		// Sum all parent transforms to get absolute position
 		TransformComponent* p_parent_transform = mp_parent_transform;
 
@@ -84,12 +65,41 @@ namespace ORNG {
 		}
 
 
-		glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(abs_rotation.x, abs_rotation.y, abs_rotation.z);
-		glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(abs_scale.x, abs_scale.y, abs_scale.z);
-		glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(abs_translation.x, abs_translation.y, abs_translation.z);
+		return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
+	}
 
 
-		m_transform = trans_mat * rot_mat * scale_mat;
+	void TransformComponent::SetOrientation(float x, float y, float z) {
+		m_rotation.x = x;
+		m_rotation.y = y;
+		m_rotation.z = z;
+		RebuildMatrix();
+	}
+
+	void TransformComponent::RebuildMatrix() {
+
+		if (m_is_absolute) {
+			glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
+			glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
+			glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
+
+			m_transform = trans_mat * rot_mat * scale_mat;
+		}
+		else {
+			// Sum all parent transforms to get absolute position
+			auto abs_transforms = GetAbsoluteTransforms();
+			glm::vec3 abs_translation = abs_transforms[0];
+			glm::vec3 abs_scale = abs_transforms[1];
+			glm::vec3 abs_rotation = abs_transforms[2];
+
+			glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(abs_rotation.x, abs_rotation.y, abs_rotation.z);
+			glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(abs_scale.x, abs_scale.y, abs_scale.z);
+			glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(abs_translation.x, abs_translation.y, abs_translation.z);
+
+
+			m_transform = trans_mat * rot_mat * scale_mat;
+
+		}
 
 		if (OnTransformUpdate)
 			OnTransformUpdate();

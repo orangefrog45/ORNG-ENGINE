@@ -3,13 +3,12 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
-#include <glfw/glfw3.h>
+#include "glfw/glfw3.h"
 #include "rendering/Renderer.h"
 #include "core/Application.h"
 #include "util/Log.h"
 #include "core/Window.h"
 #include "rendering/SceneRenderer.h"
-#include "util/ImGuiLib.h"
 #include "core/GLStateManager.h"
 #include "events/EventManager.h"
 #include "core/FrameTiming.h"
@@ -56,7 +55,6 @@ namespace ORNG {
 		Renderer::Init();
 		SceneRenderer::Init();
 		editor_layer.Init();
-		ImGuiLib::Init();
 
 		// Game loop
 

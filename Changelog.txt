@@ -1,5 +1,13 @@
+24/6/23:
+-Large UI changes
+-Fixed some transform bugs
+-Material bugs fixed
+-Light buffer updates slightly changed - for now just update each frame
+
 22/6/23:
 -Image based lighting with environment map loading and prefiltering
+-Component managers (systems)
+-Transform inheritance
 -Material system rewrites to make swapping materials easier
 -Some texture rewrites
 -General refactoring

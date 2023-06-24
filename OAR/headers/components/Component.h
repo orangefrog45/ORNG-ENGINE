@@ -9,6 +9,7 @@ namespace ORNG {
 		Component(SceneEntity* p_entity);
 		unsigned long GetEntityHandle() const;
 		SceneEntity* GetEntity() { return mp_entity; }
+
 	private:
 		SceneEntity* mp_entity = nullptr;
 	};

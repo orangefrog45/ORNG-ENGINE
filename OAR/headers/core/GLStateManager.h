@@ -60,7 +60,6 @@ namespace ORNG {
 		struct UniformBindingPoints {
 			static const int PVMATRICES = 0;
 			static const int GLOBAL_LIGHTING = 1;
-			static const int MATERIALS = 3;
 			static const int GLOBALS = 2;
 		};
 

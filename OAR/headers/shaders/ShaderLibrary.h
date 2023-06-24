@@ -18,8 +18,7 @@ namespace ORNG {
 
 		Shader& CreateShader(const char* name);
 		void SetMatrixUBOs(glm::mat4& proj, glm::mat4& view);
-		void UpdateMaterialUBO(const std::vector<Material*>& materials);
-		void SetGlobalLighting(const DirectionalLight& dir_light, const BaseLight& ambient_light);
+		void SetGlobalLighting(const DirectionalLight& dir_light);
 		void SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target);
 
 		Shader& GetShader(const char* name);
@@ -37,8 +36,6 @@ namespace ORNG {
 
 		unsigned int m_matrix_ubo;
 		inline const static unsigned int m_matrix_ubo_size = sizeof(glm::mat4) * 3;
-
-		unsigned int m_material_ubo;
 
 		unsigned int m_global_lighting_ubo; //contains things such as directional, ambient light
 		inline const static unsigned int m_global_lighting_ubo_size = 18 * sizeof(float);

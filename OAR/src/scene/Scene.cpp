@@ -30,7 +30,7 @@ namespace ORNG {
 	void Scene::Update() {
 
 		for (auto* script : m_script_components) {
-			//script->OnUpdate();
+			script->OnUpdate();
 		}
 
 		m_mesh_component_manager.OnUpdate();
@@ -232,15 +232,17 @@ namespace ORNG {
 
 	}
 
+
+
 	Material* Scene::CreateMaterial() {
+		static unsigned long last_id = 0;
 		Material* p_material = new Material();
 
 		//ID of material is its position in the material vector for quick material lookups in shaders.
 
 		m_materials.push_back(p_material);
-		p_material->material_id = m_materials.size() - 1;
+		p_material->material_id = last_id++;
 
-		Renderer::GetShaderLibrary().UpdateMaterialUBO(m_materials);
 		return p_material;
 	}
 
@@ -341,7 +343,7 @@ namespace ORNG {
 
 			float metallic;
 			if (p_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == aiReturn_SUCCESS) {
-				asset->m_original_materials[i].roughness = metallic;
+				asset->m_original_materials[i].metallic = metallic;
 			}
 
 
@@ -349,10 +351,12 @@ namespace ORNG {
 			Material* p_added_material = CreateMaterial();
 
 			// Link to scene materials so mesh components which have this asset can link to the default materials
+			unsigned long id = p_added_material->material_id;
 			asset->m_scene_materials.push_back(p_added_material);
 
 			// Make a copy to preserve original materials
 			*p_added_material = asset->m_original_materials[i];
+			p_added_material->material_id = id;
 			p_added_material->name = std::format("{} - {}", asset->m_filename.substr(asset->m_filename.find_last_of("/") + 1), i);
 		}
 

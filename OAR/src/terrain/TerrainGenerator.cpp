@@ -9,7 +9,7 @@
 
 namespace ORNG {
 
-	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, float resolution,
+	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, unsigned int resolution,
 		float height_scale, glm::vec3 bot_left_coord, VAO::VertexData& output_data, AABB& bounding_box)
 	{
 

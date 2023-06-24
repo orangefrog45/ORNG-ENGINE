@@ -39,7 +39,10 @@ namespace ORNG {
 		return translation_matrix;
 	}
 
-	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size, glm::vec3 camera_pos)
+
+
+
+	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size)
 	{
 		auto corners = ExtraMath::GetFrustumCornersWorldSpace(proj, view);
 
@@ -51,10 +54,6 @@ namespace ORNG {
 		}
 
 		center /= 8.0f;
-		center = glm::roundMultiple(center, glm::vec3(1.f / shadow_map_size));
-
-		const glm::mat4 light_view = glm::lookAt(center + light.GetLightDirection(), center, glm::vec3(0.f, 1.f, 0.f));
-
 
 		// Calculate bounding sphere radius
 		float radius = 0.0f;
@@ -65,6 +64,8 @@ namespace ORNG {
 			radius = glm::max(radius, length);
 		}
 
+
+		const glm::mat4 light_view = glm::lookAt(center + light.GetLightDirection(), center, glm::vec3(0.f, 1.f, 0.f));
 
 		// Find bounding box that fits the sphere
 		glm::vec3 radius_vec(radius, radius, radius);

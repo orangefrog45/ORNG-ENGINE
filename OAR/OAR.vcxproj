@@ -272,7 +272,6 @@
     <ClCompile Include="src\terrain\TerrainQuadtree.cpp" />
     <ClCompile Include="src\util\HDRCubemapConverter.cpp" />
     <ClCompile Include="src\util\TimeStep.cpp" />
-    <ClCompile Include="src\util\ImGuiLib.cpp" />
     <ClCompile Include="src\util\Log.cpp" />
     <ClCompile Include="src\components\TransformComponent.cpp" />
   </ItemGroup>
@@ -359,7 +358,6 @@
     <ClInclude Include="headers\terrain\TerrainGenerator.h" />
     <ClInclude Include="headers\terrain\TerrainQuadtree.h" />
     <ClInclude Include="headers\util\TimeStep.h" />
-    <ClInclude Include="headers\util\ImGuiLib.h" />
     <ClInclude Include="headers\util\Log.h" />
     <ClInclude Include="headers\util\util.h" />
     <ClInclude Include="headers\core\Window.h" />

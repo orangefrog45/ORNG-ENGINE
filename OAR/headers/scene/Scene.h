@@ -119,7 +119,14 @@ namespace ORNG {
 
 		inline Material* GetMaterial(unsigned int id) const {
 			if (id < m_materials.size()) {
-				return m_materials[id];
+				auto it = std::find_if(m_materials.begin(), m_materials.end(), [&](const auto* p_mat) {return p_mat->material_id == id; });
+
+				if (it == m_materials.end()) {
+					OAR_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
+					return nullptr;
+				}
+
+				return *it;
 			}
 			else {
 				OAR_CORE_ERROR("Material with id '{0}' does not exist or is somehow out of range", id);
@@ -131,6 +138,7 @@ namespace ORNG {
 		SceneEntity* GetEntity(unsigned long id);
 
 		[[nodiscard]] unsigned long CreateEntityID() {
+			static unsigned long m_last_entity_id = 1; // Last ID assigned to a newly created entity
 			return m_last_entity_id++;
 		}
 
@@ -167,7 +175,6 @@ namespace ORNG {
 		float m_exposure_level = 1.0f;
 
 		std::vector<std::future<void>> m_futures;
-		unsigned long m_last_entity_id = 1; // Last ID assigned to a newly created entity
 	};
 
 }

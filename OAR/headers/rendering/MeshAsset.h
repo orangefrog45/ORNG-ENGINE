@@ -27,7 +27,7 @@ namespace ORNG {
 
 		bool LoadMeshData();
 
-
+		auto& GetSceneMaterials() { return m_scene_materials; }
 		std::string GetFilename() const { return m_filename; };
 
 		bool GetLoadStatus() const { return is_loaded; };

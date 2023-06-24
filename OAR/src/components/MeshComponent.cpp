@@ -19,6 +19,12 @@ namespace ORNG {
 
 	void MeshComponent::SetMeshAsset(MeshAsset* p_asset) {
 		mp_mesh_asset = p_asset;
+		m_materials.clear();
+
+		for (auto* p_material : p_asset->GetSceneMaterials()) {
+			m_materials.push_back(p_material);
+		}
+
 		mp_instance_group->ResortMesh(this);
 	};
 

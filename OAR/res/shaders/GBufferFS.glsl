@@ -4,7 +4,7 @@ out layout(location = 0) vec4 g_position;
 out layout(location = 1) vec4 normal;
 out layout(location = 2) vec4 albedo;
 out layout(location = 3) vec4 roughness_metallic_ao;
-out layout(location = 4) uvec2 shader_material_id;
+out layout(location = 4) uint shader_id;
 
 
 layout(binding = 1) uniform sampler2D diffuse_sampler;
@@ -41,11 +41,6 @@ layout(std140, binding = 2) uniform commons{
 } ubo_common;
 
 
-layout(std140, binding = 3) uniform Materials{ //change to ssbo
-	Material materials[128];
-} u_materials;
-
-
 uniform uint u_material_id;
 uniform uint u_shader_id;
 uniform bool u_normal_sampler_active;
@@ -57,6 +52,7 @@ uniform bool u_terrain_mode;
 uniform bool u_skybox_mode;
 uniform float u_parallax_height_scale;
 uniform uint u_num_parallax_layers;
+uniform Material u_material;
 
 
 vec2 ParallaxMap()
@@ -115,13 +111,12 @@ mat3 CalculateTbnMatrixTransform() {
 
 
 void main() {
-	shader_material_id = uvec2(u_shader_id, u_material_id);
+	shader_id = u_shader_id;
 	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap() : vs_tex_coord.xy;
 
-	Material material = u_materials.materials[u_material_id];
-	roughness_metallic_ao.r = u_roughness_sampler_active ? texture(roughness_sampler, adj_tex_coord.xy).r : material.roughness;
-	roughness_metallic_ao.g = u_metallic_sampler_active ? texture(metallic_sampler, adj_tex_coord.xy).r : material.base_color_and_metallic.a;
-	roughness_metallic_ao.b = u_ao_sampler_active ? texture(ao_sampler, adj_tex_coord.xy).r : material.ao;
+	roughness_metallic_ao.r = u_roughness_sampler_active ? texture(roughness_sampler, adj_tex_coord.xy).r : u_material.roughness;
+	roughness_metallic_ao.g = u_metallic_sampler_active ? texture(metallic_sampler, adj_tex_coord.xy).r : u_material.base_color_and_metallic.a;
+	roughness_metallic_ao.b = u_ao_sampler_active ? texture(ao_sampler, adj_tex_coord.xy).r : u_material.ao;
 	roughness_metallic_ao.a = 1.f;
 
 
@@ -153,6 +148,6 @@ void main() {
 		else {
 			normal = vec4(normalize(vs_normal), 1.f);
 		}
-		albedo = vec4(texture(diffuse_sampler, adj_tex_coord.xy).rgb * material.base_color_and_metallic.rgb, 1.f);
+		albedo = vec4(texture(diffuse_sampler, adj_tex_coord.xy).rgb * u_material.base_color_and_metallic.rgb, 1.f);
 	}
 }

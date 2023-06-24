@@ -32,7 +32,9 @@ namespace ORNG {
 			return x * ((Constants::pi) / 180.0f);
 		}
 
-		static glm::mat4 CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size, glm::vec3 camera_pos);
+		static glm::mat4 CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size);
+
+
 		static std::array<glm::vec4, 8> GetFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view);
 		static glm::mat4x4 Init3DRotateTransform(float rotX, float rotY, float rotZ);
 		static glm::mat4x4 Init3DScaleTransform(float scaleX, float scaleY, float scaleZ);

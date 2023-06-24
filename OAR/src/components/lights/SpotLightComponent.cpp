@@ -7,7 +7,7 @@ namespace ORNG {
 	void SpotLightComponent::SetLightDirection(float i, float j, float k) {
 		m_light_direction_vec = glm::normalize(glm::vec3(i, j, k));
 
-		if (shadows_enabled) UpdateLightTransform();
+		UpdateLightTransform();
 	}
 
 	SpotLightComponent::SpotLightComponent(SceneEntity* p_entity) : PointLightComponent(p_entity)
@@ -17,7 +17,7 @@ namespace ORNG {
 		attenuation.linear = 0.001f;
 		attenuation.exp = 0.0001f;
 
-		if (shadows_enabled) UpdateLightTransform();
+		UpdateLightTransform();
 	};
 
 	void SpotLightComponent::UpdateLightTransform() {
@@ -33,6 +33,6 @@ namespace ORNG {
 	void SpotLightComponent::SetPosition(const float x, const float y, const float z) {
 		transform.SetPosition(x, y, z);
 
-		if (shadows_enabled) UpdateLightTransform();
+		UpdateLightTransform();
 	};
 }

@@ -6,14 +6,13 @@ namespace ORNG {
 
 	struct PointLightComponent : public BaseLight {
 
-		PointLightComponent(SceneEntity* p_entity) : BaseLight(p_entity) { transform.OnTransformUpdate = [] {}; };
+		PointLightComponent(SceneEntity* p_entity) : BaseLight(p_entity) { };
 		virtual ~PointLightComponent() = default;
 
 		float max_distance = 48.0f;
 		LightAttenuation attenuation;
 		TransformComponent transform;
 
-		bool update_flag = false;
 	};
 
 }

@@ -45,19 +45,28 @@ namespace ORNG {
 
 		inline void SetPosition(const glm::vec3 pos) { m_pos = pos; RebuildMatrix(); };
 		inline void SetScale(const glm::vec3 scale) { m_scale = scale; RebuildMatrix(); };
-		inline void SetOrientation(const glm::vec3 rot) { m_rotation = glm::mod(rot, glm::vec3(360.f)); RebuildMatrix(); };
+		inline void SetOrientation(const glm::vec3 rot) { m_rotation = rot; RebuildMatrix(); };
 
-		glm::mat4 GetTranslationMatrix() const;
-		glm::mat4 GetScaleMatrix() const;
-		glm::mat4 GetRotationMatrix() const;
+		void SetAbsoluteMode(bool mode) {
+			m_is_absolute = mode;
+			RebuildMatrix();
+		}
 
 		inline const glm::mat4x4& GetMatrix() const { return m_transform; };
+
+		// Returns inherited position([0]), scale([1]), rotation ([2]) including this components transforms.
+		std::array<glm::vec3, 3> GetAbsoluteTransforms() const;
+
 		glm::vec3 GetPosition() const;
 		inline glm::vec3 GetScale() const { return m_scale; };
 		inline glm::vec3 GetRotation() const { return m_rotation; };
 
 
 	private:
+
+		// If true, transform will not take parent transforms into account when building matrix.
+		bool m_is_absolute = false;
+
 		void RebuildMatrix();
 
 		void RemoveChildTransform(TransformComponent* p_transform) {

@@ -7,15 +7,11 @@ out vec4 FragColor;
 in vec2 tex_coord;
 const unsigned int NUM_SHADOW_CASCADES = 3;
 
-struct BaseLight {
-	vec4 color;
-	float ambient_intensity;
-	float diffuse_intensity;
-};
+
 
 struct DirectionalLight {
 	vec4 direction;
-	BaseLight base;
+	vec4 color;
 
 	//stored in vec3 instead of array due to easier alignment
 	vec3 cascade_ranges;
@@ -25,8 +21,6 @@ struct DirectionalLight {
 struct PointLight {
 	vec4 color; //vec4s used to prevent implicit padding
 	vec4 pos;
-	float ambient_intensity;
-	float diffuse_intensity;
 	float max_distance;
 	//attenuation
 	float constant;
@@ -39,8 +33,6 @@ struct SpotLight { //140 BYTES
 	vec4 pos;
 	vec4 dir;
 	mat4 light_transform_matrix;
-	float ambient_intensity;
-	float diffuse_intensity;
 	float max_distance;
 	//attenuation
 	float constant;
@@ -63,7 +55,6 @@ layout(std140, binding = 2) buffer SpotLights {
 
 layout(std140, binding = 1) uniform GlobalLighting{
 	DirectionalLight directional_light;
-	BaseLight ambient_light;
 } ubo_global_lighting;
 
 
@@ -180,9 +171,9 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 	vec2 texel_size = vec2(1.0) / textureSize(dir_depth_sampler, 0).xy;
 
 	if (frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[0]) {
-		for (float x = -1.5; x <= 1.5; x++)
+		for (float x = -1.0; x <= 1.0; x++)
 		{
-			for (float y = -1.5; y <= 1.5; y++)
+			for (float y = -1.0; y <= 1.0; y++)
 			{
 				float pcf_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy + vec2(x, y) * texel_size), depth_map_index)).r;
 				shadow += current_depth > pcf_depth ? 1.0f : 0.0f;
@@ -190,7 +181,7 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 		}
 
 		/*Take average of PCF*/
-		return shadow / 16.0;
+		return shadow / 9.0;
 	}
 	else {
 		float sampled_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy), depth_map_index)).r;
@@ -214,40 +205,8 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 
 
-/*vec3 CalcSpotLight(SpotLight light, vec3 normal, float distance, int index) {
-
-	vec3 frag_to_light_dir = normalize(light.pos.xyz - sampled_world_pos.xyz);
-
-	float spot_factor = dot(frag_to_light_dir, -light.dir.xyz);
-
-	if (spot_factor > light.aperture) {
-		//SHADOW
-		vec3 color = vec3(0);
-		float shadow = ShadowCalculationSpotlight(light, index);
-
-		if (shadow >= 0.99) {
-			return color; // early return as no light will reach this spot
-		}
 
 
-		color = CalcPhongLight(light.color.xyz, light.diffuse_intensity, frag_to_light_dir, normal);
-
-		//ATTENUATION
-		float attenuation = light.constant +
-			light.a_linear * distance +
-			light.exp * pow(distance, 2);
-
-		color /= attenuation;
-
-		//SPOTLIGHT APERTURE
-		float spotlight_intensity = (1.0 - (1.0 - spot_factor) / (1.0 - light.aperture));
-		return (color * spotlight_intensity) * (1.0 - shadow);
-	}
-	else {
-		return vec3(0, 0, 0);
-	}
-}
-*/
 
 vec3 FresnelSchlick(float cos_theta, vec3 f0) {
 	return f0 + (1.0 - f0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
@@ -289,6 +248,8 @@ vec3 FresnelSchlickRoughness(float cos_theta, vec3 F0)
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cos_theta, 0.0, 1.0), 5.0);
 }
 
+
+
 vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0) {
 	vec3 frag_to_light = light.pos.xyz - sampled_world_pos.xyz;
 
@@ -320,6 +281,48 @@ vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0) {
 }
 
 
+vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index) {
+
+	vec3 frag_to_light = light.pos.xyz - sampled_world_pos.xyz;
+
+
+	float spot_factor = dot(normalize(frag_to_light), -light.dir.xyz);
+
+	//SHADOW
+	vec3 color = vec3(0);
+	float shadow = ShadowCalculationSpotlight(light, index);
+
+	if (shadow >= 0.99 || spot_factor <= 0.0) {
+		return color; // early return as no light will reach this spot
+	}
+
+	float distance = length(frag_to_light);
+	float attenuation = light.constant +
+		light.a_linear * distance +
+		light.exp * pow(distance, 2);
+
+	vec3 l = normalize(frag_to_light);
+	vec3 h = normalize(v + l);
+
+	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
+	float ndf = DistributionGGX(h);
+	float g = GeometrySmith(v, l);
+
+	vec3 num = ndf * g * f;
+	float denom = 4.0 * max(dot(sampled_normal, v), 0.0) * max(dot(sampled_normal, l), 0.0) + 0.0001;
+	vec3 specular = num / denom;
+
+
+	vec3 kd = vec3(1.0) - f;
+	kd *= 1.0 - metallic;
+
+	float n_dot_l = max(dot(sampled_normal, l), 0.0);
+
+	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / (1.0 - light.aperture));
+	return max((kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation) * spotlight_intensity, vec3(0.0, 0.0, 0.0));
+}
+
+
 vec3 CalcDirectionalLight(vec3 v, vec3 f0) {
 
 	vec3 l = ubo_global_lighting.directional_light.direction.xyz;
@@ -338,7 +341,7 @@ vec3 CalcDirectionalLight(vec3 v, vec3 f0) {
 	kd *= 1.0 - metallic;
 
 	float n_dot_l = max(dot(sampled_normal, l), 0.0);
-	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * ubo_global_lighting.directional_light.base.color.xyz;
+	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * ubo_global_lighting.directional_light.color.xyz;
 }
 
 
@@ -387,12 +390,9 @@ void main()
 	}
 
 	// Spotlights
-	/*for (int i = 0; i < spot_lights.lights.length(); i++) {
-		float distance = length(spot_lights.lights[i].pos.xyz - sampled_world_pos.xyz);
-		if (distance <= spot_lights.lights[i].max_distance) {
-			total_light += (CalcSpotLight(spot_lights.lights[i], sampled_normal, distance, i));
-		}
-	}*/
+	for (int i = 0; i < spot_lights.lights.length(); i++) {
+		total_light += (CalcSpotLight(spot_lights.lights[i], v, f0, i));
+	}
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 

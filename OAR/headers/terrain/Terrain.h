@@ -23,9 +23,9 @@ namespace ORNG {
 		ChunkLoader m_loader;
 		std::unique_ptr<TerrainQuadtree> m_quadtree = nullptr;
 
-		unsigned int m_material_id;
 		glm::vec3 m_center_pos = glm::vec3(0.f, 0.f, 0.f);
-		unsigned int m_width = 10000;
+		unsigned int m_material_id;
+		unsigned int m_width = 0;
 		unsigned int m_resolution = 16;
 		unsigned int m_seed = 123;
 		float m_height_scale = 1.5f;

@@ -4,7 +4,6 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
-#include "util/ImGuiLib.h"
 #include "../extern/Icons.h"
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "layers/EditorLayer.h"
@@ -27,6 +26,7 @@
 namespace ORNG {
 
 	void EditorLayer::Init() {
+		InitImGui();
 		m_active_scene = std::make_unique<Scene>();
 		m_active_scene->mp_active_camera = &m_editor_camera;
 
@@ -92,7 +92,7 @@ namespace ORNG {
 			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
 			auto* p_material = m_active_scene->CreateMaterial();
 
-			t_mesh->transform.SetPosition(x, 50.f, 0.f);
+			t_mesh->transform.SetPosition(x, 20.f, 0.f);
 			p_material->roughness = x / 100.f + 0.05f;
 			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
 			p_material->metallic = 0.05;
@@ -106,7 +106,7 @@ namespace ORNG {
 			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
 			auto* p_material = m_active_scene->CreateMaterial();
 
-			t_mesh->transform.SetPosition(x, 60.f, 0.f);
+			t_mesh->transform.SetPosition(x, 30.f, 0.f);
 			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
 			p_material->ao = 1.0;
 			p_material->metallic = 1.0 - (x / 100.f) + 0.05f;
@@ -116,7 +116,49 @@ namespace ORNG {
 			t_mesh->SetMaterialID(1, p_material);
 		}
 
+		auto& t_entity = m_active_scene->CreateEntity("Orange");
+		auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/balloon/air balloon.obj");
+		auto p_script = t_entity.AddComponent<ScriptComponent>();
+		p_script->OnUpdate = [t_mesh] {
+			if (Window::IsKeyDown('w'))
+				t_mesh->transform.SetPosition(t_mesh->transform.GetPosition() + glm::vec3(0, 1, 0) * sinf(FrameTiming::GetTimeStep()));
+		};
+
+
 		OAR_CORE_INFO("Editor layer initialized"); //add profiling func
+	}
+
+	void EditorLayer::InitImGui() {
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.Fonts->AddFontDefault();
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("./res/fonts/PlatNomor-WyVnn.ttf", 18.0f);
+
+		ImFontConfig config;
+		config.MergeMode = true;
+		//io.FontDefault = io.Fonts->AddFontFromFileTTF("./res/fonts/PlatNomor-WyVnn.ttf", 18.0f);
+		static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-regular-400.ttf", 18.0f, &config, icon_ranges);
+		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
+		ImGui_ImplOpenGL3_CreateFontsTexture();
+		ImGui::StyleColorsDark();
+
+
+
+		ImGui::GetStyle().Colors[ImGuiCol_Button] = lighter_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = lightest_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = lightest_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_Border] = dark_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_Tab] = lighter_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = lightest_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_TabActive] = orange_color;
+		ImGui::GetStyle().Colors[ImGuiCol_Header] = lighter_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered] = lightest_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_HeaderActive] = orange_color;
+		ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = dark_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered] = lighter_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive] = lightest_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_TitleBg] = lighter_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = lighter_grey_color;
 	}
 
 
@@ -141,21 +183,25 @@ namespace ORNG {
 		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
-		ImGui::Begin("Tools", nullptr);
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight()));
+		ImGui::Begin("Tools", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::Text(std::format("Draw calls: {}", Renderer::Get().m_draw_call_amount).c_str());
 		Renderer::ResetDrawCallCounter();
 
-		DisplayEntityEditor();
 		RenderSceneGraph();
 
 		ImGui::End();
 
 		ShowAssetManager();
 
+		RenderEditorWindow();
+
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 	}
 
 
@@ -187,7 +233,22 @@ namespace ORNG {
 	}
 
 
+	void EditorLayer::RenderEditorWindow() {
+		ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() - 400, 0));
+		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight()));
 
+		if (ImGui::Begin("Editor", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
+			DisplayEntityEditor();
+
+			if (mp_selected_material)
+				RenderMaterialEditorSection();
+
+			if (mp_selected_texture)
+				RenderTextureEditorSection();
+
+			ImGui::End();
+		}
+	}
 
 	void EditorLayer::DoPickingPass() {
 
@@ -257,7 +318,7 @@ namespace ORNG {
 			ImGui::SliderFloat("##scattering anistropy", &m_active_scene->m_global_fog.scattering_anistropy, -1.f, 1.f);
 			ImGui::Text("Step count");
 			ImGui::SliderInt("##step count", &m_active_scene->m_global_fog.step_count, 0, 512);
-			ImGuiLib::ShowColorVec3Editor("Color", m_active_scene->m_global_fog.color);
+			ShowColorVec3Editor("Color", m_active_scene->m_global_fog.color);
 			ImGui::TreePop();
 		}
 	}
@@ -304,9 +365,13 @@ namespace ORNG {
 		static std::string path = "./res/meshes";
 		static std::string entry_name = "";
 
-
-		ImGui::SetNextWindowSize(ImVec2(ImGuiLib::asset_window_width, ImGuiLib::asset_window_height));
-		ImGui::Begin("Assets");
+		int window_height = glm::clamp(static_cast<int>(Window::GetHeight()) / 4, 100, 500);
+		int window_width = Window::GetWidth() - 800;
+		ImVec2 button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
+		int column_count = 6;
+		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
+		ImGui::SetNextWindowPos(ImVec2(400, Window::GetHeight() - window_height));
+		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::BeginTabBar("Selection");
 		ImGui::GetStyle().CellPadding = ImVec2(11.f, 15.f);
 
@@ -334,13 +399,13 @@ namespace ORNG {
 					error_message = "Invalid file type: " + file_extension;
 				};
 
-				ImGuiLib::ShowFileExplorer(path, entry_name, mesh_file_extensions, success_callback, error_callback);
+				ShowFileExplorer(path, entry_name, mesh_file_extensions, success_callback, error_callback);
 
 				ImGui::TreePop();
 			} // END MESH FILE EXPLORER
 
 
-			if (ImGui::BeginTable("Meshes", ImGuiLib::num_table_columns, ImGuiTableFlags_Borders)) // MESH VIEWING TABLE
+			if (ImGui::BeginTable("Meshes", 4, ImGuiTableFlags_Borders)) // MESH VIEWING TABLE
 			{
 				for (auto& data : m_active_scene->m_mesh_assets)
 				{
@@ -371,31 +436,10 @@ namespace ORNG {
 		} //	 END MESH TAB
 
 
-		static Texture2D* p_selected_texture = nullptr;
-		static Texture2DSpec current_spec;
-
-		static Texture2D* p_dragged_texture = nullptr;
-
-
-		if (p_selected_texture) { // TEXTURE EDITOR
-			bool window_visible_flag = true;
-			ImGui::Begin("Texture Editor");
-
-			if (ImGui::Button("X"))
-				p_selected_texture = nullptr;
-
-			// Check validity again as button could've changed it
-			if (p_selected_texture)
-				RenderTextureEditor(p_selected_texture, current_spec);
-
-
-			ImGui::End();
-		}
-
 		if (ImGui::BeginTabItem("Textures")) // TEXTURE TAB
 		{
-			if (ImGui::TreeNode("Add texture")) { // TEXTURE FILE EXPLORER
 
+			if (ImGui::TreeNode("Add texture")) {
 				ImGui::TextColored(ImVec4(1, 0, 0, 1), error_message.c_str());
 
 				static std::string file_extension = "";
@@ -403,7 +447,7 @@ namespace ORNG {
 
 				//setting up file explorer callbacks
 				static std::function<void()> success_callback = [this] {
-					m_active_scene->CreateTexture2DAsset(path + "/" + entry_name, current_spec.srgb_space);
+					m_active_scene->CreateTexture2DAsset(path + "/" + entry_name, m_current_2d_tex_spec.srgb_space);
 					error_message.clear();
 				};
 
@@ -411,46 +455,42 @@ namespace ORNG {
 					error_message = file_extension.empty() ? "" : "Invalid file type: " + file_extension; // if file extension is empty it's a directory, so no error
 				};
 
-				ImGuiLib::ShowFileExplorer(path, entry_name, valid_filepaths, success_callback, fail_callback);
+				ShowFileExplorer(path, entry_name, valid_filepaths, success_callback, fail_callback);
 
 				ImGui::TreePop();
-			} // END TEXTURE FILE EXPLORER
+			}
 
 
 			if (ImGui::TreeNode("Texture viewer")) // TEXTURE VIEWING TREE NODE
 			{
 
-				if (ImGui::BeginChild("##Texture viewing section", ImVec2(ImGuiLib::child_section_width, ImGuiLib::child_section_height))) {
-					// Create table for textures 
-					if (ImGui::BeginTable("Textures", ImGuiLib::num_table_columns, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX)); // TEXTURE VIEWING TABLE
+				// Create table for textures 
+				if (ImGui::BeginTable("Textures", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX)); // TEXTURE VIEWING TABLE
+				{
+					// Push textures into table 
+					for (auto* p_texture : m_active_scene->m_texture_2d_assets)
 					{
-						// Push textures into table 
-						for (auto* p_texture : m_active_scene->m_texture_2d_assets)
-						{
-							ImGui::PushID(p_texture);
-							ImGui::TableNextColumn();
+						ImGui::PushID(p_texture);
+						ImGui::TableNextColumn();
 
-							if (ImGui::ImageButton(ImTextureID(p_texture->GetTextureHandle()), ImVec2(ImGuiLib::table_outer_size, ImGuiLib::table_outer_size))) {
-								p_selected_texture = p_texture;
-								current_spec = p_selected_texture->m_spec;
+						if (ImGui::ImageButton(ImTextureID(p_texture->GetTextureHandle()), button_size)) {
+							mp_selected_texture = p_texture;
+							m_current_2d_tex_spec = mp_selected_texture->m_spec;
+						};
 
-							};
-
-							if (ImGui::IsItemActivated()) {
-								p_dragged_texture = p_texture;
-							}
-
-
-							ImGui::Text(p_texture->m_spec.filepath.substr(p_texture->m_spec.filepath.find_last_of('/') + 1).c_str());
-
-							ImGui::PopID();
-
+						if (ImGui::IsItemActivated()) {
+							mp_dragged_texture = p_texture;
 						}
 
-						ImGui::EndTable();
-					} // END TEXTURE VIEWING TABLE
-				};
-				ImGui::EndChild();
+
+						ImGui::Text(p_texture->m_spec.filepath.substr(p_texture->m_spec.filepath.find_last_of('/') + 1).c_str());
+
+						ImGui::PopID();
+
+					}
+
+					ImGui::EndTable();
+				} // END TEXTURE VIEWING TABLE
 				ImGui::TreePop();
 			}
 			ImGui::EndTabItem();
@@ -458,89 +498,33 @@ namespace ORNG {
 
 
 
-		static Material* p_selected_material = nullptr;
-
-
-		if (p_selected_material && ImGui::Begin("Material editor")) {
-
-			bool is_window_displayed = true;
-
-			if (ImGui::SmallButton("X"))
-				is_window_displayed = false;
-
-			ImGui::Text("Name: ");
-			ImGui::SameLine();
-			ImGui::InputText("##name input", &p_selected_material->name);
-			ImGui::Spacing();
-
-			ImGuiLib::RenderMaterialTexture("Base", p_selected_material->base_color_texture, p_selected_texture, current_spec, p_dragged_texture);
-			ImGuiLib::RenderMaterialTexture("Normal", p_selected_material->normal_map_texture, p_selected_texture, current_spec, p_dragged_texture);
-			ImGuiLib::RenderMaterialTexture("Roughness", p_selected_material->roughness_texture, p_selected_texture, current_spec, p_dragged_texture);
-			ImGuiLib::RenderMaterialTexture("Metallic", p_selected_material->metallic_texture, p_selected_texture, current_spec, p_dragged_texture);
-			ImGuiLib::RenderMaterialTexture("Ambient occlusion", p_selected_material->ao_texture, p_selected_texture, current_spec, p_dragged_texture);
-			ImGuiLib::RenderMaterialTexture("Displacement", p_selected_material->displacement_texture, p_selected_texture, current_spec, p_dragged_texture);
-
-
-
-			ImGui::Text("Colors");
-			ImGui::Spacing();
-			ImGuiLib::ShowVec3Editor("Base color", p_selected_material->base_color);
-
-			if (!p_selected_material->roughness_texture)
-				ImGui::SliderFloat("Roughness", &p_selected_material->roughness, 0.f, 1.f);
-
-			if (!p_selected_material->metallic_texture)
-				ImGui::SliderFloat("Metallic", &p_selected_material->metallic, 0.f, 1.f);
-
-			int num_parallax_layers = p_selected_material->parallax_layers;
-			if (p_selected_material->displacement_texture) {
-				ImGui::InputInt("Parallax layers", &num_parallax_layers);
-
-				if (num_parallax_layers >= 0)
-					p_selected_material->parallax_layers = num_parallax_layers;
-
-				ImGui::InputFloat("Parallax scale", &p_selected_material->parallax_height_scale);
-			}
-
-
-			if (!is_window_displayed)
-				p_selected_material = nullptr;
-
-
-			if (!Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_1))
-				// Reset drag if mouse not held down
-				p_dragged_texture = nullptr;
-
-			ImGui::End();
-		}
-
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
 
-			if (ImGui::BeginChild("Material section", ImVec2(ImGuiLib::child_section_width, ImGuiLib::child_section_height))) {
-				if (ImGui::BeginTable("Material viewer", ImGuiLib::num_table_columns, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(ImGuiLib::child_section_width, ImGuiLib::child_section_height))) { //MATERIAL VIEWING TABLE
+			if (ImGui::BeginTable("Material viewer", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(window_width, window_height))) { //MATERIAL VIEWING TABLE
 
-					for (auto* p_material : m_active_scene->m_materials) {
-						ImGui::TableNextColumn();
+				for (auto* p_material : m_active_scene->m_materials) {
+					ImGui::TableNextColumn();
 
-						ImGui::PushID(p_material);
+					ImGui::PushID(p_material);
 
-						if (p_material->base_color_texture) {
-							if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->m_texture_obj), ImVec2(ImGuiLib::table_outer_size, ImGuiLib::table_outer_size)))
-								p_selected_material = p_material;
-						}
+					if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->m_texture_obj), button_size))
+						mp_selected_material = p_material;
 
-						ImGui::Text(p_material->name.c_str());
-
-						ImGui::PopID();
+					if (ImGui::IsItemActivated()) {
+						mp_dragged_material = p_material;
 					}
 
-					Renderer::GetShaderLibrary().UpdateMaterialUBO(m_active_scene->m_materials);
-					ImGui::EndTable();
-				} //END MATERIAL VIEWING TABLE
-				ImGui::EndChild();
-			}
+					ImGui::Text(p_material->name.c_str());
+
+					ImGui::PopID();
+				}
+
+
+				ImGui::EndTable();
+			} //END MATERIAL VIEWING TABLE
 			ImGui::EndTabItem();
 		} //END MATERIAL TAB
+
 
 		ImGui::GetStyle().CellPadding = ImVec2(4.f, 4.f);
 		ImGui::EndTabBar();
@@ -548,31 +532,99 @@ namespace ORNG {
 	}
 
 
-	void EditorLayer::RenderTextureEditor(Texture2D* selected_texture, Texture2DSpec& spec) {
+	void EditorLayer::RenderTextureEditorSection() {
 
-		ImGui::Text(selected_texture->GetSpec().filepath.c_str());
+		if (H1TreeNode("Texture editor")) {
+			ImGui::SameLine();
+			if (ImGui::Button("X")) {
+				mp_selected_texture = nullptr;
+				ImGui::TreePop();
+				return;
+			}
 
-		const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
-		const char* filter_modes[] = { "NEAREST", "LINEAR" };
-		static int selected_wrap_mode = spec.wrap_params == GL_REPEAT ? 0 : 1;
-		static int selected_filter_mode = spec.mag_filter == GL_NEAREST ? 0 : 1;
+			ImGui::Text(mp_selected_texture->GetSpec().filepath.c_str());
+
+			const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
+			const char* filter_modes[] = { "NEAREST", "LINEAR" };
+			static int selected_wrap_mode = m_current_2d_tex_spec.wrap_params == GL_REPEAT ? 0 : 1;
+			static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_NEAREST ? 0 : 1;
 
 
-		ImGui::Text("Wrap mode");
-		ImGui::SameLine();
-		ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
-		spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+			ImGui::Text("Wrap mode");
+			ImGui::SameLine();
+			ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
+			m_current_2d_tex_spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 
-		ImGui::Text("Filtering");
-		ImGui::SameLine();
-		ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
-		spec.mag_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
-		spec.min_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
+			ImGui::Text("Filtering");
+			ImGui::SameLine();
+			ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
+			m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
+			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
 
-		if (ImGui::Button("Load")) {
-			selected_texture->SetSpec(spec);
-			selected_texture->LoadFromFile();
+			if (ImGui::Button("Load")) {
+				mp_selected_texture->SetSpec(m_current_2d_tex_spec);
+				mp_selected_texture->LoadFromFile();
+			}
+			ImGui::TreePop();
 		}
+	}
+
+
+
+	void EditorLayer::RenderMaterialEditorSection() {
+
+		if (H1TreeNode("Material editor")) {
+			ImGui::SameLine();
+
+
+			if (ImGui::SmallButton("X")) {
+				mp_selected_material = nullptr;
+				ImGui::TreePop();
+				return;
+			}
+
+			ImGui::Text("Name: ");
+			ImGui::SameLine();
+			ImGui::InputText("##name input", &mp_selected_material->name);
+			ImGui::Spacing();
+
+			RenderMaterialTexture("Base", mp_selected_material->base_color_texture);
+			RenderMaterialTexture("Normal", mp_selected_material->normal_map_texture);
+			RenderMaterialTexture("Roughness", mp_selected_material->roughness_texture);
+			RenderMaterialTexture("Metallic", mp_selected_material->metallic_texture);
+			RenderMaterialTexture("Ambient occlusion", mp_selected_material->ao_texture);
+			RenderMaterialTexture("Displacement", mp_selected_material->displacement_texture);
+
+
+
+			ImGui::Text("Colors");
+			ImGui::Spacing();
+			ShowVec3Editor("Base color", mp_selected_material->base_color);
+
+			if (!mp_selected_material->roughness_texture)
+				ImGui::SliderFloat("Roughness", &mp_selected_material->roughness, 0.f, 1.f);
+
+			if (!mp_selected_material->metallic_texture)
+				ImGui::SliderFloat("Metallic", &mp_selected_material->metallic, 0.f, 1.f);
+
+			int num_parallax_layers = mp_selected_material->parallax_layers;
+			if (mp_selected_material->displacement_texture) {
+				ImGui::InputInt("Parallax layers", &num_parallax_layers);
+
+				if (num_parallax_layers >= 0)
+					mp_selected_material->parallax_layers = num_parallax_layers;
+
+				ImGui::InputFloat("Parallax scale", &mp_selected_material->parallax_height_scale);
+			}
+
+
+			ImGui::TreePop();
+		}
+
+		if (!Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_1))
+			// Reset drag if mouse not held down
+			mp_dragged_texture = nullptr;
+
 	}
 
 
@@ -610,30 +662,22 @@ namespace ORNG {
 		auto p_transform = entity->GetComponent<TransformComponent>();
 
 
-		if (ImGui::CollapsingHeader("Entity editor")) {
+		if (H1TreeNode("Entity editor")) {
 			std::string ent_text = std::format("Entity '{}'", entity->name);
 			ImGui::Text(ent_text.c_str());
 
 
 			//TRANSFORM
-			glm::vec3 matrix_translation = p_transform->m_pos;
-			glm::vec3 matrix_rotation = p_transform->m_rotation;
-			glm::vec3 matrix_scale = p_transform->m_scale;
-
-			if (ImGuiLib::ShowVec3Editor("Tr", matrix_translation))
-				p_transform->SetPosition(matrix_translation);
-
-			if (ImGuiLib::ShowVec3Editor("Rt", matrix_rotation))
-				p_transform->SetOrientation(matrix_rotation);
-
-			if (ImGuiLib::ShowVec3Editor("Sc", matrix_scale))
-				p_transform->SetScale(matrix_scale);
+			if (H2TreeNode("Entity transform")) {
+				RenderTransformComponentEditor(p_transform);
+				ImGui::TreePop();
+			}
 
 
 			//MESH
 			if (meshc) {
 
-				if (ImGui::TreeNode("Mesh")) {
+				if (H2TreeNode("Mesh component")) {
 					ImGui::Text("Mesh asset name");
 					ImGui::SameLine();
 					static std::string input_filename;
@@ -665,7 +709,7 @@ namespace ORNG {
 
 			ImGui::PushID(plight);
 			if (plight) {
-				if (ImGui::TreeNode("Pointlight")) {
+				if (H2TreeNode("Pointlight component")) {
 					ImGui::SameLine();
 					if (ImGui::Button("X", ImVec2(25, 25))) {
 						entity->DeleteComponent<PointLightComponent>();
@@ -685,7 +729,7 @@ namespace ORNG {
 
 			ImGui::PushID(slight);
 			if (slight) {
-				if (ImGui::TreeNode("Spotlight")) {
+				if (H2TreeNode("Spotlight component")) {
 					if (ImGui::Button("X", ImVec2(25, 25))) {
 						entity->DeleteComponent<SpotLightComponent>();
 					};
@@ -704,7 +748,7 @@ namespace ORNG {
 
 			ImGui::PushID(p_cam);
 			if (p_cam) {
-				if (ImGui::TreeNode("Camera")) {
+				if (H2TreeNode("Camera component")) {
 
 					if (ImGui::Button("X", ImVec2(25, 25))) {
 						entity->DeleteComponent<CameraComponent>();
@@ -716,6 +760,7 @@ namespace ORNG {
 				};
 			}
 			ImGui::PopID();
+			ImGui::TreePop();
 		}
 	}
 
@@ -723,28 +768,38 @@ namespace ORNG {
 
 	// EDITORS ------------------------------------------------------------------------
 
+	void EditorLayer::RenderTransformComponentEditor(TransformComponent* p_transform) {
 
 
+		static TransformComponent* p_active_guizmo_transform = nullptr;
+		bool render_gizmos = p_active_guizmo_transform == p_transform;
 
-	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
-		static MeshComponentData mesh_data;
+		if (ImGui::RadioButton("Gizmos", render_gizmos))
+			p_active_guizmo_transform = render_gizmos ? nullptr : p_transform;
 
-		ImGui::PushID(comp);
-		//static unsigned int old_material_id = comp->m_material_id;
-		//mesh_data.material_id = comp->m_material_id;
-
-		ImGui::Text("Material ID");
 		ImGui::SameLine();
-		ImGui::InputInt("##material id", &mesh_data.material_id);
+
+		if (ImGui::RadioButton("Absolute", p_transform->m_is_absolute)) {
+			p_transform->SetAbsoluteMode(!p_transform->m_is_absolute);
+		}
 
 
-		//if (mesh_data.material_id < 0 || mesh_data.material_id >= m_active_scene->m_materials.size() - 1) // Don't allow material id (index) to go out of array bounds
-			//mesh_data.material_id = old_material_id;
+		glm::vec3 matrix_translation = p_transform->m_pos;
+		glm::vec3 matrix_rotation = p_transform->m_rotation;
+		glm::vec3 matrix_scale = p_transform->m_scale;
 
-		//if (old_material_id != mesh_data.material_id) {
-			//comp->SetMaterialID(mesh_data.material_id);
-			//old_material_id = mesh_data.material_id;
-		//}
+
+		if (ShowVec3Editor("Tr", matrix_translation))
+			p_transform->SetPosition(matrix_translation);
+
+		if (ShowVec3Editor("Rt", matrix_rotation))
+			p_transform->SetOrientation(matrix_rotation);
+
+		if (ShowVec3Editor("Sc", matrix_scale))
+			p_transform->SetScale(matrix_scale);
+
+		if (p_active_guizmo_transform != p_transform) // Second check here as render_gizmos is no longer accurate due to potential change
+			return;
 
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -754,14 +809,7 @@ namespace ORNG {
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
 
-		ImGui::Dummy(ImVec2(0.f, ImGuiLib::dummy_spacing_size_vertical));
-		ImGui::Text("Transform");
 
-		if (ImGui::RadioButton("World", current_mode == ImGuizmo::WORLD))
-			current_mode = ImGuizmo::WORLD;
-		ImGui::SameLine();
-		if (ImGui::RadioButton("Local", current_mode == ImGuizmo::LOCAL))
-			current_mode = ImGuizmo::LOCAL;
 
 		if (Window::IsKeyDown(GLFW_KEY_1))
 			current_operation = ImGuizmo::TRANSLATE;
@@ -770,46 +818,77 @@ namespace ORNG {
 		else if (Window::IsKeyDown(GLFW_KEY_3))
 			current_operation = ImGuizmo::ROTATE;
 
+		ImGui::Text("Gizmo rendering");
+		if (ImGui::RadioButton("World", current_mode == ImGuizmo::WORLD))
+			current_mode = ImGuizmo::WORLD;
+		ImGui::SameLine();
+		if (ImGui::RadioButton("Local", current_mode == ImGuizmo::LOCAL))
+			current_mode = ImGuizmo::LOCAL;
 
-		glm::mat4 current_operation_matrix = comp->transform.GetMatrix();
-
-		glm::vec3 matrix_translation = comp->transform.m_pos;
-		glm::vec3 matrix_rotation = comp->transform.m_rotation;
-		glm::vec3 matrix_scale = comp->transform.m_scale;
+		glm::mat4 current_operation_matrix = p_transform->GetMatrix();
 
 
-		if (ImGuiLib::ShowVec3Editor("Tr", matrix_translation))
-			comp->transform.SetPosition(matrix_translation);
+		if (ImGuizmo::Manipulate(&m_editor_camera.GetViewMatrix()[0][0], &m_editor_camera.GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], nullptr, nullptr) && ImGuizmo::IsUsing()) {
 
-		if (ImGuiLib::ShowVec3Editor("Rt", matrix_rotation))
-			comp->transform.SetOrientation(matrix_rotation);
+			ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
+			auto abs_transforms = p_transform->GetAbsoluteTransforms();
+			glm::vec3 abs_translation = abs_transforms[0];
+			glm::vec3 abs_scale = abs_transforms[1];
+			glm::vec3 abs_rotation = abs_transforms[2];
 
-		if (ImGuiLib::ShowVec3Editor("Sc", matrix_scale))
-			comp->transform.SetScale(matrix_scale);
-
-		glm::mat4 delta_matrix = glm::mat4(1);
-		if (ImGuizmo::Manipulate(&m_editor_camera.GetViewMatrix()[0][0], &m_editor_camera.GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
-
-			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 			switch (current_operation) {
 			case ImGuizmo::TRANSLATE:
-				comp->transform.SetPosition(matrix_translation + comp->transform.m_pos);
+				glm::vec3 new_pos = p_transform->m_is_absolute ? matrix_translation : matrix_translation - (abs_translation - p_transform->GetPosition());
+				p_transform->SetPosition(new_pos);
 				break;
 			case ImGuizmo::SCALE:
-				comp->transform.SetScale(matrix_scale * comp->transform.m_scale);
+				glm::vec3 new_scale = p_transform->m_is_absolute ? matrix_scale : matrix_scale / (abs_scale / p_transform->GetScale());
+				p_transform->SetScale(new_scale);
 				break;
 			case ImGuizmo::ROTATE:
-				comp->transform.SetOrientation((matrix_rotation + comp->transform.m_rotation));
+				glm::vec3 new_orientation = p_transform->m_is_absolute ? matrix_rotation : matrix_rotation - (abs_rotation - p_transform->GetRotation());
+				p_transform->SetOrientation(new_orientation);
 				break;
 			}
 		};
 
-		ImGui::Dummy(ImVec2(0.f, ImGuiLib::dummy_spacing_size_vertical));
+	}
+
+
+
+	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
+
+		static MeshComponentData mesh_data;
+
+		ImGui::PushID(comp);
+
+		for (int i = 0; i < comp->m_materials.size(); i++) {
+			auto p_material = comp->m_materials[i];
+			ImGui::PushID(i);
+			if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->GetTextureHandle()), ImVec2(100, 100))) {
+				mp_selected_material = m_active_scene->GetMaterial(p_material->material_id);
+			};
+
+			if (ImGui::IsItemHovered() && mp_dragged_material) {
+				comp->SetMaterialID(i, mp_dragged_material);
+				mp_dragged_material = nullptr;
+			}
+
+			ImGui::Text(p_material->name.c_str());
+			ImGui::PopID();
+		}
+
+		if (H2TreeNode("Mesh transform")) {
+			ImGui::Dummy(ImVec2(0.f, 20.f));
+			RenderTransformComponentEditor(&comp->transform);
+			ImGui::Dummy(ImVec2(0.f, 20.f));
+			ImGui::TreePop();
+		}
+
 		ImGui::PopID();
 	};
 
 	void EditorLayer::RenderSpotlightEditor(SpotLightComponent* light) {
-
 		static SpotLightConfigData light_data;
 
 		light_data.aperture = glm::degrees(acosf(light->aperture));
@@ -833,10 +912,10 @@ namespace ORNG {
 
 		ImGui::PopItemWidth();
 
-		ImGuiLib::ShowVec3Editor("Direction", light_data.direction);
+		ShowVec3Editor("Direction", light_data.direction);
 
-		ImGuiLib::ShowColorVec3Editor("Color", light_data.base.color);
-		ImGuiLib::ShowVec3Editor("Position", light_data.base.pos);
+		ShowColorVec3Editor("Color", light_data.base.color);
+		ShowVec3Editor("Position", light_data.base.pos);
 
 		light->attenuation.constant = light_data.base.atten_constant;
 		light->attenuation.linear = light_data.base.atten_linear;
@@ -861,7 +940,7 @@ namespace ORNG {
 			ImGui::SliderFloat("X", &light_data.light_direction.x, -1.f, 1.f);
 			ImGui::SliderFloat("Y", &light_data.light_direction.y, -1.f, 1.f);
 			ImGui::SliderFloat("Z", &light_data.light_direction.z, -1.f, 1.f);
-			ImGuiLib::ShowColorVec3Editor("Color", light_data.light_color);
+			ShowColorVec3Editor("Color", light_data.light_color);
 
 			m_active_scene->m_directional_light.color = glm::vec3(light_data.light_color.x, light_data.light_color.y, light_data.light_color.z);
 			m_active_scene->m_directional_light.SetLightDirection(light_data.light_direction);
@@ -886,8 +965,8 @@ namespace ORNG {
 		ImGui::SliderFloat("exp", &light_data.atten_exp, 0.0f, 0.1f);
 		ImGui::SliderFloat("max distance", &light_data.max_distance, 0.0f, 5000.0f);
 		ImGui::PopItemWidth();
-		ImGuiLib::ShowColorVec3Editor("Color", light_data.color);
-		ImGuiLib::ShowVec3Editor("Position", light_data.pos);
+		ShowColorVec3Editor("Color", light_data.color);
+		ShowVec3Editor("Position", light_data.pos);
 
 		light->attenuation.constant = light_data.atten_constant;
 		light->attenuation.linear = light_data.atten_linear;
@@ -902,11 +981,192 @@ namespace ORNG {
 		ImGui::SliderFloat("FOV", &p_cam->fov, 0.f, 180.f);
 		ImGui::InputFloat("ZNEAR", &p_cam->zNear);
 		ImGui::InputFloat("ZFAR", &p_cam->zFar);
-		ImGuiLib::ShowVec3Editor("Up", p_cam->up);
+		ShowVec3Editor("Up", p_cam->up);
 
 		if (!p_cam->is_active && ImGui::Button("Make active")) {
 			m_active_scene->MakeCameraActive(p_cam);
 		}
+	}
+
+
+
+	bool EditorLayer::ShowVec3Editor(const char* name, glm::vec3& vec, float min, float max) {
+		bool ret = false;
+		glm::vec3 vec_copy = vec;
+		ImGui::PushID(&vec);
+		ImGui::Text(name);
+		ImGui::PushItemWidth(100.f);
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##x", &vec_copy.x) && vec_copy.x > min && vec_copy.x < max) {
+			vec.x = vec_copy.x;
+			ret = true;
+		}
+
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Y");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##y", &vec_copy.y) && vec_copy.y > min && vec_copy.y < max) {
+			vec.y = vec_copy.y;
+			ret = true;
+		}
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 0, 1, 1), "Z");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##z", &vec_copy.z) && vec_copy.z > min && vec_copy.z < max) {
+			vec.z = vec_copy.z;
+			ret = true;
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::PopID();
+
+		return ret;
+	}
+
+
+	void EditorLayer::ShowFileExplorer(std::string& path_name, std::string& t_entry_name, const std::vector<std::string>& valid_extensions, std::function<void()> valid_file_callback, std::function<void()> invalid_file_callback) {
+
+		ImGui::SetNextWindowSize(ImVec2(file_explorer_window_size.x, file_explorer_window_size.y));
+		if (ImGui::Begin("Files")) {
+
+			ImGui::Text(path_name.c_str());
+			if (path_name.find('/') != std::string::npos && ImGui::Button(ICON_FA_ARROW_LEFT "BACK")) {
+				path_name = path_name.substr(0, path_name.find_last_of('/'));
+			}
+
+			if (ImGui::BeginTable("FILES", 5, 0, ImVec2(file_explorer_window_size.x, file_explorer_window_size.y), 100.f)) {
+				for (const auto& entry : std::filesystem::directory_iterator(path_name)) {
+					ImGui::TableNextColumn();
+
+					const std::string entry_name = entry.path().filename().string();
+					ImGui::PushID(entry_name.c_str());
+					ImGui::GetFont()->Scale *= 2.f;
+					ImGui::PushFont(ImGui::GetFont());
+
+					//file/dir button
+					if (ImGui::Button(entry.is_directory() ? ICON_FA_FOLDER : ICON_FA_FILE, ImVec2(125, 125))) {
+						t_entry_name = entry_name;
+						if (entry.is_directory()) {
+							path_name += "/" + entry_name;
+						}
+						else {
+							// entry is a file, check if extension valid
+							std::string file_extension = entry_name.find('.') != std::string::npos ? entry_name.substr(entry_name.find_last_of('.')) : "";
+							std::transform(file_extension.begin(), file_extension.end(), file_extension.begin(), ::toupper); // turn uppercase for comparison
+
+							if (std::find(valid_extensions.begin(), valid_extensions.end(), file_extension) != valid_extensions.end()) {
+								valid_file_callback(); // extension is valid
+							}
+							else {
+								invalid_file_callback();
+							}
+
+						}
+					};
+
+					ImGui::PopID();
+					ImGui::GetFont()->Scale *= 0.5f;
+					ImGui::PopFont();
+
+					ImGui::Text(entry_name.c_str());
+
+
+				}
+				ImGui::EndTable();
+			}
+		};
+		ImGui::End();
+
+	}
+
+
+
+
+	bool EditorLayer::ShowColorVec3Editor(const char* name, glm::vec3& vec) {
+		bool ret = false;
+		ImGui::PushID(&vec);
+		ImGui::Text(name);
+		ImGui::PushItemWidth(100.f);
+
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), "R");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##r", &vec.x))
+			ret = true;
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "G");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##g", &vec.y))
+			ret = true;
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 0, 1, 1), "B");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##b", &vec.z))
+			ret = true;
+
+		ImGui::PopItemWidth();
+		ImGui::PopID();
+
+		return ret;
+	}
+
+
+
+
+	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
+		ImGui::PushID(p_tex);
+		if (p_tex) {
+			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
+			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75))) {
+				mp_selected_texture = p_tex;
+				m_current_2d_tex_spec = p_tex->m_spec;
+			};
+		}
+		else {
+			ImGui::Text(std::format("{} texture - NONE", name).c_str());
+			ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
+		}
+
+		if (ImGui::IsItemHovered() && mp_dragged_texture) {
+			p_tex = mp_dragged_texture;
+
+			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2))
+				p_tex = nullptr;
+		}
+
+		ImGui::PopID();
+	}
+
+
+
+	bool EditorLayer::H1TreeNode(const char* name) {
+		float original_size = ImGui::GetFont()->Scale;
+		ImGui::GetFont()->Scale *= 1.15f;
+		ImGui::PushFont(ImGui::GetFont());
+		bool r = ImGui::TreeNode(name);
+		ImGui::GetFont()->Scale = original_size;
+		ImGui::PopFont();
+		return r;
+	}
+
+	bool EditorLayer::H2TreeNode(const char* name) {
+		float original_size = ImGui::GetFont()->Scale;
+		ImGui::GetFont()->Scale *= 1.1f;
+		ImGui::PushFont(ImGui::GetFont());
+		bool r = ImGui::TreeNode(name);
+		ImGui::GetFont()->Scale = original_size;
+		ImGui::PopFont();
+		return r;
 	}
 
 }

@@ -64,7 +64,7 @@ namespace ORNG {
 		int m_width;
 		unsigned int m_seed;
 		float m_height_scale;
-		float m_resolution;
+		unsigned int m_resolution;
 
 	};
 }

@@ -1,10 +1,10 @@
 #pragma once
-#include "components/CameraComponent.h"
 #include "scene/Scene.h"
-#include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "scene/GridMesh.h"
 #include "events/EventManager.h"
 #include "components/EditorCamera.h"
+#include <imgui/imgui.h>
+
 
 
 namespace ORNG {
@@ -35,10 +35,13 @@ namespace ORNG {
 		void Init();
 
 	private:
+		void InitImGui();
 
 		void RenderDisplayWindow();
 		void RenderUI();
 		void Update();
+
+		void RenderEditorWindow();
 
 		void RenderGrid();
 		void DoPickingPass();
@@ -49,6 +52,7 @@ namespace ORNG {
 		void RenderPointlightEditor(PointLightComponent* light);
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
+		void RenderTransformComponentEditor(TransformComponent* p_transform);
 
 		void RenderSceneGraph();
 		void RenderDirectionalLightEditor();
@@ -57,7 +61,20 @@ namespace ORNG {
 
 
 		void ShowAssetManager();
-		void RenderTextureEditor(Texture2D* selected_texture, Texture2DSpec& spec);
+		void RenderTextureEditorSection();
+		void RenderMaterialEditorSection();
+
+
+
+		/// Basic file explorer, success callback called when a file is clicked that has a valid extension, fail callback called when file has invalid extension.
+		/// Always provide extensions fully capitalized.
+		void ShowFileExplorer(std::string& path_ref, std::string& entry_ref, const std::vector<std::string>& valid_extensions, std::function<void()> valid_file_callback, std::function<void()> invalid_file_callback);
+
+		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
+		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
+		void RenderMaterialTexture(const char* name, Texture2D*& p_tex);
+		static bool H1TreeNode(const char* name);
+		static bool H2TreeNode(const char* name);
 
 
 		Events::EventListener<Events::EngineCoreEvent> m_core_event_listener;
@@ -114,6 +131,22 @@ namespace ORNG {
 			int material_id;
 		};
 
+		// UI VARS
+		Texture2D* mp_selected_texture = nullptr;
+		Texture2D* mp_dragged_texture = nullptr;
+		Texture2DSpec m_current_2d_tex_spec;
+		Material* mp_selected_material = nullptr;
+		Material* mp_dragged_material = nullptr;
 
+
+		// STYLING
+		const float opacity = 1.f;
+		const ImVec4 orange_color = ImVec4(0.9, 0.2, 0.05, opacity);
+		const ImVec4 orange_color_bright = ImVec4(0.9, 0.2, 0.0, opacity);
+		const ImVec4 orange_color_brightest = ImVec4(0.9, 0.2, 0.0, opacity);
+		const ImVec4 dark_grey_color = ImVec4(0.1, 0.1, 0.1, opacity);
+		const ImVec4 lighter_grey_color = ImVec4(0.2, 0.2, 0.2, opacity);
+		const ImVec4 lightest_grey_color = ImVec4(0.3, 0.3, 0.3, opacity);
+		glm::vec2 file_explorer_window_size = { 750, 750 };
 	};
 }

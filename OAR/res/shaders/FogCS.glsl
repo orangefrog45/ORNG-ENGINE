@@ -4,7 +4,7 @@
 
 layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in; // invocations
 
-layout(binding = 1, rgba32f) writeonly uniform image2D fog_texture;
+layout(binding = 1, rgba16f) writeonly uniform image2D fog_texture;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
 layout(binding = 6) uniform sampler2D world_position_sampler;
@@ -28,8 +28,6 @@ layout(std140, binding = 2) uniform commons{
 
 struct BaseLight {
 	vec4 color;
-	float ambient_intensity;
-	float diffuse_intensity;
 };
 
 struct DirectionalLight {
@@ -44,8 +42,6 @@ struct DirectionalLight {
 struct PointLight {
 	vec4 color; //vec4s used to prevent implicit padding
 	vec4 pos;
-	float ambient_intensity;
-	float diffuse_intensity;
 	float max_distance;
 	//attenuation
 	float constant;
@@ -58,8 +54,6 @@ struct SpotLight { //140 BYTES
 	vec4 pos;
 	vec4 dir;
 	mat4 light_transform_matrix;
-	float ambient_intensity;
-	float diffuse_intensity;
 	float max_distance;
 	//attenuation
 	float constant;
@@ -77,7 +71,6 @@ layout(std140, binding = 0) uniform Matrices{
 
 layout(std140, binding = 1) uniform GlobalLighting{
 	DirectionalLight directional_light;
-	BaseLight ambient_lighting;
 } ubo_global_lighting;
 
 
@@ -170,7 +163,7 @@ vec3 CalcPointLight(PointLight light, vec3 world_pos) {
 	if (distance > light.max_distance)
 		return vec3(0.0);
 
-	vec3 diffuse_color = light.color.xyz * light.diffuse_intensity;
+	vec3 diffuse_color = light.color.xyz;
 
 	float attenuation = light.constant +
 		light.a_linear * distance +
@@ -200,7 +193,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 			return vec3(0); // early return as no light will reach this spot
 		}
 
-		vec3 diffuse_color = light.color.xyz * light.diffuse_intensity * (1.0 - shadow);
+		vec3 diffuse_color = light.color.xyz * (1.0 - shadow);
 
 		float attenuation = light.constant +
 			light.a_linear * distance +
@@ -267,11 +260,10 @@ void main() {
 		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 500.f;
 		float fog_density = noise(fog_sampling_coords);
 		fog_density += 0.5f * u_density_coef;
-		fog_density *= exp(-max(step_pos.y * 0.001f, 1.f));
 
 
 		vec3 in_scattering = vec3(0);
-		in_scattering += ubo_global_lighting.ambient_lighting.ambient_intensity * ubo_global_lighting.ambient_lighting.color.xyz;
+		//in_scattering += ubo_global_lighting.ambient_lighting.ambient_intensity * ubo_global_lighting.ambient_lighting.color.xyz;
 
 		for (unsigned int i = 0; i < point_lights.lights.length(); i++) {
 			in_scattering += CalcPointLight(point_lights.lights[i], step_pos) * phase(ray_dir, normalize(point_lights.lights[i].pos.xyz - step_pos));
@@ -282,7 +274,7 @@ void main() {
 		}
 
 		float dir_shadow = ShadowCalculationDirectional(ubo_global_lighting.directional_light.direction.xyz, step_pos);
-		in_scattering += ubo_global_lighting.directional_light.base.color.xyz * ubo_global_lighting.directional_light.base.diffuse_intensity * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
+		in_scattering += ubo_global_lighting.directional_light.base.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
 
 		float out_scattering = u_scattering_coef * fog_density;
 		transmittance *= exp(-fog_density * extinction_coef * step_distance);

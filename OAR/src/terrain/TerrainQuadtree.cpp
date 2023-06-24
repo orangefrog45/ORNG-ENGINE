@@ -58,7 +58,7 @@ namespace ORNG {
 		m_center_pos = center_pos;
 		m_master_width = parent->m_master_width;
 
-		m_resolution = pow(m_max_subdivision_layer + 1 - m_subdivision_layer, 2.f);
+		m_resolution = pow(m_max_subdivision_layer + 1 - m_subdivision_layer, 2);
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
 		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4.f, m_seed, m_height_scale);

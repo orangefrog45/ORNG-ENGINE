@@ -32,6 +32,9 @@ namespace ORNG {
 				"u_displacement_sampler_active",
 				"u_num_parallax_layers",
 				"u_parallax_height_scale",
+				"u_material.base_color_and_metallic",
+				"u_material.roughness",
+				"u_material.ao",
 				"u_material_id",
 				"u_shader_id",
 		});
@@ -89,22 +92,6 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 
 
-
-
-		/*Shader& reflection_shader = &mp_shader_library->CreateShader("reflection");
-		reflection_shader.AddStage(GL_VERTEX_SHADER, "./res/shaders/ReflectionVS.glsl");
-		reflection_shader.AddStage(GL_FRAGMENT_SHADER, "./res/shaders/ReflectionFS.glsl");
-		reflection_shader.Init();
-		reflection_shader.AddUniform("camera_pos");*/
-
-
-		/*Shader& skybox_shader = &mp_shader_library->CreateShader("skybox");
-		skybox_shader.AddStage(GL_VERTEX_SHADER, "res/shaders/SkyboxVS.glsl");
-		skybox_shader.AddStage(GL_FRAGMENT_SHADER, "res/shaders/SkyboxFS.glsl");
-		skybox_shader.Init();
-		skybox_shader.AddUniform("sky_texture");
-		skybox_shader.SetUniform("sky_texture", GL_StateManager::TextureUnitIndexes::COLOR);*/
-
 		m_depth_shader = &mp_shader_library->CreateShader("depth");
 		m_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
 		m_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl");
@@ -143,8 +130,8 @@ namespace ORNG {
 		gbuffer_spec_1.height = Window::GetHeight();
 
 		Texture2DSpec gbuffer_spec_2;
-		gbuffer_spec_2.format = GL_RG_INTEGER;
-		gbuffer_spec_2.internal_format = GL_RG16UI;
+		gbuffer_spec_2.format = GL_RED_INTEGER;
+		gbuffer_spec_2.internal_format = GL_R16UI;
 		gbuffer_spec_2.storage_type = GL_UNSIGNED_INT;
 		gbuffer_spec_2.width = Window::GetWidth();
 		gbuffer_spec_2.height = Window::GetHeight();
@@ -269,7 +256,7 @@ namespace ORNG {
 		glm::mat4 proj_mat = mp_scene->mp_active_camera->GetProjectionMatrix();
 		mp_shader_library->SetCommonUBO(mp_scene->mp_active_camera->pos, mp_scene->mp_active_camera->target);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
-		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light, mp_scene->m_global_ambient_lighting);
+		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light);
 	}
 
 
@@ -339,6 +326,11 @@ namespace ORNG {
 			m_gbuffer_shader->SetUniform("u_displacement_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT, false);
 		}
+
+		m_gbuffer_shader->SetUniform("u_material.base_color_and_metallic", glm::vec4(p_material->base_color, p_material->metallic));
+		m_gbuffer_shader->SetUniform("u_material.roughness", p_material->roughness);
+		m_gbuffer_shader->SetUniform("u_material.ao", p_material->ao);
+
 		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", p_material->material_id);
 	}
 
@@ -412,17 +404,16 @@ namespace ORNG {
 		const glm::mat4 cam_view_matrix = mp_scene->mp_active_camera->GetViewMatrix();
 		const float fov = glm::radians(mp_scene->mp_active_camera->fov / 2.f);
 
-		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution, mp_scene->mp_active_camera->pos);
-		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution, mp_scene->mp_active_camera->pos);
-		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution, mp_scene->mp_active_camera->pos);
-
+		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution);
 		m_light_space_matrices[0] = dir_light_space_matrix;
 		m_light_space_matrices[1] = dir_light_space_matrix_2;
 		m_light_space_matrices[2] = dir_light_space_matrix_3;
 
 		m_depth_fb->Bind();
 		m_depth_shader->ActivateProgram();
-
+		AABB aabb;
 		for (int i = 0; i < 3; i++) {
 			glViewport(0, 0, m_shadow_map_resolution, m_shadow_map_resolution);
 			m_depth_fb->BindTextureLayerToFBAttachment(m_depth_fb->GetTexture<Texture2DArray>("dir_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
@@ -441,12 +432,11 @@ namespace ORNG {
 			}
 
 			m_depth_shader->SetUniform("u_terrain_mode", 1);
-			IDrawTerrain();
 			m_depth_shader->SetUniform("u_terrain_mode", 0);
 
 		}
 
-		int depth_map_index = -1;
+		/*int depth_map_index = -1;
 		auto& p_spotlights = mp_scene->m_spotlight_component_manager.GetComponents();
 		for (int i = 0; i < p_spotlights.size(); i++) {
 			const SpotLightComponent* p_light = mp_scene->m_spotlight_component_manager.GetComponents()[i];
@@ -473,7 +463,7 @@ namespace ORNG {
 			m_depth_shader->SetUniform("u_terrain_mode", 1);
 			IDrawTerrain();
 			m_depth_shader->SetUniform("u_terrain_mode", 0);
-		}
+		}*/
 
 		glViewport(0, 0, Window::GetWidth(), Window::GetHeight());
 
@@ -514,7 +504,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->m_global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
 
-		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glDispatchCompute(Window::GetWidth() / 16, Window::GetHeight() / 8, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -603,6 +593,7 @@ namespace ORNG {
 	void SceneRenderer::IDrawTerrain() {
 
 		std::vector<TerrainQuadtree*> node_array;
+
 		mp_scene->m_terrain.m_quadtree->QueryChunks(node_array, mp_scene->mp_active_camera->pos, mp_scene->m_terrain.m_width);
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();

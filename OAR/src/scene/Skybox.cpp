@@ -85,14 +85,7 @@ namespace ORNG {
 		specular_prefilter_spec.height = 256;
 		specular_prefilter_spec.generate_mipmaps = true;
 		specular_prefilter_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-		specular_prefilter_spec.filepaths = {
-			std::format("res/textures/env_map/specular_prefilter_{}_0.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
-			std::format("res/textures/env_map/specular_prefilter_{}_1.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
-			std::format("res/textures/env_map/specular_prefilter_{}_2.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
-			std::format("res/textures/env_map/specular_prefilter_{}_3.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
-			std::format("res/textures/env_map/specular_prefilter_{}_4.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
-			std::format("res/textures/env_map/specular_prefilter_{}_5.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
-		};
+
 
 		Texture2DSpec brdf_convolution_spec;
 		brdf_convolution_spec.width = 512;

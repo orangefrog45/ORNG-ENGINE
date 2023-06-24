@@ -15,52 +15,43 @@ namespace ORNG {
 
 
 	void PointlightComponentManager::OnUpdate() {
-		//if (!m_light_buffer_update_flag)
-			//return;
-
 		if (m_pointlight_components.size() == 0)
 			return;
 
 		m_light_buffer_update_flag = false;
-		constexpr unsigned int point_light_fs_num_float = 16; // amount of floats in pointlight struct in shaders
+		constexpr unsigned int point_light_fs_num_float = 12; // amount of floats in pointlight struct in shaders
 		std::vector<float> light_array;
 
 		light_array.resize(m_pointlight_components.size() * point_light_fs_num_float);
 
-		for (int i = 0; i < m_pointlight_components.size() * point_light_fs_num_float; i += point_light_fs_num_float) {
+		for (int i = 0; i < m_pointlight_components.size() * point_light_fs_num_float; i) {
 
 			auto& light = m_pointlight_components[i / point_light_fs_num_float];
 
-			//0 - START COLOR
+			// - START COLOR
 			auto color = light->color;
-			light_array[i] = color.x;
-			light_array[i + 1] = color.y;
-			light_array[i + 2] = color.z;
-			light_array[i + 3] = 0; //padding
-			//16 - END COLOR - START POS
-			auto pos = light->transform.GetPosition();
-			light_array[i + 4] = pos.x;
-			light_array[i + 5] = pos.y;
-			light_array[i + 6] = pos.z;
-			light_array[i + 7] = 0; //padding
-			//32 - END POS, START INTENSITY
-			light_array[i + 8] = light->ambient_intensity;
-			light_array[i + 9] = light->diffuse_intensity;
-			//40 - END INTENSITY - START MAX_DISTANCE
-			light_array[i + 10] = light->max_distance;
-			//44 - END MAX_DISTANCE - START ATTENUATION
+			light_array[i++] = color.x;
+			light_array[i++] = color.y;
+			light_array[i++] = color.z;
+			light_array[i++] = 0; //padding
+			// - END COLOR +- START POS
+			auto pos = light->transform.GetAbsoluteTransforms()[0];
+			light_array[i++] = pos.x;
+			light_array[i++] = pos.y;
+			light_array[i++] = pos.z;
+			light_array[i++] = 0; //padding
+			// - END COLOR - START MAX_DISTANCE
+			light_array[i++] = light->max_distance;
+			// - END MAX_DISTANCE - START ATTENUATION
 			auto& atten = light->attenuation;
-			light_array[i + 11] = atten.constant;
-			light_array[i + 12] = atten.linear;
-			light_array[i + 13] = atten.exp;
-			//56 - END ATTENUATION
-			light_array[i + 14] = 0; //padding
-			light_array[i + 15] = 0; //padding
-			//64 BYTES TOTAL
+			light_array[i++] = atten.constant;
+			light_array[i++] = atten.linear;
+			light_array[i++] = atten.exp;
+			// - END ATTENUATION
 		}
 
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_DYNAMIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_STREAM_DRAW);
 	}
 
 

@@ -97,7 +97,6 @@ namespace ORNG {
 	public:
 		friend class EditorLayer;
 		friend class Scene;
-		friend class ImGuiLib;
 		Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
 
 		bool SetSpec(const Texture2DSpec& spec);
