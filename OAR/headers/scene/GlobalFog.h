@@ -12,8 +12,9 @@ namespace ORNG {
 		glm::vec3 color{ 1 };
 		float scattering_coef = 0.04f;
 		float absorption_coef = 0.003f;
-		float density_coef = 0.f;
+		float density_coef = 0.1f;
 		int step_count = 32;
-		float scattering_anistropy;
+		float emissive_factor = 0.5f;
+		float scattering_anistropy = 0.85f;
 	};
 }

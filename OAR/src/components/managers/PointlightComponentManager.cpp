@@ -18,7 +18,6 @@ namespace ORNG {
 		if (m_pointlight_components.size() == 0)
 			return;
 
-		m_light_buffer_update_flag = false;
 		constexpr unsigned int point_light_fs_num_float = 12; // amount of floats in pointlight struct in shaders
 		std::vector<float> light_array;
 
@@ -35,7 +34,7 @@ namespace ORNG {
 			light_array[i++] = color.z;
 			light_array[i++] = 0; //padding
 			// - END COLOR +- START POS
-			auto pos = light->transform.GetAbsoluteTransforms()[0];
+			auto pos = light->p_transform->GetAbsoluteTransforms()[0];
 			light_array[i++] = pos.x;
 			light_array[i++] = pos.y;
 			light_array[i++] = pos.z;
@@ -72,7 +71,6 @@ namespace ORNG {
 			OAR_CORE_ERROR("No pointlight component found in entity '{0}', not deleted.", p_entity->name);
 			return;
 		}
-		(*it)->transform.RemoveParentTransform();
 		delete* it;
 
 		m_pointlight_components.erase(it);
@@ -82,7 +80,7 @@ namespace ORNG {
 
 	void PointlightComponentManager::OnUnload() {
 		for (auto* p_light : m_pointlight_components) {
-			delete p_light;
+			DeleteComponent(p_light->GetEntity());
 		}
 
 		glDeleteBuffers(1, &m_pointlight_ssbo_handle);
@@ -98,8 +96,8 @@ namespace ORNG {
 			return nullptr;
 		}
 
-		PointLightComponent* comp = new PointLightComponent(p_entity);
-		comp->transform.SetParentTransform(p_entity->GetComponent<TransformComponent>());
+		auto* p_transform = p_entity->GetComponent<TransformComponent>();
+		PointLightComponent* comp = new PointLightComponent(p_entity, p_transform);
 		m_pointlight_components.push_back(comp);
 		return comp;
 	}

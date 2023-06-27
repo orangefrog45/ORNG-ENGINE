@@ -25,11 +25,15 @@ namespace ORNG {
 		if (Window::IsKeyDown('E'))
 			MoveUp(FrameTiming::GetTimeStep());
 
-		if (Window::IsKeyDown('R'))
+		if (Window::IsKeyDown('R')) {
 			mouse_locked = true;
+			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
+		}
 
-		if (Window::IsKeyDown('T'))
+		if (Window::IsKeyDown('T')) {
 			mouse_locked = false;
+			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
+		}
 
 
 

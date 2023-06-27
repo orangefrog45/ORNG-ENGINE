@@ -9,6 +9,7 @@
 #include "scene/SceneEntity.h"
 #include "components/CameraComponent.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
+#include "physics/Physics.h"
 
 
 namespace ORNG {
@@ -27,8 +28,9 @@ namespace ORNG {
 	}
 
 
-	void Scene::Update() {
+	void Scene::Update(float ts) {
 
+		m_physics_system.OnUpdate(ts);
 		for (auto* script : m_script_components) {
 			script->OnUpdate();
 		}
@@ -151,7 +153,7 @@ namespace ORNG {
 		m_skybox.Init();
 		m_skybox.LoadEnvironmentMap("./res/textures/belfast_sunset_puresky_4k.hdr");
 
-
+		m_physics_system.OnLoad();
 		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
 		noise->SetFrequency(0.05f);
 		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
@@ -249,8 +251,9 @@ namespace ORNG {
 	Texture2D* Scene::CreateTexture2DAsset(const std::string& filename, bool srgb) {
 
 		static Texture2DSpec base_spec;
+		base_spec.generate_mipmaps = true;
 		base_spec.mag_filter = GL_LINEAR;
-		base_spec.min_filter = GL_LINEAR;
+		base_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
 		for (auto& p_texture : m_texture_2d_assets) {
 			if (p_texture->m_spec.filepath == filename) {

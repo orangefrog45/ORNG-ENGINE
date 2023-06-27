@@ -101,8 +101,10 @@ namespace ORNG {
 
 		}
 
-		if (OnTransformUpdate)
-			OnTransformUpdate();
+		for (auto& it : update_callbacks) {
+			it.second();
+		}
+
 
 		// Update child transforms as they are now inaccurate as the matrix has been rebuilt as a result of the transform changing
 		for (auto* p_transform : m_child_transforms) {

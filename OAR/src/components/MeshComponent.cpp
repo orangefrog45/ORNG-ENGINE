@@ -9,10 +9,8 @@
 
 namespace ORNG {
 
-	MeshComponent::MeshComponent(SceneEntity* p_entity) : Component(p_entity) {
-		transform.OnTransformUpdate = [this] {
-			RequestTransformSSBOUpdate();
-		};
+	MeshComponent::MeshComponent(SceneEntity* p_entity, TransformComponent* t_transform) : Component(p_entity), p_transform(t_transform) {
+
 	};
 
 

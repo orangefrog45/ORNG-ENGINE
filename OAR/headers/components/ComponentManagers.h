@@ -2,11 +2,45 @@
 #include "components/ComponentAPI.h"
 #include "scene/MeshInstanceGroup.h"
 
+namespace physx {
+	class PxScene;
+	class PxBroadPhase;
+	class PxAABBManager;
+	class PxCpuDispatcher;
+}
+
 namespace ORNG {
 
 	class ComponentManager {
-		virtual void OnUpdate() = 0;
-		virtual void OnUnload() = 0;
+		virtual void OnUpdate() {};
+		virtual void OnUnload() {};
+	};
+
+	class PhysicsSystem : public ComponentManager {
+	public:
+		friend class EditorLayer;
+
+		void OnUpdate(float ts);
+		void OnUnload() final;
+		void OnLoad();
+		PhysicsComponent* AddComponent(SceneEntity* p_entity, PhysicsComponent::RigidBodyType type = PhysicsComponent::STATIC);
+		PhysicsComponent* GetComponent(unsigned long entity_id);
+		void DeleteComponent(SceneEntity* p_entity);
+
+	private:
+
+		bool m_physics_paused = true;
+
+		physx::PxBroadPhase* mp_broadphase = nullptr;
+		physx::PxAABBManager* mp_aabb_manager = nullptr;
+		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
+		physx::PxScene* mp_scene = nullptr;
+		std::vector<PhysicsComponent*> m_physics_components;
+
+		float m_step_size = 1.f / 60.f;
+		float m_accumulator = 0.f;
+
+
 	};
 
 	class TransformComponentManager : public ComponentManager {
@@ -34,7 +68,6 @@ namespace ORNG {
 	private:
 		std::vector<SpotLightComponent*> m_spotlight_components;
 		GLuint m_spotlight_ssbo_handle;
-		bool m_light_buffer_update_flag = false;
 	};
 
 
@@ -52,7 +85,6 @@ namespace ORNG {
 	private:
 		std::vector<PointLightComponent*> m_pointlight_components;
 		GLuint m_pointlight_ssbo_handle;
-		bool m_light_buffer_update_flag = false;
 	};
 
 

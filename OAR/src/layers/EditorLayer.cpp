@@ -22,6 +22,7 @@
 #include "core/GLStateManager.h"
 #include "core/Window.h"
 #include "core/FrameTiming.h"
+#include "physics/Physics.h"
 
 namespace ORNG {
 
@@ -87,43 +88,96 @@ namespace ORNG {
 
 		m_active_scene->LoadScene();
 		Texture2D* p_orange_tex = m_active_scene->CreateTexture2DAsset("./res/meshes/oranges/orangeC.jpg", true);
-		for (float x = 0; x <= 100.f; x += 10.f) {
-			auto& t_entity = m_active_scene->CreateEntity("Orange");
-			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
-			auto* p_material = m_active_scene->CreateMaterial();
 
-			t_mesh->transform.SetPosition(x, 20.f, 0.f);
+		/*for (float x = 0; x <= 100.f; x += 10.f) {
+			auto& t_entity = m_active_scene->CreateEntity("Orange");
+			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
+			auto* p_material = m_active_scene->CreateMaterial();
+			auto* t_transform = t_entity.GetComponent<TransformComponent>();
+
+			t_transform->SetPosition(x * 2.f, 10.f, 0.f);
+			t_entity.AddComponent<PhysicsComponent>(PhysicsComponent::STATIC);
+
 			p_material->roughness = x / 100.f + 0.05f;
 			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
 			p_material->metallic = 0.05;
 			p_material->base_color = glm::vec3(0.0, 1.0, 1.0);
 			t_mesh->SetMaterialID(0, p_material);
 			t_mesh->SetMaterialID(1, p_material);
+		}*/
+		std::vector<Material*> p_materials = { m_active_scene->CreateMaterial(), m_active_scene->CreateMaterial(), m_active_scene->CreateMaterial() };
+
+		p_materials[0]->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
+		p_materials[0]->ao = 1.0;
+		p_materials[0]->metallic = 0.5f;
+		p_materials[0]->roughness = 0.05;
+		p_materials[0]->base_color = glm::vec3(1.0, 0.0, 0.0);
+		p_materials[1]->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
+		p_materials[1]->ao = 1.0;
+		p_materials[1]->metallic = 0.5f;
+		p_materials[1]->roughness = 0.05;
+		p_materials[1]->base_color = glm::vec3(0.0, 1.0, 0.0);
+		p_materials[2]->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
+		p_materials[2]->ao = 1.0;
+		p_materials[2]->metallic = 0.5f;
+		p_materials[2]->roughness = 0.05;
+		p_materials[2]->base_color = glm::vec3(0.0, 0.0, 1.0);
+
+		for (float y = 0.f; y < 30.f; y += 2.1f) {
+			for (float z = 0; z < 30.f; z += 2.1f) {
+				for (float x = 0; x <= 30.f; x += 2.1f) {
+					auto& t_entity = m_active_scene->CreateEntity("Ball");
+					auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/smoothsphere.fbx");
+					auto* t_transform = t_entity.GetComponent<TransformComponent>();
+
+
+					t_transform->SetPosition(x, y, z);
+					//t_transform->SetScale(glm::max((rand() % 100) * 0.01f, 0.1f), glm::max((rand() % 100) * 0.01f, 0.1f), glm::max((rand() % 100) * 0.01f, 0.1f));
+					auto* p_comp = t_entity.AddComponent<PhysicsComponent>(PhysicsComponent::DYNAMIC);
+					p_comp->p_rigid_dynamic->setMass(10.f);
+					p_comp->SetGeometryType(PhysicsComponent::SPHERE);
+					t_mesh->SetMaterialID(0, p_materials[rand() % 3]);
+				}
+
+			}
 		}
 
-		for (float x = 0; x <= 100.f; x += 10.f) {
-			auto& t_entity = m_active_scene->CreateEntity("Orange");
-			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/oranges/orange.obj");
-			auto* p_material = m_active_scene->CreateMaterial();
+		auto& t_entity = m_active_scene->CreateEntity("Base");
+		auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
+		auto* t_transform = t_entity.GetComponent<TransformComponent>();
+		auto* script = t_entity.AddComponent<ScriptComponent>();
+		auto* material = m_active_scene->CreateMaterial();
+		material->base_color_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_Color.jpg", true);
+		material->normal_map_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_NormalGL.jpg", false);
+		material->roughness_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_Roughness.jpg", false);
+		material->displacement_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_Displacement.jpg", false);
+		material->ao_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_AmbientOcclusion.jpg", false);
+		material->tile_scale = { 500.f, 1000.f };
+		t_mesh->SetMaterialID(1, material);
+		script->OnUpdate = [this, material] {
+			static double cooldown = 0.0;
+			cooldown -= glm::min(FrameTiming::GetTimeStep(), cooldown);
+			if (!Window::IsKeyDown('g') || cooldown > 0.0)
+				return;
 
-			t_mesh->transform.SetPosition(x, 30.f, 0.f);
-			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
-			p_material->ao = 1.0;
-			p_material->metallic = 1.0 - (x / 100.f) + 0.05f;
-			p_material->roughness = 0.05;
-			p_material->base_color = glm::vec3(0.0, 1.0, 1.0);
-			t_mesh->SetMaterialID(0, p_material);
-			t_mesh->SetMaterialID(1, p_material);
-		}
+			cooldown += 200;
+			auto& t1_entity = m_active_scene->CreateEntity("Orange");
+			auto* t1_mesh = t1_entity.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
+			auto* t1_transform = t1_entity.GetComponent<TransformComponent>();
 
-		auto& t_entity = m_active_scene->CreateEntity("Orange");
-		auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/balloon/air balloon.obj");
-		auto p_script = t_entity.AddComponent<ScriptComponent>();
-		p_script->OnUpdate = [t_mesh] {
-			if (Window::IsKeyDown('w'))
-				t_mesh->transform.SetPosition(t_mesh->transform.GetPosition() + glm::vec3(0, 1, 0) * sinf(FrameTiming::GetTimeStep()));
+
+			t1_transform->SetPosition(m_editor_camera.pos + m_editor_camera.target);
+			t1_transform->SetScale(3.f, 0.3f, 0.3f);
+			t1_mesh->SetMaterialID(1, material);
+
+			auto* p_comp = t1_entity.AddComponent<PhysicsComponent>(PhysicsComponent::DYNAMIC);
+			p_comp->p_rigid_dynamic->setMass(2.f);
+			p_comp->p_rigid_dynamic->addForce(PxVec3(m_editor_camera.target.x, m_editor_camera.target.y, m_editor_camera.target.z) * 50000.f);
 		};
 
+		t_transform->SetScale(1000.f, 10.f, 1000.f);
+		t_transform->SetPosition(0.f, -12.f, 0.f);
+		t_entity.AddComponent<PhysicsComponent>(PhysicsComponent::STATIC);
 
 		OAR_CORE_INFO("Editor layer initialized"); //add profiling func
 	}
@@ -171,7 +225,7 @@ namespace ORNG {
 		if (Window::IsKeyDown('K'))
 			m_active_scene->MakeCameraActive(static_cast<CameraComponent*>(&m_editor_camera));
 
-		m_active_scene->Update();
+		m_active_scene->Update(FrameTiming::GetTimeStep());
 	}
 
 
@@ -263,7 +317,7 @@ namespace ORNG {
 
 			if (mesh->GetMeshData()->GetLoadStatus() == true) {
 				mp_picking_shader->SetUniform<unsigned int>("comp_id", mesh->GetEntityHandle());
-				mp_picking_shader->SetUniform("transform", mesh->transform.GetMatrix());
+				mp_picking_shader->SetUniform("transform", mesh->p_transform->GetMatrix());
 
 				for (int i = 0; i < mesh->mp_mesh_asset->m_submeshes.size(); i++) {
 					Renderer::DrawSubMesh(mesh->GetMeshData(), i);
@@ -297,7 +351,7 @@ namespace ORNG {
 
 		mp_editor_pass_fb->Bind();
 		mp_highlight_shader->ActivateProgram();
-		mp_highlight_shader->SetUniform("transform", meshc->transform.GetMatrix());
+		mp_highlight_shader->SetUniform("transform", meshc->p_transform->GetMatrix());
 
 		for (int i = 0; i < meshc->GetMeshData()->m_submeshes.size(); i++) {
 			Renderer::DrawSubMesh(meshc->GetMeshData(), i);
@@ -307,7 +361,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderGlobalFogEditor() {
-		if (ImGui::TreeNode("Global fog")) {
+		if (H2TreeNode("Global fog")) {
 			ImGui::Text("Scattering");
 			ImGui::SliderFloat("##scattering", &m_active_scene->m_global_fog.scattering_coef, 0.f, 0.1f);
 			ImGui::Text("Absorption");
@@ -316,10 +370,11 @@ namespace ORNG {
 			ImGui::SliderFloat("##density", &m_active_scene->m_global_fog.density_coef, 0.f, 1.f);
 			ImGui::Text("Scattering anistropy");
 			ImGui::SliderFloat("##scattering anistropy", &m_active_scene->m_global_fog.scattering_anistropy, -1.f, 1.f);
+			ImGui::Text("Emissive factor");
+			ImGui::SliderFloat("##emissive", &m_active_scene->m_global_fog.emissive_factor, 0.f, 2.f);
 			ImGui::Text("Step count");
 			ImGui::SliderInt("##step count", &m_active_scene->m_global_fog.step_count, 0, 512);
 			ShowColorVec3Editor("Color", m_active_scene->m_global_fog.color);
-			ImGui::TreePop();
 		}
 	}
 
@@ -337,7 +392,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderTerrainEditor() {
-		if (ImGui::TreeNode("Terrain")) {
+		if (H2TreeNode("Terrain")) {
 			ImGui::InputFloat("Height factor", &m_active_scene->m_terrain.m_height_scale);
 			static int terrain_width = 1000;
 
@@ -353,7 +408,6 @@ namespace ORNG {
 			if (ImGui::Button("Reload"))
 				m_active_scene->m_terrain.ResetTerrainQuadtree();
 
-			ImGui::TreePop();
 		}
 	}
 
@@ -559,13 +613,14 @@ namespace ORNG {
 			ImGui::SameLine();
 			ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
 			m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
-			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
+			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR_MIPMAP_LINEAR;
+
+			m_current_2d_tex_spec.generate_mipmaps = true;
 
 			if (ImGui::Button("Load")) {
 				mp_selected_texture->SetSpec(m_current_2d_tex_spec);
 				mp_selected_texture->LoadFromFile();
 			}
-			ImGui::TreePop();
 		}
 	}
 
@@ -617,8 +672,7 @@ namespace ORNG {
 				ImGui::InputFloat("Parallax scale", &mp_selected_material->parallax_height_scale);
 			}
 
-
-			ImGui::TreePop();
+			ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
 		}
 
 		if (!Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_1))
@@ -632,18 +686,21 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
-		if (ImGui::CollapsingHeader("Scene")) {
+		if (H1TreeNode("Scene")) {
 			ImGui::SliderFloat("Exposure", &m_active_scene->m_exposure_level, 0.f, 10.f);
+
+			if (ImGui::RadioButton("Physics", !m_active_scene->m_physics_system.m_physics_paused))
+				m_active_scene->m_physics_system.m_physics_paused = !m_active_scene->m_physics_system.m_physics_paused;
+
 			RenderDirectionalLightEditor();
 			RenderGlobalFogEditor();
 			RenderTerrainEditor();
-			if (ImGui::TreeNode("Entities")) {
+			if (H2TreeNode("Entities")) {
 				for (auto& entity : m_active_scene->m_entities) {
 					if (entity && ImGui::Button(entity->name, ImVec2(200, 25))) {
 						m_selected_entity_id = entity->GetID();
 					}
 				}
-				ImGui::TreePop();
 			}
 		}
 	}
@@ -670,7 +727,6 @@ namespace ORNG {
 			//TRANSFORM
 			if (H2TreeNode("Entity transform")) {
 				RenderTransformComponentEditor(p_transform);
-				ImGui::TreePop();
 			}
 
 
@@ -701,7 +757,6 @@ namespace ORNG {
 
 						RenderMeshComponentEditor(meshc);
 					}
-					ImGui::TreePop();
 				}
 
 			}
@@ -715,7 +770,6 @@ namespace ORNG {
 						entity->DeleteComponent<PointLightComponent>();
 					};
 					RenderPointlightEditor(plight);
-					ImGui::TreePop();
 				}
 			}
 			else {
@@ -734,7 +788,6 @@ namespace ORNG {
 						entity->DeleteComponent<SpotLightComponent>();
 					};
 					RenderSpotlightEditor(slight);
-					ImGui::TreePop();
 				}
 			}
 			else {
@@ -756,11 +809,9 @@ namespace ORNG {
 
 					RenderCameraEditor(p_cam);
 
-					ImGui::TreePop();
 				};
 			}
 			ImGui::PopID();
-			ImGui::TreePop();
 		}
 	}
 
@@ -771,11 +822,10 @@ namespace ORNG {
 	void EditorLayer::RenderTransformComponentEditor(TransformComponent* p_transform) {
 
 
-		static TransformComponent* p_active_guizmo_transform = nullptr;
-		bool render_gizmos = p_active_guizmo_transform == p_transform;
+		static bool render_gizmos = true;
 
 		if (ImGui::RadioButton("Gizmos", render_gizmos))
-			p_active_guizmo_transform = render_gizmos ? nullptr : p_transform;
+			render_gizmos = !render_gizmos;
 
 		ImGui::SameLine();
 
@@ -797,9 +847,6 @@ namespace ORNG {
 
 		if (ShowVec3Editor("Sc", matrix_scale))
 			p_transform->SetScale(matrix_scale);
-
-		if (p_active_guizmo_transform != p_transform) // Second check here as render_gizmos is no longer accurate due to potential change
-			return;
 
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -878,13 +925,6 @@ namespace ORNG {
 			ImGui::PopID();
 		}
 
-		if (H2TreeNode("Mesh transform")) {
-			ImGui::Dummy(ImVec2(0.f, 20.f));
-			RenderTransformComponentEditor(&comp->transform);
-			ImGui::Dummy(ImVec2(0.f, 20.f));
-			ImGui::TreePop();
-		}
-
 		ImGui::PopID();
 	};
 
@@ -898,7 +938,6 @@ namespace ORNG {
 		light_data.base.atten_linear = light->attenuation.linear;
 		light_data.base.color = light->color;
 		light_data.base.max_distance = light->max_distance;
-		light_data.base.pos = light->transform.GetPosition();
 
 		ImGui::PushItemWidth(200.f);
 		ImGui::SliderFloat("constant", &light_data.base.atten_constant, 0.0f, 1.0f);
@@ -922,7 +961,6 @@ namespace ORNG {
 		light->attenuation.exp = light_data.base.atten_exp;
 		light->max_distance = light_data.base.max_distance;
 		light->color = light_data.base.color;
-		light->transform.SetPosition(light_data.base.pos);
 		light->SetLightDirection(light_data.direction.x, light_data.direction.y, light_data.direction.z);
 		light->SetAperture(light_data.aperture);
 		light->UpdateLightTransform();
@@ -932,7 +970,7 @@ namespace ORNG {
 	void EditorLayer::RenderDirectionalLightEditor() {
 		static DirectionalLightData light_data;
 
-		if (ImGui::TreeNode("Directional light")) {
+		if (H2TreeNode("Directional light")) {
 			ImGui::Text("DIR LIGHT CONTROLS");
 
 			static glm::vec3 light_dir = glm::vec3(0, 0.5, 0.5);
@@ -944,7 +982,6 @@ namespace ORNG {
 
 			m_active_scene->m_directional_light.color = glm::vec3(light_data.light_color.x, light_data.light_color.y, light_data.light_color.z);
 			m_active_scene->m_directional_light.SetLightDirection(light_data.light_direction);
-			ImGui::TreePop();
 		}
 	}
 
@@ -957,7 +994,6 @@ namespace ORNG {
 		light_data.atten_linear = light->attenuation.linear;
 		light_data.atten_constant = light->attenuation.constant;
 		light_data.max_distance = light->max_distance;
-		light_data.pos = light->transform.GetPosition();
 
 		ImGui::PushItemWidth(200.f);
 		ImGui::SliderFloat("constant", &light_data.atten_constant, 0.0f, 1.0f);
@@ -973,7 +1009,6 @@ namespace ORNG {
 		light->attenuation.exp = light_data.atten_exp;
 		light->max_distance = light_data.max_distance;
 		light->color = light_data.color;
-		light->transform.SetPosition(light_data.pos);
 	}
 
 	void EditorLayer::RenderCameraEditor(CameraComponent* p_cam) {
@@ -1020,6 +1055,36 @@ namespace ORNG {
 
 		if (ImGui::InputFloat("##z", &vec_copy.z) && vec_copy.z > min && vec_copy.z < max) {
 			vec.z = vec_copy.z;
+			ret = true;
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::PopID();
+
+		return ret;
+	}
+
+	bool EditorLayer::ShowVec2Editor(const char* name, glm::vec2& vec, float min, float max) {
+		bool ret = false;
+		glm::vec2 vec_copy = vec;
+		ImGui::PushID(&vec);
+		ImGui::Text(name);
+		ImGui::PushItemWidth(100.f);
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##x", &vec_copy.x) && vec_copy.x > min && vec_copy.x < max) {
+			vec.x = vec_copy.x;
+			ret = true;
+		}
+
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Y");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##y", &vec_copy.y) && vec_copy.y > min && vec_copy.y < max) {
+			vec.y = vec_copy.y;
 			ret = true;
 		}
 
@@ -1153,7 +1218,7 @@ namespace ORNG {
 		float original_size = ImGui::GetFont()->Scale;
 		ImGui::GetFont()->Scale *= 1.15f;
 		ImGui::PushFont(ImGui::GetFont());
-		bool r = ImGui::TreeNode(name);
+		bool r = ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen);
 		ImGui::GetFont()->Scale = original_size;
 		ImGui::PopFont();
 		return r;
@@ -1163,7 +1228,7 @@ namespace ORNG {
 		float original_size = ImGui::GetFont()->Scale;
 		ImGui::GetFont()->Scale *= 1.1f;
 		ImGui::PushFont(ImGui::GetFont());
-		bool r = ImGui::TreeNode(name);
+		bool r = ImGui::CollapsingHeader(name, ImGuiTreeNodeFlags_DefaultOpen);
 		ImGui::GetFont()->Scale = original_size;
 		ImGui::PopFont();
 		return r;

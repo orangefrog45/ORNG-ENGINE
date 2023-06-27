@@ -13,7 +13,6 @@
 #include "scene/MeshInstanceGroup.h"
 #include "scene/GlobalFog.h"
 #include "components/ComponentManagers.h"
-
 namespace ORNG {
 
 	class SceneEntity;
@@ -31,7 +30,7 @@ namespace ORNG {
 		SceneEntity& CreateEntity(const char* name = "Unnamed entity");
 
 		//Runs any scripts in script components and updates transform and instance group data
-		void Update();
+		void Update(float ts);
 
 
 		template<std::derived_from<Component> T, typename... Args>
@@ -52,6 +51,9 @@ namespace ORNG {
 			}
 			else if constexpr (std::is_same<T, CameraComponent>::value) {
 				comp = AddCameraComponent(p_entity);
+			}
+			else if constexpr (std::is_same<T, PhysicsComponent>::value) {
+				comp = m_physics_system.AddComponent(p_entity, args...);
 			}
 
 			return comp;
@@ -163,6 +165,7 @@ namespace ORNG {
 		PointlightComponentManager m_pointlight_component_manager;
 		SpotlightComponentManager m_spotlight_component_manager;
 		TransformComponentManager m_transform_component_manager;
+		PhysicsSystem m_physics_system;
 
 		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector
 		std::vector<MeshAsset*> m_mesh_assets;

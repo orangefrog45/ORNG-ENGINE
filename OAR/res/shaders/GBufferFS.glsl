@@ -31,6 +31,7 @@ struct Material {
 	vec4 base_color_and_metallic;
 	float roughness;
 	float ao;
+	vec2 tile_scale;
 };
 
 
@@ -59,7 +60,7 @@ vec2 ParallaxMap()
 {
 	float layer_depth = 1.0 / float(u_num_parallax_layers);
 	float current_layer_depth = 0.0f;
-	vec2 current_tex_coords = vs_tex_coord.xy;
+	vec2 current_tex_coords = vs_tex_coord.xy * u_material.tile_scale;
 	float current_depth_map_value = 1.0 - texture(displacement_sampler, vs_tex_coord.xy).r;
 	vec2 p = normalize(vs_view_dir_tangent_space).xy * u_parallax_height_scale;
 
@@ -112,7 +113,7 @@ mat3 CalculateTbnMatrixTransform() {
 
 void main() {
 	shader_id = u_shader_id;
-	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap() : vs_tex_coord.xy;
+	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap() : vs_tex_coord.xy * u_material.tile_scale;
 
 	roughness_metallic_ao.r = u_roughness_sampler_active ? texture(roughness_sampler, adj_tex_coord.xy).r : u_material.roughness;
 	roughness_metallic_ao.g = u_metallic_sampler_active ? texture(metallic_sampler, adj_tex_coord.xy).r : u_material.base_color_and_metallic.a;
@@ -134,7 +135,7 @@ void main() {
 
 	}
 	else if (u_skybox_mode) {
-		g_position = vec4(ubo_common.camera_pos.xyz + normalize(vs_position.xyz) * 10000.f, 1.f); // give spherical appearance (used for fog)
+		g_position = vec4(ubo_common.camera_pos.xyz + normalize(vs_position.xyz) * 5000.f, 1.f); // give spherical appearance (used for fog)
 		albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
 	}
 	else {

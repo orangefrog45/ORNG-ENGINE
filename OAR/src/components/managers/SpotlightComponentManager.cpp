@@ -24,7 +24,10 @@ namespace ORNG {
 			return;
 		}
 
-		(*it)->transform.RemoveParentTransform();
+		auto* p_comp = *it;
+		auto* p_transform = p_entity->GetComponent<TransformComponent>();
+		p_transform->update_callbacks.erase(TransformComponent::CallbackType::SPOTLIGHT);
+
 		delete* it;
 		m_spotlight_components.erase(it);
 	}
@@ -33,7 +36,7 @@ namespace ORNG {
 
 	void SpotlightComponentManager::OnUnload() {
 		for (auto* p_light : m_spotlight_components) {
-			delete p_light;
+			DeleteComponent(p_light->GetEntity());
 		}
 
 		glDeleteBuffers(1, &m_spotlight_ssbo_handle);
@@ -68,13 +71,13 @@ namespace ORNG {
 			light_array[i++] = color.z;
 			light_array[i++] = 0; //padding
 			//16 - END COLOR - START POS
-			auto pos = light->transform.GetPosition();
+			auto pos = light->p_transform->GetPosition();
 			light_array[i++] = pos.x;
 			light_array[i++] = pos.y;
 			light_array[i++] = pos.z;
 			light_array[i++] = 0; //padding
 			//32 - END POS, START DIR
-			glm::vec3 rotation = light->transform.GetAbsoluteTransforms()[2];
+			glm::vec3 rotation = light->p_transform->GetAbsoluteTransforms()[2];
 			auto dir = glm::normalize(glm::mat3(ExtraMath::Init3DRotateTransform(rotation.x, rotation.y, rotation.z)) * light->GetLightDirection());
 			light_array[i++] = dir.x;
 			light_array[i++] = dir.y;
@@ -123,8 +126,12 @@ namespace ORNG {
 			return nullptr;
 		}
 
-		SpotLightComponent* comp = new SpotLightComponent(p_entity);
-		comp->transform.SetParentTransform(p_entity->GetComponent<TransformComponent>());
+		auto* p_transform = p_entity->GetComponent<TransformComponent>();
+		SpotLightComponent* comp = new SpotLightComponent(p_entity, p_transform);
+		p_transform->update_callbacks[TransformComponent::CallbackType::SPOTLIGHT] = ([comp] {
+			comp->UpdateLightTransform();
+			});
+
 		m_spotlight_components.push_back(comp);
 		return comp;
 	}

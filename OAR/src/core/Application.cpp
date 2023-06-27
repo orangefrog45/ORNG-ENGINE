@@ -12,6 +12,7 @@
 #include "core/GLStateManager.h"
 #include "events/EventManager.h"
 #include "core/FrameTiming.h"
+#include "physics/Physics.h"
 
 
 namespace ORNG {
@@ -53,8 +54,10 @@ namespace ORNG {
 
 		GL_StateManager::InitGL();
 		Renderer::Init();
+		Physics::Init();
 		SceneRenderer::Init();
 		editor_layer.Init();
+
 
 		// Game loop
 

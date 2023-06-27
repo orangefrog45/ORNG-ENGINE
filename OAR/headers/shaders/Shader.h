@@ -61,6 +61,9 @@ namespace ORNG {
 			else if constexpr (std::is_same<T, glm::vec3>::value) {
 				glUniform3f(m_uniforms[name], value.x, value.y, value.z);
 			}
+			else if constexpr (std::is_same<T, glm::vec2>::value) {
+				glUniform2f(m_uniforms[name], value.x, value.y);
+			}
 			else if constexpr (std::is_same<T, glm::mat4>::value) {
 				glUniformMatrix4fv(m_uniforms[name], 1, GL_FALSE, &value[0][0]);
 			}

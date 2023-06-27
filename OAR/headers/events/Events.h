@@ -10,6 +10,7 @@ namespace ORNG::Events {
 			ENGINE_RENDER = 1,
 			ENGINE_UPDATE = 2,
 			WINDOW_RESIZE = 3,
+			TRANSFORM_UPDATE = 4,
 		};
 
 		EventType event_type = EventType::INVALID_TYPE;
@@ -23,7 +24,7 @@ namespace ORNG::Events {
 		glm::vec2 new_window_size;
 	};
 
-	struct MouseEvent : public Event {
+	struct MouseEvent : public Event { // Not yet implemented
 		Input::MouseBindings mouse_button;
 		glm::vec2 mouse_pos_new;
 		glm::vec2 mouse_pos_old;

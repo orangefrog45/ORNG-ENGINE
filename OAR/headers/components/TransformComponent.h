@@ -37,8 +37,6 @@ namespace ORNG {
 		}
 
 
-		std::function<void()> OnTransformUpdate = nullptr;
-
 		void SetScale(float scaleX, float scaleY, float scaleZ);
 		void SetOrientation(float x, float y, float z);
 		void SetPosition(float x, float y, float z);
@@ -61,7 +59,13 @@ namespace ORNG {
 		inline glm::vec3 GetScale() const { return m_scale; };
 		inline glm::vec3 GetRotation() const { return m_rotation; };
 
+		enum class CallbackType {
+			SPOTLIGHT = 0,
+			PHYSICS = 1,
+			MESH = 2
+		};
 
+		std::map<CallbackType, std::function<void()>> update_callbacks;
 	private:
 
 		// If true, transform will not take parent transforms into account when building matrix.

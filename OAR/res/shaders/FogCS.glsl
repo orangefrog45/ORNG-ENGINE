@@ -11,12 +11,15 @@ layout(binding = 6) uniform sampler2D world_position_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 15) uniform sampler3D fog_noise_sampler;
 layout(binding = 16) uniform sampler2D gbuffer_depth_sampler;
+layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
+
 
 uniform float u_scattering_anistropy;
 uniform float u_absorption_coef;
 uniform float u_scattering_coef;
 uniform float u_density_coef;
 uniform float u_time;
+uniform float u_emissive;
 uniform int u_step_count;
 uniform vec3 u_fog_color;
 
@@ -146,6 +149,7 @@ float ShadowCalculationDirectional(vec3 light_dir, vec3 world_pos) {
 		return 0.0f; // early return, fragment out of range
 	}
 
+
 	float current_depth = proj_coords.z;
 	float sampled_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy), depth_map_index)).r;
 
@@ -187,13 +191,13 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 	float spot_factor = dot(frag_to_light_dir, -light.dir.xyz);
 
 	if (spot_factor > light.aperture) {
-		float shadow = ShadowCalculationSpotlight(light, index, world_pos);
+		//float shadow = ShadowCalculationSpotlight(light, index, world_pos);
 
-		if (shadow >= 0.99) {
-			return vec3(0); // early return as no light will reach this spot
-		}
+		//if (shadow >= 0.99) {
+			//return vec3(0); // early return as no light will reach this spot
+		//}
 
-		vec3 diffuse_color = light.color.xyz * (1.0 - shadow);
+		vec3 diffuse_color = light.color.xyz;
 
 		float attenuation = light.constant +
 			light.a_linear * distance +
@@ -223,8 +227,9 @@ uniform float u_noise_coord_scale_fac;
 
 
 float phase(vec3 march_dir, vec3 light_dir) {
+	float new_scattering = 1.55 * u_scattering_anistropy - 0.55 * u_scattering_anistropy * u_scattering_anistropy * u_scattering_anistropy;
 	float cos_theta = dot(normalize(march_dir), normalize(light_dir));
-	return (1.f / (4.f * PI)) * ((1 - pow(u_scattering_anistropy, 2)) / pow((1.f - u_scattering_anistropy * cos_theta), 2));
+	return (1.0 - new_scattering * new_scattering) / (4.0 * PI * pow(1.0 - new_scattering * cos_theta, 2.0));
 }
 
 float noise(vec3 pos) {
@@ -257,7 +262,7 @@ void main() {
 
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 500.f;
+		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 2000.f;
 		float fog_density = noise(fog_sampling_coords);
 		fog_density += 0.5f * u_density_coef;
 
@@ -276,14 +281,14 @@ void main() {
 		float dir_shadow = ShadowCalculationDirectional(ubo_global_lighting.directional_light.direction.xyz, step_pos);
 		in_scattering += ubo_global_lighting.directional_light.base.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
 
-		float out_scattering = u_scattering_coef * fog_density;
+		float out_scattering = u_scattering_coef;
 		transmittance *= exp(-fog_density * extinction_coef * step_distance);
 		luminance += transmittance * in_scattering * out_scattering * step_distance;
 
 		step_pos += ray_dir * step_distance;
 	}
 
-	vec4 fog_color = vec4(u_fog_color * luminance, 1.0 - transmittance);
+	vec4 fog_color = vec4(u_fog_color * luminance + (texture(diffuse_prefilter_sampler, ray_dir).rgb * u_emissive), 1.0 - transmittance);
 
 	imageStore(fog_texture, tex_coords / 2, fog_color);
 

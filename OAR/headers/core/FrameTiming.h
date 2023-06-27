@@ -36,8 +36,8 @@ namespace ORNG {
 		}
 
 		double current_frame_time_step = 0;
-		std::chrono::steady_clock::time_point last_frame_time;
-		std::chrono::steady_clock::time_point current_frame_time;
+		std::chrono::steady_clock::time_point last_frame_time = std::chrono::steady_clock::now();
+		std::chrono::steady_clock::time_point current_frame_time = std::chrono::steady_clock::now();
 
 		inline const static std::chrono::steady_clock::time_point m_application_start_time = std::chrono::steady_clock::now();
 

@@ -38,7 +38,11 @@ namespace ORNG {
 		MeshInstanceGroup* group = mesh->mp_instance_group;
 
 		group->DeleteMeshPtr(mesh);
-		mesh->transform.RemoveParentTransform();
+
+		// Unhook update callback
+		auto* p_transform = p_entity->GetComponent<TransformComponent>();
+		p_transform->update_callbacks.erase(TransformComponent::CallbackType::MESH);
+
 		delete mesh;
 
 		m_mesh_components.erase(std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); }));
@@ -53,13 +57,19 @@ namespace ORNG {
 			OAR_CORE_WARN("Mesh component not added, entity '{0}' already has a mesh component", p_entity->name);
 			return nullptr;
 		}
-
-		auto* p_comp = new MeshComponent(p_entity);
+		auto* p_transform = p_entity->GetComponent<TransformComponent>();
+		auto* p_comp = new MeshComponent(p_entity, p_transform);
 		for (auto* p_mat : p_asset->m_scene_materials) {
 			p_comp->m_materials.push_back(p_mat);
 		}
+
+		// Sort into a group containing other meshes with same asset, material and shader for instanced rendering
 		SortMeshIntoInstanceGroup(p_comp, p_asset);
-		p_comp->transform.SetParentTransform(p_entity->GetComponent<TransformComponent>());
+
+		// Setup update callback, when transform is updated the transform buffers will update too
+		p_comp->p_transform->update_callbacks[TransformComponent::CallbackType::MESH] = ([p_comp] {
+			p_comp->RequestTransformSSBOUpdate();
+			});
 
 		m_mesh_components.push_back(p_comp);
 

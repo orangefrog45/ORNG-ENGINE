@@ -1,8 +1,17 @@
+27/6/23:
+-Nvidia physx and basic physics components implemented (still needs work)
+-Small changes to ECS and transform callbacks
+-Textures automatically use mipmaps
+-Further UI improvements
+-Texture tiling control in materials
+-General bugfixing and refactoring
+
 24/6/23:
 -Large UI changes
 -Fixed some transform bugs
 -Material bugs fixed
 -Light buffer updates slightly changed - for now just update each frame
+-Changes to diffuse prefilter system so env map data is saved to disk
 
 22/6/23:
 -Image based lighting with environment map loading and prefiltering

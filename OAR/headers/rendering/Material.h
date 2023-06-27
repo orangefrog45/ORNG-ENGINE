@@ -22,6 +22,8 @@ namespace ORNG {
 		unsigned int parallax_layers = 24;
 		float parallax_height_scale = 0.05f;
 
+		glm::vec2 tile_scale{ 1.f, 1.f };
+
 		std::string name = "Unnamed material";
 
 		unsigned int material_id;

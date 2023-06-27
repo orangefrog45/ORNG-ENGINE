@@ -5,6 +5,7 @@
 #include "components/TransformComponent.h"
 #include "util/Log.h"
 #include "scene/Scene.h"
+#include "scene/SceneEntity.h"
 
 namespace ORNG {
 
@@ -51,7 +52,7 @@ namespace ORNG {
 					if (first_index_of_chunk == -1)
 						first_index_of_chunk = i;
 
-					transforms.push_back(m_instances[i]->transform.GetMatrix());
+					transforms.push_back(m_instances[i]->p_transform->GetMatrix());
 				}
 				else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk 
 				{
@@ -87,7 +88,7 @@ namespace ORNG {
 		transforms.reserve(m_instances.size());
 
 		for (auto& p_mesh : m_instances) {
-			transforms.emplace_back(p_mesh->transform.GetMatrix());
+			transforms.emplace_back(p_mesh->p_transform->GetMatrix());
 		}
 
 		m_mesh_asset->m_vao.FullUpdateTransformSSBO(m_transform_ssbo_handle, &transforms);

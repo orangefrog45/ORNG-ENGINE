@@ -71,6 +71,7 @@ namespace ORNG {
 		void ShowFileExplorer(std::string& path_ref, std::string& entry_ref, const std::vector<std::string>& valid_extensions, std::function<void()> valid_file_callback, std::function<void()> invalid_file_callback);
 
 		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
+		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
 		void RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		static bool H1TreeNode(const char* name);

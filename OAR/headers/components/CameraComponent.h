@@ -30,7 +30,7 @@ namespace ORNG {
 		glm::vec3 right = { 1.f, 0.f,0.f };
 		glm::vec3 target = glm::vec3(0.0f, 0.0f, -1.0f);
 		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-		float speed = 0.1f;
+		float speed = 0.01f;
 
 	};
 }

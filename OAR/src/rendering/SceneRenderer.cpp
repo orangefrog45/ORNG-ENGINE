@@ -35,6 +35,7 @@ namespace ORNG {
 				"u_material.base_color_and_metallic",
 				"u_material.roughness",
 				"u_material.ao",
+				"u_material.tile_scale",
 				"u_material_id",
 				"u_shader_id",
 		});
@@ -210,6 +211,7 @@ namespace ORNG {
 			"u_scattering_coef",
 			"u_density_coef",
 			"u_step_count",
+			"u_emissive",
 			"u_dir_light_matrices[0]",
 			"u_dir_light_matrices[1]",
 			"u_dir_light_matrices[2]",
@@ -270,7 +272,7 @@ namespace ORNG {
 		IDoGBufferPass();
 		IDoDepthPass();
 		IDoLightingPass();
-		//IDoFogPass();
+		IDoFogPass();
 		IDoPostProcessingPass(settings.display_depth_map);
 
 		output.final_color_texture_handle = m_post_processing_fb->GetTexture<Texture2D>("shared_render_texture").GetTextureHandle();
@@ -330,6 +332,7 @@ namespace ORNG {
 		m_gbuffer_shader->SetUniform("u_material.base_color_and_metallic", glm::vec4(p_material->base_color, p_material->metallic));
 		m_gbuffer_shader->SetUniform("u_material.roughness", p_material->roughness);
 		m_gbuffer_shader->SetUniform("u_material.ao", p_material->ao);
+		m_gbuffer_shader->SetUniform("u_material.tile_scale", p_material->tile_scale);
 
 		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", p_material->material_id);
 	}
@@ -500,6 +503,7 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
+		m_fog_shader->SetUniform("u_emissive", mp_scene->m_global_fog.emissive_factor);
 
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->m_global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);

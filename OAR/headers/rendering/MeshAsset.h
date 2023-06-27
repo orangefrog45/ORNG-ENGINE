@@ -34,6 +34,8 @@ namespace ORNG {
 
 		unsigned int GetIndicesCount() const { return num_indices; }
 
+		const AABB& GetAABB() const { return m_aabb; }
+
 	private:
 		AABB m_aabb;
 
