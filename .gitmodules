@@ -29,3 +29,6 @@
 [submodule "OAR/extern/stb"]
 	path = OAR/extern/stb
 	url = https://github.com/nothings/stb
+[submodule "OAR/extern/physx"]
+	path = OAR/extern/physx
+	url = https://github.com/NVIDIA-Omniverse/PhysX
