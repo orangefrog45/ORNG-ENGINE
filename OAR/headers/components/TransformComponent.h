@@ -22,6 +22,7 @@ namespace ORNG {
 	class TransformComponent : public Component
 	{
 	public:
+		friend class SceneSerializer;
 		friend class EditorLayer;
 		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
 
@@ -36,28 +37,52 @@ namespace ORNG {
 			mp_parent_transform->RemoveChildTransform(this);
 		}
 
+		TransformComponent* GetParentTransform() {
+			return mp_parent_transform;
+		}
 
-		void SetScale(float scaleX, float scaleY, float scaleZ);
-		void SetOrientation(float x, float y, float z);
-		void SetPosition(float x, float y, float z);
 
-		inline void SetPosition(const glm::vec3 pos) { m_pos = pos; RebuildMatrix(); };
-		inline void SetScale(const glm::vec3 scale) { m_scale = scale; RebuildMatrix(); };
-		inline void SetOrientation(const glm::vec3 rot) { m_rotation = rot; RebuildMatrix(); };
+		void SetScale(float scaleX, float scaleY, float scaleZ) {
+			glm::vec3 scale{ scaleX, scaleY, scaleZ };
+			SetScale(scale);
+		}
+		void SetOrientation(float x, float y, float z) {
+			glm::vec3 orientation{x, y, z};
+			SetOrientation(orientation);
+		}
+		void SetPosition(float x, float y, float z) {
+			glm::vec3 pos{x, y, z};
+			SetPosition(pos);
+		}
+
+		void SetPosition(const glm::vec3 pos) {
+			m_pos = pos;
+			RebuildMatrix(UpdateType::TRANSLATION);
+		};
+
+		void SetScale(const glm::vec3 scale) {
+			m_scale = scale;
+			RebuildMatrix(UpdateType::SCALE);
+		};
+
+		void SetOrientation(const glm::vec3 rot) {
+			m_rotation = rot;
+			RebuildMatrix(UpdateType::ORIENTATION);
+		};
 
 		void SetAbsoluteMode(bool mode) {
 			m_is_absolute = mode;
-			RebuildMatrix();
+			RebuildMatrix(UpdateType::ALL);
 		}
 
-		inline const glm::mat4x4& GetMatrix() const { return m_transform; };
+		const glm::mat4x4& GetMatrix() const { return m_transform; };
 
 		// Returns inherited position([0]), scale([1]), rotation ([2]) including this components transforms.
 		std::array<glm::vec3, 3> GetAbsoluteTransforms() const;
 
 		glm::vec3 GetPosition() const;
-		inline glm::vec3 GetScale() const { return m_scale; };
-		inline glm::vec3 GetRotation() const { return m_rotation; };
+		glm::vec3 GetScale() const { return m_scale; };
+		glm::vec3 GetRotation() const { return m_rotation; };
 
 		enum class CallbackType {
 			SPOTLIGHT = 0,
@@ -65,13 +90,21 @@ namespace ORNG {
 			MESH = 2
 		};
 
-		std::map<CallbackType, std::function<void()>> update_callbacks;
+		enum class UpdateType {
+			TRANSLATION = 0,
+			SCALE = 1,
+			ORIENTATION = 2,
+			ALL = 3
+		};
+
+		// These callbacks will be called whenever the transform changes, given by component systems/managers
+		std::unordered_map<CallbackType, std::function<void([[maybe_unused]] UpdateType type)>> update_callbacks;
 	private:
 
 		// If true, transform will not take parent transforms into account when building matrix.
 		bool m_is_absolute = false;
 
-		void RebuildMatrix();
+		void RebuildMatrix(UpdateType type);
 
 		void RemoveChildTransform(TransformComponent* p_transform) {
 			auto it = std::find(m_child_transforms.begin(), m_child_transforms.end(), p_transform);
@@ -91,6 +124,7 @@ namespace ORNG {
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+
 
 	};
 

@@ -5,9 +5,7 @@
 
 namespace ORNG {
 
-	class Terrain;
 	class Quad;
-	class CameraComponent;
 	class Skybox;
 	class MeshAsset;
 

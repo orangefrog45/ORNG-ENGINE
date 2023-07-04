@@ -17,7 +17,7 @@ namespace ORNG {
 	}
 
 	glm::mat3 ExtraMath::Init2DRotateTransform(float rot) {
-		float rx = ToRadians(rot);
+		float rx = glm::radians(rot);
 
 		glm::mat3 rot_matrix(
 			cosf(rot), -sin(rot), 0.0f,
@@ -130,7 +130,7 @@ namespace ORNG {
 	glm::mat4x4 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
 
 		glm::quat quat(glm::radians(glm::vec3(rotX, rotY, rotZ)));
-		glm::mat4 rotation_matrix = glm::colMajor4(glm::mat4_cast(quat));
+		glm::mat4 rotation_matrix = glm::mat4_cast(quat);
 
 		return rotation_matrix;
 	}
@@ -201,7 +201,7 @@ namespace ORNG {
 	glm::mat4x4 ExtraMath::InitPersProjTransform(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar) {
 		const float ar = WINDOW_WIDTH / WINDOW_HEIGHT;
 		const float zRange = zNear - zFar;
-		const float tanHalfFOV = tanf(ToRadians(FOV / 2.0f));
+		const float tanHalfFOV = tanf(glm::radians(FOV / 2.0f));
 		const float f = 1.0f / tanHalfFOV;
 
 		//normalize, due to precision keep z-values low anyway

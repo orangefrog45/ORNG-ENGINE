@@ -23,13 +23,16 @@
 #include "core/Window.h"
 #include "core/FrameTiming.h"
 #include "physics/Physics.h"
+#include "scene/SceneSerializer.h"
 
 namespace ORNG {
 
 	void EditorLayer::Init() {
 		InitImGui();
 		m_active_scene = std::make_unique<Scene>();
-		m_active_scene->mp_active_camera = &m_editor_camera;
+		mp_editor_camera = std::make_unique<EditorCamera>(&m_active_scene->m_camera_system);
+		mp_editor_camera->MakeActive();
+
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
@@ -58,16 +61,16 @@ namespace ORNG {
 
 
 		Texture2DSpec picking_spec;
-		picking_spec.format = GL_RED_INTEGER;
-		picking_spec.internal_format = GL_R32UI;
+		picking_spec.format = GL_RG_INTEGER;
+		picking_spec.internal_format = GL_RG32UI;
 		picking_spec.storage_type = GL_UNSIGNED_INT;
 		picking_spec.width = Window::GetWidth();
 		picking_spec.height = Window::GetHeight();
 
-
+		// Entity ID's are split into halves for storage in textures then recombined later as there is no format for 64 bit uints
 		mp_picking_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("picking", true);
 		mp_picking_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
-		mp_picking_fb->Add2DTexture("component_ids", GL_COLOR_ATTACHMENT0, picking_spec);
+		mp_picking_fb->Add2DTexture("component_ids_split", GL_COLOR_ATTACHMENT0, picking_spec);
 
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 
@@ -85,102 +88,17 @@ namespace ORNG {
 		mp_editor_pass_fb->AddShared2DTexture("shared_render_texture", Renderer::GetFramebufferLibrary().GetFramebuffer("post_processing").GetTexture<Texture2D>("shared_render_texture"), GL_COLOR_ATTACHMENT0);
 
 
-
-		m_active_scene->LoadScene();
-		Texture2D* p_orange_tex = m_active_scene->CreateTexture2DAsset("./res/meshes/oranges/orangeC.jpg", true);
-
-		/*for (float x = 0; x <= 100.f; x += 10.f) {
-			auto& t_entity = m_active_scene->CreateEntity("Orange");
-			auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
-			auto* p_material = m_active_scene->CreateMaterial();
-			auto* t_transform = t_entity.GetComponent<TransformComponent>();
-
-			t_transform->SetPosition(x * 2.f, 10.f, 0.f);
-			t_entity.AddComponent<PhysicsComponent>(PhysicsComponent::STATIC);
-
-			p_material->roughness = x / 100.f + 0.05f;
-			p_material->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
-			p_material->metallic = 0.05;
-			p_material->base_color = glm::vec3(0.0, 1.0, 1.0);
-			t_mesh->SetMaterialID(0, p_material);
-			t_mesh->SetMaterialID(1, p_material);
-		}*/
-		std::vector<Material*> p_materials = { m_active_scene->CreateMaterial(), m_active_scene->CreateMaterial(), m_active_scene->CreateMaterial() };
-
-		p_materials[0]->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
-		p_materials[0]->ao = 1.0;
-		p_materials[0]->metallic = 0.5f;
-		p_materials[0]->roughness = 0.05;
-		p_materials[0]->base_color = glm::vec3(1.0, 0.0, 0.0);
-		p_materials[1]->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
-		p_materials[1]->ao = 1.0;
-		p_materials[1]->metallic = 0.5f;
-		p_materials[1]->roughness = 0.05;
-		p_materials[1]->base_color = glm::vec3(0.0, 1.0, 0.0);
-		p_materials[2]->base_color_texture = m_active_scene->GetMaterial(0)->base_color_texture;
-		p_materials[2]->ao = 1.0;
-		p_materials[2]->metallic = 0.5f;
-		p_materials[2]->roughness = 0.05;
-		p_materials[2]->base_color = glm::vec3(0.0, 0.0, 1.0);
-
-		for (float y = 0.f; y < 30.f; y += 2.1f) {
-			for (float z = 0; z < 30.f; z += 2.1f) {
-				for (float x = 0; x <= 30.f; x += 2.1f) {
-					auto& t_entity = m_active_scene->CreateEntity("Ball");
-					auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/smoothsphere.fbx");
-					auto* t_transform = t_entity.GetComponent<TransformComponent>();
+		m_active_scene->LoadScene("scene.yml");
 
 
-					t_transform->SetPosition(x, y, z);
-					//t_transform->SetScale(glm::max((rand() % 100) * 0.01f, 0.1f), glm::max((rand() % 100) * 0.01f, 0.1f), glm::max((rand() % 100) * 0.01f, 0.1f));
-					auto* p_comp = t_entity.AddComponent<PhysicsComponent>(PhysicsComponent::DYNAMIC);
-					p_comp->p_rigid_dynamic->setMass(10.f);
-					p_comp->SetGeometryType(PhysicsComponent::SPHERE);
-					t_mesh->SetMaterialID(0, p_materials[rand() % 3]);
-				}
 
-			}
-		}
-
-		auto& t_entity = m_active_scene->CreateEntity("Base");
-		auto* t_mesh = t_entity.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
-		auto* t_transform = t_entity.GetComponent<TransformComponent>();
-		auto* script = t_entity.AddComponent<ScriptComponent>();
-		auto* material = m_active_scene->CreateMaterial();
-		material->base_color_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_Color.jpg", true);
-		material->normal_map_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_NormalGL.jpg", false);
-		material->roughness_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_Roughness.jpg", false);
-		material->displacement_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_Displacement.jpg", false);
-		material->ao_texture = m_active_scene->CreateTexture2DAsset("./res/textures/bricks/Bricks075A_2K_AmbientOcclusion.jpg", false);
-		material->tile_scale = { 500.f, 1000.f };
-		t_mesh->SetMaterialID(1, material);
-		script->OnUpdate = [this, material] {
-			static double cooldown = 0.0;
-			cooldown -= glm::min(FrameTiming::GetTimeStep(), cooldown);
-			if (!Window::IsKeyDown('g') || cooldown > 0.0)
-				return;
-
-			cooldown += 200;
-			auto& t1_entity = m_active_scene->CreateEntity("Orange");
-			auto* t1_mesh = t1_entity.AddComponent<MeshComponent>("./res/meshes/cube/cube.obj");
-			auto* t1_transform = t1_entity.GetComponent<TransformComponent>();
-
-
-			t1_transform->SetPosition(m_editor_camera.pos + m_editor_camera.target);
-			t1_transform->SetScale(3.f, 0.3f, 0.3f);
-			t1_mesh->SetMaterialID(1, material);
-
-			auto* p_comp = t1_entity.AddComponent<PhysicsComponent>(PhysicsComponent::DYNAMIC);
-			p_comp->p_rigid_dynamic->setMass(2.f);
-			p_comp->p_rigid_dynamic->addForce(PxVec3(m_editor_camera.target.x, m_editor_camera.target.y, m_editor_camera.target.z) * 50000.f);
-		};
-
-		t_transform->SetScale(1000.f, 10.f, 1000.f);
-		t_transform->SetPosition(0.f, -12.f, 0.f);
-		t_entity.AddComponent<PhysicsComponent>(PhysicsComponent::STATIC);
 
 		OAR_CORE_INFO("Editor layer initialized"); //add profiling func
 	}
+
+
+
+
 
 	void EditorLayer::InitImGui() {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -219,13 +137,29 @@ namespace ORNG {
 	void EditorLayer::Update() {
 
 		if (!ImGui::GetIO().WantTextInput) {
-			m_editor_camera.Update();
+			mp_editor_camera->Update();
 		}
 
+
 		if (Window::IsKeyDown('K'))
-			m_active_scene->MakeCameraActive(static_cast<CameraComponent*>(&m_editor_camera));
+			mp_editor_camera->MakeActive();
 
 		m_active_scene->Update(FrameTiming::GetTimeStep());
+
+		static double cooldown = 0;
+		cooldown -= glm::min(cooldown, FrameTiming::GetTimeStep());
+		if (cooldown > 10)
+			return;
+
+
+		SceneEntity* p_entity = m_active_scene->GetEntity(m_selected_entity_id);
+
+		if (p_entity && Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
+			cooldown += 100;
+			DuplicateEntity(p_entity);
+			m_selected_entity_id = p_entity->GetID();
+		}
+
 	}
 
 
@@ -240,6 +174,10 @@ namespace ORNG {
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight()));
 		ImGui::Begin("Tools", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+
+		RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2));
+
+
 		ImGui::AlignTextToFramePadding();
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::Text(std::format("Draw calls: {}", Renderer::Get().m_draw_call_amount).c_str());
@@ -252,10 +190,79 @@ namespace ORNG {
 		ShowAssetManager();
 
 		RenderEditorWindow();
-
+		ImGui::ShowDemoWindow();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+	}
+
+	SceneEntity* EditorLayer::DuplicateEntity(SceneEntity* p_original) {
+		// Just using serialization with a temporary string to do this, creates a perfect copy
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+
+		SceneSerializer::SerializeEntity(*p_original, out);
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+
+
+		std::string serialized{out.c_str()};
+
+		YAML::Node data = YAML::Load(serialized);
+		auto entity_node = data["Entities"];
+
+		auto& new_entity = m_active_scene->CreateEntity(p_original->name + " - Duplicate");
+		for (auto entity : entity_node) {
+			SceneSerializer::DeserializeEntity(*m_active_scene, entity, new_entity);
+		}
+
+
+	}
+
+	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
+
+		const char* names[5] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics" };
+
+		int selected_component = -1;
+		if (trigger)
+			ImGui::OpenPopup("my_select_popup");
+
+		ImGui::SameLine();
+		if (ImGui::BeginPopup("my_select_popup"))
+		{
+			ImGui::SeparatorText("Create entity");
+			for (int i = 0; i < IM_ARRAYSIZE(names); i++)
+				if (ImGui::Selectable(names[i]))
+					selected_component = i;
+			ImGui::EndPopup();
+		}
+
+		if (selected_component == -1)
+			return;
+
+
+		auto* entity = p_entity ? p_entity : &m_active_scene->CreateEntity("New entity");
+		m_selected_entity_id = entity->GetID();
+		switch (selected_component) {
+		case 0:
+			entity->AddComponent<PointLightComponent>();
+			break;
+		case 1:
+			entity->AddComponent<SpotLightComponent>();
+			break;
+		case 2:
+			entity->AddComponent<MeshComponent>("res/meshes/sphere.fbx");
+			break;
+		case 3:
+			entity->AddComponent<CameraComponent>();
+			break;
+		case 4:
+			// Add mesh component as this is required for physics comp, if one already exists this will be ignored
+			entity->AddComponent<MeshComponent>("res/meshes/sphere.fbx");
+			entity->AddComponent<PhysicsComponent>();
+			break;
+		}
 	}
 
 
@@ -316,7 +323,13 @@ namespace ORNG {
 			if (!mesh || !mesh->GetMeshData()) continue;
 
 			if (mesh->GetMeshData()->GetLoadStatus() == true) {
-				mp_picking_shader->SetUniform<unsigned int>("comp_id", mesh->GetEntityHandle());
+				//Split uint64 into two uint32's for texture storage
+				uint64_t full_id = mesh->GetEntityHandle();
+				uint32_t half_id_1 = (uint32_t)(full_id >> 32);
+				uint32_t half_id_2 = (uint32_t)(full_id);
+				glm::uvec2 id_vec{half_id_1, half_id_2};
+
+				mp_picking_shader->SetUniform("comp_id", id_vec);
 				mp_picking_shader->SetUniform("transform", mesh->p_transform->GetMatrix());
 
 				for (int i = 0; i < mesh->mp_mesh_asset->m_submeshes.size(); i++) {
@@ -328,9 +341,9 @@ namespace ORNG {
 
 		glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
 
-		GLuint* pixels = new GLuint[1];
-		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, pixels);
-		unsigned int current_entity_id = pixels[0];
+		uint32_t* pixels = new uint32_t[2];
+		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
+		uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
 		delete[] pixels;
 		m_selected_entity_id = current_entity_id;
 	}
@@ -383,7 +396,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderGrid() {
 		GL_StateManager::BindSSBO(m_grid_mesh->m_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
-		m_grid_mesh->CheckBoundary(m_editor_camera.pos);
+		m_grid_mesh->CheckBoundary(mp_editor_camera->mp_transform->GetPosition());
 		mp_grid_shader->ActivateProgram();
 		Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_grid_mesh->m_vao, ceil(m_grid_mesh->grid_width / m_grid_mesh->grid_step) * 2);
 	}
@@ -421,6 +434,7 @@ namespace ORNG {
 
 		int window_height = glm::clamp(static_cast<int>(Window::GetHeight()) / 4, 100, 500);
 		int window_width = Window::GetWidth() - 800;
+		ImVec2 delete_button_size{ 50, 50 };
 		ImVec2 button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
 		int column_count = 6;
 		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
@@ -475,7 +489,7 @@ namespace ORNG {
 					}
 
 					ImGui::PopStyleColor();
-					if (data->is_loaded)
+					if (data->m_is_loaded)
 						ImGui::TextColored(ImVec4(0, 1, 0, 1), "LOADED");
 					else
 						ImGui::TextColored(ImVec4(1, 0, 0, 1), "NOT LOADED");
@@ -501,7 +515,8 @@ namespace ORNG {
 
 				//setting up file explorer callbacks
 				static std::function<void()> success_callback = [this] {
-					m_active_scene->CreateTexture2DAsset(path + "/" + entry_name, m_current_2d_tex_spec.srgb_space);
+					m_current_2d_tex_spec.filepath = path + "/" + entry_name;
+					m_active_scene->CreateTexture2DAsset(m_current_2d_tex_spec);
 					error_message.clear();
 				};
 
@@ -557,18 +572,42 @@ namespace ORNG {
 			if (ImGui::BeginTable("Material viewer", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(window_width, window_height))) { //MATERIAL VIEWING TABLE
 
 				for (auto* p_material : m_active_scene->m_materials) {
+
 					ImGui::TableNextColumn();
 
 					ImGui::PushID(p_material);
 
+					bool deletion_flag = false;
+
 					if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->m_texture_obj), button_size))
 						mp_selected_material = p_material;
+
+
+					// Deletion popup
+					if (p_material->uuid() != Scene::BASE_MATERIAL_ID && ImGui::IsItemHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
+						ImGui::OpenPopup("my_select_popup");
+					}
+
+					if (ImGui::BeginPopup("my_select_popup"))
+					{
+						if (ImGui::Selectable("Delete")) {
+							deletion_flag = true;
+						}
+						ImGui::EndPopup();
+					}
+					// End deletion popup
 
 					if (ImGui::IsItemActivated()) {
 						mp_dragged_material = p_material;
 					}
 
 					ImGui::Text(p_material->name.c_str());
+
+					if (deletion_flag) {
+						m_active_scene->DeleteMaterial(p_material->uuid());
+						mp_selected_material = p_material == mp_selected_material ? nullptr : mp_selected_material;
+						mp_dragged_material = p_material == mp_dragged_material ? nullptr : mp_dragged_material;
+					}
 
 					ImGui::PopID();
 				}
@@ -686,20 +725,74 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
+		if (ImGui::Button("Save")) {
+			SceneSerializer::SerializeScene(*m_active_scene, "scene.yml");
+		}
+		if (ImGui::Button("Load")) {
+			mp_dragged_material = nullptr;
+			mp_selected_material = nullptr;
+			mp_selected_texture = nullptr;
+			mp_dragged_texture = nullptr;
+
+			m_active_scene->UnloadScene();
+			m_active_scene->LoadScene("scene.yml");
+		}
 		if (H1TreeNode("Scene")) {
-			ImGui::SliderFloat("Exposure", &m_active_scene->m_exposure_level, 0.f, 10.f);
 
 			if (ImGui::RadioButton("Physics", !m_active_scene->m_physics_system.m_physics_paused))
 				m_active_scene->m_physics_system.m_physics_paused = !m_active_scene->m_physics_system.m_physics_paused;
+
+			ImGui::Text("Editor cam exposure");
+			ImGui::SliderFloat("##exposure", &mp_editor_camera->exposure, 0.f, 10.f);
 
 			RenderDirectionalLightEditor();
 			RenderGlobalFogEditor();
 			RenderTerrainEditor();
 			if (H2TreeNode("Entities")) {
-				for (auto& entity : m_active_scene->m_entities) {
-					if (entity && ImGui::Button(entity->name, ImVec2(200, 25))) {
-						m_selected_entity_id = entity->GetID();
+				for (auto* p_entity : m_active_scene->m_entities) {
+					if (p_entity->GetParent())
+						continue;
+
+					ImGui::PushID(p_entity);
+
+					bool colour_pushed = false;
+					if (m_selected_entity_id == p_entity->GetID()) {
+						ImGui::PushStyleColor(ImGuiCol_Text, orange_color);
+						colour_pushed = true;
 					}
+
+					static std::string formatted_name;
+
+					if (ImGui::IsItemVisible()) {
+						formatted_name += p_entity->GetComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
+						formatted_name += p_entity->GetComponent<PhysicsComponent>() ? " " ICON_FA_WIND : "";
+						formatted_name += p_entity->GetComponent<PointLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
+						formatted_name += p_entity->GetComponent<SpotLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
+						formatted_name += p_entity->GetComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";
+						formatted_name += " ";
+						formatted_name += p_entity->name;
+					}
+
+
+					if (p_entity && ImGui::TreeNode(formatted_name.c_str())) {
+						auto* p_transform = p_entity->GetComponent<TransformComponent>();
+						for (auto* p_child : p_entity->m_children) {
+							if (ImGui::TreeNode(p_child->name.c_str()))
+								ImGui::TreePop();
+						}
+						ImGui::TreePop();
+					}
+
+					if (ImGui::IsItemActive())
+						m_selected_entity_id = p_entity->GetID();
+
+					formatted_name.clear();
+
+					if (colour_pushed) {
+						ImGui::PopStyleColor();
+					}
+
+					ImGui::PopID();
 				}
 			}
 		}
@@ -717,6 +810,7 @@ namespace ORNG {
 		auto slight = entity->GetComponent<SpotLightComponent>();
 		auto p_cam = entity->GetComponent<CameraComponent>();
 		auto p_transform = entity->GetComponent<TransformComponent>();
+		auto p_physics_comp = entity->GetComponent<PhysicsComponent>();
 
 
 		if (H1TreeNode("Entity editor")) {
@@ -754,7 +848,6 @@ namespace ORNG {
 					};
 
 					if (meshc->mp_mesh_asset) {
-
 						RenderMeshComponentEditor(meshc);
 					}
 				}
@@ -763,55 +856,53 @@ namespace ORNG {
 
 
 			ImGui::PushID(plight);
-			if (plight) {
-				if (H2TreeNode("Pointlight component")) {
-					ImGui::SameLine();
-					if (ImGui::Button("X", ImVec2(25, 25))) {
-						entity->DeleteComponent<PointLightComponent>();
-					};
-					RenderPointlightEditor(plight);
+			if (plight && H2TreeNode("Pointlight component")) {
+				if (ImGui::Button("DELETE")) {
+					entity->DeleteComponent<PointLightComponent>();
 				}
-			}
-			else {
-				ImGui::Text("Pointlight");
-				ImGui::SameLine();
-				if (ImGui::Button("+", ImVec2(25, 25))) {
-					entity->AddComponent<PointLightComponent>();
+				else {
+					RenderPointlightEditor(plight);
 				}
 			}
 			ImGui::PopID();
 
 			ImGui::PushID(slight);
-			if (slight) {
-				if (H2TreeNode("Spotlight component")) {
-					if (ImGui::Button("X", ImVec2(25, 25))) {
-						entity->DeleteComponent<SpotLightComponent>();
-					};
-					RenderSpotlightEditor(slight);
+			if (slight && H2TreeNode("Spotlight component")) {
+				if (ImGui::Button("DELETE")) {
+					entity->DeleteComponent<SpotLightComponent>();
 				}
-			}
-			else {
-				ImGui::Text("Spotlight");
-				ImGui::SameLine();
-				if (ImGui::Button("+", ImVec2(25, 25))) {
-					entity->AddComponent<SpotLightComponent>();
+				else {
+					RenderSpotlightEditor(slight);
 				}
 			}
 			ImGui::PopID();
 
 			ImGui::PushID(p_cam);
-			if (p_cam) {
-				if (H2TreeNode("Camera component")) {
-
-					if (ImGui::Button("X", ImVec2(25, 25))) {
-						entity->DeleteComponent<CameraComponent>();
-					}
-
-					RenderCameraEditor(p_cam);
-
-				};
+			if (p_cam && H2TreeNode("Camera component")) {
+				if (ImGui::Button("DELETE")) {
+					entity->DeleteComponent<CameraComponent>();
+				}
+				RenderCameraEditor(p_cam);
 			}
 			ImGui::PopID();
+
+			ImGui::PushID(p_physics_comp);
+			if (p_physics_comp && H2TreeNode("Physics component")) {
+				if (ImGui::Button("DELETE")) {
+					entity->DeleteComponent<PhysicsComponent>();
+				}
+				else {
+					RenderPhysicsComponentEditor(p_physics_comp);
+				}
+			}
+			ImGui::PopID();
+
+			glm::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
+			glm::vec2 button_size = { 200, 50 };
+			glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
+			ImGui::Dummy(ImVec2(padding_size.x, padding_size.y));
+
+			RenderCreationWidget(entity, ImGui::Button("Add component", ImVec2(button_size.x, button_size.y)));
 		}
 	}
 
@@ -819,18 +910,58 @@ namespace ORNG {
 
 	// EDITORS ------------------------------------------------------------------------
 
+
+	void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {
+		ImGui::SeparatorText("Collider geometry");
+
+		if (ImGui::RadioButton("Box", p_comp->geometry_type == PhysicsComponent::BOX)) {
+			p_comp->UpdateGeometry(PhysicsComponent::BOX);
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("Sphere", p_comp->geometry_type == PhysicsComponent::SPHERE)) {
+			p_comp->UpdateGeometry(PhysicsComponent::SPHERE);
+		}
+
+		ImGui::SeparatorText("Collider behaviour");
+		if (ImGui::RadioButton("Dynamic", p_comp->rigid_body_type == PhysicsComponent::DYNAMIC)) {
+			p_comp->SetBodyType(PhysicsComponent::DYNAMIC);
+		}
+		ImGui::SameLine();
+		if (ImGui::RadioButton("Static", p_comp->rigid_body_type == PhysicsComponent::STATIC)) {
+			p_comp->SetBodyType(PhysicsComponent::STATIC);
+		}
+
+		float restitution = p_comp->p_material->getRestitution();
+		if (ClampedFloatInput("Restitution", &restitution, 0.f, 1.f)) {
+			p_comp->p_material->setRestitution(restitution);
+		}
+
+		float dynamic_friction = p_comp->p_material->getDynamicFriction();
+		if (ClampedFloatInput("Dynamic friction", &dynamic_friction, 0.f, 1.f)) {
+			p_comp->p_material->setDynamicFriction(dynamic_friction);
+		}
+
+		float static_friction = p_comp->p_material->getStaticFriction();
+		if (ClampedFloatInput("Static friction", &static_friction, 0.f, 1.f)) {
+			p_comp->p_material->setStaticFriction(static_friction);
+		}
+
+
+	}
+
 	void EditorLayer::RenderTransformComponentEditor(TransformComponent* p_transform) {
 
 
 		static bool render_gizmos = true;
 
-		if (ImGui::RadioButton("Gizmos", render_gizmos))
-			render_gizmos = !render_gizmos;
+		ImGui::Checkbox("Gizmos", &render_gizmos);
 
-		ImGui::SameLine();
+		static bool absolute_mode = true;
 
-		if (ImGui::RadioButton("Absolute", p_transform->m_is_absolute)) {
-			p_transform->SetAbsoluteMode(!p_transform->m_is_absolute);
+		if (ImGui::Checkbox("Absolute", &absolute_mode)) {
+			p_transform->SetAbsoluteMode(absolute_mode);
 		}
 
 
@@ -848,6 +979,8 @@ namespace ORNG {
 		if (ShowVec3Editor("Sc", matrix_scale))
 			p_transform->SetScale(matrix_scale);
 
+		if (!render_gizmos)
+			return;
 
 		ImGuiIO& io = ImGui::GetIO();
 		ImGuizmo::BeginFrame();
@@ -875,7 +1008,7 @@ namespace ORNG {
 		glm::mat4 current_operation_matrix = p_transform->GetMatrix();
 
 
-		if (ImGuizmo::Manipulate(&m_editor_camera.GetViewMatrix()[0][0], &m_editor_camera.GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], nullptr, nullptr) && ImGuizmo::IsUsing()) {
+		if (ImGuizmo::Manipulate(&m_active_scene->m_camera_system.p_active_camera->GetViewMatrix()[0][0], &m_active_scene->m_camera_system.p_active_camera->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], nullptr, nullptr) && ImGuizmo::IsUsing()) {
 
 			ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 			auto abs_transforms = p_transform->GetAbsoluteTransforms();
@@ -905,15 +1038,12 @@ namespace ORNG {
 
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
 
-		static MeshComponentData mesh_data;
-
 		ImGui::PushID(comp);
-
 		for (int i = 0; i < comp->m_materials.size(); i++) {
 			auto p_material = comp->m_materials[i];
 			ImGui::PushID(i);
 			if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->GetTextureHandle()), ImVec2(100, 100))) {
-				mp_selected_material = m_active_scene->GetMaterial(p_material->material_id);
+				mp_selected_material = m_active_scene->GetMaterial(p_material->uuid());
 			};
 
 			if (ImGui::IsItemHovered() && mp_dragged_material) {
@@ -929,97 +1059,80 @@ namespace ORNG {
 	};
 
 	void EditorLayer::RenderSpotlightEditor(SpotLightComponent* light) {
-		static SpotLightConfigData light_data;
 
-		light_data.aperture = glm::degrees(acosf(light->aperture));
-		light_data.direction = light->m_light_direction_vec;
-		light_data.base.atten_constant = light->attenuation.constant;
-		light_data.base.atten_exp = light->attenuation.exp;
-		light_data.base.atten_linear = light->attenuation.linear;
-		light_data.base.color = light->color;
-		light_data.base.max_distance = light->max_distance;
+		float aperture = glm::degrees(acosf(light->m_aperture));
+		glm::vec3 dir = light->m_light_direction_vec;
 
 		ImGui::PushItemWidth(200.f);
-		ImGui::SliderFloat("constant", &light_data.base.atten_constant, 0.0f, 1.0f);
-		ImGui::SliderFloat("linear", &light_data.base.atten_linear, 0.0f, 1.0f);
-		ImGui::SliderFloat("exp", &light_data.base.atten_exp, 0.0f, 0.1f);
-		ImGui::SliderFloat("max distance", &light_data.base.max_distance, 0.0f, 5000.0f);
+		ImGui::SliderFloat("constant", &light->attenuation.constant, 0.0f, 1.0f);
+		ImGui::SliderFloat("linear", &light->attenuation.linear, 0.0f, 1.0f);
+		ImGui::SliderFloat("exp", &light->attenuation.exp, 0.0f, 0.1f);
+		ImGui::SliderFloat("max distance", &light->max_distance, 0.0f, 5000.0f);
 
 		ImGui::Text("Aperture");
 		ImGui::SameLine();
-		ImGui::SliderFloat("##a", &light_data.aperture, 0.f, 90.f);
+		ImGui::SliderFloat("##a", &aperture, 0.f, 90.f);
 
 		ImGui::PopItemWidth();
 
-		ShowVec3Editor("Direction", light_data.direction);
+		ShowVec3Editor("Direction", dir);
+		ShowColorVec3Editor("Color", light->color);
 
-		ShowColorVec3Editor("Color", light_data.base.color);
-		ShowVec3Editor("Position", light_data.base.pos);
-
-		light->attenuation.constant = light_data.base.atten_constant;
-		light->attenuation.linear = light_data.base.atten_linear;
-		light->attenuation.exp = light_data.base.atten_exp;
-		light->max_distance = light_data.base.max_distance;
-		light->color = light_data.base.color;
-		light->SetLightDirection(light_data.direction.x, light_data.direction.y, light_data.direction.z);
-		light->SetAperture(light_data.aperture);
-		light->UpdateLightTransform();
+		light->SetLightDirection(dir.x, dir.y, dir.z);
+		light->SetAperture(aperture);
 	}
 
 
 	void EditorLayer::RenderDirectionalLightEditor() {
-		static DirectionalLightData light_data;
 
+		static glm::vec3 light_dir = m_active_scene->m_directional_light.GetLightDirection();
+		static glm::vec3 light_color = m_active_scene->m_directional_light.color;
 		if (H2TreeNode("Directional light")) {
 			ImGui::Text("DIR LIGHT CONTROLS");
 
 			static glm::vec3 light_dir = glm::vec3(0, 0.5, 0.5);
 
-			ImGui::SliderFloat("X", &light_data.light_direction.x, -1.f, 1.f);
-			ImGui::SliderFloat("Y", &light_data.light_direction.y, -1.f, 1.f);
-			ImGui::SliderFloat("Z", &light_data.light_direction.z, -1.f, 1.f);
-			ShowColorVec3Editor("Color", light_data.light_color);
+			ImGui::SliderFloat("X", &light_dir.x, -1.f, 1.f);
+			ImGui::SliderFloat("Y", &light_dir.y, -1.f, 1.f);
+			ImGui::SliderFloat("Z", &light_dir.z, -1.f, 1.f);
+			ShowColorVec3Editor("Color", light_color);
 
-			m_active_scene->m_directional_light.color = glm::vec3(light_data.light_color.x, light_data.light_color.y, light_data.light_color.z);
-			m_active_scene->m_directional_light.SetLightDirection(light_data.light_direction);
+			ImGui::Text("Cascade ranges");
+			ImGui::SliderFloat("##c1", &m_active_scene->m_directional_light.cascade_ranges[0], 0.f, 50.f);
+			ImGui::SliderFloat("##c2", &m_active_scene->m_directional_light.cascade_ranges[1], 0.f, 150.f);
+			ImGui::SliderFloat("##c3", &m_active_scene->m_directional_light.cascade_ranges[2], 0.f, 500.f);
+			ImGui::Text("Z-mults");
+			ImGui::SliderFloat("##z1", &m_active_scene->m_directional_light.z_mults[0], 0.f, 10.f);
+			ImGui::SliderFloat("##z2", &m_active_scene->m_directional_light.z_mults[1], 0.f, 10.f);
+			ImGui::SliderFloat("##z3", &m_active_scene->m_directional_light.z_mults[2], 0.f, 10.f);
+
+			m_active_scene->m_directional_light.color = glm::vec3(light_color.x, light_color.y, light_color.z);
+			m_active_scene->m_directional_light.SetLightDirection(light_dir);
 		}
 	}
 
 
 	void EditorLayer::RenderPointlightEditor(PointLightComponent* light) {
-		static PointLightConfigData light_data;
-
-		light_data.color = light->color;
-		light_data.atten_exp = light->attenuation.exp;
-		light_data.atten_linear = light->attenuation.linear;
-		light_data.atten_constant = light->attenuation.constant;
-		light_data.max_distance = light->max_distance;
 
 		ImGui::PushItemWidth(200.f);
-		ImGui::SliderFloat("constant", &light_data.atten_constant, 0.0f, 1.0f);
-		ImGui::SliderFloat("linear", &light_data.atten_linear, 0.0f, 1.0f);
-		ImGui::SliderFloat("exp", &light_data.atten_exp, 0.0f, 0.1f);
-		ImGui::SliderFloat("max distance", &light_data.max_distance, 0.0f, 5000.0f);
+		ImGui::SliderFloat("constant", &light->attenuation.constant, 0.0f, 1.0f);
+		ImGui::SliderFloat("linear", &light->attenuation.linear, 0.0f, 1.0f);
+		ImGui::SliderFloat("exp", &light->attenuation.exp, 0.0f, 0.1f);
+		ImGui::SliderFloat("max distance", &light->max_distance, 0.0f, 5000.0f);
 		ImGui::PopItemWidth();
-		ShowColorVec3Editor("Color", light_data.color);
-		ShowVec3Editor("Position", light_data.pos);
-
-		light->attenuation.constant = light_data.atten_constant;
-		light->attenuation.linear = light_data.atten_linear;
-		light->attenuation.exp = light_data.atten_exp;
-		light->max_distance = light_data.max_distance;
-		light->color = light_data.color;
+		ShowColorVec3Editor("Color", light->color);
 	}
 
 	void EditorLayer::RenderCameraEditor(CameraComponent* p_cam) {
 		ImGui::PushItemWidth(200.f);
+		ImGui::SliderFloat("Exposure", &p_cam->exposure, 0.f, 10.f);
 		ImGui::SliderFloat("FOV", &p_cam->fov, 0.f, 180.f);
 		ImGui::InputFloat("ZNEAR", &p_cam->zNear);
 		ImGui::InputFloat("ZFAR", &p_cam->zFar);
 		ShowVec3Editor("Up", p_cam->up);
 
-		if (!p_cam->is_active && ImGui::Button("Make active")) {
-			m_active_scene->MakeCameraActive(p_cam);
+		if (ImGui::Button("Make active")) {
+			p_cam->MakeActive();
 		}
 	}
 
@@ -1202,8 +1315,9 @@ namespace ORNG {
 			ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
 		}
 
-		if (ImGui::IsItemHovered() && mp_dragged_texture) {
-			p_tex = mp_dragged_texture;
+		if (ImGui::IsItemHovered()) {
+			if (mp_dragged_texture)
+				p_tex = mp_dragged_texture;
 
 			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2))
 				p_tex = nullptr;
@@ -1212,7 +1326,15 @@ namespace ORNG {
 		ImGui::PopID();
 	}
 
-
+	bool EditorLayer::ClampedFloatInput(const char* name, float* p_val, float min, float max) {
+		float val = *p_val;
+		bool r = false;
+		if (ImGui::InputFloat(name, &val) && val <= max && val >= min) {
+			*p_val = val;
+			r = true;
+		}
+		return r;
+	}
 
 	bool EditorLayer::H1TreeNode(const char* name) {
 		float original_size = ImGui::GetFont()->Scale;

@@ -53,9 +53,10 @@ namespace ORNG {
 
 	MeshComponent* MeshComponentManager::AddComponent(SceneEntity* p_entity, MeshAsset* p_asset) {
 
-		if (GetComponent(p_entity->GetID())) {
+		auto* p_existing_comp = GetComponent(p_entity->GetID());
+		if (p_existing_comp) {
 			OAR_CORE_WARN("Mesh component not added, entity '{0}' already has a mesh component", p_entity->name);
-			return nullptr;
+			return p_existing_comp;
 		}
 		auto* p_transform = p_entity->GetComponent<TransformComponent>();
 		auto* p_comp = new MeshComponent(p_entity, p_transform);
@@ -67,7 +68,7 @@ namespace ORNG {
 		SortMeshIntoInstanceGroup(p_comp, p_asset);
 
 		// Setup update callback, when transform is updated the transform buffers will update too
-		p_comp->p_transform->update_callbacks[TransformComponent::CallbackType::MESH] = ([p_comp] {
+		p_comp->p_transform->update_callbacks[TransformComponent::CallbackType::MESH] = ([p_comp](TransformComponent::UpdateType) {
 			p_comp->RequestTransformSSBOUpdate();
 			});
 
@@ -79,7 +80,7 @@ namespace ORNG {
 
 
 
-	MeshComponent* MeshComponentManager::GetComponent(unsigned long entity_id) {
+	MeshComponent* MeshComponentManager::GetComponent(uint64_t entity_id) {
 		auto it = std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
 		return it == m_mesh_components.end() ? nullptr : *it;
 	}
@@ -111,6 +112,8 @@ namespace ORNG {
 		for (auto* group : m_instance_groups) {
 			delete group;
 		}
+		m_mesh_components.clear();
+		m_instance_groups.clear();
 	}
 
 
@@ -130,6 +133,35 @@ namespace ORNG {
 				m_instance_groups.erase(m_instance_groups.begin() + i);
 				delete group;
 			}
+		}
+	}
+
+	void MeshComponentManager::OnMaterialDeletion(Material* p_material, Material* p_replacement_material) {
+		for (int i = 0; i < m_instance_groups.size(); i++) {
+			MeshInstanceGroup* group = m_instance_groups[i];
+
+			std::vector<unsigned int> material_indices;
+
+			// Replace material in group if it contains it
+			for (int y = 0; y < group->m_materials.size(); y++) {
+				const Material*& p_group_mat = group->m_materials[y];
+				if (p_group_mat == p_material) {
+					p_group_mat = p_replacement_material;
+					material_indices.push_back(y);
+				}
+			}
+
+			if (material_indices.empty())
+				continue;
+
+			// Replace material in mesh if it contains it
+			for (auto* p_mesh_comp : group->m_instances) {
+				for (auto valid_replacement_index : material_indices) {
+					p_mesh_comp->m_materials[valid_replacement_index] = p_replacement_material;
+				}
+
+			}
+
 		}
 	}
 

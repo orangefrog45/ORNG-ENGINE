@@ -7,13 +7,43 @@ namespace physx {
 	class PxBroadPhase;
 	class PxAABBManager;
 	class PxCpuDispatcher;
+	class PxMaterial;
 }
 
 namespace ORNG {
+	class Scene;
 
 	class ComponentManager {
 		virtual void OnUpdate() {};
 		virtual void OnUnload() {};
+	};
+
+
+	class CameraSystem : public ComponentManager {
+	public:
+
+		void OnUnload() final;
+		void OnLoad() {};
+		CameraComponent* AddComponent(SceneEntity* p_entity);
+		CameraComponent* GetComponent(uint64_t entity_id);
+		void DeleteComponent(SceneEntity* p_entity);
+
+		void OnUpdate() {
+			if (p_active_camera)
+				p_active_camera->Update();
+
+		}
+		void SetActiveCamera(CameraComponent* p_cam) {
+			if (p_active_camera)
+				p_active_camera->is_active = false;
+
+			p_active_camera = p_cam;
+			p_cam->is_active = true;
+		}
+
+		CameraComponent* p_active_camera = nullptr;
+	private:
+		std::vector<CameraComponent*> m_camera_components;
 	};
 
 	class PhysicsSystem : public ComponentManager {
@@ -24,7 +54,7 @@ namespace ORNG {
 		void OnUnload() final;
 		void OnLoad();
 		PhysicsComponent* AddComponent(SceneEntity* p_entity, PhysicsComponent::RigidBodyType type = PhysicsComponent::STATIC);
-		PhysicsComponent* GetComponent(unsigned long entity_id);
+		PhysicsComponent* GetComponent(uint64_t entity_id);
 		void DeleteComponent(SceneEntity* p_entity);
 
 	private:
@@ -36,7 +66,7 @@ namespace ORNG {
 		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
 		physx::PxScene* mp_scene = nullptr;
 		std::vector<PhysicsComponent*> m_physics_components;
-
+		std::vector<physx::PxMaterial*> m_physics_materials;
 		float m_step_size = 1.f / 60.f;
 		float m_accumulator = 0.f;
 
@@ -49,7 +79,7 @@ namespace ORNG {
 		void OnUnload() final;
 
 		TransformComponent* AddComponent(SceneEntity* p_entity);
-		TransformComponent* GetComponent(unsigned long entity_id);
+		TransformComponent* GetComponent(uint64_t entity_id);
 
 	private:
 		std::vector<TransformComponent*> m_transform_components;
@@ -62,7 +92,7 @@ namespace ORNG {
 		void OnUpdate() final;
 		void OnUnload() final;
 		SpotLightComponent* AddComponent(SceneEntity* p_entity);
-		SpotLightComponent* GetComponent(unsigned long entity_id);
+		SpotLightComponent* GetComponent(uint64_t entity_id);
 		const auto& GetComponents() const { return m_spotlight_components; }
 		void DeleteComponent(SceneEntity* p_entity);
 	private:
@@ -78,7 +108,7 @@ namespace ORNG {
 		void OnUpdate() final;
 		void OnUnload() final;
 		PointLightComponent* AddComponent(SceneEntity* p_entity);
-		PointLightComponent* GetComponent(unsigned long entity_id);
+		PointLightComponent* GetComponent(uint64_t entity_id);
 		void DeleteComponent(SceneEntity* p_entity);
 
 		const auto& GetComponents() { return m_pointlight_components; }
@@ -92,17 +122,17 @@ namespace ORNG {
 	public:
 		void SortMeshIntoInstanceGroup(MeshComponent* comp, MeshAsset* asset);
 		MeshComponent* AddComponent(SceneEntity* p_entity, MeshAsset* asset);
-		MeshComponent* GetComponent(unsigned long entity_id);
+		MeshComponent* GetComponent(uint64_t entity_id);
 		void DeleteComponent(SceneEntity* p_entity);
 		void OnLoad();
 		void OnUnload() final;
 		void OnUpdate() final;
 		void OnMeshAssetDeletion(MeshAsset* p_asset);
+		void OnMaterialDeletion(Material* p_material, Material* p_replacement_material);
 
 		const auto& GetInstanceGroups() { return m_instance_groups; }
 		const auto& GetMeshComponents() { return m_mesh_components; }
 	private:
-
 		std::vector<MeshInstanceGroup*> m_instance_groups;
 		std::vector<MeshComponent*> m_mesh_components;
 	};

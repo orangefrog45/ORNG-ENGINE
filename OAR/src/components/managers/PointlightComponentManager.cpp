@@ -56,7 +56,7 @@ namespace ORNG {
 
 
 
-	PointLightComponent* PointlightComponentManager::GetComponent(unsigned long entity_id) {
+	PointLightComponent* PointlightComponentManager::GetComponent(uint64_t entity_id) {
 		auto it = std::find_if(m_pointlight_components.begin(), m_pointlight_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
 		return it == m_pointlight_components.end() ? nullptr : *it;
 	}
@@ -82,6 +82,8 @@ namespace ORNG {
 		for (auto* p_light : m_pointlight_components) {
 			DeleteComponent(p_light->GetEntity());
 		}
+
+		m_pointlight_components.clear();
 
 		glDeleteBuffers(1, &m_pointlight_ssbo_handle);
 	}

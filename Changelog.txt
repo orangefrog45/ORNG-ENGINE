@@ -1,3 +1,10 @@
+04/7/23:
+-Basic scene serialization/deserialization (not fully complete)
+-Removed material buffer system, replaced with much better method
+-More deletion/creation functionality - still not complete
+-Entity duplication keybind
+-Proper env map loader class seperate from skybox
+
 27/6/23:
 -Nvidia physx and basic physics components implemented (still needs work)
 -Small changes to ECS and transform callbacks

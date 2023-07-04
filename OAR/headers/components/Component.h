@@ -7,7 +7,7 @@ namespace ORNG {
 	public:
 		friend class Scene;
 		Component(SceneEntity* p_entity);
-		unsigned long GetEntityHandle() const;
+		uint64_t GetEntityHandle() const;
 		SceneEntity* GetEntity() { return mp_entity; }
 
 	private:

@@ -3,7 +3,6 @@
 
 namespace ORNG {
 
-	class CameraComponent;
 	class ChunkLoader;
 	class TerrainChunk;
 
@@ -33,7 +32,7 @@ namespace ORNG {
 		void QueryTree(std::vector<TerrainQuadtree*>& node_array, glm::vec3 center_pos, int boundary);
 		void QueryChunks(std::vector<TerrainQuadtree*>& node_array, glm::vec3 center_pos, int boundary);
 
-		bool CheckIntersection(glm::vec3 position);
+		bool CheckIntersection(glm::vec3 position) const;
 
 		/* Find leaf node inside quadtree that can contain position */
 		TerrainQuadtree& DoBoundaryTest(glm::vec3 position);

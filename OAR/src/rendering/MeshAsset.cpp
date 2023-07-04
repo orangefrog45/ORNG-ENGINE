@@ -17,7 +17,7 @@ namespace ORNG {
 
 	bool MeshAsset::LoadMeshData() {
 
-		if (is_loaded) {
+		if (m_is_loaded) {
 			OAR_CORE_TRACE("Mesh '{0}' is already loaded", m_filename);
 			return true;
 		}

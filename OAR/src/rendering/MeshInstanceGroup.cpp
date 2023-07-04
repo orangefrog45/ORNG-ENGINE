@@ -24,7 +24,7 @@ namespace ORNG {
 	}
 
 	void MeshInstanceGroup::ResortMesh(MeshComponent* ptr) {
-		if (m_mesh_asset && m_mesh_asset->is_loaded) {
+		if (m_mesh_asset && m_mesh_asset->m_is_loaded) {
 			DeleteMeshPtr(ptr);
 			mp_manager->SortMeshIntoInstanceGroup(ptr, ptr->mp_mesh_asset);
 		}

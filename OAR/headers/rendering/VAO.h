@@ -10,11 +10,11 @@ namespace ORNG {
 	public:
 		VAO() {
 			glGenVertexArrays(1, &m_vao_handle);
-			glGenBuffers(m_buffers.size(), &m_buffers[0]);
+			glGenBuffers((GLsizei)m_buffers.size(), &m_buffers[0]);
 		};
 
 		~VAO() {
-			glDeleteBuffers(m_buffers.size(), &m_buffers[0]);
+			glDeleteBuffers((GLsizei)m_buffers.size(), &m_buffers[0]);
 			glDeleteVertexArrays(1, &m_vao_handle);
 		};
 

@@ -24,7 +24,7 @@ namespace ORNG {
 	void SpotLightComponent::UpdateLightTransform() {
 		float z_near = 0.1f;
 		float z_far = max_distance;
-		auto light_perspective = glm::perspective(glm::degrees(acosf(aperture)), 1.0f, z_near, z_far);
+		auto light_perspective = glm::perspective(glm::degrees(acosf(m_aperture)), 1.0f, z_near, z_far);
 		glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
 		auto spot_light_view = glm::lookAt(pos, pos + m_light_direction_vec, glm::vec3(0.0f, 1.0f, 0.0f));
 

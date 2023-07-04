@@ -56,4 +56,42 @@ namespace ORNG {
 		}
 
 	}
+
+
+
+	void EditorCamera::MoveForward(float time_elapsed) {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		pos += target * speed * time_elapsed;
+		mp_transform->SetPosition(pos);
+		UpdateFrustum();
+	}
+	void EditorCamera::MoveBackward(float time_elapsed) {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		pos -= target * speed * time_elapsed;
+		mp_transform->SetPosition(pos);
+		UpdateFrustum();
+	}
+	void EditorCamera::StrafeLeft(float time_elapsed) {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		pos += -right * speed * time_elapsed;
+		mp_transform->SetPosition(pos);
+		UpdateFrustum();
+	}
+	void EditorCamera::StrafeRight(float time_elapsed) {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		pos += right * speed * time_elapsed;
+		mp_transform->SetPosition(pos);
+		UpdateFrustum();
+	}
+	void EditorCamera::MoveUp(float time_elapsed) {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		pos += speed * up * time_elapsed;
+		mp_transform->SetPosition(pos);
+		UpdateFrustum();
+	}
+	void EditorCamera::MoveDown(float time_elapsed) {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		pos -= speed * up * time_elapsed;
+		UpdateFrustum();
+	}
 }

@@ -288,7 +288,7 @@ void main() {
 		step_pos += ray_dir * step_distance;
 	}
 
-	vec4 fog_color = vec4(u_fog_color * luminance + (texture(diffuse_prefilter_sampler, ray_dir).rgb * u_emissive), 1.0 - transmittance);
+	vec4 fog_color = vec4(u_fog_color * luminance + texture(diffuse_prefilter_sampler, ray_dir).rgb * u_emissive, 1.0 - transmittance);
 
 	imageStore(fog_texture, tex_coords / 2, fog_color);
 

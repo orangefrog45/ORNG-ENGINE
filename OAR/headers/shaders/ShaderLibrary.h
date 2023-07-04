@@ -7,8 +7,8 @@
 
 namespace ORNG {
 
-	class PointLightComponent;
-	class SpotLightComponent;
+	struct PointLightComponent;
+	struct SpotLightComponent;
 
 	class ShaderLibrary {
 	public:

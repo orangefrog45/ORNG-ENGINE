@@ -31,6 +31,8 @@ namespace ORNG {
 		delete m_chunk;
 	}
 
+
+
 	TerrainQuadtree::TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader) :
 		m_center_pos(center_pos), m_width(width), m_seed(seed), m_height_scale(height_scale), m_resolution(resolution), m_master_width(width),
 		m_is_root_node(true), m_loader(loader)
@@ -42,6 +44,8 @@ namespace ORNG {
 		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale);
 		m_loader->RequestChunkLoad(*m_chunk);
 	};
+
+
 
 	TerrainQuadtree::TerrainQuadtree(glm::vec3 center_pos, TerrainQuadtree* parent)
 	{
@@ -58,10 +62,10 @@ namespace ORNG {
 		m_center_pos = center_pos;
 		m_master_width = parent->m_master_width;
 
-		m_resolution = pow(m_max_subdivision_layer + 1 - m_subdivision_layer, 2);
+		m_resolution = (unsigned int)pow(m_max_subdivision_layer + 1 - m_subdivision_layer, 2);
 
-		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
-		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4.f, m_seed, m_height_scale);
+		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - (float)m_width * 0.5f, center_pos.y, center_pos.z - (float)m_width * 0.5f);
+		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4, m_seed, m_height_scale);
 		m_loader->RequestChunkLoad(*m_chunk);
 
 
@@ -121,11 +125,11 @@ namespace ORNG {
 	void TerrainQuadtree::Update(glm::vec3 pos) {
 
 
-		const float distance = glm::max(glm::length(glm::vec2(m_center_pos.x, m_center_pos.z) - glm::vec2(pos.x, pos.z)) - glm::sqrt(2 * m_width * m_width), 0.0);
+		float distance = glm::max(glm::length(glm::vec2(m_center_pos.x, m_center_pos.z) - glm::vec2(pos.x, pos.z)) - glm::sqrt(2 * m_width * m_width), 0.0);
 		// Calculate number of minimum grid widths that fit inside the chunk node path, this can then be used to calculate a subdivision count
-		int num_fitting_min_grid_widths = glm::pow(2, m_max_subdivision_layer - m_subdivision_layer);
+		int num_fitting_min_grid_widths = (int)(glm::pow(2, m_max_subdivision_layer - m_subdivision_layer));
 
-		int subdivision_count = m_max_subdivision_layer - distance / (num_fitting_min_grid_widths * m_min_grid_width);
+		int subdivision_count = (int)((float)(m_max_subdivision_layer)-distance / (float)(num_fitting_min_grid_widths * m_min_grid_width));
 
 		if (subdivision_count <= m_subdivision_layer) {
 			Unsubdivide();
@@ -153,12 +157,12 @@ namespace ORNG {
 		m_is_subdivided = false;
 	}
 
-	bool TerrainQuadtree::CheckIntersection(glm::vec3 position) {
+	bool TerrainQuadtree::CheckIntersection(glm::vec3 position) const {
 
-		if (position.x > m_center_pos.x + m_width ||
-			position.x < m_center_pos.x - m_width ||
-			position.z > m_center_pos.z - m_width ||
-			position.z < m_center_pos.z + m_width
+		if (position.x > m_center_pos.x + static_cast<float>(m_width) ||
+			position.x < m_center_pos.x - static_cast<float>(m_width) ||
+			position.z > m_center_pos.z - static_cast<float>(m_width) ||
+			position.z < m_center_pos.z + static_cast<float>(m_width)
 			) {
 			return false;
 		}

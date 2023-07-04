@@ -4,7 +4,7 @@
 
 namespace ORNG {
 
-	TransformComponent* TransformComponentManager::GetComponent(unsigned long entity_id) {
+	TransformComponent* TransformComponentManager::GetComponent(uint64_t entity_id) {
 		auto it = std::find_if(m_transform_components.begin(), m_transform_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
 
 		return it == m_transform_components.end() ? nullptr : *it;
@@ -31,6 +31,8 @@ namespace ORNG {
 		for (auto* p_transform : m_transform_components) {
 			delete p_transform;
 		}
+
+		m_transform_components.clear();
 	}
 
 

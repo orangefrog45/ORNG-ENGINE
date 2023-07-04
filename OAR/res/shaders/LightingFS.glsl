@@ -290,11 +290,11 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index) {
 
 	//SHADOW
 	vec3 color = vec3(0);
-	float shadow = ShadowCalculationSpotlight(light, index);
+	/*float shadow = ShadowCalculationSpotlight(light, index);
 
 	if (shadow >= 0.99 || spot_factor <= 0.0) {
 		return color; // early return as no light will reach this spot
-	}
+	}*/
 
 	float distance = length(frag_to_light);
 	float attenuation = light.constant +

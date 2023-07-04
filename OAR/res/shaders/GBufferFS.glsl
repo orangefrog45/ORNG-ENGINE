@@ -10,9 +10,7 @@ out layout(location = 4) uint shader_id;
 layout(binding = 1) uniform sampler2D diffuse_sampler;
 layout(binding = 2) uniform sampler2D roughness_sampler;
 layout(binding = 7) uniform sampler2D normal_map_sampler;
-layout(binding = 8) uniform sampler2DArray diffuse_array_sampler;
 layout(binding = 9) uniform sampler2D displacement_sampler;
-layout(binding = 10) uniform sampler2DArray normal_array_sampler;
 layout(binding = 13) uniform samplerCube cube_color_sampler;
 layout(binding = 17) uniform sampler2D metallic_sampler;
 layout(binding = 18) uniform sampler2D ao_sampler;
@@ -123,15 +121,9 @@ void main() {
 
 	if (u_terrain_mode) {
 		mat3 tbn = CalculateTbnMatrix();
-		vec3 sampled_normal_1 = normalize(texture(normal_array_sampler, vec3(adj_tex_coord.xy, 0.0)).rgb * 2.0 - 1.0);
-		vec3 sampled_normal_2 = normalize(texture(normal_array_sampler, vec3(adj_tex_coord.xy, 1.0)).rgb * 2.0 - 1.0);
-
-		float terrain_factor = clamp(dot(vs_normal.xyz, vec3(0, 1.f, 0) * 0.5f), 0.f, 1.f); // slope
-		vec3 mixed_terrain_normal = normalize(tbn * mix(sampled_normal_1, sampled_normal_2, terrain_factor).xyz);
-		normal = vec4(normalize(mixed_terrain_normal), 1.f);
+		normal = normalize(texture(normal_map_sampler, adj_tex_coord.xy) * 2.0 - 1.0);
 		g_position = vs_position;
-
-		albedo = vec4(mix(texture(diffuse_array_sampler, vec3(adj_tex_coord.xy, 0.0)).rgb, texture(diffuse_array_sampler, vec3(adj_tex_coord.xy, 1.0)).rgb, terrain_factor), 1.f);
+		albedo = vec4(texture(diffuse_sampler, adj_tex_coord.xy).rgb * u_material.base_color_and_metallic.rgb, 1.f);
 
 	}
 	else if (u_skybox_mode) {

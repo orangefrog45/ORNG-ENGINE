@@ -1,0 +1,374 @@
+#include "pch/pch.h"
+#include "scene/SceneSerializer.h"
+#include "scene/Scene.h"
+#include "scene/SceneEntity.h"
+#include "components/ComponentAPI.h"
+
+namespace YAML {
+	template<>
+	struct convert<glm::vec3> {
+		static Node encode(const glm::vec3& rhs) {
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			return node;
+		}
+
+		static bool decode(const Node& node, glm::vec3& rhs) {
+			if (!node.IsSequence() || node.size() != 3) {
+				return false;
+			}
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			rhs.z = node[2].as<float>();
+			return true;
+		}
+	};
+}
+
+namespace ORNG {
+
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4 v) {
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
+
+
+
+
+
+	void SceneSerializer::SerializeEntity(SceneEntity& entity, YAML::Emitter& out) {
+		out << YAML::BeginMap;
+		out << YAML::Key << "Entity" << YAML::Value << entity.GetID();
+		out << YAML::Key << "Name" << YAML::Value << entity.name;
+		out << YAML::Key << "ParentID" << YAML::Value << (entity.GetParent() ? entity.GetParent()->GetID() : 0);
+
+		const auto* p_transform = entity.GetComponent<TransformComponent>();
+
+		out << YAML::Key << "TransformComp";
+		out << YAML::BeginMap;
+
+		out << YAML::Key << "Pos" << YAML::Value << p_transform->GetPosition();
+		out << YAML::Key << "Scale" << YAML::Value << p_transform->GetScale();
+		out << YAML::Key << "Orientation" << YAML::Value << p_transform->GetRotation();
+
+		out << YAML::EndMap;
+
+		auto* p_mesh_comp = entity.GetComponent<MeshComponent>();
+
+		if (p_mesh_comp) {
+			out << YAML::Key << "MeshComp";
+			out << YAML::BeginMap;
+			out << YAML::Key << "MeshAssetID" << YAML::Value << p_mesh_comp->GetMeshData()->uuid();
+
+			out << YAML::Key << "Materials" << YAML::Value;
+			out << YAML::Flow;
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_mesh_comp->GetMaterials()) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+			out << YAML::EndMap;
+		}
+
+
+		const auto* p_pointlight = entity.GetComponent<PointLightComponent>();
+
+		if (p_pointlight) {
+			out << YAML::Key << "PointlightComp";
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "Colour" << YAML::Value << p_pointlight->color;
+			out << YAML::Key << "AttenConstant" << YAML::Value << p_pointlight->attenuation.constant;
+			out << YAML::Key << "AttenLinear" << YAML::Value << p_pointlight->attenuation.linear;
+			out << YAML::Key << "AttenExp" << YAML::Value << p_pointlight->attenuation.exp;
+
+			out << YAML::EndMap;
+		}
+
+		const auto* p_spotlight = entity.GetComponent<SpotLightComponent>();
+
+		if (p_spotlight) {
+			out << YAML::Key << "SpotlightComp";
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "Colour" << YAML::Value << p_spotlight->color;
+			out << YAML::Key << "AttenConstant" << YAML::Value << p_spotlight->attenuation.constant;
+			out << YAML::Key << "AttenLinear" << YAML::Value << p_spotlight->attenuation.linear;
+			out << YAML::Key << "AttenExp" << YAML::Value << p_spotlight->attenuation.exp;
+			out << YAML::Key << "Aperture" << YAML::Value << p_spotlight->m_aperture;
+			out << YAML::Key << "Direction" << YAML::Value << p_spotlight->m_light_direction_vec;
+
+			out << YAML::EndMap;
+		}
+
+		const auto* p_cam = entity.GetComponent<CameraComponent>();
+
+		if (p_cam) {
+			out << YAML::Key << "CameraComp";
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "zNear" << YAML::Value << p_cam->zNear;
+			out << YAML::Key << "zFar" << YAML::Value << p_cam->zFar;
+			out << YAML::Key << "FOV" << YAML::Value << p_cam->fov;
+			out << YAML::Key << "Exposure" << YAML::Value << p_cam->exposure;
+
+			out << YAML::EndMap;
+
+		}
+
+		const auto* p_physics_comp = entity.GetComponent<PhysicsComponent>();
+
+		if (p_physics_comp) {
+			out << YAML::Key << "PhysicsComp";
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->rigid_body_type;
+			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->geometry_type;
+
+			out << YAML::EndMap;
+
+		}
+
+		out << YAML::EndMap;
+	}
+
+
+
+
+
+	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::iterator::value_type entity_node, SceneEntity& entity) {
+		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
+		if (parent_id != 0)
+			entity.SetParent(scene.GetEntity(parent_id));
+
+		auto transform_node = entity_node["TransformComp"];
+		auto* p_transform = entity.GetComponent<TransformComponent>();
+		p_transform->SetPosition(transform_node["Pos"].as<glm::vec3>());
+		p_transform->SetScale(transform_node["Scale"].as<glm::vec3>());
+		p_transform->SetOrientation(transform_node["Orientation"].as<glm::vec3>());
+
+
+		for (auto node : entity_node) {
+			if (!node.first.IsDefined())
+				continue;
+
+
+			std::string REAL_tag = node.first.as<std::string>();
+			if (REAL_tag == "MeshComp") {
+				auto mesh_node = entity_node["MeshComp"];
+				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(scene.GetMeshAsset(mesh_asset_id)->m_filename);
+
+				auto materials = mesh_node["Materials"];
+				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
+				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
+					p_mesh_comp->m_materials[i] = scene.GetMaterial(ids[i]);
+				}
+				p_mesh_comp->mp_instance_group->ResortMesh(p_mesh_comp);
+
+			}
+
+
+			if (REAL_tag == "PhysicsComp") {
+				auto physics_node = entity_node["PhysicsComp"];
+				auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
+				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
+				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
+			}
+		}
+
+
+	}
+
+
+
+
+	void SceneSerializer::SerializeScene(const Scene& scene, const std::string& filepath) {
+		YAML::Emitter out;
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
+		out << YAML::Key << "MeshAssets" << YAML::Value << YAML::BeginSeq; // Mesh assets
+
+		for (const auto* p_mesh_asset : scene.m_mesh_assets) {
+			out << YAML::BeginMap;
+			out << YAML::Key << "MeshAsset" << p_mesh_asset->uuid();
+			out << YAML::Key << "Filepath" << YAML::Value << p_mesh_asset->GetFilename();
+
+			out << YAML::Key << "Materials" << YAML::Value;
+			out << YAML::Flow;
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_mesh_asset->m_scene_materials) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+
+
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq; // Mesh assets
+
+		out << YAML::Key << "TextureAssets" << YAML::Value << YAML::BeginSeq; // Texture assets
+
+		for (const auto* p_tex_asset : scene.m_texture_2d_assets) {
+			out << YAML::BeginMap;
+			out << YAML::Key << "TextureAsset" << p_tex_asset->uuid();
+			out << YAML::Key << "Filepath" << YAML::Value << p_tex_asset->GetSpec().filepath;
+			out << YAML::Key << "Wrap mode" << YAML::Value << p_tex_asset->GetSpec().wrap_params;
+			out << YAML::Key << "Min filter" << YAML::Value << p_tex_asset->GetSpec().min_filter;
+			out << YAML::Key << "Mag filter" << YAML::Value << p_tex_asset->GetSpec().mag_filter;
+			out << YAML::Key << "SRGB" << YAML::Value << p_tex_asset->GetSpec().srgb_space;
+			out << YAML::EndMap;
+		}
+
+
+		out << YAML::EndSeq; // Texture assets
+
+		out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq; // Materials
+
+		for (const auto* p_material : scene.m_materials) {
+
+			if (p_material->uuid() == Scene::BASE_MATERIAL_ID) // Always created on startup by scene, doesn't need saving
+				continue;
+
+			out << YAML::BeginMap;
+			out << YAML::Key << "SceneMaterial" << p_material->uuid();
+			out << YAML::Key << "Name" << p_material->name;
+			out << YAML::Key << "Base colour texture" << YAML::Value << (p_material->base_color_texture ? p_material->base_color_texture->uuid() : 0);
+			out << YAML::Key << "Normal texture" << YAML::Value << (p_material->normal_map_texture ? p_material->normal_map_texture->uuid() : 0);
+			out << YAML::Key << "AO texture" << YAML::Value << (p_material->ao_texture ? p_material->ao_texture->uuid() : 0);
+			out << YAML::Key << "Metallic texture" << YAML::Value << (p_material->metallic_texture ? p_material->metallic_texture->uuid() : 0);
+			out << YAML::Key << "Roughness texture" << YAML::Value << (p_material->roughness_texture ? p_material->roughness_texture->uuid() : 0);
+			out << YAML::Key << "Base colour" << YAML::Value << p_material->base_color;
+			out << YAML::Key << "Metallic" << YAML::Value << p_material->metallic;
+			out << YAML::Key << "Roughness" << YAML::Value << p_material->roughness;
+			out << YAML::Key << "AO" << YAML::Value << p_material->ao;
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+
+
+		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+
+		for (auto* p_entity : scene.m_entities) {
+			SerializeEntity(*p_entity, out);
+		}
+
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+		std::ofstream fout{filepath};
+		fout << out.c_str();
+	}
+
+	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& filepath) {
+		std::ifstream stream(filepath);
+		std::stringstream str_stream;
+		str_stream << stream.rdbuf();
+
+		YAML::Node data = YAML::Load(str_stream.str());
+		if (!data["Scene"])
+			return false;
+
+		std::string scene_name = data["Scene"].as<std::string>();
+		OAR_CORE_TRACE("Deserializing scene '{0}'", scene_name);
+
+
+		// Creating textures
+		auto textures = data["TextureAssets"];
+
+		if (textures) {
+			Texture2DSpec base_spec;
+			for (auto texture : textures) {
+				uint64_t id = texture["TextureAsset"].as<uint64_t>();
+				std::string tex_filepath = texture["Filepath"].as<std::string>();
+				unsigned int wrap_mode = texture["Wrap mode"].as<unsigned int>();
+				unsigned int min_filter = texture["Min filter"].as<unsigned int>();
+				unsigned int mag_filter = texture["Mag filter"].as<unsigned int>();
+				bool srgb = texture["SRGB"].as<bool>();
+
+				base_spec.generate_mipmaps = true;
+				base_spec.mag_filter = mag_filter;
+				base_spec.min_filter = min_filter;
+				base_spec.filepath = tex_filepath;
+				base_spec.wrap_params = wrap_mode;
+				base_spec.srgb_space = srgb;
+
+				scene.CreateTexture2DAsset(base_spec, id);
+			}
+		}
+
+		// Creating materials
+		auto materials = data["Materials"];
+
+		for (auto material : materials) {
+			auto* p_material = scene.CreateMaterial(material["SceneMaterial"].as<uint64_t>());
+			p_material->name = material["Name"].as<std::string>();
+			p_material->base_color_texture = scene.GetTexture(material["Base colour texture"].as<uint64_t>());
+			p_material->normal_map_texture = scene.GetTexture(material["Normal texture"].as<uint64_t>());
+			p_material->ao_texture = scene.GetTexture(material["AO texture"].as<uint64_t>());
+			p_material->metallic_texture = scene.GetTexture(material["Metallic texture"].as<uint64_t>());
+			p_material->roughness_texture = scene.GetTexture(material["Roughness texture"].as<uint64_t>());
+			p_material->base_color = material["Base colour"].as<glm::vec3>();
+			p_material->metallic = material["Metallic"].as<float>();
+			p_material->roughness = material["Roughness"].as<float>();
+			p_material->ao = material["AO"].as<float>();
+
+		}
+
+		// Create mesh assets and link materials
+		std::vector<std::vector<Material*>> material_vec; // Used to link assets with their materials below
+		auto mesh_assets = data["MeshAssets"];
+
+		if (mesh_assets) {
+			for (auto asset : mesh_assets) {
+				std::string asset_filepath = asset["Filepath"].as<std::string>();
+				uint64_t id = asset["MeshAsset"].as<uint64_t>();
+
+				auto material_ids = asset["Materials"];
+				std::vector<Material*> mesh_material_vec;
+				for (auto material_id : material_ids) {
+					mesh_material_vec.push_back(scene.GetMaterial(material_id.as<uint64_t>()));
+				}
+				material_vec.push_back(mesh_material_vec);
+				auto* p_asset = scene.CreateMeshAsset(asset_filepath, id);
+			}
+		}
+
+		// Asynchronously load all mesh assets
+		for (auto* mesh : scene.m_mesh_assets) {
+			if (mesh->GetLoadStatus() == false) {
+				scene.m_futures.push_back(std::async(std::launch::async, [mesh] {mesh->LoadMeshData(); }));
+			}
+		}
+		for (unsigned int i = 0; i < scene.m_futures.size(); i++) {
+			scene.m_futures[i].get();
+		}
+		scene.m_futures.clear();
+		for (int i = 0; i < scene.m_mesh_assets.size(); i++) {
+			scene.LoadMeshAssetPreExistingMaterials(scene.m_mesh_assets[i], material_vec[i]);
+		}
+
+
+		auto entities = data["Entities"];
+		//Create entities in first pass so they can be linked as parent/children in 2nd pass
+		for (auto entity_node : entities) {
+			scene.CreateEntity(entity_node["Name"].as<std::string>(), entity_node["Entity"].as<uint64_t>());
+		}
+		for (auto entity_node : entities) {
+			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
+		}
+	}
+}

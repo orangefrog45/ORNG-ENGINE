@@ -1,7 +1,7 @@
 #version 430 core
 
-uniform uint comp_id;
-out uint id_val;
+uniform uvec2 comp_id;
+out uvec2 id_val;
 
 void main() {
 	id_val = comp_id;

@@ -1,13 +1,14 @@
 #pragma once
 #include "util/util.h"
 #include "util/Log.h"
+#include "util/UUID.h"
 
 namespace ORNG {
 
-	class Texture2DSpec;
-	class Texture3DSpec;
-	class Texture2DArraySpec;
-	class TextureCubemapSpec;
+	struct Texture2DSpec;
+	struct Texture3DSpec;
+	struct Texture2DArraySpec;
+	struct TextureCubemapSpec;
 
 	struct TextureBaseSpec {
 
@@ -54,10 +55,12 @@ namespace ORNG {
 			return true;
 		}
 
+		UUID uuid;
+	protected:
 		bool LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
 		bool LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-	protected:
 		TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); };
+		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); };
 		unsigned int m_texture_target = 0;
 		unsigned int m_texture_obj = 0;
 		std::string m_name = "Unnamed texture";
@@ -98,6 +101,7 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class Scene;
 		Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
+		Texture2D(const std::string& name, uint64_t t_uuid) : TextureBase(GL_TEXTURE_2D, name, t_uuid) {};
 
 		bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();
@@ -129,6 +133,7 @@ namespace ORNG {
 		TextureCubemap(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP, name) {};
 		bool SetSpec(const TextureCubemapSpec& spec);
 		bool LoadFromFile();
+		const TextureCubemapSpec& GetSpec() { return m_spec; }
 	private:
 		TextureCubemapSpec m_spec;
 	};

@@ -4,6 +4,7 @@
 #include "rendering/Renderer.h"
 #include "core/Window.h"
 #include "core/FrameTiming.h"
+#include "scene/SceneEntity.h"
 
 namespace ORNG {
 
@@ -26,6 +27,8 @@ namespace ORNG {
 		right = glm::normalize(glm::cross(target, up));
 		const glm::vec3 up = glm::cross(right, target);
 
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+
 		const glm::vec3 far_point = pos + normalized_target * zFar;
 
 		view_frustum.near_plane = { normalized_target, pos + zNear * normalized_target };
@@ -43,45 +46,19 @@ namespace ORNG {
 		const glm::vec3 point_down_plane = far_point - up * half_far_plane_height;
 		view_frustum.bottom_plane = { glm::cross(right, point_down_plane - pos), pos };
 	}
-	void CameraComponent::SetPosition(float x, float y, float z) {
-		pos.x = x;
-		pos.y = y;
-		pos.z = z;
-		UpdateFrustum();
-	}
 
-
-	void CameraComponent::MoveForward(float time_elapsed) {
-		pos += target * speed * time_elapsed;
-		UpdateFrustum();
-	}
-	void CameraComponent::MoveBackward(float time_elapsed) {
-		pos -= target * speed * time_elapsed;
-		UpdateFrustum();
-	}
-	void CameraComponent::StrafeLeft(float time_elapsed) {
-		pos += -right * speed * time_elapsed;
-		UpdateFrustum();
-	}
-	void CameraComponent::StrafeRight(float time_elapsed) {
-		pos += right * speed * time_elapsed;
-		UpdateFrustum();
-	}
-	void CameraComponent::MoveUp(float time_elapsed) {
-		pos += speed * up * time_elapsed;
-		UpdateFrustum();
-	}
-	void CameraComponent::MoveDown(float time_elapsed) {
-		pos -= speed * up * time_elapsed;
-		UpdateFrustum();
-	}
+	void CameraComponent::MakeActive() {
+		mp_system->SetActiveCamera(this);
+	};
 
 	glm::mat4x4 CameraComponent::GetViewMatrix() const {
+		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
 		return glm::lookAt(pos, pos + target, up);
 	}
 
 	glm::mat4x4 CameraComponent::GetProjectionMatrix() const {
 		return glm::perspective(glm::radians(fov / 2.0f), static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight()), zNear, zFar);
 	}
+
 
 }

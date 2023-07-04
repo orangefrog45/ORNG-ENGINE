@@ -18,16 +18,17 @@ namespace ORNG {
 	class SceneEntity;
 
 
+
 	class Scene {
 	public:
 		friend class EditorLayer;
-		friend class Renderer;
-		friend class Component;
 		friend class SceneRenderer;
+		friend class SceneSerializer;
 		Scene();
 		~Scene();
 
-		SceneEntity& CreateEntity(const char* name = "Unnamed entity");
+		// Only provide uuid if deserializing
+		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
 
 		//Runs any scripts in script components and updates transform and instance group data
 		void Update(float ts);
@@ -50,7 +51,7 @@ namespace ORNG {
 				comp = AddScriptComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, CameraComponent>::value) {
-				comp = AddCameraComponent(p_entity);
+				comp = m_camera_system.AddComponent(p_entity);
 			}
 			else if constexpr (std::is_same<T, PhysicsComponent>::value) {
 				comp = m_physics_system.AddComponent(p_entity, args...);
@@ -60,7 +61,7 @@ namespace ORNG {
 		};
 
 		template<std::derived_from<Component> T>
-		T* GetComponent(unsigned long entity_id) {
+		T* GetComponent(uint64_t entity_id) {
 
 			if constexpr (std::is_same<T, MeshComponent>::value) {
 				return m_mesh_component_manager.GetComponent(entity_id);
@@ -76,11 +77,13 @@ namespace ORNG {
 				return it == m_script_components.end() ? nullptr : *it;
 			}
 			else if constexpr (std::is_same<T, CameraComponent>::value) {
-				auto it = std::find_if(m_camera_components.begin(), m_camera_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
-				return it == m_camera_components.end() ? nullptr : *it;
+				return m_camera_system.GetComponent(entity_id);
 			}
 			else if constexpr (std::is_same<T, TransformComponent>::value) {
 				return m_transform_component_manager.GetComponent(entity_id);
+			}
+			else if constexpr (std::is_same<T, PhysicsComponent>::value) {
+				return m_physics_system.GetComponent(entity_id);
 			}
 		}
 
@@ -101,73 +104,93 @@ namespace ORNG {
 				//delete* it;
 				//m_script_components.erase(it);
 			}
+			else if constexpr (std::is_same<T, CameraComponent>::value) {
+				m_camera_system.DeleteComponent(p_entity);
+			}
+			else if constexpr (std::is_same<T, PhysicsComponent>::value) {
+				m_physics_system.DeleteComponent(p_entity);
+			}
 
 		}
 
-		void MakeCameraActive(CameraComponent* p_cam);
 
 		MeshComponent* AddMeshComponent(SceneEntity* p_entity, const std::string& filename);
 		ScriptComponent* AddScriptComponent(SceneEntity* p_entity);
-		CameraComponent* AddCameraComponent(SceneEntity* p_entity);
 
 
-		// Creates material and returns ID, get actual material with GetMaterial(id)
-		Material* CreateMaterial();
-		MeshAsset* CreateMeshAsset(const std::string& filename);
-		Texture2D* CreateTexture2DAsset(const std::string& filename, bool srgb);
+		Material* CreateMaterial(uint64_t uuid = 0);
+		void DeleteMaterial(uint64_t uuid);
+
+		// Specify uuid if deserializing
+		MeshAsset* CreateMeshAsset(const std::string& filename, uint64_t uuid = 0);
+		// Specify uuid if deserializing
+		Texture2D* CreateTexture2DAsset(const Texture2DSpec& spec, uint64_t uuid = 0);
 
 		/* Removes asset from all components using it, then deletes asset */
 		void DeleteMeshAsset(MeshAsset* data);
 
-		inline Material* GetMaterial(unsigned int id) const {
-			if (id < m_materials.size()) {
-				auto it = std::find_if(m_materials.begin(), m_materials.end(), [&](const auto* p_mat) {return p_mat->material_id == id; });
+		inline Material* GetMaterial(uint64_t id) const {
+			auto it = std::find_if(m_materials.begin(), m_materials.end(), [&](const auto* p_mat) {return p_mat->uuid() == id; });
 
-				if (it == m_materials.end()) {
-					OAR_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
-					return nullptr;
-				}
-
-				return *it;
-			}
-			else {
-				OAR_CORE_ERROR("Material with id '{0}' does not exist or is somehow out of range", id);
+			if (it == m_materials.end()) {
+				OAR_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
 				return nullptr;
 			}
 
+			return *it;
+
 		}
 
-		SceneEntity* GetEntity(unsigned long id);
+		inline Texture2D* GetTexture(uint64_t uuid) {
+			auto it = std::find_if(m_texture_2d_assets.begin(), m_texture_2d_assets.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
 
-		[[nodiscard]] unsigned long CreateEntityID() {
-			static unsigned long m_last_entity_id = 1; // Last ID assigned to a newly created entity
-			return m_last_entity_id++;
+			if (it == m_texture_2d_assets.end()) {
+				OAR_CORE_WARN("Texture with ID '{0}' does not exist, not found", uuid);
+				return nullptr;
+			}
+
+			return *it;
 		}
 
-		void LoadScene();
+		inline MeshAsset* GetMeshAsset(uint64_t uuid) {
+			auto it = std::find_if(m_mesh_assets.begin(), m_mesh_assets.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
+
+			if (it == m_mesh_assets.end()) {
+				OAR_CORE_ERROR("Mesh with ID '{0}' does not exist, not found", uuid);
+				return nullptr;
+			}
+
+			return *it;
+		}
+
+		SceneEntity* GetEntity(uint64_t uuid);
+
+		void LoadScene(const std::string& filepath);
 		void UnloadScene();
 
+
+		static inline const uint64_t BASE_MATERIAL_ID = 1;
+		static inline const uint64_t DEFAULT_BASE_COLOR_TEX_ID = 1;
 	private:
 		void LoadMeshAssetIntoGPU(MeshAsset* asset);
+		void LoadMeshAssetPreExistingMaterials(MeshAsset* asset, std::vector<Material*>& materials);
 		Texture2D* LoadMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* material);
 
 		BaseLight m_global_ambient_lighting = BaseLight(0);
 		DirectionalLight m_directional_light;
 
-		CameraComponent* mp_active_camera = nullptr;
-
 
 		std::vector<SceneEntity*> m_entities;
 		std::vector<ScriptComponent*> m_script_components;
-		std::vector<CameraComponent*> m_camera_components;
 
 		MeshComponentManager m_mesh_component_manager;
 		PointlightComponentManager m_pointlight_component_manager;
 		SpotlightComponentManager m_spotlight_component_manager;
 		TransformComponentManager m_transform_component_manager;
 		PhysicsSystem m_physics_system;
+		CameraSystem m_camera_system;
 
-		std::vector<Material*> m_materials; // materials referenced using id's, which is the materials position in this vector
+		std::vector<Material*> m_materials;
 		std::vector<MeshAsset*> m_mesh_assets;
 		std::vector<Texture2D*> m_texture_2d_assets;
 
@@ -175,7 +198,7 @@ namespace ORNG {
 		Skybox m_skybox;
 		GlobalFog m_global_fog;
 
-		float m_exposure_level = 1.0f;
+		std::string m_name = "Untitled scene";
 
 		std::vector<std::future<void>> m_futures;
 	};

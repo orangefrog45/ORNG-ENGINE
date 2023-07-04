@@ -1,9 +1,13 @@
 #pragma once
 #include "rendering/Textures.h"
+#include "util/UUID.h"
 
 namespace ORNG {
 
 	struct Material {
+		friend class Scene;
+		Material() = default;
+		explicit Material(uint64_t uuid) : uuid(uuid) {};
 
 		glm::vec3 base_color = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -25,8 +29,7 @@ namespace ORNG {
 		glm::vec2 tile_scale{ 1.f, 1.f };
 
 		std::string name = "Unnamed material";
-
-		unsigned int material_id;
+		UUID uuid;
 	};
 
 }

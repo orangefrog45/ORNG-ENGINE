@@ -39,7 +39,7 @@ namespace ORNG {
 
 		auto GetMeshData() const { return m_mesh_asset; }
 		auto GetShaderID() const { return m_group_shader_id; }
-		unsigned int GetInstanceCount() const { return m_instances.size(); }
+		size_t GetInstanceCount() const { return m_instances.size(); }
 		const std::vector<const Material*>& GetMaterialIDs() const { return m_materials; }
 
 

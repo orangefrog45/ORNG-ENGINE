@@ -21,7 +21,7 @@ namespace ORNG {
 		mp_unit_cube->LoadMeshData();
 		mp_unit_cube->PopulateBuffers();
 		mp_unit_cube->importer.FreeScene();
-		mp_unit_cube->is_loaded = true;
+		mp_unit_cube->m_is_loaded = true;
 
 		OAR_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
 	}

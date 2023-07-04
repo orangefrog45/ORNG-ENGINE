@@ -9,7 +9,7 @@ namespace ORNG {
 	class Scene;
 	class ShaderLibrary;
 	class FramebufferLibrary;
-	class CameraComponent;
+	struct CameraComponent;
 
 	class SceneRenderer {
 	public:

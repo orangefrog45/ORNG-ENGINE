@@ -254,9 +254,9 @@ namespace ORNG {
 
 
 	void SceneRenderer::IPrepRenderPasses() {
-		glm::mat4 view_mat = mp_scene->mp_active_camera->GetViewMatrix();
-		glm::mat4 proj_mat = mp_scene->mp_active_camera->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(mp_scene->mp_active_camera->pos, mp_scene->mp_active_camera->target);
+		glm::mat4 view_mat = mp_scene->m_camera_system.p_active_camera->GetViewMatrix();
+		glm::mat4 proj_mat = mp_scene->m_camera_system.p_active_camera->GetProjectionMatrix();
+		mp_shader_library->SetCommonUBO(mp_scene->m_camera_system.p_active_camera->mp_transform->GetPosition(), mp_scene->m_camera_system.p_active_camera->target);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light);
 	}
@@ -266,6 +266,11 @@ namespace ORNG {
 	SceneRenderer::SceneRenderingOutput SceneRenderer::IRenderScene(const SceneRenderingSettings& settings) {
 
 		SceneRenderer::SceneRenderingOutput output;
+		if (!mp_scene->m_camera_system.p_active_camera) {
+			output.final_color_texture_handle = m_post_processing_fb->GetTexture<Texture2D>("shared_render_texture").GetTextureHandle();
+			return output;
+		}
+
 
 		IPrepRenderPasses();
 
@@ -334,7 +339,6 @@ namespace ORNG {
 		m_gbuffer_shader->SetUniform("u_material.ao", p_material->ao);
 		m_gbuffer_shader->SetUniform("u_material.tile_scale", p_material->tile_scale);
 
-		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", p_material->material_id);
 	}
 
 
@@ -356,7 +360,7 @@ namespace ORNG {
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
 
-				unsigned int material_id = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index]->material_id;
+				uint64_t material_id = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index]->uuid();
 				const Material* p_material = mp_scene->GetMaterial(material_id);
 				SetGBufferMaterial(p_material);
 
@@ -365,21 +369,16 @@ namespace ORNG {
 		}
 
 
-		/* textures */
-		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, mp_scene->m_terrain.m_diffuse_texture_array.GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_ARRAY, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, mp_scene->m_terrain.m_normal_texture_array.GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_ARRAY, false);
 
 		/* uniforms */
 		SetGBufferMaterial(mp_scene->GetMaterial(mp_scene->m_terrain.m_material_id));
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 1);
-		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", mp_scene->m_terrain.m_material_id);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->m_shader_id);
 		IDrawTerrain();
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 0);
 
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->m_skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_CUBEMAP, false);
 		m_gbuffer_shader->SetUniform("u_skybox_mode", 1);
-		m_gbuffer_shader->SetUniform<unsigned int>("u_material_id", ShaderLibrary::INVALID_MATERIAL_ID);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", ShaderLibrary::INVALID_SHADER_ID);
 		DrawSkybox();
 		m_gbuffer_shader->SetUniform("u_skybox_mode", 0);
@@ -404,8 +403,8 @@ namespace ORNG {
 
 		const DirectionalLight& light = mp_scene->m_directional_light;
 
-		const glm::mat4 cam_view_matrix = mp_scene->mp_active_camera->GetViewMatrix();
-		const float fov = glm::radians(mp_scene->mp_active_camera->fov / 2.f);
+		const glm::mat4 cam_view_matrix = mp_scene->m_camera_system.p_active_camera->GetViewMatrix();
+		const float fov = glm::radians(mp_scene->m_camera_system.p_active_camera->fov / 2.f);
 
 		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution);
 		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
@@ -416,7 +415,6 @@ namespace ORNG {
 
 		m_depth_fb->Bind();
 		m_depth_shader->ActivateProgram();
-		AABB aabb;
 		for (int i = 0; i < 3; i++) {
 			glViewport(0, 0, m_shadow_map_resolution, m_shadow_map_resolution);
 			m_depth_fb->BindTextureLayerToFBAttachment(m_depth_fb->GetTexture<Texture2DArray>("dir_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
@@ -433,9 +431,6 @@ namespace ORNG {
 				}
 
 			}
-
-			m_depth_shader->SetUniform("u_terrain_mode", 1);
-			m_depth_shader->SetUniform("u_terrain_mode", 0);
 
 		}
 
@@ -598,10 +593,10 @@ namespace ORNG {
 
 		std::vector<TerrainQuadtree*> node_array;
 
-		mp_scene->m_terrain.m_quadtree->QueryChunks(node_array, mp_scene->mp_active_camera->pos, mp_scene->m_terrain.m_width);
+		mp_scene->m_terrain.m_quadtree->QueryChunks(node_array, mp_scene->m_camera_system.p_active_camera->mp_transform->GetPosition(), mp_scene->m_terrain.m_width);
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();
-			if (chunk->m_bounding_box.IsOnFrustum(mp_scene->mp_active_camera->view_frustum)) {
+			if (chunk->m_bounding_box.IsOnFrustum(mp_scene->m_camera_system.p_active_camera->view_frustum)) {
 				Renderer::DrawVAO_Elements(GL_QUADS, chunk->m_vao);
 			}
 		}
@@ -615,7 +610,7 @@ namespace ORNG {
 		m_post_processing_fb->Bind();
 		GL_StateManager::DefaultClearBits();
 
-		m_post_process_shader->SetUniform("exposure", mp_scene->m_exposure_level);
+		m_post_process_shader->SetUniform("exposure", mp_scene->m_camera_system.p_active_camera->exposure);
 		if (depth_display_active) {
 			m_post_process_shader->SetUniform("u_show_depth_map", 1);
 		}

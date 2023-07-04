@@ -24,13 +24,6 @@ namespace ORNG {
 			Plane near_plane;
 		};
 
-		struct Constants {
-			inline static double pi = atan(1) * 4;
-		};
-
-		static float ToRadians(float x) {
-			return x * ((Constants::pi) / 180.0f);
-		}
 
 		static glm::mat4 CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size);
 

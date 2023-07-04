@@ -34,6 +34,11 @@ namespace ORNG {
 	}
 
 	void MeshComponent::SetMaterialID(unsigned int index, const Material* p_material) {
+		if (index >= m_materials.size()) {
+			OAR_CORE_ERROR("Material ID not set for mesh component of entity '{0}', index out of range", GetEntity()->name);
+			BREAKPOINT;
+		}
+
 		m_materials[index] = p_material;
 		if (mp_mesh_asset)
 			mp_instance_group->ResortMesh(this);

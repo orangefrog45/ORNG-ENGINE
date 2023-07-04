@@ -8,6 +8,8 @@
 #include <glm/glm/gtx/matrix_major_storage.hpp>
 #include <stb/stb_image.h>
 
+#include <cstdint>
+#include <random>
 #include <memory>
 #include <filesystem>
 #include <concepts>

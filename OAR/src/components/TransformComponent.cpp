@@ -27,20 +27,6 @@ namespace ORNG {
 		return scale_mat * rot_mat * trans_mat;
 	}
 
-	void TransformComponent::SetScale(float scaleX, float scaleY, float scaleZ) {
-		m_scale.x = scaleX;
-		m_scale.y = scaleY;
-		m_scale.z = scaleZ;
-		RebuildMatrix();
-
-	}
-
-	void TransformComponent::SetPosition(float x, float y, float z) {
-		m_pos.x = x;
-		m_pos.y = y;
-		m_pos.z = z;
-		RebuildMatrix();
-	}
 
 
 	glm::vec3 TransformComponent::GetPosition() const {
@@ -49,6 +35,10 @@ namespace ORNG {
 
 
 	std::array<glm::vec3, 3> TransformComponent::GetAbsoluteTransforms() const {
+
+		if (!mp_parent_transform)
+			return std::array<glm::vec3, 3>{m_pos, m_scale, m_rotation};
+
 		// Sum all parent transforms to get absolute position
 		TransformComponent* p_parent_transform = mp_parent_transform;
 
@@ -65,18 +55,17 @@ namespace ORNG {
 		}
 
 
+		/*glm::vec3 parent_abs_pos = abs_translation - m_pos;
+		glm::vec3 transformed_pos = m_pos - parent_abs_pos;
+		glm::vec3 parent_abs_rot = abs_rotation - m_rotation;
+		glm::vec3 rotated_pos = glm::mat3(ExtraMath::Init3DRotateTransform(parent_abs_rot.x, parent_abs_rot.y, parent_abs_rot.z)) * transformed_pos;
+		rotated_pos += parent_abs_pos;*/
 		return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
 	}
 
 
-	void TransformComponent::SetOrientation(float x, float y, float z) {
-		m_rotation.x = x;
-		m_rotation.y = y;
-		m_rotation.z = z;
-		RebuildMatrix();
-	}
 
-	void TransformComponent::RebuildMatrix() {
+	void TransformComponent::RebuildMatrix(UpdateType type) {
 
 		if (m_is_absolute) {
 			glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(m_rotation.x, m_rotation.y, m_rotation.z);
@@ -102,13 +91,12 @@ namespace ORNG {
 		}
 
 		for (auto& it : update_callbacks) {
-			it.second();
+			it.second(type);
 		}
-
 
 		// Update child transforms as they are now inaccurate as the matrix has been rebuilt as a result of the transform changing
 		for (auto* p_transform : m_child_transforms) {
-			p_transform->RebuildMatrix();
+			p_transform->RebuildMatrix(type);
 		}
 	}
 

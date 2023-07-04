@@ -47,12 +47,16 @@ namespace ORNG {
 		void DoPickingPass();
 		void DoSelectedEntityHighlightPass();
 
+		void RenderCreationWidget(SceneEntity* p_entity, bool trigger);
 		void DisplayEntityEditor();
 		void RenderMeshComponentEditor(MeshComponent* comp);
 		void RenderPointlightEditor(PointLightComponent* light);
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
 		void RenderTransformComponentEditor(TransformComponent* p_transform);
+		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
+
+		SceneEntity* DuplicateEntity(SceneEntity* p_original);
 
 		void RenderSceneGraph();
 		void RenderDirectionalLightEditor();
@@ -76,6 +80,7 @@ namespace ORNG {
 		void RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		static bool H1TreeNode(const char* name);
 		static bool H2TreeNode(const char* name);
+		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 
 
 		Events::EventListener<Events::EngineCoreEvent> m_core_event_listener;
@@ -91,46 +96,16 @@ namespace ORNG {
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
 		std::unique_ptr<Scene> m_active_scene = nullptr;
 
-		EditorCamera m_editor_camera{ nullptr };
+		std::unique_ptr<EditorCamera> mp_editor_camera{ nullptr };
 
-		unsigned int m_selected_entity_id = 0;
+		uint64_t m_selected_entity_id = 0;
 
 		struct DisplayWindowSettings {
 			bool depth_map_view = false;
 		};
 
 
-		struct PointLightConfigData {
-			float atten_constant;
-			float atten_linear;
-			float atten_exp;
-			float max_distance;
-			glm::vec3 color;
-			glm::vec3 pos;
-		};
 
-		struct SpotLightConfigData {
-			PointLightConfigData base;
-			float aperture;
-			glm::vec3 direction;
-		};
-
-		struct DirectionalLightData {
-			glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
-			glm::vec3 light_direction = glm::vec3(0.5f, 0.5f, 1.f);
-		};
-
-		struct SceneData {
-			unsigned int total_vertices;
-			unsigned int num_lights;
-		};
-
-		struct MeshComponentData {
-			glm::vec3 scale;
-			glm::vec3 rotation;
-			glm::vec3 position;
-			int material_id;
-		};
 
 		// UI VARS
 		Texture2D* mp_selected_texture = nullptr;
@@ -142,12 +117,12 @@ namespace ORNG {
 
 		// STYLING
 		const float opacity = 1.f;
-		const ImVec4 orange_color = ImVec4(0.9, 0.2, 0.05, opacity);
-		const ImVec4 orange_color_bright = ImVec4(0.9, 0.2, 0.0, opacity);
-		const ImVec4 orange_color_brightest = ImVec4(0.9, 0.2, 0.0, opacity);
-		const ImVec4 dark_grey_color = ImVec4(0.1, 0.1, 0.1, opacity);
-		const ImVec4 lighter_grey_color = ImVec4(0.2, 0.2, 0.2, opacity);
-		const ImVec4 lightest_grey_color = ImVec4(0.3, 0.3, 0.3, opacity);
+		const ImVec4 orange_color = ImVec4(0.9f, 0.2f, 0.05f, opacity);
+		const ImVec4 orange_color_bright = ImVec4(0.9f, 0.2f, 0.0f, opacity);
+		const ImVec4 orange_color_brightest = ImVec4(0.9f, 0.2f, 0.0f, opacity);
+		const ImVec4 dark_grey_color = ImVec4(0.1f, 0.1f, 0.1f, opacity);
+		const ImVec4 lighter_grey_color = ImVec4(0.2f, 0.2f, 0.2f, opacity);
+		const ImVec4 lightest_grey_color = ImVec4(0.3f, 0.3f, 0.3f, opacity);
 		glm::vec2 file_explorer_window_size = { 750, 750 };
 	};
 }

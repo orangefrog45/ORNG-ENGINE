@@ -13,6 +13,7 @@
 #include "events/EventManager.h"
 #include "core/FrameTiming.h"
 #include "physics/Physics.h"
+#include "rendering/EnvMapLoader.h"
 
 
 namespace ORNG {
@@ -55,6 +56,7 @@ namespace ORNG {
 		GL_StateManager::InitGL();
 		Renderer::Init();
 		Physics::Init();
+		EnvMapLoader::Init();
 		SceneRenderer::Init();
 		editor_layer.Init();
 

@@ -8,7 +8,7 @@
 namespace ORNG {
 
 
-	SpotLightComponent* SpotlightComponentManager::GetComponent(unsigned long entity_id) {
+	SpotLightComponent* SpotlightComponentManager::GetComponent(uint64_t entity_id) {
 		auto it = std::find_if(m_spotlight_components.begin(), m_spotlight_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
 		return it == m_spotlight_components.end() ? nullptr : *it;
 	}
@@ -39,6 +39,7 @@ namespace ORNG {
 			DeleteComponent(p_light->GetEntity());
 		}
 
+		m_spotlight_components.clear();
 		glDeleteBuffers(1, &m_spotlight_ssbo_handle);
 	}
 
@@ -52,7 +53,7 @@ namespace ORNG {
 	void SpotlightComponentManager::OnUpdate() {
 
 
-		if (m_spotlight_components.size() == 0)
+		if (m_spotlight_components.empty())
 			return;
 
 		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
@@ -128,7 +129,7 @@ namespace ORNG {
 
 		auto* p_transform = p_entity->GetComponent<TransformComponent>();
 		SpotLightComponent* comp = new SpotLightComponent(p_entity, p_transform);
-		p_transform->update_callbacks[TransformComponent::CallbackType::SPOTLIGHT] = ([comp] {
+		p_transform->update_callbacks[TransformComponent::CallbackType::SPOTLIGHT] = ([comp](TransformComponent::UpdateType type) {
 			comp->UpdateLightTransform();
 			});
 
