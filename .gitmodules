@@ -32,3 +32,6 @@
 [submodule "OAR/extern/physx"]
 	path = OAR/extern/physx
 	url = https://github.com/NVIDIA-Omniverse/PhysX
+[submodule "OAR/extern/yaml"]
+	path = OAR/extern/yaml
+	url = https://github.com/jbeder/yaml-cpp
