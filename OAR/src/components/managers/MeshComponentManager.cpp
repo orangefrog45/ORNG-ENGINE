@@ -34,6 +34,10 @@ namespace ORNG {
 
 
 	void MeshComponentManager::DeleteComponent(SceneEntity* p_entity) {
+
+		if (!p_entity->GetComponent<MeshComponent>())
+			return;
+
 		MeshComponent* mesh = GetComponent(p_entity->GetID());
 		MeshInstanceGroup* group = mesh->mp_instance_group;
 
@@ -43,9 +47,9 @@ namespace ORNG {
 		auto* p_transform = p_entity->GetComponent<TransformComponent>();
 		p_transform->update_callbacks.erase(TransformComponent::CallbackType::MESH);
 
-		delete mesh;
 
 		m_mesh_components.erase(std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); }));
+		delete mesh;
 
 
 	}

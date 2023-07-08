@@ -45,11 +45,17 @@ namespace ORNG {
 
 
 
+	void Scene::DeleteEntity(SceneEntity* p_entity) {
+		auto it = std::ranges::find(m_entities, p_entity);
 
+		while (!p_entity->m_children.empty()) {
+			p_entity->mp_scene->DeleteEntity(p_entity->m_children[0]);
+		}
 
+		delete p_entity;
+		m_entities.erase(it);
 
-
-
+	}
 
 	ScriptComponent* Scene::AddScriptComponent(SceneEntity* p_entity) {
 		if (GetComponent<ScriptComponent>(p_entity->GetID())) {

@@ -73,13 +73,13 @@ namespace ORNG {
 		{
 			glfwPollEvents();
 			Events::EventManager::DispatchEvent(update_event);
+			Window::Update();
 
 			/* Render here */
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
 
 			FrameTiming::UpdateTimeStep();
-
 		}
 
 		// Cleanup

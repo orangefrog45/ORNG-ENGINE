@@ -90,7 +90,9 @@ namespace ORNG {
 
 		m_active_scene->LoadScene("scene.yml");
 
-
+		m_current_2d_tex_spec.wrap_params = GL_REPEAT;
+		m_current_2d_tex_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		m_current_2d_tex_spec.mag_filter = GL_LINEAR;
 
 
 		OAR_CORE_INFO("Editor layer initialized"); //add profiling func
@@ -152,12 +154,20 @@ namespace ORNG {
 			return;
 
 
-		SceneEntity* p_entity = m_active_scene->GetEntity(m_selected_entity_id);
 
-		if (p_entity && Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
+		if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
 			cooldown += 100;
-			DuplicateEntity(p_entity);
-			m_selected_entity_id = p_entity->GetID();
+
+			std::vector<uint64_t> duplicate_ids;
+			for (auto id : m_selected_entity_ids) {
+				SceneEntity* p_entity = m_active_scene->GetEntity(id);
+				if (!p_entity) continue;
+
+				DuplicateEntity(p_entity);
+				duplicate_ids.push_back(p_entity->GetID());
+			}
+
+			m_selected_entity_ids = duplicate_ids;
 		}
 
 	}
@@ -188,9 +198,21 @@ namespace ORNG {
 		ImGui::End();
 
 		ShowAssetManager();
-
 		RenderEditorWindow();
-		ImGui::ShowDemoWindow();
+
+		// Drag popup
+		if (mp_dragged_material) {
+			ImGui::SetNextWindowPos(ImVec2(25 + ImGui::GetMousePos().x, 25 + ImGui::GetMousePos().y));
+			ImGui::SetNextWindowSize(ImVec2(50, 50));
+			ImGui::SetNextWindowBgAlpha(0.25f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+			ImGui::Begin("##dragging", nullptr, ImGuiWindowFlags_::ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+			ImGui::Image(ImTextureID(mp_dragged_material->base_color_texture->GetTextureHandle()), ImVec2(50, 50));
+			ImGui::End();
+			ImGui::PopStyleVar();
+		}
+
+
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -217,6 +239,16 @@ namespace ORNG {
 			SceneSerializer::DeserializeEntity(*m_active_scene, entity, new_entity);
 		}
 
+		// Duplicate and link children
+		for (auto* p_child : p_original->m_children) {
+			auto* new_child_entity = DuplicateEntity(p_child);
+			new_child_entity->SetParent(&new_entity);
+		}
+
+		m_selected_entity_ids.push_back(new_entity.m_uuid());
+
+		return &new_entity;
+
 
 	}
 
@@ -228,7 +260,6 @@ namespace ORNG {
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
 
-		ImGui::SameLine();
 		if (ImGui::BeginPopup("my_select_popup"))
 		{
 			ImGui::SeparatorText("Create entity");
@@ -243,7 +274,8 @@ namespace ORNG {
 
 
 		auto* entity = p_entity ? p_entity : &m_active_scene->CreateEntity("New entity");
-		m_selected_entity_id = entity->GetID();
+		m_selected_entity_ids.clear();
+		m_selected_entity_ids.push_back(entity->GetID());
 		switch (selected_component) {
 		case 0:
 			entity->AddComponent<PointLightComponent>();
@@ -258,8 +290,6 @@ namespace ORNG {
 			entity->AddComponent<CameraComponent>();
 			break;
 		case 4:
-			// Add mesh component as this is required for physics comp, if one already exists this will be ignored
-			entity->AddComponent<MeshComponent>("res/meshes/sphere.fbx");
 			entity->AddComponent<PhysicsComponent>();
 			break;
 		}
@@ -345,29 +375,36 @@ namespace ORNG {
 		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
 		uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
 		delete[] pixels;
-		m_selected_entity_id = current_entity_id;
+
+		if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+			m_selected_entity_ids.clear();
+
+		if (std::ranges::find(m_selected_entity_ids, current_entity_id) == m_selected_entity_ids.end())
+			m_selected_entity_ids.push_back(current_entity_id);
 	}
 
 
 
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
-		auto* current_entity = m_active_scene->GetEntity(m_selected_entity_id);
+		for (auto id : m_selected_entity_ids) {
+			auto* current_entity = m_active_scene->GetEntity(id);
 
-		if (!current_entity)
-			return;
+			if (!current_entity)
+				return;
 
-		MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
+			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
 
-		if (!meshc)
-			return;
+			if (!meshc)
+				return;
 
-		mp_editor_pass_fb->Bind();
-		mp_highlight_shader->ActivateProgram();
-		mp_highlight_shader->SetUniform("transform", meshc->p_transform->GetMatrix());
+			mp_editor_pass_fb->Bind();
+			mp_highlight_shader->ActivateProgram();
+			mp_highlight_shader->SetUniform("transform", meshc->p_transform->GetMatrix());
 
-		for (int i = 0; i < meshc->GetMeshData()->m_submeshes.size(); i++) {
-			Renderer::DrawSubMesh(meshc->GetMeshData(), i);
+			for (int i = 0; i < meshc->GetMeshData()->m_submeshes.size(); i++) {
+				Renderer::DrawSubMesh(meshc->GetMeshData(), i);
+			}
 		}
 
 	}
@@ -593,13 +630,23 @@ namespace ORNG {
 						if (ImGui::Selectable("Delete")) {
 							deletion_flag = true;
 						}
+						if (ImGui::Selectable("Duplicate")) {
+							auto* p_new_material = m_active_scene->CreateMaterial();
+							*p_new_material = *p_material;
+						}
 						ImGui::EndPopup();
 					}
 					// End deletion popup
 
-					if (ImGui::IsItemActivated()) {
-						mp_dragged_material = p_material;
+					if (ImGui::IsItemActive()) {
+						if (!ImGui::IsItemHovered())
+							mp_dragged_material = p_material;
+
+						mp_selected_material = p_material;
 					}
+
+					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+						mp_dragged_material = nullptr;
 
 					ImGui::Text(p_material->name.c_str());
 
@@ -628,20 +675,22 @@ namespace ORNG {
 	void EditorLayer::RenderTextureEditorSection() {
 
 		if (H1TreeNode("Texture editor")) {
-			ImGui::SameLine();
-			if (ImGui::Button("X")) {
-				mp_selected_texture = nullptr;
+
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+				// Hide this tree node
 				ImGui::TreePop();
+				mp_selected_texture = nullptr;
 				return;
 			}
 
 			ImGui::Text(mp_selected_texture->GetSpec().filepath.c_str());
 
 			const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
-			const char* filter_modes[] = { "NEAREST", "LINEAR" };
+			const char* filter_modes[] = { "LINEAR", "NEAREST" };
 			static int selected_wrap_mode = m_current_2d_tex_spec.wrap_params == GL_REPEAT ? 0 : 1;
-			static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_NEAREST ? 0 : 1;
+			static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_LINEAR ? 0 : 1;
 
+			ImGui::Checkbox("SRGB", &m_current_2d_tex_spec.srgb_space);
 
 			ImGui::Text("Wrap mode");
 			ImGui::SameLine();
@@ -651,8 +700,8 @@ namespace ORNG {
 			ImGui::Text("Filtering");
 			ImGui::SameLine();
 			ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
-			m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR;
-			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_NEAREST : GL_LINEAR_MIPMAP_LINEAR;
+			m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_LINEAR : GL_NEAREST;
+			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST;
 
 			m_current_2d_tex_spec.generate_mipmaps = true;
 
@@ -668,14 +717,14 @@ namespace ORNG {
 	void EditorLayer::RenderMaterialEditorSection() {
 
 		if (H1TreeNode("Material editor")) {
-			ImGui::SameLine();
 
-
-			if (ImGui::SmallButton("X")) {
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+				// Hide this tree node
 				mp_selected_material = nullptr;
 				ImGui::TreePop();
 				return;
 			}
+
 
 			ImGui::Text("Name: ");
 			ImGui::SameLine();
@@ -723,6 +772,103 @@ namespace ORNG {
 
 
 
+	void EditorLayer::RenderEntityNode(SceneEntity* p_entity) {
+
+		bool colour_pushed = false;
+		// Make selected entities highlighted orange
+		if (!m_selected_entity_ids.empty() && VectorContains(m_selected_entity_ids, p_entity->GetID())) {
+			ImGui::PushStyleColor(ImGuiCol_Text, orange_color);
+			colour_pushed = true;
+		}
+
+		// Setup display name with icons
+		static std::string formatted_name;
+		if (ImGui::IsItemVisible()) {
+			formatted_name += p_entity->GetComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
+			formatted_name += p_entity->GetComponent<PhysicsComponent>() ? " " ICON_FA_WIND : "";
+			formatted_name += p_entity->GetComponent<PointLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
+			formatted_name += p_entity->GetComponent<SpotLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
+			formatted_name += p_entity->GetComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";
+			formatted_name += " ";
+			formatted_name += p_entity->name;
+		}
+
+		ImGui::PushID(p_entity);
+		bool is_tree_node_open = false;
+		is_tree_node_open = ImGui::TreeNode(formatted_name.c_str());
+		std::string popup_name = std::format("{}", p_entity->GetID());
+
+
+		if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
+			m_selected_entities_are_dragged = true;
+		}
+
+
+		if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
+				for (auto id : m_selected_entity_ids) {
+					auto* p_looped_entity = m_active_scene->GetEntity(id);
+					p_looped_entity->SetParent(p_entity);
+				}
+			}
+
+			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2))
+				ImGui::OpenPopup(popup_name.c_str());
+		}
+
+		if (colour_pushed) // Pop here to stop the popup being coloured orange
+			ImGui::PopStyleColor();
+
+		if (ImGui::BeginPopup(popup_name.c_str()))
+		{
+			ImGui::SeparatorText("Options");
+			if (ImGui::Selectable("Delete")) {
+
+				for (auto id : m_selected_entity_ids) {
+					m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
+				}
+				m_selected_entity_ids.clear();
+
+				ImGui::EndPopup();
+				ImGui::PopID();
+				return;
+			}
+
+			if (ImGui::Selectable("Duplicate")) {
+				m_selected_entity_ids.clear(); // Clear here so only the new duplicates are selected, not the old originals.
+				for (auto id : m_selected_entity_ids) {
+					DuplicateEntity(m_active_scene->GetEntity(id));
+				}
+			}
+
+			ImGui::EndPopup();
+		}
+
+
+		if (p_entity && is_tree_node_open) {
+
+			for (auto* p_child : p_entity->m_children) {
+				RenderEntityNode(p_child);
+			}
+			ImGui::TreePop();
+		}
+
+
+
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) { // Doing this instead of IsActive() because IsActive wont trigger if ctrl is held down
+			if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+				m_selected_entity_ids.clear();
+
+			m_selected_entity_ids.push_back(p_entity->GetID());
+		}
+
+		formatted_name.clear();
+
+		ImGui::PopID();
+		return;
+	}
+
+
 
 	void EditorLayer::RenderSceneGraph() {
 		if (ImGui::Button("Save")) {
@@ -733,6 +879,7 @@ namespace ORNG {
 			mp_selected_material = nullptr;
 			mp_selected_texture = nullptr;
 			mp_dragged_texture = nullptr;
+			m_selected_entity_ids.clear();
 
 			m_active_scene->UnloadScene();
 			m_active_scene->LoadScene("scene.yml");
@@ -745,82 +892,51 @@ namespace ORNG {
 			ImGui::Text("Editor cam exposure");
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->exposure, 0.f, 10.f);
 
-			RenderDirectionalLightEditor();
-			RenderGlobalFogEditor();
-			RenderTerrainEditor();
+
 			if (H2TreeNode("Entities")) {
 				for (auto* p_entity : m_active_scene->m_entities) {
 					if (p_entity->GetParent())
 						continue;
 
-					ImGui::PushID(p_entity);
-
-					bool colour_pushed = false;
-					if (m_selected_entity_id == p_entity->GetID()) {
-						ImGui::PushStyleColor(ImGuiCol_Text, orange_color);
-						colour_pushed = true;
-					}
-
-					static std::string formatted_name;
-
-					if (ImGui::IsItemVisible()) {
-						formatted_name += p_entity->GetComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
-						formatted_name += p_entity->GetComponent<PhysicsComponent>() ? " " ICON_FA_WIND : "";
-						formatted_name += p_entity->GetComponent<PointLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
-						formatted_name += p_entity->GetComponent<SpotLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
-						formatted_name += p_entity->GetComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";
-						formatted_name += " ";
-						formatted_name += p_entity->name;
-					}
-
-
-					if (p_entity && ImGui::TreeNode(formatted_name.c_str())) {
-						auto* p_transform = p_entity->GetComponent<TransformComponent>();
-						for (auto* p_child : p_entity->m_children) {
-							if (ImGui::TreeNode(p_child->name.c_str()))
-								ImGui::TreePop();
-						}
-						ImGui::TreePop();
-					}
-
-					if (ImGui::IsItemActive())
-						m_selected_entity_id = p_entity->GetID();
-
-					formatted_name.clear();
-
-					if (colour_pushed) {
-						ImGui::PopStyleColor();
-					}
-
-					ImGui::PopID();
+					RenderEntityNode(p_entity);
 				}
 			}
+
+			RenderDirectionalLightEditor();
+			RenderGlobalFogEditor();
+			RenderTerrainEditor();
+
 		}
+
+
 	}
 
 
 
 
 	void EditorLayer::DisplayEntityEditor() {
-		auto entity = m_active_scene->GetEntity(m_selected_entity_id);
+		auto entity = m_active_scene->GetEntity(m_selected_entity_ids.empty() ? 0 : m_selected_entity_ids[0]);
 		if (!entity) return;
 
 		auto meshc = entity->GetComponent<MeshComponent>();
 		auto plight = entity->GetComponent<PointLightComponent>();
 		auto slight = entity->GetComponent<SpotLightComponent>();
 		auto p_cam = entity->GetComponent<CameraComponent>();
-		auto p_transform = entity->GetComponent<TransformComponent>();
 		auto p_physics_comp = entity->GetComponent<PhysicsComponent>();
 
-
+		std::vector<TransformComponent*> transforms;
+		for (auto id : m_selected_entity_ids) {
+			transforms.push_back(m_active_scene->GetEntity(id)->GetComponent<TransformComponent>());
+		}
 		if (H1TreeNode("Entity editor")) {
 			std::string ent_text = std::format("Entity '{}'", entity->name);
+			ImGui::InputText("Name", &entity->name);
 			ImGui::Text(ent_text.c_str());
 
 
 			//TRANSFORM
 			if (H2TreeNode("Entity transform")) {
-				RenderTransformComponentEditor(p_transform);
+				RenderTransformComponentEditor(transforms);
 			}
 
 
@@ -910,6 +1026,25 @@ namespace ORNG {
 
 	// EDITORS ------------------------------------------------------------------------
 
+	void EditorLayer::RenderPhysicsMaterial(PxMaterial* p_material) {
+		float restitution = p_material->getRestitution();
+		if (ClampedFloatInput("Restitution", &restitution, 0.f, 1.f)) {
+			p_material->setRestitution(restitution);
+		}
+
+		float dynamic_friction = p_material->getDynamicFriction();
+		if (ClampedFloatInput("Dynamic friction", &dynamic_friction, 0.f, 1.f)) {
+			p_material->setDynamicFriction(dynamic_friction);
+		}
+
+		float static_friction = p_material->getStaticFriction();
+		if (ClampedFloatInput("Static friction", &static_friction, 0.f, 1.f)) {
+			p_material->setStaticFriction(static_friction);
+		}
+	}
+
+
+
 
 	void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {
 		ImGui::SeparatorText("Collider geometry");
@@ -917,78 +1052,70 @@ namespace ORNG {
 		if (ImGui::RadioButton("Box", p_comp->geometry_type == PhysicsComponent::BOX)) {
 			p_comp->UpdateGeometry(PhysicsComponent::BOX);
 		}
-
 		ImGui::SameLine();
-
 		if (ImGui::RadioButton("Sphere", p_comp->geometry_type == PhysicsComponent::SPHERE)) {
 			p_comp->UpdateGeometry(PhysicsComponent::SPHERE);
 		}
+		ImGui::SameLine();
+		if (ImGui::RadioButton("Mesh", p_comp->geometry_type == PhysicsComponent::TRIANGLE_MESH)) {
+			p_comp->UpdateGeometry(PhysicsComponent::TRIANGLE_MESH);
+		}
 
-		ImGui::SeparatorText("Collider behaviour");
+
+		ImGui::SeparatorText("Collider behaviour"); // Currently don't support dynamic triangle meshes
 		if (ImGui::RadioButton("Dynamic", p_comp->rigid_body_type == PhysicsComponent::DYNAMIC)) {
 			p_comp->SetBodyType(PhysicsComponent::DYNAMIC);
 		}
-		ImGui::SameLine();
 		if (ImGui::RadioButton("Static", p_comp->rigid_body_type == PhysicsComponent::STATIC)) {
 			p_comp->SetBodyType(PhysicsComponent::STATIC);
 		}
 
-		float restitution = p_comp->p_material->getRestitution();
-		if (ClampedFloatInput("Restitution", &restitution, 0.f, 1.f)) {
-			p_comp->p_material->setRestitution(restitution);
-		}
 
-		float dynamic_friction = p_comp->p_material->getDynamicFriction();
-		if (ClampedFloatInput("Dynamic friction", &dynamic_friction, 0.f, 1.f)) {
-			p_comp->p_material->setDynamicFriction(dynamic_friction);
-		}
-
-		float static_friction = p_comp->p_material->getStaticFriction();
-		if (ClampedFloatInput("Static friction", &static_friction, 0.f, 1.f)) {
-			p_comp->p_material->setStaticFriction(static_friction);
-		}
-
+		RenderPhysicsMaterial(p_comp->p_material);
 
 	}
 
-	void EditorLayer::RenderTransformComponentEditor(TransformComponent* p_transform) {
+
+
+
+	void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms) {
 
 
 		static bool render_gizmos = true;
 
 		ImGui::Checkbox("Gizmos", &render_gizmos);
 
-		static bool absolute_mode = true;
+		static bool absolute_mode = false;
 
 		if (ImGui::Checkbox("Absolute", &absolute_mode)) {
-			p_transform->SetAbsoluteMode(absolute_mode);
+			transforms[0]->SetAbsoluteMode(absolute_mode);
 		}
 
+		glm::vec3 matrix_translation = transforms[0]->m_pos;
+		glm::vec3 matrix_rotation = transforms[0]->m_rotation;
+		glm::vec3 matrix_scale = transforms[0]->m_scale;
 
-		glm::vec3 matrix_translation = p_transform->m_pos;
-		glm::vec3 matrix_rotation = p_transform->m_rotation;
-		glm::vec3 matrix_scale = p_transform->m_scale;
-
-
+		// UI section
 		if (ShowVec3Editor("Tr", matrix_translation))
-			p_transform->SetPosition(matrix_translation);
+			std::ranges::for_each(transforms, [matrix_translation](TransformComponent* p_transform) {p_transform->SetPosition(matrix_translation); });
 
 		if (ShowVec3Editor("Rt", matrix_rotation))
-			p_transform->SetOrientation(matrix_rotation);
+			std::ranges::for_each(transforms, [matrix_rotation](TransformComponent* p_transform) {p_transform->SetOrientation(matrix_rotation); });
 
 		if (ShowVec3Editor("Sc", matrix_scale))
-			p_transform->SetScale(matrix_scale);
+			std::ranges::for_each(transforms, [matrix_scale](TransformComponent* p_transform) {p_transform->SetScale(matrix_scale); });
+
 
 		if (!render_gizmos)
 			return;
 
+		// Gizmos 
 		ImGuiIO& io = ImGui::GetIO();
 		ImGuizmo::BeginFrame();
 		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
-
 
 
 		if (Window::IsKeyDown(GLFW_KEY_1))
@@ -1005,30 +1132,47 @@ namespace ORNG {
 		if (ImGui::RadioButton("Local", current_mode == ImGuizmo::LOCAL))
 			current_mode = ImGuizmo::LOCAL;
 
-		glm::mat4 current_operation_matrix = p_transform->GetMatrix();
+		glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
+		static glm::mat4 delta_matrix;
+		if (ImGuizmo::Manipulate(&m_active_scene->m_camera_system.p_active_camera->GetViewMatrix()[0][0], &m_active_scene->m_camera_system.p_active_camera->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 
-		if (ImGuizmo::Manipulate(&m_active_scene->m_camera_system.p_active_camera->GetViewMatrix()[0][0], &m_active_scene->m_camera_system.p_active_camera->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], nullptr, nullptr) && ImGuizmo::IsUsing()) {
+			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
-			ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
-			auto abs_transforms = p_transform->GetAbsoluteTransforms();
-			glm::vec3 abs_translation = abs_transforms[0];
-			glm::vec3 abs_scale = abs_transforms[1];
-			glm::vec3 abs_rotation = abs_transforms[2];
+			auto base_abs_transforms = transforms[0]->GetAbsoluteTransforms();
+			glm::vec3 base_abs_translation = base_abs_transforms[0];
+			glm::vec3 base_abs_scale = base_abs_transforms[1];
+			glm::vec3 base_abs_rotation = base_abs_transforms[2];
 
-			switch (current_operation) {
-			case ImGuizmo::TRANSLATE:
-				glm::vec3 new_pos = p_transform->m_is_absolute ? matrix_translation : matrix_translation - (abs_translation - p_transform->GetPosition());
-				p_transform->SetPosition(new_pos);
-				break;
-			case ImGuizmo::SCALE:
-				glm::vec3 new_scale = p_transform->m_is_absolute ? matrix_scale : matrix_scale / (abs_scale / p_transform->GetScale());
-				p_transform->SetScale(new_scale);
-				break;
-			case ImGuizmo::ROTATE:
-				glm::vec3 new_orientation = p_transform->m_is_absolute ? matrix_rotation : matrix_rotation - (abs_rotation - p_transform->GetRotation());
-				p_transform->SetOrientation(new_orientation);
-				break;
+			glm::vec3 delta_translation = matrix_translation;
+			glm::vec3 delta_scale = matrix_scale;
+			glm::vec3 delta_rotation = matrix_rotation;
+
+			for (auto* p_transform : transforms) {
+
+				auto current_transforms = p_transform->GetAbsoluteTransforms();
+				switch (current_operation) {
+				case ImGuizmo::TRANSLATE:
+					p_transform->SetPosition(p_transform->GetPosition() + delta_translation);
+					break;
+				case ImGuizmo::SCALE:
+					p_transform->SetScale(p_transform->GetScale() * delta_scale);
+					glm::vec3 relative_pos = current_transforms[0] - base_abs_translation;
+					p_transform->SetPosition(relative_pos * delta_scale);
+					break;
+				case ImGuizmo::ROTATE: // This will rotate multiple objects as one
+					glm::vec3 abs_rotation = current_transforms[2];
+					glm::mat4 new_rotation_mat = ExtraMath::Init3DRotateTransform(delta_rotation.x, delta_rotation.y, delta_rotation.z) * ExtraMath::Init3DRotateTransform(abs_rotation.x, abs_rotation.y, abs_rotation.z);
+					ImGuizmo::DecomposeMatrixToComponents(&new_rotation_mat[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
+					p_transform->SetOrientation(matrix_rotation);
+
+					glm::vec3 abs_translation = current_transforms[0];
+					glm::vec3 transformed_pos = abs_translation - base_abs_translation;
+					glm::vec3 rotation_offset = glm::mat3(ExtraMath::Init3DRotateTransform(delta_rotation.x, delta_rotation.y, delta_rotation.z)) * transformed_pos; // rotate around transformed origin
+					p_transform->SetPosition(base_abs_translation + rotation_offset);
+					break;
+				}
+
 			}
 		};
 
@@ -1042,18 +1186,30 @@ namespace ORNG {
 		for (int i = 0; i < comp->m_materials.size(); i++) {
 			auto p_material = comp->m_materials[i];
 			ImGui::PushID(i);
+
+			if (mp_dragged_material) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1, 1, 1, 1));
+			}
+
+
 			if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->GetTextureHandle()), ImVec2(100, 100))) {
 				mp_selected_material = m_active_scene->GetMaterial(p_material->uuid());
 			};
 
 			if (ImGui::IsItemHovered() && mp_dragged_material) {
 				comp->SetMaterialID(i, mp_dragged_material);
+				ImGui::PopStyleColor();
 				mp_dragged_material = nullptr;
+			}
+
+			if (mp_dragged_material) {
+				ImGui::PopStyleColor();
 			}
 
 			ImGui::Text(p_material->name.c_str());
 			ImGui::PopID();
 		}
+
 
 		ImGui::PopID();
 	};

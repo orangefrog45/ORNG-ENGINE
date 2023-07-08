@@ -12,7 +12,14 @@ namespace ORNG {
 			return p_existing;
 		}
 
-		auto* p_comp = new CameraComponent(p_entity, this, p_entity->GetComponent<TransformComponent>());
+		auto* p_transform = p_entity->GetComponent<TransformComponent>();
+		auto* p_comp = new CameraComponent(p_entity, this, p_transform);
+
+		p_transform->update_callbacks[TransformComponent::CallbackType::CAMERA] = [p_transform, p_comp](TransformComponent::UpdateType type) {
+			glm::vec3 rot = p_transform->GetAbsoluteTransforms()[2];
+			p_comp->target = glm::normalize(glm::mat3(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z)) * glm::vec3(0, 0, -1.f)); // temporary fix to spin issue
+		};
+
 		m_camera_components.push_back(p_comp);
 	}
 
@@ -30,10 +37,9 @@ namespace ORNG {
 	void CameraSystem::DeleteComponent(SceneEntity* p_entity) {
 		auto it = std::find_if(m_camera_components.begin(), m_camera_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); });
 
-		if (it == m_camera_components.end()) {
-			OAR_CORE_WARN("No camera component found in entity with id '{0}', DeleteComponent failed", p_entity->GetID());
+		if (it == m_camera_components.end())
 			return;
-		}
+
 
 		m_camera_components.erase(it);
 	}

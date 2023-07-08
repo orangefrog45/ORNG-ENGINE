@@ -238,13 +238,15 @@ float noise(vec3 pos) {
 	return f;
 }
 
+
+
 void main() {
 	// Tex coords in range (0, 0), (screen width, screen height)
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy) * 2; //multiplication by 2 as fog texture at half resolution
 
-	const float noise_coord_scale_factor = 0.5f;
-	float noise_offset = texture(blue_noise_sampler, tex_coords.xy / (textureSize(blue_noise_sampler, 0) + 0.000001f) * noise_coord_scale_factor).r; // division as for some reason wrapping isn't working, so have to normalize coords manually
+	float noise_offset = texelFetch(blue_noise_sampler, (tex_coords.xy / 2) % textureSize(blue_noise_sampler, 0), 0).r;
 	vec3 frag_world_pos = texelFetch(world_position_sampler, tex_coords, 0).xyz;
+
 
 	vec3 CameraComponent_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
 	float CameraComponent_to_pos_dist = length(CameraComponent_to_frag);
@@ -253,18 +255,25 @@ void main() {
 
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords, 0).r;
 	vec3 ray_dir = normalize(frag_world_pos - ubo_common.camera_pos.xyz);
+
 	vec3 step_pos = ubo_common.camera_pos.xyz + ray_dir * noise_offset * step_distance;
+
+	step_distance = length(step_pos - frag_world_pos) / u_step_count;
+
 
 
 	float transmittance = 1.0;
 	vec3 luminance = vec3(0.0f);
 	float extinction_coef = u_absorption_coef + u_scattering_coef;
 
+
+
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 2000.f;
+		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
 		float fog_density = noise(fog_sampling_coords);
 		fog_density += 0.5f * u_density_coef;
+		fog_density *= exp(-step_pos.y * 0.01);
 
 
 		vec3 in_scattering = vec3(0);

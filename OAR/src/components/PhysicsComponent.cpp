@@ -3,6 +3,7 @@
 #include "physics/Physics.h"
 #include "scene/SceneEntity.h"
 #include "glm/glm/gtc/quaternion.hpp"
+#include "components/ComponentManagers.h"
 
 namespace ORNG {
 
@@ -23,91 +24,77 @@ namespace ORNG {
 		p_material = t_p_material;
 		p_material->acquireReference();
 
-		if (type == DYNAMIC) {
-			p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(half_extents.x, half_extents.y, half_extents.z), *p_material);
-			p_shape->acquireReference();
-			p_rigid_dynamic = PxCreateDynamic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_shape, 1.f);
-			p_scene->addActor(*p_rigid_dynamic);
-		}
-		else {
-			p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(half_extents.x, half_extents.y, half_extents.z), *p_material);
-			p_shape->acquireReference();
-			p_rigid_static = PxCreateStatic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_shape);
-			p_scene->addActor(*p_rigid_static);
-		}
+		p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(half_extents.x, half_extents.y, half_extents.z), *p_material);
+		p_shape->acquireReference();
+
+		if (type == DYNAMIC)
+			p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_shape, 1.f);
+		else
+			p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_shape);
+
+		p_scene->addActor(*p_rigid_actor);
 		rigid_body_type = type;
 	}
 
+
+
 	void PhysicsComponent::SetBodyType(RigidBodyType type) {
-		if (rigid_body_type == DYNAMIC && type == STATIC) {
-			PxTransform current_transform = p_rigid_dynamic->getGlobalPose();
-			p_scene->removeActor(*p_rigid_dynamic);
-			p_rigid_dynamic->release();
-			p_rigid_dynamic = nullptr;
+		PxTransform current_transform = p_rigid_actor->getGlobalPose();
+		p_scene->removeActor(*p_rigid_actor);
+		p_rigid_actor->release();
 
-			p_rigid_static = PxCreateStatic(*Physics::GetPhysics(), current_transform, *p_shape);
-			p_scene->addActor(*p_rigid_static);
-
+		if (type == STATIC) {
+			p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), current_transform, *p_shape);
 			rigid_body_type = STATIC;
 		}
-		else if (rigid_body_type == STATIC && type == DYNAMIC) {
-			PxTransform current_transform = p_rigid_static->getGlobalPose();
-			p_scene->removeActor(*p_rigid_static);
-			p_rigid_static->release();
-			p_rigid_static = nullptr;
-
-			p_rigid_dynamic = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_shape, 1.f);
-			p_scene->addActor(*p_rigid_dynamic);
-
+		else if (type == DYNAMIC) {
+			p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_shape, 1.f);
 			rigid_body_type = DYNAMIC;
 		}
+		p_scene->addActor(*p_rigid_actor);
 	}
 
 
 	void PhysicsComponent::UpdateGeometry(GeometryType type) {
-
-		const AABB& aabb = GetEntity()->GetComponent<MeshComponent>()->GetMeshData()->GetAABB();
-		glm::vec3 scale_factor = GetEntity()->GetComponent<TransformComponent>()->GetScale();
+		auto* p_mesh_comp = GetEntity()->GetComponent<MeshComponent>();
+		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
+		glm::vec3 scale_factor = mp_transform->GetAbsoluteTransforms()[1];
 		glm::vec3 scaled_extents = aabb.max * scale_factor;
+		float radius = glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z);
 
-		if (type == SPHERE) {
-			float radius = glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z);
+
+		switch (type) {
+		case SPHERE:
 			p_shape->release();
 			p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(radius), *p_material);
-		}
-		else {
+			break;
+		case BOX:
 			p_shape->release();
 			p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_material);
+			break;
+		case TRIANGLE_MESH:
+			auto* p_mesh = GetEntity()->GetComponent<MeshComponent>();
+
+			if (!p_mesh)
+				return;
+
+			p_shape->release();
+			PxTriangleMesh* aTriangleMesh = mp_system->GetOrCreateTriangleMesh(p_mesh->GetMeshData());
+			p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_material);
+			break;
 		}
 
-		if (rigid_body_type == DYNAMIC) {
-			PxTransform prev_transform = p_rigid_dynamic->getGlobalPose();
-			p_scene->removeActor(*p_rigid_dynamic);
-			p_rigid_dynamic->release();
-			p_rigid_dynamic = PxCreateDynamic(*Physics::GetPhysics(), prev_transform, *p_shape, 1.f);
-			p_scene->addActor(*p_rigid_dynamic);
-		}
-		else {
-			PxTransform prev_transform = p_rigid_static->getGlobalPose();
-			p_scene->removeActor(*p_rigid_static);
-			p_rigid_static->release();
-			p_rigid_static = PxCreateStatic(*Physics::GetPhysics(), prev_transform, *p_shape);
-			p_scene->addActor(*p_rigid_static);
-		}
+		p_shape->acquireReference();
+		// Has to be set to static with triangle meshes as currently don't support dynamic triangle meshes
+		SetBodyType(type == TRIANGLE_MESH ? STATIC : rigid_body_type);
 
 		geometry_type = type;
 	}
 
 
 	PhysicsComponent::~PhysicsComponent() {
-		if (p_rigid_dynamic) {
-			p_scene->removeActor(*p_rigid_dynamic);
-			p_rigid_dynamic->release();
-		}
-		else if (p_rigid_static) {
-			p_scene->removeActor(*p_rigid_static);
-			p_rigid_static->release();
-		}
+		p_scene->removeActor(*p_rigid_actor);
+		p_rigid_actor->release();
 
 		p_shape->release();
 		p_material->release();

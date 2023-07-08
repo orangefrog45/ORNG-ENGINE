@@ -6,6 +6,12 @@ MeshAssets:
   - MeshAsset: 13596816166408680387
     Filepath: ./res/meshes/cube/cube.obj
     Materials: [17756220362776955293, 3085627255703089825]
+  - MeshAsset: 4755760463844602325
+    Filepath: res/meshes/sphere.fbx
+    Materials: [4156195398725669725]
+  - MeshAsset: 2202203897687849125
+    Filepath: ./res/meshes/house-draft/source/house.fbx
+    Materials: [4161603824170642741, 18093282573209191992, 5404196547176133225, 11496536981107087271, 5999821852077799745, 1806521533785147111, 14480835826883089740, 7458139438022512288, 5989742992572474775]
 TextureAssets:
   - TextureAsset: 1
     Filepath: ./res/textures/missing_texture.png
@@ -31,18 +37,73 @@ TextureAssets:
     Min filter: 9987
     Mag filter: 9729
     SRGB: false
+  - TextureAsset: 14965370464375891373
+    Filepath: ./res/textures/terrain/textures/coast_sand_rocks_02_ao_2k.jpg
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: false
+  - TextureAsset: 13718377806306517607
+    Filepath: ./res/textures/terrain/textures/coast_sand_rocks_02_arm_2k.jpg
+    Wrap mode: 10497
+    Min filter: 0
+    Mag filter: 0
+    SRGB: false
+  - TextureAsset: 17216373081450471302
+    Filepath: ./res/textures/terrain/textures/coast_sand_rocks_02_diff_2k.jpg
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: true
+  - TextureAsset: 15364069780920529341
+    Filepath: ./res/textures/terrain/textures/coast_sand_rocks_02_disp_2k.jpg
+    Wrap mode: 10497
+    Min filter: 0
+    Mag filter: 0
+    SRGB: false
+  - TextureAsset: 9191974273591538652
+    Filepath: ./res/textures/terrain/textures/coast_sand_rocks_02_nor_gl_2k.jpg
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: false
+  - TextureAsset: 14966746890781031335
+    Filepath: ./res/textures/terrain/textures/coast_sand_rocks_02_rough_2k.jpg
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: false
+  - TextureAsset: 13438218045324103121
+    Filepath: ./res/textures/rock/strata-rock1_height.png
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: false
+  - TextureAsset: 4651588225469668750
+    Filepath: ./res/textures/rock/strata-rock1_normal-ogl.png
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: false
+  - TextureAsset: 14392025104970989700
+    Filepath: ./res/textures/rock/strata-rock1_albedo.png
+    Wrap mode: 10497
+    Min filter: 9987
+    Mag filter: 9729
+    SRGB: true
 Materials:
   - SceneMaterial: 16353872488815962576
     Name: Terrain
-    Base colour texture: 1
-    Normal texture: 0
+    Base colour texture: 17216373081450471302
+    Normal texture: 9191974273591538652
     AO texture: 0
     Metallic texture: 0
     Roughness texture: 0
     Base colour: [1, 1, 1]
-    Metallic: 0
-    Roughness: 0.200000003
+    Metallic: 1
+    Roughness: 0.519999981
     AO: 0.200000003
+    TileScale: [100, 100]
   - SceneMaterial: 3289949930858735320
     Name: smoothsphere.fbx - 0
     Base colour texture: 1
@@ -50,21 +111,23 @@ Materials:
     AO texture: 0
     Metallic texture: 0
     Roughness texture: 0
-    Base colour: [1, 0, 0]
-    Metallic: 0
-    Roughness: 0.712000012
+    Base colour: [0, 1, 1]
+    Metallic: 1
+    Roughness: 0.123000003
     AO: 0.200000003
+    TileScale: [1, 1]
   - SceneMaterial: 17756220362776955293
     Name: cube.obj - 0
-    Base colour texture: 1
-    Normal texture: 0
+    Base colour texture: 14392025104970989700
+    Normal texture: 4651588225469668750
     AO texture: 0
     Metallic texture: 0
     Roughness texture: 0
     Base colour: [1, 1, 1]
-    Metallic: 1
-    Roughness: 0.057
+    Metallic: 0
+    Roughness: 0.697000027
     AO: 0.200000003
+    TileScale: [100, 600]
   - SceneMaterial: 3085627255703089825
     Name: cube.obj - 1
     Base colour texture: 1
@@ -76,6 +139,7 @@ Materials:
     Metallic: 0
     Roughness: 0.200000003
     AO: 0.200000003
+    TileScale: [1, 1]
   - SceneMaterial: 16345576131346677454
     Name: Unnamed material
     Base colour texture: 1
@@ -87,12 +151,133 @@ Materials:
     Metallic: 0
     Roughness: 0.200000003
     AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 4156195398725669725
+    Name: sphere.fbx - 0
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.200000003
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 4161603824170642741
+    Name: house.fbx - 0
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 1
+    Roughness: 0.057
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 18093282573209191992
+    Name: house.fbx - 1
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.748767197
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 5404196547176133225
+    Name: house.fbx - 2
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.853286624
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 11496536981107087271
+    Name: house.fbx - 3
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.853286624
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 5999821852077799745
+    Name: house.fbx - 4
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.200000003
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 1806521533785147111
+    Name: house.fbx - 5
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.748767197
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 14480835826883089740
+    Name: house.fbx - 6
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.853286624
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 7458139438022512288
+    Name: house.fbx - 7
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.745941997
+    AO: 0.200000003
+    TileScale: [1, 1]
+  - SceneMaterial: 5989742992572474775
+    Name: house.fbx - 8
+    Base colour texture: 1
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Base colour: [1, 0, 0]
+    Metallic: 1
+    Roughness: 0.00400000019
+    AO: 0.200000003
+    TileScale: [1, 1]
 Entities:
   - Entity: 13704918059613175019
-    Name: Name
+    Name: tower
     ParentID: 0
     TransformComp:
-      Pos: [-4.29962492, 214.023285, 495.572021]
+      Pos: [-4.29962492, 40.8037109, 82.9980316]
       Scale: [1, 1, 1]
       Orientation: [0, -0, -14.9141626]
   - Entity: 17745269141147431481
@@ -50019,9 +50204,9 @@ Entities:
     Name: Name
     ParentID: 0
     TransformComp:
-      Pos: [16.0228043, 7.44801903, 10.4242172]
-      Scale: [51.8654823, 1.69207084, 634.551636]
-      Orientation: [-8.76532745, 20.1725502, 66.3165588]
+      Pos: [1.38450217, 5.56464243, -192.465118]
+      Scale: [10.3834734, 0.338752717, 199.321609]
+      Orientation: [90, 0, 90]
     MeshComp:
       MeshAssetID: 13596816166408680387
       Materials: [17756220362776955293, 17756220362776955293]
@@ -50032,34 +50217,21 @@ Entities:
     Name: Name - Duplicate
     ParentID: 0
     TransformComp:
-      Pos: [0, -12, 0]
-      Scale: [1000, 10, 1000]
+      Pos: [0, 0, 0]
+      Scale: [200.199982, 2.00199986, 200.199982]
       Orientation: [0, 0, 0]
     MeshComp:
       MeshAssetID: 13596816166408680387
-      Materials: [17756220362776955293, 1]
+      Materials: [17756220362776955293, 16353872488815962576]
     PhysicsComp:
       RigidBodyType: 0
       GeometryType: 0
-  - Entity: 8807770171128719521
-    Name: Name - Duplicate
+  - Entity: 14743011128025662198
+    Name: some name
     ParentID: 0
     TransformComp:
-      Pos: [0, -12, 0]
-      Scale: [1000, 10, 1000]
-      Orientation: [0, 0, 0]
-    MeshComp:
-      MeshAssetID: 13596816166408680387
-      Materials: [17756220362776955293, 1]
-    PhysicsComp:
-      RigidBodyType: 0
-      GeometryType: 0
-  - Entity: 9642407980175542094
-    Name: Name - Duplicate
-    ParentID: 0
-    TransformComp:
-      Pos: [0, 7.44801903, 10.4242172]
-      Scale: [46.7762222, 1.52603793, 566.477478]
+      Pos: [0, 0, 0]
+      Scale: [9.35524654, 0.30520767, 113.295525]
       Orientation: [-21.922554, -0, 0]
     MeshComp:
       MeshAssetID: 13596816166408680387
@@ -50067,16 +50239,83 @@ Entities:
     PhysicsComp:
       RigidBodyType: 0
       GeometryType: 0
-  - Entity: 17247270499961444279
-    Name: Name - Duplicate
+  - Entity: 8413114781163773325
+    Name: way better name
     ParentID: 0
     TransformComp:
-      Pos: [-22.8291054, 7.44801903, 10.4242172]
-      Scale: [46.7762222, 1.52603793, 597.207825]
-      Orientation: [-6.73202467, -20.9111481, -65.0238724]
+      Pos: [6.64202356, 0.950654268, -6.92456913]
+      Scale: [9.35524654, 0.30520767, 119.441589]
+      Orientation: [-1.05254949e-05, 20, 89.9995346]
+    MeshComp:
+      MeshAssetID: 13596816166408680387
+      Materials: [17756220362776955293, 17756220362776955293]
+    PointlightComp:
+      Colour: [1, 1, 1]
+      AttenConstant: 1
+      AttenLinear: 0.0500000007
+      AttenExp: 0.00999999978
+    PhysicsComp:
+      RigidBodyType: 0
+      GeometryType: 0
+  - Entity: 10337038412736520536
+    Name: name
+    ParentID: 0
+    TransformComp:
+      Pos: [169.827469, 5.56464243, 0.702207983]
+      Scale: [10.3834734, 0.338752717, 199.321609]
+      Orientation: [0, 0, 90]
     MeshComp:
       MeshAssetID: 13596816166408680387
       Materials: [17756220362776955293, 17756220362776955293]
     PhysicsComp:
       RigidBodyType: 0
       GeometryType: 0
+  - Entity: 12076622070523936503
+    Name: Name - Duplicate
+    ParentID: 0
+    TransformComp:
+      Pos: [-191.725754, 5.56464243, 0.702207983]
+      Scale: [10.3834734, 0.338752717, 199.321609]
+      Orientation: [0, 0, 90]
+    MeshComp:
+      MeshAssetID: 13596816166408680387
+      Materials: [17756220362776955293, 17756220362776955293]
+    PhysicsComp:
+      RigidBodyType: 0
+      GeometryType: 0
+  - Entity: 6528512917137078254
+    Name: Name - Duplicate
+    ParentID: 0
+    TransformComp:
+      Pos: [1.38450217, 5.56464243, 185.282379]
+      Scale: [10.3834734, 0.338752717, 199.321609]
+      Orientation: [90, 0, 90]
+    MeshComp:
+      MeshAssetID: 13596816166408680387
+      Materials: [17756220362776955293, 17756220362776955293]
+    PhysicsComp:
+      RigidBodyType: 0
+      GeometryType: 0
+  - Entity: 7715146857494281138
+    Name: Name - Duplicate - Duplicate - Duplicate - Duplicate
+    ParentID: 0
+    TransformComp:
+      Pos: [-8.51401424, 0.950654268, -6.92456913]
+      Scale: [9.35524654, 0.30520767, 119.441589]
+      Orientation: [0, 20, 90]
+    MeshComp:
+      MeshAssetID: 13596816166408680387
+      Materials: [17756220362776955293, 17756220362776955293]
+    PointlightComp:
+      Colour: [1, 1, 1]
+      AttenConstant: 1
+      AttenLinear: 0.0500000007
+      AttenExp: 0.00999999978
+    PhysicsComp:
+      RigidBodyType: 0
+      GeometryType: 0
+DirLight:
+  Colour: [3, 3, 3]
+  Direction: [0, 0.707106769, 0.707106769]
+  CascadeRanges: [50, 150, 800]
+  Zmults: [10, 3.40199995, 3.03299999]

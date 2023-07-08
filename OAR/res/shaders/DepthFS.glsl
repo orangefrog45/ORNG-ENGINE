@@ -19,6 +19,6 @@ layout(std140, binding = 1) uniform GlobalLighting{
 
 
 void main() {
-	float bias = 0.00025 * tan(acos(dot(normalize(vs_normal), ubo_global_lighting.directional_light.direction.xyz))); // slope bias
+	float bias = 0.0005 * tan(acos(dot(normalize(vs_normal), ubo_global_lighting.directional_light.direction.xyz))); // slope bias
 	gl_FragDepth = gl_FragCoord.z + bias;
 }

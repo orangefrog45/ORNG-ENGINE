@@ -67,13 +67,18 @@ namespace ORNG {
 	void PointlightComponentManager::DeleteComponent(SceneEntity* p_entity) {
 		auto it = std::find_if(m_pointlight_components.begin(), m_pointlight_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); });
 
-		if (it == m_pointlight_components.end()) {
-			OAR_CORE_ERROR("No pointlight component found in entity '{0}', not deleted.", p_entity->name);
+		if (it == m_pointlight_components.end())
 			return;
-		}
+
 		delete* it;
 
 		m_pointlight_components.erase(it);
+
+		if (m_pointlight_components.empty()) {
+			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo_handle);
+			// empty the buffer, otherwise spotlight will remain active
+			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+		}
 	}
 
 

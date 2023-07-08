@@ -13,7 +13,10 @@ namespace ORNG {
 		if (!is_active)
 			return;
 
+
+
 		UpdateFrustum();
+
 
 	}
 

@@ -19,10 +19,8 @@ namespace ORNG {
 	void SpotlightComponentManager::DeleteComponent(SceneEntity* p_entity) {
 		auto it = std::find_if(m_spotlight_components.begin(), m_spotlight_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); });
 
-		if (it == m_spotlight_components.end()) {
-			OAR_CORE_ERROR("No pointlight component found in entity '{0}', not deleted.", p_entity->name);
+		if (it == m_spotlight_components.end())
 			return;
-		}
 
 		auto* p_comp = *it;
 		auto* p_transform = p_entity->GetComponent<TransformComponent>();
@@ -30,6 +28,13 @@ namespace ORNG {
 
 		delete* it;
 		m_spotlight_components.erase(it);
+
+		if (m_spotlight_components.empty()) {
+			GL_StateManager::BindSSBO(m_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
+			// empty the buffer, otherwise spotlight will remain active
+			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+		}
+
 	}
 
 
@@ -55,6 +60,7 @@ namespace ORNG {
 
 		if (m_spotlight_components.empty())
 			return;
+
 
 		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
 		std::vector<float> light_array;

@@ -8,6 +8,7 @@ namespace physx {
 	class PxAABBManager;
 	class PxCpuDispatcher;
 	class PxMaterial;
+	class PxTriangleMesh;
 }
 
 namespace ORNG {
@@ -53,6 +54,7 @@ namespace ORNG {
 		void OnUpdate(float ts);
 		void OnUnload() final;
 		void OnLoad();
+		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 		PhysicsComponent* AddComponent(SceneEntity* p_entity, PhysicsComponent::RigidBodyType type = PhysicsComponent::STATIC);
 		PhysicsComponent* GetComponent(uint64_t entity_id);
 		void DeleteComponent(SceneEntity* p_entity);
@@ -63,10 +65,12 @@ namespace ORNG {
 
 		physx::PxBroadPhase* mp_broadphase = nullptr;
 		physx::PxAABBManager* mp_aabb_manager = nullptr;
-		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
 		physx::PxScene* mp_scene = nullptr;
 		std::vector<PhysicsComponent*> m_physics_components;
+
 		std::vector<physx::PxMaterial*> m_physics_materials;
+
+		std::unordered_map<const MeshAsset*, physx::PxTriangleMesh*> m_triangle_meshes;
 		float m_step_size = 1.f / 60.f;
 		float m_accumulator = 0.f;
 

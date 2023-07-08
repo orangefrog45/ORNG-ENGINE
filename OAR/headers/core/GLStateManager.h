@@ -92,6 +92,7 @@ namespace ORNG {
 			static const int DIFFUSE_PREFILTER = GL_TEXTURE20;
 			static const int SPECULAR_PREFILTER = GL_TEXTURE21;
 			static const int BRDF_LUT = GL_TEXTURE22;
+			static const int COLOR_3 = GL_TEXTURE23;
 		};
 
 		struct TextureUnitIndexes {

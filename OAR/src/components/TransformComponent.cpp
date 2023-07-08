@@ -55,11 +55,9 @@ namespace ORNG {
 		}
 
 
-		/*glm::vec3 parent_abs_pos = abs_translation - m_pos;
-		glm::vec3 transformed_pos = m_pos - parent_abs_pos;
-		glm::vec3 parent_abs_rot = abs_rotation - m_rotation;
-		glm::vec3 rotated_pos = glm::mat3(ExtraMath::Init3DRotateTransform(parent_abs_rot.x, parent_abs_rot.y, parent_abs_rot.z)) * transformed_pos;
-		rotated_pos += parent_abs_pos;*/
+		//glm::vec3 transformed_pos = m_pos;
+		//glm::vec3 parent_abs_rot = abs_rotation - m_rotation;
+		//glm::vec3 rotation_offset = glm::mat3(ExtraMath::Init3DRotateTransform(parent_abs_rot.x, parent_abs_rot.y, parent_abs_rot.z)) * transformed_pos; // rotate around transformed origin (entity)
 		return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
 	}
 

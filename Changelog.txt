@@ -1,3 +1,12 @@
+08/7/23:
+-Huge fog improvements, depth-aware upsampling and blurring, decent performance
+-Improvements on serialization, almost all data saved (some stuff that's about to change not included)
+-GPU-driven physics (actually a bit slower, but needed for dynamic triangle meshes)
+-Triangle mesh support, static and dynamic
+-Some multi-entity selection utils
+-Physics component refactoring (had no idea PxRigidActor existed)
+
+
 04/7/23:
 -Basic scene serialization/deserialization (not fully complete)
 -Removed material buffer system, replaced with much better method

@@ -8,12 +8,13 @@ namespace ORNG {
 		friend class Scene;
 		Material() = default;
 		explicit Material(uint64_t uuid) : uuid(uuid) {};
+		Material(const Material& other) = default;
 
 		glm::vec3 base_color = glm::vec3(1.0f, 1.0f, 1.0f);
 
 		float roughness = 0.2f;
 		float metallic = 0.0f;
-		float ao = 0.2f;
+		float ao = 0.1f;
 
 
 		Texture2D* base_color_texture = nullptr;

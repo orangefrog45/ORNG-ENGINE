@@ -46,6 +46,13 @@ namespace ORNG {
 			glm::vec3 scale{ scaleX, scaleY, scaleZ };
 			SetScale(scale);
 		}
+
+		void SetAbsolutePosition(glm::vec3 pos) {
+			glm::vec3 absolute_pos = GetAbsoluteTransforms()[0];
+
+			SetPosition(pos - (absolute_pos - m_pos));
+		}
+
 		void SetOrientation(float x, float y, float z) {
 			glm::vec3 orientation{x, y, z};
 			SetOrientation(orientation);
@@ -87,7 +94,8 @@ namespace ORNG {
 		enum class CallbackType {
 			SPOTLIGHT = 0,
 			PHYSICS = 1,
-			MESH = 2
+			MESH = 2,
+			CAMERA = 3
 		};
 
 		enum class UpdateType {

@@ -29,8 +29,10 @@ namespace ORNG {
 
 		// Only provide uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
+		SceneEntity* GetEntity(uint64_t uuid);
 
-		//Runs any scripts in script components and updates transform and instance group data
+		void DeleteEntity(SceneEntity* p_entity);
+
 		void Update(float ts);
 
 
@@ -163,7 +165,6 @@ namespace ORNG {
 			return *it;
 		}
 
-		SceneEntity* GetEntity(uint64_t uuid);
 
 		void LoadScene(const std::string& filepath);
 		void UnloadScene();

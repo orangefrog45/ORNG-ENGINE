@@ -11,7 +11,6 @@ namespace ORNG {
 		friend class Scene;
 		friend class CameraSystem;
 		CameraComponent(SceneEntity* p_entity, CameraSystem* p_system, TransformComponent* p_transform) : Component(p_entity), mp_system(p_system), mp_transform(p_transform) {};
-		~CameraComponent() { delete mp_transform; }
 
 		void Update();
 		void MakeActive();

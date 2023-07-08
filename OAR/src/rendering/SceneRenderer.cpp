@@ -100,18 +100,19 @@ namespace ORNG {
 		m_depth_shader->AddUniform("u_terrain_mode");
 		m_depth_shader->AddUniform("u_light_pv_matrix");
 
-		m_blur_shader = &mp_shader_library->CreateShader("gaussian_blur");
+		m_blur_shader = &mp_shader_library->CreateShader("blur");
 		m_blur_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
 		m_blur_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/BlurFS.glsl");
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
+		m_blur_shader->AddUniform("u_first_iter");
 
 
 		//LIGHTING FB
 		/* LIGHTING FB */
 		Texture2DSpec color_render_texture_spec;
 		color_render_texture_spec.format = GL_RGB;
-		color_render_texture_spec.internal_format = GL_RGB32F;
+		color_render_texture_spec.internal_format = GL_RGB16F;
 		color_render_texture_spec.storage_type = GL_UNSIGNED_BYTE;
 		color_render_texture_spec.width = Window::GetWidth();
 		color_render_texture_spec.height = Window::GetHeight();
@@ -149,6 +150,8 @@ namespace ORNG {
 		gbuffer_depth_spec.format = GL_DEPTH_COMPONENT;
 		gbuffer_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
 		gbuffer_depth_spec.storage_type = GL_FLOAT;
+		gbuffer_depth_spec.min_filter = GL_NEAREST;
+		gbuffer_depth_spec.mag_filter = GL_NEAREST;
 		gbuffer_depth_spec.width = Window::GetWidth();
 		gbuffer_depth_spec.height = Window::GetHeight();
 
@@ -219,15 +222,9 @@ namespace ORNG {
 
 
 		// Fog texture
-		Texture2DSpec fog_overlay_spec;
-		fog_overlay_spec.format = GL_RGBA;
-		fog_overlay_spec.internal_format = GL_RGBA16F;
-		fog_overlay_spec.storage_type = GL_FLOAT;
+		Texture2DSpec fog_overlay_spec = ping_pong_spec;
 		fog_overlay_spec.width = Window::GetWidth() / 2;
 		fog_overlay_spec.height = Window::GetHeight() / 2;
-		fog_overlay_spec.min_filter = GL_NEAREST;
-		fog_overlay_spec.mag_filter = GL_NEAREST;
-		fog_overlay_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
 
 		static Events::EventListener<Events::WindowEvent> resize_listener;
@@ -277,7 +274,7 @@ namespace ORNG {
 		IDoGBufferPass();
 		IDoDepthPass();
 		IDoLightingPass();
-		IDoFogPass();
+		//IDoFogPass();
 		IDoPostProcessingPass(settings.display_depth_map);
 
 		output.final_color_texture_handle = m_post_processing_fb->GetTexture<Texture2D>("shared_render_texture").GetTextureHandle();
@@ -510,34 +507,42 @@ namespace ORNG {
 
 		//blur fog texture
 		m_blur_shader->ActivateProgram();
-		Framebuffer* active_fb = m_ping_pong_1_fb;
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
 
 		m_ping_pong_2_fb->Bind();
 		GL_StateManager::DefaultClearBits();
+		m_ping_pong_1_fb->Bind();
+		GL_StateManager::DefaultClearBits();
 		GL_StateManager::BindTexture(
-			GL_TEXTURE_2D, m_fog_output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2
+			GL_TEXTURE_2D, m_fog_output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_3
 		);
-		m_blur_shader->SetUniform("u_horizontal", 1);
+		m_blur_shader->SetUniform("u_first_iter", 1);
 		Renderer::DrawQuad();
+		m_blur_shader->SetUniform("u_first_iter", 0);
 
-		for (int i = 0; i < 2; i++) {
+
+		Framebuffer* active_fb = m_ping_pong_2_fb;
+
+		GL_StateManager::BindTexture(
+			GL_TEXTURE_2D, m_ping_pong_2_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_3
+		);
+		GL_StateManager::BindTexture(
+			GL_TEXTURE_2D, m_ping_pong_1_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2
+		);
+
+		for (int i = 0; i < 4; i++) {
 			active_fb->Bind();
-			GL_StateManager::DefaultClearBits();
-			m_blur_shader->SetUniform("u_horizontal", active_fb == m_ping_pong_1_fb ? 0 : 1);
+			GL_StateManager::ClearDepthBits();
 
 			if (active_fb == m_ping_pong_1_fb) {
-				GL_StateManager::BindTexture(
-					GL_TEXTURE_2D, m_ping_pong_2_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2
-				);
+				m_blur_shader->SetUniform("u_horizontal", 1);
+				active_fb = m_ping_pong_2_fb;
 			}
 			else {
-				GL_StateManager::BindTexture(
-					GL_TEXTURE_2D, m_ping_pong_1_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2
-				);
-
+				m_blur_shader->SetUniform("u_horizontal", 0);
+				active_fb = m_ping_pong_1_fb;
 			}
 			Renderer::DrawQuad();
-			active_fb = active_fb == m_ping_pong_1_fb ? m_ping_pong_2_fb : m_ping_pong_1_fb;
 		}
 
 	}
@@ -621,7 +626,7 @@ namespace ORNG {
 
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("world_positions").GetTextureHandle(), GL_StateManager::TextureUnits::WORLD_POSITIONS, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_lighting_fb->GetTexture<Texture2D>("render_texture").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_ping_pong_2_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_ping_pong_1_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2, false);
 
 
 		glDisable(GL_DEPTH_TEST);

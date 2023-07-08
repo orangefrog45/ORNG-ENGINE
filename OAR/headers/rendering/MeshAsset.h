@@ -39,6 +39,8 @@ namespace ORNG {
 
 		const AABB& GetAABB() const { return m_aabb; }
 
+		const VAO& GetVAO() const { return m_vao; }
+
 		UUID uuid;
 
 	private:

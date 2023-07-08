@@ -26,6 +26,26 @@ namespace YAML {
 			return true;
 		}
 	};
+
+	template<>
+	struct convert<glm::vec2> {
+		static Node encode(const glm::vec2& rhs) {
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			return node;
+		}
+
+		static bool decode(const Node& node, glm::vec2& rhs) {
+			if (!node.IsSequence() || node.size() != 2) {
+				return false;
+			}
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			return true;
+		}
+	};
 }
 
 namespace ORNG {
@@ -40,6 +60,12 @@ namespace ORNG {
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4 v) {
 		out << YAML::Flow;
 		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2 v) {
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
 		return out;
 	}
 
@@ -164,8 +190,8 @@ namespace ORNG {
 				continue;
 
 
-			std::string REAL_tag = node.first.as<std::string>();
-			if (REAL_tag == "MeshComp") {
+			std::string tag = node.first.as<std::string>();
+			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
 				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(scene.GetMeshAsset(mesh_asset_id)->m_filename);
@@ -180,11 +206,32 @@ namespace ORNG {
 			}
 
 
-			if (REAL_tag == "PhysicsComp") {
+			if (tag == "PhysicsComp") {
 				auto physics_node = entity_node["PhysicsComp"];
 				auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
 				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
 				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
+			}
+
+
+			if (tag == "PointlightComp") {
+				auto light_node = entity_node["PointlightComp"];
+				auto* p_pointlight_comp = entity.AddComponent<PointLightComponent>();
+				p_pointlight_comp->color = light_node["Colour"].as<glm::vec3>();
+				p_pointlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
+				p_pointlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
+				p_pointlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
+			}
+
+			if (tag == "SpotlightComp") {
+				auto light_node = entity_node["SpotlightComp"];
+				auto* p_spotlight_comp = entity.AddComponent<SpotLightComponent>();
+				p_spotlight_comp->color = light_node["Colour"].as<glm::vec3>();
+				p_spotlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
+				p_spotlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
+				p_spotlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
+				p_spotlight_comp->m_aperture = light_node["Aperture"].as<float>();
+				p_spotlight_comp->m_light_direction_vec = light_node["Direction"].as<glm::vec3>();
 			}
 		}
 
@@ -255,6 +302,7 @@ namespace ORNG {
 			out << YAML::Key << "Metallic" << YAML::Value << p_material->metallic;
 			out << YAML::Key << "Roughness" << YAML::Value << p_material->roughness;
 			out << YAML::Key << "AO" << YAML::Value << p_material->ao;
+			out << YAML::Key << "TileScale" << YAML::Value << p_material->tile_scale;
 			out << YAML::EndMap;
 		}
 
@@ -268,6 +316,14 @@ namespace ORNG {
 		}
 
 		out << YAML::EndSeq;
+
+		out << YAML::Key << "DirLight" << YAML::BeginMap;
+		out << YAML::Key << "Colour" << YAML::Value << scene.m_directional_light.color;
+		out << YAML::Key << "Direction" << YAML::Value << scene.m_directional_light.GetLightDirection();
+		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.m_directional_light.cascade_ranges[0], scene.m_directional_light.cascade_ranges[1], scene.m_directional_light.cascade_ranges[2]);
+		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.m_directional_light.z_mults[0], scene.m_directional_light.z_mults[1], scene.m_directional_light.z_mults[2]);
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 		std::ofstream fout{filepath};
 		fout << out.c_str();
@@ -325,6 +381,7 @@ namespace ORNG {
 			p_material->metallic = material["Metallic"].as<float>();
 			p_material->roughness = material["Roughness"].as<float>();
 			p_material->ao = material["AO"].as<float>();
+			p_material->tile_scale = material["TileScale"].as<glm::vec2>();
 
 		}
 
@@ -370,5 +427,15 @@ namespace ORNG {
 		for (auto entity_node : entities) {
 			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
 		}
+
+
+		auto dir_light = data["DirLight"];
+		scene.m_directional_light.color = dir_light["Colour"].as<glm::vec3>();
+		scene.m_directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
+		glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
+		scene.m_directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
+		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
+		scene.m_directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
+
 	}
 }

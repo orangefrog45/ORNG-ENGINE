@@ -121,13 +121,13 @@ void main() {
 
 	if (u_terrain_mode) {
 		mat3 tbn = CalculateTbnMatrix();
-		normal = normalize(texture(normal_map_sampler, adj_tex_coord.xy) * 2.0 - 1.0);
+		normal = vec4(tbn * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0);
 		g_position = vs_position;
 		albedo = vec4(texture(diffuse_sampler, adj_tex_coord.xy).rgb * u_material.base_color_and_metallic.rgb, 1.f);
 
 	}
 	else if (u_skybox_mode) {
-		g_position = vec4(ubo_common.camera_pos.xyz + normalize(vs_position.xyz) * 5000.f, 1.f); // give spherical appearance (used for fog)
+		g_position = vec4(ubo_common.camera_pos.xyz + normalize(vs_position.xyz) * 3000.f, 1.f); // give spherical appearance (used for fog)
 		albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
 	}
 	else {

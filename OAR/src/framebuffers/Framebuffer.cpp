@@ -36,6 +36,7 @@ namespace ORNG {
 
 
 			if (texture_entry.second.p_texture->m_texture_target == GL_TEXTURE_2D) {
+
 				Texture2D* p_texture = static_cast<Texture2D*>(texture_entry.second.p_texture);
 				Texture2DSpec new_spec = p_texture->GetSpec();
 				new_spec.width = Window::GetWidth() * texture_entry.second.screen_size_ratio.x;
@@ -97,7 +98,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, tex_handle, GL_TEXTURE0, true);
 		tex->SetSpec(spec);
 		m_textures[name] = Framebuffer::FramebufferTexture{ static_cast<TextureBase*>(tex), false };
-		m_textures[name].screen_size_ratio = glm::vec2(spec.width / Window::GetWidth(), spec.height / Window::GetHeight());
+		m_textures[name].screen_size_ratio = glm::vec2((float)spec.width / (float)Window::GetWidth(), (float)spec.height / (float)Window::GetHeight());
 
 
 		Bind();

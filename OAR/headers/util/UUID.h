@@ -7,6 +7,7 @@ namespace ORNG {
 	public:
 		UUID();
 		explicit UUID(uint64_t uuid) : m_uuid(uuid) {}
+		UUID(const UUID&) { UUID(); }
 
 		explicit operator uint64_t() const { return m_uuid; }
 		uint64_t operator() () const { return m_uuid; };

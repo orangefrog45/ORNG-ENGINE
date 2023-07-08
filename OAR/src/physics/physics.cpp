@@ -11,6 +11,7 @@ namespace ORNG {
 	void Physics::IShutdown() {
 		mp_physics->release();
 		mp_foundation->release();
+		mp_cuda_context_manager->release();
 	}
 
 	void Physics::I_Init() {
@@ -39,11 +40,16 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-
+		const PxU32 num_threads = 8;
+		mp_dispatcher = PxDefaultCpuDispatcherCreate(num_threads);
 		/*if (!PxInitExtensions(*m_physics, m_pvd)) {
 			OAR_CORE_CRITICAL("PxInitExtensions failed");
 			BREAKPOINT;
 		}*/
+
+		PxCudaContextManagerDesc cudaContextManagerDesc;
+
+		mp_cuda_context_manager = PxCreateCudaContextManager(*Physics::GetFoundation(), cudaContextManagerDesc, PxGetProfilerCallback());
 
 
 	}

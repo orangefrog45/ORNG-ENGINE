@@ -35,6 +35,17 @@ namespace ORNG {
 			return Get().mp_physics;
 		}
 
+		static PxCudaContextManager* GetCudaContextManager() {
+			return Get().mp_cuda_context_manager;
+		}
+
+		static PxFoundation* GetFoundation() {
+			return Get().mp_foundation;
+		}
+
+		static PxCpuDispatcher* GetCPUDispatcher() {
+			return Get().mp_dispatcher;
+		}
 
 		static float GetToleranceScale() {
 			return Get().m_tolerances_scale;
@@ -57,7 +68,8 @@ namespace ORNG {
 		PxPvdTransport* mp_pvd_transport = nullptr;
 		PxPhysics* mp_physics = nullptr;
 		PxCooking* mp_cooking = nullptr;
-
+		PxCpuDispatcher* mp_dispatcher = nullptr;
+		PxCudaContextManager* mp_cuda_context_manager = nullptr;
 		float m_tolerances_scale = 1.f;
 
 	};

@@ -5,7 +5,9 @@
 #include "components/EditorCamera.h"
 #include <imgui/imgui.h>
 
-
+namespace physx {
+	class PxMaterial;
+}
 
 namespace ORNG {
 	class Shader;
@@ -53,12 +55,15 @@ namespace ORNG {
 		void RenderPointlightEditor(PointLightComponent* light);
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
-		void RenderTransformComponentEditor(TransformComponent* p_transform);
+		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
+		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 
 		SceneEntity* DuplicateEntity(SceneEntity* p_original);
 
 		void RenderSceneGraph();
+		// Returns true if entity has been flagged for deletion
+		void RenderEntityNode(SceneEntity* p_entity);
 		void RenderDirectionalLightEditor();
 		void RenderGlobalFogEditor();
 		void RenderTerrainEditor();
@@ -98,7 +103,10 @@ namespace ORNG {
 
 		std::unique_ptr<EditorCamera> mp_editor_camera{ nullptr };
 
-		uint64_t m_selected_entity_id = 0;
+		uint64_t m_mouse_selected_entity_id = 0;
+
+		std::vector<uint64_t> m_selected_entity_ids;
+		bool m_selected_entities_are_dragged = false;
 
 		struct DisplayWindowSettings {
 			bool depth_map_view = false;

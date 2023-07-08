@@ -30,6 +30,11 @@ namespace ORNG {
 			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
 		}
 
+		auto scroll_data = Window::GetScrollStatus();
+		if (scroll_data.active) {
+			speed += scroll_data.offset.y * 0.01f;
+		}
+
 		if (Window::IsKeyDown('T')) {
 			mouse_locked = false;
 			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
@@ -43,7 +48,6 @@ namespace ORNG {
 			glm::vec2 mouseDelta = -glm::vec2(mouse_coords.x - Window::GetWidth() / 2, mouse_coords.y - Window::GetHeight() / 2);
 
 			target = glm::rotate(mouseDelta.x * rotation_speed, up) * glm::vec4(target, 0);
-			UpdateFrustum();
 
 			glm::fvec3 targetNew = glm::rotate(mouseDelta.y * rotation_speed, glm::cross(target, up)) * glm::vec4(target, 0);
 			//constraint to stop lookAt flipping from y axis alignment
@@ -55,6 +59,7 @@ namespace ORNG {
 			Window::SetCursorPos(Window::GetWidth() / 2, Window::GetHeight() / 2);
 		}
 
+		UpdateFrustum();
 	}
 
 
@@ -92,6 +97,7 @@ namespace ORNG {
 	void EditorCamera::MoveDown(float time_elapsed) {
 		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
 		pos -= speed * up * time_elapsed;
+		mp_transform->SetPosition(pos);
 		UpdateFrustum();
 	}
 }

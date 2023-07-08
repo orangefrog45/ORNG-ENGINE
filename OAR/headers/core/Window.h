@@ -32,7 +32,11 @@ namespace ORNG {
 		}
 
 		static bool IsMouseButtonDown(int button) {
-			return Get().I_IsMouseButtonDown(button);
+			return Get().I_IsMouseButtonInState(button, GLFW_PRESS);
+		}
+
+		static bool IsMouseButtonUp(int button) {
+			return Get().I_IsMouseButtonInState(button, GLFW_RELEASE);
 		}
 
 		static void Init(GLFWwindow* ptr) {
@@ -47,7 +51,24 @@ namespace ORNG {
 			Get().ISetCursorPos(x, y);
 		}
 
+		static void SetScrollActive(glm::vec2 offset) {
+			Get().m_scroll_data.active = true;
+			Get().m_scroll_data.offset = offset;
+		}
 
+		static void Update() {
+			Get().IUpdate();
+		}
+
+		struct ScrollData {
+			bool active;
+			glm::vec2 offset;
+		};
+
+
+		static ScrollData GetScrollStatus() {
+			return Get().m_scroll_data;
+		}
 	private:
 		void I_Init();
 
@@ -62,11 +83,14 @@ namespace ORNG {
 
 		bool I_IsKeyDown(int key) { return (glfwGetKey(p_window, std::toupper(key)) == GLFW_PRESS); }
 
-		bool I_IsMouseButtonDown(int key) { return glfwGetMouseButton(p_window, key) == GLFW_PRESS; }
+		bool I_IsMouseButtonInState(int key, unsigned int state) { return glfwGetMouseButton(p_window, key) == state; }
 
 		void I_Init(GLFWwindow* ptr) { p_window = ptr; }
+#
+		void IUpdate();
 
-		double IGetTimeStep() const { return last_frame_time; }
+		ScrollData m_scroll_data;
+
 
 
 		static Window& Get() {
@@ -75,7 +99,6 @@ namespace ORNG {
 		}
 
 		GLFWwindow* p_window = nullptr;
-		unsigned int last_frame_time = 0;
 		double mouse_x = 0;
 		double mouse_y = 0;
 		unsigned int m_window_width = 1920;

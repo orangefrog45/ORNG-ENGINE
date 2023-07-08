@@ -10,6 +10,8 @@ OAR/res/textures
 x64/
 OAR/x64/
 
+.yml
+
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
