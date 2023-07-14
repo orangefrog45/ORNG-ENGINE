@@ -32,3 +32,7 @@
 [submodule "OAR/extern/yaml"]
 	path = OAR/extern/yaml
 	url = https://github.com/jbeder/yaml-cpp
+[submodule "OAR/extern/imgui"]
+	path = OAR/extern/imgui
+	url = https://github.com/ocornut/imgui
+	branch = docking
