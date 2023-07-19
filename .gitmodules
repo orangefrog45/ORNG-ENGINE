@@ -17,9 +17,6 @@
 [submodule "OAR/extern/fastnoise2"]
 	path = OAR/extern/fastnoise2
 	url = https://github.com/Auburn/FastNoise2.git
-[submodule "OAR/extern/imguizmo"]
-	path = OAR/extern/imguizmo
-	url = https://github.com/CedricGuillemet/ImGuizmo
 [submodule "OAR/extern/stb"]
 	path = OAR/extern/stb
 	url = https://github.com/nothings/stb
@@ -36,3 +33,6 @@
 [submodule "OAR/extern/plog"]
 	path = OAR/extern/plog
 	url = https://github.com/SergiusTheBest/plog
+[submodule "ORNG Editor/extern/imguizmo"]
+	path = ORNG Editor/extern/imguizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo
