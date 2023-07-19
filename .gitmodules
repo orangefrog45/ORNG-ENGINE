@@ -30,9 +30,9 @@
 	path = OAR/extern/imgui
 	url = https://github.com/ocornut/imgui
 	branch = docking
-[submodule "OAR/extern/plog"]
-	path = OAR/extern/plog
-	url = https://github.com/SergiusTheBest/plog
 [submodule "ORNG Editor/extern/imguizmo"]
 	path = ORNG Editor/extern/imguizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
+[submodule "OAR/extern/spdlog"]
+	path = OAR/extern/spdlog
+	url = https://github.com/gabime/spdlog
