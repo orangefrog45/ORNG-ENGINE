@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="headers\EditorLayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\EditorCamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorLayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\EditorCamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imguizmo\ImGuizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\BloomDownsampleCS.glsl" />
+    <None Include="res\shaders\BloomThresholdCS.glsl" />
+    <None Include="res\shaders\BloomUpsampleCS.glsl" />
+    <None Include="res\shaders\BlurFS.glsl" />
+    <None Include="res\shaders\BRDFConvolutionFS.glsl" />
+    <None Include="res\shaders\CubemapShadowFS.glsl" />
+    <None Include="res\shaders\CubemapShadowVS.glsl" />
+    <None Include="res\shaders\CubemapVS.glsl" />
+    <None Include="res\shaders\DepthFS.glsl" />
+    <None Include="res\shaders\DepthVS.glsl" />
+    <None Include="res\shaders\FogCS.glsl" />
+    <None Include="res\shaders\GBufferFS.glsl" />
+    <None Include="res\shaders\GBufferVS.glsl" />
+    <None Include="res\shaders\GridFS.glsl" />
+    <None Include="res\shaders\GridVS.glsl" />
+    <None Include="res\shaders\HDR_ToCubemapFS.glsl" />
+    <None Include="res\shaders\HighlightFS.glsl" />
+    <None Include="res\shaders\LightingFS.glsl" />
+    <None Include="res\shaders\LightingVS.glsl" />
+    <None Include="res\shaders\PickingFS.glsl" />
+    <None Include="res\shaders\PostProcessFS.glsl" />
+    <None Include="res\shaders\QuadFS.glsl" />
+    <None Include="res\shaders\QuadVS.glsl" />
+    <None Include="res\shaders\ReflectionFS.glsl" />
+    <None Include="res\shaders\ReflectionVS.glsl" />
+    <None Include="res\shaders\SkyboxDiffusePrefilterFS.glsl" />
+    <None Include="res\shaders\SkyboxFS.glsl" />
+    <None Include="res\shaders\SkyboxSpecularPrefilterFS.glsl" />
+    <None Include="res\shaders\SkyboxVS.glsl" />
+    <None Include="res\shaders\TransformVS.glsl" />
+  </ItemGroup>
+</Project>

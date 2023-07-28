@@ -3,7 +3,6 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
-#include "glfw/glfw3.h"
 #include "rendering/Renderer.h"
 #include "core/Application.h"
 #include "util/Log.h"
@@ -23,6 +22,7 @@ namespace ORNG {
 
 
 	void Application::Init() {
+		Log::Init();
 		//GLFW INIT
 
 		if (!glfwInit())
@@ -31,17 +31,13 @@ namespace ORNG {
 		Window::Init();
 		GLFWwindow* window = Window::GetGLFWwindow();
 
-		glfwMakeContextCurrent(window);
-		glfwSwapInterval(0);
-		glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
-
 
 		//GLEW INIT
 		GLint GlewInitResult = glewInit();
 
 		if (GLEW_OK != GlewInitResult)
 		{
-			OAR_CORE_CRITICAL("GLEW INIT FAILED");
+			ORNG_CORE_CRITICAL("GLEW INIT FAILED");
 			printf("ERROR: %s", glewGetErrorString(GlewInitResult));
 			exit(EXIT_FAILURE);
 		}
@@ -58,11 +54,10 @@ namespace ORNG {
 		Physics::Init();
 		EnvMapLoader::Init();
 		SceneRenderer::Init();
-		editor_layer.Init();
+		layer_stack.Init();
 
 
-		// Game loop
-
+		// Engine loop
 		Events::EngineCoreEvent render_event;
 		render_event.event_type = Events::Event::ENGINE_RENDER;
 
@@ -71,11 +66,12 @@ namespace ORNG {
 
 		while (!glfwWindowShouldClose(window))
 		{
+			// Update
 			glfwPollEvents();
 			Events::EventManager::DispatchEvent(update_event);
 			Window::Update();
 
-			/* Render here */
+			// Render
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
 

@@ -28,6 +28,23 @@ namespace ORNG {
 
 	}
 
+
+	void GL_LogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {
+		switch (severity)
+		{
+		case GL_DEBUG_SEVERITY_HIGH:
+			ORNG_CORE_CRITICAL("[OPENGL DEBUG HIGH] {0}", message);
+			BREAKPOINT;
+			break;
+		case GL_DEBUG_SEVERITY_MEDIUM:
+			ORNG_CORE_WARN("[OPENGL DEBUG MEDIUM] {0}", message);
+			break;
+		case GL_DEBUG_SEVERITY_LOW:
+			ORNG_CORE_INFO("[OPENGL DEBUG MEDIUM] {0}", message);
+			break;
+		}
+	}
+
 	void GL_StateManager::I_InitGL() {
 		glEnable(GL_CULL_FACE);
 		glFrontFace(GL_CCW);
@@ -38,7 +55,7 @@ namespace ORNG {
 		glShadeModel(GL_SMOOTH);
 		glLineWidth(3.f);
 
-		glDebugMessageCallback(Log::GLLogMessage, nullptr);
+		glDebugMessageCallback(GL_LogMessage, nullptr);
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	}

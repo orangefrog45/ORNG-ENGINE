@@ -10,6 +10,9 @@ namespace ORNG {
 
 	template<typename T>
 	bool VectorContains(const std::vector<T>& vec, const T& value) {
+		if (vec.empty())
+			return false;
+
 		return std::ranges::find(vec, value) != vec.end();
 	}
 }

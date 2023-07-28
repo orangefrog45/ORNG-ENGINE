@@ -19,7 +19,7 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class MeshInstanceGroup;
 		friend class SceneRenderer;
-		friend class MeshComponentManager;
+		friend class MeshInstancingSystem;
 		friend class SceneSerializer;
 
 		MeshAsset() = delete;
@@ -54,7 +54,7 @@ namespace ORNG {
 
 		Assimp::Importer importer;
 
-		bool InitFromScene(const aiScene* pScene, const std::string& filename);
+		bool InitFromScene(const aiScene* pScene);
 
 		void ReserveSpace(unsigned int NumVertices, unsigned int NumIndices);
 

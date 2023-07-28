@@ -1,7 +1,7 @@
 #pragma once
 #include "util/util.h"
-#include "util/Log.h"
 #include "util/UUID.h"
+#include "util/Log.h"
 
 namespace ORNG {
 
@@ -9,6 +9,7 @@ namespace ORNG {
 	struct Texture3DSpec;
 	struct Texture2DArraySpec;
 	struct TextureCubemapSpec;
+	struct TextureCubemapArraySpec;
 
 	struct TextureBaseSpec {
 
@@ -24,6 +25,8 @@ namespace ORNG {
 		bool generate_mipmaps = false;
 		bool srgb_space = false;
 	};
+
+
 	class TextureBase {
 
 	public:
@@ -40,12 +43,12 @@ namespace ORNG {
 			if (is_framebuffer_texture) {
 				if (spec->width == 1 || spec->height == 1)
 				{
-					OAR_CORE_WARN("Framebuffer texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
+					ORNG_CORE_WARN("Framebuffer texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
 				}
 
 				if (spec->internal_format == GL_NONE || spec->format == GL_NONE)
 				{
-					OAR_CORE_WARN("Framebuffer texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
+					ORNG_CORE_WARN("Framebuffer texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
 
 					if (is_framebuffer_texture)
 						return false;
@@ -80,11 +83,14 @@ namespace ORNG {
 		std::array<std::string, 6> filepaths;
 	};
 
+	struct TextureCubemapArraySpec : public TextureBaseSpec {
+		unsigned int layer_count = 1;
+	};
+
 	struct Texture3DSpec : public Texture2DArraySpec {};
 
 	class Texture3D : public TextureBase {
 	public:
-		friend class EditorLayer;
 		friend class Scene;
 		Texture3D(const std::string& name) : TextureBase(GL_TEXTURE_3D, name) {};
 
@@ -133,9 +139,19 @@ namespace ORNG {
 		TextureCubemap(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP, name) {};
 		bool SetSpec(const TextureCubemapSpec& spec);
 		bool LoadFromFile();
-		const TextureCubemapSpec& GetSpec() { return m_spec; }
+		const TextureCubemapSpec& GetSpec() const { return m_spec; }
 	private:
 		TextureCubemapSpec m_spec;
+	};
+
+	class TextureCubemapArray : public TextureBase {
+		friend class Renderer;
+	public:
+		TextureCubemapArray(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP_ARRAY, name) {};
+		bool SetSpec(const TextureCubemapArraySpec& spec);
+		const TextureCubemapArraySpec& GetSpec() const { return m_spec; }
+	private:
+		TextureCubemapArraySpec m_spec;
 	};
 
 }

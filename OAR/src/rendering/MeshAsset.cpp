@@ -12,23 +12,17 @@ namespace ORNG {
 
 		importer.FreeScene();
 
-		OAR_CORE_INFO("Mesh unloaded: {0}", m_filename);
+		ORNG_CORE_INFO("Mesh unloaded: {0}", m_filename);
 	}
 
 	bool MeshAsset::LoadMeshData() {
 
 		if (m_is_loaded) {
-			OAR_CORE_TRACE("Mesh '{0}' is already loaded", m_filename);
+			ORNG_CORE_TRACE("Mesh '{0}' is already loaded", m_filename);
 			return true;
 		}
 
-		OAR_CORE_INFO("Loading mesh: {0}", m_filename);
-
-
-		if (m_filename.empty()) {
-			OAR_CORE_CRITICAL("Mesh load failed, no filename given");
-			BREAKPOINT;
-		}
+		ORNG_CORE_INFO("Loading mesh: {0}", m_filename);
 
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 
@@ -37,19 +31,19 @@ namespace ORNG {
 			| aiProcess_ImproveCacheLocality);
 
 		if (p_scene) {
-			ret = InitFromScene(p_scene, m_filename);
+			ret = InitFromScene(p_scene);
 		}
 		else {
-			OAR_CORE_ERROR("Error parsing '{0}' : '{1}'", m_filename.c_str(), importer.GetErrorString());
+			ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", m_filename.c_str(), importer.GetErrorString());
 			return false;
 		}
 
-		OAR_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), m_filename);
+		ORNG_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), m_filename);
 		return ret;
 	}
 
 
-	bool MeshAsset::InitFromScene(const aiScene* pScene, const std::string& filename) {
+	bool MeshAsset::InitFromScene(const aiScene* pScene) {
 		m_submeshes.resize(pScene->mNumMeshes);
 		m_original_materials.resize(pScene->mNumMaterials);
 

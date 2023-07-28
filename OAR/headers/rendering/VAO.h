@@ -41,6 +41,8 @@ namespace ORNG {
 		//Update section of transform buffer, prefer this for performance
 		void SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms);
 
+		void DeleteTransformSSBO(unsigned int ssbo_handle);
+
 		struct VertexData {
 			std::vector<glm::vec3> positions;
 			std::vector<glm::vec3> normals;

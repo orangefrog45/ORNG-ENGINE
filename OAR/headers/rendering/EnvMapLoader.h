@@ -13,7 +13,7 @@ namespace ORNG {
 	class EnvMapLoader {
 	public:
 		static void Init();
-		static void LoadEnvironmentMap(const std::string& filepath, Skybox& skybox, unsigned int resolution);
+		static bool LoadEnvironmentMap(const std::string& filepath, Skybox& skybox, unsigned int resolution);
 	private:
 
 		static void LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);

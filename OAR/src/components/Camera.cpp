@@ -30,7 +30,7 @@ namespace ORNG {
 		right = glm::normalize(glm::cross(target, up));
 		const glm::vec3 up = glm::cross(right, target);
 
-		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+		glm::vec3 pos = GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 
 		const glm::vec3 far_point = pos + normalized_target * zFar;
 
@@ -51,11 +51,14 @@ namespace ORNG {
 	}
 
 	void CameraComponent::MakeActive() {
-		mp_system->SetActiveCamera(this);
+		Events::ECS_Event<CameraComponent> update_event;
+		update_event.affected_components.push_back(this);
+		update_event.event_type = Events::ECS_EventType::COMP_UPDATED;
+		is_active = true;
 	};
 
-	glm::mat4x4 CameraComponent::GetViewMatrix() const {
-		glm::vec3 pos = mp_transform->GetAbsoluteTransforms()[0];
+	glm::mat4x4 CameraComponent::GetViewMatrix() {
+		glm::vec3 pos = GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 		return glm::lookAt(pos, pos + target, up);
 	}
 

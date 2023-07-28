@@ -7,6 +7,7 @@ namespace ORNG {
 
 	class Framebuffer {
 	public:
+		friend class FramebufferLibrary;
 		Framebuffer() = default;
 		Framebuffer(unsigned int id, const char* name, bool scale_with_window);
 		virtual ~Framebuffer();
@@ -15,18 +16,16 @@ namespace ORNG {
 
 
 		const Texture2D& Add2DTexture(const std::string& name, unsigned int attachment_point, const Texture2DSpec& spec);
-
 		// Binds an existing texture to the framebuffer, texture will not be deleted upon framebuffer deletion
 		void AddShared2DTexture(const std::string& name, Texture2D& tex, GLenum attachment_point);
-
 		const Texture2DArray& Add2DTextureArray(const std::string& name, const Texture2DArraySpec& spec);
-
 		const TextureCubemap& AddCubemapTexture(const std::string& name, const TextureCubemapSpec& spec);
 
 
 		void AddRenderbuffer(unsigned int width, unsigned int height);
 
 		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
+
 
 		void BindTexture2D(unsigned int tex_ref, unsigned int attachment, unsigned int target, unsigned int mip_layer = 0);
 
@@ -36,10 +35,14 @@ namespace ORNG {
 
 		void SetRenderBufferDimensions(unsigned int width, unsigned int height);
 
+		bool GetIsScalingWithWindow() const {
+			return m_scales_with_window;
+		}
+
 		template<std::derived_from<TextureBase> T>
 		T& GetTexture(const std::string& name) {
 			if (!m_textures.contains(name)) {
-				OAR_CORE_ERROR("No texture with name '{0}' found in framebuffer '{1}'", name, m_name);
+				ORNG_CORE_ERROR("No texture with name '{0}' found in framebuffer '{1}'", name, m_name);
 				BREAKPOINT;
 			}
 
@@ -61,7 +64,7 @@ namespace ORNG {
 
 
 			if (!is_valid_type) {
-				OAR_CORE_ERROR("Invalid type specified for GetTexture, texture name: '{0}'", name);
+				ORNG_CORE_ERROR("Invalid type specified for GetTexture, texture name: '{0}'", name);
 				BREAKPOINT;
 			}
 
@@ -69,11 +72,10 @@ namespace ORNG {
 		};
 
 
+		void Resize();
 	private:
 
-		void Resize();
 
-		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 
 		GLuint m_framebuffer_id;
 		const char* m_name = "Unnamed framebuffer";

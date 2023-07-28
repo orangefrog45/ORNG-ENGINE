@@ -12,6 +12,7 @@ namespace ORNG {
 
 	void Skybox::LoadEnvironmentMap(const std::string& filepath) {
 		EnvMapLoader::LoadEnvironmentMap(filepath, *this, 4096);
+		m_hdr_tex_filepath = filepath;
 	}
 
 	const TextureCubemap& Skybox::GetSkyboxTexture() const {

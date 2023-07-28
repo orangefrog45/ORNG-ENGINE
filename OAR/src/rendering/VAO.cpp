@@ -5,7 +5,7 @@
 static constexpr unsigned int POSITION_LOCATION = 0;
 static constexpr unsigned int TEX_COORD_LOCATION = 1;
 static constexpr unsigned int NORMAL_LOCATION = 2;
-static constexpr unsigned int TANGENT_LOCATION = 7;
+static constexpr unsigned int TANGENT_LOCATION = 3;
 
 namespace ORNG {
 
@@ -59,7 +59,7 @@ namespace ORNG {
 
 	void VAO::FullUpdateTransformSSBO(unsigned int ssbo_handle, const std::vector<glm::mat4>* transforms, long long buffer_size) {
 		if (std::find(m_transform_ssbo_handles.begin(), m_transform_ssbo_handles.end(), ssbo_handle) == m_transform_ssbo_handles.end()) {
-			OAR_CORE_CRITICAL("No transform ssbo with handle '{0}' located in VAO.");
+			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in VAO.");
 			BREAKPOINT;
 		}
 
@@ -81,9 +81,19 @@ namespace ORNG {
 		}
 	}
 
+	void VAO::DeleteTransformSSBO(unsigned int ssbo_handle) {
+		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
+			ORNG_CORE_ERROR("VAO does not contain SSBO with handle '{0}', failed to delete!", ssbo_handle);
+		}
+		else {
+			glDeleteBuffers(1, &ssbo_handle);
+		}
+
+	}
+
 	void VAO::SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms) {
 		if (std::find(m_transform_ssbo_handles.begin(), m_transform_ssbo_handles.end(), ssbo_handle) == m_transform_ssbo_handles.end()) {
-			OAR_CORE_CRITICAL("No transform ssbo with handle '{0}' located in VAO.");
+			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in VAO.");
 			BREAKPOINT;
 		}
 

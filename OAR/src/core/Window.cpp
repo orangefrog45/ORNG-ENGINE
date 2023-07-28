@@ -34,7 +34,7 @@ namespace ORNG {
 
 	void Window::I_Init() {
 		p_window = glfwCreateWindow(m_window_width, m_window_height, "ORANGE ENGINE", nullptr, nullptr);
-		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); OAR_CORE_TRACE("ACTIVE"); });
+		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
 
 		glfwSetWindowSizeCallback(p_window, [](GLFWwindow*, int width, int height)
 			{
@@ -47,5 +47,10 @@ namespace ORNG {
 		{
 			glfwTerminate();
 		}
+
+		glfwMakeContextCurrent(p_window);
+		glfwSwapInterval(0);
+		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
+
 	}
 }

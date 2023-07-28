@@ -1,8 +1,13 @@
 #include "pch/pch.h"
+
+#include <yaml-cpp/yaml.h>
+
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
 #include "scene/SceneEntity.h"
 #include "components/ComponentAPI.h"
+#include "rendering/Textures.h"
+
 
 namespace YAML {
 	template<>
@@ -70,14 +75,25 @@ namespace ORNG {
 	}
 
 
+	std::string SceneSerializer::SerializeEntityIntoString(SceneEntity& entity) {
+		YAML::Emitter out;
+
+		SerializeEntity(entity, out);
+		return std::string{out.c_str()};
+	}
+
+	void SceneSerializer::DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity) {
+		YAML::Node data = YAML::Load(str);
+		DeserializeEntity(scene, data, entity);
+	}
 
 
 
 	void SceneSerializer::SerializeEntity(SceneEntity& entity, YAML::Emitter& out) {
 		out << YAML::BeginMap;
-		out << YAML::Key << "Entity" << YAML::Value << entity.GetID();
+		out << YAML::Key << "Entity" << YAML::Value << entity.GetUUID();
 		out << YAML::Key << "Name" << YAML::Value << entity.name;
-		out << YAML::Key << "ParentID" << YAML::Value << (entity.GetParent() ? entity.GetParent()->GetID() : 0);
+		out << YAML::Key << "ParentID" << YAML::Value << (entity.GetParent() ? entity.GetParent()->GetUUID() : 0);
 
 		const auto* p_transform = entity.GetComponent<TransformComponent>();
 
@@ -86,7 +102,7 @@ namespace ORNG {
 
 		out << YAML::Key << "Pos" << YAML::Value << p_transform->GetPosition();
 		out << YAML::Key << "Scale" << YAML::Value << p_transform->GetScale();
-		out << YAML::Key << "Orientation" << YAML::Value << p_transform->GetRotation();
+		out << YAML::Key << "Orientation" << YAML::Value << p_transform->GetOrientation();
 
 		out << YAML::EndMap;
 
@@ -173,7 +189,7 @@ namespace ORNG {
 
 
 
-	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::iterator::value_type entity_node, SceneEntity& entity) {
+	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity) {
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
 		if (parent_id != 0)
 			entity.SetParent(scene.GetEntity(parent_id));
@@ -194,7 +210,7 @@ namespace ORNG {
 			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(scene.GetMeshAsset(mesh_asset_id)->m_filename);
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(scene.GetMeshAsset(mesh_asset_id));
 
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
@@ -298,11 +314,14 @@ namespace ORNG {
 			out << YAML::Key << "AO texture" << YAML::Value << (p_material->ao_texture ? p_material->ao_texture->uuid() : 0);
 			out << YAML::Key << "Metallic texture" << YAML::Value << (p_material->metallic_texture ? p_material->metallic_texture->uuid() : 0);
 			out << YAML::Key << "Roughness texture" << YAML::Value << (p_material->roughness_texture ? p_material->roughness_texture->uuid() : 0);
+			out << YAML::Key << "Emissive texture" << YAML::Value << (p_material->emissive_texture ? p_material->emissive_texture->uuid() : 0);
 			out << YAML::Key << "Base colour" << YAML::Value << p_material->base_color;
 			out << YAML::Key << "Metallic" << YAML::Value << p_material->metallic;
 			out << YAML::Key << "Roughness" << YAML::Value << p_material->roughness;
 			out << YAML::Key << "AO" << YAML::Value << p_material->ao;
 			out << YAML::Key << "TileScale" << YAML::Value << p_material->tile_scale;
+			out << YAML::Key << "Emissive" << YAML::Value << p_material->emissive;
+			out << YAML::Key << "Emissive strength" << YAML::Value << p_material->emissive_strength;
 			out << YAML::EndMap;
 		}
 
@@ -324,6 +343,18 @@ namespace ORNG {
 		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.m_directional_light.z_mults[0], scene.m_directional_light.z_mults[1], scene.m_directional_light.z_mults[2]);
 		out << YAML::EndMap;
 
+
+		out << YAML::Key << "Skybox" << YAML::BeginMap;
+		out << YAML::Key << "HDR filepath" << YAML::Value << scene.skybox.m_hdr_tex_filepath;
+		out << YAML::EndMap;
+
+		out << YAML::Key << "Bloom" << YAML::BeginMap;
+		out << YAML::Key << "Intensity" << YAML::Value << scene.post_processing.bloom.intensity;
+		out << YAML::Key << "Knee" << YAML::Value << scene.post_processing.bloom.knee;
+		out << YAML::Key << "Threshold" << YAML::Value << scene.post_processing.bloom.threshold;
+		out << YAML::EndMap;
+
+
 		out << YAML::EndMap;
 		std::ofstream fout{filepath};
 		fout << out.c_str();
@@ -339,7 +370,7 @@ namespace ORNG {
 			return false;
 
 		std::string scene_name = data["Scene"].as<std::string>();
-		OAR_CORE_TRACE("Deserializing scene '{0}'", scene_name);
+		ORNG_CORE_TRACE("Deserializing scene '{0}'", scene_name);
 
 
 		// Creating textures
@@ -377,11 +408,14 @@ namespace ORNG {
 			p_material->ao_texture = scene.GetTexture(material["AO texture"].as<uint64_t>());
 			p_material->metallic_texture = scene.GetTexture(material["Metallic texture"].as<uint64_t>());
 			p_material->roughness_texture = scene.GetTexture(material["Roughness texture"].as<uint64_t>());
+			p_material->emissive_texture = scene.GetTexture(material["Emissive texture"].as<uint64_t>());
 			p_material->base_color = material["Base colour"].as<glm::vec3>();
 			p_material->metallic = material["Metallic"].as<float>();
 			p_material->roughness = material["Roughness"].as<float>();
 			p_material->ao = material["AO"].as<float>();
 			p_material->tile_scale = material["TileScale"].as<glm::vec2>();
+			p_material->emissive = material["Emissive"].as<bool>();
+			p_material->emissive_strength = material["Emissive strength"].as<float>();
 
 		}
 
@@ -418,7 +452,7 @@ namespace ORNG {
 			scene.LoadMeshAssetPreExistingMaterials(scene.m_mesh_assets[i], material_vec[i]);
 		}
 
-
+		// Entities
 		auto entities = data["Entities"];
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
 		for (auto entity_node : entities) {
@@ -428,7 +462,7 @@ namespace ORNG {
 			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
 		}
 
-
+		// Directional light
 		auto dir_light = data["DirLight"];
 		scene.m_directional_light.color = dir_light["Colour"].as<glm::vec3>();
 		scene.m_directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
@@ -436,6 +470,15 @@ namespace ORNG {
 		scene.m_directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
 		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
 		scene.m_directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
+
+		// Skybox/Env map
+		auto skybox = data["Skybox"];
+		scene.skybox.LoadEnvironmentMap(skybox["HDR filepath"].as<std::string>());
+
+		auto bloom = data["Bloom"];
+		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
+		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
+		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
 
 	}
 }

@@ -1,22 +1,22 @@
 #pragma once
-#include "rendering/MeshAsset.h"
 #include "components/Component.h"
-#include "components/TransformComponent.h"
+#include "rendering/MeshAsset.h"
 
 namespace ORNG {
 
 	class MeshInstanceGroup;
-	class TransformComponent;
+	class MeshAsset;
+	class Material;
 
 	class MeshComponent : public Component {
 	public:
-		friend class MeshComponentManager;
+		friend class MeshInstancingSystem;
 		friend class Scene;
 		friend class EditorLayer;
 		friend class MeshInstanceGroup;
 		friend class SceneRenderer;
 		friend class SceneSerializer;
-		MeshComponent(SceneEntity* p_entity, TransformComponent* t_transform);
+		explicit MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset);
 		MeshComponent(const MeshComponent& other) = delete;
 
 		void SetShaderID(unsigned int id);
@@ -27,9 +27,9 @@ namespace ORNG {
 		inline const MeshAsset* GetMeshData() const { return mp_mesh_asset; }
 		auto& GetMaterials() { return m_materials; }
 
-		TransformComponent* p_transform = nullptr;
+
 	private:
-		void RequestTransformSSBOUpdate();
+		void DispatchUpdateEvent();
 		std::vector<const Material*> m_materials;
 
 		unsigned int m_shader_id = 1; // 1 = lighting (default shader)

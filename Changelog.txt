@@ -1,3 +1,22 @@
+28/7/23:
+-ECS Overhaul - started using entt and event-driven architecture
+-Made core engine API a library and seperated editor application from it
+-Events system converted to using entt
+-Fixed spotlight/pointlight shadows
+-PCSS for directional lights
+-Bloom post processing added - http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
+-Emissive materials and texture support
+-Stability improvements, a few crashes (especially on window close) fixed
+
+
+14/7/23:
+-Blurring/upsampling fog passes converted to compute shaders, ~0.5ms performance gain
+-Proper windows file explorer integration
+-Skybox/env map editor (for now just an HDR loader)
+-Editor bugfixing, more QOL features
+-Smoother shadows with rotated poisson disk sampling
+-GPU/CPU lifetime profiling timer macros
+
 08/7/23:
 -Huge fog improvements, depth-aware upsampling and blurring, decent performance
 -Improvements on serialization, almost all data saved (some stuff that's about to change not included)

@@ -18,15 +18,14 @@ namespace ORNG {
 		float* image_data = stbi_loadf(filepath.c_str(), &width, &height, &bpp, 0);
 
 		if (image_data == nullptr) {
-			OAR_CORE_ERROR("Can't load texture from '{0}', - '{1}'", filepath.c_str(), stbi_failure_reason());
+			ORNG_CORE_ERROR("Can't load texture from '{0}', - '{1}'", filepath.c_str(), stbi_failure_reason());
 			return false;
 		}
 
+		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
 		GLenum internal_format;
 		GLenum format;
 
-
-		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
 		switch (bpp) {
 		case 1:
 			internal_format = GL_R32F;
@@ -45,7 +44,7 @@ namespace ORNG {
 			format = GL_RGBA;
 			break;
 		default:
-			OAR_CORE_ERROR("Failed loading texture from '{0}', unsupported number of channels", filepath);
+			ORNG_CORE_ERROR("Failed loading texture from '{0}', unsupported number of channels", filepath);
 			stbi_image_free(image_data);
 			return false;
 		}
@@ -56,6 +55,8 @@ namespace ORNG {
 
 		if (base_spec->generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
+
+		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
 		return true;
 	}
@@ -71,7 +72,7 @@ namespace ORNG {
 		unsigned char* image_data = stbi_load(filepath.c_str(), &width, &height, &bpp, 0);
 
 		if (image_data == nullptr) {
-			OAR_CORE_ERROR("Can't load texture from '{0}', - '{1}'", filepath.c_str(), stbi_failure_reason());
+			ORNG_CORE_ERROR("Can't load texture from '{0}', - '{1}'", filepath.c_str(), stbi_failure_reason());
 			return false;
 		}
 
@@ -106,16 +107,17 @@ namespace ORNG {
 			format = GL_RGBA;
 			break;
 		default:
-			OAR_CORE_ERROR("Failed loading texture from '{0}', unsupported number of channels", filepath);
+			ORNG_CORE_ERROR("Failed loading texture from '{0}', unsupported number of channels", filepath);
 			stbi_image_free(image_data);
 			return false;
 		}
 
 		glTexImage2D(target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
-
-
 		stbi_image_free(image_data);
 
+		if (base_spec->generate_mipmaps)
+			glGenerateMipmap(m_texture_target);
+		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
 		return true;
 	}
@@ -124,7 +126,7 @@ namespace ORNG {
 	bool Texture2D::LoadFromFile() {
 
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
-			OAR_CORE_ERROR("2D Texture failed loading: Invalid spec");
+			ORNG_CORE_ERROR("2D Texture failed loading: Invalid spec");
 			return false;
 		}
 
@@ -141,8 +143,6 @@ namespace ORNG {
 		glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_S, wrap_mode);
 		glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_T, wrap_mode);
 
-		if (m_spec.generate_mipmaps)
-			glGenerateMipmap(m_texture_target);
 
 		return ret;
 	}
@@ -152,7 +152,7 @@ namespace ORNG {
 	bool Texture2DArray::LoadFromFile() {
 
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepaths.empty()) {
-			OAR_CORE_ERROR("Texture2DArray failed loading: Invalid spec");
+			ORNG_CORE_ERROR("Texture2DArray failed loading: Invalid spec");
 			return false;
 		}
 
@@ -172,12 +172,12 @@ namespace ORNG {
 			unsigned char* image_data = stbi_load(m_spec.filepaths[i].c_str(), &width, &height, &bpp, 4);
 
 			if (image_data == nullptr) {
-				OAR_CORE_ERROR("Can't load texture from '{0}', - '{1}'", m_spec.filepaths[i].c_str(), stbi_failure_reason());
+				ORNG_CORE_ERROR("Can't load texture from '{0}', - '{1}'", m_spec.filepaths[i].c_str(), stbi_failure_reason());
 				return false;
 			}
 
 			if (width != m_spec.width || height != m_spec.height) {
-				OAR_CORE_ERROR("2D Texture loading error: width/height mismatch");
+				ORNG_CORE_ERROR("2D Texture loading error: width/height mismatch");
 				stbi_image_free(image_data);
 				return false;
 			}
@@ -194,8 +194,6 @@ namespace ORNG {
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, wrap_mode);
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, wrap_mode);
 
-		if (m_spec.generate_mipmaps)
-			glGenerateMipmap(m_texture_target);
 
 		return true;
 	}
@@ -208,7 +206,7 @@ namespace ORNG {
 	bool TextureCubemap::LoadFromFile() {
 
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepaths.size() != 6) {
-			OAR_CORE_ERROR("TextureCubemap failed to load, invalid spec");
+			ORNG_CORE_ERROR("TextureCubemap failed to load, invalid spec");
 			return false;
 		}
 
@@ -230,8 +228,7 @@ namespace ORNG {
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, wrap_mode);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrap_mode);
 
-		if (m_spec.generate_mipmaps)
-			glGenerateMipmap(m_texture_target);
+
 
 		return true;
 	}
@@ -258,7 +255,7 @@ namespace ORNG {
 			return true;
 		}
 		else {
-			OAR_CORE_ERROR("Texture2D failed setting spec: Invalid spec");
+			ORNG_CORE_ERROR("Texture2D failed setting spec: Invalid spec");
 			return false;
 		}
 	}
@@ -283,7 +280,7 @@ namespace ORNG {
 			return true;
 		}
 		else {
-			OAR_CORE_ERROR("Texture2DArray failed setting spec: Invalid spec");
+			ORNG_CORE_ERROR("Texture2DArray failed setting spec: Invalid spec");
 			return false;
 		}
 	}
@@ -311,7 +308,7 @@ namespace ORNG {
 			return true;
 		}
 		else {
-			OAR_CORE_ERROR("3D Texture failed setting spec: Invalid spec");
+			ORNG_CORE_ERROR("3D Texture failed setting spec: Invalid spec");
 			return false;
 		}
 	}
@@ -342,7 +339,34 @@ namespace ORNG {
 			return true;
 		}
 		else {
-			OAR_CORE_ERROR("TextureCubemap failed setting spec: Invalid spec");
+			ORNG_CORE_ERROR("TextureCubemap failed setting spec: Invalid spec");
+			return false;
+		}
+	}
+
+	bool TextureCubemapArray::SetSpec(const TextureCubemapArraySpec& spec) {
+		if (ValidateBaseSpec(static_cast<const TextureCubemapArraySpec*>(&spec))) {
+			m_spec = spec;
+			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_texture_obj, GL_TEXTURE0, true);
+
+
+			ASSERT(m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE);
+
+			glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, spec.internal_format, spec.width, spec.height, spec.layer_count * 6, 0, spec.format, spec.storage_type, nullptr);
+
+			GLenum wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : m_spec.wrap_params;
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : m_spec.min_filter);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : m_spec.mag_filter);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, wrap_mode);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, wrap_mode);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, wrap_mode);
+
+			if (m_spec.generate_mipmaps)
+				glGenerateMipmap(m_texture_target);
+			return true;
+		}
+		else {
+			ORNG_CORE_ERROR("TextureCubemapArray failed setting spec: Invalid spec");
 			return false;
 		}
 	}

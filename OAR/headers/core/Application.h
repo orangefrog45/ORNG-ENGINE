@@ -1,5 +1,5 @@
 #pragma once
-#include "layers/EditorLayer.h"
+#include "layers/LayerStack.h"
 
 namespace ORNG {
 
@@ -8,9 +8,10 @@ namespace ORNG {
 	public:
 		Application();
 		~Application() = default;
+
+		// Initializes all core engine modules and starts propagating events
 		void Init();
 
-	private:
-		EditorLayer editor_layer = EditorLayer();
+		LayerStack layer_stack;
 	};
 }

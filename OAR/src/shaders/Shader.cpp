@@ -13,12 +13,17 @@ namespace ORNG {
 
 
 
-	std::string Shader::ParseShader(const std::string& filepath) {
+	std::string Shader::ParseShader(const std::string& filepath, const std::vector<std::string>& defines) {
 		std::ifstream stream(filepath);
 
 		std::stringstream ss;
 		std::string line;
-		ShaderType type = ShaderType::NONE;
+		// Output version statement first
+		getline(stream, line);
+		ss << line << "\n";
+		for (auto& define : defines) { // insert definitions 
+			ss << "#define" << " " << define << "\n";
+		}
 		while (getline(stream, line))
 		{
 			ss << line << "\n";
@@ -26,9 +31,9 @@ namespace ORNG {
 		return ss.str();
 	}
 
-	void Shader::AddStage(GLenum shader_type, const std::string& filepath) {
+	void Shader::AddStage(GLenum shader_type, const std::string& filepath, const std::vector<std::string>& defines) {
 		unsigned int shader_handle = 0;
-		CompileShader(shader_type, ParseShader(filepath), shader_handle);
+		CompileShader(shader_type, ParseShader(filepath, defines), shader_handle);
 		m_shader_handles.push_back(shader_handle);
 	}
 
@@ -53,7 +58,7 @@ namespace ORNG {
 			glGetProgramInfoLog(m_program_id, length, &length, message);
 
 
-			OAR_CORE_CRITICAL("Failed to link program for shader '{0}' : '{1}", m_name, message);
+			ORNG_CORE_CRITICAL("Failed to link program for shader '{0}' : '{1}", m_name, message);
 			BREAKPOINT;
 		}
 
@@ -65,7 +70,7 @@ namespace ORNG {
 	unsigned int Shader::CreateUniform(const std::string& name) {
 		int location = glGetUniformLocation(m_program_id, name.c_str());
 		if (location == -1 && SHADER_DEBUG_MODE == true) {
-			OAR_CORE_ERROR("Could not find uniform '{0}'", name);
+			ORNG_CORE_ERROR("Could not find uniform '{0}'", name);
 			BREAKPOINT;
 		}
 		return location;
@@ -101,7 +106,7 @@ namespace ORNG {
 				break;
 			}
 
-			OAR_CORE_CRITICAL("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
+			ORNG_CORE_CRITICAL("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
 		}
 	}
 

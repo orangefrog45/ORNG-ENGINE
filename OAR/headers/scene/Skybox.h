@@ -7,6 +7,7 @@ namespace ORNG {
 
 
 	class Skybox {
+		friend class SceneSerializer;
 	public:
 		friend class EditorLayer;
 		friend class EnvMapLoader;
@@ -15,6 +16,7 @@ namespace ORNG {
 		const TextureCubemap& GetSkyboxTexture() const;
 		const TextureCubemap& GetIrradianceTexture() const;
 	private:
+		std::string m_hdr_tex_filepath = "";
 		unsigned int m_resolution = 4096;
 		Texture2D m_brdf_convolution_lut{ "env_brdf_convolution" };
 		TextureCubemap m_diffuse_prefilter_map{ "env_diffuse_prefilter" };

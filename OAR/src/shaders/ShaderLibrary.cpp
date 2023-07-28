@@ -48,7 +48,7 @@ namespace ORNG {
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light) {
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
 
-		constexpr int num_floats_in_buffer = 12;
+		constexpr int num_floats_in_buffer = 16;
 		std::array<float, num_floats_in_buffer> light_data = { 0 };
 
 		glm::vec3 light_dir = dir_light.GetLightDirection();
@@ -64,20 +64,31 @@ namespace ORNG {
 		light_data[9] = dir_light.cascade_ranges[1];
 		light_data[10] = dir_light.cascade_ranges[2];
 		light_data[11] = 0; //padding
+		light_data[12] = dir_light.light_size;
+		light_data[13] = dir_light.blocker_search_size;
 
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, num_floats_in_buffer * sizeof(float), &light_data[0]);
 	};
 
-	Shader& ShaderLibrary::CreateShader(const char* name) {
-		m_shaders.try_emplace(name, name, CreateShaderID());
-		OAR_CORE_INFO("Shader '{0}' created", name);
+	Shader& ShaderLibrary::CreateShader(const char* name, unsigned int id) {
+
+		if (m_shaders.contains(name)) {
+			ORNG_CORE_ERROR("Shader name '{0}' already exists! Pick another name.", name);
+			BREAKPOINT;
+		}
+		if (id == 0)
+			m_shaders.try_emplace(name, name, CreateIncrementalShaderID());
+		else
+			m_shaders.try_emplace(name, name, id);
+
+		ORNG_CORE_INFO("Shader '{0}' created", name);
 		return m_shaders[name];
 	}
 
 
 	Shader& ShaderLibrary::GetShader(const char* name) {
 		if (!m_shaders.contains(name)) {
-			OAR_CORE_CRITICAL("No shader with name '{0}' exists", name);
+			ORNG_CORE_CRITICAL("No shader with name '{0}' exists", name);
 			BREAKPOINT;
 		}
 		return m_shaders[name];

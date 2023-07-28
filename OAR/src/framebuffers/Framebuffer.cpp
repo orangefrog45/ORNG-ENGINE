@@ -15,17 +15,8 @@ namespace ORNG {
 		if (!m_scales_with_window)
 			return;
 
-
-		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
-			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
-				Resize();
-			}
-		};
-
-		Events::EventManager::RegisterListener(m_window_event_listener);
-
-
 	}
+
 
 
 	void Framebuffer::Resize() {
@@ -60,7 +51,7 @@ namespace ORNG {
 		for (auto& tex : m_textures) {
 
 			if (tex.second.is_shared)
-				return;
+				continue;
 
 
 			switch (tex.second.p_texture->m_texture_target) {
@@ -77,20 +68,20 @@ namespace ORNG {
 			}
 		}
 
-		OAR_CORE_INFO("Framebuffer '{0}' deleted", m_name);
+		ORNG_CORE_INFO("Framebuffer '{0}' deleted", m_name);
 	}
 
 	const Texture2D& Framebuffer::Add2DTexture(const std::string& name, unsigned int attachment_point, const Texture2DSpec& spec)
 	{
 		if (m_textures.contains(name)) {
-			OAR_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use", name);
+			ORNG_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use", name);
 			BREAKPOINT;
 		}
 
 		Texture2D* tex = new Texture2D(name.c_str());
 
 		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
-			OAR_CORE_ERROR("Failed adding 2D texture to framebuffer '{0}', invalid spec", m_name);
+			ORNG_CORE_ERROR("Failed adding 2D texture to framebuffer '{0}', invalid spec", m_name);
 			BREAKPOINT;
 		}
 
@@ -110,7 +101,7 @@ namespace ORNG {
 
 	void Framebuffer::AddShared2DTexture(const std::string& name, Texture2D& tex, GLenum attachment_point) {
 		if (m_textures.contains(name)) {
-			OAR_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use", name);
+			ORNG_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use", name);
 			BREAKPOINT;
 		}
 
@@ -125,7 +116,7 @@ namespace ORNG {
 
 	const TextureCubemap& Framebuffer::AddCubemapTexture(const std::string& name, const TextureCubemapSpec& spec) {
 		if (m_textures.contains(name)) {
-			OAR_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use");
+			ORNG_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use");
 			BREAKPOINT;
 		}
 
@@ -133,7 +124,7 @@ namespace ORNG {
 		TextureCubemap* tex = new TextureCubemap(name.c_str());
 
 		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
-			OAR_CORE_ERROR("Failed adding cubemap texture to framebuffer '{0}', invalid spec", m_name);
+			ORNG_CORE_ERROR("Failed adding cubemap texture to framebuffer '{0}', invalid spec", m_name);
 			BREAKPOINT;
 
 		}
@@ -149,14 +140,14 @@ namespace ORNG {
 	{
 
 		if (m_textures.contains(name)) {
-			OAR_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use");
+			ORNG_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use");
 			BREAKPOINT;
 		}
 
 		Texture2DArray* tex = new Texture2DArray(name.c_str());
 
 		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
-			OAR_CORE_ERROR("Failed adding 2D texture array to framebuffer '{0}', invalid spec", m_name);
+			ORNG_CORE_ERROR("Failed adding 2D texture array to framebuffer '{0}', invalid spec", m_name);
 			BREAKPOINT;
 
 		}
@@ -200,6 +191,7 @@ namespace ORNG {
 		glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, tex_ref, 0, layer);
 	}
 
+
 	void Framebuffer::BindTexture2D(unsigned int tex_ref, unsigned int attachment, unsigned int target, unsigned int mip_layer) {
 		Bind();
 		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, target, tex_ref, mip_layer);
@@ -211,11 +203,11 @@ namespace ORNG {
 		glGenFramebuffers(1, &m_fbo);
 
 		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
-			OAR_CORE_ERROR("Framebuffer '{0}' initialization failed", m_name);
+			ORNG_CORE_ERROR("Framebuffer '{0}' initialization failed", m_name);
 			BREAKPOINT;
 		}
 		else {
-			OAR_CORE_INFO("Framebuffer '{0}' initialized", m_name);
+			ORNG_CORE_INFO("Framebuffer '{0}' initialized", m_name);
 		}
 	}
 

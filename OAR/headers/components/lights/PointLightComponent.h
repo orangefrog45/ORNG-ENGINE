@@ -4,14 +4,14 @@
 
 namespace ORNG {
 
+	class PointlightSystem;
+
 	struct PointLightComponent : public BaseLight {
+		PointLightComponent(SceneEntity* p_entity) : BaseLight(p_entity) { };
 
-		PointLightComponent(SceneEntity* p_entity, const TransformComponent* t_transform) : BaseLight(p_entity), p_transform(t_transform) { };
-		virtual ~PointLightComponent() = default;
-
-		float max_distance = 48.0f;
+		void SetShadowsEnabled(bool v);
+		float shadow_distance = 48.0f;
 		LightAttenuation attenuation;
-		const TransformComponent* p_transform = nullptr;
 
 	};
 

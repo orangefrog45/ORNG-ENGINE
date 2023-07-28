@@ -26,20 +26,6 @@ namespace ORNG {
 		friend class EditorLayer;
 		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
 
-		void SetParentTransform(TransformComponent* p_transform) {
-			if (mp_parent_transform)
-				RemoveParentTransform();
-
-			p_transform->AddChildTransform(this);
-		}
-
-		void RemoveParentTransform() {
-			mp_parent_transform->RemoveChildTransform(this);
-		}
-
-		TransformComponent* GetParentTransform() {
-			return mp_parent_transform;
-		}
 
 
 		void SetScale(float scaleX, float scaleY, float scaleZ) {
@@ -47,10 +33,22 @@ namespace ORNG {
 			SetScale(scale);
 		}
 
+		void SetAbsoluteScale(glm::vec3 scale) {
+			glm::vec3 abs_scale = GetAbsoluteTransforms()[1];
+
+			SetScale(scale / (abs_scale / m_scale));
+		}
+
 		void SetAbsolutePosition(glm::vec3 pos) {
 			glm::vec3 absolute_pos = GetAbsoluteTransforms()[0];
 
 			SetPosition(pos - (absolute_pos - m_pos));
+		}
+
+		void SetAbsoluteOrientation(glm::vec3 orientation) {
+			glm::vec3 absolute_orientation = GetAbsoluteTransforms()[2];
+
+			SetOrientation(orientation - (absolute_orientation - m_orientation));
 		}
 
 		void SetOrientation(float x, float y, float z) {
@@ -73,7 +71,7 @@ namespace ORNG {
 		};
 
 		void SetOrientation(const glm::vec3 rot) {
-			m_rotation = rot;
+			m_orientation = rot;
 			RebuildMatrix(UpdateType::ORIENTATION);
 		};
 
@@ -89,24 +87,16 @@ namespace ORNG {
 
 		glm::vec3 GetPosition() const;
 		glm::vec3 GetScale() const { return m_scale; };
-		glm::vec3 GetRotation() const { return m_rotation; };
+		glm::vec3 GetOrientation() const { return m_orientation; };
 
-		enum class CallbackType {
-			SPOTLIGHT = 0,
-			PHYSICS = 1,
-			MESH = 2,
-			CAMERA = 3
-		};
 
-		enum class UpdateType {
+		enum UpdateType {
 			TRANSLATION = 0,
 			SCALE = 1,
 			ORIENTATION = 2,
 			ALL = 3
 		};
 
-		// These callbacks will be called whenever the transform changes, given by component systems/managers
-		std::unordered_map<CallbackType, std::function<void([[maybe_unused]] UpdateType type)>> update_callbacks;
 	private:
 
 		// If true, transform will not take parent transforms into account when building matrix.
@@ -114,23 +104,9 @@ namespace ORNG {
 
 		void RebuildMatrix(UpdateType type);
 
-		void RemoveChildTransform(TransformComponent* p_transform) {
-			auto it = std::find(m_child_transforms.begin(), m_child_transforms.end(), p_transform);
-			m_child_transforms.erase(it);
-			p_transform->mp_parent_transform = nullptr;
-		}
-
-		void AddChildTransform(TransformComponent* p_transform) {
-			m_child_transforms.push_back(p_transform);
-			p_transform->mp_parent_transform = this;
-		}
-
 		glm::mat4 m_transform = glm::mat4(1);
-
-		TransformComponent* mp_parent_transform = nullptr;
-		std::vector<TransformComponent*> m_child_transforms;
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
-		glm::vec3 m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 m_orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
 

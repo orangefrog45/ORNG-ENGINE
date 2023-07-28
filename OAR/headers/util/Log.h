@@ -6,6 +6,7 @@ namespace ORNG {
 
 	class Log {
 	public:
+
 		static void Init();
 		inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_core_logger; }
 		static void GLLogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*);
@@ -14,8 +15,9 @@ namespace ORNG {
 	};
 
 }
-#define OAR_CORE_TRACE(...) Log::GetCoreLogger()->trace(__VA_ARGS__)
-#define OAR_CORE_INFO(...) Log::GetCoreLogger()->info(__VA_ARGS__)
-#define OAR_CORE_WARN(...) Log::GetCoreLogger()->warn(__VA_ARGS__)
-#define OAR_CORE_ERROR(...) Log::GetCoreLogger()->error(__VA_ARGS__)
-#define OAR_CORE_CRITICAL(...) Log::GetCoreLogger()->critical(__VA_ARGS__)
+
+#define ORNG_CORE_TRACE(...) ORNG::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define ORNG_CORE_INFO(...) ORNG::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define ORNG_CORE_WARN(...) ORNG::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define ORNG_CORE_ERROR(...) ORNG::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define ORNG_CORE_CRITICAL(...) ORNG::Log::GetCoreLogger()->critical(__VA_ARGS__)

@@ -50,7 +50,7 @@ namespace ORNG {
 		mp_output_fb->Bind();
 		mp_hdr_converter_shader->ActivateProgram();
 		mp_hdr_converter_shader->SetUniform("projection", proj_matrix);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, hdr_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOR);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, hdr_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		mp_output_fb->SetRenderBufferDimensions(resolution, resolution);
 		glViewport(0, 0, resolution, resolution);
 
@@ -67,7 +67,7 @@ namespace ORNG {
 	void EnvMapLoader::LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
 		// Create diffuse prefilter cubemap
 		mp_diffuse_prefilter_shader->ActivateProgram();
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOR);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		glViewport(0, 0, tex_spec.width, tex_spec.height);
 		mp_output_fb->SetRenderBufferDimensions(tex_spec.width, tex_spec.height);
 		mp_diffuse_prefilter_shader->SetUniform("projection", proj_matrix);
@@ -93,7 +93,7 @@ namespace ORNG {
 			glReadPixels(0, 0, tex_spec.width, tex_spec.height, tex_spec.format, tex_spec.storage_type, pixels);
 
 			if (!stbi_write_hdr(tex_spec.filepaths[i].c_str(), tex_spec.width, tex_spec.height, 3, pixels))
-				OAR_CORE_CRITICAL("Error writing environment map diffuse prefilter texture");
+				ORNG_CORE_CRITICAL("Error writing environment map diffuse prefilter texture");
 
 			delete[] pixels;
 		}
@@ -106,7 +106,7 @@ namespace ORNG {
 	void EnvMapLoader::GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
 		mp_specular_prefilter_shader->ActivateProgram();
 		mp_specular_prefilter_shader->SetUniform("projection", proj_matrix);
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOR);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 
 		unsigned int max_mip_levels = 5;
 
@@ -150,7 +150,7 @@ namespace ORNG {
 	}
 
 
-	void EnvMapLoader::LoadEnvironmentMap(const std::string& filepath, Skybox& skybox, unsigned int resolution) {
+	bool EnvMapLoader::LoadEnvironmentMap(const std::string& filepath, Skybox& skybox, unsigned int resolution) {
 		Texture2DSpec hdr_spec;
 		hdr_spec.generate_mipmaps = false;
 		hdr_spec.internal_format = GL_RGB16F;
@@ -164,7 +164,8 @@ namespace ORNG {
 		Texture2D hdr_texture("hdr_skybox");
 
 		hdr_texture.SetSpec(hdr_spec);
-		hdr_texture.LoadFromFile();
+		if (!hdr_texture.LoadFromFile())
+			return false;
 
 		TextureCubemapSpec hdr_cubemap_spec;
 		hdr_cubemap_spec.generate_mipmaps = false;
@@ -237,6 +238,8 @@ namespace ORNG {
 
 		glViewport(0, 0, Window::GetWidth(), Window::GetHeight());
 
+
+		return true;
 	}
 
 }

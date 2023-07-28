@@ -1,53 +1,65 @@
 #include "pch/pch.h"
-#include "components/ComponentManagers.h"
+#include "components/ComponentSystems.h"
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
 
 
-	void PointlightComponentManager::OnLoad() {
+	void PointlightSystem::OnLoad() {
 		m_pointlight_ssbo_handle = GL_StateManager::GenBuffer();
 		GL_StateManager::BindSSBO(m_pointlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
+
+		TextureCubemapArraySpec pointlight_depth_spec;
+		pointlight_depth_spec.format = GL_DEPTH_COMPONENT;
+		pointlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
+		pointlight_depth_spec.storage_type = GL_FLOAT;
+		pointlight_depth_spec.min_filter = GL_NEAREST;
+		pointlight_depth_spec.mag_filter = GL_NEAREST;
+		pointlight_depth_spec.wrap_params = GL_CLAMP_TO_EDGE;
+		pointlight_depth_spec.layer_count = 8;
+		pointlight_depth_spec.width = 512;
+		pointlight_depth_spec.height = 512;
+		m_pointlight_depth_tex.SetSpec(pointlight_depth_spec);
 	}
 
 
 
 
-	void PointlightComponentManager::OnUpdate() {
-		if (m_pointlight_components.size() == 0)
+	void PointlightSystem::OnUpdate() {
+		auto view = mp_registry->view<PointLightComponent>();
+		if (view.size() == 0)
 			return;
 
 		constexpr unsigned int point_light_fs_num_float = 12; // amount of floats in pointlight struct in shaders
 		std::vector<float> light_array;
 
-		light_array.resize(m_pointlight_components.size() * point_light_fs_num_float);
+		light_array.resize(view.size() * point_light_fs_num_float);
 
-		for (int i = 0; i < m_pointlight_components.size() * point_light_fs_num_float; i) {
-
-			auto& light = m_pointlight_components[i / point_light_fs_num_float];
-
+		int i = 0;
+		for (auto [entity, light] : view.each()) {
 			// - START COLOR
-			auto color = light->color;
+			auto color = light.color;
 			light_array[i++] = color.x;
 			light_array[i++] = color.y;
 			light_array[i++] = color.z;
 			light_array[i++] = 0; //padding
 			// - END COLOR +- START POS
-			auto pos = light->p_transform->GetAbsoluteTransforms()[0];
+			auto pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 			light_array[i++] = pos.x;
 			light_array[i++] = pos.y;
 			light_array[i++] = pos.z;
 			light_array[i++] = 0; //padding
 			// - END COLOR - START MAX_DISTANCE
-			light_array[i++] = light->max_distance;
+			light_array[i++] = light.shadow_distance;
 			// - END MAX_DISTANCE - START ATTENUATION
-			auto& atten = light->attenuation;
+			auto& atten = light.attenuation;
 			light_array[i++] = atten.constant;
 			light_array[i++] = atten.linear;
 			light_array[i++] = atten.exp;
 			// - END ATTENUATION
 		}
+
 
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo_handle);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_STREAM_DRAW);
@@ -55,57 +67,19 @@ namespace ORNG {
 
 
 
-
-	PointLightComponent* PointlightComponentManager::GetComponent(uint64_t entity_id) {
-		auto it = std::find_if(m_pointlight_components.begin(), m_pointlight_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
-		return it == m_pointlight_components.end() ? nullptr : *it;
-	}
-
-
-
-
-	void PointlightComponentManager::DeleteComponent(SceneEntity* p_entity) {
-		auto it = std::find_if(m_pointlight_components.begin(), m_pointlight_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); });
-
-		if (it == m_pointlight_components.end())
-			return;
-
-		delete* it;
-
-		m_pointlight_components.erase(it);
-
-		if (m_pointlight_components.empty()) {
-			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo_handle);
-			// empty the buffer, otherwise spotlight will remain active
-			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
-		}
-	}
-
-
-
-	void PointlightComponentManager::OnUnload() {
-		for (auto* p_light : m_pointlight_components) {
-			DeleteComponent(p_light->GetEntity());
-		}
-
-		m_pointlight_components.clear();
-
+	void PointlightSystem::OnUnload() {
 		glDeleteBuffers(1, &m_pointlight_ssbo_handle);
 	}
 
 
+	/*void PointlightSystem::OnDepthMapUpdate() {
+		int num_shadow_casting_lights = 0;
+		std::ranges::for_each(m_pointlight_components, [&](auto p_comp) {if (p_comp->shadows_enabled) num_shadow_casting_lights++; });
 
-
-	PointLightComponent* PointlightComponentManager::AddComponent(SceneEntity* p_entity) {
-
-		if (GetComponent(p_entity->GetID())) {
-			OAR_CORE_WARN("Pointlight component not added, entity '{0}' already has a pointlight component", p_entity->name);
-			return nullptr;
+		if (auto spec = m_pointlight_depth_tex.GetSpec(); spec.layer_count != num_shadow_casting_lights) {
+			spec.layer_count = num_shadow_casting_lights;
+			m_pointlight_depth_tex.SetSpec(spec);
 		}
+	}*/
 
-		auto* p_transform = p_entity->GetComponent<TransformComponent>();
-		PointLightComponent* comp = new PointLightComponent(p_entity, p_transform);
-		m_pointlight_components.push_back(comp);
-		return comp;
-	}
 }

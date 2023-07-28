@@ -9,8 +9,8 @@ namespace ORNG {
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene) : mp_scene(scene) {};
-		SceneEntity(uint64_t t_id, Scene* scene) : m_uuid(t_id), mp_scene(scene) {};
+		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene) {};
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene) {};
 
 		~SceneEntity() {
 			SetParent(nullptr);
@@ -21,21 +21,38 @@ namespace ORNG {
 			DeleteComponent<CameraComponent>();
 			DeleteComponent<TransformComponent>();
 
+			for (auto* p_child : m_children) {
+				p_child->SetParent(nullptr);
+			}
+
 
 		}
 
 		template<std::derived_from<Component> T, typename... Args>
-		T* AddComponent(Args... args) { return mp_scene->AddComponent<T>(this, args...); };
+		T* AddComponent(Args&&... args) { if (HasComponent<T>()) return GetComponent<T>(); return &mp_scene->m_registry.emplace<T>(m_entt_handle, this, std::forward<Args>(args)...); };
 
+		// Returns ptr to component or nullptr if no component was found
 		template<std::derived_from<Component> T>
 		T* GetComponent() {
-			T* comp = mp_scene->GetComponent<T>(m_uuid());
+			if (!HasComponent<T>()) {
+				return nullptr;
+			}
+			T* comp = &mp_scene->m_registry.get<T>(m_entt_handle);
 			return comp;
 		}
 
+		template<typename T>
+		bool HasComponent() {
+			return mp_scene->m_registry.all_of<T>(m_entt_handle);
+		}
+
+		// Deletes component if found, else does nothing.
 		template<std::derived_from<Component> T>
 		void DeleteComponent() {
-			mp_scene->DeleteComponent<T>(this);
+			if (!HasComponent<T>())
+				return;
+
+			mp_scene->m_registry.remove<T>(m_entt_handle);
 		}
 
 
@@ -43,7 +60,6 @@ namespace ORNG {
 			if (VectorContains(m_children, p_other) || p_other == mp_parent)
 				return;
 
-			p_other->GetComponent<TransformComponent>()->SetParentTransform(GetComponent<TransformComponent>());
 			m_children.push_back(p_other);
 		}
 
@@ -53,7 +69,7 @@ namespace ORNG {
 
 			auto it = std::ranges::find(m_children, p_entity);
 			if (it == m_children.end()) {
-				OAR_CORE_ERROR("Failure to remove entity child, entity '{0}' is not a child of entity {1}", p_entity->m_uuid(), m_uuid());
+				ORNG_CORE_ERROR("Failure to remove entity child, entity '{0}' is not a child of entity {1}", p_entity->m_uuid(), m_uuid());
 				return;
 			}
 
@@ -64,7 +80,6 @@ namespace ORNG {
 				return;
 
 
-			p_transform->RemoveParentTransform();
 		}
 
 		SceneEntity* GetParent() {
@@ -73,9 +88,10 @@ namespace ORNG {
 
 		void SetParent(SceneEntity* p_parent) {
 			auto* p_current_parent = mp_parent;
-			while (p_current_parent) {
-				if (p_current_parent == this || p_parent == p_current_parent)
+			while (p_current_parent && p_parent) {
+				if (p_current_parent == this || p_parent == p_current_parent) {
 					return;
+				}
 				p_current_parent = p_current_parent->mp_parent;
 			}
 			if (VectorContains(m_children, p_parent))
@@ -94,11 +110,13 @@ namespace ORNG {
 			SetParent(nullptr);
 		}
 
-		uint64_t GetID() const { return (uint64_t)m_uuid; };
+		uint64_t GetUUID() const { return (uint64_t)m_uuid; };
+
+		uint32_t GetEnttHandle() const { return (uint32_t)m_entt_handle; };
 
 		std::string name = "Entity";
 	private:
-
+		entt::entity m_entt_handle;
 		UUID m_uuid;
 		std::vector<SceneEntity*> m_children;
 		SceneEntity* mp_parent = nullptr;

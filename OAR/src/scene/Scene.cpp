@@ -22,24 +22,19 @@ namespace ORNG {
 
 	Scene::Scene() {
 
-
 	}
 
 
 	void Scene::Update(float ts) {
 
 		m_physics_system.OnUpdate(ts);
-		for (auto* script : m_script_components) {
-			script->OnUpdate();
-		}
 
 		m_mesh_component_manager.OnUpdate();
 		m_pointlight_component_manager.OnUpdate();
 		m_spotlight_component_manager.OnUpdate();
-		m_transform_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
 
-		m_terrain.UpdateTerrainQuadtree(m_camera_system.p_active_camera->mp_transform->GetPosition());
+		//terrain.UpdateTerrainQuadtree(m_camera_system.p_active_camera->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 	}
 
 
@@ -57,44 +52,6 @@ namespace ORNG {
 
 	}
 
-	ScriptComponent* Scene::AddScriptComponent(SceneEntity* p_entity) {
-		if (GetComponent<ScriptComponent>(p_entity->GetID())) {
-			OAR_CORE_WARN("Script component not added, entity '{0}' already has a script component", p_entity->name);
-			return nullptr;
-		}
-
-		auto* p_comp = new ScriptComponent(p_entity);
-		m_script_components.push_back(p_comp);
-		return p_comp;
-	}
-
-
-
-
-	MeshComponent* Scene::AddMeshComponent(SceneEntity* p_entity, const std::string& filename) {
-
-		// Currently any mesh components inside scene are auto-instanced and grouped together in MeshInstanceGroups, depending on shader, materials and asset
-		//check if mesh data is already available for the instance group about to be created if new component does not have appropiate instance group
-		int mesh_asset_index = -1;
-		for (int i = 0; i < m_mesh_assets.size(); i++) {
-			if (m_mesh_assets[i]->GetFilename() == filename) {
-				mesh_asset_index = i;
-				break;
-			}
-		}
-
-		MeshAsset* p_mesh_data;
-		if (mesh_asset_index == -1) {
-			p_mesh_data = CreateMeshAsset(filename);
-			p_mesh_data->LoadMeshData();
-			LoadMeshAssetIntoGPU(p_mesh_data);
-		}
-		else {
-			p_mesh_data = m_mesh_assets[mesh_asset_index];
-		}
-
-		return m_mesh_component_manager.AddComponent(p_entity, p_mesh_data);
-	}
 
 
 
@@ -134,7 +91,7 @@ namespace ORNG {
 
 
 	SceneEntity* Scene::GetEntity(uint64_t uuid) {
-		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetID() == uuid; });
+		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetUUID() == uuid; });
 		return it == m_entities.end() ? nullptr : *it;
 	}
 
@@ -161,33 +118,31 @@ namespace ORNG {
 		default_material->base_color = glm::vec3(1);
 		default_material->base_color_texture = p_tex;
 
-		m_skybox.LoadEnvironmentMap("./res/textures/belfast_sunset_puresky_4k.hdr");
-		m_global_fog.SetNoise(noise);
-		m_terrain.Init(BASE_MATERIAL_ID);
+		skybox.LoadEnvironmentMap("./res/textures/space.jpeg");
+		post_processing.global_fog.SetNoise(noise);
+		terrain.Init(BASE_MATERIAL_ID);
 		m_physics_system.OnLoad();
 		m_mesh_component_manager.OnLoad();
 		m_spotlight_component_manager.OnLoad();
 		m_pointlight_component_manager.OnLoad();
 
 		SceneSerializer::DeserializeScene(*this, filepath);
-		OAR_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
+		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}
 
 
 
 
 	void Scene::UnloadScene() {
-		OAR_CORE_INFO("Unloading scene...");
+		ORNG_CORE_INFO("Unloading scene...");
+		m_registry.clear();
 		m_physics_system.OnUnload();
 		m_mesh_component_manager.OnUnload();
 		m_spotlight_component_manager.OnUnload();
 		m_pointlight_component_manager.OnUnload();
 		m_camera_system.OnUnload();
-		m_transform_component_manager.OnUnload();
 
-		for (auto* script : m_script_components) {
-			delete script;
-		}
+
 		for (MeshAsset* mesh_data : m_mesh_assets) {
 			delete mesh_data;
 		}
@@ -202,26 +157,24 @@ namespace ORNG {
 				delete texture;
 		}
 
-		m_script_components.clear();
 		m_mesh_assets.clear();
 		m_entities.clear();
 		m_materials.clear();
 		m_texture_2d_assets.clear();
-
-		OAR_CORE_INFO("Scene unloaded");
+		ORNG_CORE_INFO("Scene unloaded");
 	}
 
 
 
 	SceneEntity& Scene::CreateEntity(const std::string& name, uint64_t uuid) {
 		// Choose to create with uuid or not
-		SceneEntity* ent = uuid == 0 ? new SceneEntity(this) : new SceneEntity(uuid, this);
+		auto reg_ent = m_registry.create();
+		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent) : new SceneEntity(uuid, reg_ent, this);
 		ent->name = name;
 		m_entities.push_back(ent);
 
 		// Give transform (all entities have this)
-		m_transform_component_manager.AddComponent(ent);
-
+		ent->AddComponent<TransformComponent>();
 		return *ent;
 
 	}
@@ -254,7 +207,7 @@ namespace ORNG {
 
 		for (auto* p_texture : m_texture_2d_assets) {
 			if (p_texture->m_spec.filepath == spec.filepath) {
-				OAR_CORE_WARN("Texture '{0}' already created", spec.filepath);
+				ORNG_CORE_WARN("Texture '{0}' already created", spec.filepath);
 				return p_texture;
 			}
 		}
@@ -267,10 +220,22 @@ namespace ORNG {
 		return p_tex;
 	}
 
+
+	Texture2D* Scene::GetTexture(uint64_t uuid) {
+		auto it = std::find_if(m_texture_2d_assets.begin(), m_texture_2d_assets.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
+
+		if (it == m_texture_2d_assets.end()) {
+			ORNG_CORE_WARN("Texture with ID '{0}' does not exist, not found", uuid);
+			return nullptr;
+		}
+
+		return *it;
+	}
+
 	MeshAsset* Scene::CreateMeshAsset(const std::string& filename, uint64_t uuid) {
 		for (auto mesh_data : m_mesh_assets) {
 			if (mesh_data->GetFilename() == filename) {
-				OAR_CORE_WARN("Mesh asset already loaded in: {0}", filename);
+				ORNG_CORE_WARN("Mesh asset already loaded in: {0}", filename);
 				return mesh_data;
 			}
 		}
@@ -293,7 +258,7 @@ namespace ORNG {
 
 
 		if (asset->m_is_loaded) {
-			OAR_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
+			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
 			return;
 		}
 
@@ -332,7 +297,6 @@ namespace ORNG {
 				asset->m_original_materials[i].base_color.g = base_color.g;
 				asset->m_original_materials[i].base_color.b = base_color.b;
 			}
-
 			float roughness;
 			if (p_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS) {
 				asset->m_original_materials[i].roughness = roughness;
@@ -364,7 +328,7 @@ namespace ORNG {
 
 	void Scene::LoadMeshAssetPreExistingMaterials(MeshAsset* asset, std::vector<Material*>& materials) {
 		if (asset->m_is_loaded) {
-			OAR_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
+			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
 			return;
 		}
 		GL_StateManager::BindVAO(asset->m_vao);

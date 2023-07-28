@@ -10,13 +10,14 @@ namespace ORNG {
 		friend class SceneRenderer;
 		friend class Scene;
 		friend class CameraSystem;
-		CameraComponent(SceneEntity* p_entity, CameraSystem* p_system, TransformComponent* p_transform) : Component(p_entity), mp_system(p_system), mp_transform(p_transform) {};
+		CameraComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
-		void Update();
+		virtual void Update();
 		void MakeActive();
-		glm::mat4x4 GetViewMatrix() const;
+		glm::mat4x4 GetViewMatrix();
 		glm::mat4x4 GetProjectionMatrix() const;
 		void UpdateFrustum();
+
 
 
 		ExtraMath::Frustum view_frustum;
@@ -31,7 +32,5 @@ namespace ORNG {
 		float speed = 0.01f;
 	protected:
 		bool is_active = false;
-		TransformComponent* mp_transform = nullptr;
-		CameraSystem* mp_system = nullptr;
 	};
 }

@@ -23,7 +23,7 @@ namespace ORNG {
 		mp_unit_cube->importer.FreeScene();
 		mp_unit_cube->m_is_loaded = true;
 
-		OAR_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
+		ORNG_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
 	}
 
 

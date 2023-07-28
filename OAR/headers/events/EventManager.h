@@ -2,12 +2,16 @@
 #include "events/Events.h"
 #include "util/Log.h"
 #include "util/util.h"
-
+#include "../extern/entt/EnttSingleInclude.h"
 
 namespace ORNG::Events {
 
 	class EventManager {
 	public:
+
+		~EventManager() {
+			m_registry.clear();
+		}
 
 		template <std::derived_from<Event> T>
 		inline static void DispatchEvent(const T& t_event) {
@@ -20,6 +24,10 @@ namespace ORNG::Events {
 			Get().IRegisterListener(listener);
 		};
 
+		inline static void DeregisterListener(uint32_t listener_entt_handle) {
+			Get().IDeregisterListener(listener_entt_handle);
+		};
+
 	private:
 		static EventManager& Get() {
 			static EventManager s_instance;
@@ -30,54 +38,43 @@ namespace ORNG::Events {
 		void IRegisterListener(EventListener<T>& listener) {
 
 			if (!listener.OnEvent) {
-				OAR_CORE_ERROR("Failed registering listener, OnEvent callback is nullptr");
+				ORNG_CORE_ERROR("Failed registering listener, OnEvent callback is nullptr");
 				return;
 			}
 
-			bool is_registered = false;
+			// Copy of listener stored instead of pointer for faster iteration.
+			auto entity = m_registry.create();
+			EventListener<T>& reg_listener = m_registry.emplace<EventListener<T>>(entity);
+			listener.m_entt_handle = (uint32_t)entity;
+			reg_listener.m_entt_handle = listener.m_entt_handle;
+			reg_listener.OnEvent = listener.OnEvent;
 
-			if constexpr (std::is_same<T, EngineCoreEvent>::value) {
-				m_engine_core_listeners.push_back(&listener);
-				listener.OnDestroy = [this, &listener] {m_engine_core_listeners.erase(std::find(m_engine_core_listeners.begin(), m_engine_core_listeners.end(), &listener)); };
-				is_registered = true;
-			}
-			else if constexpr (std::is_same<T, WindowEvent>::value) {
-				m_window_event_listeners.push_back(&listener);
-				listener.OnDestroy = [this, &listener] {m_window_event_listeners.erase(std::find(m_window_event_listeners.begin(), m_window_event_listeners.end(), &listener)); };
-				is_registered = true;
-			}
+			// For safety, upon listener being destroyed the copy is too.
+			listener.OnDestroy = [this, &listener, entity] {
+				EventManager::DeregisterListener((uint32_t)entity);
+			};
 
-			if (!is_registered) {
-				OAR_CORE_ERROR("Failed registering listener, unsupported event type.");
-			}
+		};
 
+		void IDeregisterListener(uint32_t entt_handle) {
+			if (m_registry.valid(entt::entity(entt_handle)))
+				m_registry.destroy(entt::entity(entt_handle));
 		};
 
 
 
 		template <std::derived_from<Event> T>
 		void IDispatchEvent(const T& t_event) {
-
-			std::vector<const EventListener<T>*>* p_listeners = nullptr;
-
-			// Locate appropiate array for event type
-			if constexpr (std::is_same<T, EngineCoreEvent>::value) {
-				p_listeners = &m_engine_core_listeners;
-			}
-			else if constexpr (std::is_same<T, WindowEvent>::value) {
-				p_listeners = &m_window_event_listeners;
-			}
-
-
+			auto view = m_registry.view<EventListener<T>>();
 			// Iterate over listeners and call callbacks
-			for (int i = 0; i < p_listeners->size(); i++) {
-				(*p_listeners)[i]->OnEvent(t_event);
+			for (auto [entity, listener] : view.each()) {
+				listener.OnEvent(t_event);
 			}
 
 		}
 
-		std::vector<const EventListener<EngineCoreEvent>*> m_engine_core_listeners;
-		std::vector<const EventListener<WindowEvent>*> m_window_event_listeners;
+		// Stores event listeners
+		entt::registry m_registry;
 
 	};
 

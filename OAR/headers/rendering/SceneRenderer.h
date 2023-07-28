@@ -21,6 +21,7 @@ namespace ORNG {
 
 		struct SceneRenderingSettings {
 			bool display_depth_map = false;
+			CameraComponent* p_cam_override = nullptr;
 		};
 
 		struct SceneRenderingOutput {
@@ -55,14 +56,16 @@ namespace ORNG {
 
 		void I_Init();
 		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
-		void IPrepRenderPasses();
-		void IDoGBufferPass();
-		void IDoDepthPass();
+		void IPrepRenderPasses(CameraComponent* p_cam);
+		void IDoGBufferPass(CameraComponent* p_cam);
+		void IDoDepthPass(CameraComponent* p_cam);
 		void IDoFogPass();
 		void IDoLightingPass();
-		void IDoPostProcessingPass(bool depth_display_active);
-		void IDrawTerrain();
+		void IDoPostProcessingPass(CameraComponent* p_cam);
+		void IDrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
+		void DoBloomPass();
+		void DrawAllMeshes();
 
 		void SetGBufferMaterial(const Material* p_mat);
 
@@ -72,14 +75,17 @@ namespace ORNG {
 
 		Shader* m_gbuffer_shader = nullptr;
 		Shader* m_post_process_shader = nullptr;
-		Shader* m_depth_shader = nullptr;
+		Shader* mp_orth_depth_shader = nullptr; //dir light
+		Shader* mp_persp_depth_shader = nullptr; //spotlights
+		Shader* mp_pointlight_depth_shader = nullptr;
 		Shader* m_blur_shader = nullptr;
 		Shader* m_fog_shader = nullptr;
 		Shader* m_lighting_shader = nullptr;
+		Shader* mp_bloom_downsample_shader = nullptr;
+		Shader* mp_bloom_upsample_shader = nullptr;
+		Shader* mp_bloom_threshold_shader = nullptr;
 
 		Framebuffer* m_gbuffer_fb = nullptr;
-		Framebuffer* m_ping_pong_1_fb = nullptr;
-		Framebuffer* m_ping_pong_2_fb = nullptr;
 		Framebuffer* m_depth_fb = nullptr;
 		Framebuffer* m_lighting_fb = nullptr;
 		Framebuffer* m_post_processing_fb = nullptr;
@@ -91,6 +97,10 @@ namespace ORNG {
 
 		Texture2D m_blue_noise_tex{ "SR blue noise" };
 		Texture2D m_fog_output_tex{ "SR fog output" };
+		Texture2D m_fog_blur_tex_1{ "SR fog blur 1" };
+		Texture2D m_fog_blur_tex_2{ "SR fog blur 2 tex" };
+		Texture2D m_bloom_tex{ "SR fog blur 1" };
+
 
 		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };
 		unsigned int m_num_shadow_cascades = 3;

@@ -70,7 +70,7 @@ namespace ORNG {
 		};
 
 		struct TextureUnits {
-			static const int COLOR = GL_TEXTURE1;
+			static const int COLOUR = GL_TEXTURE1;
 			static const int ROUGHNESS = GL_TEXTURE2;
 			static const int DIR_SHADOW_MAP = GL_TEXTURE3;
 			static const int SPOT_SHADOW_MAP = GL_TEXTURE4;
@@ -81,9 +81,9 @@ namespace ORNG {
 			static const int DISPLACEMENT = GL_TEXTURE9;
 			static const int NORMAL_ARRAY = GL_TEXTURE10;
 			static const int BLUE_NOISE = GL_TEXTURE11;
-			static const int SHADER_MATERIAL_IDS = GL_TEXTURE12;
-			static const int COLOR_CUBEMAP = GL_TEXTURE13;
-			static const int COLOR_2 = GL_TEXTURE14;
+			static const int SHADER_IDS = GL_TEXTURE12;
+			static const int COLOUR_CUBEMAP = GL_TEXTURE13;
+			static const int COLOUR_2 = GL_TEXTURE14;
 			static const int DATA_3D = GL_TEXTURE15;
 			static const int DEPTH = GL_TEXTURE16;
 			static const int METALLIC = GL_TEXTURE17;
@@ -92,11 +92,14 @@ namespace ORNG {
 			static const int DIFFUSE_PREFILTER = GL_TEXTURE20;
 			static const int SPECULAR_PREFILTER = GL_TEXTURE21;
 			static const int BRDF_LUT = GL_TEXTURE22;
-			static const int COLOR_3 = GL_TEXTURE23;
+			static const int COLOUR_3 = GL_TEXTURE23;
+			static const int BLOOM = GL_TEXTURE24;
+			static const int EMISSIVE = GL_TEXTURE25;
+			static const int POINTLIGHT_DEPTH = GL_TEXTURE26;
 		};
 
 		struct TextureUnitIndexes {
-			static const int COLOR = 1;
+			static const int COLOUR = 1;
 			static const int SPECULAR = 2;
 			static const int DIR_SHADOW_MAP = 3;
 			static const int SPOT_SHADOW_MAP = 4;
@@ -109,8 +112,10 @@ namespace ORNG {
 			static const int BLUE_NOISE = 11;
 			static const int SHADER_MATERIAL_IDS = 12;
 			static const int COLOR_CUBEMAP = 13;
-			static const int COLOR_2 = 14;
+			static const int COLOUR_2 = 14;
 			static const int DATA_3D = 15;
+			static const int COLOUR_3 = 23;
+
 		};
 
 	private:

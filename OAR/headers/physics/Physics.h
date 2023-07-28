@@ -7,19 +7,20 @@
 #include "util/util.h"
 
 
+
 class UserErrorCallback : public physx::PxErrorCallback
 {
 public:
 	virtual void reportError(physx::PxErrorCode::Enum code, const char* message, const char* file, int line)
 	{
 		// error processing implementation
-		ORNG::OAR_CORE_CRITICAL("Nvidia PhysX error: '{0}', '{1}', '{2}', '{3}'", code, message, file, line);
+		ORNG_CORE_CRITICAL("Nvidia PhysX error: '{0}', '{1}', '{2}', '{3}'", code, message, file, line);
 		BREAKPOINT;
 	}
 };
 
+
 namespace ORNG {
-	using namespace physx;
 
 	class Physics {
 	public:
@@ -31,19 +32,19 @@ namespace ORNG {
 			Get().IShutdown();
 		}
 
-		static PxPhysics* GetPhysics() {
+		static physx::PxPhysics* GetPhysics() {
 			return Get().mp_physics;
 		}
 
-		static PxCudaContextManager* GetCudaContextManager() {
+		static physx::PxCudaContextManager* GetCudaContextManager() {
 			return Get().mp_cuda_context_manager;
 		}
 
-		static PxFoundation* GetFoundation() {
+		static physx::PxFoundation* GetFoundation() {
 			return Get().mp_foundation;
 		}
 
-		static PxCpuDispatcher* GetCPUDispatcher() {
+		static physx::PxCpuDispatcher* GetCPUDispatcher() {
 			return Get().mp_dispatcher;
 		}
 
@@ -60,18 +61,17 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		PxDefaultErrorCallback g_default_error_callback;
-		PxDefaultAllocator g_default_allocator_callback;
+		physx::PxDefaultErrorCallback g_default_error_callback;
+		physx::PxDefaultAllocator g_default_allocator_callback;
 
-		PxFoundation* mp_foundation = nullptr;
-		PxPvd* mp_pvd = nullptr;
-		PxPvdTransport* mp_pvd_transport = nullptr;
-		PxPhysics* mp_physics = nullptr;
-		PxCooking* mp_cooking = nullptr;
-		PxCpuDispatcher* mp_dispatcher = nullptr;
-		PxCudaContextManager* mp_cuda_context_manager = nullptr;
+		physx::PxFoundation* mp_foundation = nullptr;
+		physx::PxPvd* mp_pvd = nullptr;
+		physx::PxPvdTransport* mp_pvd_transport = nullptr;
+		physx::PxPhysics* mp_physics = nullptr;
+		physx::PxCooking* mp_cooking = nullptr;
+		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
+		physx::PxCudaContextManager* mp_cuda_context_manager = nullptr;
 		float m_tolerances_scale = 1.f;
 
 	};
-
 }

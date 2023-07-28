@@ -64,7 +64,8 @@ namespace ORNG {
 			radius = glm::max(radius, length);
 		}
 
-
+		center = glm::roundMultiple(center, glm::vec3(0.05f));
+		radius = glm::roundMultiple(radius, 0.05f);
 		const glm::mat4 light_view = glm::lookAt(center + light.GetLightDirection(), center, glm::vec3(0.f, 1.f, 0.f));
 
 		// Find bounding box that fits the sphere
@@ -82,7 +83,7 @@ namespace ORNG {
 		glm::mat4 light_proj = glm::ortho(min.x, max.x, min.y, max.y, min.z, max.z);
 
 
-		glm::vec4 shadow_origin = glm::vec4(0.f, 0.f, 0.f, 1.0f);
+		glm::vec4 shadow_origin = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
 		shadow_origin = (light_proj * light_view) * shadow_origin;
 		shadow_origin = shadow_origin * (shadow_map_size / 2.0f);
 

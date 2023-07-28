@@ -10,6 +10,9 @@
 #include "components/CameraComponent.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "events/EventManager.h"
+#include "util/Timers.h"
+#include "scene/SceneEntity.h"
+
 
 namespace ORNG {
 
@@ -27,6 +30,7 @@ namespace ORNG {
 				"u_skybox_mode",
 				"u_roughness_sampler_active",
 				"u_metallic_sampler_active",
+				"u_emissive_sampler_active",
 				"u_normal_sampler_active",
 				"u_ao_sampler_active",
 				"u_displacement_sampler_active",
@@ -36,14 +40,16 @@ namespace ORNG {
 				"u_material.roughness",
 				"u_material.ao",
 				"u_material.tile_scale",
+				"u_material.emissive",
+				"u_material.emissive_strength",
+				"u_bloom_threshold",
 				"u_material_id",
 				"u_shader_id",
 		});
 
 
 
-		m_lighting_shader = &mp_shader_library->CreateShader("lighting");
-		m_lighting_shader->m_shader_id = ShaderLibrary::LIGHTING_SHADER_ID;
+		m_lighting_shader = &mp_shader_library->CreateShader("lighting", ShaderLibrary::LIGHTING_SHADER_ID);
 		m_lighting_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/LightingVS.glsl");
 		m_lighting_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/LightingFS.glsl");
 		m_lighting_shader->Init();
@@ -66,16 +72,17 @@ namespace ORNG {
 		m_post_process_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PostProcessFS.glsl");
 		m_post_process_shader->Init();
 		m_post_process_shader->AddUniform("exposure");
+		m_post_process_shader->AddUniform("u_bloom_intensity");
 
 		m_post_process_shader->AddUniforms({
 			"quad_sampler",
+			"u_bloom_intensity",
 			"world_position_sampler",
 			"camera_pos",
-			"time",
 			"u_show_depth_map"
 			});
 
-		m_post_process_shader->SetUniform("quad_sampler", GL_StateManager::TextureUnitIndexes::COLOR);
+		m_post_process_shader->SetUniform("quad_sampler", GL_StateManager::TextureUnitIndexes::COLOUR);
 		m_post_process_shader->SetUniform("world_position_sampler", GL_StateManager::TextureUnitIndexes::WORLD_POSITIONS);
 
 		// blue noise for post-processing effects in quad
@@ -84,38 +91,51 @@ namespace ORNG {
 		noise_spec.min_filter = GL_NEAREST;
 		noise_spec.mag_filter = GL_NEAREST;
 		noise_spec.wrap_params = GL_REPEAT;
-		noise_spec.storage_type = GL_FLOAT;
-		noise_spec.format = GL_RGBA;
-		noise_spec.internal_format = GL_RGBA8;
+		noise_spec.storage_type = GL_UNSIGNED_BYTE;
 
 		m_blue_noise_tex.SetSpec(noise_spec);
 		m_blue_noise_tex.LoadFromFile();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 
 
-		m_depth_shader = &mp_shader_library->CreateShader("depth");
-		m_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		m_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl");
-		m_depth_shader->Init();
-		m_depth_shader->AddUniform("u_terrain_mode");
-		m_depth_shader->AddUniform("u_light_pv_matrix");
+		mp_orth_depth_shader = &mp_shader_library->CreateShader("orth_depth");
+		mp_orth_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
+		mp_orth_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "ORTHOGRAPHIC" });
+		mp_orth_depth_shader->Init();
+		mp_orth_depth_shader->AddUniform("u_light_pv_matrix");
+
+		mp_persp_depth_shader = &mp_shader_library->CreateShader("persp_depth");
+		mp_persp_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
+		mp_persp_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE" });
+		mp_persp_depth_shader->Init();
+		mp_persp_depth_shader->AddUniform("u_light_pv_matrix");
+
+		mp_pointlight_depth_shader = &mp_shader_library->CreateShader("pointlight_depth");
+		mp_pointlight_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
+		mp_pointlight_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE", "POINTLIGHT" });
+		mp_pointlight_depth_shader->Init();
+		mp_pointlight_depth_shader->AddUniform("u_light_pv_matrix");
+		mp_pointlight_depth_shader->AddUniform("u_light_pos");
+		mp_pointlight_depth_shader->AddUniform("u_light_zfar");
+
 
 		m_blur_shader = &mp_shader_library->CreateShader("blur");
-		m_blur_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
-		m_blur_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/BlurFS.glsl");
+		m_blur_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BlurFS.glsl");
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
 		m_blur_shader->AddUniform("u_first_iter");
 
 
-		//LIGHTING FB
 		/* LIGHTING FB */
 		Texture2DSpec color_render_texture_spec;
 		color_render_texture_spec.format = GL_RGB;
 		color_render_texture_spec.internal_format = GL_RGB16F;
 		color_render_texture_spec.storage_type = GL_UNSIGNED_BYTE;
+		color_render_texture_spec.mag_filter = GL_LINEAR;
+		color_render_texture_spec.min_filter = GL_LINEAR;
 		color_render_texture_spec.width = Window::GetWidth();
 		color_render_texture_spec.height = Window::GetHeight();
+		color_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
 		m_lighting_fb = &mp_framebuffer_library->CreateFramebuffer("lighting", true);
 		m_lighting_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
@@ -159,7 +179,7 @@ namespace ORNG {
 		m_gbuffer_fb->Add2DTexture("normals", GL_COLOR_ATTACHMENT1, low_pres_spec);
 		m_gbuffer_fb->Add2DTexture("albedo", GL_COLOR_ATTACHMENT2, low_pres_spec);
 		m_gbuffer_fb->Add2DTexture("roughness_metallic_ao", GL_COLOR_ATTACHMENT3, low_pres_spec);
-		m_gbuffer_fb->Add2DTexture("material_ids", GL_COLOR_ATTACHMENT4, gbuffer_spec_2);
+		m_gbuffer_fb->Add2DTexture("shader_ids", GL_COLOR_ATTACHMENT4, gbuffer_spec_2);
 		m_gbuffer_fb->Add2DTexture("shared_depth", GL_DEPTH_ATTACHMENT, gbuffer_depth_spec);
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4 };
 		m_gbuffer_fb->EnableDrawBuffers(5, buffers);
@@ -170,37 +190,52 @@ namespace ORNG {
 
 		Texture2DArraySpec depth_spec;
 		depth_spec.format = GL_DEPTH_COMPONENT;
-		depth_spec.internal_format = GL_DEPTH_COMPONENT24;
+		depth_spec.internal_format = GL_DEPTH_COMPONENT16;
 		depth_spec.storage_type = GL_FLOAT;
-		depth_spec.min_filter = GL_LINEAR;
-		depth_spec.mag_filter = GL_LINEAR;
+		depth_spec.min_filter = GL_NEAREST;
+		depth_spec.mag_filter = GL_NEAREST;
 		depth_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		depth_spec.layer_count = 3;
 		depth_spec.width = m_shadow_map_resolution;
 		depth_spec.height = m_shadow_map_resolution;
 
 		Texture2DArraySpec spotlight_depth_spec = depth_spec;
+		spotlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
+		spotlight_depth_spec.width = 2048;
+		spotlight_depth_spec.height = 2048;
 		spotlight_depth_spec.layer_count = 8;
 		m_depth_fb->Add2DTextureArray("dir_depth", depth_spec);
 		m_depth_fb->Add2DTextureArray("spotlight_depth", spotlight_depth_spec);
 
-		Texture2DSpec ping_pong_spec;
-		ping_pong_spec.format = GL_RGBA;
-		ping_pong_spec.internal_format = GL_RGBA16F;
-		ping_pong_spec.storage_type = GL_FLOAT;
-		ping_pong_spec.width = Window::GetWidth();
-		ping_pong_spec.height = Window::GetHeight();
-		ping_pong_spec.min_filter = GL_NEAREST;
-		ping_pong_spec.mag_filter = GL_NEAREST;
-		ping_pong_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
-		// Ping pong fb's used for gaussian blur
-		m_ping_pong_1_fb = &mp_framebuffer_library->CreateFramebuffer("ping_pong_1", true);
-		m_ping_pong_1_fb->Add2DTexture("tex1", GL_COLOR_ATTACHMENT0, ping_pong_spec);
 
-		m_ping_pong_2_fb = &mp_framebuffer_library->CreateFramebuffer("ping_pong_2", true);
-		m_ping_pong_2_fb->Add2DTexture("tex1", GL_COLOR_ATTACHMENT0, ping_pong_spec);
+		/* POST PROCESSING */
+		Texture2DSpec rgba16_spec;
+		rgba16_spec.format = GL_RGBA;
+		rgba16_spec.internal_format = GL_RGBA16F;
+		rgba16_spec.storage_type = GL_FLOAT;
+		rgba16_spec.width = Window::GetWidth();
+		rgba16_spec.height = Window::GetHeight();
+		rgba16_spec.min_filter = GL_NEAREST;
+		rgba16_spec.mag_filter = GL_NEAREST;
+		rgba16_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
+
+		m_fog_blur_tex_1.SetSpec(rgba16_spec);
+		m_fog_blur_tex_2.SetSpec(rgba16_spec);
+
+		Texture2DSpec bloom_rgb_spec;
+		bloom_rgb_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		bloom_rgb_spec.mag_filter = GL_LINEAR;
+		bloom_rgb_spec.generate_mipmaps = true;
+		bloom_rgb_spec.width = Window::GetWidth() / 2;
+		bloom_rgb_spec.height = Window::GetHeight() / 2;
+		bloom_rgb_spec.format = GL_RGBA;
+		bloom_rgb_spec.internal_format = GL_RGBA16F;
+		bloom_rgb_spec.wrap_params = GL_CLAMP_TO_EDGE;
+		bloom_rgb_spec.storage_type = GL_FLOAT;
+
+		m_bloom_tex.SetSpec(bloom_rgb_spec);
 
 		// Fog
 		m_fog_shader = &mp_shader_library->CreateShader("fog");
@@ -222,62 +257,90 @@ namespace ORNG {
 
 
 		// Fog texture
-		Texture2DSpec fog_overlay_spec = ping_pong_spec;
+		Texture2DSpec fog_overlay_spec = rgba16_spec;
 		fog_overlay_spec.width = Window::GetWidth() / 2;
 		fog_overlay_spec.height = Window::GetHeight() / 2;
+		m_fog_output_tex.SetSpec(fog_overlay_spec);
 
-
+		// Setting up event listener to resize the loose textures on window resize, these are rendered to through compute shaders and not part of a FB so will not be resized unless I do this
 		static Events::EventListener<Events::WindowEvent> resize_listener;
 		resize_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
 			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
-				Texture2DSpec new_fog_spec = m_fog_output_tex.GetSpec();
-				new_fog_spec.width = t_event.new_window_size.x / 2;
-				new_fog_spec.height = t_event.new_window_size.y / 2;
-				m_fog_output_tex.SetSpec(new_fog_spec);
+				Texture2DSpec resized_spec = m_fog_output_tex.GetSpec();
+				resized_spec.width = t_event.new_window_size.x / 2;
+				resized_spec.height = t_event.new_window_size.y / 2;
+				m_fog_output_tex.SetSpec(resized_spec);
+
+				resized_spec.width = t_event.new_window_size.x;
+				resized_spec.height = t_event.new_window_size.y;
+				m_fog_blur_tex_1.SetSpec(resized_spec);
+				m_fog_blur_tex_2.SetSpec(resized_spec);
+
+				Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
+				resized_bloom_spec.width = t_event.new_window_size.x / 2;
+				resized_bloom_spec.height = t_event.new_window_size.y / 2;
+				m_bloom_tex.SetSpec(resized_bloom_spec);
 			}
 		};
 		Events::EventManager::RegisterListener(resize_listener);
-		m_fog_output_tex.SetSpec(fog_overlay_spec);
-
 
 
 		// POST PROCESSING FB
 		m_post_processing_fb = &mp_framebuffer_library->CreateFramebuffer("post_processing", true);
 		m_post_processing_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 		m_post_processing_fb->Add2DTexture("shared_render_texture", GL_COLOR_ATTACHMENT0, color_render_texture_spec);
+
+		mp_bloom_downsample_shader = &mp_shader_library->CreateShader("bloom downsample");
+		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, "./res/shaders/BloomDownsampleCS.glsl");
+		mp_bloom_downsample_shader->Init();
+		mp_bloom_downsample_shader->AddUniform("u_mip_level");
+
+		mp_bloom_upsample_shader = &mp_shader_library->CreateShader("bloom upsample");
+		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, "./res/shaders/BloomUpsampleCS.glsl");
+		mp_bloom_upsample_shader->Init();
+		mp_bloom_upsample_shader->AddUniform("u_mip_level");
+
+		mp_bloom_threshold_shader = &mp_shader_library->CreateShader("bloom threshold");
+		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, "./res/shaders/BloomThresholdCS.glsl");
+		mp_bloom_threshold_shader->Init();
+		mp_bloom_threshold_shader->AddUniform("u_threshold");
+		mp_bloom_threshold_shader->AddUniform("u_knee");
 	}
 
 
 
 
-	void SceneRenderer::IPrepRenderPasses() {
-		glm::mat4 view_mat = mp_scene->m_camera_system.p_active_camera->GetViewMatrix();
-		glm::mat4 proj_mat = mp_scene->m_camera_system.p_active_camera->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(mp_scene->m_camera_system.p_active_camera->mp_transform->GetPosition(), mp_scene->m_camera_system.p_active_camera->target);
+	void SceneRenderer::IPrepRenderPasses(CameraComponent* p_cam) {
+		glm::mat4 view_mat = p_cam->GetViewMatrix();
+		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
+		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetPosition(), p_cam->target);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light);
 	}
 
 
 
+
+
 	SceneRenderer::SceneRenderingOutput SceneRenderer::IRenderScene(const SceneRenderingSettings& settings) {
 
 		SceneRenderer::SceneRenderingOutput output;
-		if (!mp_scene->m_camera_system.p_active_camera) {
+		auto* p_cam = settings.p_cam_override ? settings.p_cam_override : mp_scene->m_camera_system.GetActiveCamera();
+		if (!p_cam) {
 			output.final_color_texture_handle = m_post_processing_fb->GetTexture<Texture2D>("shared_render_texture").GetTextureHandle();
 			return output;
 		}
 
+		IPrepRenderPasses(p_cam);
 
-		IPrepRenderPasses();
-
-		IDoGBufferPass();
-		IDoDepthPass();
+		IDoGBufferPass(p_cam);
+		IDoDepthPass(p_cam);
 		IDoLightingPass();
-		//IDoFogPass();
-		IDoPostProcessingPass(settings.display_depth_map);
-
+		IDoFogPass();
+		IDoPostProcessingPass(p_cam);
 		output.final_color_texture_handle = m_post_processing_fb->GetTexture<Texture2D>("shared_render_texture").GetTextureHandle();
+
+
 
 		return output;
 	}
@@ -285,8 +348,8 @@ namespace ORNG {
 
 
 	void SceneRenderer::SetGBufferMaterial(const Material* p_material) {
-		if (p_material->base_color_texture != nullptr) {
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
+		if (p_material->base_color_texture) {
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 
 		if (p_material->roughness_texture == nullptr) {
@@ -294,7 +357,7 @@ namespace ORNG {
 		}
 		else {
 			m_gbuffer_shader->SetUniform("u_roughness_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->roughness_texture->GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS, false);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->roughness_texture->GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS);
 		}
 
 		if (p_material->metallic_texture == nullptr) {
@@ -302,7 +365,7 @@ namespace ORNG {
 		}
 		else {
 			m_gbuffer_shader->SetUniform("u_metallic_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->metallic_texture->GetTextureHandle(), GL_StateManager::TextureUnits::METALLIC, false);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->metallic_texture->GetTextureHandle(), GL_StateManager::TextureUnits::METALLIC);
 		}
 
 		if (p_material->ao_texture == nullptr) {
@@ -310,7 +373,7 @@ namespace ORNG {
 		}
 		else {
 			m_gbuffer_shader->SetUniform("u_ao_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->ao_texture->GetTextureHandle(), GL_StateManager::TextureUnits::AO, false);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->ao_texture->GetTextureHandle(), GL_StateManager::TextureUnits::AO);
 		}
 
 		if (p_material->normal_map_texture == nullptr) {
@@ -318,7 +381,7 @@ namespace ORNG {
 		}
 		else {
 			m_gbuffer_shader->SetUniform("u_normal_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->normal_map_texture->GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->normal_map_texture->GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP);
 		}
 
 		if (p_material->displacement_texture == nullptr) {
@@ -328,37 +391,49 @@ namespace ORNG {
 			m_gbuffer_shader->SetUniform("u_parallax_height_scale", p_material->parallax_height_scale);
 			m_gbuffer_shader->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
 			m_gbuffer_shader->SetUniform("u_displacement_sampler_active", 1);
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT, false);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT);
+		}
+
+		if (p_material->emissive_texture == nullptr) {
+			m_gbuffer_shader->SetUniform("u_emissive_sampler_active", 0);
+		}
+		else {
+			m_gbuffer_shader->SetUniform("u_emissive_sampler_active", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->emissive_texture->GetTextureHandle(), GL_StateManager::TextureUnits::EMISSIVE);
 		}
 
 		m_gbuffer_shader->SetUniform("u_material.base_color_and_metallic", glm::vec4(p_material->base_color, p_material->metallic));
 		m_gbuffer_shader->SetUniform("u_material.roughness", p_material->roughness);
 		m_gbuffer_shader->SetUniform("u_material.ao", p_material->ao);
 		m_gbuffer_shader->SetUniform("u_material.tile_scale", p_material->tile_scale);
+		m_gbuffer_shader->SetUniform("u_material.emissive", (int)p_material->emissive);
+		m_gbuffer_shader->SetUniform("u_material.emissive_strength", p_material->emissive_strength);
 
 	}
 
 
 
 
-	void SceneRenderer::IDoGBufferPass() {
-
+	void SceneRenderer::IDoGBufferPass(CameraComponent* p_cam) {
+		ORNG_PROFILE_FUNC_GPU();
 		m_gbuffer_fb->Bind();
 		GL_StateManager::DefaultClearBits();
 		GL_StateManager::ClearBitsUnsignedInt();
 
 		m_gbuffer_shader->ActivateProgram();
+		m_gbuffer_shader->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 
 			GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, 0);
-			m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", group->GetShaderID());
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
 
 				uint64_t material_id = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index]->uuid();
 				const Material* p_material = mp_scene->GetMaterial(material_id);
+				m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+
 				SetGBufferMaterial(p_material);
 
 				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
@@ -368,20 +443,20 @@ namespace ORNG {
 
 
 		/* uniforms */
-		SetGBufferMaterial(mp_scene->GetMaterial(mp_scene->m_terrain.m_material_id));
+		SetGBufferMaterial(mp_scene->GetMaterial(mp_scene->terrain.m_material_id));
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 1);
-		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->m_shader_id);
-		IDrawTerrain();
+		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->GetID());
+		IDrawTerrain(p_cam);
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 0);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->m_skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_CUBEMAP, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
 		m_gbuffer_shader->SetUniform("u_skybox_mode", 1);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", ShaderLibrary::INVALID_SHADER_ID);
 		DrawSkybox();
 		m_gbuffer_shader->SetUniform("u_skybox_mode", 0);
 
 
-		/*if (sample_world_pos) {
+		/*if (sample_world_pos) {sc
 			glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
 
 			GLfloat* pixels = new GLfloat[4];
@@ -395,13 +470,15 @@ namespace ORNG {
 
 
 
-	void SceneRenderer::IDoDepthPass() {
-		const float aspect_ratio = static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight());
+	void SceneRenderer::IDoDepthPass(CameraComponent* p_cam) {
+		ORNG_PROFILE_FUNC_GPU();
 
 		const DirectionalLight& light = mp_scene->m_directional_light;
 
-		const glm::mat4 cam_view_matrix = mp_scene->m_camera_system.p_active_camera->GetViewMatrix();
-		const float fov = glm::radians(mp_scene->m_camera_system.p_active_camera->fov / 2.f);
+		// Calculate light space matrices
+		const float aspect_ratio = static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight());
+		const glm::mat4 cam_view_matrix = p_cam->GetViewMatrix();
+		const float fov = glm::radians(p_cam->fov / 2.f);
 
 		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution);
 		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
@@ -410,55 +487,72 @@ namespace ORNG {
 		m_light_space_matrices[1] = dir_light_space_matrix_2;
 		m_light_space_matrices[2] = dir_light_space_matrix_3;
 
+		// Render cascades
 		m_depth_fb->Bind();
-		m_depth_shader->ActivateProgram();
+		mp_orth_depth_shader->ActivateProgram();
 		for (int i = 0; i < 3; i++) {
 			glViewport(0, 0, m_shadow_map_resolution, m_shadow_map_resolution);
 			m_depth_fb->BindTextureLayerToFBAttachment(m_depth_fb->GetTexture<Texture2DArray>("dir_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
 			GL_StateManager::ClearDepthBits();
 
-			m_depth_shader->SetUniform("u_light_pv_matrix", m_light_space_matrices[i]);
-
-			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-				const MeshAsset* mesh_data = group->GetMeshData();
-				GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
-
-				for (int i = 0; i < mesh_data->m_submeshes.size(); i++) {
-					Renderer::DrawSubMeshInstanced(mesh_data, group->m_instances.size(), i);
-				}
-
-			}
+			mp_orth_depth_shader->SetUniform("u_light_pv_matrix", m_light_space_matrices[i]);
+			DrawAllMeshes();
 
 		}
 
-		/*int depth_map_index = -1;
-		auto& p_spotlights = mp_scene->m_spotlight_component_manager.GetComponents();
-		for (int i = 0; i < p_spotlights.size(); i++) {
-			const SpotLightComponent* p_light = mp_scene->m_spotlight_component_manager.GetComponents()[i];
 
-			if (!p_light)
-				continue;
+		// Spotlights
+		glViewport(0, 0, 2048, 2048);
+		mp_persp_depth_shader->ActivateProgram();
+		auto spotlights = mp_scene->m_registry.view<SpotLightComponent>();
 
-			depth_map_index++;
-			m_depth_fb->BindTextureLayerToFBAttachment(m_depth_fb->GetTexture<Texture2DArray>("spotlight_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, depth_map_index);
+		int index = 0;
+		for (auto [entity, light] : spotlights.each()) {
+
+			m_depth_fb->BindTextureLayerToFBAttachment(m_depth_fb->GetTexture<Texture2DArray>("spotlight_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
 			GL_StateManager::ClearDepthBits();
 
-			m_depth_shader->SetUniform("u_light_pv_matrix", p_light->GetLightSpaceTransformMatrix());
+			mp_persp_depth_shader->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
+			DrawAllMeshes();
 
-			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-				const MeshAsset* mesh_data = group->GetMeshData();
-				GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
+		}
 
-				for (int i = 0; i < mesh_data->m_submeshes.size(); i++) {
-					Renderer::DrawSubMeshInstanced(mesh_data, group->m_instances.size(), i);
-				}
+		// Pointlights
+		index = 0;
+		glViewport(0, 0, 512, 512);
+		mp_pointlight_depth_shader->ActivateProgram();
+		auto pointlights = mp_scene->m_registry.view<PointLightComponent>();
+
+		for (auto [entity, pointlight] : pointlights.each()) {
+			glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, pointlight.shadow_distance);
+			glm::vec3 light_pos = pointlight.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+
+			std::array<glm::mat4, 6> captureViews =
+			{
+			   glm::lookAt(light_pos, light_pos + glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			   glm::lookAt(light_pos, light_pos + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+			   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+			   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+			   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+			};
+
+			mp_pointlight_depth_shader->SetUniform("u_light_pos", light_pos);
+			mp_pointlight_depth_shader->SetUniform("u_light_zfar", pointlight.shadow_distance);
+
+			// Draw depth cubemap
+			for (int i = 0; i < 6; i++) {
+
+				m_depth_fb->BindTextureLayerToFBAttachment(mp_scene->m_pointlight_component_manager.m_pointlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
+				GL_StateManager::ClearDepthBits();
+
+				mp_pointlight_depth_shader->SetUniform("u_light_pv_matrix", captureProjection * captureViews[i]);
+				DrawAllMeshes();
 
 			}
 
-			m_depth_shader->SetUniform("u_terrain_mode", 1);
-			IDrawTerrain();
-			m_depth_shader->SetUniform("u_terrain_mode", 0);
-		}*/
+			index++;
+		}
 
 		glViewport(0, 0, Window::GetWidth(), Window::GetHeight());
 
@@ -482,100 +576,76 @@ namespace ORNG {
 
 
 	void SceneRenderer::IDoFogPass() {
+		ORNG_PROFILE_FUNC_GPU();
 		//draw fog texture
 		m_fog_shader->ActivateProgram();
 
-		m_fog_shader->SetUniform("u_scattering_coef", mp_scene->m_global_fog.scattering_coef);
-		m_fog_shader->SetUniform("u_absorption_coef", mp_scene->m_global_fog.absorption_coef);
-		m_fog_shader->SetUniform("u_density_coef", mp_scene->m_global_fog.density_coef);
-		m_fog_shader->SetUniform("u_scattering_anistropy", mp_scene->m_global_fog.scattering_anistropy);
-		m_fog_shader->SetUniform("u_fog_color", mp_scene->m_global_fog.color);
-		m_fog_shader->SetUniform("u_step_count", mp_scene->m_global_fog.step_count);
+		m_fog_shader->SetUniform("u_scattering_coef", mp_scene->post_processing.global_fog.scattering_coef);
+		m_fog_shader->SetUniform("u_absorption_coef", mp_scene->post_processing.global_fog.absorption_coef);
+		m_fog_shader->SetUniform("u_density_coef", mp_scene->post_processing.global_fog.density_coef);
+		m_fog_shader->SetUniform("u_scattering_anistropy", mp_scene->post_processing.global_fog.scattering_anistropy);
+		m_fog_shader->SetUniform("u_fog_color", mp_scene->post_processing.global_fog.color);
+		m_fog_shader->SetUniform("u_step_count", mp_scene->post_processing.global_fog.step_count);
 		m_fog_shader->SetUniform("u_time", static_cast<float>(glfwGetTime()));
 		m_fog_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
-		m_fog_shader->SetUniform("u_emissive", mp_scene->m_global_fog.emissive_factor);
+		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->m_global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
 
-		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute(Window::GetWidth() / 16, Window::GetHeight() / 8, 1);
+		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glDispatchCompute(Window::GetWidth() / 16, Window::GetHeight() / 16, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 
 		//blur fog texture
 		m_blur_shader->ActivateProgram();
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
-
-		m_ping_pong_2_fb->Bind();
-		GL_StateManager::DefaultClearBits();
-		m_ping_pong_1_fb->Bind();
-		GL_StateManager::DefaultClearBits();
 		GL_StateManager::BindTexture(
-			GL_TEXTURE_2D, m_fog_output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_3
+			GL_TEXTURE_2D, m_fog_output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3
 		);
+
 		m_blur_shader->SetUniform("u_first_iter", 1);
-		Renderer::DrawQuad();
+		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_blur_tex_1.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 8.f), (GLuint)glm::ceil((float)Window::GetHeight() / 8.f), 1);
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		m_blur_shader->SetUniform("u_first_iter", 0);
 
 
-		Framebuffer* active_fb = m_ping_pong_2_fb;
 
-		GL_StateManager::BindTexture(
-			GL_TEXTURE_2D, m_ping_pong_2_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_3
-		);
-		GL_StateManager::BindTexture(
-			GL_TEXTURE_2D, m_ping_pong_1_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2
-		);
 
-		for (int i = 0; i < 4; i++) {
-			active_fb->Bind();
-			GL_StateManager::ClearDepthBits();
 
-			if (active_fb == m_ping_pong_1_fb) {
-				m_blur_shader->SetUniform("u_horizontal", 1);
-				active_fb = m_ping_pong_2_fb;
-			}
-			else {
-				m_blur_shader->SetUniform("u_horizontal", 0);
-				active_fb = m_ping_pong_1_fb;
-			}
-			Renderer::DrawQuad();
-		}
 
 	}
 
 
 
 	void SceneRenderer::IDoLightingPass() {
+		ORNG_PROFILE_FUNC_GPU();
 
 		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_depth_fb->GetTexture<Texture2DArray>("dir_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DIR_SHADOW_MAP, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_depth_fb->GetTexture<Texture2DArray>("spotlight_depth").GetTextureHandle(), GL_StateManager::TextureUnits::SPOT_SHADOW_MAP, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("albedo").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("albedo").GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("normals").GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("material_ids").GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_MATERIAL_IDS, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shader_ids").GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_IDS, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("roughness_metallic_ao").GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->m_skybox.GetIrradianceTexture().GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetIrradianceTexture().GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, mp_scene->m_pointlight_component_manager.m_pointlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 
 		m_lighting_fb->Bind();
 		GL_StateManager::DefaultClearBits();
 
 		m_lighting_shader->ActivateProgram();
 
-		BaseLight& ambient_light = mp_scene->m_global_ambient_lighting;
-		DirectionalLight& light = mp_scene->m_directional_light;
 		m_lighting_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
 		m_lighting_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
 		m_lighting_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
 
-		glDisable(GL_DEPTH_TEST);
 		Renderer::DrawQuad();
-		glEnable(GL_DEPTH_TEST);
 
 		//mp_shader_library->GetShader("skybox").ActivateProgram();
-		//GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, Renderer::GetScene()->m_skybox.GetCubeMapTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
+		//GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, Renderer::GetScene()->skybox.GetCubeMapTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
 		//Renderer::DrawSkybox();
 
 		/* DRAW AABBS */
@@ -594,44 +664,86 @@ namespace ORNG {
 
 
 
-	void SceneRenderer::IDrawTerrain() {
+	void SceneRenderer::IDrawTerrain(CameraComponent* p_cam) {
 
 		std::vector<TerrainQuadtree*> node_array;
 
-		mp_scene->m_terrain.m_quadtree->QueryChunks(node_array, mp_scene->m_camera_system.p_active_camera->mp_transform->GetPosition(), mp_scene->m_terrain.m_width);
+		mp_scene->terrain.m_quadtree->QueryChunks(node_array, p_cam->GetEntity()->GetComponent<TransformComponent>()->GetPosition(), mp_scene->terrain.m_width);
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();
-			if (chunk->m_bounding_box.IsOnFrustum(mp_scene->m_camera_system.p_active_camera->view_frustum)) {
+			if (chunk->m_bounding_box.IsOnFrustum(p_cam->view_frustum)) {
 				Renderer::DrawVAO_Elements(GL_QUADS, chunk->m_vao);
 			}
 		}
 	}
 
 
-	void SceneRenderer::IDoPostProcessingPass(bool depth_display_active) {
-		glDisable(GL_DEPTH_TEST);
-		m_post_process_shader->ActivateProgram();
+	void SceneRenderer::DoBloomPass() {
+		ORNG_PROFILE_FUNC_GPU();
+		mp_bloom_threshold_shader->ActivateProgram();
+		mp_bloom_threshold_shader->SetUniform("u_threshold", mp_scene->post_processing.bloom.threshold);
+		mp_bloom_threshold_shader->SetUniform("u_knee", mp_scene->post_processing.bloom.knee);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_lighting_fb->GetTexture<Texture2D>("render_texture").GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, true);
 
+		// Isolate bright spots
+		glBindImageTexture(0, m_bloom_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 16.f), (GLuint)glm::ceil((float)Window::GetHeight() / 16.f), 1);
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		// Downsample passes
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_bloom_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLOOM, true);
+		const int max_mip_layer = 6;
+		mp_bloom_downsample_shader->ActivateProgram();
+		for (int i = 1; i < max_mip_layer + 1; i++) {
+			mp_bloom_downsample_shader->SetUniform("u_mip_level", i);
+			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+			glDispatchCompute((GLuint)glm::ceil(((float)Window::GetWidth() / 32.f) / (float)i), (GLuint)glm::ceil(((float)Window::GetHeight() / 32.f) / (float)i), 1);
+			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		}
+
+		// Upsample passes
+		mp_bloom_upsample_shader->ActivateProgram();
+		for (int i = max_mip_layer - 1; i >= 0; i--) {
+			mp_bloom_upsample_shader->SetUniform("u_mip_level", i);
+			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+			glDispatchCompute((GLuint)glm::ceil(((float)Window::GetWidth() / 16.f) / (float)(i + 1)), (GLuint)glm::ceil(((float)Window::GetHeight() / 16.f) / (float)(i + 1)), 1);
+			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		}
+
+	}
+
+	void SceneRenderer::IDoPostProcessingPass(CameraComponent* p_cam) {
+
+		DoBloomPass();
+
+		ORNG_PROFILE_FUNC_GPU();
+		m_post_process_shader->ActivateProgram();
 		m_post_processing_fb->Bind();
 		GL_StateManager::DefaultClearBits();
 
-		m_post_process_shader->SetUniform("exposure", mp_scene->m_camera_system.p_active_camera->exposure);
-		if (depth_display_active) {
-			m_post_process_shader->SetUniform("u_show_depth_map", 1);
-		}
-		else {
-			m_post_process_shader->SetUniform("u_show_depth_map", 0);
-		}
-
-
+		m_post_process_shader->SetUniform("exposure", p_cam->exposure);
+		m_post_process_shader->SetUniform("u_bloom_intensity", mp_scene->post_processing.bloom.intensity);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("world_positions").GetTextureHandle(), GL_StateManager::TextureUnits::WORLD_POSITIONS, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_lighting_fb->GetTexture<Texture2D>("render_texture").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_ping_pong_1_fb->GetTexture<Texture2D>("tex1").GetTextureHandle(), GL_StateManager::TextureUnits::COLOR_2, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_fog_blur_tex_2.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_2, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_lighting_fb->GetTexture<Texture2D>("render_texture").GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, false);
 
 
-		glDisable(GL_DEPTH_TEST);
 		Renderer::DrawQuad();
-		glEnable(GL_DEPTH_TEST);
 
+
+	}
+
+	void SceneRenderer::DrawAllMeshes() {
+		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+			const MeshAsset* mesh_data = group->GetMeshData();
+			GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
+
+			for (int y = 0; y < mesh_data->m_submeshes.size(); y++) {
+				Renderer::DrawSubMeshInstanced(mesh_data, group->m_instances.size(), y);
+			}
+
+		}
 	}
 }

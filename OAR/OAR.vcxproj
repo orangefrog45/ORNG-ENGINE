@@ -24,30 +24,30 @@
     <ProjectGuid>{dab363fc-b53f-416e-b6d7-5fec3143597d}</ProjectGuid>
     <RootNamespace>OpenGLOGLDEV</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>OAR</ProjectName>
+    <ProjectName>ORNG-Core</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -114,7 +114,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\physx\physx\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern\yaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\physx\physx\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern\yaml\include;$(SolutionDir)OAR\extern\plog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
@@ -127,6 +127,12 @@
       <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\debug;$(ProjectDir)extern\yaml\build\Debug</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw/build/src/Debug/glfw3.lib;glew-cmake/lib/Debug/x64/glew32sd.lib;assimp/build/lib/Debug/assimp-vc143-mtd.lib;assimp/build/contrib/zlib/Debug/zlibstaticd.lib;yaml-cppd.lib;opengl32.lib;kernel32.lib;%(AdditionalDependencies);user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
     </Link>
+    <Lib>
+      <AdditionalDependencies>glfw/build/src/Debug/glfw3.lib;glew-cmake/lib/Debug/x64/glew32sd.lib;assimp/build/lib/Debug/assimp-vc143-mtd.lib;assimp/build/contrib/zlib/Debug/zlibstaticd.lib;yaml-cppd.lib;opengl32.lib;kernel32.lib;%(AdditionalDependencies);user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\debug;$(ProjectDir)extern\yaml\build\Debug</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -136,7 +142,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;YAML_CPP_STATIC_DEFINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\physx\physx\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern\yaml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\physx\physx\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern\yaml\include;$(SolutionDir)OAR\extern\plog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
@@ -152,6 +158,12 @@
       <AdditionalDependencies>$(CoreLibraryDependencies);$(ProjectDir)extern/glfw/build/src/Release/glfw3.lib;$(ProjectDir)extern/assimp/build/lib/Release/assimp-vc143-mt.lib;$(ProjectDir)extern/glew-cmake/lib/Release/x64/glew32s.lib;$(ProjectDir)extern/assimp/build/contrib/zlib/Release/zlibstatic.lib;yaml-cpp.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;opengl32.lib;%(AdditionalDependencies);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\checked;$(ProjectDir)extern\yaml\build\Release</AdditionalLibraryDirectories>
     </Link>
+    <Lib>
+      <AdditionalDependencies>$(CoreLibraryDependencies);$(ProjectDir)extern/glfw/build/src/Release/glfw3.lib;$(ProjectDir)extern/assimp/build/lib/Release/assimp-vc143-mt.lib;$(ProjectDir)extern/glew-cmake/lib/Release/x64/glew32s.lib;$(ProjectDir)extern/assimp/build/contrib/zlib/Release/zlibstatic.lib;yaml-cpp.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;opengl32.lib;%(AdditionalDependencies);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\checked;$(ProjectDir)extern\yaml\build\Release</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD.cpp">
@@ -179,10 +191,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_sse41.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="extern\imguizmo\ImGuizmo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -220,28 +228,24 @@
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <ClCompile Include="src\components\Component.cpp" />
-    <ClCompile Include="src\components\managers\CameraSystem.cpp" />
     <ClCompile Include="src\components\managers\MeshComponentManager.cpp" />
-    <ClCompile Include="src\components\EditorCamera.cpp" />
-    <ClCompile Include="src\components\lights\DirectionalLight.cpp" />
-    <ClCompile Include="src\components\lights\SpotLightComponent.cpp" />
+    <ClCompile Include="src\components\lights\LightComponents.cpp" />
     <ClCompile Include="src\components\managers\PhysicsSystem.cpp" />
     <ClCompile Include="src\components\managers\PointlightComponentManager.cpp" />
     <ClCompile Include="src\components\managers\SpotlightComponentManager.cpp" />
-    <ClCompile Include="src\components\managers\TransformComponentManager.cpp" />
     <ClCompile Include="src\components\PhysicsComponent.cpp" />
     <ClCompile Include="src\core\Window.cpp" />
     <ClCompile Include="src\events\EventManager.cpp" />
     <ClCompile Include="src\events\Events.cpp" />
+    <ClCompile Include="src\layers\LayerStack.cpp" />
     <ClCompile Include="src\physics\physics.cpp" />
     <ClCompile Include="src\rendering\EnvMapLoader.cpp" />
     <ClCompile Include="src\rendering\SceneRenderer.cpp" />
-    <ClCompile Include="src\scene\GlobalFog.cpp" />
+    <ClCompile Include="src\scene\ScenePostProcessing.cpp" />
     <ClCompile Include="src\scene\SceneEntity.cpp" />
     <ClCompile Include="src\framebuffers\Framebuffer.cpp" />
     <ClCompile Include="src\framebuffers\FramebufferLibrary.cpp" />
     <ClCompile Include="src\core\GLStateManager.cpp" />
-    <ClCompile Include="src\layers\EditorLayer.cpp" />
     <ClCompile Include="src\pch\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -278,12 +282,15 @@
     <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\terrain\TerrainQuadtree.cpp" />
     <ClCompile Include="src\util\HDRCubemapConverter.cpp" />
+    <ClCompile Include="src\util\Timers.cpp" />
     <ClCompile Include="src\util\TimeStep.cpp" />
     <ClCompile Include="src\util\Log.cpp" />
     <ClCompile Include="src\components\TransformComponent.cpp" />
     <ClCompile Include="src\util\UUID.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\shaders\BloomThresholdCS.glsl" />
+    <None Include="res\shaders\BloomUpsampleCS.glsl" />
     <None Include="res\shaders\BlurFS.glsl" />
     <None Include="res\shaders\SkyboxDiffusePrefilterFS.glsl" />
     <None Include="res\shaders\FogCS.glsl" />
@@ -313,10 +320,11 @@
     <None Include="res\shaders\LightingVS.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\Downloads\EnttSingleInclude.hpp" />
+    <ClInclude Include="extern\entt\EnttSingleInclude.h" />
     <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD.h" />
     <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_internal.h" />
     <ClInclude Include="extern\Icons.h" />
-    <ClInclude Include="extern\imguizmo\ImGuizmo.h" />
     <ClInclude Include="extern\imgui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="extern\imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="extern\imgui\backends\imgui_impl_opengl3_loader.h" />
@@ -324,8 +332,7 @@
     <ClInclude Include="headers\components\BoundingVolume.h" />
     <ClInclude Include="headers\components\Component.h" />
     <ClInclude Include="headers\components\ComponentAPI.h" />
-    <ClInclude Include="headers\components\ComponentManagers.h" />
-    <ClInclude Include="headers\components\EditorCamera.h" />
+    <ClInclude Include="headers\components\ComponentSystems.h" />
     <ClInclude Include="headers\components\lights\BaseLight.h" />
     <ClInclude Include="headers\components\lights\PointLightComponent.h" />
     <ClInclude Include="headers\components\lights\SpotLightComponent.h" />
@@ -333,18 +340,20 @@
     <ClInclude Include="headers\components\ScriptComponent.h" />
     <ClInclude Include="headers\core\FrameTiming.h" />
     <ClInclude Include="headers\core\Input.h" />
+    <ClInclude Include="headers\EngineAPI.h" />
     <ClInclude Include="headers\events\Events.h" />
     <ClInclude Include="headers\events\EventManager.h" />
     <ClInclude Include="headers\framebuffers\Framebuffer.h" />
     <ClInclude Include="headers\core\GLStateManager.h" />
+    <ClInclude Include="headers\layers\Layer.h" />
+    <ClInclude Include="headers\layers\LayerStack.h" />
     <ClInclude Include="headers\pch\pch.h" />
     <ClInclude Include="headers\physics\Physics.h" />
     <ClInclude Include="headers\rendering\EnvMapLoader.h" />
     <ClInclude Include="headers\rendering\MeshAsset.h" />
-    <ClInclude Include="headers\layers\EditorLayer.h" />
     <ClInclude Include="headers\components\CameraComponent.h" />
     <ClInclude Include="headers\rendering\SceneRenderer.h" />
-    <ClInclude Include="headers\scene\GlobalFog.h" />
+    <ClInclude Include="headers\scene\ScenePostProcessing.h" />
     <ClInclude Include="headers\scene\SceneSerializer.h" />
     <ClInclude Include="headers\util\ExtraMath.h" />
     <ClInclude Include="headers\scene\GridMesh.h" />
@@ -369,6 +378,7 @@
     <ClInclude Include="headers\terrain\TerrainChunk.h" />
     <ClInclude Include="headers\terrain\TerrainGenerator.h" />
     <ClInclude Include="headers\terrain\TerrainQuadtree.h" />
+    <ClInclude Include="headers\util\Timers.h" />
     <ClInclude Include="headers\util\TimeStep.h" />
     <ClInclude Include="headers\util\Log.h" />
     <ClInclude Include="headers\util\util.h" />
@@ -384,6 +394,7 @@
     <ClInclude Include="src\Terrain.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="res\shaders\BloomDownsampleCS.glsl" />
     <Text Include="res\shaders\BRDFConvolutionFS.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

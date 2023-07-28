@@ -3,16 +3,27 @@
 #include "framebuffers/FramebufferLibrary.h"
 #include "util/Log.h"
 #include "core/Window.h"
+#include "events/EventManager.h"
 
 namespace ORNG {
 
 	void FramebufferLibrary::Init() {
+		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
+			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
+				for (auto& k_v : m_framebuffers) {
+					if (k_v.second.GetIsScalingWithWindow())
+						k_v.second.Resize();
+				}
+			}
+		};
+
+		Events::EventManager::RegisterListener(m_window_event_listener);
 
 	}
 
 	Framebuffer& FramebufferLibrary::GetFramebuffer(const char* name) {
 		if (!m_framebuffers.contains(name)) {
-			OAR_CORE_CRITICAL("Framebuffer '{0}' not found", name);
+			ORNG_CORE_CRITICAL("Framebuffer '{0}' not found", name);
 			BREAKPOINT;
 		}
 
@@ -21,7 +32,7 @@ namespace ORNG {
 
 	Framebuffer& FramebufferLibrary::CreateFramebuffer(const char* name, bool scale_with_window) {
 		if (m_framebuffers.contains(name)) {
-			OAR_CORE_CRITICAL("Framebuffer '{0}' cannot be created, name already in use by another framebuffer", name);
+			ORNG_CORE_CRITICAL("Framebuffer '{0}' cannot be created, name already in use by another framebuffer", name);
 			BREAKPOINT;
 		}
 		else {

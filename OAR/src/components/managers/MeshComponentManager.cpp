@@ -1,18 +1,30 @@
 #include "pch/pch.h"
-#include "components/ComponentManagers.h"
+#include "components/ComponentSystems.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
 
-	void MeshComponentManager::SortMeshIntoInstanceGroup(MeshComponent* comp, MeshAsset* asset) {
+
+	static void OnMeshComponentAdd(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<MeshComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+	}
+
+	static void OnMeshComponentDestroy(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<MeshComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+	}
+
+	void MeshInstancingSystem::SortMeshIntoInstanceGroup(MeshComponent* comp) {
+
+		if (comp->mp_instance_group) { // Remove first if it has an instance group
+			comp->mp_instance_group->DeleteMeshPtr(comp);
+		}
 
 		int group_index = -1;
 
 		// check if new entity can merge into already existing instance group
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			//if same data, shader and material, can be combined so instancing is possible
-			if (m_instance_groups[i]->m_mesh_asset == asset
-				&& m_instance_groups[i]->m_group_shader_id == comp->m_shader_id
+			if (m_instance_groups[i]->m_mesh_asset == comp->mp_mesh_asset
 				&& m_instance_groups[i]->m_materials == comp->m_materials) {
 				group_index = i;
 				break;
@@ -25,7 +37,7 @@ namespace ORNG {
 			group->AddMeshPtr(comp);
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
-			MeshInstanceGroup* group = new MeshInstanceGroup(asset, comp->m_shader_id, this, comp->m_materials);
+			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials);
 			m_instance_groups.push_back(group);
 			group->AddMeshPtr(comp);
 		}
@@ -33,66 +45,60 @@ namespace ORNG {
 	}
 
 
-	void MeshComponentManager::DeleteComponent(SceneEntity* p_entity) {
 
-		if (!p_entity->GetComponent<MeshComponent>())
+	MeshInstancingSystem::MeshInstancingSystem(entt::registry* p_registry) : mp_registry(p_registry) {
+		// Setup event listeners
+		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
+			OnTransformEvent(t_event);
+		};
+
+		// Instance group handling
+		m_mesh_listener.OnEvent = [this](const Events::ECS_Event<MeshComponent>& t_event) {
+			OnMeshEvent(t_event);
+		};
+
+		Events::EventManager::RegisterListener(m_mesh_listener);
+		Events::EventManager::RegisterListener(m_transform_listener);
+
+
+	};
+
+
+
+	void MeshInstancingSystem::OnMeshEvent(const Events::ECS_Event<MeshComponent>& t_event) {
+		switch (t_event.event_type) {
+		case Events::ECS_EventType::COMP_ADDED:
+			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
+			break;
+		case Events::ECS_EventType::COMP_UPDATED:
+			t_event.affected_components[0]->mp_instance_group->ResortMesh(t_event.affected_components[0]);
+			break;
+		case Events::ECS_EventType::COMP_DELETED:
+			t_event.affected_components[0]->mp_instance_group->DeleteMeshPtr(t_event.affected_components[0]);
+		}
+	}
+
+
+
+	void MeshInstancingSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event) {
+		// Whenever a transform component changes, check if it has a mesh, if so then update the transform buffer of the instance group holding it.
+		if (t_event.event_type != Events::ECS_EventType::COMP_UPDATED)
 			return;
 
-		MeshComponent* mesh = GetComponent(p_entity->GetID());
-		MeshInstanceGroup* group = mesh->mp_instance_group;
-
-		group->DeleteMeshPtr(mesh);
-
-		// Unhook update callback
-		auto* p_transform = p_entity->GetComponent<TransformComponent>();
-		p_transform->update_callbacks.erase(TransformComponent::CallbackType::MESH);
-
-
-		m_mesh_components.erase(std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == p_entity->GetID(); }));
-		delete mesh;
-
-
-	}
-
-
-	MeshComponent* MeshComponentManager::AddComponent(SceneEntity* p_entity, MeshAsset* p_asset) {
-
-		auto* p_existing_comp = GetComponent(p_entity->GetID());
-		if (p_existing_comp) {
-			OAR_CORE_WARN("Mesh component not added, entity '{0}' already has a mesh component", p_entity->name);
-			return p_existing_comp;
+		if (auto* meshc = t_event.affected_components[0]->GetEntity()->GetComponent<MeshComponent>()) {
+			meshc->mp_instance_group->ActivateFlagSubUpdateWorldMatBuffer();
+			meshc->m_transform_update_flag = true;
 		}
-		auto* p_transform = p_entity->GetComponent<TransformComponent>();
-		auto* p_comp = new MeshComponent(p_entity, p_transform);
-		for (auto* p_mat : p_asset->m_scene_materials) {
-			p_comp->m_materials.push_back(p_mat);
-		}
-
-		// Sort into a group containing other meshes with same asset, material and shader for instanced rendering
-		SortMeshIntoInstanceGroup(p_comp, p_asset);
-
-		// Setup update callback, when transform is updated the transform buffers will update too
-		p_comp->p_transform->update_callbacks[TransformComponent::CallbackType::MESH] = ([p_comp](TransformComponent::UpdateType) {
-			p_comp->RequestTransformSSBOUpdate();
-			});
-
-		m_mesh_components.push_back(p_comp);
-
-		return p_comp;
 	}
 
 
 
 
-	MeshComponent* MeshComponentManager::GetComponent(uint64_t entity_id) {
-		auto it = std::find_if(m_mesh_components.begin(), m_mesh_components.end(), [&](const auto& p_comp) {return p_comp->GetEntityHandle() == entity_id; });
-		return it == m_mesh_components.end() ? nullptr : *it;
-	}
 
+	void MeshInstancingSystem::OnLoad() {
+		mp_registry->on_construct<MeshComponent>().connect<&OnMeshComponentAdd>();
+		mp_registry->on_destroy<MeshComponent>().connect<&OnMeshComponentDestroy>();
 
-
-
-	void MeshComponentManager::OnLoad() {
 		for (auto& group : m_instance_groups) {
 			//Set materials
 			for (auto* p_material : group->m_mesh_asset->m_scene_materials) {
@@ -109,20 +115,17 @@ namespace ORNG {
 
 
 
-	void MeshComponentManager::OnUnload() {
-		for (auto* mesh : m_mesh_components) {
-			delete mesh;
-		}
+	void MeshInstancingSystem::OnUnload() {
+		mp_registry->clear<MeshComponent>();
 		for (auto* group : m_instance_groups) {
 			delete group;
 		}
-		m_mesh_components.clear();
 		m_instance_groups.clear();
 	}
 
 
 
-	void MeshComponentManager::OnMeshAssetDeletion(MeshAsset* p_asset) {
+	void MeshInstancingSystem::OnMeshAssetDeletion(MeshAsset* p_asset) {
 		// Remove asset from all components using it
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			MeshInstanceGroup* group = m_instance_groups[i];
@@ -140,7 +143,7 @@ namespace ORNG {
 		}
 	}
 
-	void MeshComponentManager::OnMaterialDeletion(Material* p_material, Material* p_replacement_material) {
+	void MeshInstancingSystem::OnMaterialDeletion(Material* p_material, Material* p_replacement_material) {
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			MeshInstanceGroup* group = m_instance_groups[i];
 
@@ -170,7 +173,7 @@ namespace ORNG {
 	}
 
 
-	void MeshComponentManager::OnUpdate() {
+	void MeshInstancingSystem::OnUpdate() {
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			auto* group = m_instance_groups[i];
 

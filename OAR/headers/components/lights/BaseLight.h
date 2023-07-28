@@ -8,6 +8,7 @@ namespace ORNG {
 		BaseLight(SceneEntity* p_entity) : Component(p_entity) {};
 
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+		bool shadows_enabled = false;
 	};
 
 	struct LightAttenuation {

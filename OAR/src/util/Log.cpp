@@ -17,14 +17,14 @@ namespace ORNG {
 		switch (severity)
 		{
 		case GL_DEBUG_SEVERITY_HIGH:
-			OAR_CORE_CRITICAL("[OPENGL DEBUG HIGH] {0}", message);
+			ORNG_CORE_CRITICAL("[OPENGL DEBUG HIGH] {0}", message);
 			BREAKPOINT;
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
-			OAR_CORE_WARN("[OPENGL DEBUG MEDIUM] {0}", message);
+			ORNG_CORE_WARN("[OPENGL DEBUG MEDIUM] {0}", message);
 			break;
 		case GL_DEBUG_SEVERITY_LOW:
-			OAR_CORE_INFO("[OPENGL DEBUG MEDIUM] {0}", message);
+			ORNG_CORE_INFO("[OPENGL DEBUG MEDIUM] {0}", message);
 			break;
 		}
 	}

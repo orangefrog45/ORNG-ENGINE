@@ -13,7 +13,7 @@ namespace ORNG {
 		friend class Renderer;
 		friend class SceneRenderer;
 		Shader() = default;
-		Shader(const char* name, unsigned int id) : m_name(name), m_shader_id(id) {};
+		Shader(const char* name, unsigned int id) : m_id(id), m_name(name) {};
 		~Shader();
 
 		enum class ShaderType {
@@ -24,9 +24,9 @@ namespace ORNG {
 		void Init();
 
 		/* Return shader ID usable for setting shaders for meshes */
-		inline unsigned int GetShaderID() { return m_shader_id; }
 
-		void AddStage(GLenum shader_type, const std::string& filepath);
+		// Compiles a shader program with preprocessor definitions in "defines"
+		void AddStage(GLenum shader_type, const std::string& filepath, const std::vector<std::string>& defines = {});
 
 		inline void ActivateProgram() {
 			GL_StateManager::ActivateShaderProgram(m_program_id);
@@ -48,7 +48,7 @@ namespace ORNG {
 		void SetUniform(const std::string& name, T value) {
 
 			if (!m_uniforms.contains(name)) {
-				OAR_CORE_ERROR("Uniform '{0}' not found in shader '{1}'", name, m_name);
+				ORNG_CORE_ERROR("Uniform '{0}' not found in shader '{1}'", name, m_name);
 			}
 
 
@@ -80,9 +80,13 @@ namespace ORNG {
 				glUniform2ui(m_uniforms[name], value.x, value.y);
 			}
 			else {
-				OAR_CORE_ERROR("Unsupported uniform type used for shader: {0}", m_name);
+				ORNG_CORE_ERROR("Unsupported uniform type used for shader: {0}", m_name);
 			}
 		};
+
+		unsigned int GetID() const {
+			return m_id;
+		}
 	protected:
 
 
@@ -92,11 +96,11 @@ namespace ORNG {
 
 		void UseShader(unsigned int& id, unsigned int program);
 
-		std::string ParseShader(const std::string& filepath);
+		std::string ParseShader(const std::string& filepath, const std::vector<std::string>& defines);
 
-		int m_shader_id = -1;
+		unsigned int m_id;
 
-		unsigned int m_program_id;
+		unsigned int m_program_id = 0;
 
 		std::unordered_map<std::string, unsigned int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;

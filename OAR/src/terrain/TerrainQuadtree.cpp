@@ -12,7 +12,7 @@ namespace ORNG {
 
 	void TerrainQuadtree::Subdivide() {
 		if (m_subdivision_layer == m_max_subdivision_layer || m_is_subdivided) {
-			OAR_CORE_ERROR("Max terrain quadtree subdivisions hit");
+			ORNG_CORE_ERROR("Max terrain quadtree subdivisions hit");
 			return;
 		}
 		m_child_nodes.reserve(4);

@@ -5,5 +5,6 @@
 namespace ORNG {
 	Component::Component(SceneEntity* p_entity) : mp_entity(p_entity) {};
 
-	uint64_t Component::GetEntityHandle() const { return mp_entity->GetID(); }
+	uint64_t Component::GetEntityUUID() const { return mp_entity->GetUUID(); }
+	uint32_t Component::GetEnttHandle() const { return mp_entity->GetEnttHandle(); }
 }

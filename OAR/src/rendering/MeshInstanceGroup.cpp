@@ -1,7 +1,7 @@
 #include "pch/pch.h"
 
 #include "scene/MeshInstanceGroup.h"
-#include "components/ComponentManagers.h"
+#include "components/ComponentSystems.h"
 #include "components/TransformComponent.h"
 #include "util/Log.h"
 #include "scene/Scene.h"
@@ -26,7 +26,7 @@ namespace ORNG {
 	void MeshInstanceGroup::ResortMesh(MeshComponent* ptr) {
 		if (m_mesh_asset && m_mesh_asset->m_is_loaded) {
 			DeleteMeshPtr(ptr);
-			mp_manager->SortMeshIntoInstanceGroup(ptr, ptr->mp_mesh_asset);
+			mp_manager->SortMeshIntoInstanceGroup(ptr);
 		}
 	}
 
@@ -52,7 +52,7 @@ namespace ORNG {
 					if (first_index_of_chunk == -1)
 						first_index_of_chunk = i;
 
-					transforms.push_back(m_instances[i]->p_transform->GetMatrix());
+					transforms.push_back(m_instances[i]->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 				}
 				else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk 
 				{
@@ -88,7 +88,7 @@ namespace ORNG {
 		transforms.reserve(m_instances.size());
 
 		for (auto& p_mesh : m_instances) {
-			transforms.emplace_back(p_mesh->p_transform->GetMatrix());
+			transforms.emplace_back(p_mesh->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 		}
 
 		m_mesh_asset->m_vao.FullUpdateTransformSSBO(m_transform_ssbo_handle, &transforms);
@@ -99,7 +99,7 @@ namespace ORNG {
 		auto it = std::find(m_instances.begin(), m_instances.end(), ptr);
 
 		if (it == m_instances.end()) {
-			OAR_CORE_ERROR("Mesh component ptr not found in instance group with asset '{0}'\nShader '{1}'", m_mesh_asset->m_filename, m_group_shader_id);
+			ORNG_CORE_ERROR("Mesh component ptr not found in instance group with asset '{0}', material[0]= '{1}'", m_mesh_asset->m_filename, m_materials[0]->uuid());
 			return -1;
 		}
 
