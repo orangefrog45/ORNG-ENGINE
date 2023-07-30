@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 layout(location = 0) in vec3 position;
 
@@ -15,3 +15,4 @@ void main() {
 	gl_Position = pos.xyww;
 	TexCoord0 = position;
 }
+)""

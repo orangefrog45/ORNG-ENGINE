@@ -13,6 +13,7 @@
 #include "core/FrameTiming.h"
 #include "physics/Physics.h"
 #include "rendering/EnvMapLoader.h"
+#include "core/CodedAssets.h"
 
 
 namespace ORNG {
@@ -50,6 +51,7 @@ namespace ORNG {
 		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 
 		GL_StateManager::InitGL();
+		CodedAssets::Init();
 		Renderer::Init();
 		Physics::Init();
 		EnvMapLoader::Init();

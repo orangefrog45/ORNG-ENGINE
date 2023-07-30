@@ -11,6 +11,7 @@
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "physics/Physics.h"
 #include "scene/SceneSerializer.h"
+#include "core/CodedAssets.h"
 
 
 namespace ORNG {
@@ -106,21 +107,11 @@ namespace ORNG {
 		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
 		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
 
-		Texture2DSpec base_spec;
-		base_spec.generate_mipmaps = true;
-		base_spec.mag_filter = GL_LINEAR;
-		base_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-		base_spec.filepath = "./res/textures/missing_texture.png";
-		auto* p_tex = CreateTexture2DAsset(base_spec, DEFAULT_BASE_COLOR_TEX_ID);
-
 		Material* default_material = CreateMaterial(BASE_MATERIAL_ID);
-		default_material->name = "Default";
-		default_material->base_color = glm::vec3(1);
-		default_material->base_color_texture = p_tex;
+		default_material->base_color_texture = &CodedAssets::GetBaseTexture();
 
-		skybox.LoadEnvironmentMap("./res/textures/space.jpeg");
 		post_processing.global_fog.SetNoise(noise);
-		terrain.Init(BASE_MATERIAL_ID);
+		terrain.Init(default_material);
 		m_physics_system.OnLoad();
 		m_mesh_component_manager.OnLoad();
 		m_spotlight_component_manager.OnLoad();
@@ -164,7 +155,16 @@ namespace ORNG {
 		ORNG_CORE_INFO("Scene unloaded");
 	}
 
+	MeshAsset* Scene::GetMeshAsset(uint64_t uuid) {
+		auto it = std::find_if(m_mesh_assets.begin(), m_mesh_assets.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
 
+		if (it == m_mesh_assets.end()) {
+			ORNG_CORE_TRACE("Mesh with ID '{0}' does not exist, using CodedCube as replacement", uuid);
+			return &CodedAssets::GetCubeAsset();
+		}
+
+		return *it;
+	}
 
 	SceneEntity& Scene::CreateEntity(const std::string& name, uint64_t uuid) {
 		// Choose to create with uuid or not
@@ -182,8 +182,7 @@ namespace ORNG {
 
 
 	Material* Scene::CreateMaterial(uint64_t uuid) {
-		Material* p_material = uuid == 0 ? new Material() : new Material(uuid);
-		p_material->base_color_texture = GetTexture(DEFAULT_BASE_COLOR_TEX_ID);
+		Material* p_material = uuid == 0 ? new Material(&CodedAssets::GetBaseTexture()) : new Material(uuid);
 		m_materials.push_back(p_material);
 		return p_material;
 	}
@@ -230,6 +229,19 @@ namespace ORNG {
 		}
 
 		return *it;
+	}
+
+
+	Material* Scene::GetMaterial(uint64_t id) const {
+		auto it = std::find_if(m_materials.begin(), m_materials.end(), [&](const auto* p_mat) {return p_mat->uuid() == id; });
+
+		if (it == m_materials.end()) {
+			ORNG_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
+			return m_materials[BASE_MATERIAL_ID];
+		}
+
+		return *it;
+
 	}
 
 	MeshAsset* Scene::CreateMeshAsset(const std::string& filename, uint64_t uuid) {

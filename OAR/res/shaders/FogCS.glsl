@@ -1,4 +1,4 @@
-#version 460 core
+R""(#version 460 core
 
 #define PI 3.1415926538
 
@@ -300,4 +300,4 @@ void main() {
 
 	imageStore(fog_texture, tex_coords / 2, fog_color);
 
-}
+})""

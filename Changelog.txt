@@ -1,3 +1,8 @@
+30/7/23:
+-Editor bugfixing
+-Assets now compiled into the core engine lib instead of needing to be in every project using it
+
+
 28/7/23:
 -ECS Overhaul - started using entt and event-driven architecture
 -Made core engine API a library and seperated editor application from it

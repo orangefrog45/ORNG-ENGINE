@@ -6,6 +6,7 @@ namespace ORNG {
 
 	struct Material {
 		friend class Scene;
+		explicit Material(Texture2D* p_base_color_tex) : base_color_texture(p_base_color_tex) {};
 		Material() = default;
 		explicit Material(uint64_t uuid) : uuid(uuid) {};
 		Material(const Material& other) = default;

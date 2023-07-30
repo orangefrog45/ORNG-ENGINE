@@ -23,12 +23,6 @@ namespace ORNG {
 		}
 	}
 
-	void MeshInstanceGroup::ResortMesh(MeshComponent* ptr) {
-		if (m_mesh_asset && m_mesh_asset->m_is_loaded) {
-			DeleteMeshPtr(ptr);
-			mp_manager->SortMeshIntoInstanceGroup(ptr);
-		}
-	}
 
 	void MeshInstanceGroup::ProcessUpdates() {
 
@@ -80,7 +74,7 @@ namespace ORNG {
 	}
 
 	void MeshInstanceGroup::UpdateTransformSSBO() {
-		if (!m_mesh_asset->GetLoadStatus() || m_instances.empty()) {
+		if (m_instances.empty()) {
 			return;
 		}
 

@@ -36,6 +36,10 @@ namespace ORNG {
 			Get().IDrawVAO_Elements(primitive_type, vao);
 		}
 
+		static void DrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count) {
+			Get().IDrawMeshInstanced(p_mesh, instance_count);
+		}
+
 		static void DrawVAO_ArraysInstanced(GLenum primitive_type, const VAO& vao, unsigned int instance_count) {
 			Get().IDrawVAO_ArraysInstanced(primitive_type, vao, instance_count);
 		}
@@ -77,9 +81,9 @@ namespace ORNG {
 		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index);
 		void IDrawUnitCube() const;
 		void IDrawQuad() const;
+		void IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count);
 
 
-		MeshAsset* mp_unit_cube = nullptr;
 		Quad* mp_quad = nullptr;
 		FramebufferLibrary m_framebuffer_library;
 		ShaderLibrary m_shader_library;

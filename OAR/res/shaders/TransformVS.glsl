@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 in layout(location = 0) vec3 pos;
 
@@ -12,4 +12,4 @@ uniform mat4 transform;
 
 void main() {
 	gl_Position = PVMatrices.proj_view * transform * vec4(pos * 1.01f, 1.f);
-}
+})""

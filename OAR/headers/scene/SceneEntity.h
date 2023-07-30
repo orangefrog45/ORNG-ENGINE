@@ -9,7 +9,7 @@ namespace ORNG {
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene) {};
+		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle) {};
 		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene) {};
 
 		~SceneEntity() {

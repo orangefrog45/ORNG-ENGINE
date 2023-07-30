@@ -47,7 +47,7 @@ namespace ORNG {
 			return Get().IGetMousePos();
 		}
 
-		static void SetCursorPos(float x, float y) {
+		static void SetCursorPos(int x, int y) {
 			Get().ISetCursorPos(x, y);
 		}
 
@@ -79,7 +79,7 @@ namespace ORNG {
 
 		void ISetWindowDimensions(int width, int height);
 
-		void ISetCursorPos(float x, float y) { glfwSetCursorPos(p_window, x, y); }
+		void ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); }
 
 		bool I_IsKeyDown(int key) { return (glfwGetKey(p_window, std::toupper(key)) == GLFW_PRESS); }
 

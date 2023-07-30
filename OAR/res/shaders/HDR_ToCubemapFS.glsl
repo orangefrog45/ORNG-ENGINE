@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 out vec4 FragColor;
 in vec3 vs_local_pos;
 
@@ -19,4 +19,4 @@ void main()
 	vec3 color = texture(equirectangularMap, uv).rgb;
 
 	FragColor = vec4(color, 1.0);
-}
+})""

@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 in vec3 TexCoord0;
 
@@ -9,4 +9,4 @@ layout(binding = 1) uniform samplerCube sky_texture;
 void main()
 {
 	FragColor = texture(sky_texture, TexCoord0);
-};
+};)""

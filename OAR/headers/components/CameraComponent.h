@@ -12,9 +12,9 @@ namespace ORNG {
 		friend class CameraSystem;
 		CameraComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
-		virtual void Update();
+		void Update();
 		void MakeActive();
-		glm::mat4x4 GetViewMatrix();
+		virtual glm::mat4x4 GetViewMatrix();
 		glm::mat4x4 GetProjectionMatrix() const;
 		void UpdateFrustum();
 

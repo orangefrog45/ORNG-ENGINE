@@ -7,6 +7,7 @@
 #include "scene/SceneEntity.h"
 #include "components/ComponentAPI.h"
 #include "rendering/Textures.h"
+#include "core/CodedAssets.h"
 
 
 namespace YAML {
@@ -217,7 +218,7 @@ namespace ORNG {
 				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
 					p_mesh_comp->m_materials[i] = scene.GetMaterial(ids[i]);
 				}
-				p_mesh_comp->mp_instance_group->ResortMesh(p_mesh_comp);
+				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 
 			}
 

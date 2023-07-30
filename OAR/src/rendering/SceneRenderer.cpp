@@ -12,6 +12,7 @@
 #include "events/EventManager.h"
 #include "util/Timers.h"
 #include "scene/SceneEntity.h"
+#include "core/CodedAssets.h"
 
 
 namespace ORNG {
@@ -22,8 +23,8 @@ namespace ORNG {
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
 
 		m_gbuffer_shader = &mp_shader_library->CreateShader("gbuffer");
-		m_gbuffer_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
-		m_gbuffer_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
+		m_gbuffer_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::GBufferVS);
+		m_gbuffer_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::GBufferFS);
 		m_gbuffer_shader->Init();
 		m_gbuffer_shader->AddUniforms(std::vector<std::string> {
 			"u_terrain_mode",
@@ -48,10 +49,9 @@ namespace ORNG {
 		});
 
 
-
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting", ShaderLibrary::LIGHTING_SHADER_ID);
-		m_lighting_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/LightingVS.glsl");
-		m_lighting_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/LightingFS.glsl");
+		m_lighting_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::LightingVS);
+		m_lighting_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::LightingFS);
 		m_lighting_shader->Init();
 		m_lighting_shader->AddUniforms({
 			"u_terrain_mode",
@@ -68,8 +68,8 @@ namespace ORNG {
 
 		// Render quad
 		m_post_process_shader = &mp_shader_library->CreateShader("post_process");
-		m_post_process_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
-		m_post_process_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PostProcessFS.glsl");
+		m_post_process_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
+		m_post_process_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::PostProcessFS);
 		m_post_process_shader->Init();
 		m_post_process_shader->AddUniform("exposure");
 		m_post_process_shader->AddUniform("u_bloom_intensity");
@@ -99,20 +99,20 @@ namespace ORNG {
 
 
 		mp_orth_depth_shader = &mp_shader_library->CreateShader("orth_depth");
-		mp_orth_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_orth_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "ORTHOGRAPHIC" });
+		mp_orth_depth_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::DepthVS);
+		mp_orth_depth_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::DepthFS, { "ORTHOGRAPHIC" });
 		mp_orth_depth_shader->Init();
 		mp_orth_depth_shader->AddUniform("u_light_pv_matrix");
 
 		mp_persp_depth_shader = &mp_shader_library->CreateShader("persp_depth");
-		mp_persp_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_persp_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE" });
+		mp_persp_depth_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::DepthVS);
+		mp_persp_depth_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::DepthFS, { "PERSPECTIVE" });
 		mp_persp_depth_shader->Init();
 		mp_persp_depth_shader->AddUniform("u_light_pv_matrix");
 
 		mp_pointlight_depth_shader = &mp_shader_library->CreateShader("pointlight_depth");
-		mp_pointlight_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_pointlight_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE", "POINTLIGHT" });
+		mp_pointlight_depth_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::DepthVS);
+		mp_pointlight_depth_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::DepthFS, { "PERSPECTIVE", "POINTLIGHT" });
 		mp_pointlight_depth_shader->Init();
 		mp_pointlight_depth_shader->AddUniform("u_light_pv_matrix");
 		mp_pointlight_depth_shader->AddUniform("u_light_pos");
@@ -120,7 +120,7 @@ namespace ORNG {
 
 
 		m_blur_shader = &mp_shader_library->CreateShader("blur");
-		m_blur_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BlurFS.glsl");
+		m_blur_shader->AddStageFromString(GL_COMPUTE_SHADER, CodedAssets::BlurFS);
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
 		m_blur_shader->AddUniform("u_first_iter");
@@ -239,7 +239,7 @@ namespace ORNG {
 
 		// Fog
 		m_fog_shader = &mp_shader_library->CreateShader("fog");
-		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/FogCS.glsl");
+		m_fog_shader->AddStageFromString(GL_COMPUTE_SHADER, CodedAssets::FogCS);
 		m_fog_shader->Init();
 		m_fog_shader->AddUniforms({
 			"u_fog_color",
@@ -291,17 +291,17 @@ namespace ORNG {
 		m_post_processing_fb->Add2DTexture("shared_render_texture", GL_COLOR_ATTACHMENT0, color_render_texture_spec);
 
 		mp_bloom_downsample_shader = &mp_shader_library->CreateShader("bloom downsample");
-		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, "./res/shaders/BloomDownsampleCS.glsl");
+		mp_bloom_downsample_shader->AddStageFromString(GL_COMPUTE_SHADER, CodedAssets::BloomDownsampleCS);
 		mp_bloom_downsample_shader->Init();
 		mp_bloom_downsample_shader->AddUniform("u_mip_level");
 
 		mp_bloom_upsample_shader = &mp_shader_library->CreateShader("bloom upsample");
-		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, "./res/shaders/BloomUpsampleCS.glsl");
+		mp_bloom_upsample_shader->AddStageFromString(GL_COMPUTE_SHADER, CodedAssets::BloomUpsampleCS);
 		mp_bloom_upsample_shader->Init();
 		mp_bloom_upsample_shader->AddUniform("u_mip_level");
 
 		mp_bloom_threshold_shader = &mp_shader_library->CreateShader("bloom threshold");
-		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, "./res/shaders/BloomThresholdCS.glsl");
+		mp_bloom_threshold_shader->AddStageFromString(GL_COMPUTE_SHADER, CodedAssets::BloomThresholdCS);
 		mp_bloom_threshold_shader->Init();
 		mp_bloom_threshold_shader->AddUniform("u_threshold");
 		mp_bloom_threshold_shader->AddUniform("u_knee");
@@ -350,6 +350,9 @@ namespace ORNG {
 	void SceneRenderer::SetGBufferMaterial(const Material* p_material) {
 		if (p_material->base_color_texture) {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+		}
+		else { // Replace with 1x1 white pixel texture
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, CodedAssets::GetBaseTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 
 		if (p_material->roughness_texture == nullptr) {
@@ -430,8 +433,7 @@ namespace ORNG {
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
 
-				uint64_t material_id = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index]->uuid();
-				const Material* p_material = mp_scene->GetMaterial(material_id);
+				const Material* p_material = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index];
 				m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
 				SetGBufferMaterial(p_material);
@@ -443,7 +445,7 @@ namespace ORNG {
 
 
 		/* uniforms */
-		SetGBufferMaterial(mp_scene->GetMaterial(mp_scene->terrain.m_material_id));
+		SetGBufferMaterial(mp_scene->terrain.mp_material);
 		m_gbuffer_shader->SetUniform("u_terrain_mode", 1);
 		m_gbuffer_shader->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->GetID());
 		IDrawTerrain(p_cam);
@@ -735,15 +737,11 @@ namespace ORNG {
 
 	}
 
-	void SceneRenderer::DrawAllMeshes() {
+	void SceneRenderer::DrawAllMeshes() const {
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			const MeshAsset* mesh_data = group->GetMeshData();
 			GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
-
-			for (int y = 0; y < mesh_data->m_submeshes.size(); y++) {
-				Renderer::DrawSubMeshInstanced(mesh_data, group->m_instances.size(), y);
-			}
-
+			Renderer::DrawMeshInstanced(mesh_data, group->m_instances.size());
 		}
 	}
 }

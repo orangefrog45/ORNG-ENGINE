@@ -15,6 +15,9 @@ namespace ORNG {
 
 	void MeshInstancingSystem::SortMeshIntoInstanceGroup(MeshComponent* comp) {
 
+		if (!comp->mp_mesh_asset)
+			return;
+
 		if (comp->mp_instance_group) { // Remove first if it has an instance group
 			comp->mp_instance_group->DeleteMeshPtr(comp);
 		}
@@ -71,7 +74,7 @@ namespace ORNG {
 			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
 			break;
 		case Events::ECS_EventType::COMP_UPDATED:
-			t_event.affected_components[0]->mp_instance_group->ResortMesh(t_event.affected_components[0]);
+			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
 			break;
 		case Events::ECS_EventType::COMP_DELETED:
 			t_event.affected_components[0]->mp_instance_group->DeleteMeshPtr(t_event.affected_components[0]);

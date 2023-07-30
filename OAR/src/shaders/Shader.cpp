@@ -37,6 +37,18 @@ namespace ORNG {
 		m_shader_handles.push_back(shader_handle);
 	}
 
+	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, const std::vector<std::string>& defines) {
+		unsigned int shader_handle = 0;
+		std::string shader_code_copy = shader_code;
+
+		for (auto& define : defines) { // insert definitions 
+			shader_code_copy.insert(shader_code_copy.find_first_of("\n") + 1, "\n" "#define " + define + "\n");
+		}
+
+		CompileShader(shader_type, shader_code_copy, shader_handle);
+		m_shader_handles.push_back(shader_handle);
+	}
+
 	void Shader::Init() {
 		unsigned int tprogramID = glCreateProgram();
 

@@ -234,6 +234,7 @@
     <ClCompile Include="src\components\managers\PointlightComponentManager.cpp" />
     <ClCompile Include="src\components\managers\SpotlightComponentManager.cpp" />
     <ClCompile Include="src\components\PhysicsComponent.cpp" />
+    <ClCompile Include="src\core\CodedAssets.cpp" />
     <ClCompile Include="src\core\Window.cpp" />
     <ClCompile Include="src\events\EventManager.cpp" />
     <ClCompile Include="src\events\Events.cpp" />
@@ -281,7 +282,6 @@
     <ClCompile Include="src\terrain\TerrainChunk.cpp" />
     <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\terrain\TerrainQuadtree.cpp" />
-    <ClCompile Include="src\util\HDRCubemapConverter.cpp" />
     <ClCompile Include="src\util\Timers.cpp" />
     <ClCompile Include="src\util\TimeStep.cpp" />
     <ClCompile Include="src\util\Log.cpp" />
@@ -289,38 +289,6 @@
     <ClCompile Include="src\util\UUID.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\BloomThresholdCS.glsl" />
-    <None Include="res\shaders\BloomUpsampleCS.glsl" />
-    <None Include="res\shaders\BlurFS.glsl" />
-    <None Include="res\shaders\SkyboxDiffusePrefilterFS.glsl" />
-    <None Include="res\shaders\FogCS.glsl" />
-    <None Include="res\shaders\HDR_ToCubemapFS.glsl" />
-    <None Include="res\shaders\CubemapVS.glsl" />
-    <None Include="res\shaders\HighlightFS.glsl" />
-    <None Include="res\shaders\SkyboxSpecularPrefilterFS.glsl" />
-    <None Include="res\shaders\TransformVS.glsl" />
-    <None Include="res\shaders\PostProcessFS.glsl" />
-    <None Include="res\shaders\PostProcessVS.shader" />
-    <None Include="res\shaders\CubemapShadowFS.glsl" />
-    <None Include="res\shaders\CubemapShadowVS.glsl" />
-    <None Include="res\shaders\DepthFS.glsl" />
-    <None Include="res\shaders\DepthVS.glsl" />
-    <None Include="res\shaders\GBufferFS.glsl" />
-    <None Include="res\shaders\GBufferVS.glsl" />
-    <None Include="res\shaders\GridFS.glsl" />
-    <None Include="res\shaders\GridVS.glsl" />
-    <None Include="res\shaders\PickingFS.glsl" />
-    <None Include="res\shaders\QuadFS.glsl" />
-    <None Include="res\shaders\QuadVS.glsl" />
-    <None Include="res\shaders\ReflectionFS.glsl" />
-    <None Include="res\shaders\ReflectionVS.glsl" />
-    <None Include="res\shaders\SkyboxFS.glsl" />
-    <None Include="res\shaders\SkyboxVS.glsl" />
-    <None Include="res\shaders\LightingFS.glsl" />
-    <None Include="res\shaders\LightingVS.glsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\Downloads\EnttSingleInclude.hpp" />
     <ClInclude Include="extern\entt\EnttSingleInclude.h" />
     <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD.h" />
     <ClInclude Include="extern\fastsimd\FastNoiseSIMD-master\FastNoiseSIMD\FastNoiseSIMD_internal.h" />
@@ -338,6 +306,7 @@
     <ClInclude Include="headers\components\lights\SpotLightComponent.h" />
     <ClInclude Include="headers\components\PhysicsComponent.h" />
     <ClInclude Include="headers\components\ScriptComponent.h" />
+    <ClInclude Include="headers\core\CodedAssets.h" />
     <ClInclude Include="headers\core\FrameTiming.h" />
     <ClInclude Include="headers\core\Input.h" />
     <ClInclude Include="headers\EngineAPI.h" />
@@ -396,6 +365,32 @@
   <ItemGroup>
     <Text Include="res\shaders\BloomDownsampleCS.glsl" />
     <Text Include="res\shaders\BRDFConvolutionFS.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\shaders\BloomThresholdCS.glsl" />
+    <None Include="res\shaders\BloomUpsampleCS.glsl" />
+    <None Include="res\shaders\BlurFS.glsl" />
+    <None Include="res\shaders\CubemapShadowFS.glsl" />
+    <None Include="res\shaders\CubemapShadowVS.glsl" />
+    <None Include="res\shaders\CubemapVS.glsl" />
+    <None Include="res\shaders\DepthFS.glsl" />
+    <None Include="res\shaders\DepthVS.glsl" />
+    <None Include="res\shaders\FogCS.glsl" />
+    <None Include="res\shaders\GBufferFS.glsl" />
+    <None Include="res\shaders\GBufferVS.glsl" />
+    <None Include="res\shaders\HDR_ToCubemapFS.glsl" />
+    <None Include="res\shaders\LightingFS.glsl" />
+    <None Include="res\shaders\LightingVS.glsl" />
+    <None Include="res\shaders\PostProcessFS.glsl" />
+    <None Include="res\shaders\QuadFS.glsl" />
+    <None Include="res\shaders\QuadVS.glsl" />
+    <None Include="res\shaders\ReflectionFS.glsl" />
+    <None Include="res\shaders\ReflectionVS.glsl" />
+    <None Include="res\shaders\SkyboxDiffusePrefilterFS.glsl" />
+    <None Include="res\shaders\SkyboxFS.glsl" />
+    <None Include="res\shaders\SkyboxSpecularPrefilterFS.glsl" />
+    <None Include="res\shaders\SkyboxVS.glsl" />
+    <None Include="res\shaders\TransformVS.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,9 +1,12 @@
-#version 460 core
+R""(#version 460 core
 
 #define PI 3.1415926538
 out vec4 frag_color;
+in vec3 vs_local_pos;
 
-in vec2 tex_coords;
+layout(binding = 1) uniform samplerCube environment_map_sampler;
+
+uniform float u_roughness;
 
 float RadicalInverse_VdC(uint bits)
 {
@@ -47,59 +50,33 @@ vec3 ImportanceSampleGGX(vec2 u, vec3 n, float roughness)
 }
 
 
-float GeometrySchlickGGX(float n_dot_v, float roughness) {
-	float a = roughness;
-	float k = (a * a) / 2.0;
-
-	return n_dot_v / (n_dot_v * (1.0 - k) + k);
-}
-
-float GeometrySmith(vec3 v, vec3 l, vec3 n, float roughness) {
-	float n_dot_v = max(dot(n, v), 0.0);
-	float n_dot_l = max(dot(n, l), 0.0);
-	float ggx2 = GeometrySchlickGGX(n_dot_v, roughness);
-	float ggx1 = GeometrySchlickGGX(n_dot_l, roughness);
-
-	return ggx2 * ggx1;
-}
-
-vec2 IntegrateBDRF(float n_dot_v, float roughness) {
-	vec3 v = vec3(sqrt(1.0 - n_dot_v * n_dot_v), 0.0, n_dot_v);
-
-	float a = 0.0;
-	float b = 0.0;
-
-	vec3 n = vec3(0.0, 0.0, 1.0);
+vec3 SpecularPrefilter(vec3 n) {
+	vec3 r = n;
+	vec3 v = n;
 
 	const uint sample_count = 1024u;
+	float total_weight = 0.0;
+	vec3 prefiltered_color = vec3(0.0);
 
 	for (uint i = 0u; i < sample_count; i++) {
 		vec2 u = Hammersley(i, sample_count);
-		vec3 h = ImportanceSampleGGX(u, n, roughness); // Bias towards normal
+		vec3 h = ImportanceSampleGGX(u, n, u_roughness); // Bias towards normal
 		vec3 l = normalize(2.0 * dot(v, h) * h - v);
 
-		float n_dot_l = max(l.z, 0.0);
-		float n_dot_h = max(h.z, 0.0);
-		float v_dot_h = max(dot(v, h), 0.0);
-
+		float n_dot_l = max(dot(n, l), 0.0);
 		if (n_dot_l > 0.0) {
-			float g = GeometrySmith(v, l, n, roughness);
-			float g_vis = (g * v_dot_h) / (n_dot_h * n_dot_v);
-			float fc = pow(1.0 - v_dot_h, 5.0);
-
-			a += (1.0 - fc) * g_vis;
-			b += fc * g_vis;
-
+			prefiltered_color += texture(environment_map_sampler, l).rgb * n_dot_l;
+			total_weight += n_dot_l;
 		}
 	}
 
-	a /= float(sample_count);
-	b /= float(sample_count);
-
-	return vec2(a, b);
+	prefiltered_color /= total_weight;
+	return prefiltered_color;
 
 }
 
 void main() {
-	frag_color = vec4(IntegrateBDRF(tex_coords.x, tex_coords.y), 1.0, 1.0);
-}
+	vec3 n = normalize(vs_local_pos);
+	frag_color = vec4(SpecularPrefilter(n), 1.0);
+
+})""

@@ -6,7 +6,10 @@
 namespace ORNG {
 
 	MeshComponent::MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset) : Component(p_entity) {
+		if (!p_asset)
+			return;
 		mp_mesh_asset = p_asset;
+
 		for (auto* p_material : p_asset->GetSceneMaterials()) {
 			m_materials.push_back(p_material);
 		}

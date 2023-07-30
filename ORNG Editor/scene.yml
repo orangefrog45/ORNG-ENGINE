@@ -200,6 +200,21 @@ TextureAssets:
     Mag filter: 9729
     SRGB: false
 Materials:
+  - SceneMaterial: 5092888231584847198
+    Name: Unnamed material
+    Base colour texture: 0
+    Normal texture: 0
+    AO texture: 0
+    Metallic texture: 0
+    Roughness texture: 0
+    Emissive texture: 0
+    Base colour: [1, 1, 1]
+    Metallic: 0
+    Roughness: 0.200000003
+    AO: 0.100000001
+    TileScale: [1, 1]
+    Emissive: false
+    Emissive strength: 1
   - SceneMaterial: 16353872488815962576
     Name: Terrain
     Base colour texture: 17216373081450471302
@@ -397,7 +412,7 @@ Entities:
       Orientation: [0, 0, 0]
     MeshComp:
       MeshAssetID: 13596816166408680387
-      Materials: [1, 16353872488815962576]
+      Materials: [16353872488815962576, 16353872488815962576]
     PhysicsComp:
       RigidBodyType: 1
       GeometryType: 0
@@ -431,7 +446,7 @@ Entities:
     Name: Name
     ParentID: 13704918059613175019
     TransformComp:
-      Pos: [6.29999971, 0, 0]
+      Pos: [4.68642998, 398.492706, 240.002167]
       Scale: [1, 1, 1]
       Orientation: [0, 0, 0]
     MeshComp:
@@ -4223,26 +4238,6 @@ Entities:
     PhysicsComp:
       RigidBodyType: 1
       GeometryType: 0
-  - Entity: 1110351320326395638
-    Name: Name
-    ParentID: 13704918059613175019
-    TransformComp:
-      Pos: [-44.8271599, 25.6499786, 6.30000305]
-      Scale: [1, 1, 1]
-      Orientation: [0, 86.3031387, 0]
-    MeshComp:
-      MeshAssetID: 13596816166408680387
-      Materials: [3289949930858735320, 3085627255703089825]
-    SpotlightComp:
-      Colour: [100, 100, 100]
-      AttenConstant: 1
-      AttenLinear: 0.00100000005
-      AttenExp: 9.99999975e-05
-      Aperture: 0.939599991
-      Direction: [0.997919142, 0, 0.0644778013]
-    PhysicsComp:
-      RigidBodyType: 0
-      GeometryType: 0
   - Entity: 13279377321766566954
     Name: Name
     ParentID: 13704918059613175019
@@ -6112,24 +6107,6 @@ Entities:
     MeshComp:
       MeshAssetID: 13596816166408680387
       Materials: [3289949930858735320, 16353872488815962576]
-    PhysicsComp:
-      RigidBodyType: 1
-      GeometryType: 0
-  - Entity: 15986636222838407226
-    Name: Name
-    ParentID: 13704918059613175019
-    TransformComp:
-      Pos: [-127.910629, 9.41255283, -110.162109]
-      Scale: [0.40305382, 0.40305382, 0.40305382]
-      Orientation: [-80.9048004, -42.6502075, -33.1366272]
-    MeshComp:
-      MeshAssetID: 1663619007474420601
-      Materials: [3085627255703089825]
-    PointlightComp:
-      Colour: [50, 5, 0]
-      AttenConstant: 1
-      AttenLinear: 0.0500000007
-      AttenExp: 0.0489999987
     PhysicsComp:
       RigidBodyType: 1
       GeometryType: 0
@@ -50376,7 +50353,7 @@ Entities:
     Name: New entity
     ParentID: 0
     TransformComp:
-      Pos: [168.066833, 58.0161438, 0]
+      Pos: [71.7065506, 58.01614, -22.7065868]
       Scale: [0.0302400049, 0.0302400049, 0.0302400049]
       Orientation: [-0.00862242933, -50.3823051, 0.0112554207]
     MeshComp:
@@ -50399,52 +50376,16 @@ Entities:
       Pos: [-3.19290924, 494.029938, -742.77771]
       Scale: [1, 1, 1]
       Orientation: [-30, 180, 0]
-  - Entity: 8997697569274910557
-    Name: Name - Duplicate
-    ParentID: 13704918059613175019
-    TransformComp:
-      Pos: [102.235275, 30.7497025, -157.792282]
-      Scale: [4.26999998, 4.26999998, 4.26999998]
-      Orientation: [0, 0, 0]
-    MeshComp:
-      MeshAssetID: 1663619007474420601
-      Materials: [3085627255703089825]
-    PointlightComp:
-      Colour: [10, 2, 0]
-      AttenConstant: 1
-      AttenLinear: 0.0500000007
-      AttenExp: 0.0109999999
-    PhysicsComp:
-      RigidBodyType: 1
-      GeometryType: 0
-  - Entity: 7536244978278984170
-    Name: Name - Duplicate
-    ParentID: 13704918059613175019
-    TransformComp:
-      Pos: [-9.4206543, 30.7497025, -143.62645]
-      Scale: [4.26999998, 4.26999998, 4.26999998]
-      Orientation: [0, 0, 0]
-    MeshComp:
-      MeshAssetID: 1663619007474420601
-      Materials: [3085627255703089825]
-    PointlightComp:
-      Colour: [10, 2, 0]
-      AttenConstant: 1
-      AttenLinear: 0.0500000007
-      AttenExp: 0.0109999999
-    PhysicsComp:
-      RigidBodyType: 1
-      GeometryType: 0
   - Entity: 8128740531715580368
     Name: Name - Duplicate
     ParentID: 13704918059613175019
     TransformComp:
-      Pos: [-5.6924901, 22.214901, 6.55275726]
+      Pos: [-96.7959213, 42.8343544, 20.2514687]
       Scale: [4.00184488, 4.00184488, 4.00184488]
       Orientation: [34.8587875, -66.2574387, 1.24445117]
     MeshComp:
       MeshAssetID: 1663619007474420601
-      Materials: [1]
+      Materials: [16353872488815962576]
     PointlightComp:
       Colour: [10, 5, 0]
       AttenConstant: 1
@@ -50466,11 +50407,31 @@ Entities:
     PhysicsComp:
       RigidBodyType: 0
       GeometryType: 0
+  - Entity: 15288024931707436810
+    Name: New entity
+    ParentID: 0
+    TransformComp:
+      Pos: [-22.3068962, 3.92177057, 0.000918907113]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0]
+    MeshComp:
+      MeshAssetID: 9548044790032203629
+      Materials: [16353872488815962576]
+  - Entity: 257372227595665148
+    Name: New entity - Duplicate
+    ParentID: 0
+    TransformComp:
+      Pos: [-64.0869446, 56.0906296, 0.00036709031]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0]
+    MeshComp:
+      MeshAssetID: 9548044790032203629
+      Materials: [16353872488815962576]
 DirLight:
-  Colour: [0, 0, 0]
-  Direction: [0, 0.707106829, 0.707106829]
+  Colour: [10, 10, 10]
+  Direction: [0.494227588, 0.614710927, 0.614710927]
   CascadeRanges: [50, 150, 800]
-  Zmults: [5.24599981, 3.40199995, 3.03299999]
+  Zmults: [8.36100006, 3.40199995, 3.03299999]
 Skybox:
   HDR filepath: ./res/textures/belfast_sunset_puresky_4k.hdr
 Bloom:

@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 const int MAX_SPOT_LIGHTS = 8;
 const int MAX_POINT_LIGHTS = 8;
@@ -87,3 +87,4 @@ void main() {
 
 
 }
+)""

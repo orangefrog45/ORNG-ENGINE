@@ -14,7 +14,7 @@ namespace ORNG {
 		friend class Scene;
 		friend class SceneRenderer;
 		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& material_ids) :
-			m_mesh_asset(t_mesh_data), mp_manager(p_mcm), m_materials(material_ids)
+			m_mesh_asset(t_mesh_data), m_materials(material_ids)
 		{
 			// Setup a transform matrix ssbo for this instance group
 			m_transform_ssbo_handle = t_mesh_data->m_vao.GenTransformSSBO();
@@ -31,9 +31,6 @@ namespace ORNG {
 
 		//Deletes mesh component from instance group, mesh will need to be resorted into different instance group after
 		void DeleteMeshPtr(MeshComponent* ptr);
-
-		//sorts mesh into different instance group upon it being changed, meshes will request this
-		void ResortMesh(MeshComponent* ptr);
 
 		int FindMeshPtrIndex(const MeshComponent* ptr);
 
@@ -60,7 +57,6 @@ namespace ORNG {
 		//ID's of materials associated with each submesh of the mesh asset
 		std::vector<const Material*> m_materials;
 
-		MeshInstancingSystem* mp_manager = nullptr;
 		MeshAsset* m_mesh_asset;
 		unsigned int m_transform_ssbo_handle = 0;
 	};

@@ -15,8 +15,8 @@ namespace ORNG {
 	}
 
 
-	void Terrain::Init(uint64_t material_id) {
-		m_material_id = material_id;
+	void Terrain::Init(Material* p_mat) {
+		mp_material = p_mat;
 		m_quadtree = std::make_unique<TerrainQuadtree>(m_width, m_height_scale, m_seed, m_center_pos, m_resolution, &m_loader);
 	}
 }

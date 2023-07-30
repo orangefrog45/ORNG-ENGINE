@@ -19,16 +19,8 @@ namespace ORNG {
 		};
 
 		/* Fill all buffers with data provided to vectors in class
-		* glcomponentsize is the number of components per generic vertex attribute (3 = triangles, 4 = quads etc)
 		*/
 		void FillBuffers();
-
-		/* Fully re-allocate all memory for the transform buffer, only use when shrinking/growing the buffer */
-		//void UpdateTransformMatrixBuffer(const std::vector<glm::mat4>& transforms);
-
-		/* Update section of transform buffer, prefer this for performance */
-		//void SubUpdateTransformMatrixBuffer(unsigned int index_offset, std::vector<glm::mat4>& transforms);
-
 
 		// Generate SSBO to hold world transforms, call each time a new MeshInstanceGroup is created as transforms between them need to be seperated
 		[[nodiscard]] unsigned int GenTransformSSBO();

@@ -40,35 +40,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\BloomDownsampleCS.glsl" />
-    <None Include="res\shaders\BloomThresholdCS.glsl" />
-    <None Include="res\shaders\BloomUpsampleCS.glsl" />
-    <None Include="res\shaders\BlurFS.glsl" />
-    <None Include="res\shaders\BRDFConvolutionFS.glsl" />
-    <None Include="res\shaders\CubemapShadowFS.glsl" />
-    <None Include="res\shaders\CubemapShadowVS.glsl" />
-    <None Include="res\shaders\CubemapVS.glsl" />
-    <None Include="res\shaders\DepthFS.glsl" />
-    <None Include="res\shaders\DepthVS.glsl" />
-    <None Include="res\shaders\FogCS.glsl" />
-    <None Include="res\shaders\GBufferFS.glsl" />
-    <None Include="res\shaders\GBufferVS.glsl" />
     <None Include="res\shaders\GridFS.glsl" />
     <None Include="res\shaders\GridVS.glsl" />
-    <None Include="res\shaders\HDR_ToCubemapFS.glsl" />
     <None Include="res\shaders\HighlightFS.glsl" />
-    <None Include="res\shaders\LightingFS.glsl" />
-    <None Include="res\shaders\LightingVS.glsl" />
     <None Include="res\shaders\PickingFS.glsl" />
-    <None Include="res\shaders\PostProcessFS.glsl" />
-    <None Include="res\shaders\QuadFS.glsl" />
-    <None Include="res\shaders\QuadVS.glsl" />
-    <None Include="res\shaders\ReflectionFS.glsl" />
-    <None Include="res\shaders\ReflectionVS.glsl" />
-    <None Include="res\shaders\SkyboxDiffusePrefilterFS.glsl" />
-    <None Include="res\shaders\SkyboxFS.glsl" />
-    <None Include="res\shaders\SkyboxSpecularPrefilterFS.glsl" />
-    <None Include="res\shaders\SkyboxVS.glsl" />
-    <None Include="res\shaders\TransformVS.glsl" />
   </ItemGroup>
 </Project>

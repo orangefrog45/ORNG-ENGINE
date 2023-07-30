@@ -23,10 +23,11 @@ namespace ORNG {
 		/* Links and validates shader program */
 		void Init();
 
-		/* Return shader ID usable for setting shaders for meshes */
-
 		// Compiles a shader program with preprocessor definitions in "defines"
 		void AddStage(GLenum shader_type, const std::string& filepath, const std::vector<std::string>& defines = {});
+
+		// Compiles a shader program from "shader_code" string with preprocessor definitions in "defines"
+		void AddStageFromString(GLenum shader_type, const std::string& shader_code, const std::vector<std::string>& defines = {});
 
 		inline void ActivateProgram() {
 			GL_StateManager::ActivateShaderProgram(m_program_id);

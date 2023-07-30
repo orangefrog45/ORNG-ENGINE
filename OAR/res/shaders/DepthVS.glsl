@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 in layout(location = 0) vec3 pos;
 in layout(location = 2) vec3 normal;
@@ -21,3 +21,4 @@ void main() {
 }
 
 
+)""

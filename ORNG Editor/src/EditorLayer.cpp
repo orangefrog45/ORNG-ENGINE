@@ -9,6 +9,7 @@
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
+#include "core/CodedAssets.h"
 
 
 namespace ORNG {
@@ -18,10 +19,6 @@ namespace ORNG {
 
 		InitImGui();
 		m_active_scene = std::make_unique<Scene>();
-		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
-		mp_editor_camera->AddComponent<TransformComponent>();
-		mp_editor_camera->AddComponent<EditorCamera>();
-		mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
 
 
 		m_grid_mesh = std::make_unique<GridMesh>();
@@ -32,19 +29,19 @@ namespace ORNG {
 		mp_grid_shader->Init();
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.glsl");
+		mp_quad_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
+		mp_quad_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::QuadFS);
 		mp_quad_shader->Init();
 
 		mp_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		mp_picking_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/TransformVS.glsl");
+		mp_picking_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::TransformVS);
 		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PickingFS.glsl");
 		mp_picking_shader->Init();
 		mp_picking_shader->AddUniform("comp_id");
 		mp_picking_shader->AddUniform("transform");
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/TransformVS.glsl");
+		mp_highlight_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::TransformVS);
 		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HighlightFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
@@ -79,10 +76,12 @@ namespace ORNG {
 
 		m_active_scene->LoadScene("scene.yml");
 
-		m_current_2d_tex_spec.wrap_params = GL_REPEAT;
-		m_current_2d_tex_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-		m_current_2d_tex_spec.mag_filter = GL_LINEAR;
+		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
+		mp_editor_camera->AddComponent<TransformComponent>();
+		mp_editor_camera->AddComponent<EditorCamera>();
+		//mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
 
+		ORNG_CORE_ERROR(mp_editor_camera->GetUUID());
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
 
@@ -252,10 +251,9 @@ namespace ORNG {
 		if (selected_component == -1)
 			return;
 
-
 		auto* entity = p_entity ? p_entity : &m_active_scene->CreateEntity("New entity");
-		m_selected_entity_ids.clear();
 		SelectEntity(entity->GetUUID());
+
 		switch (selected_component) {
 		case 0:
 			entity->AddComponent<PointLightComponent>();
@@ -264,7 +262,7 @@ namespace ORNG {
 			entity->AddComponent<SpotLightComponent>();
 			break;
 		case 2:
-			entity->AddComponent<MeshComponent>(m_active_scene->m_mesh_assets[0]);
+			entity->AddComponent<MeshComponent>(&CodedAssets::GetCubeAsset());
 			break;
 		case 3:
 			entity->AddComponent<CameraComponent>();
@@ -331,21 +329,16 @@ namespace ORNG {
 
 		auto view = m_active_scene->m_registry.view<MeshComponent>();
 		for (auto [entity, mesh] : view.each()) {
-			if (mesh.GetMeshData()->GetLoadStatus() == true) {
-				//Split uint64 into two uint32's for texture storage
-				uint64_t full_id = mesh.GetEntityUUID();
-				uint32_t half_id_1 = (uint32_t)(full_id >> 32);
-				uint32_t half_id_2 = (uint32_t)(full_id);
-				glm::uvec2 id_vec{half_id_1, half_id_2};
+			//Split uint64 into two uint32's for texture storage
+			uint64_t full_id = mesh.GetEntityUUID();
+			uint32_t half_id_1 = (uint32_t)(full_id >> 32);
+			uint32_t half_id_2 = (uint32_t)(full_id);
+			glm::uvec2 id_vec{half_id_1, half_id_2};
 
-				mp_picking_shader->SetUniform("comp_id", id_vec);
-				mp_picking_shader->SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+			mp_picking_shader->SetUniform("comp_id", id_vec);
+			mp_picking_shader->SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 
-				for (int i = 0; i < mesh.mp_mesh_asset->m_submeshes.size(); i++) {
-					Renderer::DrawSubMesh(mesh.GetMeshData(), i);
-				}
-
-			}
+			Renderer::DrawMeshInstanced(mesh.GetMeshData(), 1);
 		}
 
 		glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
@@ -369,7 +362,7 @@ namespace ORNG {
 			auto* current_entity = m_active_scene->GetEntity(id);
 
 			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
-				return;
+				continue;
 
 			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
 
@@ -378,9 +371,7 @@ namespace ORNG {
 
 			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 			glDisable(GL_DEPTH_TEST);
-			for (int i = 0; i < meshc->GetMeshData()->m_submeshes.size(); i++) {
-				Renderer::DrawSubMesh(meshc->GetMeshData(), i);
-			}
+			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
 			glEnable(GL_DEPTH_TEST);
 		}
 
@@ -430,9 +421,16 @@ namespace ORNG {
 				//setting up file explorer callbacks
 				std::function<void()> success_callback = [this] {
 					MeshAsset* asset = m_active_scene->CreateMeshAsset(path);
-					asset->LoadMeshData();
-					m_active_scene->LoadMeshAssetIntoGPU(asset);
-					error_message.clear();
+
+					if (asset->LoadMeshData()) {
+						m_active_scene->LoadMeshAssetIntoGPU(asset);
+						error_message.clear();
+					}
+					else {
+						m_active_scene->DeleteMeshAsset(asset);
+						error_message = "Failed to load mesh asset";
+					}
+
 				};
 
 
@@ -539,12 +537,11 @@ namespace ORNG {
 				for (auto* p_material : m_active_scene->m_materials) {
 
 					ImGui::TableNextColumn();
-
 					ImGui::PushID(p_material);
 
 					bool deletion_flag = false;
-
-					if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->m_texture_obj), button_size))
+					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->m_texture_obj : CodedAssets::GetBaseTexture().GetTextureHandle();
+					if (ImGui::ImageButton(ImTextureID(tex_id), button_size))
 						mp_selected_material = p_material;
 
 
@@ -605,10 +602,9 @@ namespace ORNG {
 		if (ImGui::Begin("Texture editor")) {
 
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-				// Hide this tree node
-				ImGui::TreePop();
+				// Hide this window
 				mp_selected_texture = nullptr;
-				return;
+				goto window_end;
 			}
 
 			ImGui::Text(mp_selected_texture->GetSpec().filepath.c_str());
@@ -638,6 +634,8 @@ namespace ORNG {
 				mp_selected_texture->LoadFromFile();
 			}
 		}
+
+	window_end:
 		ImGui::End();
 	}
 
@@ -670,8 +668,7 @@ namespace ORNG {
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				// Hide this tree node
 				mp_selected_material = nullptr;
-				ImGui::TreePop();
-				return;
+				goto window_end;
 			}
 
 
@@ -719,6 +716,7 @@ namespace ORNG {
 			ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
 		}
 
+	window_end:
 		if (!Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_1))
 			// Reset drag if mouse not held down
 			mp_dragged_texture = nullptr;
@@ -783,10 +781,15 @@ namespace ORNG {
 		}
 		// If clicked, select current entity
 		if (ImGui::IsItemHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) { // Doing this instead of IsActive() because IsActive wont trigger if ctrl is held down
-			if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+			if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
 				m_selected_entity_ids.clear();
 
-			SelectEntity(p_entity->GetUUID());
+
+			if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_selected_entity_ids, p_entity->GetUUID())) // Deselect entity from group of entities currently selected
+				m_selected_entity_ids.erase(std::ranges::find(m_selected_entity_ids, p_entity->GetUUID()));
+			else
+				SelectEntity(p_entity->GetUUID());
+
 		}
 
 		// Popup opened above if node is right clicked
@@ -803,8 +806,7 @@ namespace ORNG {
 
 				// Early return as logic below will now rely on a deleted entity
 				ImGui::EndPopup();
-				ImGui::PopID();
-				return;
+				goto exit;
 			}
 
 
@@ -826,7 +828,7 @@ namespace ORNG {
 			}
 		}
 
-
+	exit:
 		if (is_tree_node_open)
 			ImGui::TreePop(); // Pop tree node opened earlier
 
@@ -851,9 +853,23 @@ namespace ORNG {
 				mp_selected_texture = nullptr;
 				mp_dragged_texture = nullptr;
 				m_selected_entity_ids.clear();
+				bool saved_physics_state = m_active_scene->m_physics_system.GetIsPaused();
+
+				auto camera_saved_transforms = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms();
+				glm::vec3 cam_pos = camera_saved_transforms[0];
+				glm::vec3 cam_orientation = camera_saved_transforms[2];
+				m_active_scene->m_physics_system.SetIsPaused(true);
 
 				m_active_scene->UnloadScene();
 				m_active_scene->LoadScene("scene.yml");
+				mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
+				auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
+				p_transform->SetAbsolutePosition(cam_pos);
+				p_transform->SetAbsoluteOrientation(cam_orientation);
+				mp_editor_camera->AddComponent<EditorCamera>();
+				mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
+
+				m_active_scene->m_physics_system.SetIsPaused(saved_physics_state);
 			}
 
 			bool physics_paused = m_active_scene->m_physics_system.GetIsPaused();
@@ -1300,8 +1316,8 @@ namespace ORNG {
 			ImGui::InputInt("Seed", &terrain_seed);
 			m_active_scene->terrain.m_seed = terrain_seed;
 
-			if (Material* p_new_material = RenderMaterialComponent(m_active_scene->GetMaterial(m_active_scene->terrain.m_material_id)))
-				m_active_scene->terrain.m_material_id = p_new_material->uuid();
+			if (Material* p_new_material = RenderMaterialComponent(m_active_scene->terrain.mp_material))
+				m_active_scene->terrain.mp_material = p_new_material;
 
 			if (ImGui::Button("Reload"))
 				m_active_scene->terrain.ResetTerrainQuadtree();
@@ -1310,13 +1326,11 @@ namespace ORNG {
 	}
 
 	void EditorLayer::RenderDirectionalLightEditor() {
-
-		static glm::vec3 light_dir = m_active_scene->m_directional_light.GetLightDirection();
-		static glm::vec3 light_color = m_active_scene->m_directional_light.color;
 		if (H1TreeNode("Directional light")) {
 			ImGui::Text("DIR LIGHT CONTROLS");
 
 			static glm::vec3 light_dir = glm::vec3(0, 0.5, 0.5);
+			static glm::vec3 light_color = m_active_scene->m_directional_light.color;
 
 			ImGui::SliderFloat("X", &light_dir.x, -1.f, 1.f);
 			ImGui::SliderFloat("Y", &light_dir.y, -1.f, 1.f);

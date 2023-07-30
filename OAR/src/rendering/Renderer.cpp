@@ -5,6 +5,7 @@
 #include "util/Log.h"
 #include "rendering/Quad.h"
 #include "core/GLStateManager.h"
+#include "core/CodedAssets.h"
 
 namespace ORNG {
 
@@ -17,11 +18,7 @@ namespace ORNG {
 		mp_quad = new Quad();
 		mp_quad->Load();
 
-		mp_unit_cube = new MeshAsset{ "./res/meshes/cube/cube.obj" };
-		mp_unit_cube->LoadMeshData();
-		mp_unit_cube->PopulateBuffers();
-		mp_unit_cube->importer.FreeScene();
-		mp_unit_cube->m_is_loaded = true;
+
 
 		ORNG_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
 	}
@@ -30,9 +27,7 @@ namespace ORNG {
 
 	void Renderer::IDrawUnitCube() const
 	{
-		for (int i = 0; i < mp_unit_cube->m_submeshes.size(); i++) {
-			DrawSubMesh(mp_unit_cube, i);
-		}
+		Get().IDrawMeshInstanced(&CodedAssets::GetCubeAsset(), 1);
 	};
 
 	void Renderer::IDrawQuad() const
@@ -76,6 +71,22 @@ namespace ORNG {
 	}
 
 
+	void Renderer::IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count) {
+		GL_StateManager::BindVAO(p_mesh->m_vao);
+
+		for (int i = 0; i < p_mesh->m_submeshes.size(); i++) {
+			GL_StateManager::BindVAO(p_mesh->m_vao);
+
+			glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
+				p_mesh->m_submeshes[i].num_indices,
+				GL_UNSIGNED_INT,
+				(void*)(sizeof(unsigned int) * p_mesh->m_submeshes[i].base_index),
+				instance_count,
+				p_mesh->m_submeshes[i].base_vertex);
+
+			m_draw_call_amount++;
+		}
+	}
 
 	void Renderer::IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index) {
 		GL_StateManager::BindVAO(data->m_vao);

@@ -65,7 +65,7 @@ namespace ORNG {
 		void IDrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
 		void DoBloomPass();
-		void DrawAllMeshes();
+		void DrawAllMeshes() const;
 
 		void SetGBufferMaterial(const Material* p_mat);
 

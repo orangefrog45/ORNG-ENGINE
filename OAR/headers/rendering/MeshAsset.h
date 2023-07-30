@@ -21,16 +21,17 @@ namespace ORNG {
 		friend class SceneRenderer;
 		friend class MeshInstancingSystem;
 		friend class SceneSerializer;
+		friend class CodedAssets;
 
 		MeshAsset() = delete;
 		MeshAsset(const std::string& filename) : m_filename(filename) {};
 		MeshAsset(const std::string& filename, uint64_t t_uuid) : m_filename(filename), uuid(t_uuid) {};
 		MeshAsset(const MeshAsset& other) = default;
-		~MeshAsset();
+		~MeshAsset() = default;
 
 		bool LoadMeshData();
 
-		auto& GetSceneMaterials() { return m_scene_materials; }
+		const auto& GetSceneMaterials() const { return m_scene_materials; }
 		std::string GetFilename() const { return m_filename; };
 
 		bool GetLoadStatus() const { return m_is_loaded; };

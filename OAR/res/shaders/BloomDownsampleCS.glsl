@@ -1,4 +1,4 @@
-#version 460 core
+R""(#version 460 core
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in; // invocations
 
@@ -40,4 +40,4 @@ void main() {
 	total_result += (G + H + M + L) * div.y;
 
 	imageStore(i_output, tex_coords, vec4(total_result, 1));
-}
+})""

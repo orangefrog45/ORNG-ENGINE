@@ -40,30 +40,11 @@ namespace ORNG {
 
 
 		SceneEntity* GetEntity(uint64_t uuid);
-		inline Material* GetMaterial(uint64_t id) const {
-			auto it = std::find_if(m_materials.begin(), m_materials.end(), [&](const auto* p_mat) {return p_mat->uuid() == id; });
 
-			if (it == m_materials.end()) {
-				ORNG_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
-				return m_materials[BASE_MATERIAL_ID];
-			}
-
-			return *it;
-
-		}
+		Material* GetMaterial(uint64_t id) const;
 
 		Texture2D* GetTexture(uint64_t uuid);
-
-		inline MeshAsset* GetMeshAsset(uint64_t uuid) {
-			auto it = std::find_if(m_mesh_assets.begin(), m_mesh_assets.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
-
-			if (it == m_mesh_assets.end()) {
-				ORNG_CORE_ERROR("Mesh with ID '{0}' does not exist, not found", uuid);
-				return nullptr;
-			}
-
-			return *it;
-		}
+		MeshAsset* GetMeshAsset(uint64_t uuid);
 
 		Skybox skybox;
 		Terrain terrain;

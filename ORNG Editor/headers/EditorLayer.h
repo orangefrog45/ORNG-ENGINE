@@ -28,6 +28,7 @@ namespace ORNG {
 
 		void RenderGrid();
 		void DoPickingPass();
+		/* Highlight the selected entities in the editor */
 		void DoSelectedEntityHighlightPass();
 
 		// Renders a popup with shortcuts to create a new entity with a component, e.g mesh
@@ -55,13 +56,19 @@ namespace ORNG {
 		void RenderBloomEditor();
 		void RenderTerrainEditor();
 
+#define INVALID_ENTITY_ID 0
+
 		inline void SelectEntity(uint64_t id) {
-			if (!VectorContains(m_selected_entity_ids, id))
+			if (!VectorContains(m_selected_entity_ids, id) && id != INVALID_ENTITY_ID)
 				m_selected_entity_ids.push_back(id);
-			else if (!m_selected_entity_ids.empty())
+			else
+				return;
+
+			if (!m_selected_entity_ids.empty())
 				// Makes the selected entity the first ID, which some UI components will operate on more, e.g gizmos will render on this entity now over other selected ones
 				std::iter_swap(std::ranges::find(m_selected_entity_ids, id), m_selected_entity_ids.begin());
 		}
+
 
 		inline void DeselectEntity(uint64_t id) {
 			auto it = std::ranges::find(m_selected_entity_ids, id);

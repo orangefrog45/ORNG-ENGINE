@@ -8,7 +8,8 @@ namespace ORNG {
 		friend class EditorLayer;
 		EditorCamera(SceneEntity* p_entity) : CameraComponent(p_entity) {};
 		EditorCamera(const EditorCamera&) = default;
-		void Update() override;
+		void Update();
+
 		void MoveForward(float time_elapsed);
 		void MoveBackward(float time_elapsed);
 		void StrafeLeft(float time_elapsed);

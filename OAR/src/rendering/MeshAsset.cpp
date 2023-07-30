@@ -8,12 +8,6 @@
 
 namespace ORNG {
 
-	MeshAsset::~MeshAsset() {
-
-		importer.FreeScene();
-
-		ORNG_CORE_INFO("Mesh unloaded: {0}", m_filename);
-	}
 
 	bool MeshAsset::LoadMeshData() {
 
@@ -162,11 +156,13 @@ namespace ORNG {
 				m_aabb.min.z = pPos.z;
 
 			m_vao.vertex_data.positions.push_back(glm::vec3(pPos.x, pPos.y, pPos.z));
+			m_vao.vertex_data.normals.push_back(glm::vec3(pNormal.x, pNormal.y, pNormal.z));
+			m_vao.vertex_data.tex_coords.push_back(glm::vec2(pTexCoord.x, pTexCoord.y));
+			m_vao.vertex_data.tangents.push_back(glm::vec3(tangent.x, tangent.y, tangent.z));
 
-			m_vao.vertex_data.normals.push_back(glm::fvec3(pNormal.x, pNormal.y, pNormal.z));
-			m_vao.vertex_data.tex_coords.push_back(glm::fvec2(pTexCoord.x, pTexCoord.y));
-			m_vao.vertex_data.tangents.push_back(glm::fvec3(tangent.x, tangent.y, tangent.z));
+
 		}
+
 
 		for (unsigned int i = 0; i < paiMesh->mNumFaces; i++) {
 			const aiFace& face = paiMesh->mFaces[i];

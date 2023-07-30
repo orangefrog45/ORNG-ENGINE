@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 const unsigned int MATRICES_BINDING = 0;
 
@@ -21,3 +21,4 @@ void main() {
 	vs_normal = transpose(inverse(mat3(transform))) * vertex_normal;
 	vs_position = vec3(transform * vec4(position, 1.0f));
 }
+)""

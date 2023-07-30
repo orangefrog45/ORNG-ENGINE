@@ -1,4 +1,4 @@
-#version 430 core
+R""(#version 430 core
 
 in vec3 vs_normal;
 in vec3 world_pos;
@@ -39,4 +39,4 @@ void main() {
 #else
 	gl_FragDepth = gl_FragCoord.z + bias;
 #endif
-}
+})""

@@ -1,6 +1,7 @@
-#version 430 core
+R""(
+	#version 430 core
 
-in layout(location = 0) vec3 position;
+	in layout(location = 0) vec3 position;
 in layout(location = 1) vec2 tex_coord;
 in layout(location = 2) vec3 vertex_normal;
 in layout(location = 3) vec3 in_tangent;
@@ -143,4 +144,4 @@ void main() {
 
 
 }
-
+)""
