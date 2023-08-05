@@ -8,23 +8,23 @@ namespace ORNG {
 
 	void EditorCamera::Update() {
 		if (Window::IsKeyDown('W')) {
-			MoveForward((float)FrameTiming::GetTimeStep());
+			MoveForward(FrameTiming::GetTimeStep());
 		}
 
 		if (Window::IsKeyDown('A'))
-			StrafeLeft((float)FrameTiming::GetTimeStep());
+			StrafeLeft(FrameTiming::GetTimeStep());
 
 		if (Window::IsKeyDown('S'))
-			MoveBackward((float)FrameTiming::GetTimeStep());
+			MoveBackward(FrameTiming::GetTimeStep());
 
 		if (Window::IsKeyDown('D'))
-			StrafeRight((float)FrameTiming::GetTimeStep());
+			StrafeRight(FrameTiming::GetTimeStep());
 
 		if (Window::IsKeyDown('Q'))
-			MoveDown((float)FrameTiming::GetTimeStep());
+			MoveDown(FrameTiming::GetTimeStep());
 
 		if (Window::IsKeyDown('E'))
-			MoveUp((float)FrameTiming::GetTimeStep());
+			MoveUp(FrameTiming::GetTimeStep());
 
 		if (Window::IsKeyDown('R')) {
 			mouse_locked = true;

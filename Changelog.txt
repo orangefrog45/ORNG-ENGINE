@@ -1,3 +1,9 @@
+5/8/23:
+-Events system changes
+-Multiple active scene support
+-Optimizations to physics/transform events
+-Portal shader for fun
+
 30/7/23:
 -Editor bugfixing
 -Assets now compiled into the core engine lib instead of needing to be in every project using it

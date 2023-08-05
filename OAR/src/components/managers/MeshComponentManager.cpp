@@ -49,13 +49,16 @@ namespace ORNG {
 
 
 
-	MeshInstancingSystem::MeshInstancingSystem(entt::registry* p_registry) : mp_registry(p_registry) {
+	MeshInstancingSystem::MeshInstancingSystem(entt::registry* p_registry, uint64_t scene_uuid) :ComponentSystem(scene_uuid), mp_registry(p_registry) {
 		// Setup event listeners
+		m_transform_listener.scene_id = scene_uuid;
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
-			OnTransformEvent(t_event);
+			if (mp_registry->valid(entt::entity(t_event.affected_components[0]->GetEntity()->GetEnttHandle())))
+				OnTransformEvent(t_event);
 		};
 
 		// Instance group handling
+		m_mesh_listener.scene_id = scene_uuid;
 		m_mesh_listener.OnEvent = [this](const Events::ECS_Event<MeshComponent>& t_event) {
 			OnMeshEvent(t_event);
 		};
@@ -78,6 +81,7 @@ namespace ORNG {
 			break;
 		case Events::ECS_EventType::COMP_DELETED:
 			t_event.affected_components[0]->mp_instance_group->DeleteMeshPtr(t_event.affected_components[0]);
+			break;
 		}
 	}
 

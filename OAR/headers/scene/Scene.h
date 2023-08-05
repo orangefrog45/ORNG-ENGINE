@@ -56,6 +56,8 @@ namespace ORNG {
 
 		static inline const uint64_t BASE_MATERIAL_ID = 1;
 		static inline const uint64_t DEFAULT_BASE_COLOR_TEX_ID = 1;
+
+		UUID uuid;
 	private:
 		void LoadMeshAssetIntoGPU(MeshAsset* asset);
 		void LoadMeshAssetPreExistingMaterials(MeshAsset* asset, std::vector<Material*>& materials);
@@ -67,11 +69,11 @@ namespace ORNG {
 
 		std::vector<SceneEntity*> m_entities;
 
-		MeshInstancingSystem m_mesh_component_manager{ &m_registry };
-		PointlightSystem m_pointlight_component_manager{ &m_registry };
-		SpotlightSystem m_spotlight_component_manager{ &m_registry };
-		PhysicsSystem m_physics_system{ &m_registry };
-		CameraSystem m_camera_system{ &m_registry };
+		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
+		PointlightSystem m_pointlight_component_manager{ &m_registry , uuid() };
+		SpotlightSystem m_spotlight_component_manager{ &m_registry, uuid() };
+		PhysicsSystem m_physics_system{ &m_registry, uuid() };
+		CameraSystem m_camera_system{ &m_registry, uuid() };
 
 		entt::registry m_registry;
 

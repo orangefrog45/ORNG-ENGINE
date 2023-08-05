@@ -12,7 +12,7 @@ ORNG Editor/res/textures
 x64/
 OAR/x64/
 
-.yml
+*.yml
 
 CMakeLists.txt.user
 CMakeCache.txt

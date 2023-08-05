@@ -41,6 +41,7 @@ namespace ORNG {
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
+		Texture2D CreateMaterialPreview(Material* p_material);
 
 		// Renders material as a drag-drop target, returns pointer to the new material if a material was drag-dropped on it, else nullptr
 		Material* RenderMaterialComponent(const Material* p_material);
@@ -90,7 +91,7 @@ namespace ORNG {
 		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
-		void RenderMaterialTexture(const char* name, Texture2D*& p_tex, bool deletable);
+		void RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		static bool H1TreeNode(const char* name);
 		static bool H2TreeNode(const char* name);
 		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
@@ -106,8 +107,14 @@ namespace ORNG {
 		Framebuffer* mp_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
 		Framebuffer* mp_picking_fb = nullptr;
 
+		// Contains the actual rendering of the scene
+		std::unique_ptr<Texture2D> mp_scene_display_texture{ nullptr };
+		std::unique_ptr<Texture2D> mp_alt_scene_display_texture{ nullptr };
+		Events::EventListener<Events::WindowEvent> m_window_event_listener;
+
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
 		std::unique_ptr<Scene> m_active_scene = nullptr;
+		std::unique_ptr<Scene> mp_preview_scene = nullptr;
 
 		std::unique_ptr<SceneEntity> mp_editor_camera{nullptr };
 

@@ -11,6 +11,7 @@ namespace physx {
 	class PxCpuDispatcher;
 	class PxMaterial;
 	class PxTriangleMesh;
+	class PxControllerManager;
 }
 
 namespace ORNG {
@@ -18,6 +19,7 @@ namespace ORNG {
 
 	class ComponentSystem {
 	public:
+		explicit ComponentSystem(uint64_t scene_uuid) : m_scene_uuid(scene_uuid) {  };
 		// Dispatches event attached to single component, used for connections with entt::registry::on_construct etc
 		template<std::derived_from<Component> T>
 		static void DispatchComponentEvent(entt::registry& registry, entt::entity entity, Events::ECS_EventType type) {
@@ -30,14 +32,29 @@ namespace ORNG {
 
 		virtual void OnUpdate() {};
 		virtual void OnUnload() {};
+
+		inline uint64_t GetSceneUUID() const { return m_scene_uuid; }
+	private:
+		uint64_t m_scene_uuid = 0;
 	};
 
 
 	class CameraSystem : public ComponentSystem {
 	public:
+		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		virtual ~CameraSystem() = default;
 
 		void OnUnload() {};
-		void OnLoad() {}
+		void OnLoad() {
+			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
+				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
+					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
+				}
+			};
+
+			m_event_listener.scene_id = GetSceneUUID();
+			Events::EventManager::RegisterListener(m_event_listener);
+		}
 
 		void OnUpdate() {
 			auto* p_active_cam = GetActiveCamera();
@@ -45,13 +62,6 @@ namespace ORNG {
 				p_active_cam->Update();
 
 		}
-		explicit CameraSystem(entt::registry* p_registry) : mp_registry(p_registry) {
-			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
-				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
-					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
-				}
-			};
-		};
 
 		void SetActiveCamera(uint32_t entity_handle) {
 			m_active_cam_entity_handle = entity_handle;
@@ -75,14 +85,15 @@ namespace ORNG {
 
 	private:
 		uint32_t m_active_cam_entity_handle;
-		Events::EventListener<Events::ECS_Event<CameraComponent>> m_event_listener;
+		Events::ECS_EventListener<CameraComponent> m_event_listener;
 		entt::registry* mp_registry = nullptr;
 	};
 
 
 	class PhysicsSystem : public ComponentSystem {
 	public:
-		explicit PhysicsSystem(entt::registry* p_registry);
+		PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid);
+		virtual ~PhysicsSystem() = default;
 
 		void OnUpdate(float ts);
 		void OnUnload() final;
@@ -95,19 +106,26 @@ namespace ORNG {
 
 	private:
 		void InitComponent(PhysicsComponent* p_comp);
+		void InitComponent(CharacterControllerComponent* p_comp);
 		void UpdateComponentState(PhysicsComponent* p_comp);
 		void RemoveComponent(PhysicsComponent* p_comp);
+		void RemoveComponent(CharacterControllerComponent* p_comp);
 
 		entt::registry* mp_registry = nullptr;
-		Events::EventListener<Events::ECS_Event<PhysicsComponent>> m_phys_listener;
-		Events::EventListener<Events::ECS_Event<TransformComponent>> m_transform_listener;
+		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
+		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
+		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 
 		physx::PxBroadPhase* mp_broadphase = nullptr;
 		physx::PxAABBManager* mp_aabb_manager = nullptr;
 		physx::PxScene* mp_scene = nullptr;
+		physx::PxControllerManager* mp_controller_manager = nullptr;
 
 		std::vector<physx::PxMaterial*> m_physics_materials;
 		std::unordered_map<const MeshAsset*, physx::PxTriangleMesh*> m_triangle_meshes;
+
+		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
+		TransformComponent* mp_currently_updating_transform = nullptr;
 
 		bool m_physics_paused = true;
 		float m_step_size = 1.f / 60.f;
@@ -120,12 +138,14 @@ namespace ORNG {
 	class SpotlightSystem : public ComponentSystem {
 		friend class SceneRenderer;
 	public:
-		explicit SpotlightSystem(entt::registry* p_registry) : mp_registry(p_registry) {};
+		SpotlightSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		virtual ~SpotlightSystem() = default;
 
 		void OnLoad();
 		void OnUpdate() final;
 		void OnUnload() final;
 	private:
+		Texture2DArray m_spotlight_depth_tex{ "Spotlight depth" }; // Used for shadow maps
 		entt::registry* mp_registry = nullptr;
 		GLuint m_spotlight_ssbo_handle;
 	};
@@ -135,7 +155,8 @@ namespace ORNG {
 	class PointlightSystem : public ComponentSystem {
 		friend class SceneRenderer;
 	public:
-		explicit PointlightSystem(entt::registry* p_registry) : mp_registry(p_registry) {};
+		PointlightSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		virtual ~PointlightSystem() = default;
 		void OnLoad();
 		void OnUpdate() final;
 		void OnUnload() final;
@@ -153,7 +174,8 @@ namespace ORNG {
 	class MeshInstancingSystem : public ComponentSystem {
 	public:
 
-		explicit MeshInstancingSystem(entt::registry* p_registry);
+		MeshInstancingSystem(entt::registry* p_registry, uint64_t scene_uuid);
+		virtual ~MeshInstancingSystem() = default;
 		void SortMeshIntoInstanceGroup(MeshComponent* comp);
 		void OnLoad();
 		void OnUnload() final;
@@ -165,8 +187,8 @@ namespace ORNG {
 
 		const auto& GetInstanceGroups() const { return m_instance_groups; }
 	private:
-		Events::EventListener<Events::ECS_Event<TransformComponent>> m_transform_listener;
-		Events::EventListener<Events::ECS_Event<MeshComponent>> m_mesh_listener;
+		Events::ECS_EventListener<TransformComponent> m_transform_listener;
+		Events::ECS_EventListener<MeshComponent> m_mesh_listener;
 		std::vector<MeshInstanceGroup*> m_instance_groups;
 		entt::registry* mp_registry = nullptr;
 	};

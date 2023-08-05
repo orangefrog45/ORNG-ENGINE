@@ -46,6 +46,32 @@ namespace ORNG {
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
 
+		// Setting up the scene display texture 
+		Texture2DSpec color_render_texture_spec;
+		color_render_texture_spec.format = GL_RGBA;
+		color_render_texture_spec.internal_format = GL_RGBA16F;
+		color_render_texture_spec.storage_type = GL_FLOAT;
+		color_render_texture_spec.mag_filter = GL_NEAREST;
+		color_render_texture_spec.min_filter = GL_NEAREST;
+		color_render_texture_spec.width = Window::GetWidth();
+		color_render_texture_spec.height = Window::GetHeight();
+		color_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
+
+		mp_scene_display_texture = std::make_unique<Texture2D>("Editor scene display");
+		mp_scene_display_texture->SetSpec(color_render_texture_spec);
+
+		// Adding a resize event listener so the scene display texture scales with the window
+		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
+			if (t_event.event_type == Events::Event::EventType::WINDOW_RESIZE) {
+				auto spec = mp_scene_display_texture->GetSpec();
+				spec.width = t_event.new_window_size.x;
+				spec.height = t_event.new_window_size.y;
+				mp_scene_display_texture->SetSpec(spec);
+				mp_alt_scene_display_texture->SetSpec(spec);
+			}
+		};
+
+		Events::EventManager::RegisterListener(m_window_event_listener);
 
 		Texture2DSpec picking_spec;
 		picking_spec.format = GL_RG_INTEGER;
@@ -61,27 +87,42 @@ namespace ORNG {
 
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 
-
-		Texture2DSpec color_render_texture_spec;
-		color_render_texture_spec.format = GL_RGB;
-		color_render_texture_spec.internal_format = GL_RGB16F;
-		color_render_texture_spec.storage_type = GL_FLOAT;
-		color_render_texture_spec.width = Window::GetWidth();
-		color_render_texture_spec.height = Window::GetHeight();
-
-
 		mp_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
 		mp_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
-		mp_editor_pass_fb->AddShared2DTexture("shared_render_texture", Renderer::GetFramebufferLibrary().GetFramebuffer("post_processing").GetTexture<Texture2D>("shared_render_texture"), GL_COLOR_ATTACHMENT0);
+		mp_editor_pass_fb->AddShared2DTexture("Editor scene display", *mp_scene_display_texture, GL_COLOR_ATTACHMENT0);
 
 		m_active_scene->LoadScene("scene.yml");
+		mp_alt_scene_display_texture = std::make_unique<Texture2D>("Alt");
+		mp_alt_scene_display_texture->SetSpec(color_render_texture_spec);
+		// Setup preview scene used for viewing materials on meshes
+		mp_preview_scene = std::make_unique<Scene>();
+		mp_preview_scene->LoadScene("");
+		auto* p_sphere = mp_preview_scene->CreateMeshAsset("./res/meshes/sphere.fbx");
+		p_sphere->LoadMeshData();
+		mp_preview_scene->LoadMeshAssetIntoGPU(p_sphere);
+		auto& cube_entity = mp_preview_scene->CreateEntity("Editor preview cube");
+		auto& cam_entity = mp_preview_scene->CreateEntity("Editor preview cam");
+		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
+		auto* p_mesh = cube_entity.AddComponent<MeshComponent>(p_sphere);
+		cube_entity.GetComponent<TransformComponent>()->SetScale(10, 10, 10);
+		p_cam->GetEntity()->GetComponent<TransformComponent>()->SetPosition({ 0, 0, 10 });
+		p_cam->target = { 0, 0, 1 };
+		//p_cam->MakeActive();
+		auto* p_mat = mp_preview_scene->CreateMaterial();
+		p_mat->base_color = { 0, 0, 0 };
+		p_mat->shader_id = 2;
+		p_mesh->SetMaterialID(0, p_mat);
 
+		auto& cube_entity_2 = m_active_scene->CreateEntity("Editor preview cube");
+		cube_entity_2.GetComponent<TransformComponent>()->SetScale(10, 10, 10);
+		auto* p_mesh_2 = cube_entity_2.AddComponent<MeshComponent>(p_sphere);
+		p_mesh_2->SetMaterialID(0, p_mat);
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
-		mp_editor_camera->AddComponent<TransformComponent>();
+		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
 		mp_editor_camera->AddComponent<EditorCamera>();
+		mp_editor_camera->AddComponent<CharacterControllerComponent>();
 		//mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
 
-		ORNG_CORE_ERROR(mp_editor_camera->GetUUID());
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
 
@@ -97,7 +138,6 @@ namespace ORNG {
 
 		ImFontConfig config;
 		config.MergeMode = true;
-		//io.FontDefault = io.Fonts->AddFontFromFileTTF("./res/fonts/PlatNomor-WyVnn.ttf", 18.0f);
 		static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-regular-400.ttf", 18.0f, &config, icon_ranges);
 		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
@@ -126,21 +166,36 @@ namespace ORNG {
 
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
+		if (Window::IsKeyDown('K'))
+			mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
+
+		float ts = FrameTiming::GetTimeStep();
+
 		if (!ImGui::GetIO().WantTextInput && !(ImGui::GetIO().WantCaptureMouse && Window::GetScrollStatus().active)) {
 			mp_editor_camera->GetComponent<EditorCamera>()->Update();
 		}
 
+		m_active_scene->Update(ts);
+		mp_preview_scene->Update(ts);
 
-		if (Window::IsKeyDown('K'))
-			mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
 
-		m_active_scene->Update(FrameTiming::GetTimeStep());
-
-		static double cooldown = 0;
-		cooldown -= glm::min(cooldown, FrameTiming::GetTimeStep());
+		static float cooldown = 0;
+		cooldown -= glm::min(cooldown, ts);
 		if (cooldown > 10)
 			return;
+		if (Window::IsKeyDown('J'))
+			CreateMaterialPreview(m_active_scene->m_materials[0]);
 
+		// Keybind to focus on selected entities
+		if (Window::IsKeyDown('F') && !m_selected_entity_ids.empty()) {
+			glm::vec3 avg_pos = { 0, 0, 0 };
+			int num_iters = 0;
+			for (auto id : m_selected_entity_ids) {
+				num_iters++;
+				avg_pos += m_active_scene->GetEntity(id)->GetComponent<TransformComponent>()->m_pos;
+			}
+			mp_editor_camera->GetComponent<EditorCamera>()->target = glm::normalize(avg_pos / (float)num_iters - mp_editor_camera->GetComponent<TransformComponent>()->m_pos);
+		}
 
 
 		if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
@@ -160,10 +215,15 @@ namespace ORNG {
 
 	}
 
+	Texture2D EditorLayer::CreateMaterialPreview(Material* p_material) {
+		Scene temp_scene;
+		ORNG_CORE_TRACE("DSDFDF");
+		temp_scene.LoadScene("");
+		return Texture2D("new");
+	}
 
 	void EditorLayer::RenderProfilingTimers() {
 		static bool display_profiling_timers = ProfilingTimers::AreTimersEnabled();
-
 
 		if (ImGui::Checkbox("Timers", &display_profiling_timers)) {
 			ProfilingTimers::SetTimersEnabled(display_profiling_timers);
@@ -212,7 +272,7 @@ namespace ORNG {
 			ImGui::SetNextWindowBgAlpha(0.25f);
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 			ImGui::Begin("##dragging", nullptr, ImGuiWindowFlags_::ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
-			ImGui::Image(ImTextureID(mp_dragged_material->base_color_texture->GetTextureHandle()), ImVec2(50, 50));
+			ImGui::Image(ImTextureID(mp_dragged_material->base_color_texture ? mp_dragged_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle()), ImVec2(50, 50));
 			ImGui::End();
 			ImGui::PopStyleVar();
 		}
@@ -229,6 +289,38 @@ namespace ORNG {
 
 		return &new_entity;
 	}
+
+
+
+	void EditorLayer::RenderDisplayWindow() {
+		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) && !ImGui::GetIO().WantCaptureMouse) {
+			DoPickingPass();
+		}
+		GL_StateManager::DefaultClearBits();
+
+		SceneRenderer::SceneRenderingSettings settings;
+		SceneRenderer::SetActiveScene(&*m_active_scene);
+		settings.p_output_tex = &*mp_scene_display_texture;
+		settings.p_cam_override = static_cast<CameraComponent*>(&*mp_editor_camera->GetComponent<EditorCamera>());
+		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+
+
+		mp_editor_pass_fb->Bind();
+		DoSelectedEntityHighlightPass();
+		RenderGrid();
+
+		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		mp_quad_shader->ActivateProgram();
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, true);
+
+		// Render scene texture to editor display window (currently just fullscreen quad)
+		glDisable(GL_DEPTH_TEST);
+		Renderer::DrawQuad();
+		glEnable(GL_DEPTH_TEST);
+
+	}
+
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
@@ -274,32 +366,6 @@ namespace ORNG {
 	}
 
 
-
-	void EditorLayer::RenderDisplayWindow() {
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) && !ImGui::GetIO().WantCaptureMouse) {
-			DoPickingPass();
-		}
-		GL_StateManager::DefaultClearBits();
-
-		SceneRenderer::SceneRenderingSettings settings;
-		settings.p_cam_override = static_cast<CameraComponent*>(&*mp_editor_camera->GetComponent<EditorCamera>());
-		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
-
-		mp_editor_pass_fb->Bind();
-		DoSelectedEntityHighlightPass();
-		RenderGrid();
-
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		mp_quad_shader->ActivateProgram();
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, output.final_color_texture_handle, GL_StateManager::TextureUnits::COLOUR);
-
-		// Render scene texture to editor display window (currently just fullscreen quad)
-		glDisable(GL_DEPTH_TEST);
-		Renderer::DrawQuad();
-		glEnable(GL_DEPTH_TEST);
-
-	}
 
 
 	void EditorLayer::RenderEditorWindow() {
@@ -677,13 +743,13 @@ namespace ORNG {
 			ImGui::InputText("##name input", &mp_selected_material->name);
 			ImGui::Spacing();
 
-			RenderMaterialTexture("Base", mp_selected_material->base_color_texture, false); // Always needs a base-colour texture
-			RenderMaterialTexture("Normal", mp_selected_material->normal_map_texture, true);
-			RenderMaterialTexture("Roughness", mp_selected_material->roughness_texture, true);
-			RenderMaterialTexture("Metallic", mp_selected_material->metallic_texture, true);
-			RenderMaterialTexture("AO", mp_selected_material->ao_texture, true);
-			RenderMaterialTexture("Displacement", mp_selected_material->displacement_texture, true);
-			RenderMaterialTexture("Emissive", mp_selected_material->emissive_texture, true);
+			RenderMaterialTexture("Base", mp_selected_material->base_color_texture);
+			RenderMaterialTexture("Normal", mp_selected_material->normal_map_texture);
+			RenderMaterialTexture("Roughness", mp_selected_material->roughness_texture);
+			RenderMaterialTexture("Metallic", mp_selected_material->metallic_texture);
+			RenderMaterialTexture("AO", mp_selected_material->ao_texture);
+			RenderMaterialTexture("Displacement", mp_selected_material->displacement_texture);
+			RenderMaterialTexture("Emissive", mp_selected_material->emissive_texture);
 
 			ImGui::Text("Colors");
 			ImGui::Spacing();
@@ -1205,7 +1271,7 @@ namespace ORNG {
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1, 1, 1, 1));
 		}
 
-		if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture->GetTextureHandle()), ImVec2(100, 100))) {
+		if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle()), ImVec2(100, 100))) {
 			mp_selected_material = m_active_scene->GetMaterial(p_material->uuid());
 		};
 
@@ -1549,7 +1615,7 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex, bool deletable) {
+	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
 		ImGui::PushID(p_tex);
 		if (p_tex) {
 			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
@@ -1567,7 +1633,7 @@ namespace ORNG {
 			if (mp_dragged_texture)
 				p_tex = mp_dragged_texture;
 
-			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2) && deletable)
+			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2))
 				p_tex = nullptr;
 		}
 

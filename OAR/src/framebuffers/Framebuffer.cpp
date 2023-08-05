@@ -114,51 +114,6 @@ namespace ORNG {
 	}
 
 
-	const TextureCubemap& Framebuffer::AddCubemapTexture(const std::string& name, const TextureCubemapSpec& spec) {
-		if (m_textures.contains(name)) {
-			ORNG_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use");
-			BREAKPOINT;
-		}
-
-
-		TextureCubemap* tex = new TextureCubemap(name.c_str());
-
-		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
-			ORNG_CORE_ERROR("Failed adding cubemap texture to framebuffer '{0}', invalid spec", m_name);
-			BREAKPOINT;
-
-		}
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, tex->GetTextureHandle(), GL_TEXTURE0, true);
-		tex->SetSpec(spec);
-		m_textures[name] = Framebuffer::FramebufferTexture{ static_cast<TextureBase*>(tex), false };
-
-
-		return *tex;
-	}
-
-	const Texture2DArray& Framebuffer::Add2DTextureArray(const std::string& name, const Texture2DArraySpec& spec)
-	{
-
-		if (m_textures.contains(name)) {
-			ORNG_CORE_ERROR("Framebuffer texture creation failed, name '{0}' already in use");
-			BREAKPOINT;
-		}
-
-		Texture2DArray* tex = new Texture2DArray(name.c_str());
-
-		if (!tex->ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec), true)) {
-			ORNG_CORE_ERROR("Failed adding 2D texture array to framebuffer '{0}', invalid spec", m_name);
-			BREAKPOINT;
-
-		}
-		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, tex->GetTextureHandle(), GL_TEXTURE0, true);
-		tex->SetSpec(spec);
-		m_textures[name] = Framebuffer::FramebufferTexture{ static_cast<TextureBase*>(tex), false };
-
-
-		return *tex;
-	};
-
 	void Framebuffer::EnableReadBuffer(unsigned int buffer) {
 		glReadBuffer(buffer);
 	}

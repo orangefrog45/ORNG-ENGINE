@@ -8,6 +8,7 @@ namespace physx {
 	class PxShape;
 	class PxMaterial;
 	class PxScene;
+	class PxController;
 }
 
 namespace ORNG {
@@ -18,7 +19,7 @@ namespace ORNG {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		friend class SceneSerializer;
-		PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
 		enum RigidBodyType {
 			STATIC = 0,
 			DYNAMIC = 1
@@ -44,6 +45,15 @@ namespace ORNG {
 
 		RigidBodyType rigid_body_type = STATIC;
 		GeometryType geometry_type = BOX;
+	};
+
+	class CharacterControllerComponent : public Component {
+	public:
+		friend class PhysicsSystem;
+		explicit CharacterControllerComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		void Move(glm::vec3 disp, float minDist, float elapsedTime);
+	private:
+		physx::PxController* mp_controller = nullptr;
 	};
 
 }

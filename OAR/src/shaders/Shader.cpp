@@ -42,7 +42,7 @@ namespace ORNG {
 		std::string shader_code_copy = shader_code;
 
 		for (auto& define : defines) { // insert definitions 
-			shader_code_copy.insert(shader_code_copy.find_first_of("\n") + 1, "\n" "#define " + define + "\n");
+			shader_code_copy.insert(shader_code_copy.find("core") + 4, "\n" "#define " + define + "\n");
 		}
 
 		CompileShader(shader_type, shader_code_copy, shader_handle);

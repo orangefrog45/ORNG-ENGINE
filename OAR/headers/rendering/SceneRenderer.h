@@ -22,6 +22,10 @@ namespace ORNG {
 		struct SceneRenderingSettings {
 			bool display_depth_map = false;
 			CameraComponent* p_cam_override = nullptr;
+
+			// Output tex has to have format RGBA16F
+			Texture2D* p_output_tex = nullptr;
+			Texture2D* p_input_tex = nullptr;
 		};
 
 		struct SceneRenderingOutput {
@@ -56,24 +60,27 @@ namespace ORNG {
 
 		void I_Init();
 		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
-		void IPrepRenderPasses(CameraComponent* p_cam);
-		void IDoGBufferPass(CameraComponent* p_cam);
-		void IDoDepthPass(CameraComponent* p_cam);
-		void IDoFogPass();
-		void IDoLightingPass();
-		void IDoPostProcessingPass(CameraComponent* p_cam);
-		void IDrawTerrain(CameraComponent* p_cam);
+		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
+		void DoGBufferPass(CameraComponent* p_cam);
+		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
+		void DoFogPass();
+		void DoLightingPass(Texture2D* output_tex);
+		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
+		void DrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
 		void DoBloomPass();
 		void DrawAllMeshes() const;
+		void DoPortalPass(Texture2D* p_input_tex, Texture2D* p_output_tex);
 
-		void SetGBufferMaterial(const Material* p_mat);
+		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);
 
 
 		std::vector<glm::mat4> m_light_space_matrices = { glm::mat4(1), glm::mat4(1), glm::mat4(1) };
 
 
-		Shader* m_gbuffer_shader = nullptr;
+		Shader* mp_gbuffer_shader_terrain = nullptr;
+		Shader* mp_gbuffer_shader_skybox = nullptr;
+		Shader* mp_gbuffer_shader_mesh = nullptr;
 		Shader* m_post_process_shader = nullptr;
 		Shader* mp_orth_depth_shader = nullptr; //dir light
 		Shader* mp_persp_depth_shader = nullptr; //spotlights
@@ -84,12 +91,10 @@ namespace ORNG {
 		Shader* mp_bloom_downsample_shader = nullptr;
 		Shader* mp_bloom_upsample_shader = nullptr;
 		Shader* mp_bloom_threshold_shader = nullptr;
+		Shader* mp_portal_shader = nullptr;
 
 		Framebuffer* m_gbuffer_fb = nullptr;
 		Framebuffer* m_depth_fb = nullptr;
-		Framebuffer* m_lighting_fb = nullptr;
-		Framebuffer* m_post_processing_fb = nullptr;
-
 		//none of the objects the pointers below reference managed by scene renderer, just inputs
 		Scene* mp_scene = nullptr;
 		ShaderLibrary* mp_shader_library = nullptr;
@@ -100,6 +105,7 @@ namespace ORNG {
 		Texture2D m_fog_blur_tex_1{ "SR fog blur 1" };
 		Texture2D m_fog_blur_tex_2{ "SR fog blur 2 tex" };
 		Texture2D m_bloom_tex{ "SR fog blur 1" };
+		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
 
 
 		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };

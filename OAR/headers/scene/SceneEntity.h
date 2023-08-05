@@ -9,8 +9,8 @@ namespace ORNG {
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle) {};
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene) {};
+		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle), m_scene_uuid(scene->uuid()) {};
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene->uuid()) {};
 
 		~SceneEntity() {
 			SetParent(nullptr);
@@ -34,11 +34,7 @@ namespace ORNG {
 		// Returns ptr to component or nullptr if no component was found
 		template<std::derived_from<Component> T>
 		T* GetComponent() {
-			if (!HasComponent<T>()) {
-				return nullptr;
-			}
-			T* comp = &mp_scene->m_registry.get<T>(m_entt_handle);
-			return comp;
+			return HasComponent<T>() ? &mp_scene->m_registry.get<T>(m_entt_handle) : nullptr;
 		}
 
 		template<typename T>
@@ -110,9 +106,9 @@ namespace ORNG {
 			SetParent(nullptr);
 		}
 
-		uint64_t GetUUID() const { return (uint64_t)m_uuid; };
-
-		uint32_t GetEnttHandle() const { return (uint32_t)m_entt_handle; };
+		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
+		uint64_t GetSceneUUID() const { return m_scene_uuid; };
+		uint32_t GetEnttHandle() const { return static_cast<uint32_t>(m_entt_handle); };
 
 		std::string name = "Entity";
 	private:
@@ -121,6 +117,7 @@ namespace ORNG {
 		std::vector<SceneEntity*> m_children;
 		SceneEntity* mp_parent = nullptr;
 		Scene* mp_scene = nullptr;
+		uint64_t m_scene_uuid; // Stored seperately for faster access
 	};
 
 }

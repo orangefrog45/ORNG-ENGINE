@@ -1,6 +1,5 @@
 #pragma once
 #include "PxPhysicsAPI.h"
-#include "extensions/PxExtensionsAPI.h"
 
 
 #include "util/Log.h"

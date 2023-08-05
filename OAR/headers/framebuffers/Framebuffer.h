@@ -18,8 +18,6 @@ namespace ORNG {
 		const Texture2D& Add2DTexture(const std::string& name, unsigned int attachment_point, const Texture2DSpec& spec);
 		// Binds an existing texture to the framebuffer, texture will not be deleted upon framebuffer deletion
 		void AddShared2DTexture(const std::string& name, Texture2D& tex, GLenum attachment_point);
-		const Texture2DArray& Add2DTextureArray(const std::string& name, const Texture2DArraySpec& spec);
-		const TextureCubemap& AddCubemapTexture(const std::string& name, const TextureCubemapSpec& spec);
 
 
 		void AddRenderbuffer(unsigned int width, unsigned int height);

@@ -75,7 +75,7 @@ namespace ORNG {
 			static const int DIR_SHADOW_MAP = GL_TEXTURE3;
 			static const int SPOT_SHADOW_MAP = GL_TEXTURE4;
 			static const int POINT_SHADOW_MAP = GL_TEXTURE5;
-			static const int WORLD_POSITIONS = GL_TEXTURE6;
+			static const int VIEW_DEPTH = GL_TEXTURE6;
 			static const int NORMAL_MAP = GL_TEXTURE7;
 			static const int DIFFUSE_ARRAY = GL_TEXTURE8;
 			static const int DISPLACEMENT = GL_TEXTURE9;
@@ -104,7 +104,7 @@ namespace ORNG {
 			static const int DIR_SHADOW_MAP = 3;
 			static const int SPOT_SHADOW_MAP = 4;
 			static const int POINT_SHADOW_MAP = 5;
-			static const int WORLD_POSITIONS = 6;
+			static const int VIEW_DEPTH = 6;
 			static const int NORMAL_MAP = 7;
 			static const int DIFFUSE_ARRAY = 8;
 			static const int DISPLACEMENT = 9;

@@ -39,43 +39,43 @@ namespace ORNG {
 			SetScale(scale / (abs_scale / m_scale));
 		}
 
-		void SetAbsolutePosition(glm::vec3 pos) {
+		inline void SetAbsolutePosition(glm::vec3 pos) {
 			glm::vec3 absolute_pos = GetAbsoluteTransforms()[0];
 
 			SetPosition(pos - (absolute_pos - m_pos));
 		}
 
-		void SetAbsoluteOrientation(glm::vec3 orientation) {
+		inline void SetAbsoluteOrientation(glm::vec3 orientation) {
 			glm::vec3 absolute_orientation = GetAbsoluteTransforms()[2];
 
 			SetOrientation(orientation - (absolute_orientation - m_orientation));
 		}
 
-		void SetOrientation(float x, float y, float z) {
+		inline void SetOrientation(float x, float y, float z) {
 			glm::vec3 orientation{x, y, z};
 			SetOrientation(orientation);
 		}
-		void SetPosition(float x, float y, float z) {
+		inline void SetPosition(float x, float y, float z) {
 			glm::vec3 pos{x, y, z};
 			SetPosition(pos);
 		}
 
-		void SetPosition(const glm::vec3 pos) {
+		inline void SetPosition(const glm::vec3 pos) {
 			m_pos = pos;
 			RebuildMatrix(UpdateType::TRANSLATION);
 		};
 
-		void SetScale(const glm::vec3 scale) {
+		inline void SetScale(const glm::vec3 scale) {
 			m_scale = scale;
 			RebuildMatrix(UpdateType::SCALE);
 		};
 
-		void SetOrientation(const glm::vec3 rot) {
+		inline void SetOrientation(const glm::vec3 rot) {
 			m_orientation = rot;
 			RebuildMatrix(UpdateType::ORIENTATION);
 		};
 
-		void SetAbsoluteMode(bool mode) {
+		inline void SetAbsoluteMode(bool mode) {
 			m_is_absolute = mode;
 			RebuildMatrix(UpdateType::ALL);
 		}

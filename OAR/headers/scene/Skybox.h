@@ -15,6 +15,9 @@ namespace ORNG {
 		void LoadEnvironmentMap(const std::string& filepath);
 		const TextureCubemap& GetSkyboxTexture() const;
 		const TextureCubemap& GetIrradianceTexture() const;
+		const TextureCubemap& GetSpecularPrefilter() {
+			return m_specular_prefilter_map;
+		}
 	private:
 		std::string m_hdr_tex_filepath = "";
 		unsigned int m_resolution = 4096;

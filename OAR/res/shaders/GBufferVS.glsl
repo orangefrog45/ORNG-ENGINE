@@ -1,7 +1,6 @@
-R""(
-	#version 430 core
+R""(#version 430 core
 
-	in layout(location = 0) vec3 position;
+in layout(location = 0) vec3 position;
 in layout(location = 1) vec2 tex_coord;
 in layout(location = 2) vec3 vertex_normal;
 in layout(location = 3) vec3 in_tangent;
@@ -14,6 +13,8 @@ layout(std140, binding = 0) uniform Matrices{
 	mat4 projection; //base=16, aligned=0-64
 	mat4 view; //base=16, aligned=64-128
 	mat4 proj_view;
+	mat4 inv_projection;
+	mat4 inv_view;
 } PVMatrices;
 
 layout(std140, binding = 0) buffer transforms {
@@ -24,6 +25,8 @@ layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
 	float time_elapsed;
+	float render_resolution_x;
+	float render_resolution_y;
 } ubo_common;
 
 
@@ -36,9 +39,6 @@ out mat4 vs_transform;
 out vec3 vs_original_normal;
 out vec3 vs_view_dir_tangent_space;
 
-uniform bool u_terrain_mode;
-uniform bool u_skybox_mode;
-uniform uint u_material_id;
 
 
 vec2 fade(vec2 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
@@ -107,8 +107,7 @@ void main() {
 
 	vs_tangent = in_tangent;
 	vs_original_normal = vertex_normal;
-
-	if (u_terrain_mode) {
+#ifdef TERRAIN_MODE
 
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_normal = vertex_normal;
@@ -118,18 +117,14 @@ void main() {
 		mat3 tbn = CalculateTbnMatrix();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
 
-	}
-	else if (u_skybox_mode)
-	{
+#elif defined SKYBOX_MODE
 		vec4 view_pos = vec4(mat3(PVMatrices.view) * position, 1.0);
 		vec4 proj_pos = PVMatrices.projection * view_pos;
 		vs_tex_coord = position;
 		vs_position = vec4(position, 1.f);
 
 		gl_Position = proj_pos.xyww;
-	}
-	else {
-
+#else
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_transform = transform_ssbo.transforms[gl_InstanceID];
 		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
@@ -137,11 +132,7 @@ void main() {
 
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
-
-
 		gl_Position = PVMatrices.proj_view * vs_position;
-	}
-
-
+#endif
 }
 )""

@@ -259,16 +259,16 @@ namespace ORNG {
 		#include "../res/shaders/HDR_ToCubemapFS.glsl"
 		};
 
-		inline static const char* LightingFS = {
-		#include "../res/shaders/LightingFS.glsl"
+		inline static const char* LightingCS = {
+		#include "../res/shaders/LightingCS.glsl"
 		};
 
-		inline static const char* LightingVS = {
-		#include "../res/shaders/LightingVS.glsl"
+		inline static const char* PostProcessCS = {
+		#include "../res/shaders/PostProcessCS.glsl"
 		};
 
-		inline static const char* PostProcessFS = {
-		#include "../res/shaders/PostProcessFS.glsl"
+		inline static const char* PortalCS = {
+		#include "../res/shaders/PortalCS.glsl"
 		};
 
 		inline static const char* QuadFS = {
@@ -291,17 +291,11 @@ namespace ORNG {
 		#include "../res/shaders/SkyboxDiffusePrefilterFS.glsl"
 		};
 
-		inline static const char* SkyboxFS = {
-		#include "../res/shaders/SkyboxFS.glsl"
-		};
 
 		inline static const char* SkyboxSpecularPrefilterFS = {
 		#include "../res/shaders/SkyboxSpecularPrefilterFS.glsl"
 		};
 
-		inline static const char* SkyboxVS = {
-		#include "../res/shaders/SkyboxVS.glsl"
-		};
 
 		inline static const char* TransformVS = {
 		#include "../res/shaders/TransformVS.glsl"

@@ -116,6 +116,7 @@ namespace ORNG {
 		m_mesh_component_manager.OnLoad();
 		m_spotlight_component_manager.OnLoad();
 		m_pointlight_component_manager.OnLoad();
+		m_camera_system.OnLoad();
 
 		SceneSerializer::DeserializeScene(*this, filepath);
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());

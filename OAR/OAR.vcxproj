@@ -112,7 +112,7 @@
     <ClCompile>
       <WarningLevel>Level2</WarningLevel>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;PX_PHYSX_CHARACTER_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\physx\physx\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern\yaml\include;$(SolutionDir)OAR\extern\plog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -120,6 +120,7 @@
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>false</TreatWarningAsError>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,7 +129,7 @@
       <AdditionalDependencies>glfw/build/src/Debug/glfw3.lib;glew-cmake/lib/Debug/x64/glew32sd.lib;assimp/build/lib/Debug/assimp-vc143-mtd.lib;assimp/build/contrib/zlib/Debug/zlibstaticd.lib;yaml-cppd.lib;opengl32.lib;kernel32.lib;%(AdditionalDependencies);user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>glfw/build/src/Debug/glfw3.lib;glew-cmake/lib/Debug/x64/glew32sd.lib;assimp/build/lib/Debug/assimp-vc143-mtd.lib;assimp/build/contrib/zlib/Debug/zlibstaticd.lib;yaml-cppd.lib;opengl32.lib;kernel32.lib;%(AdditionalDependencies);user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw/build/src/Debug/glfw3.lib;glew-cmake/lib/Debug/x64/glew32sd.lib;assimp/build/lib/Debug/assimp-vc143-mtd.lib;assimp/build/contrib/zlib/Debug/zlibstaticd.lib;yaml-cppd.lib;opengl32.lib;kernel32.lib;%(AdditionalDependencies);user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXCharacterKinematic_static_64.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\debug;$(ProjectDir)extern\yaml\build\Debug</AdditionalLibraryDirectories>
@@ -140,7 +141,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;YAML_CPP_STATIC_DEFINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;PX_PHYSX_CHARACTER_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)OAR\extern\spdlog\include\;$(SolutionDir)OAR\extern\assimp\include;$(SolutionDir)OAR\extern\assimp\build\include;$(SolutionDir)OAR\extern\glfw\include;$(SolutionDir)OAR\extern\glew-cmake\include;$(SolutionDir)OAR\extern\physx\physx\include;$(SolutionDir)OAR\extern;$(SolutionDir)OAR\extern\imgui;$(SolutionDir)OAR\headers;$(SolutionDir)OAR\extern\fastnoise2\include;$(SolutionDir)OAR\extern\yaml\include;$(SolutionDir)OAR\extern\plog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -149,6 +150,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +161,7 @@
       <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\checked;$(ProjectDir)extern\yaml\build\Release</AdditionalLibraryDirectories>
     </Link>
     <Lib>
-      <AdditionalDependencies>$(CoreLibraryDependencies);$(ProjectDir)extern/glfw/build/src/Release/glfw3.lib;$(ProjectDir)extern/assimp/build/lib/Release/assimp-vc143-mt.lib;$(ProjectDir)extern/glew-cmake/lib/Release/x64/glew32s.lib;$(ProjectDir)extern/assimp/build/contrib/zlib/Release/zlibstatic.lib;yaml-cpp.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;opengl32.lib;%(AdditionalDependencies);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);$(ProjectDir)extern/glfw/build/src/Release/glfw3.lib;$(ProjectDir)extern/assimp/build/lib/Release/assimp-vc143-mt.lib;$(ProjectDir)extern/glew-cmake/lib/Release/x64/glew32s.lib;$(ProjectDir)extern/assimp/build/contrib/zlib/Release/zlibstatic.lib;yaml-cpp.lib;PhysXCommon_64.lib;PhysXFoundation_64.lib;PhysX_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXCharacterKinematic_static_64.lib;opengl32.lib;%(AdditionalDependencies);kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(ProjectDir)extern;$(ProjectDir)extern\physx\physx\bin\win.x86_64.vc143.mt\checked;$(ProjectDir)extern\yaml\build\Release</AdditionalLibraryDirectories>
@@ -379,17 +381,16 @@
     <None Include="res\shaders\GBufferFS.glsl" />
     <None Include="res\shaders\GBufferVS.glsl" />
     <None Include="res\shaders\HDR_ToCubemapFS.glsl" />
-    <None Include="res\shaders\LightingFS.glsl" />
-    <None Include="res\shaders\LightingVS.glsl" />
-    <None Include="res\shaders\PostProcessFS.glsl" />
+    <None Include="res\shaders\LightingCS.glsl" />
+    <None Include="res\shaders\PortalCS.glsl" />
+    <None Include="res\shaders\PostProcessCS.glsl" />
     <None Include="res\shaders\QuadFS.glsl" />
     <None Include="res\shaders\QuadVS.glsl" />
     <None Include="res\shaders\ReflectionFS.glsl" />
     <None Include="res\shaders\ReflectionVS.glsl" />
+    <None Include="res\shaders\shaders\PortalCS.glsl" />
     <None Include="res\shaders\SkyboxDiffusePrefilterFS.glsl" />
-    <None Include="res\shaders\SkyboxFS.glsl" />
     <None Include="res\shaders\SkyboxSpecularPrefilterFS.glsl" />
-    <None Include="res\shaders\SkyboxVS.glsl" />
     <None Include="res\shaders\TransformVS.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

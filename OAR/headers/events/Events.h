@@ -2,6 +2,8 @@
 #include "core/Input.h"
 #include "components/Component.h"
 
+
+
 namespace ORNG::Events {
 	class SceneEntity;
 
@@ -24,19 +26,18 @@ namespace ORNG::Events {
 
 	struct WindowEvent : public Event {
 
-		glm::vec2 old_window_size;
-		glm::vec2 new_window_size;
+		glm::ivec2 old_window_size;
+		glm::ivec2 new_window_size;
 	};
 
 	struct MouseEvent : public Event { // Not yet implemented
 
 		Input::MouseBindings mouse_button;
-		glm::vec2 mouse_pos_new;
-		glm::vec2 mouse_pos_old;
+		glm::ivec2 mouse_pos_new;
+		glm::ivec2 mouse_pos_old;
 	};
 
 	enum class ECS_EventType {
-		INVALID_TYPE = 0,
 		COMP_ADDED,
 		COMP_UPDATED,
 		COMP_DELETED,
@@ -51,7 +52,8 @@ namespace ORNG::Events {
 
 
 	template <std::derived_from<Event> T>
-	struct EventListener {
+	class EventListener {
+	public:
 		friend class EventManager;
 		EventListener() = default;
 		EventListener(const EventListener&) = default;
@@ -64,6 +66,11 @@ namespace ORNG::Events {
 		std::function<void()> OnDestroy = nullptr;
 	};
 
+	template<std::derived_from<Component> T>
+	class ECS_EventListener : public EventListener<ECS_Event<T>> {
+	public:
+		uint64_t scene_id = 0;
+	};
 
 
 }

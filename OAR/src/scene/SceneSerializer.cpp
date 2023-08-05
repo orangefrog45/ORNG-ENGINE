@@ -367,7 +367,8 @@ namespace ORNG {
 		str_stream << stream.rdbuf();
 
 		YAML::Node data = YAML::Load(str_stream.str());
-		if (!data["Scene"])
+
+		if (!data.IsDefined() || data.IsNull() || !data["Scene"])
 			return false;
 
 		std::string scene_name = data["Scene"].as<std::string>();

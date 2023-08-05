@@ -11,7 +11,7 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		static double GetTimeStep() {
+		static float GetTimeStep() {
 			return Get().IGetTimeStep();
 		}
 
@@ -31,7 +31,7 @@ namespace ORNG {
 			current_frame_time = std::chrono::steady_clock::now();
 			current_frame_time_step = std::chrono::duration_cast<std::chrono::microseconds>(current_frame_time - last_frame_time).count() / 1000.0;
 		}
-		double IGetTimeStep() const {
+		float IGetTimeStep() const {
 			return current_frame_time_step;
 		}
 

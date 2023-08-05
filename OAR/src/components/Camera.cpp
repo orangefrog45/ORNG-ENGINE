@@ -48,10 +48,12 @@ namespace ORNG {
 	}
 
 	void CameraComponent::MakeActive() {
+		is_active = true;
 		Events::ECS_Event<CameraComponent> update_event;
 		update_event.affected_components.push_back(this);
 		update_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-		is_active = true;
+
+		Events::EventManager::DispatchEvent(update_event);
 	};
 
 	glm::mat4x4 CameraComponent::GetViewMatrix() {

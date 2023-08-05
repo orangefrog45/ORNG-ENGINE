@@ -13,7 +13,7 @@ namespace ORNG {
 
 		m_matrix_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_matrix_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, m_matrix_ubo_size, nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::PVMATRICES, m_matrix_ubo);
 
 		m_global_lighting_ubo = GL_StateManager::GenBuffer();
@@ -28,7 +28,7 @@ namespace ORNG {
 
 	}
 
-	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target) {
+	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, unsigned int render_resolution_x, unsigned int render_resolution_y) {
 		std::array<float, m_common_ubo_size / sizeof(float)> data;
 
 		data[0] = camera_pos.x;
@@ -40,6 +40,8 @@ namespace ORNG {
 		data[6] = camera_target.z;
 		data[7] = 0.f; //padding
 		data[8] = FrameTiming::GetTotalElapsedTime();
+		data[9] = render_resolution_x;
+		data[10] = render_resolution_y;
 
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
@@ -100,6 +102,8 @@ namespace ORNG {
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), &proj[0][0]);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &view[0][0]);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, sizeof(glm::mat4), &proj_view[0][0]);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, sizeof(glm::mat4), &glm::inverse(proj)[0][0]);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 4, sizeof(glm::mat4), &glm::inverse(view)[0][0]);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 

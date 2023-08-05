@@ -4,10 +4,10 @@ R""(#version 430 core
 #define MAX_REFLECTION_LOD 4.0
 #define LIGHT_ZNEAR 0.01 // true for all light types
 
-out vec4 FragColor;
-in vec2 tex_coord;
-const unsigned int NUM_SHADOW_CASCADES = 3;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
+const unsigned int NUM_SHADOW_CASCADES = 3;
+ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
 
 struct DirectionalLight {
@@ -61,7 +61,17 @@ layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
 	float time_elapsed;
+	float render_resolution_x;
+	float render_resolution_y;
 } ubo_common;
+
+layout(std140, binding = 0) uniform Matrices{
+	mat4 projection; //base=16, aligned=0-64
+	mat4 view; //base=16, aligned=64-128
+	mat4 proj_view;
+	mat4 inv_projection;
+	mat4 inv_view;
+} PVMatrices;
 
 
 uniform mat4 u_dir_light_matrices[NUM_SHADOW_CASCADES];
@@ -69,23 +79,38 @@ uniform mat4 u_dir_light_matrices[NUM_SHADOW_CASCADES];
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
-layout(binding = 6) uniform sampler2D world_position_sampler;
+layout(binding = 6) uniform sampler2D view_depth_sampler;
 layout(binding = 7) uniform sampler2D normal_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
-layout(binding = 12) uniform usampler2D shader_material_id_sampler;
+layout(binding = 12) uniform usampler2D shader_id_sampler;
 layout(binding = 19) uniform sampler2D roughness_metallic_ao_sampler;
 layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
 layout(binding = 21) uniform samplerCube specular_prefilter_sampler;
 layout(binding = 22) uniform sampler2D brdf_lut_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
+layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 
-unsigned int shader_id = texture(shader_material_id_sampler, tex_coord).r;
-unsigned int material_id = texture(shader_material_id_sampler, tex_coord).g;
-vec3 sampled_world_pos = texture(world_position_sampler, tex_coord).xyz;
-vec3 sampled_normal = normalize(texture(normal_sampler, tex_coord).xyz);
-vec3 sampled_albedo = texture(albedo_sampler, tex_coord).xyz;
+vec3 WorldPosFromDepth(float depth) {
+    float z = depth * 2.0 - 1.0;
 
-vec3 roughness_metallic_ao = texture(roughness_metallic_ao_sampler, tex_coord).rgb;
+	vec2 normalized_tex_coords = tex_coords / vec2(imageSize(u_output_texture));
+    vec4 clipSpacePosition = vec4(normalized_tex_coords * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
+
+    // Perspective division
+    viewSpacePosition /= viewSpacePosition.w;
+
+    vec4 worldSpacePosition = PVMatrices.inv_view * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
+}
+
+unsigned int shader_id = texelFetch(shader_id_sampler, tex_coords, 0).r;
+vec3 sampled_world_pos = WorldPosFromDepth(texelFetch(view_depth_sampler, tex_coords, 0).r);
+vec3 sampled_normal = normalize(texelFetch(normal_sampler, tex_coords, 0).xyz);
+vec3 sampled_albedo = texelFetch(albedo_sampler, tex_coords, 0).xyz;
+
+vec3 roughness_metallic_ao = texelFetch(roughness_metallic_ao_sampler, tex_coords, 0).rgb;
 float roughness = roughness_metallic_ao.r;
 float metallic = roughness_metallic_ao.g;
 float ao = roughness_metallic_ao.b;
@@ -155,7 +180,7 @@ float CalcAdaptiveEpsilon(float current_depth, float light_max_distance) {
 	float num = pow(light_max_distance - current_depth * (light_max_distance - 0.01), 2.0);
 	float denom = light_max_distance * 0.01 * (light_max_distance - 0.01);
 
-	float scene_scale = 10000.0; // Estimating this just based on camera zFar
+	float scene_scale = light_max_distance; // Estimating this just based on camera zFar
 	float k = 0.00005;
 
 	return (num / denom) * scene_scale * k;
@@ -206,7 +231,7 @@ float ShadowCalculationPointlight(PointLight light, int light_index) {
 	vec3 light_to_frag = sampled_world_pos.xyz - light.pos.xyz;
 	float closest_depth = texture(pointlight_depth_sampler, vec4(light_to_frag, light_index)).r * light.max_distance; // Transform normalized depth to range 0, zFar
 	float current_depth = length(light_to_frag);
-	float bias = 0.5 * clamp(dot(sampled_normal.xyz, normalize(-light_to_frag)), 0.0, 1.0);
+	float bias = 0.05;
 	float shadow = int((current_depth - bias) > closest_depth);
 	return shadow;
 }
@@ -411,12 +436,10 @@ vec3 CalcDirectionalLight(vec3 v, vec3 f0) {
 void main()
 {
 	if (shader_id != 1) { // 1 = default lighting shader id
-		FragColor = vec4(sampled_albedo, 1);
+		imageStore(u_output_texture, tex_coords, vec4(sampled_albedo.rgb, 1.0));
 		return;
 	}
 
-
-	vec2 adj_tex_coord = tex_coord; // USE PARALLAX ONCE FIXED
 
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
 	vec3 v = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
@@ -456,5 +479,5 @@ void main()
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
-	FragColor = vec4(light_color, 1);
+	imageStore(u_output_texture, tex_coords, vec4(light_color, 1.0));
 };)""

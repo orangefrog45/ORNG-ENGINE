@@ -1,6 +1,8 @@
 #include "pch/pch.h"
 #include "components/PhysicsComponent.h"
 #include "events/EventManager.h"
+#include "physx/physx/include/characterkinematic/PxCapsuleController.h"
+#include "physx/physx/include/PxRigidDynamic.h"
 
 namespace ORNG {
 	using namespace physx;
@@ -24,5 +26,9 @@ namespace ORNG {
 		Events::EventManager::DispatchEvent(phys_event);
 	}
 
+
+	void CharacterControllerComponent::Move(glm::vec3 disp, float minDist, float elapsedTime) {
+		mp_controller->move(PxVec3(disp.x, disp.y, disp.z), minDist, elapsedTime, 0);
+	}
 
 }

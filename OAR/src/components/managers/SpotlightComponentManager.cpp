@@ -15,6 +15,19 @@ namespace ORNG {
 	void SpotlightSystem::OnLoad() {
 		m_spotlight_ssbo_handle = GL_StateManager::GenBuffer();
 		GL_StateManager::BindSSBO(m_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
+
+		Texture2DArraySpec spotlight_depth_spec;
+		spotlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
+		spotlight_depth_spec.width = 2048;
+		spotlight_depth_spec.height = 2048;
+		spotlight_depth_spec.layer_count = 8;
+		spotlight_depth_spec.format = GL_DEPTH_COMPONENT;
+		spotlight_depth_spec.storage_type = GL_FLOAT;
+		spotlight_depth_spec.min_filter = GL_NEAREST;
+		spotlight_depth_spec.mag_filter = GL_NEAREST;
+		spotlight_depth_spec.wrap_params = GL_CLAMP_TO_EDGE;
+
+		m_spotlight_depth_tex.SetSpec(spotlight_depth_spec);
 	}
 
 	static glm::mat4 CalculateLightSpaceTransform(SpotLightComponent& light) {
