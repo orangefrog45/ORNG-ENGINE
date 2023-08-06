@@ -1,38 +1,38 @@
-[submodule "UNREAL 8.0/extern/spdlog"]
-	path = UNREAL 8.0/extern/spdlog
+[submodule "ORNG Core/extern/spdlog"]
+	path = ORNG Core/extern/spdlog
 	url = https://github.com/gabime/spdlog
-[submodule "OAR/extern/assimp"]
-	path = OAR/extern/assimp
+[submodule "ORNG CORE/extern/assimp"]
+	path = ORNG CORE/extern/assimp
 	url = https://github.com/assimp/assimp.git
-[submodule "OAR/extern/glfw"]
-	path = OAR/extern/glfw
+[submodule "ORNG CORE/extern/glfw"]
+	path = ORNG CORE/extern/glfw
 	url = https://github.com/glfw/glfw.git
-[submodule "OAR/extern/glew-cmake"]
-	path = OAR/extern/glew-cmake
+[submodule "ORNG CORE/extern/glew-cmake"]
+	path = ORNG CORE/extern/glew-cmake
 	url = https://github.com/Perlmint/glew-cmake.git
 
-[submodule "OAR/extern/glm"]
-	path = OAR/extern/glm
+[submodule "ORNG CORE/extern/glm"]
+	path = ORNG CORE/extern/glm
 	url = https://github.com/g-truc/glm
-[submodule "OAR/extern/fastnoise2"]
-	path = OAR/extern/fastnoise2
+[submodule "ORNG CORE/extern/fastnoise2"]
+	path = ORNG CORE/extern/fastnoise2
 	url = https://github.com/Auburn/FastNoise2.git
-[submodule "OAR/extern/stb"]
-	path = OAR/extern/stb
+[submodule "ORNG CORE/extern/stb"]
+	path = ORNG CORE/extern/stb
 	url = https://github.com/nothings/stb
-[submodule "OAR/extern/physx"]
-	path = OAR/extern/physx
+[submodule "ORNG CORE/extern/physx"]
+	path = ORNG CORE/extern/physx
 	url = https://github.com/NVIDIA-Omniverse/PhysX
-[submodule "OAR/extern/yaml"]
-	path = OAR/extern/yaml
+[submodule "ORNG CORE/extern/yaml"]
+	path = ORNG CORE/extern/yaml
 	url = https://github.com/jbeder/yaml-cpp
-[submodule "OAR/extern/imgui"]
-	path = OAR/extern/imgui
+[submodule "ORNG CORE/extern/imgui"]
+	path = ORNG CORE/extern/imgui
 	url = https://github.com/ocornut/imgui
 	branch = docking
 [submodule "ORNG Editor/extern/imguizmo"]
 	path = ORNG Editor/extern/imguizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
-[submodule "OAR/extern/spdlog"]
-	path = OAR/extern/spdlog
+[submodule "ORNG CORE/extern/spdlog"]
+	path = ORNG CORE/extern/spdlog
 	url = https://github.com/gabime/spdlog
