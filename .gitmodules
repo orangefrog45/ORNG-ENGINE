@@ -1,5 +1,5 @@
-[submodule "ORNG Editor/extern/imguizmo"]
-    path = "ORNG Editor/extern/imguizmo"
+[submodule "ORNG-Editor/extern/imguizmo"]
+    path = "ORNG-Editor/extern/imguizmo"
     url = https://github.com/CedricGuillemet/ImGuizmo
 [submodule "ORNG-Core/extern/assimp"]
 	path = ORNG-Core/extern/assimp

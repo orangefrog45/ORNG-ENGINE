@@ -54,7 +54,7 @@ src/util/TimeStep.cpp
 src/util/UUID.cpp
 )
 
-
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
@@ -65,6 +65,10 @@ find_package(OpenGL REQUIRED)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 
+target_include_directories(imgui PUBLIC
+extern/imgui
+extern/glfw/include
+)
 
 target_include_directories(ORNG_CORE PUBLIC
 extern/spdlog/include
@@ -88,40 +92,37 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-modules)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/physx)
 
 target_include_directories(ORNG_CORE
-	PUBLIC 
-	"physx-complete/physx/physx/include/" 
-	"physx-complete/physx/pxshared/include/" 
-	"physx-complete/physx/physx/snippets/"
+PUBLIC 
+"extern/physx/physx/include/" 
+"extern/physx/pxshared/include/" 
+"extern/physx/physx/snippets/"
 )
 
 target_link_libraries(ORNG_CORE PRIVATE 
-	"PhysXExtensions"
-	"PhysX"
-	"PhysXPvdSDK"
-	"PhysXVehicle"
-	"PhysXCharacterKinematic"
-	"PhysXCooking"
-	"PhysXCommon"
-	"PhysXFoundation"
-	"PhysXTask"
-	"FastXml"
-	"LowLevel"
-	"LowLevelAABB"
-	"LowLevelDynamics"
-	"SceneQuery"
-	"SimulationController"
+"PhysXExtensions"
+"PhysX"
+"PhysXPvdSDK"
+"PhysXVehicle"
+"PhysXCharacterKinematic"
+"PhysXCooking"
+"PhysXCommon"
+"PhysXFoundation"
+"PhysXTask"
+"FastXml"
+"LowLevel"
+"LowLevelAABB"
+"LowLevelDynamics"
+"SceneQuery"
+"SimulationController"
 )
-
-
 
 target_link_libraries(ORNG_CORE PUBLIC 
 OpenGL::GL
 glfw
 libglew_static
 assimp
+imgui
 ${YAML_CPP_LIBRARIES}
-${ASSIMP_LIBRARY}
-${PHYSX_LIBRARIES}
 )
 
 target_precompile_headers(ORNG_CORE PUBLIC
