@@ -57,6 +57,8 @@ src/util/UUID.cpp
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
+
 
 
 find_package(OpenGL REQUIRED)
@@ -81,27 +83,34 @@ extern/plog/include
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-modules)
 # Add the PhysX libraries and include directories
-find_package(PhysX REQUIRED)
-include_directories(${PHYSX_INCLUDE_DIR})
-link_directories(${PHYSX_LIB_DIR})
 
 
-#### Build PhysX library ####
-# PHYSX_PATH - path to the `{cloned repository}/physx` repo directory git://github.com/NVIDIAGameWorks/PhysX.git
-set( PHYSX_ROOT_DIR $ENV{PHYSX_PATH} ) #This is needed for $ENV{PHYSX_PATH}/compiler/public/CMakeLists.txt
-set( PHYSX_INCLUDE_DIRS $ENV{PHYSX_PATH}/include/ $ENV{PHYSX_PATH}/../pxshared/include/ )
-set( PHYSX_LIBRARIES
-	PhysXExtensions
-	PhysX
-	PhysXPvdSDK
-	PhysXVehicle
-	PhysXCharacterKinematic
-	PhysXCooking
-	PhysXCommon
-	PhysXFoundation
-	# SnippetUtils
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/physx)
+
+target_include_directories(ORNG_CORE
+	PUBLIC 
+	"physx-complete/physx/physx/include/" 
+	"physx-complete/physx/pxshared/include/" 
+	"physx-complete/physx/physx/snippets/"
 )
 
+target_link_libraries(ORNG_CORE PRIVATE 
+	"PhysXExtensions"
+	"PhysX"
+	"PhysXPvdSDK"
+	"PhysXVehicle"
+	"PhysXCharacterKinematic"
+	"PhysXCooking"
+	"PhysXCommon"
+	"PhysXFoundation"
+	"PhysXTask"
+	"FastXml"
+	"LowLevel"
+	"LowLevelAABB"
+	"LowLevelDynamics"
+	"SceneQuery"
+	"SimulationController"
+)
 
 
 
@@ -109,6 +118,7 @@ target_link_libraries(ORNG_CORE PUBLIC
 OpenGL::GL
 glfw
 libglew_static
+assimp
 ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}

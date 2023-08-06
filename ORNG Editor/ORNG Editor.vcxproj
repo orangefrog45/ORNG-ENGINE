@@ -105,7 +105,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ORNG Core\extern\spdlog\include\;$(SolutionDir)ORNG Core\extern\assimp\include;$(SolutionDir)ORNG Core\extern\assimp\build\include;$(SolutionDir)ORNG Core\extern\glfw\include;$(SolutionDir)ORNG Core\extern\glew-cmake\include;$(SolutionDir)ORNG Core\extern\physx\physx\include;$(SolutionDir)ORNG Core\extern;$(SolutionDir)ORNG Core\extern\imgui;$(SolutionDir)ORNG Core\headers;$(SolutionDir)ORNG Core\extern\fastnoise2\include;$(SolutionDir)ORNG Core\extern\yaml\include;$(SolutionDir)ORNG Core\extern\plog\include;$(SolutionDir)ORNG Editor\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ORNG-Core\extern\spdlog\include\;$(SolutionDir)ORNG-Core\extern\assimp\include;$(SolutionDir)ORNG-Core\extern\assimp\build\include;$(SolutionDir)ORNG-Core\extern\glfw\include;$(SolutionDir)ORNG-Core\extern\glew-cmake\include;$(SolutionDir)ORNG-Core\extern\physx\physx\include;$(SolutionDir)ORNG-Core\extern;$(SolutionDir)ORNG-Core\extern\imgui;$(SolutionDir)ORNG-Core\headers;$(SolutionDir)ORNG-Core\extern\fastnoise2\include;$(SolutionDir)ORNG-Core\extern\yaml\include;$(SolutionDir)ORNG-Core\extern\plog\include;$(SolutionDir)ORNG Editor\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -125,7 +125,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ORNG Core\extern\spdlog\include\;$(SolutionDir)ORNG Core\extern\assimp\include;$(SolutionDir)ORNG Core\extern\assimp\build\include;$(SolutionDir)ORNG Core\extern\glfw\include;$(SolutionDir)ORNG Core\extern\glew-cmake\include;$(SolutionDir)ORNG Core\extern\physx\physx\include;$(SolutionDir)ORNG Core\extern;$(SolutionDir)ORNG Core\extern\imgui;$(SolutionDir)ORNG Core\headers;$(SolutionDir)ORNG Core\extern\fastnoise2\include;$(SolutionDir)ORNG Core\extern\yaml\include;$(SolutionDir)ORNG Core\extern\plog\include;$(SolutionDir)ORNG Editor\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ORNG-Core\extern\spdlog\include\;$(SolutionDir)ORNG-Core\extern\assimp\include;$(SolutionDir)ORNG-Core\extern\assimp\build\include;$(SolutionDir)ORNG-Core\extern\glfw\include;$(SolutionDir)ORNG-Core\extern\glew-cmake\include;$(SolutionDir)ORNG-Core\extern\physx\physx\include;$(SolutionDir)ORNG-Core\extern;$(SolutionDir)ORNG-Core\extern\imgui;$(SolutionDir)ORNG-Core\headers;$(SolutionDir)ORNG-Core\extern\fastnoise2\include;$(SolutionDir)ORNG-Core\extern\yaml\include;$(SolutionDir)ORNG-Core\extern\plog\include;$(SolutionDir)ORNG Editor\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch/pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>

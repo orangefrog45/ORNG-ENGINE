@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 project(ORNG_CORE)
 project(ORNG_EDITOR)
+set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
 
 add_subdirectory("ORNG Core")
 add_subdirectory("ORNG Editor")
