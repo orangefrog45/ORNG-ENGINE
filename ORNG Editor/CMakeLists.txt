@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.8)
 
 project(ORNG_EDITOR)
 
@@ -9,22 +9,34 @@ src/main.cpp
 src/pch.cpp
 )
 
-target_include_directories(ORNG_CORE PUBLIC
-"../ORNG Core/extern/spdlog/include"
-"../ORNG Core/extern/assimp/include"
-"../ORNG Core/extern/assimp/build/include"
-"../ORNG Core/extern/glfw/include"
-"../ORNG Core/extern/glew-cmake/include"
-"../ORNG Core/extern/physx/physx/include"
-"../ORNG Core/extern"
-"../ORNG Core/extern/imgui"
-"../ORNG Core/headers"
-"../ORNG Core/extern/fastnoise2/include"
-"../ORNG Core/extern/yaml/include"
-"../ORNG Core/extern/plog/include"
+target_include_directories(ORNG_EDITOR PUBLIC
+"../ORNG-Core/extern/spdlog/include"
+"../ORNG-Core/extern/assimp/include"
+"../ORNG-Core/extern/assimp/build/include"
+"../ORNG-Core/extern/glfw/include"
+"../ORNG-Core/extern/glew-cmake/include"
+"../ORNG-Core/extern/physx/physx/include"
+"../ORNG-Core/extern"
+"../ORNG-Core/extern/imgui"
+"../ORNG-Core/headers"
+"../ORNG-Core/extern/fastnoise2/include"
+"../ORNG-Core/extern/yaml/include"
+"../ORNG-Core/extern/plog/include"
 headers
 )
 
-target_link_libraries(ORNG_EDITOR PUBLIC ORNG_CORE)
+
+add_subdirectory(extern/imguizmo)
+target_include_directories(imguizmo PUBLIC 
+extern/imguizmo
+../ORNG-Core/extern/imgui
+)
+
+
+target_link_libraries(ORNG_EDITOR PUBLIC 
+ORNG_CORE
+imguizmo
+imgui
+)
 
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)

@@ -52,18 +52,32 @@ src/util/Log.cpp
 src/util/Timers.cpp
 src/util/TimeStep.cpp
 src/util/UUID.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx2.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx512.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_neon.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
+extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
+
+
 )
 
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
 
 
+target_include_directories(imgui PUBLIC 
+extern/imgui
+extern/glfw/include
+)
 
 find_package(OpenGL REQUIRED)
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
 
 
 target_include_directories(ORNG_CORE PUBLIC
@@ -80,9 +94,6 @@ extern/fastnoise2/include
 extern/yaml/include
 extern/plog/include
 )
-
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake-modules)
-# Add the PhysX libraries and include directories
 
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/physx)
@@ -113,12 +124,13 @@ target_link_libraries(ORNG_CORE PRIVATE
 )
 
 
-
 target_link_libraries(ORNG_CORE PUBLIC 
 OpenGL::GL
 glfw
 libglew_static
 assimp
+spdlog
+yaml-cpp
 ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}
