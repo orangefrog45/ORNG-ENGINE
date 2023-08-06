@@ -70,7 +70,6 @@ namespace ORNG {
 		void DrawSkybox();
 		void DoBloomPass();
 		void DrawAllMeshes() const;
-		void DoPortalPass(Texture2D* p_input_tex, Texture2D* p_output_tex);
 
 		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);
 
