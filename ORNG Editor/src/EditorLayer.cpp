@@ -23,6 +23,7 @@ namespace ORNG {
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
+		ORNG_CORE_ERROR(std::filesystem::current_path().string());
 		mp_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
 		mp_grid_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GridVS.glsl");
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
@@ -91,19 +92,19 @@ namespace ORNG {
 		mp_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
 		mp_editor_pass_fb->AddShared2DTexture("Editor scene display", *mp_scene_display_texture, GL_COLOR_ATTACHMENT0);
 
-		m_active_scene->LoadScene("scene.yml");
+		m_active_scene->LoadScene("");
 		mp_alt_scene_display_texture = std::make_unique<Texture2D>("Alt");
 		mp_alt_scene_display_texture->SetSpec(color_render_texture_spec);
 		// Setup preview scene used for viewing materials on meshes
 		mp_preview_scene = std::make_unique<Scene>();
 		mp_preview_scene->LoadScene("");
-		auto* p_sphere = mp_preview_scene->CreateMeshAsset("./res/meshes/sphere.fbx");
-		p_sphere->LoadMeshData();
-		mp_preview_scene->LoadMeshAssetIntoGPU(p_sphere);
+		//auto* p_sphere = mp_preview_scene->CreateMeshAsset("./res/meshes/sphere.fbx");
+		//p_sphere->LoadMeshData();
+		//mp_preview_scene->LoadMeshAssetIntoGPU(p_sphere);
 		auto& cube_entity = mp_preview_scene->CreateEntity("Editor preview cube");
 		auto& cam_entity = mp_preview_scene->CreateEntity("Editor preview cam");
 		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
-		auto* p_mesh = cube_entity.AddComponent<MeshComponent>(p_sphere);
+		//auto* p_mesh = cube_entity.AddComponent<MeshComponent>(p_sphere);
 		cube_entity.GetComponent<TransformComponent>()->SetScale(10, 10, 10);
 		p_cam->GetEntity()->GetComponent<TransformComponent>()->SetPosition({ 0, 0, 10 });
 		p_cam->target = { 0, 0, 1 };
@@ -111,12 +112,12 @@ namespace ORNG {
 		auto* p_mat = mp_preview_scene->CreateMaterial();
 		p_mat->base_color = { 0, 0, 0 };
 		p_mat->shader_id = 2;
-		p_mesh->SetMaterialID(0, p_mat);
+		//p_mesh->SetMaterialID(0, p_mat);
 
 		auto& cube_entity_2 = m_active_scene->CreateEntity("Editor preview cube");
 		cube_entity_2.GetComponent<TransformComponent>()->SetScale(10, 10, 10);
-		auto* p_mesh_2 = cube_entity_2.AddComponent<MeshComponent>(p_sphere);
-		p_mesh_2->SetMaterialID(0, p_mat);
+		//auto* p_mesh_2 = cube_entity_2.AddComponent<MeshComponent>(p_sphere);
+		//p_mesh_2->SetMaterialID(0, p_mat);
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
 		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
 		mp_editor_camera->AddComponent<EditorCamera>();

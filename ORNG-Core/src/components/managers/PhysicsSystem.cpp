@@ -121,7 +121,9 @@ namespace ORNG {
 		mp_broadphase = PxCreateBroadPhase(bpDesc);
 		mp_aabb_manager = PxCreateAABBManager(*mp_broadphase);
 
-		PxSceneDesc scene_desc{ Physics::GetToleranceScale() };
+		PxTolerancesScale scale(1.f);
+
+		PxSceneDesc scene_desc{ scale };
 		scene_desc.filterShader = PxDefaultSimulationFilterShader;
 		scene_desc.gravity = PxVec3(0, -9.81, 0);
 		scene_desc.cpuDispatcher = Physics::GetCPUDispatcher();
@@ -175,9 +177,9 @@ namespace ORNG {
 			return m_triangle_meshes[p_mesh_asset];
 
 
-
+		PxTolerancesScale scale(1.f);
 		const VAO& vao = p_mesh_asset->GetVAO();
-		PxCookingParams params(Physics::GetToleranceScale());
+		PxCookingParams params(scale);
 		//params.buildGPUData = true;
 		// disable mesh cleaning - perform mesh validation on development configurations
 		params.meshPreprocessParams |= PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;

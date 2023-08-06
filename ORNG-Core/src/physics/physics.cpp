@@ -30,11 +30,11 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-		mp_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *mp_foundation, PxCookingParams(m_tolerances_scale));
-		if (!mp_cooking) {
-			ORNG_CORE_CRITICAL("PxCreateCooking failed");
-			BREAKPOINT;
-		}
+		//mp_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *mp_foundation, PxCookingParams(m_tolerances_scale));
+		//if (!mp_cooking) {
+			//ORNG_CORE_CRITICAL("PxCreateCooking failed");
+			//BREAKPOINT;
+		//}
 
 		const PxU32 num_threads = 8;
 		mp_dispatcher = PxDefaultCpuDispatcherCreate(num_threads);

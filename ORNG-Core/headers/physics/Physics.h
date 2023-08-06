@@ -67,7 +67,7 @@ namespace ORNG {
 		physx::PxPvd* mp_pvd = nullptr;
 		physx::PxPvdTransport* mp_pvd_transport = nullptr;
 		physx::PxPhysics* mp_physics = nullptr;
-		physx::PxCooking* mp_cooking = nullptr;
+		//physx::PxCooking* mp_cooking = nullptr;
 		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
 		physx::PxCudaContextManager* mp_cuda_context_manager = nullptr;
 		float m_tolerances_scale = 1.f;

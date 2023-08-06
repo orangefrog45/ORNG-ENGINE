@@ -40,3 +40,5 @@ imgui
 )
 
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
+#Get res folder with shaders etc
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG Editor/")
