@@ -1,1 +1,0 @@
-Add this mask to "thatch_no_opacity" material
