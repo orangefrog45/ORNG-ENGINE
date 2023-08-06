@@ -1,7 +1,3 @@
-[submodule "ORNG-Core/extern/imgui"]
-	path = ORNG-Core/extern/imgui
-	url = https://github.com/ocornut/imgui
-    branch = docking
 [submodule "ORNG Editor/extern/imguizmo"]
     path = "ORNG Editor/extern/imguizmo"
     url = https://github.com/CedricGuillemet/ImGuizmo
@@ -23,3 +19,6 @@
 [submodule "ORNG-Core/extern/yaml"]
 	path = ORNG-Core/extern/yaml
 	url = https://github.com/jbeder/yaml-cpp
+[submodule "ORNG-Core/extern/imgui"]
+	path = ORNG-Core/extern/imgui
+	url = https://github.com/orangefrog45/imgui
