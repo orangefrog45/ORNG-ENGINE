@@ -24,4 +24,4 @@
 	url = https://github.com/gabime/spdlog
 [submodule "ORNG-Core/extern/physx"]
 	path = ORNG-Core/extern/physx
-	url = https://github.com/NVIDIA-Omniverse/PhysX
+	url = https://github.com/orangefrog45/PhysX/
