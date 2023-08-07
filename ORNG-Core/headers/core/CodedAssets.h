@@ -189,6 +189,8 @@ namespace ORNG {
 			spec.width = 1;
 			spec.height = 1;
 			spec.wrap_params = GL_CLAMP_TO_EDGE;
+			spec.min_filter = GL_NEAREST;
+			spec.mag_filter= GL_NEAREST;
 			m_base_tex->SetSpec(spec);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_base_tex->GetTextureHandle(), GL_TEXTURE0);
 			unsigned char white_pixel[] = { 255, 255, 255, 255 };

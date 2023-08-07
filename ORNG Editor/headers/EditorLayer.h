@@ -109,7 +109,6 @@ namespace ORNG {
 
 		// Contains the actual rendering of the scene
 		std::unique_ptr<Texture2D> mp_scene_display_texture{ nullptr };
-		std::unique_ptr<Texture2D> mp_alt_scene_display_texture{ nullptr };
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;

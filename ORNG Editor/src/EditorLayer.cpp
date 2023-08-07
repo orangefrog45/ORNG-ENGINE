@@ -23,7 +23,6 @@ namespace ORNG {
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
-		ORNG_CORE_ERROR(std::filesystem::current_path().string());
 		mp_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
 		mp_grid_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GridVS.glsl");
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
@@ -68,7 +67,6 @@ namespace ORNG {
 				spec.width = t_event.new_window_size.x;
 				spec.height = t_event.new_window_size.y;
 				mp_scene_display_texture->SetSpec(spec);
-				mp_alt_scene_display_texture->SetSpec(spec);
 			}
 		};
 
@@ -93,31 +91,7 @@ namespace ORNG {
 		mp_editor_pass_fb->AddShared2DTexture("Editor scene display", *mp_scene_display_texture, GL_COLOR_ATTACHMENT0);
 
 		m_active_scene->LoadScene("");
-		mp_alt_scene_display_texture = std::make_unique<Texture2D>("Alt");
-		mp_alt_scene_display_texture->SetSpec(color_render_texture_spec);
 		// Setup preview scene used for viewing materials on meshes
-		mp_preview_scene = std::make_unique<Scene>();
-		mp_preview_scene->LoadScene("");
-		//auto* p_sphere = mp_preview_scene->CreateMeshAsset("./res/meshes/sphere.fbx");
-		//p_sphere->LoadMeshData();
-		//mp_preview_scene->LoadMeshAssetIntoGPU(p_sphere);
-		auto& cube_entity = mp_preview_scene->CreateEntity("Editor preview cube");
-		auto& cam_entity = mp_preview_scene->CreateEntity("Editor preview cam");
-		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
-		//auto* p_mesh = cube_entity.AddComponent<MeshComponent>(p_sphere);
-		cube_entity.GetComponent<TransformComponent>()->SetScale(10, 10, 10);
-		p_cam->GetEntity()->GetComponent<TransformComponent>()->SetPosition({ 0, 0, 10 });
-		p_cam->target = { 0, 0, 1 };
-		//p_cam->MakeActive();
-		auto* p_mat = mp_preview_scene->CreateMaterial();
-		p_mat->base_color = { 0, 0, 0 };
-		p_mat->shader_id = 2;
-		//p_mesh->SetMaterialID(0, p_mat);
-
-		auto& cube_entity_2 = m_active_scene->CreateEntity("Editor preview cube");
-		cube_entity_2.GetComponent<TransformComponent>()->SetScale(10, 10, 10);
-		//auto* p_mesh_2 = cube_entity_2.AddComponent<MeshComponent>(p_sphere);
-		//p_mesh_2->SetMaterialID(0, p_mat);
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
 		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
 		mp_editor_camera->AddComponent<EditorCamera>();
@@ -177,7 +151,7 @@ namespace ORNG {
 		}
 
 		m_active_scene->Update(ts);
-		mp_preview_scene->Update(ts);
+		//mp_preview_scene->Update(ts);
 
 
 		static float cooldown = 0;
@@ -218,7 +192,6 @@ namespace ORNG {
 
 	Texture2D EditorLayer::CreateMaterialPreview(Material* p_material) {
 		Scene temp_scene;
-		ORNG_CORE_TRACE("DSDFDF");
 		temp_scene.LoadScene("");
 		return Texture2D("new");
 	}
@@ -345,6 +318,7 @@ namespace ORNG {
 			return;
 
 		auto* entity = p_entity ? p_entity : &m_active_scene->CreateEntity("New entity");
+		m_selected_entity_ids.clear(); // Clear selected ids as now only the new entity should be selected
 		SelectEntity(entity->GetUUID());
 
 		switch (selected_component) {
@@ -598,6 +572,9 @@ namespace ORNG {
 
 
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
+			if (ImGui::Button("Create material")) {
+				m_active_scene->CreateMaterial();
+			}
 
 			if (ImGui::BeginTable("Material viewer", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(window_width, window_height))) { //MATERIAL VIEWING TABLE
 
@@ -613,13 +590,13 @@ namespace ORNG {
 
 
 					// Deletion popup
-					if (p_material->uuid() != Scene::BASE_MATERIAL_ID && ImGui::IsItemHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
+					if (ImGui::IsItemHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
 						ImGui::OpenPopup("my_select_popup");
 					}
 
 					if (ImGui::BeginPopup("my_select_popup"))
 					{
-						if (ImGui::Selectable("Delete")) {
+						if (p_material->uuid() != Scene::BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
 							deletion_flag = true;
 						}
 						if (ImGui::Selectable("Duplicate")) {
@@ -907,6 +884,10 @@ namespace ORNG {
 
 	void EditorLayer::RenderSceneGraph() {
 		if (ImGui::Begin("Scene graph")) {
+			// Click anywhere on window to deselect entity nodes
+			//if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::IsMouseButtonDown(GLFW_KEY_LEFT_CONTROL))
+			//	m_selected_entity_ids.clear();
+
 
 			// Right click to bring up "new entity" popup
 			RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2));
@@ -973,6 +954,7 @@ namespace ORNG {
 
 				m_selected_entities_are_dragged = false;
 			}
+
 
 
 		} // begin "scene graph"
@@ -1560,8 +1542,8 @@ namespace ORNG {
 
 				path_name = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(filePath);
 				std::ranges::for_each(path_name, [](char& c) { c = c == '\\' ? '/' : c; });
-				path_name.erase(0, path_name.find("/res/"));
-				path_name = "." + path_name;
+				//path_name.erase(0, path_name.find("/res/"));
+				//path_name = "." + path_name;
 
 				// Reset path to stop relative paths breaking
 				std::filesystem::current_path(prev_path);

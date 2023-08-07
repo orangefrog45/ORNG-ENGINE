@@ -234,6 +234,20 @@ namespace ORNG {
 	}
 
 
+	Texture2D::Texture2D(const Texture2D& other) : TextureBase(GL_TEXTURE_2D, other.m_name + " - Copy") {
+		SetSpec(other.m_spec);
+		glCopyImageSubData(other.m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
+			m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
+			m_spec.width, m_spec.height, 1);
+	}
+
+	Texture2D& Texture2D::operator=(const Texture2D& other) {
+		SetSpec(other.m_spec);
+		glCopyImageSubData(other.m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
+			m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
+			m_spec.width, m_spec.height, 1);
+		return *this;
+	}
 
 	bool Texture2D::SetSpec(const Texture2DSpec& spec) {
 		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {

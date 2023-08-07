@@ -620,22 +620,7 @@ namespace ORNG {
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glDispatchCompute(p_output_tex->GetSpec().width / 8, p_output_tex->GetSpec().height / 8, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		//mp_shader_library->GetShader("skybox").ActivateProgram();
-		//GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, Renderer::GetScene()->skybox.GetCubeMapTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOR, false);
-		//Renderer::DrawSkybox();
 
-		/* DRAW AABBS */
-		/*mp_shader_library->GetShader("highlight").ActivateProgram();
-		for (auto& mesh : scene->m_mesh_components) {
-			if (!mesh) continue;
-			mp_shader_library->GetShader("highlight").SetUniform("transform", mesh->GetTransformComponent()->GetMatrix());
-			Renderer::DrawBoundingBox(*mesh->GetMeshData());
-		}
-
-		mp_shader_library->GetShader("reflection").ActivateProgram();
-		mp_shader_library->GetShader("reflection").SetUniform("camera_pos", Renderer::GetActiveCameraComponent()->GetPos());
-		Renderer::DrawGroupsWithShader("reflection");
-		*/
 	}
 
 
@@ -690,7 +675,7 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::DoPostProcessingPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
-
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		DoBloomPass();
 
 		ORNG_PROFILE_FUNC_GPU();

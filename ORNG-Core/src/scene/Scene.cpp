@@ -12,6 +12,7 @@
 #include "physics/Physics.h"
 #include "scene/SceneSerializer.h"
 #include "core/CodedAssets.h"
+#include "rendering/EnvMapLoader.h"
 
 
 namespace ORNG {
@@ -118,7 +119,9 @@ namespace ORNG {
 		m_pointlight_component_manager.OnLoad();
 		m_camera_system.OnLoad();
 
-		SceneSerializer::DeserializeScene(*this, filepath);
+		if (!SceneSerializer::DeserializeScene(*this, filepath)) {
+			EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
+		}
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}
 
@@ -238,7 +241,7 @@ namespace ORNG {
 
 		if (it == m_materials.end()) {
 			ORNG_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
-			return m_materials[BASE_MATERIAL_ID];
+			return GetMaterial(BASE_MATERIAL_ID);
 		}
 
 		return *it;

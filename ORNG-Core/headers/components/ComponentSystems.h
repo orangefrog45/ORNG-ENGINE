@@ -41,11 +41,7 @@ namespace ORNG {
 
 	class CameraSystem : public ComponentSystem {
 	public:
-		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
-		virtual ~CameraSystem() = default;
-
-		void OnUnload() {};
-		void OnLoad() {
+		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {
 			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
 				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
 					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
@@ -54,6 +50,11 @@ namespace ORNG {
 
 			m_event_listener.scene_id = GetSceneUUID();
 			Events::EventManager::RegisterListener(m_event_listener);
+		};
+		virtual ~CameraSystem() = default;
+
+		void OnUnload() {};
+		void OnLoad() {
 		}
 
 		void OnUpdate() {

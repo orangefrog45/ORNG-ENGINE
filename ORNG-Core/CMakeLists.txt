@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.8)
 
 project(ORNG_CORE)
+set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-add_library(ORNG_CORE STATIC
+set(ORNG_LIB_SOURCES 
 src/main.cpp
 src/stb_image.cpp
 src/components/Camera.cpp
@@ -60,9 +61,14 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
-
 )
 
+add_library(ORNG_CORE STATIC
+${ORNG_LIB_SOURCES}
+)
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ORNG_LIB_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ORNG_LIB_SOURCES})
 
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
@@ -128,7 +134,7 @@ set( PHYSX_LIBRARIES
 
 #set(PX_COPY_EXTERNAL_DLL OFF CACHE BOOL "Physx copies external dlls" FORCE)
 #set(PUBLIC_RELEASE OFF CACHE BOOL "" FORCE)
-add_compile_definitions(PX_PHYSX_STATIC_LIB)
+add_compile_definitions(PX_PHYSX_STATIC_LIB PX_SUPPORT_GPU_PHYSX)
 add_subdirectory(extern/physx/physx/compiler/public)
 
 
