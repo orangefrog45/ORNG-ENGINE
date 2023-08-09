@@ -113,6 +113,7 @@ set(CMAKEMODULES_PATH ${PHYSX_ROOT_DIR}/../externals/cmakemodules)
 set(PX_OUTPUT_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/externals/physx)
 set(PX_OUTPUT_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/externals/physx)
 
+
 set(PX_BUILDSNIPPETS OFF CACHE BOOL "Generate the snippets" FORCE)
 set(PX_BUILDPUBLICSAMPLES OFF CACHE BOOL "Generate the samples projects" FORCE)
 set(PX_GENERATE_STATIC_LIBRARIES ON CACHE BOOL "Generate static libraries" FORCE)
@@ -120,40 +121,23 @@ set(PX_FLOAT_POINT_PRECISE_MATH OFF CACHE BOOL "Float point precise math" FORCE)
 set(NV_USE_STATIC_WINCRT ON CACHE BOOL "Use the statically linked windows CRT" FORCE)
 set(NV_USE_DEBUG_WINCRT ON CACHE BOOL "Use the debug version of the CRT" FORCE)
 
-
 set( PHYSX_LIBRARIES
 	PhysXExtensions
+	PhysX
 	PhysXPvdSDK
 	PhysXVehicle
 	PhysXCharacterKinematic
-	PhysXCharacterKinematic
 	PhysXCooking
+	PhysXCommon
+	PhysXFoundation
 )
+
 
 #set(PX_COPY_EXTERNAL_DLL OFF CACHE BOOL "Physx copies external dlls" FORCE)
 #set(PUBLIC_RELEASE OFF CACHE BOOL "" FORCE)
+
 add_compile_definitions(PX_PHYSX_STATIC_LIB PX_SUPPORT_GPU_PHYSX)
 add_subdirectory(extern/physx/physx/compiler/public)
-
-
-if (TARGET_BUILD_PLATFORM STREQUAL "windows")
-    # References NvidiaBuildOptions.cmake to figure out if system is 32/64 bit
-    IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        SET(LIBPATH_SUFFIX "64")
-    ELSE()
-        SET(LIBPATH_SUFFIX "32")
-    ENDIF()
-    GetPlatformBinName(PLATFORM_BIN_NAME ${LIBPATH_SUFFIX})
-    set(PhysxOutputPath ${PX_OUTPUT_LIB_DIR}/bin/${PLATFORM_BIN_NAME}/)
-    message("Physx Output Path: " ${PhysxOutputPath})
-
-    # copy PhysX dll's to build dir. Happens on every build.
-    add_custom_command(TARGET ORNG_CORE POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${PhysxOutputPath}" "$<TARGET_FILE_DIR:ORNG_CORE>/.."
-    ) 
-endif()
-
-MESSAGE("${PHYSX_CXX_FLAGS_DEBUG}")
 
 
 target_include_directories(ORNG_CORE

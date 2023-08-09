@@ -45,3 +45,14 @@ imgui
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 #Get res folder with shaders etc
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG Editor/")
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXDevice64.dll DESTINATION "${CMAKE_BINARY_DIR}/ORNG Editor/")
+    file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.dll DESTINATION "${CMAKE_BINARY_DIR}/ORNG Editor/")
+elseif(CMAKE_BUILD_TYPE MATCHES Release)
+    file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXDevice64.dll DESTINATION "${CMAKE_BINARY_DIR}/ORNG Editor/")
+    file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.dll DESTINATION "${CMAKE_BINARY_DIR}/ORNG Editor/")
+else()
+    message(FATAL_ERROR "Only debug and release builds are supported")
+endif()
+

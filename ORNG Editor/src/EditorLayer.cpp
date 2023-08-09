@@ -776,13 +776,15 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
+		// Tree nodes that are open are stored here so their children are rendered with the logic below, independant of if the parent tree node is visible or not.
 		static std::vector<uint64_t> open_tree_nodes;
 
-		std::string padding_str;
+		static std::string padding_str;
 		for (int i = 0; i < layer; i++) {
 			padding_str += "|--";
 		}
 		ImGui::Text(padding_str.c_str());
+		padding_str.clear();
 		ImGui::SameLine();
 		// Setup display name with icons
 		static std::string formatted_name; // Static to stop a new string being made every single call, only needed for c_str anyway

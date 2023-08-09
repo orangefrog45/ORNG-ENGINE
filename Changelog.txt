@@ -1,6 +1,8 @@
+
 9/8/23:
+-PhysX GPU support janky fix just copying pre-compiled dlls
 -Fixed entity parent/child relationships
--UI improvements for hierarchies, scrolling bug on entities with many children fixed .
+-UI improvements for hierarchies, scrolling bug on entities with many children fixed.
 
 7/8/23:
 -CMake build updated and fixed
