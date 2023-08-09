@@ -572,7 +572,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
 
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute(Window::GetWidth() / 16, Window::GetHeight() / 16, 1);
+		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 16.f), (GLuint)glm::ceil((float)Window::GetHeight() / 16.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
@@ -618,7 +618,7 @@ namespace ORNG {
 		m_lighting_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
 
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute(p_output_tex->GetSpec().width / 8, p_output_tex->GetSpec().height / 8, 1);
+		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 8.f), (GLuint)glm::ceil((float)Window::GetHeight() / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	}
@@ -687,7 +687,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_fog_blur_tex_2.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_2, false);
 
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-		glDispatchCompute(p_output_tex->GetSpec().width / 8, p_output_tex->GetSpec().height / 8, 1);
+		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 8.f), (GLuint)glm::ceil((float)Window::GetHeight() / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	}

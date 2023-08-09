@@ -4,28 +4,37 @@
 #include "util/util.h"
 namespace ORNG {
 
+
+
+	struct RelationshipComponent : public Component {
+		RelationshipComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		size_t num_children = 0;
+		entt::entity first{ entt::null };
+		entt::entity prev{ entt::null };
+		entt::entity next{ entt::null };
+		entt::entity parent{ entt::null };
+	};
+
 	class SceneEntity {
 		friend class EditorLayer;
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle), m_scene_uuid(scene->uuid()) {};
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene->uuid()) {};
+		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle), m_scene_uuid(scene->uuid()) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene->uuid()) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
 
 		~SceneEntity() {
-			SetParent(nullptr);
-			DeleteComponent<PhysicsComponent>();
-			DeleteComponent<MeshComponent>();
-			DeleteComponent<PointLightComponent>();
-			DeleteComponent<SpotLightComponent>();
-			DeleteComponent<CameraComponent>();
-			DeleteComponent<TransformComponent>();
 
-			for (auto* p_child : m_children) {
-				p_child->SetParent(nullptr);
+			entt::entity current_child = GetComponent<RelationshipComponent>()->first;
+			while (current_child != entt::null) {
+				auto next = mp_scene->m_registry.get<RelationshipComponent>(current_child).next;
+				mp_scene->GetEntity(current_child)->RemoveParent();
+				current_child = next;
 			}
 
+			RemoveParent();
 
+			mp_scene->m_registry.destroy(m_entt_handle);
 		}
 
 		template<std::derived_from<Component> T, typename... Args>
@@ -51,60 +60,69 @@ namespace ORNG {
 			mp_scene->m_registry.remove<T>(m_entt_handle);
 		}
 
-
-		void AddChild(SceneEntity* p_other) {
-			if (VectorContains(m_children, p_other) || p_other == mp_parent)
-				return;
-
-			m_children.push_back(p_other);
-		}
-
-		void RemoveChild(SceneEntity* p_entity) {
-			if (m_children.empty())
-				return;
-
-			auto it = std::ranges::find(m_children, p_entity);
-			if (it == m_children.end()) {
-				ORNG_CORE_ERROR("Failure to remove entity child, entity '{0}' is not a child of entity {1}", p_entity->m_uuid(), m_uuid());
-				return;
-			}
-
-			(*it)->mp_parent = nullptr;
-			m_children.erase(it);
-			auto* p_transform = p_entity->GetComponent<TransformComponent>();
-			if (!p_transform)
-				return;
-
-
-		}
-
 		SceneEntity* GetParent() {
-			return mp_parent;
+			return mp_scene->GetEntity(GetComponent<RelationshipComponent>()->parent);
 		}
 
-		void SetParent(SceneEntity* p_parent) {
-			auto* p_current_parent = mp_parent;
-			while (p_current_parent && p_parent) {
-				if (p_current_parent == this || p_parent == p_current_parent) {
+		void SetParent(SceneEntity& parent_entity) {
+			RemoveParent();
+			auto* p_comp = AddComponent<RelationshipComponent>();
+			auto* p_parent_comp = parent_entity.GetComponent<RelationshipComponent>();
+
+			entt::entity current_parent_child = p_parent_comp->first;
+
+			// Make sure parent is not a child of this entity, if it is return - the parent will not be set
+			entt::entity current_parent = p_parent_comp->parent;
+			while (current_parent != entt::null) {
+				if (current_parent == m_entt_handle) // Check if you're setting this as a parent of one of its children (not allowed)
 					return;
-				}
-				p_current_parent = p_current_parent->mp_parent;
+				current_parent = mp_scene->m_registry.get<RelationshipComponent>(current_parent).parent;
 			}
-			if (VectorContains(m_children, p_parent))
+			p_comp->parent = entt::entity{ parent_entity.GetEnttHandle() };
+
+
+			if (current_parent_child == entt::null) {
+				p_parent_comp->first = m_entt_handle;
 				return;
+			}
 
-			if (mp_parent)
-				mp_parent->RemoveChild(this);
+			while (mp_scene->m_registry.get<RelationshipComponent>(current_parent_child).next != entt::null) {
+				current_parent_child = mp_scene->m_registry.get<RelationshipComponent>(current_parent_child).next;
+			}
 
-			mp_parent = p_parent;
-
-			if (p_parent)
-				p_parent->AddChild(this);
+			// Link this entity to last entity found in parents linked list of children
+			auto& prev_child_of_parent = mp_scene->m_registry.get<RelationshipComponent>(current_parent_child);
+			prev_child_of_parent.next = m_entt_handle;
+			p_comp->prev = entt::entity{ prev_child_of_parent.GetEnttHandle() };
+			p_parent_comp->num_children++;
 		}
 
 		void RemoveParent() {
-			SetParent(nullptr);
+			auto* p_comp = AddComponent<RelationshipComponent>();
+
+			if (p_comp->parent == entt::null)
+				return;
+
+			auto& parent_comp = mp_scene->m_registry.get<RelationshipComponent>(p_comp->parent);
+			parent_comp.num_children--;
+
+			if (parent_comp.first == entt::entity{m_entt_handle})
+				parent_comp.first = entt::null;
+
+
+			// Patch hole in linked list
+			if (auto* prev = mp_scene->m_registry.try_get<RelationshipComponent>(p_comp->prev))
+				prev->next = p_comp->next;
+
+			if (auto* next = mp_scene->m_registry.try_get<RelationshipComponent>(p_comp->next))
+				next->prev = p_comp->prev;
+
+			p_comp->next = entt::null;
+			p_comp->prev = entt::null;
+			p_comp->parent = entt::null;
+
 		}
+
 
 		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
 		uint64_t GetSceneUUID() const { return m_scene_uuid; };
@@ -114,10 +132,9 @@ namespace ORNG {
 	private:
 		entt::entity m_entt_handle;
 		UUID m_uuid;
-		std::vector<SceneEntity*> m_children;
-		SceneEntity* mp_parent = nullptr;
 		Scene* mp_scene = nullptr;
 		uint64_t m_scene_uuid; // Stored seperately for faster access
 	};
+
 
 }

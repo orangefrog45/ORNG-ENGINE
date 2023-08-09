@@ -14,7 +14,6 @@ void main() {
 	vec2 local_tex_coords = tex_coords / vec2(imageSize(i_output));
 	vec2 upsampled_texel_size = 1.0 / vec2(textureSize(sampler_input, u_mip_level - 1));
 
-
 	vec3 A = textureLod(sampler_input, local_tex_coords + vec2(-2.0, -2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
 	vec3 B = textureLod(sampler_input, local_tex_coords + vec2(0.0, -2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
 	vec3 C = textureLod(sampler_input, local_tex_coords + vec2(2.0, -2.0) * upsampled_texel_size, u_mip_level - 1).rgb;

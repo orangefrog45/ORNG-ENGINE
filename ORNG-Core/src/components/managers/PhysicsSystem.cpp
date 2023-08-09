@@ -131,7 +131,6 @@ namespace ORNG {
 		scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
 		scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
-		PxCudaContextManagerDesc desc;
 
 
 		mp_scene = Physics::GetPhysics()->createScene(scene_desc);
@@ -309,7 +308,7 @@ namespace ORNG {
 		if (m_accumulator < m_step_size)
 			return;
 
-		m_accumulator -= m_step_size;
+		m_accumulator -= m_step_size * 1000.f;
 		mp_scene->simulate(m_step_size);
 		mp_scene->fetchResults(true);
 

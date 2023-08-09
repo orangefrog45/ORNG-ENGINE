@@ -45,8 +45,9 @@ namespace ORNG {
 	void Scene::DeleteEntity(SceneEntity* p_entity) {
 		auto it = std::ranges::find(m_entities, p_entity);
 
-		while (!p_entity->m_children.empty()) {
-			p_entity->mp_scene->DeleteEntity(p_entity->m_children[0]);
+		auto& current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
+		while (current_child_entity != entt::null) {
+			p_entity->mp_scene->DeleteEntity(GetEntity(current_child_entity));
 		}
 
 		delete p_entity;
@@ -96,6 +97,10 @@ namespace ORNG {
 		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetUUID() == uuid; });
 		return it == m_entities.end() ? nullptr : *it;
 	}
+	SceneEntity* Scene::GetEntity(entt::entity handle) {
+		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->m_entt_handle == handle; });
+		return it == m_entities.end() ? nullptr : *it;
+	}
 
 
 
@@ -130,13 +135,6 @@ namespace ORNG {
 
 	void Scene::UnloadScene() {
 		ORNG_CORE_INFO("Unloading scene...");
-		m_registry.clear();
-		m_physics_system.OnUnload();
-		m_mesh_component_manager.OnUnload();
-		m_spotlight_component_manager.OnUnload();
-		m_pointlight_component_manager.OnUnload();
-		m_camera_system.OnUnload();
-
 
 		for (MeshAsset* mesh_data : m_mesh_assets) {
 			delete mesh_data;
@@ -151,6 +149,13 @@ namespace ORNG {
 			if (texture)
 				delete texture;
 		}
+
+		m_registry.clear();
+		m_physics_system.OnUnload();
+		m_mesh_component_manager.OnUnload();
+		m_spotlight_component_manager.OnUnload();
+		m_pointlight_component_manager.OnUnload();
+		m_camera_system.OnUnload();
 
 		m_mesh_assets.clear();
 		m_entities.clear();
@@ -177,8 +182,6 @@ namespace ORNG {
 		ent->name = name;
 		m_entities.push_back(ent);
 
-		// Give transform (all entities have this)
-		ent->AddComponent<TransformComponent>();
 		return *ent;
 
 	}

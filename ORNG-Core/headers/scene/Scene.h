@@ -40,6 +40,7 @@ namespace ORNG {
 
 
 		SceneEntity* GetEntity(uint64_t uuid);
+		SceneEntity* GetEntity(entt::entity handle);
 
 		Material* GetMaterial(uint64_t id) const;
 

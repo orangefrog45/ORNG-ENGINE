@@ -151,15 +151,14 @@ namespace ORNG {
 		}
 
 		m_active_scene->Update(ts);
-		//mp_preview_scene->Update(ts);
+		// Updating here to work with the editor camera
+		m_active_scene->terrain.UpdateTerrainQuadtree(mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0]);
 
 
 		static float cooldown = 0;
 		cooldown -= glm::min(cooldown, ts);
 		if (cooldown > 10)
 			return;
-		if (Window::IsKeyDown('J'))
-			CreateMaterialPreview(m_active_scene->m_materials[0]);
 
 		// Keybind to focus on selected entities
 		if (Window::IsKeyDown('F') && !m_selected_entity_ids.empty()) {
@@ -169,10 +168,14 @@ namespace ORNG {
 				num_iters++;
 				avg_pos += m_active_scene->GetEntity(id)->GetComponent<TransformComponent>()->m_pos;
 			}
-			mp_editor_camera->GetComponent<EditorCamera>()->target = glm::normalize(avg_pos / (float)num_iters - mp_editor_camera->GetComponent<TransformComponent>()->m_pos);
+
+			// Smoothly move camera target to focus point
+			glm::vec3 focused_target = glm::normalize(avg_pos / (float)num_iters - mp_editor_camera->GetComponent<TransformComponent>()->m_pos);
+			mp_editor_camera->GetComponent<EditorCamera>()->target += focused_target * FrameTiming::GetTimeStep() * 0.01f;
+			mp_editor_camera->GetComponent<EditorCamera>()->target = glm::normalize(mp_editor_camera->GetComponent<EditorCamera>()->target);
 		}
 
-
+		// Duplicate entity keybind
 		if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
 			cooldown += 1000;
 
@@ -190,11 +193,6 @@ namespace ORNG {
 
 	}
 
-	Texture2D EditorLayer::CreateMaterialPreview(Material* p_material) {
-		Scene temp_scene;
-		temp_scene.LoadScene("");
-		return Texture2D("new");
-	}
 
 	void EditorLayer::RenderProfilingTimers() {
 		static bool display_profiling_timers = ProfilingTimers::AreTimersEnabled();
@@ -261,6 +259,12 @@ namespace ORNG {
 		std::string str = SceneSerializer::SerializeEntityIntoString(*p_original);
 		SceneSerializer::DeserializeEntityFromString(*m_active_scene, str, new_entity);
 
+		auto* p_relation_comp = p_original->GetComponent<RelationshipComponent>();
+		SceneEntity* p_current_child = m_active_scene->GetEntity(p_relation_comp->first);
+		while (p_current_child) {
+			DuplicateEntity(p_current_child)->SetParent(new_entity);
+			p_current_child = m_active_scene->GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
+		}
 		return &new_entity;
 	}
 
@@ -771,8 +775,15 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderEntityNode(SceneEntity* p_entity) {
+	void EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
+		static std::vector<uint64_t> open_tree_nodes;
 
+		std::string padding_str;
+		for (int i = 0; i < layer; i++) {
+			padding_str += "|--";
+		}
+		ImGui::Text(padding_str.c_str());
+		ImGui::SameLine();
 		// Setup display name with icons
 		static std::string formatted_name; // Static to stop a new string being made every single call, only needed for c_str anyway
 		formatted_name.clear();
@@ -785,34 +796,43 @@ namespace ORNG {
 			formatted_name += p_entity->HasComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";
 			formatted_name += " ";
 			formatted_name += p_entity->name;
-			if (!p_entity->m_children.empty())
-				formatted_name += " (" + std::to_string(p_entity->m_children.size()) + ")";
 		}
 
+		auto* p_entity_relationship_comp = p_entity->GetComponent<RelationshipComponent>();
+
 		ImVec4 tree_node_bg_col = VectorContains(m_selected_entity_ids, p_entity->GetUUID()) ? lighter_grey_color : ImVec4(0, 0, 0, 0);
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 		ImGui::PushStyleColor(ImGuiCol_Header, tree_node_bg_col);
-		// Push unique ID
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3, 3));
 		ImGui::PushID(p_entity);
-		// OPEN TREE NODE
-		// Tree node opened this way to make some styling logic possible below
-		auto flags = p_entity->m_children.empty() ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Framed : ImGuiTreeNodeFlags_Framed;
+
+
+		auto flags = p_entity_relationship_comp->first == entt::null ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Framed : ImGuiTreeNodeFlags_Framed;
+		flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
+		flags |= p_entity_relationship_comp->num_children > 0 ? ImGuiTreeNodeFlags_OpenOnArrow : 0;
 		bool is_tree_node_open = ImGui::TreeNodeEx(formatted_name.c_str(), flags);
-		//
-		// 
-		ImGui::PopStyleColor();
+		if (ImGui::IsItemToggledOpen()) {
+			auto it = std::ranges::find(open_tree_nodes, p_entity->GetUUID());
+			if (it == open_tree_nodes.end())
+				open_tree_nodes.push_back(p_entity->GetUUID());
+			else
+				open_tree_nodes.erase(it);
+		}
+
+		m_selected_entities_are_dragged |= ImGui::IsItemActive() && !ImGui::IsItemHovered();
+
+
 		ImGui::PopStyleVar();
+		ImGui::PopStyleColor();
 
 		std::string popup_id = std::format("{}", p_entity->GetUUID()); // unique popup id
 
-		m_selected_entities_are_dragged |= ImGui::IsItemActive() && !ImGui::IsItemHovered();
 
 		if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
 			// Drag entities into another entity node to make them children of it
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
 				DeselectEntity(p_entity->GetUUID());
 				for (auto id : m_selected_entity_ids) {
-					m_active_scene->GetEntity(id)->SetParent(p_entity);
+					m_active_scene->GetEntity(id)->SetParent(*p_entity);
 				}
 
 				m_selected_entities_are_dragged = false;
@@ -842,7 +862,7 @@ namespace ORNG {
 
 			ImGui::SeparatorText("Options");
 			if (ImGui::Selectable("Delete")) {
-
+				// Delete all selected entities
 				for (auto id : m_selected_entity_ids) {
 					m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
 				}
@@ -856,7 +876,6 @@ namespace ORNG {
 
 			// Creates clone of entity, puts it in scene
 			if (ImGui::Selectable("Duplicate")) {
-				m_selected_entity_ids.clear(); // Clear here so only the new duplicates are selected, not the old originals.
 				for (auto id : m_selected_entity_ids) {
 					DuplicateEntity(m_active_scene->GetEntity(id));
 				}
@@ -865,16 +884,20 @@ namespace ORNG {
 			ImGui::EndPopup();
 		}
 
+	exit:
+		if (is_tree_node_open) {
+			ImGui::TreePop(); // Pop tree node opened earlier
+		}
 		// Render entity nodes for all the children of this entity
-		if (p_entity && is_tree_node_open) {
-			for (auto* p_child : p_entity->m_children) {
-				RenderEntityNode(p_child);
+		if (p_entity && VectorContains(open_tree_nodes, p_entity->GetUUID())) {
+
+			entt::entity current_child_entity = p_entity_relationship_comp->first;
+			while (current_child_entity != entt::null) {
+				auto& child_rel_comp = m_active_scene->m_registry.get<RelationshipComponent>(current_child_entity);
+				RenderEntityNode(child_rel_comp.GetEntity(), layer + 1);
+				current_child_entity = child_rel_comp.next;
 			}
 		}
-
-	exit:
-		if (is_tree_node_open)
-			ImGui::TreePop(); // Pop tree node opened earlier
 
 		ImGui::PopID();
 		return;
@@ -885,8 +908,8 @@ namespace ORNG {
 	void EditorLayer::RenderSceneGraph() {
 		if (ImGui::Begin("Scene graph")) {
 			// Click anywhere on window to deselect entity nodes
-			//if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::IsMouseButtonDown(GLFW_KEY_LEFT_CONTROL))
-			//	m_selected_entity_ids.clear();
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+				m_selected_entity_ids.clear();
 
 
 			// Right click to bring up "new entity" popup
@@ -908,6 +931,7 @@ namespace ORNG {
 				glm::vec3 cam_orientation = camera_saved_transforms[2];
 				m_active_scene->m_physics_system.SetIsPaused(true);
 
+				mp_editor_camera = nullptr;
 				m_active_scene->UnloadScene();
 				m_active_scene->LoadScene("scene.yml");
 				mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
@@ -937,10 +961,10 @@ namespace ORNG {
 				m_display_bloom_editor = EmptyTreeNode("Bloom");
 
 				for (auto* p_entity : m_active_scene->m_entities) {
-					if (p_entity->GetParent())
+					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
 
-					RenderEntityNode(p_entity);
+					RenderEntityNode(p_entity, 0);
 				}
 			}
 
@@ -948,7 +972,7 @@ namespace ORNG {
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 				if (m_selected_entities_are_dragged && ImGui::IsWindowHovered()) {
 					for (auto id : m_selected_entity_ids) {
-						m_active_scene->GetEntity(id)->SetParent(nullptr);
+						m_active_scene->GetEntity(id)->RemoveParent();
 					}
 				}
 

@@ -119,8 +119,6 @@ set(PX_GENERATE_STATIC_LIBRARIES ON CACHE BOOL "Generate static libraries" FORCE
 set(PX_FLOAT_POINT_PRECISE_MATH OFF CACHE BOOL "Float point precise math" FORCE)
 set(NV_USE_STATIC_WINCRT ON CACHE BOOL "Use the statically linked windows CRT" FORCE)
 set(NV_USE_DEBUG_WINCRT ON CACHE BOOL "Use the debug version of the CRT" FORCE)
-set(PX_GENERATE_GPU_PROJECT ON CACHE BOOL "Generate GPU Support" FORCE)
-set(PX_WINDOWS_KMD ON CACHE BOOL "GPU support for physx" FORCE)
 
 
 set( PHYSX_LIBRARIES

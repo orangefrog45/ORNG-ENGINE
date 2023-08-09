@@ -17,4 +17,5 @@ namespace ORNG {
 	private:
 		SceneEntity* mp_entity = nullptr;
 	};
+
 }

@@ -129,7 +129,7 @@ namespace ORNG {
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
 		bool m_physics_paused = true;
-		float m_step_size = 1.f / 60.f;
+		float m_step_size = (1.f / 60.f);
 		float m_accumulator = 0.f;
 
 

@@ -1,3 +1,7 @@
+9/8/23:
+-Fixed entity parent/child relationships
+-UI improvements for hierarchies, scrolling bug on entities with many children fixed .
+
 7/8/23:
 -CMake build updated and fixed
 -Some scene loading bugs fixed and stability improvements

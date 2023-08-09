@@ -193,7 +193,7 @@ namespace ORNG {
 	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity) {
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
 		if (parent_id != 0)
-			entity.SetParent(scene.GetEntity(parent_id));
+			entity.SetParent(*scene.GetEntity(parent_id));
 
 		auto transform_node = entity_node["TransformComp"];
 		auto* p_transform = entity.GetComponent<TransformComponent>();

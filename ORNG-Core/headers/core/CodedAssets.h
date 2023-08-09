@@ -174,6 +174,8 @@ namespace ORNG {
 				,23
 			};
 			m_cube_mesh->m_vao.FillBuffers();
+			m_cube_mesh->m_aabb.max = { 0.5, 0.5, 0.5 };
+			m_cube_mesh->m_aabb.min = { -0.5, -0.5, -0.5 };
 			MeshAsset::MeshEntry entry;
 			entry.base_index = 0;
 			entry.base_vertex = 0;
@@ -190,7 +192,7 @@ namespace ORNG {
 			spec.height = 1;
 			spec.wrap_params = GL_CLAMP_TO_EDGE;
 			spec.min_filter = GL_NEAREST;
-			spec.mag_filter= GL_NEAREST;
+			spec.mag_filter = GL_NEAREST;
 			m_base_tex->SetSpec(spec);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_base_tex->GetTextureHandle(), GL_TEXTURE0);
 			unsigned char white_pixel[] = { 255, 255, 255, 255 };

@@ -5,7 +5,6 @@ out layout(location = 1) vec4 albedo;
 out layout(location = 2) vec4 roughness_metallic_ao;
 out layout(location = 3) uint shader_id;
 
-
 layout(binding = 1) uniform sampler2D diffuse_sampler;
 layout(binding = 2) uniform sampler2D roughness_sampler;
 layout(binding = 7) uniform sampler2D normal_map_sampler;
@@ -137,29 +136,28 @@ void main() {
 	roughness_metallic_ao.a = 1.f;
 #endif
 
-	#ifdef TERRAIN_MODE
-		shader_id = u_shader_id;
-		mat3 tbn = CalculateTbnMatrix();
-		normal = vec4(tbn * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0);
+#ifdef TERRAIN_MODE
+	shader_id = u_shader_id;
+	normal = u_normal_sampler_active ? vec4(CalculateTbnMatrix() * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0) : vec4(vs_normal, 1.0);
 
-		albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
+	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
 
-	#elif defined SKYBOX_MODE
-		shader_id = uint(0);
-		albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
-	#else
-		if (u_normal_sampler_active) {
-			mat3 tbn = CalculateTbnMatrixTransform();
-			vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
-			normal = vec4(normalize(tbn * sampled_normal).rgb, 1);
-		}
-		else {
-			normal = vec4(normalize(vs_normal), 1.f);
-		}
+#elif defined SKYBOX_MODE
+	shader_id = uint(0);
+	albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
+#else
+	if (u_normal_sampler_active) {
+		mat3 tbn = CalculateTbnMatrixTransform();
+		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
+		normal = vec4(normalize(tbn * sampled_normal).rgb, 1.0);
+	}
+	else {
+		normal = vec4(normalize(vs_normal), 1.0);
+	}
 
 		
-		albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
-		shader_id = u_shader_id;
-		albedo.w = 1.0;
+	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
+	shader_id = u_shader_id;
+	albedo.w = 1.0;
 #endif
 })""

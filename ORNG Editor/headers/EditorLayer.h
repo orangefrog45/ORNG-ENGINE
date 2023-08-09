@@ -41,7 +41,6 @@ namespace ORNG {
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
-		Texture2D CreateMaterialPreview(Material* p_material);
 
 		// Renders material as a drag-drop target, returns pointer to the new material if a material was drag-dropped on it, else nullptr
 		Material* RenderMaterialComponent(const Material* p_material);
@@ -51,7 +50,7 @@ namespace ORNG {
 		void RenderSceneGraph();
 		void RenderProfilingTimers();
 		void RenderSkyboxEditor();
-		void RenderEntityNode(SceneEntity* p_entity);
+		void RenderEntityNode(SceneEntity* p_entity, unsigned int layer);
 		void RenderDirectionalLightEditor();
 		void RenderGlobalFogEditor();
 		void RenderBloomEditor();
@@ -62,12 +61,10 @@ namespace ORNG {
 		inline void SelectEntity(uint64_t id) {
 			if (!VectorContains(m_selected_entity_ids, id) && id != INVALID_ENTITY_ID)
 				m_selected_entity_ids.push_back(id);
-			else
-				return;
-
-			if (!m_selected_entity_ids.empty())
+			else if (!m_selected_entity_ids.empty())
 				// Makes the selected entity the first ID, which some UI components will operate on more, e.g gizmos will render on this entity now over other selected ones
 				std::iter_swap(std::ranges::find(m_selected_entity_ids, id), m_selected_entity_ids.begin());
+
 		}
 
 
