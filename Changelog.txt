@@ -1,8 +1,8 @@
-
 9/8/23:
 -PhysX GPU support janky fix just copying pre-compiled dlls
 -Fixed entity parent/child relationships
 -UI improvements for hierarchies, scrolling bug on entities with many children fixed.
+
 
 7/8/23:
 -CMake build updated and fixed
@@ -14,6 +14,7 @@
 -Multiple active scene support
 -Optimizations to physics/transform events
 -Portal shader for fun
+
 
 30/7/23:
 -Editor bugfixing
@@ -39,6 +40,7 @@
 -Smoother shadows with rotated poisson disk sampling
 -GPU/CPU lifetime profiling timer macros
 
+
 08/7/23:
 -Huge fog improvements, depth-aware upsampling and blurring, decent performance
 -Improvements on serialization, almost all data saved (some stuff that's about to change not included)
@@ -55,6 +57,7 @@
 -Entity duplication keybind
 -Proper env map loader class seperate from skybox
 
+
 27/6/23:
 -Nvidia physx and basic physics components implemented (still needs work)
 -Small changes to ECS and transform callbacks
@@ -63,12 +66,14 @@
 -Texture tiling control in materials
 -General bugfixing and refactoring
 
+
 24/6/23:
 -Large UI changes
 -Fixed some transform bugs
 -Material bugs fixed
 -Light buffer updates slightly changed - for now just update each frame
 -Changes to diffuse prefilter system so env map data is saved to disk
+
 
 22/6/23:
 -Image based lighting with environment map loading and prefiltering
@@ -78,6 +83,7 @@
 -Some texture rewrites
 -General refactoring
 
+
 13/6/23:
 -Moved from blinn-phong shading to PBR pipeline
 -Parallax mapping with displacement maps
@@ -86,6 +92,7 @@
 -Removed stacking components for entities, space only given to active components, none reserved
 -Material id's swapped for pointers in mesh comps and instance groups
 -Other minor refactoring
+
 
 10/6/23:
 -Custom editor camera 
@@ -112,6 +119,7 @@
 -Switched to column-major matrix standard
 -Adjustments to debug editor UI
 -General refactoring
+
 
 17/5/23:
 -Volumetric fog
@@ -140,6 +148,7 @@
 -Reduced build times with precompiled headers
 -Other things
 
+
 9/4/23:
 -Terrain texture blending
 -Quadtree based dynamic terrain LOD
@@ -147,6 +156,7 @@
 -Frustum culling for terrain
 -Optimizations to reduce build times
 -Fixed lighting bug caused by calculating lighting only in tangent space without normal maps provided
+
 
 01/4/23:
 -Very basic layer system added (currently only an editor layer)
@@ -159,21 +169,26 @@
 -Better logging using spdlog
 -Further improvements/changes to codebase structure
 
+
 23/3/23:
 -Procedural terrain generation using perlin noise
 -General refactoring, structural changes to codebase
 -Timestep has more functionality, supports different units
 -Switched ECS back to pointer system, easier to work with
 
+
 26/3/23:
 -Basic non-procedural terrain generation, a few modifiable parameters
 -Added auto-generated mipmaps to textures (this also fixes some black texture bugs)
 
+
 25/3/23:
 -Fixed shadow flickering bug when directional light was moved caused by updating the depth map too late
 
+
 22/3/23:
 Fixed diffuse colour bug caused by reading the specular colour instead of the diffuse colour from materials
+
 
 19/3/23:
 -Split spotlight and directional light textures and framebuffers for more performant resolutions for different light types
@@ -181,12 +196,14 @@ Fixed diffuse colour bug caused by reading the specular colour instead of the di
 -Added scene debug data GUI window
 -Fixed memory crash caused by referencing deleted mesh components
 
+
 18/3/23:
 -Changed ECS to using contiguous memory for performance, this makes creating entities slower but rendering them faster
 -SceneEntity class that all scene components derive from to allow entities to have structures with eachother
 -Mesh entities with the same mesh data can now properly support different shader types
 -ID system for entities
 -Lowered resolution of depth maps for spotlights
+
 
 14/3/23:
 -Shadow support for spotlights
@@ -196,11 +213,13 @@ Fixed diffuse colour bug caused by reading the specular colour instead of the di
 -Skybox optimizations
 -More lighting model fixes/changes, reflected light always less than light received, shadow bias depends on slope
 
+
 12/3/23:
 -Directional light controls
 -Depth map viewing window
 -Changes to shadow map biasing (still not perfect)
 -WorldTransform2D added to support 2D entities and windows
+
 
 11/3/23:
 -Changes to Blinn-Phong lighting algorithm to fix ambient lighting issues
