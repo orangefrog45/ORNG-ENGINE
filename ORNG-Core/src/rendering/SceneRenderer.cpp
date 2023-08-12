@@ -315,7 +315,7 @@ namespace ORNG {
 		DoGBufferPass(p_cam);
 		DoDepthPass(p_cam, settings.p_output_tex);
 		DoLightingPass(settings.p_output_tex);
-		DoFogPass();
+		//DoFogPass();
 		DoPostProcessingPass(p_cam, settings.p_output_tex);
 
 		return output;
