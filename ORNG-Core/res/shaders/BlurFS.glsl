@@ -33,8 +33,8 @@ void main() {
 		{
 			for (int y = -1; y < 1; y++) {
 
-				ivec2 offset_coords = tex_coords + ivec2(x, y);
-				vec4 sampled_offset = texelFetch(in_tex, offset_coords / 2, 0); // first tex will be raw fog input at half res, so adjust
+				ivec2 offset_coords = tex_coords / 2 + ivec2(x, y);
+				vec4 sampled_offset = texelFetch(in_tex, offset_coords, 0); // first tex will be raw fog input at half res, so adjust
 				float density_dif = abs(texelFetch(depth_sampler, offset_coords, 0).r - original_depth);
 
 				float g_weight_1 = max(0.0, 1.0 - density_dif * 10000.f);

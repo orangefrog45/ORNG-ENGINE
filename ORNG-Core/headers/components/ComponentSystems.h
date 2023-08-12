@@ -38,6 +38,35 @@ namespace ORNG {
 		uint64_t m_scene_uuid = 0;
 	};
 
+	class TransformHierarchySystem : public ComponentSystem {
+	public:
+		TransformHierarchySystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		void OnLoad() {
+			// On transform update event, update all child transforms
+			m_transform_event_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
+				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
+					auto& relationship_comp = mp_registry->get<RelationshipComponent>(entt::entity(t_event.affected_components[0]->GetEnttHandle()));
+					entt::entity current_entity = relationship_comp.first;
+
+					for (int i = 0; i < relationship_comp.num_children; i++) {
+						mp_registry->get<TransformComponent>(current_entity).RebuildMatrix(static_cast<TransformComponent::UpdateType>(t_event.sub_event_type));
+						current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+					}
+
+				}
+			};
+			m_transform_event_listener.scene_id = GetSceneUUID();
+			Events::EventManager::RegisterListener(m_transform_event_listener);
+		}
+
+		void OnUnload() {
+			Events::EventManager::DeregisterListener((entt::entity)m_transform_event_listener.GetRegisterID());
+		}
+	private:
+		Events::ECS_EventListener<TransformComponent> m_transform_event_listener;
+		entt::registry* mp_registry = nullptr;
+	};
+
 
 	class CameraSystem : public ComponentSystem {
 	public:
@@ -64,13 +93,13 @@ namespace ORNG {
 
 		}
 
-		void SetActiveCamera(uint32_t entity_handle) {
+		void SetActiveCamera(entt::entity entity_handle) {
 			m_active_cam_entity_handle = entity_handle;
 			auto view = mp_registry->view<CameraComponent>();
 
 			// Make all other cameras inactive
 			for (auto [entity, camera] : view.each()) {
-				if ((uint32_t)entity != entity_handle)
+				if (entity != entity_handle)
 					camera.is_active = false;
 			}
 
@@ -85,7 +114,7 @@ namespace ORNG {
 		}
 
 	private:
-		uint32_t m_active_cam_entity_handle;
+		entt::entity m_active_cam_entity_handle;
 		Events::ECS_EventListener<CameraComponent> m_event_listener;
 		entt::registry* mp_registry = nullptr;
 	};

@@ -1,0 +1,137 @@
+# Blender MTL File: 'Office Building.blend'
+# Material Count: 11
+
+newmtl Billboard
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Billboard\\Diffuse.png
+map_Ke C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Billboard\\Diffuse.png
+
+newmtl Blinds
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Parralax Interiors\\Blinds.png
+map_d C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Parralax Interiors\\Blinds.png
+
+newmtl Bulb
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Bulb.png
+map_d C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Bulb.png
+
+newmtl Emmisive
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Emmisive_Top\\Normal.png
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Emmisive_Top\\Diffuse.png
+map_Ke C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Emmisive_Top\\Emmision.png
+map_Ns C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Emmisive_Top\\Roughness.png
+
+newmtl Glass
+Ns 359.999993
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Glass_Lobby
+Ns 359.999993
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Lobby_Interior_Baked
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Lobby_Interior\\Baked Maps\\Normal.png
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Lobby_Interior\\Baked Maps\\Diffuse.png
+map_Ke C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Lobby_Interior\\Baked Maps\\Emmision.png
+map_Ns C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Lobby_Interior\\Baked Maps\\Roughness.png
+
+newmtl Lobby_Interior_Trimsheet
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Lobby_Interior\\Lobby Interior Vents Diffuse.png
+map_Ns C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Lobby_Interior\\Lobby Interior Vents Roughness.png
+
+newmtl Material
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Normal.png
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Diffuse.png
+map_Ns C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Roughness.png
+
+newmtl Parralax_Mapping
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Parralax Interiors\\Parralax Mapping\\Diffuse.png
+map_Ke C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Parralax Interiors\\Parralax Mapping\\Diffuse.png
+
+newmtl Windows
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Window_Normal.png
+map_Kd C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Window_Diffuse.png
+map_Ns C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Window_Roughness.png
+map_d C:\\Users\\Mazen\\Desktop\\Black Office Building\\Textures\\Window_Diffuse.png

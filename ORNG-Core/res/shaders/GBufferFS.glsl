@@ -23,7 +23,6 @@ in mat4 vs_transform;
 in vec3 vs_original_normal;
 in vec3 vs_view_dir_tangent_space;
 
-
 struct Material {
 	vec4 base_color_and_metallic;
 	float roughness;
@@ -40,6 +39,8 @@ layout(std140, binding = 2) uniform commons{
 	float time_elapsed;
 	float render_resolution_x;
 	float render_resolution_y;
+float cam_zfar;
+float cam_znear;
 } ubo_common;
 
 #ifndef SKYBOX_MODE
@@ -160,4 +161,5 @@ void main() {
 	shader_id = u_shader_id;
 	albedo.w = 1.0;
 #endif
+
 })""

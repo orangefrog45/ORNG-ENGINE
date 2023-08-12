@@ -24,6 +24,7 @@ namespace ORNG {
 	public:
 		friend class SceneSerializer;
 		friend class EditorLayer;
+		friend class SceneEntity;
 		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
 
 
@@ -97,12 +98,12 @@ namespace ORNG {
 			ALL = 3
 		};
 
+		void RebuildMatrix(UpdateType type);
 	private:
-
+		TransformComponent* mp_parent = nullptr;
 		// If true, transform will not take parent transforms into account when building matrix.
 		bool m_is_absolute = false;
 
-		void RebuildMatrix(UpdateType type);
 
 		glm::mat4 m_transform = glm::mat4(1);
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);

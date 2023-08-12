@@ -94,9 +94,8 @@ namespace ORNG {
 		// Setup preview scene used for viewing materials on meshes
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
 		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
-		mp_editor_camera->AddComponent<EditorCamera>();
+		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 		mp_editor_camera->AddComponent<CharacterControllerComponent>();
-		//mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
@@ -142,13 +141,11 @@ namespace ORNG {
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
 		if (Window::IsKeyDown('K'))
-			mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
+			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
 		float ts = FrameTiming::GetTimeStep();
 
-		if (!ImGui::GetIO().WantTextInput && !(ImGui::GetIO().WantCaptureMouse && Window::GetScrollStatus().active)) {
-			mp_editor_camera->GetComponent<EditorCamera>()->Update();
-		}
+		UpdateEditorCam();
 
 		m_active_scene->Update(ts);
 		// Updating here to work with the editor camera
@@ -171,8 +168,8 @@ namespace ORNG {
 
 			// Smoothly move camera target to focus point
 			glm::vec3 focused_target = glm::normalize(avg_pos / (float)num_iters - mp_editor_camera->GetComponent<TransformComponent>()->m_pos);
-			mp_editor_camera->GetComponent<EditorCamera>()->target += focused_target * FrameTiming::GetTimeStep() * 0.01f;
-			mp_editor_camera->GetComponent<EditorCamera>()->target = glm::normalize(mp_editor_camera->GetComponent<EditorCamera>()->target);
+			mp_editor_camera->GetComponent<CameraComponent>()->target += focused_target * FrameTiming::GetTimeStep() * 0.01f;
+			mp_editor_camera->GetComponent<CameraComponent>()->target = glm::normalize(mp_editor_camera->GetComponent<CameraComponent>()->target);
 		}
 
 		// Duplicate entity keybind
@@ -193,6 +190,51 @@ namespace ORNG {
 
 	}
 
+
+	void EditorLayer::UpdateEditorCam() {
+		if (ImGui::GetIO().WantTextInput || (ImGui::GetIO().WantCaptureMouse && !ImGuizmo::IsOver()) || Window::GetScrollStatus().active)
+			return;
+
+		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
+		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
+
+		// Camera movement
+		if (ImGui::IsMouseDown(1)) {
+			glm::vec3 pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+			glm::vec3 movement_vec{0.0, 0.0, 0.0};
+			float time_elapsed = FrameTiming::GetTimeStep();
+			movement_vec += p_cam->right * (float)Window::IsKeyDown(GLFW_KEY_D) * time_elapsed * p_cam->speed;
+			movement_vec -= p_cam->right * (float)Window::IsKeyDown(GLFW_KEY_A) * time_elapsed * p_cam->speed;
+			movement_vec += p_cam->target * (float)Window::IsKeyDown(GLFW_KEY_W) * time_elapsed * p_cam->speed;
+			movement_vec -= p_cam->target * (float)Window::IsKeyDown(GLFW_KEY_S) * time_elapsed * p_cam->speed;
+			movement_vec += p_cam->up * (float)Window::IsKeyDown(GLFW_KEY_E) * time_elapsed * p_cam->speed;
+			movement_vec -= p_cam->up * (float)Window::IsKeyDown(GLFW_KEY_Q) * time_elapsed * p_cam->speed;
+			p_transform->SetAbsolutePosition(pos + movement_vec);
+		}
+
+		// Camera rotation
+		static glm::vec2 last_mouse_pos;
+		if (ImGui::IsMouseClicked(0))
+			last_mouse_pos = Window::GetMousePos();
+
+		if (!p_cam->mouse_locked && ImGui::IsMouseDown(0)) {
+			glm::vec2 mouse_coords = Window::GetMousePos();
+			float rotation_speed = 0.005f;
+			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
+
+			p_cam->target = glm::rotate(mouse_delta.x * rotation_speed, p_cam->up) * glm::vec4(p_cam->target, 0);
+
+			glm::fvec3 target_new = glm::rotate(mouse_delta.y * rotation_speed, glm::cross(p_cam->target, p_cam->up)) * glm::vec4(p_cam->target, 0);
+			//constraint to stop lookAt flipping from y axis alignment
+			if (target_new.y <= 0.9996f && target_new.y >= -0.996f) {
+				p_cam->target = target_new;
+			}
+			p_cam->target = glm::normalize(p_cam->target);
+			Window::SetCursorPos(last_mouse_pos.x, last_mouse_pos.y);
+		}
+
+		p_cam->UpdateFrustum();
+	}
 
 	void EditorLayer::RenderProfilingTimers() {
 		static bool display_profiling_timers = ProfilingTimers::AreTimersEnabled();
@@ -272,17 +314,17 @@ namespace ORNG {
 
 	void EditorLayer::RenderDisplayWindow() {
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT) && !ImGui::GetIO().WantCaptureMouse) {
+		GL_StateManager::DefaultClearBits();
+
+		if (ImGui::IsMouseDoubleClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
 			DoPickingPass();
 		}
-		GL_StateManager::DefaultClearBits();
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 		settings.p_output_tex = &*mp_scene_display_texture;
-		settings.p_cam_override = static_cast<CameraComponent*>(&*mp_editor_camera->GetComponent<EditorCamera>());
+		settings.p_cam_override = static_cast<CameraComponent*>(&*mp_editor_camera->GetComponent<CameraComponent>());
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
-
 
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();
@@ -468,6 +510,7 @@ namespace ORNG {
 					MeshAsset* asset = m_active_scene->CreateMeshAsset(path);
 
 					if (asset->LoadMeshData()) {
+						SceneSerializer::SerializeVertexDataBinary(asset->GetFilename(), asset->GetVAO().vertex_data);
 						m_active_scene->LoadMeshAssetIntoGPU(asset);
 						error_message.clear();
 					}
@@ -692,16 +735,21 @@ namespace ORNG {
 	void EditorLayer::RenderSkyboxEditor() {
 		if (H1TreeNode("Skybox")) {
 			static std::string hdr_filepath = m_active_scene->skybox.m_hdr_tex_filepath;
-			ImGui::InputText("HDR Filepath", &hdr_filepath);
 
-			wchar_t valid_extensions[MAX_PATH] = L"HDR Files: *.hdr\0*.hdr\0";
+			wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
 			std::function<void()> file_explorer_callback = [this] {
 				m_active_scene->skybox.LoadEnvironmentMap(hdr_filepath);
 			};
 
-			if (ImGui::Button("Load HDR")) {
+			if (ImGui::Button("Load skybox texture")) {
 				ShowFileExplorer(hdr_filepath, valid_extensions, file_explorer_callback);
+			}
+			ImGui::SameLine();
+			ImGui::SmallButton("?");
+			if (ImGui::BeginItemTooltip()) {
+				ImGui::Text("Converts an equirectangular image into a cubemap for use in a skybox. For best results, use HDRI's!");
+				ImGui::EndTooltip();
 			}
 
 		}
@@ -940,8 +988,8 @@ namespace ORNG {
 				auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 				p_transform->SetAbsolutePosition(cam_pos);
 				p_transform->SetAbsoluteOrientation(cam_orientation);
-				mp_editor_camera->AddComponent<EditorCamera>();
-				mp_editor_camera->GetComponent<EditorCamera>()->MakeActive();
+				mp_editor_camera->AddComponent<CameraComponent>();
+				mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
 				m_active_scene->m_physics_system.SetIsPaused(saved_physics_state);
 			}
@@ -951,7 +999,7 @@ namespace ORNG {
 				m_active_scene->m_physics_system.SetIsPaused(!physics_paused);
 
 			ImGui::Text("Editor cam exposure");
-			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<EditorCamera>()->exposure, 0.f, 10.f);
+			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
 
 			if (H2TreeNode("Entities")) {
@@ -1228,8 +1276,6 @@ namespace ORNG {
 
 		static glm::mat4 delta_matrix;
 		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
-		if (!p_cam)
-			p_cam = static_cast<CameraComponent*>(mp_editor_camera->GetComponent<EditorCamera>());
 
 		if (ImGuizmo::Manipulate(&p_cam->GetViewMatrix()[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 

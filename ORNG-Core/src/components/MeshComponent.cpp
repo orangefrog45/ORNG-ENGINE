@@ -10,9 +10,6 @@ namespace ORNG {
 			return;
 		mp_mesh_asset = p_asset;
 
-		for (auto* p_material : p_asset->GetSceneMaterials()) {
-			m_materials.push_back(p_material);
-		}
 	};
 
 
@@ -21,19 +18,10 @@ namespace ORNG {
 		mp_mesh_asset = p_asset;
 		m_materials.clear();
 
-		for (auto* p_material : p_asset->GetSceneMaterials()) {
-			m_materials.push_back(p_material);
-		}
 		DispatchUpdateEvent();
 
 	};
 
-
-	void MeshComponent::SetShaderID(unsigned int id) {
-		m_shader_id = id;
-		if (mp_mesh_asset)
-			DispatchUpdateEvent();
-	}
 
 	void MeshComponent::SetMaterialID(unsigned int index, const Material* p_material) {
 		if (index >= m_materials.size()) {

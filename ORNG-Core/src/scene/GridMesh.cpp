@@ -42,8 +42,8 @@ namespace ORNG {
 
 	void GridMesh::Init() {
 
-		m_vao.vertex_data.positions = { glm::vec3(0.0f, 0.0f, 0.0f),
-										glm::vec3(grid_width, 0.0f, 0.0f) };
+		m_vao.vertex_data.positions = { 0.0f, 0.0f, 0.0f,
+										grid_width, 0.0f, 0.0f };
 		m_vao.FillBuffers();
 
 		m_ssbo_handle = m_vao.GenTransformSSBO();

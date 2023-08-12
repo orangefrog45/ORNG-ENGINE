@@ -1,3 +1,7 @@
+12/8/23:
+-Transform hierarchies fixed
+-Improved editor cam controls
+-Removed useless editor cam class
 
 9/8/23:
 -PhysX GPU support janky fix just copying pre-compiled dlls

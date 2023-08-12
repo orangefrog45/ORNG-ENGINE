@@ -8,6 +8,8 @@
 #include "VAO.h"
 #include "util/UUID.h"
 
+#define ORNG_MAX_MESH_INDICES 50'000'000
+
 namespace ORNG {
 
 	class TransformComponent;

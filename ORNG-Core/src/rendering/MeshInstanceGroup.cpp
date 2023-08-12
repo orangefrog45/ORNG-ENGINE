@@ -68,6 +68,7 @@ namespace ORNG {
 	void MeshInstanceGroup::AddMeshPtr(MeshComponent* ptr) {
 		ptr->mp_instance_group = this;
 		ptr->mp_mesh_asset = m_mesh_asset;
+		ptr->m_materials = m_materials;
 		m_instances.push_back(ptr);
 
 		m_update_world_mat_buffer_flag = true;

@@ -34,6 +34,8 @@ void main() {
 
 #ifdef POINTLIGHT
 	float distance = length(world_pos - u_light_pos);
+	 bias = (1.0 - abs(dot(normalize(vs_normal), normalize(world_pos - u_light_pos)))) * 0.3;
+distance += bias;
 	distance /= u_light_zfar;
 	gl_FragDepth = distance;
 #else

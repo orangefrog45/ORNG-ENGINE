@@ -74,6 +74,7 @@ namespace ORNG {
 					p = p.substr(2, p.size() - 2);
 
 				full_path = dir + "/" + p;
+				std::ranges::for_each(full_path, [](char& c) {if (c == '\\') c = '/'; });
 
 				Texture2DSpec base_spec;
 				base_spec.generate_mipmaps = true;
@@ -123,6 +124,7 @@ namespace ORNG {
 		m_spotlight_component_manager.OnLoad();
 		m_pointlight_component_manager.OnLoad();
 		m_camera_system.OnLoad();
+		m_transform_system.OnLoad();
 
 		if (!SceneSerializer::DeserializeScene(*this, filepath)) {
 			EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
@@ -151,6 +153,7 @@ namespace ORNG {
 		}
 
 		m_registry.clear();
+		m_transform_system.OnUnload();
 		m_physics_system.OnUnload();
 		m_mesh_component_manager.OnUnload();
 		m_spotlight_component_manager.OnUnload();
@@ -336,6 +339,10 @@ namespace ORNG {
 			// Make a copy to preserve original materials
 			*p_added_material = asset->m_original_materials[i];
 			p_added_material->name = std::format("{} - {}", asset->m_filename.substr(asset->m_filename.find_last_of("/") + 1), i);
+		}
+
+		if (asset->m_scene_materials.empty()) { // Give default material
+			asset->m_scene_materials.push_back(GetMaterial(BASE_MATERIAL_ID));
 		}
 
 		// Load into gpu

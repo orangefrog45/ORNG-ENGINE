@@ -45,6 +45,12 @@ namespace ORNG {
 
 		CountVerticesAndIndices(pScene, num_vertices, num_indices);
 
+		if (num_vertices > ORNG_MAX_MESH_INDICES || num_indices > ORNG_MAX_MESH_INDICES) {
+			ORNG_CORE_ERROR("Mesh asset '{0}' exceeds maximum number of vertices, limit is {1}", m_filename, ORNG_MAX_MESH_INDICES);
+			importer.FreeScene();
+			return false;
+		}
+
 		ReserveSpace(num_vertices, num_indices);
 
 		InitAllMeshes(pScene);
@@ -65,6 +71,7 @@ namespace ORNG {
 			NumIndices += m_submeshes[i].num_indices;
 		}
 
+
 	}
 
 	void MeshAsset::ReserveSpace(unsigned int NumVertices, unsigned int NumIndices) {
@@ -82,43 +89,36 @@ namespace ORNG {
 		}
 
 		/* Add on AABB visual to end of positions, doesn't need any normals etc as rendered with flat colour shading */
-		std::array<glm::vec3, 24> aabb_positions = {
-			// -X
-			glm::vec3(m_aabb.min.x, m_aabb.min.y, m_aabb.min.z),
-			glm::vec3(m_aabb.min.x, m_aabb.min.y, m_aabb.max.z),
-			glm::vec3(m_aabb.min.x, m_aabb.max.y, m_aabb.max.z),
-			glm::vec3(m_aabb.min.x, m_aabb.max.y, m_aabb.min.z),
+		std::array<float, 72> aabb_positions = {
+			m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
+			m_aabb.min.x, m_aabb.min.y, m_aabb.max.z,
+			m_aabb.min.x, m_aabb.max.y, m_aabb.max.z,
+			m_aabb.min.x, m_aabb.max.y, m_aabb.min.z,
 
-			// -Y
-			glm::vec3(m_aabb.min.x, m_aabb.min.y, m_aabb.max.z),
-			glm::vec3(m_aabb.min.x, m_aabb.min.y, m_aabb.min.z),
-			glm::vec3(m_aabb.max.x, m_aabb.min.y, m_aabb.min.z),
-			glm::vec3(m_aabb.max.x, m_aabb.min.y, m_aabb.max.z),
+			m_aabb.min.x, m_aabb.min.y, m_aabb.max.z,
+			m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
+			m_aabb.max.x, m_aabb.min.y, m_aabb.min.z,
+			m_aabb.max.x, m_aabb.min.y, m_aabb.max.z,
 
-			// -Z
-			glm::vec3(m_aabb.min.x, m_aabb.min.y, m_aabb.min.z),
-			glm::vec3(m_aabb.min.x, m_aabb.max.y, m_aabb.min.z),
-			glm::vec3(m_aabb.max.x, m_aabb.max.y, m_aabb.min.z),
-			glm::vec3(m_aabb.max.x, m_aabb.min.y, m_aabb.min.z),
+			m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
+			m_aabb.min.x, m_aabb.max.y, m_aabb.min.z,
+			m_aabb.max.x, m_aabb.max.y, m_aabb.min.z,
+			m_aabb.max.x, m_aabb.min.y, m_aabb.min.z,
 
-			// +X
-			glm::vec3(m_aabb.max.x, m_aabb.min.y, m_aabb.max.z),
-			glm::vec3(m_aabb.max.x, m_aabb.min.y, m_aabb.min.z),
-			glm::vec3(m_aabb.max.x, m_aabb.max.y, m_aabb.min.z),
-			glm::vec3(m_aabb.max.x, m_aabb.max.y, m_aabb.max.z),
+			m_aabb.max.x, m_aabb.min.y, m_aabb.max.z,
+			m_aabb.max.x, m_aabb.min.y, m_aabb.min.z,
+			m_aabb.max.x, m_aabb.max.y, m_aabb.min.z,
+			m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
 
-			// +Y
-			glm::vec3(m_aabb.min.x, m_aabb.max.y, m_aabb.max.z),
-			glm::vec3(m_aabb.max.x, m_aabb.max.y, m_aabb.max.z),
-			glm::vec3(m_aabb.max.x, m_aabb.max.y, m_aabb.min.z),
-			glm::vec3(m_aabb.min.x, m_aabb.max.y, m_aabb.min.z),
+			m_aabb.min.x, m_aabb.max.y, m_aabb.max.z,
+			m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
+			m_aabb.max.x, m_aabb.max.y, m_aabb.min.z,
+			m_aabb.min.x, m_aabb.max.y, m_aabb.min.z,
 
-			// +Z
-			glm::vec3(m_aabb.min.x, m_aabb.max.y, m_aabb.max.z),
-			glm::vec3(m_aabb.min.x, m_aabb.min.y, m_aabb.max.z),
-			glm::vec3(m_aabb.max.x, m_aabb.min.y, m_aabb.max.z),
-			glm::vec3(m_aabb.max.x, m_aabb.max.y, m_aabb.max.z),
-
+			m_aabb.min.x, m_aabb.max.y, m_aabb.max.z,
+			m_aabb.min.x, m_aabb.min.y, m_aabb.max.z,
+			m_aabb.max.x, m_aabb.min.y, m_aabb.max.z,
+			m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
 		};
 
 		m_vao.vertex_data.positions.insert(m_vao.vertex_data.positions.end(), aabb_positions.begin(), aabb_positions.end());
@@ -155,11 +155,17 @@ namespace ORNG {
 			if (m_aabb.min.z > pPos.z)
 				m_aabb.min.z = pPos.z;
 
-			m_vao.vertex_data.positions.push_back(glm::vec3(pPos.x, pPos.y, pPos.z));
-			m_vao.vertex_data.normals.push_back(glm::vec3(pNormal.x, pNormal.y, pNormal.z));
-			m_vao.vertex_data.tex_coords.push_back(glm::vec2(pTexCoord.x, pTexCoord.y));
-			m_vao.vertex_data.tangents.push_back(glm::vec3(tangent.x, tangent.y, tangent.z));
-
+			m_vao.vertex_data.positions.push_back(pPos.x);
+			m_vao.vertex_data.positions.push_back(pPos.y);
+			m_vao.vertex_data.positions.push_back(pPos.z);
+			m_vao.vertex_data.normals.push_back(pNormal.x);
+			m_vao.vertex_data.normals.push_back(pNormal.y);
+			m_vao.vertex_data.normals.push_back(pNormal.z);
+			m_vao.vertex_data.tex_coords.push_back(pTexCoord.x);
+			m_vao.vertex_data.tex_coords.push_back(pTexCoord.y);
+			m_vao.vertex_data.tangents.push_back(tangent.x);
+			m_vao.vertex_data.tangents.push_back(tangent.y);
+			m_vao.vertex_data.tangents.push_back(tangent.z);
 
 		}
 

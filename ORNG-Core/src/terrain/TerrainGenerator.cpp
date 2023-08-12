@@ -10,10 +10,10 @@
 namespace ORNG {
 
 	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, unsigned int resolution,
-		float height_scale, glm::vec3 bot_left_coord, VAO::VertexData& output_data, AABB& bounding_box)
+		float height_scale, glm::vec3 bot_left_coord, VertexData3D& output_data, AABB& bounding_box)
 	{
 
-		VAO::VertexData& terrain_data = output_data;
+		VertexData3D& terrain_data = output_data;
 
 		static FastNoiseLite noise;
 		static FastNoiseLite noise2;
@@ -91,11 +91,11 @@ namespace ORNG {
 				bounding_box.min.y = bounding_box.min.y > verts.vert_1.y ? verts.vert_1.y : bounding_box.min.y;
 				bounding_box.min.z = bounding_box.min.z > z ? z : bounding_box.min.z;
 
-				terrain_data.positions.emplace_back(verts.vert_1);
+				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_1);
 				int index_1 = terrain_data.positions.size() - 1;
-				terrain_data.positions.emplace_back(verts.vert_2);
-				terrain_data.positions.emplace_back(verts.vert_3);
-				terrain_data.positions.emplace_back(verts.vert_4);
+				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_2);
+				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_3);
+				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_4);
 
 				terrain_data.indices.emplace_back(index_1 + 1);
 				terrain_data.indices.emplace_back(index_1 + 3);
@@ -113,10 +113,10 @@ namespace ORNG {
 				glm::vec2 br_tex_coord = { adj_x_coord_2, adj_z_coord };
 				glm::vec2 tr_tex_coord = { adj_x_coord_2, adj_z_coord_2 };
 
-				terrain_data.tex_coords.emplace_back(bl_tex_coord);
-				terrain_data.tex_coords.emplace_back(tl_tex_coord);
-				terrain_data.tex_coords.emplace_back(br_tex_coord);
-				terrain_data.tex_coords.emplace_back(tr_tex_coord);
+				VEC_PUSH_VEC2(terrain_data.tex_coords, bl_tex_coord);
+				VEC_PUSH_VEC2(terrain_data.tex_coords, tl_tex_coord);
+				VEC_PUSH_VEC2(terrain_data.tex_coords, br_tex_coord);
+				VEC_PUSH_VEC2(terrain_data.tex_coords, tr_tex_coord);
 
 				/* Calculate normals and tangents */
 				const glm::vec3 edge1 = verts.vert_2 - verts.vert_1;
@@ -198,15 +198,15 @@ namespace ORNG {
 			glm::vec3 averaged_tangent = glm::normalize(glm::vec3(left_tangent + right_tangent + top_tangent + bottom_tangent + original_tangent) / division_num);
 			glm::vec3 averaged_normal = glm::normalize(glm::vec3(left_normal + right_normal + top_normal + bottom_normal + original_normal) / division_num);
 
-			terrain_data.tangents.emplace_back(averaged_tangent);
-			terrain_data.tangents.emplace_back(averaged_tangent);
-			terrain_data.tangents.emplace_back(averaged_tangent);
-			terrain_data.tangents.emplace_back(averaged_tangent);
+			VEC_PUSH_VEC3(terrain_data.tangents, averaged_tangent);
+			VEC_PUSH_VEC3(terrain_data.tangents, averaged_tangent);
+			VEC_PUSH_VEC3(terrain_data.tangents, averaged_tangent);
+			VEC_PUSH_VEC3(terrain_data.tangents, averaged_tangent);
 
-			terrain_data.normals.emplace_back(averaged_normal);
-			terrain_data.normals.emplace_back(averaged_normal);
-			terrain_data.normals.emplace_back(averaged_normal);
-			terrain_data.normals.emplace_back(averaged_normal);
+			VEC_PUSH_VEC3(terrain_data.normals, averaged_normal);
+			VEC_PUSH_VEC3(terrain_data.normals, averaged_normal);
+			VEC_PUSH_VEC3(terrain_data.normals, averaged_normal);
+			VEC_PUSH_VEC3(terrain_data.normals, averaged_normal);
 
 		}
 

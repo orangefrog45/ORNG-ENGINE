@@ -63,6 +63,8 @@ layout(std140, binding = 2) uniform commons{
 	float time_elapsed;
 	float render_resolution_x;
 	float render_resolution_y;
+float cam_zfar;
+float cam_znear;
 } ubo_common;
 
 layout(std140, binding = 0) uniform Matrices{
@@ -96,6 +98,7 @@ vec3 WorldPosFromDepth(float depth) {
 	vec2 normalized_tex_coords = tex_coords / vec2(imageSize(u_output_texture));
     vec4 clipSpacePosition = vec4(normalized_tex_coords * 2.0 - 1.0, z, 1.0);
     vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
+	
 
     // Perspective division
     viewSpacePosition /= viewSpacePosition.w;
@@ -231,7 +234,7 @@ float ShadowCalculationPointlight(PointLight light, int light_index) {
 	vec3 light_to_frag = sampled_world_pos.xyz - light.pos.xyz;
 	float closest_depth = texture(pointlight_depth_sampler, vec4(light_to_frag, light_index)).r * light.max_distance; // Transform normalized depth to range 0, zFar
 	float current_depth = length(light_to_frag);
-	float bias = 0.05;
+	float bias = 0.1;
 	float shadow = int((current_depth - bias) > closest_depth);
 	return shadow;
 }

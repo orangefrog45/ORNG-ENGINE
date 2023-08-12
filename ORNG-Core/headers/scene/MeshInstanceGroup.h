@@ -13,8 +13,8 @@ namespace ORNG {
 		friend class MeshInstancingSystem;
 		friend class Scene;
 		friend class SceneRenderer;
-		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& material_ids) :
-			m_mesh_asset(t_mesh_data), m_materials(material_ids)
+		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& materials) :
+			m_mesh_asset(t_mesh_data), m_materials(materials)
 		{
 			// Setup a transform matrix ssbo for this instance group
 			m_transform_ssbo_handle = t_mesh_data->m_vao.GenTransformSSBO();

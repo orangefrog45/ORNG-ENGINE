@@ -6,15 +6,6 @@ namespace ORNG {
 
 
 
-	struct RelationshipComponent : public Component {
-		RelationshipComponent(SceneEntity* p_entity) : Component(p_entity) {};
-		size_t num_children = 0;
-		entt::entity first{ entt::null };
-		entt::entity prev{ entt::null };
-		entt::entity next{ entt::null };
-		entt::entity parent{ entt::null };
-	};
-
 	class SceneEntity {
 		friend class EditorLayer;
 		friend class Scene;
@@ -83,6 +74,8 @@ namespace ORNG {
 
 			if (current_parent_child == entt::null) {
 				p_parent_comp->first = m_entt_handle;
+				p_parent_comp->num_children++;
+				GetComponent<TransformComponent>()->mp_parent = &mp_scene->m_registry.get<TransformComponent>(p_parent_comp->GetEnttHandle());
 				return;
 			}
 
@@ -95,6 +88,9 @@ namespace ORNG {
 			prev_child_of_parent.next = m_entt_handle;
 			p_comp->prev = entt::entity{ prev_child_of_parent.GetEnttHandle() };
 			p_parent_comp->num_children++;
+
+			// Update transform hierarchy
+			GetComponent<TransformComponent>()->mp_parent = &mp_scene->m_registry.get<TransformComponent>(p_parent_comp->GetEnttHandle());
 		}
 
 		void RemoveParent() {
@@ -121,12 +117,13 @@ namespace ORNG {
 			p_comp->prev = entt::null;
 			p_comp->parent = entt::null;
 
+			GetComponent<TransformComponent>()->mp_parent = nullptr;
 		}
 
 
 		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
 		uint64_t GetSceneUUID() const { return m_scene_uuid; };
-		uint32_t GetEnttHandle() const { return static_cast<uint32_t>(m_entt_handle); };
+		entt::entity GetEnttHandle() const { return m_entt_handle; };
 
 		std::string name = "Entity";
 	private:

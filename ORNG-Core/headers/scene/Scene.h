@@ -75,6 +75,7 @@ namespace ORNG {
 		SpotlightSystem m_spotlight_component_manager{ &m_registry, uuid() };
 		PhysicsSystem m_physics_system{ &m_registry, uuid() };
 		CameraSystem m_camera_system{ &m_registry, uuid() };
+		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };
 
 		entt::registry m_registry;
 

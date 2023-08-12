@@ -28,7 +28,7 @@ namespace ORNG {
 
 	}
 
-	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, unsigned int render_resolution_x, unsigned int render_resolution_y) {
+	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear) {
 		std::array<float, m_common_ubo_size / sizeof(float)> data;
 
 		data[0] = camera_pos.x;
@@ -42,6 +42,8 @@ namespace ORNG {
 		data[8] = FrameTiming::GetTotalElapsedTime();
 		data[9] = render_resolution_x;
 		data[10] = render_resolution_y;
+		data[11] = cam_zfar;
+		data[12] = cam_znear;
 
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);

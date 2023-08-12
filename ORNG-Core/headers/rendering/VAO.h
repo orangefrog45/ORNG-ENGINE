@@ -4,6 +4,13 @@
 
 namespace ORNG {
 
+	struct VertexData3D {
+		std::vector<float> positions;
+		std::vector<float> normals;
+		std::vector<float> tangents;
+		std::vector<float> tex_coords;
+		std::vector<unsigned int> indices;
+	};
 
 	class VAO {
 		friend class GL_StateManager;
@@ -35,15 +42,8 @@ namespace ORNG {
 
 		void DeleteTransformSSBO(unsigned int ssbo_handle);
 
-		struct VertexData {
-			std::vector<glm::vec3> positions;
-			std::vector<glm::vec3> normals;
-			std::vector<glm::vec3> tangents;
-			std::vector<glm::vec2> tex_coords;
-			std::vector<unsigned int> indices;
-		};
 
-		VertexData vertex_data;
+		VertexData3D vertex_data;
 
 	private:
 		enum BUFFER_TYPE {

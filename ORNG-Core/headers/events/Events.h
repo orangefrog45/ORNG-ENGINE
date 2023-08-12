@@ -59,6 +59,9 @@ namespace ORNG::Events {
 		EventListener(const EventListener&) = default;
 		~EventListener() { if (OnDestroy) OnDestroy(); }
 		std::function<void(const T&)> OnEvent = nullptr;
+
+		// Handle used for deregistration, set by eventmanager on listener registration
+		uint32_t GetRegisterID() { return m_entt_handle; }
 	private:
 		// Given upon listener being registered with EventManager
 		uint32_t m_entt_handle = 0;

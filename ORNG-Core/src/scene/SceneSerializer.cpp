@@ -1,6 +1,10 @@
 #include "pch/pch.h"
 
 #include <yaml-cpp/yaml.h>
+#include <bitsery/bitsery.h>
+#include <bitsery/traits/vector.h>
+#include <bitsery/adapter/stream.h>
+
 
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
@@ -8,6 +12,16 @@
 #include "components/ComponentAPI.h"
 #include "rendering/Textures.h"
 #include "core/CodedAssets.h"
+
+/*
+	struct VertexData {
+			std::vector<glm::vec3> positions;
+			std::vector<glm::vec3> normals;
+			std::vector<glm::vec3> tangents;
+			std::vector<glm::vec2> tex_coords;
+			std::vector<unsigned int> indices;
+		};
+*/
 
 
 namespace YAML {
@@ -55,6 +69,14 @@ namespace YAML {
 }
 
 namespace ORNG {
+	template <typename S>
+	void serialize(S& s, VertexData3D& o) {
+		s.container4b(o.positions, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.normals, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.tangents, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.tex_coords, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
+	}
 
 
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
@@ -482,5 +504,26 @@ namespace ORNG {
 		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
 		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
 
+	}
+
+
+
+
+
+
+
+	void SceneSerializer::SerializeVertexDataBinary(const std::string& filepath, const VertexData3D& data) {
+		std::ofstream s{ "res/" + filepath.substr(filepath.find_last_of('/')), s.binary | s.trunc | s.out };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
+			return;
+		}
+		// we cannot use quick serialization function, because streams cannot use
+// writtenBytesCount method
+		bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
+		ser.object(data);
+		// flush to writer
+		ser.adapter().flush();
+		s.close();
 	}
 }

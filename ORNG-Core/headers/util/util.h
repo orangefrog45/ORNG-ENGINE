@@ -3,6 +3,8 @@ namespace ORNG {
 
 #define BREAKPOINT __debugbreak()
 #define ASSERT(x) if (!(x)) __debugbreak()
+#define VEC_PUSH_VEC3(vector, vec3) vector.push_back(vec3.x); vector.push_back(vec3.y); vector.push_back(vec3.z)
+#define VEC_PUSH_VEC2(vector, vec2) vector.push_back(vec2.x); vector.push_back(vec2.y)
 
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 

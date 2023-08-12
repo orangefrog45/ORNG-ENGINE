@@ -1,7 +1,6 @@
 #pragma once
 #include "EngineAPI.h"
 #include "../extern/imgui/imgui.h"
-#include "EditorCamera.h"
 
 namespace physx {
 	class PxMaterial;
@@ -25,6 +24,8 @@ namespace ORNG {
 		void RenderDisplayWindow();
 		void RenderUI();
 		void RenderEditorWindow();
+		// Movement
+		void UpdateEditorCam();
 
 		void RenderGrid();
 		void DoPickingPass();

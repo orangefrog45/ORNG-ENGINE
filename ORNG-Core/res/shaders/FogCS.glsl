@@ -7,7 +7,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in; // invocations
 layout(binding = 1, rgba16f) writeonly uniform image2D fog_texture;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
-layout(binding = 6) uniform sampler2D world_position_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 15) uniform sampler3D fog_noise_sampler;
 layout(binding = 16) uniform sampler2D gbuffer_depth_sampler;
@@ -29,6 +28,8 @@ layout(std140, binding = 2) uniform commons{
 	float time_elapsed;
 	float render_resolution_x;
 	float render_resolution_y;
+float cam_zfar;
+float cam_znear;
 } ubo_common;
 
 struct BaseLight {
@@ -213,12 +214,20 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 
 
 
-vec3 GetRayDirWorldSpace(vec2 tex_coords, float depth) {
-	// Convert to clip-space coordinates
-	vec3 ray_dir = vec3((tex_coords.x * 2.f - 1.f), (tex_coords.y * 2.f - 1.f), depth);
-	ray_dir = (inverse(PVMatrices.projection) * vec4(ray_dir, 1.f)).xyz;
-	ray_dir = normalize(inverse(mat3(PVMatrices.view)) * ray_dir);
-	return ray_dir;
+vec3 GetWorldSpacePos(vec2 tex_coords, float depth) {
+    float z = depth * 2.0 - 1.0;
+
+	vec2 normalized_tex_coords = tex_coords / (vec2(imageSize(fog_texture)));
+    vec4 clipSpacePosition = vec4(normalized_tex_coords * 2.0 - 1.0, z, 1.0);
+    vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
+	
+
+    // Perspective division
+    viewSpacePosition /= viewSpacePosition.w;
+
+    vec4 worldSpacePosition = PVMatrices.inv_view * viewSpacePosition;
+
+    return worldSpacePosition.xyz;
 }
 
 
@@ -258,16 +267,15 @@ void main() {
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy) * 2; //multiplication by 2 as fog texture at half resolution
 
 	float noise_offset = texelFetch(blue_noise_sampler, ((tex_coords.xy / 2) * 7) % textureSize(blue_noise_sampler, 0), 0).r;
-	vec3 frag_world_pos = texelFetch(world_position_sampler, tex_coords, 0).xyz;
-
-
-	vec3 CameraComponent_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float CameraComponent_to_pos_dist = length(CameraComponent_to_frag);
-	float step_distance = CameraComponent_to_pos_dist / float(u_step_count);
-
 
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords, 0).r;
-	vec3 ray_dir = normalize(frag_world_pos - ubo_common.camera_pos.xyz);
+	vec3 frag_world_pos = GetWorldSpacePos(tex_coords / 2, fragment_depth);
+	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
+	float cam_to_frag_dist = length(cam_to_frag);
+	float step_distance = cam_to_frag_dist / float(u_step_count);
+
+
+	vec3 ray_dir = normalize(cam_to_frag);
 
 	vec3 step_pos = ubo_common.camera_pos.xyz + ray_dir * noise_offset * step_distance;
 
@@ -279,8 +287,7 @@ void main() {
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
 		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
-		float fog_density = u_density_coef;
-		//fog_density *= exp(-length(step_pos));
+		float fog_density = noise(fog_sampling_coords) * u_density_coef;
 
 		vec3 slice_light = vec3(0);
 

@@ -27,6 +27,8 @@ layout(std140, binding = 2) uniform commons{
 	float time_elapsed;
 	float render_resolution_x;
 	float render_resolution_y;
+float cam_zfar;
+float cam_znear;
 } ubo_common;
 
 
@@ -107,13 +109,13 @@ void main() {
 
 	vs_tangent = in_tangent;
 	vs_original_normal = vertex_normal;
+
 #ifdef TERRAIN_MODE
 
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_normal = vertex_normal;
 		vs_position = vec4(position + vec3(0.0, cnoise(position.xz * 0.01 + ubo_common.time_elapsed), 0.0) * 10.f, 1.f);
 		gl_Position = PVMatrices.proj_view * vs_position;
-
 		mat3 tbn = CalculateTbnMatrix();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
 
@@ -122,7 +124,6 @@ void main() {
 		vec4 proj_pos = PVMatrices.projection * view_pos;
 		vs_tex_coord = position;
 		vs_position = vec4(position, 1.f);
-
 		gl_Position = proj_pos.xyww;
 #else
 		vs_tex_coord = vec3(tex_coord, 0.f);

@@ -40,7 +40,17 @@ namespace ORNG {
 			group->AddMeshPtr(comp);
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
-			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials);
+			std::vector<const Material*> material_vec;
+			if (comp->m_materials.empty()) {
+				for (auto* p_material : comp->mp_mesh_asset->m_scene_materials) {
+					material_vec.push_back(p_material);
+				}
+			}
+			else {
+				material_vec = comp->m_materials;
+			}
+
+			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, material_vec);
 			m_instance_groups.push_back(group);
 			group->AddMeshPtr(comp);
 		}

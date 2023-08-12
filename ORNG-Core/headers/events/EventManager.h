@@ -33,7 +33,7 @@ namespace ORNG::Events {
 
 			// For safety, upon listener being destroyed the copy is too.
 			listener.OnDestroy = [&listener, entity] {
-				EventManager::DeregisterListener((uint32_t)entity);
+				EventManager::DeregisterListener(entity);
 			};
 		};
 
@@ -50,7 +50,7 @@ namespace ORNG::Events {
 
 			// For safety, upon listener being destroyed the copy is too.
 			listener.OnDestroy = [&listener, entity] {
-				EventManager::DeregisterListener((uint32_t)entity);
+				EventManager::DeregisterListener(entity);
 			};
 		};
 
@@ -75,9 +75,9 @@ namespace ORNG::Events {
 		}
 
 
-		static void DeregisterListener(uint32_t entt_handle) {
-			if (Get().m_registry.valid(entt::entity(entt_handle)))
-				Get().m_registry.destroy(entt::entity(entt_handle));
+		static void DeregisterListener(entt::entity entt_handle) {
+			if (Get().m_registry.valid(entt_handle))
+				Get().m_registry.destroy(entt_handle);
 		};
 
 	private:

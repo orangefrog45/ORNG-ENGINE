@@ -192,8 +192,8 @@ namespace ORNG {
 		desc.subgridSize = 4;
 		desc.spacing = 5;
 		PxTriangleMeshDesc meshDesc;
-		meshDesc.points.count = vao.vertex_data.positions.size();
-		meshDesc.points.stride = sizeof(glm::vec3);
+		meshDesc.points.count = vao.vertex_data.positions.size() / 3;
+		meshDesc.points.stride = sizeof(float) * 3;
 		meshDesc.points.data = (void*)&vao.vertex_data.positions[0];
 
 		meshDesc.triangles.count = vao.vertex_data.indices.size() / 3;

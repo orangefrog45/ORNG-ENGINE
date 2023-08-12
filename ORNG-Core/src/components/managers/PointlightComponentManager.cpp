@@ -12,10 +12,10 @@ namespace ORNG {
 
 		TextureCubemapArraySpec pointlight_depth_spec;
 		pointlight_depth_spec.format = GL_DEPTH_COMPONENT;
-		pointlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
+		pointlight_depth_spec.internal_format = GL_DEPTH_COMPONENT16;
 		pointlight_depth_spec.storage_type = GL_FLOAT;
-		pointlight_depth_spec.min_filter = GL_NEAREST;
-		pointlight_depth_spec.mag_filter = GL_NEAREST;
+		pointlight_depth_spec.min_filter = GL_LINEAR;
+		pointlight_depth_spec.mag_filter = GL_LINEAR;
 		pointlight_depth_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		pointlight_depth_spec.layer_count = 8;
 		pointlight_depth_spec.width = 512;

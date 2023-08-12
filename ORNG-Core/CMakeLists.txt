@@ -102,6 +102,7 @@ headers
 extern/fastnoise2/include
 extern/yaml/include
 extern/plog/include
+extern/bitsery/include
 )
 
 set(TARGET_BUILD_PLATFORM "windows")
@@ -131,6 +132,8 @@ set( PHYSX_LIBRARIES
 	PhysXCommon
 	PhysXFoundation
 )
+
+
 
 
 #set(PX_COPY_EXTERNAL_DLL OFF CACHE BOOL "Physx copies external dlls" FORCE)
@@ -163,3 +166,5 @@ ${PHYSX_LIBRARIES}
 target_precompile_headers(ORNG_CORE PUBLIC
 headers/pch/pch.h
 )
+
+
