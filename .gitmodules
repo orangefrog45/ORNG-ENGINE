@@ -28,3 +28,6 @@
 [submodule "ORNG-Core/extern/stb"]
 	path = ORNG-Core/extern/stb
 	url = https://github.com/nothings/stb
+[submodule "ORNG-Core/extern/bitsery"]
+	path = ORNG-Core/extern/bitsery
+	url = https://github.com/fraillt/bitsery
