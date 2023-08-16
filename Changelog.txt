@@ -1,4 +1,11 @@
+16/8/23:
+-Async mesh/texture loading
+-Asset management stuff in its own singleton class, moved out of Scene
+-ImGui drag and drop for materials/textures instead of scuffed system
+
+
 12/8/23:
+-Vertex data format changes - loose floats used instead of vectors
 -Transform hierarchies fixed
 -Improved editor cam controls
 -Removed useless editor cam class

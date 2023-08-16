@@ -112,13 +112,13 @@ mat3 CalculateTbnMatrixTransform() {
 }
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
-	vec4 albedo_col = vec4(texture(diffuse_sampler, tex_coord.xy).rgb * u_material.base_color_and_metallic.rgb, 1.f);
+vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
+	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color_and_metallic.rgb, sampled_albedo.a);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 
 	if (u_emissive_sampler_active) {
 		vec4 sampled_col = texture(emissive_sampler, tex_coord);
 		albedo_col += vec4(sampled_col.rgb * u_material.emissive_strength * sampled_col.w, 0.0);
-		albedo_col = vec4(albedo_col.rgb, sampled_col.w);
 	}
 
 	return albedo_col;
@@ -156,8 +156,7 @@ void main() {
 		normal = vec4(normalize(vs_normal), 1.0);
 	}
 
-		
-	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
+	albedo = vec4(CalculateAlbedoAndEmissive(adj_tex_coord).rgb, 1.0);
 	shader_id = u_shader_id;
 	albedo.w = 1.0;
 #endif

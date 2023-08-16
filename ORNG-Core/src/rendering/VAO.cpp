@@ -45,8 +45,6 @@ namespace ORNG {
 			glVertexAttribPointer(TANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		}
 
-		GL_StateManager::BindVAO(*this);
-
 	}
 
 	unsigned int VAO::GenTransformSSBO() {

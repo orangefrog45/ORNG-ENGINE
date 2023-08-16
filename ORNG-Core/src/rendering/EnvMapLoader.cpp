@@ -76,8 +76,6 @@ namespace ORNG {
 		stbi_flip_vertically_on_write(1);
 
 		for (unsigned int i = 0; i < 6; i++) { // Check if diffuse prefilter has already been created and load it, or create it and save it, then load it.
-
-
 			mp_diffuse_prefilter_shader->SetUniform("view", view_matrices[i]);
 			mp_output_fb->BindTexture2D(skybox.m_diffuse_prefilter_map.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
 			GL_StateManager::DefaultClearBits();
@@ -157,7 +155,7 @@ namespace ORNG {
 
 		hdr_texture.SetSpec(hdr_spec);
 
-		if (!hdr_texture.LoadFromFile())
+		if (hdr_texture.LoadFromFile()->data_type == TextureFileData::DataType::INVALID)
 			hdr_texture = CodedAssets::GetBaseTexture();
 
 		TextureCubemapSpec hdr_cubemap_spec;
@@ -173,10 +171,11 @@ namespace ORNG {
 
 
 		TextureCubemapSpec specular_prefilter_spec = hdr_cubemap_spec;
-		specular_prefilter_spec.width = 256;
-		specular_prefilter_spec.height = 256;
+		specular_prefilter_spec.width = 512;
+		specular_prefilter_spec.height = 512;
 		specular_prefilter_spec.generate_mipmaps = true;
 		specular_prefilter_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		specular_prefilter_spec.mag_filter = GL_LINEAR;
 
 
 		Texture2DSpec brdf_convolution_spec;
@@ -224,7 +223,7 @@ namespace ORNG {
 
 		ConvertHDR_ToSkybox(hdr_texture, skybox.m_skybox_tex, captureViews, captureProjection);
 		LoadDiffusePrefilter(skybox, diffuse_prefilter_spec, captureViews, captureProjection);
-		GenSpecularPrefilter(skybox, diffuse_prefilter_spec, captureViews, captureProjection);
+		GenSpecularPrefilter(skybox, specular_prefilter_spec, captureViews, captureProjection);
 		LoadBRDFConvolution(skybox.m_brdf_convolution_lut, brdf_convolution_spec);
 
 		glEnable(GL_CULL_FACE);

@@ -14,6 +14,7 @@
 #include "physics/Physics.h"
 #include "rendering/EnvMapLoader.h"
 #include "core/CodedAssets.h"
+#include "core/AssetManager.h"
 
 
 namespace ORNG {
@@ -56,6 +57,7 @@ namespace ORNG {
 		Physics::Init();
 		EnvMapLoader::Init();
 		SceneRenderer::Init();
+		AssetManager::Init();
 		layer_stack.Init();
 
 

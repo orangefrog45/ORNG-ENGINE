@@ -53,6 +53,7 @@ src/util/Log.cpp
 src/util/Timers.cpp
 src/util/TimeStep.cpp
 src/util/UUID.cpp
+src/core/AssetManager.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx512.cpp

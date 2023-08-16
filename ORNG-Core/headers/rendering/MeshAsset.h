@@ -16,7 +16,6 @@ namespace ORNG {
 
 	class MeshAsset {
 	public:
-		friend class Scene;
 		friend class Renderer;
 		friend class EditorLayer;
 		friend class MeshInstanceGroup;
@@ -24,6 +23,8 @@ namespace ORNG {
 		friend class MeshInstancingSystem;
 		friend class SceneSerializer;
 		friend class CodedAssets;
+		friend class AssetManager;
+
 
 		MeshAsset() = delete;
 		MeshAsset(const std::string& filename) : m_filename(filename) {};

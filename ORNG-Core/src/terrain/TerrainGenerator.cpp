@@ -92,7 +92,7 @@ namespace ORNG {
 				bounding_box.min.z = bounding_box.min.z > z ? z : bounding_box.min.z;
 
 				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_1);
-				int index_1 = terrain_data.positions.size() - 1;
+				int index_1 = (terrain_data.positions.size() - 3) / 3;
 				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_2);
 				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_3);
 				VEC_PUSH_VEC3(terrain_data.positions, verts.vert_4);

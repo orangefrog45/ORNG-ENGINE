@@ -1,6 +1,8 @@
 #include "pch/pch.h"
 #include "components/ComponentSystems.h"
 #include "scene/SceneEntity.h"
+#include "core/AssetManager.h"
+#include "core/CodedAssets.h"
 
 namespace ORNG {
 
@@ -73,7 +75,17 @@ namespace ORNG {
 			OnMeshEvent(t_event);
 		};
 
+		m_asset_listener.OnEvent = [this](const Events::ProjectEvent& t_event) {
+			if (t_event.event_type == Events::ProjectEventType::MATERIAL_DELETED) {
+				OnMaterialDeletion(reinterpret_cast<Material*>(t_event.data_payload));
+			}
+			else if (t_event.event_type == Events::ProjectEventType::MESH_DELETED) {
+				OnMeshAssetDeletion(reinterpret_cast<MeshAsset*>(t_event.data_payload));
+			}
+		};
+
 		Events::EventManager::RegisterListener(m_mesh_listener);
+		Events::EventManager::RegisterListener(m_asset_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 
 
@@ -144,6 +156,11 @@ namespace ORNG {
 
 	void MeshInstancingSystem::OnMeshAssetDeletion(MeshAsset* p_asset) {
 		// Remove asset from all components using it
+		for (auto [entity, mesh] : mp_registry->view<MeshComponent>().each()) {
+			if (mesh.GetMeshData() == p_asset)
+				mesh.SetMeshAsset(&CodedAssets::GetCubeAsset());
+		}
+
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			MeshInstanceGroup* group = m_instance_groups[i];
 
@@ -160,7 +177,7 @@ namespace ORNG {
 		}
 	}
 
-	void MeshInstancingSystem::OnMaterialDeletion(Material* p_material, Material* p_replacement_material) {
+	void MeshInstancingSystem::OnMaterialDeletion(Material* p_material) {
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			MeshInstanceGroup* group = m_instance_groups[i];
 
@@ -170,7 +187,7 @@ namespace ORNG {
 			for (int y = 0; y < group->m_materials.size(); y++) {
 				const Material*& p_group_mat = group->m_materials[y];
 				if (p_group_mat == p_material) {
-					p_group_mat = p_replacement_material;
+					p_group_mat = AssetManager::GetEmptyMaterial();
 					material_indices.push_back(y);
 				}
 			}
@@ -181,7 +198,7 @@ namespace ORNG {
 			// Replace material in mesh if it contains it
 			for (auto* p_mesh_comp : group->m_instances) {
 				for (auto valid_replacement_index : material_indices) {
-					p_mesh_comp->m_materials[valid_replacement_index] = p_replacement_material;
+					p_mesh_comp->m_materials[valid_replacement_index] = AssetManager::GetEmptyMaterial();
 				}
 
 			}

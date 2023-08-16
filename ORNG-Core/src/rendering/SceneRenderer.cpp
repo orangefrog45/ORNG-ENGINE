@@ -415,7 +415,7 @@ namespace ORNG {
 
 				SetGBufferMaterial(p_material, mp_gbuffer_shader_mesh);
 
-				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
+				Renderer::DrawMeshInstanced(group->m_mesh_asset, group->GetInstanceCount());
 			}
 		}
 

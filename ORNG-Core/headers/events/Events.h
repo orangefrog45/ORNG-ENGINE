@@ -13,7 +13,6 @@ namespace ORNG::Events {
 			ENGINE_RENDER = 1,
 			ENGINE_UPDATE = 2,
 			WINDOW_RESIZE = 3,
-			TRANSFORM_UPDATE = 4,
 		};
 
 
@@ -37,11 +36,22 @@ namespace ORNG::Events {
 		glm::ivec2 mouse_pos_old;
 	};
 
+	enum class ProjectEventType {
+		MATERIAL_DELETED,
+		MESH_DELETED,
+	};
+
+	struct ProjectEvent : public Event {
+		ProjectEventType event_type;
+		uint8_t* data_payload = nullptr; // Data payload will be a ptr to the asset being modified if it's an asset event
+	};
+
 	enum class ECS_EventType {
 		COMP_ADDED,
 		COMP_UPDATED,
 		COMP_DELETED,
 	};
+
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
 		ECS_EventType event_type;

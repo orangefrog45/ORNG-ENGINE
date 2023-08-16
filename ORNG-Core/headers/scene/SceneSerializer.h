@@ -1,4 +1,5 @@
 #pragma once
+#include "util/UUID.h"
 
 namespace YAML {
 	class Emitter;
@@ -10,7 +11,9 @@ namespace ORNG {
 	class Scene;
 	class SceneEntity;
 	class VAO;
+	class Texture2D;
 	struct VertexData3D;
+	struct TextureFileData;
 
 
 	class SceneSerializer {
@@ -21,10 +24,17 @@ namespace ORNG {
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
 
-		static void SerializeVertexDataBinary(const std::string& filepath, const VertexData3D& data);
+		static void SerializeMeshAssetBinary(const std::string& filepath, const VertexData3D& data);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);
+
+
+		template <typename S>
+		void serialize(S& s, UUID& o) {
+			s.value8b(o.m_uuid);
+		}
+
 	};
 }

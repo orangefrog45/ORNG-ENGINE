@@ -10,6 +10,7 @@
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
 #include "core/CodedAssets.h"
+#include "core/AssetManager.h"
 
 
 namespace ORNG {
@@ -214,10 +215,10 @@ namespace ORNG {
 
 		// Camera rotation
 		static glm::vec2 last_mouse_pos;
-		if (ImGui::IsMouseClicked(0))
+		if (ImGui::IsMouseClicked(1))
 			last_mouse_pos = Window::GetMousePos();
 
-		if (!p_cam->mouse_locked && ImGui::IsMouseDown(0)) {
+		if (!p_cam->mouse_locked && ImGui::IsMouseDown(1)) {
 			glm::vec2 mouse_coords = Window::GetMousePos();
 			float rotation_speed = 0.005f;
 			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
@@ -236,6 +237,8 @@ namespace ORNG {
 		p_cam->UpdateFrustum();
 	}
 
+
+
 	void EditorLayer::RenderProfilingTimers() {
 		static bool display_profiling_timers = ProfilingTimers::AreTimersEnabled();
 
@@ -249,6 +252,9 @@ namespace ORNG {
 			ProfilingTimers::UpdateTimers(FrameTiming::GetTimeStep());
 		}
 	}
+
+
+
 
 	void EditorLayer::RenderUI() {
 		ORNG_PROFILE_FUNC();
@@ -278,18 +284,6 @@ namespace ORNG {
 		RenderSceneGraph();
 		ShowAssetManager();
 		RenderEditorWindow();
-
-		// Drag popup
-		if (mp_dragged_material) {
-			ImGui::SetNextWindowPos(ImVec2(25 + ImGui::GetMousePos().x, 25 + ImGui::GetMousePos().y));
-			ImGui::SetNextWindowSize(ImVec2(50, 50));
-			ImGui::SetNextWindowBgAlpha(0.25f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::Begin("##dragging", nullptr, ImGuiWindowFlags_::ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
-			ImGui::Image(ImTextureID(mp_dragged_material->base_color_texture ? mp_dragged_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle()), ImVec2(50, 50));
-			ImGui::End();
-			ImGui::PopStyleVar();
-		}
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -479,10 +473,6 @@ namespace ORNG {
 
 	void EditorLayer::ShowAssetManager() {
 
-
-		static std::string error_message = "";
-		static std::string path = "./res/meshes";
-
 		int window_height = glm::clamp(static_cast<int>(Window::GetHeight()) / 4, 100, 500);
 		int window_width = Window::GetWidth() - 800;
 		ImVec2 delete_button_size{ 50, 50 };
@@ -500,50 +490,47 @@ namespace ORNG {
 		{
 			if (ImGui::Button("Add mesh")) // MESH FILE EXPLORER
 			{
-				// error message display
-				ImGui::TextColored(ImVec4(1, 0, 0, 1), error_message.c_str());
 
 				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx\0*.obj;*.fbx\0";
 
 				//setting up file explorer callbacks
-				std::function<void()> success_callback = [this] {
-					MeshAsset* asset = m_active_scene->CreateMeshAsset(path);
-
-					if (asset->LoadMeshData()) {
-						SceneSerializer::SerializeVertexDataBinary(asset->GetFilename(), asset->GetVAO().vertex_data);
-						m_active_scene->LoadMeshAssetIntoGPU(asset);
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					MeshAsset* asset = AssetManager::CreateMeshAsset(filepath);
+					AssetManager::LoadMeshAsset(asset);
+					/*if (asset->LoadMeshData()) {
+						//SceneSerializer::SerializeVertexDataBinary(asset->GetFilename(), asset->GetVAO().vertex_data);
 						error_message.clear();
 					}
 					else {
-						m_active_scene->DeleteMeshAsset(asset);
+						AssetManager::DeleteMeshAsset(asset->uuid());
 						error_message = "Failed to load mesh asset";
-					}
+					}*/
 
 				};
 
 
-				ShowFileExplorer(path, valid_extensions, success_callback);
+				ShowFileExplorer("", valid_extensions, success_callback);
 
 			} // END MESH FILE EXPLORER
 
 
 			if (ImGui::BeginTable("Meshes", 4, ImGuiTableFlags_Borders)) // MESH VIEWING TABLE
 			{
-				for (auto& data : m_active_scene->m_mesh_assets)
+				for (auto* p_mesh_asset : AssetManager::Get().m_meshes)
 				{
-					ImGui::PushID(data);
+					ImGui::PushID(p_mesh_asset);
 					ImGui::TableNextColumn();
-					ImGui::Text(data->GetFilename().substr(data->GetFilename().find_last_of('/') + 1).c_str());
+					ImGui::Text(p_mesh_asset->GetFilename().substr(p_mesh_asset->GetFilename().find_last_of('/') + 1).c_str());
 					ImGui::SameLine();
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1, 0, 0, 0.5));
 
-					if (ImGui::SmallButton("X"))
+					if (p_mesh_asset->m_is_loaded && ImGui::SmallButton("X"))
 					{
-						m_active_scene->DeleteMeshAsset(data);
+						AssetManager::DeleteMeshAsset(p_mesh_asset);
 					}
 
 					ImGui::PopStyleColor();
-					if (data->m_is_loaded)
+					if (p_mesh_asset->m_is_loaded)
 						ImGui::TextColored(ImVec4(0, 1, 0, 1), "LOADED");
 					else
 						ImGui::TextColored(ImVec4(1, 0, 0, 1), "NOT LOADED");
@@ -560,35 +547,28 @@ namespace ORNG {
 
 		if (ImGui::BeginTabItem("Textures")) // TEXTURE TAB
 		{
-
 			if (ImGui::Button("Add texture")) {
-				ImGui::TextColored(ImVec4(1, 0, 0, 1), error_message.c_str());
 
 				static std::string file_extension = "";
 				wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
-
-				//setting up file explorer callbacks
-				static std::function<void()> success_callback = [this] {
-					m_current_2d_tex_spec.filepath = path;
-					m_active_scene->CreateTexture2DAsset(m_current_2d_tex_spec);
-					error_message.clear();
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					m_current_2d_tex_spec.filepath = filepath;
+					AssetManager::CreateTexture2D(m_current_2d_tex_spec);
 				};
-
-
-				ShowFileExplorer(path, valid_extensions, success_callback);
+				ShowFileExplorer("", valid_extensions, success_callback);
 
 			}
 
 
 			if (ImGui::TreeNode("Texture viewer")) // TEXTURE VIEWING TREE NODE
 			{
-
+				static Texture2D* p_dragged_texture = nullptr;
 				// Create table for textures 
 				if (ImGui::BeginTable("Textures", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX)); // TEXTURE VIEWING TABLE
 				{
 					// Push textures into table 
-					for (auto* p_texture : m_active_scene->m_texture_2d_assets)
+					for (auto* p_texture : AssetManager::Get().m_2d_textures)
 					{
 						ImGui::PushID(p_texture);
 						ImGui::TableNextColumn();
@@ -598,9 +578,12 @@ namespace ORNG {
 							m_current_2d_tex_spec = mp_selected_texture->m_spec;
 						};
 
-						if (ImGui::IsItemActivated()) {
-							mp_dragged_texture = p_texture;
+						if (ImGui::BeginDragDropSource()) {
+							p_dragged_texture = p_texture;
+							ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
+							ImGui::EndDragDropSource();
 						}
+
 
 
 						ImGui::Text(p_texture->m_spec.filepath.substr(p_texture->m_spec.filepath.find_last_of('/') + 1).c_str());
@@ -619,22 +602,28 @@ namespace ORNG {
 
 
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
+			static Material* p_dragged_material = nullptr;
 			if (ImGui::Button("Create material")) {
-				m_active_scene->CreateMaterial();
+				AssetManager::CreateMaterial();
 			}
-
 			if (ImGui::BeginTable("Material viewer", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(window_width, window_height))) { //MATERIAL VIEWING TABLE
 
-				for (auto* p_material : m_active_scene->m_materials) {
+				for (auto* p_material : AssetManager::Get().m_materials) {
 
 					ImGui::TableNextColumn();
 					ImGui::PushID(p_material);
 
 					bool deletion_flag = false;
 					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->m_texture_obj : CodedAssets::GetBaseTexture().GetTextureHandle();
+
 					if (ImGui::ImageButton(ImTextureID(tex_id), button_size))
 						mp_selected_material = p_material;
 
+					if (ImGui::BeginDragDropSource()) {
+						p_dragged_material = p_material;
+						ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
+						ImGui::EndDragDropSource();
+					}
 
 					// Deletion popup
 					if (ImGui::IsItemHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
@@ -643,33 +632,23 @@ namespace ORNG {
 
 					if (ImGui::BeginPopup("my_select_popup"))
 					{
-						if (p_material->uuid() != Scene::BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
+						if (p_material->uuid() != ORNG_REPLACEMENT_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
 							deletion_flag = true;
 						}
 						if (ImGui::Selectable("Duplicate")) {
-							auto* p_new_material = m_active_scene->CreateMaterial();
+							auto* p_new_material = AssetManager::CreateMaterial();
 							*p_new_material = *p_material;
 						}
 						ImGui::EndPopup();
 					}
-					// End deletion popup
 
-					if (ImGui::IsItemActive()) {
-						if (!ImGui::IsItemHovered())
-							mp_dragged_material = p_material;
 
-						mp_selected_material = p_material;
-					}
-
-					if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-						mp_dragged_material = nullptr;
 
 					ImGui::Text(p_material->name.c_str());
 
 					if (deletion_flag) {
-						m_active_scene->DeleteMaterial(p_material->uuid());
+						AssetManager::DeleteMaterial(p_material->uuid());
 						mp_selected_material = p_material == mp_selected_material ? nullptr : mp_selected_material;
-						mp_dragged_material = p_material == mp_dragged_material ? nullptr : mp_dragged_material;
 					}
 
 					ImGui::PopID();
@@ -705,7 +684,7 @@ namespace ORNG {
 			static int selected_wrap_mode = m_current_2d_tex_spec.wrap_params == GL_REPEAT ? 0 : 1;
 			static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_LINEAR ? 0 : 1;
 
-			ImGui::Checkbox("SRGB", &m_current_2d_tex_spec.srgb_space);
+			ImGui::Checkbox("SRGB", reinterpret_cast<bool*>(&m_current_2d_tex_spec.srgb_space));
 
 			ImGui::Text("Wrap mode");
 			ImGui::SameLine();
@@ -734,16 +713,15 @@ namespace ORNG {
 
 	void EditorLayer::RenderSkyboxEditor() {
 		if (H1TreeNode("Skybox")) {
-			static std::string hdr_filepath = m_active_scene->skybox.m_hdr_tex_filepath;
 
 			wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
-			std::function<void()> file_explorer_callback = [this] {
-				m_active_scene->skybox.LoadEnvironmentMap(hdr_filepath);
+			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
+				m_active_scene->skybox.LoadEnvironmentMap(filepath);
 			};
 
 			if (ImGui::Button("Load skybox texture")) {
-				ShowFileExplorer(hdr_filepath, valid_extensions, file_explorer_callback);
+				ShowFileExplorer("", valid_extensions, file_explorer_callback);
 			}
 			ImGui::SameLine();
 			ImGui::SmallButton("?");
@@ -813,9 +791,6 @@ namespace ORNG {
 		}
 
 	window_end:
-		if (!Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_1))
-			// Reset drag if mouse not held down
-			mp_dragged_texture = nullptr;
 
 		ImGui::End();
 	}
@@ -969,10 +944,8 @@ namespace ORNG {
 				SceneSerializer::SerializeScene(*m_active_scene, "scene.yml");
 			}
 			if (ImGui::Button("Load")) {
-				mp_dragged_material = nullptr;
 				mp_selected_material = nullptr;
 				mp_selected_texture = nullptr;
-				mp_dragged_texture = nullptr;
 				m_selected_entity_ids.clear();
 				bool saved_physics_state = m_active_scene->m_physics_system.GetIsPaused();
 
@@ -1084,22 +1057,6 @@ namespace ORNG {
 				if (H2TreeNode("Mesh component")) {
 					ImGui::Text("Mesh asset name");
 					ImGui::SameLine();
-					static std::string input_filename;
-					ImGui::InputText("##filename input", &input_filename);
-
-					if (ImGui::Button("Link asset")) {
-
-						for (auto p_mesh_asset : m_active_scene->m_mesh_assets) {
-							std::string mesh_filename = p_mesh_asset->GetFilename().substr(p_mesh_asset->GetFilename().find_last_of('/') + 1);
-							std::transform(mesh_filename.begin(), mesh_filename.end(), mesh_filename.begin(), ::toupper);
-							std::transform(input_filename.begin(), input_filename.end(), input_filename.begin(), ::toupper);
-
-							if (mesh_filename == input_filename) {
-								meshc->SetMeshAsset(p_mesh_asset);
-							}
-
-						}
-					};
 
 					if (meshc->mp_mesh_asset) {
 						RenderMeshComponentEditor(meshc);
@@ -1322,38 +1279,84 @@ namespace ORNG {
 
 	Material* EditorLayer::RenderMaterialComponent(const Material* p_material) {
 		Material* ret = nullptr;
-		if (mp_dragged_material) { // Highlight as drag-drop target
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1, 1, 1, 1));
-		}
 
 		if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle()), ImVec2(100, 100))) {
-			mp_selected_material = m_active_scene->GetMaterial(p_material->uuid());
+			mp_selected_material = AssetManager::GetMaterial(p_material->uuid());
 		};
 
-		if (ImGui::IsItemHovered() && mp_dragged_material) {
-			ret = mp_dragged_material;
-			ImGui::PopStyleColor();
-			mp_dragged_material = nullptr;
-		}
-
-		if (mp_dragged_material) {
-			ImGui::PopStyleColor();
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
+				if (p_payload->DataSize == sizeof(Material*))
+					ret = *static_cast<Material**>(p_payload->Data);
+			}
+			ImGui::EndDragDropTarget();
 		}
 
 		ImGui::Text(p_material->name.c_str());
 		return ret;
 	}
 
+	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
+		ImGui::PushID(p_tex);
+		if (p_tex) {
+			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
+			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75))) {
+				mp_selected_texture = p_tex;
+				m_current_2d_tex_spec = p_tex->m_spec;
+			};
+
+		}
+		else {
+			ImGui::Text(std::format("{} texture - NONE", name).c_str());
+			ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("TEXTURE")) {
+				if (p_payload->DataSize == sizeof(Texture2D*))
+					p_tex = *static_cast<Texture2D**>(p_payload->Data);
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		if (ImGui::IsItemHovered()) {
+			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) // Delete texture from material
+				p_tex = nullptr;
+		}
+
+		ImGui::PopID();
+	}
+
+
 
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
 
 		ImGui::PushID(comp);
+		static std::string asset_name;
+
+		ImGui::InputText("Mesh asset", &asset_name);
+		if (ImGui::Button("Set")) {
+			for (auto* asset : AssetManager::Get().m_meshes) {
+				std::string current_asset_name = asset->m_filename;
+				for (auto& c : asset_name) {
+					c = std::toupper(c);
+				}
+				for (auto& c : current_asset_name) {
+					c = std::toupper(c);
+				}
+
+				if (current_asset_name.find(asset_name) != std::string::npos) {
+					ORNG_CORE_TRACE(asset->m_filename);
+					comp->SetMeshAsset(asset);
+				}
+			}
+		}
+
 		for (int i = 0; i < comp->m_materials.size(); i++) {
 			auto p_material = comp->m_materials[i];
 			ImGui::PushID(i);
 
-			if (Material* p_new_material = RenderMaterialComponent(p_material)) {
-				// Needs to be re-sorted as the material has changed
+			if (auto* p_new_material = RenderMaterialComponent(p_material)) {
 				comp->SetMaterialID(i, p_new_material);
 			}
 
@@ -1437,7 +1440,7 @@ namespace ORNG {
 			ImGui::InputInt("Seed", &terrain_seed);
 			m_active_scene->terrain.m_seed = terrain_seed;
 
-			if (Material* p_new_material = RenderMaterialComponent(m_active_scene->terrain.mp_material))
+			if (auto* p_new_material = RenderMaterialComponent(m_active_scene->terrain.mp_material))
 				m_active_scene->terrain.mp_material = p_new_material;
 
 			if (ImGui::Button("Reload"))
@@ -1575,7 +1578,7 @@ namespace ORNG {
 
 
 
-	void EditorLayer::ShowFileExplorer(std::string& path_name, wchar_t extension_filter[], std::function<void()> valid_file_callback) {
+	void EditorLayer::ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback) {
 		// Create an OPENFILENAMEW structure
 		// Create an OPENFILENAMEW structure
 		OPENFILENAMEW ofn;
@@ -1612,14 +1615,17 @@ namespace ORNG {
 				// Construct the full file path
 				std::wstring filePath = single_file ? folderPath : folderPath + L"\\" + currentFileName;
 
-				path_name = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(filePath);
+				std::string path_name = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(filePath);
 				std::ranges::for_each(path_name, [](char& c) { c = c == '\\' ? '/' : c; });
 				//path_name.erase(0, path_name.find("/res/"));
 				//path_name = "." + path_name;
 
 				// Reset path to stop relative paths breaking
 				std::filesystem::current_path(prev_path);
-				valid_file_callback();
+				if (path_name.size() <= ORNG_MAX_FILEPATH_SIZE)
+					valid_file_callback(path_name);
+				else
+					ORNG_CORE_ERROR("Path name '{0}' exceeds maximum path length limit : {1}", path_name, ORNG_MAX_FILEPATH_SIZE);
 
 				// Move to the next file name
 				currentFileName += wcslen(currentFileName) + 1;
@@ -1670,30 +1676,6 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
-		ImGui::PushID(p_tex);
-		if (p_tex) {
-			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
-			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75))) {
-				mp_selected_texture = p_tex;
-				m_current_2d_tex_spec = p_tex->m_spec;
-			};
-		}
-		else {
-			ImGui::Text(std::format("{} texture - NONE", name).c_str());
-			ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
-		}
-
-		if (ImGui::IsItemHovered()) {
-			if (mp_dragged_texture)
-				p_tex = mp_dragged_texture;
-
-			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2))
-				p_tex = nullptr;
-		}
-
-		ImGui::PopID();
-	}
 
 	bool EditorLayer::ClampedFloatInput(const char* name, float* p_val, float min, float max) {
 		float val = *p_val;

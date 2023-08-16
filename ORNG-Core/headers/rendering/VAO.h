@@ -29,6 +29,10 @@ namespace ORNG {
 		*/
 		void FillBuffers();
 
+		uint32_t GetHandle() const {
+			return m_vao_handle;
+		}
+
 		// Generate SSBO to hold world transforms, call each time a new MeshInstanceGroup is created as transforms between them need to be seperated
 		[[nodiscard]] unsigned int GenTransformSSBO();
 

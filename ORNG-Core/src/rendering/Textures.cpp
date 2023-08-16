@@ -7,7 +7,7 @@
 namespace ORNG {
 
 
-	bool TextureBase::LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer) {
+	std::unique_ptr<TextureFileData> TextureBase::LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer) {
 
 		stbi_set_flip_vertically_on_load(1);
 
@@ -19,7 +19,7 @@ namespace ORNG {
 
 		if (image_data == nullptr) {
 			ORNG_CORE_ERROR("Can't load texture from '{0}', - '{1}'", filepath.c_str(), stbi_failure_reason());
-			return false;
+			return  std::make_unique<TextureFileData>();
 		}
 
 		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
@@ -46,22 +46,21 @@ namespace ORNG {
 		default:
 			ORNG_CORE_ERROR("Failed loading texture from '{0}', unsupported number of channels", filepath);
 			stbi_image_free(image_data);
-			return false;
+			return  std::make_unique<TextureFileData>();
 		}
 
 		glTexImage2D(target, 0, internal_format, width, height, 0, format, GL_FLOAT, image_data);
 
-		stbi_image_free(image_data);
 
 		if (base_spec->generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
 
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
-		return true;
+		return std::make_unique<TextureFileData>(image_data, width, height, bpp);
 	}
 
-	bool TextureBase::LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer) {
+	std::unique_ptr<TextureFileData> TextureBase::LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer) {
 
 		stbi_set_flip_vertically_on_load(1);
 
@@ -73,7 +72,7 @@ namespace ORNG {
 
 		if (image_data == nullptr) {
 			ORNG_CORE_ERROR("Can't load texture from '{0}', - '{1}'", filepath.c_str(), stbi_failure_reason());
-			return false;
+			return  std::make_unique<TextureFileData>();
 		}
 
 		GLenum internal_format;
@@ -109,28 +108,27 @@ namespace ORNG {
 		default:
 			ORNG_CORE_ERROR("Failed loading texture from '{0}', unsupported number of channels", filepath);
 			stbi_image_free(image_data);
-			return false;
+			return  std::make_unique<TextureFileData>();
 		}
 
 		glTexImage2D(target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
-		stbi_image_free(image_data);
 
 		if (base_spec->generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
-		return true;
+		return  std::make_unique<TextureFileData>(image_data, width, height, bpp);
 	}
 
 
-	bool Texture2D::LoadFromFile() {
+	std::unique_ptr<TextureFileData> Texture2D::LoadFromFile() {
 
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
 			ORNG_CORE_ERROR("2D Texture failed loading: Invalid spec");
-			return false;
+			return std::make_unique<TextureFileData>();
 		}
 
-		bool ret = true;
+		std::unique_ptr<TextureFileData> ret{nullptr};
 
 		if (m_spec.storage_type == GL_FLOAT)
 			ret = LoadFloatImageFile(m_spec.filepath, GL_TEXTURE_2D, static_cast<TextureBaseSpec*>(&m_spec));
@@ -215,9 +213,9 @@ namespace ORNG {
 			bool ret = true;
 
 			if (m_spec.storage_type == GL_FLOAT)
-				ret = LoadFloatImageFile(m_spec.filepaths[i], GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, static_cast<TextureBaseSpec*>(&m_spec));
+				ret = LoadFloatImageFile(m_spec.filepaths[i], GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, static_cast<TextureBaseSpec*>(&m_spec))->data_type == TextureFileData::DataType::BIT32;
 			else
-				ret = LoadImageFile(m_spec.filepaths[i], GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, static_cast<TextureBaseSpec*>(&m_spec));
+				ret = LoadImageFile(m_spec.filepaths[i], GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, static_cast<TextureBaseSpec*>(&m_spec))->data_type == TextureFileData::DataType::BIT8;
 
 		}
 
@@ -250,7 +248,7 @@ namespace ORNG {
 	}
 
 	bool Texture2D::SetSpec(const Texture2DSpec& spec) {
-		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) && spec.filepath.size() <= ORNG_MAX_FILEPATH_SIZE) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_texture_obj, GL_TEXTURE0, true);
 
@@ -275,7 +273,7 @@ namespace ORNG {
 	}
 
 	bool Texture2DArray::SetSpec(const Texture2DArraySpec& spec) {
-		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) && std::ranges::all_of(spec.filepaths, [](const std::string& s) {return s.size() <= ORNG_MAX_FILEPATH_SIZE; })) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_texture_obj, GL_TEXTURE0, true);
 
@@ -300,7 +298,7 @@ namespace ORNG {
 	}
 
 	bool Texture3D::SetSpec(const Texture3DSpec& spec) {
-		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) && std::ranges::all_of(spec.filepaths, [](const std::string& s) {return s.size() <= ORNG_MAX_FILEPATH_SIZE; })) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_3D, m_texture_obj, GL_TEXTURE0, true);
 
@@ -329,8 +327,11 @@ namespace ORNG {
 
 
 	bool TextureCubemap::SetSpec(const TextureCubemapSpec& spec) {
-		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec))) {
-			ASSERT(m_spec.filepaths.size() == 6);
+		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) &&
+			std::ranges::all_of(spec.filepaths, [](const std::string& s) {return s.size() <= ORNG_MAX_FILEPATH_SIZE; }) &&
+			m_spec.filepaths.size() == 6)
+		{
+
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, m_texture_obj, GL_TEXTURE0, true);
 

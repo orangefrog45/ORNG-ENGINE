@@ -2,6 +2,8 @@
 #include "util/util.h"
 #include "util/UUID.h"
 #include "util/Log.h"
+#include "bitsery/traits/string.h"
+#include "bitsery/traits/core/traits.h"
 
 namespace ORNG {
 
@@ -12,21 +14,92 @@ namespace ORNG {
 	struct TextureCubemapArraySpec;
 
 	struct TextureBaseSpec {
+		template <typename S>
+		void serialize(S& s) {
+			s.value4b(internal_format);
+			s.value4b(format);
+			s.value4b(min_filter);
+			s.value4b(mag_filter);
+			s.value4b(width);
+			s.value4b(height);
+			s.value4b(wrap_params);
+			s.value4b(storage_type);
+			s.value1b(generate_mipmaps);
+			s.value1b(srgb_space);
+		}
 
-		GLenum internal_format = GL_NONE;
-		GLenum format = GL_NONE;
-		GLenum min_filter = GL_NONE;
-		GLenum mag_filter = GL_NONE;
-		unsigned int width = 1;
-		unsigned int height = 1;
+		uint32_t internal_format = GL_NONE;
+		uint32_t format = GL_NONE;
+		uint32_t min_filter = GL_NONE;
+		uint32_t mag_filter = GL_NONE;
+		uint32_t width = 1;
+		uint32_t height = 1;
 
-		GLenum wrap_params = GL_REPEAT;
-		GLenum storage_type = GL_UNSIGNED_BYTE;
-		bool generate_mipmaps = false;
-		bool srgb_space = false;
+		uint32_t wrap_params = GL_REPEAT;
+		uint32_t storage_type = GL_UNSIGNED_BYTE;
+
+		uint8_t generate_mipmaps = false;
+		uint8_t srgb_space = false;
 	};
 
+	// Struct containing raw texture data loaded from files, data will automatically be freed when this goes out of scope
+	struct TextureFileData {
+		// Default constructor returns invalid data - this will be handled by the engine.
+		TextureFileData() : data_type(INVALID) {};
+		TextureFileData(unsigned char* p_data, uint32_t  t_width, uint32_t t_height, uint8_t t_channels) : data_8_bit(p_data), data_type(BIT8), width(t_width), height(t_height), channels(t_channels) {};
+		TextureFileData(float* p_data, uint32_t  t_width, uint32_t t_height, uint8_t t_channels) : data_32_bit(p_data), data_type(BIT32), width(t_width), height(t_height), channels(t_channels) {};
+		TextureFileData(TextureFileData&& other) = default;
 
+		TextureFileData& operator=(TextureFileData&& other) noexcept {
+			if (this != &other) {
+				data_8_bit = other.data_8_bit;
+				data_32_bit = other.data_32_bit;
+				data_type = other.data_type;
+			}
+			return *this;
+		}
+
+		~TextureFileData() {
+			if (data_type == BIT8)
+				stbi_image_free(data_8_bit);
+			else if (data_type == BIT32)
+
+				stbi_image_free(data_32_bit);
+		}
+
+		template <typename S>
+		void serialize(S& s) {
+			if (data_type == BIT8) {
+				for (size_t i = 0; i < (size_t)width * (size_t)height * (size_t)channels; i++) {
+					s.value1b(*((uint8_t*)data_8_bit + i));
+				}
+			}
+			else if (data_type == BIT32) {
+				for (size_t i = 0; i < (size_t)width * (size_t)height * (size_t)channels; i++) {
+					s.value4b(*((float*)data_32_bit + i));
+				}
+			}
+
+
+			s.value4b(width);
+			s.value4b(height);
+			s.value1b((uint8_t)data_type);
+			s.value1b(channels);
+		}
+
+		unsigned char* data_8_bit = nullptr;
+		float* data_32_bit = nullptr;
+		enum DataType {
+			INVALID,
+			BIT8,
+			BIT32
+		};
+
+		DataType data_type = INVALID;
+		uint32_t width = 0;
+		uint32_t height = 0;
+		uint8_t channels = 0;
+	};
 	class TextureBase {
 
 	public:
@@ -58,19 +131,30 @@ namespace ORNG {
 			return true;
 		}
 
+		template <typename S>
+		void serialize(S& s) {
+			s.object(uuid);
+			s.text1b(m_name, ORNG_MAX_NAME_SIZE);
+			s.value4b(m_texture_target);
+		}
+
 		UUID uuid;
 	protected:
-		bool LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		bool LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); };
-		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); };
-		unsigned int m_texture_target = 0;
-		unsigned int m_texture_obj = 0;
+		std::unique_ptr<TextureFileData> LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		std::unique_ptr<TextureFileData> LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
+		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
+		uint32_t m_texture_target = 0;
+		uint32_t m_texture_obj = 0;
 		std::string m_name = "Unnamed texture";
 
 	};
 
 	struct Texture2DSpec : public TextureBaseSpec {
+		template <typename S>
+		void serialize(S& s) {
+			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
+		}
 		std::string filepath;
 	};
 
@@ -113,8 +197,13 @@ namespace ORNG {
 		Texture2D& operator=(const Texture2D& other);
 
 		bool SetSpec(const Texture2DSpec& spec);
-		bool LoadFromFile();
+		std::unique_ptr<TextureFileData> LoadFromFile();
 		const Texture2DSpec& GetSpec() const { return m_spec; }
+
+		template <typename S>
+		void serialize(S& s) {
+			s.object(m_spec);
+		}
 
 	private:
 		Texture2DSpec m_spec;

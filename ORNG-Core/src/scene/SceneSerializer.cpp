@@ -4,6 +4,8 @@
 #include <bitsery/bitsery.h>
 #include <bitsery/traits/vector.h>
 #include <bitsery/adapter/stream.h>
+#include "bitsery/traits/string.h"
+
 
 
 #include "scene/SceneSerializer.h"
@@ -12,6 +14,7 @@
 #include "components/ComponentAPI.h"
 #include "rendering/Textures.h"
 #include "core/CodedAssets.h"
+#include "core/AssetManager.h"
 
 /*
 	struct VertexData {
@@ -77,6 +80,30 @@ namespace ORNG {
 		s.container4b(o.tex_coords, ORNG_MAX_MESH_INDICES);
 		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
 	}
+
+	template <typename S>
+	void serialize(S& s, glm::vec3& o) {
+		s.value4b(o.x);
+		s.value4b(o.y);
+		s.value4b(o.z);
+	}
+
+	template <typename S>
+	void serialize(S& s, AABB& o) {
+		s.object(o.max);
+		s.object(o.min);
+		s.object(o.center);
+	}
+
+	template <typename S>
+	void serialize(S& s, MeshAsset::MeshEntry& o) {
+		s.value4b(o.base_index);
+		s.value4b(o.base_vertex);
+		s.value4b(o.material_index);
+		s.value4b(o.num_indices);
+	}
+
+
 
 
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
@@ -233,12 +260,12 @@ namespace ORNG {
 			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(scene.GetMeshAsset(mesh_asset_id));
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(AssetManager::GetMeshAsset(mesh_asset_id));
 
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
 				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
-					p_mesh_comp->m_materials[i] = scene.GetMaterial(ids[i]);
+					p_mesh_comp->m_materials[i] = AssetManager::GetMaterial(ids[i]);
 				}
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 
@@ -287,7 +314,7 @@ namespace ORNG {
 		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
 		out << YAML::Key << "MeshAssets" << YAML::Value << YAML::BeginSeq; // Mesh assets
 
-		for (const auto* p_mesh_asset : scene.m_mesh_assets) {
+		for (const auto* p_mesh_asset : AssetManager::Get().m_meshes) {
 			out << YAML::BeginMap;
 			out << YAML::Key << "MeshAsset" << p_mesh_asset->uuid();
 			out << YAML::Key << "Filepath" << YAML::Value << p_mesh_asset->GetFilename();
@@ -308,7 +335,7 @@ namespace ORNG {
 
 		out << YAML::Key << "TextureAssets" << YAML::Value << YAML::BeginSeq; // Texture assets
 
-		for (const auto* p_tex_asset : scene.m_texture_2d_assets) {
+		for (const auto* p_tex_asset : AssetManager::Get().m_2d_textures) {
 			out << YAML::BeginMap;
 			out << YAML::Key << "TextureAsset" << p_tex_asset->uuid();
 			out << YAML::Key << "Filepath" << YAML::Value << p_tex_asset->GetSpec().filepath;
@@ -324,9 +351,9 @@ namespace ORNG {
 
 		out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq; // Materials
 
-		for (const auto* p_material : scene.m_materials) {
+		for (const auto* p_material : AssetManager::Get().m_materials) {
 
-			if (p_material->uuid() == Scene::BASE_MATERIAL_ID) // Always created on startup by scene, doesn't need saving
+			if (p_material->uuid() == ORNG_REPLACEMENT_MATERIAL_ID) // Always created on startup by scene, doesn't need saving
 				continue;
 
 			out << YAML::BeginMap;
@@ -417,7 +444,7 @@ namespace ORNG {
 				base_spec.wrap_params = wrap_mode;
 				base_spec.srgb_space = srgb;
 
-				scene.CreateTexture2DAsset(base_spec, id);
+				AssetManager::CreateTexture2D(base_spec, id);
 			}
 		}
 
@@ -425,14 +452,14 @@ namespace ORNG {
 		auto materials = data["Materials"];
 
 		for (auto material : materials) {
-			auto* p_material = scene.CreateMaterial(material["SceneMaterial"].as<uint64_t>());
+			auto* p_material = AssetManager::CreateMaterial(material["SceneMaterial"].as<uint64_t>());
 			p_material->name = material["Name"].as<std::string>();
-			p_material->base_color_texture = scene.GetTexture(material["Base colour texture"].as<uint64_t>());
-			p_material->normal_map_texture = scene.GetTexture(material["Normal texture"].as<uint64_t>());
-			p_material->ao_texture = scene.GetTexture(material["AO texture"].as<uint64_t>());
-			p_material->metallic_texture = scene.GetTexture(material["Metallic texture"].as<uint64_t>());
-			p_material->roughness_texture = scene.GetTexture(material["Roughness texture"].as<uint64_t>());
-			p_material->emissive_texture = scene.GetTexture(material["Emissive texture"].as<uint64_t>());
+			p_material->base_color_texture = AssetManager::GetTexture(material["Base colour texture"].as<uint64_t>());
+			p_material->normal_map_texture = AssetManager::GetTexture(material["Normal texture"].as<uint64_t>());
+			p_material->ao_texture = AssetManager::GetTexture(material["AO texture"].as<uint64_t>());
+			p_material->metallic_texture = AssetManager::GetTexture(material["Metallic texture"].as<uint64_t>());
+			p_material->roughness_texture = AssetManager::GetTexture(material["Roughness texture"].as<uint64_t>());
+			p_material->emissive_texture = AssetManager::GetTexture(material["Emissive texture"].as<uint64_t>());
 			p_material->base_color = material["Base colour"].as<glm::vec3>();
 			p_material->metallic = material["Metallic"].as<float>();
 			p_material->roughness = material["Roughness"].as<float>();
@@ -455,26 +482,14 @@ namespace ORNG {
 				auto material_ids = asset["Materials"];
 				std::vector<Material*> mesh_material_vec;
 				for (auto material_id : material_ids) {
-					mesh_material_vec.push_back(scene.GetMaterial(material_id.as<uint64_t>()));
+					mesh_material_vec.push_back(AssetManager::GetMaterial(material_id.as<uint64_t>()));
 				}
 				material_vec.push_back(mesh_material_vec);
-				auto* p_asset = scene.CreateMeshAsset(asset_filepath, id);
+				auto* p_asset = AssetManager::CreateMeshAsset(asset_filepath, id);
+				AssetManager::LoadMeshAsset(p_asset);
 			}
 		}
 
-		// Asynchronously load all mesh assets
-		for (auto* mesh : scene.m_mesh_assets) {
-			if (mesh->GetLoadStatus() == false) {
-				scene.m_futures.push_back(std::async(std::launch::async, [mesh] {mesh->LoadMeshData(); }));
-			}
-		}
-		for (unsigned int i = 0; i < scene.m_futures.size(); i++) {
-			scene.m_futures[i].get();
-		}
-		scene.m_futures.clear();
-		for (int i = 0; i < scene.m_mesh_assets.size(); i++) {
-			scene.LoadMeshAssetPreExistingMaterials(scene.m_mesh_assets[i], material_vec[i]);
-		}
 
 		// Entities
 		auto entities = data["Entities"];
@@ -509,10 +524,7 @@ namespace ORNG {
 
 
 
-
-
-
-	void SceneSerializer::SerializeVertexDataBinary(const std::string& filepath, const VertexData3D& data) {
+	void SceneSerializer::SerializeMeshAssetBinary(const std::string& filepath, const VertexData3D& data) {
 		std::ofstream s{ "res/" + filepath.substr(filepath.find_last_of('/')), s.binary | s.trunc | s.out };
 		if (!s.is_open()) {
 			ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);

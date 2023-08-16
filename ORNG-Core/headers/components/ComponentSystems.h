@@ -44,7 +44,7 @@ namespace ORNG {
 		void OnLoad() {
 			// On transform update event, update all child transforms
 			m_transform_event_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
-				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
+				[[likely]] if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 					auto& relationship_comp = mp_registry->get<RelationshipComponent>(entt::entity(t_event.affected_components[0]->GetEnttHandle()));
 					entt::entity current_entity = relationship_comp.first;
 
@@ -212,11 +212,14 @@ namespace ORNG {
 		void OnUpdate() final;
 		void OnMeshEvent(const Events::ECS_Event<MeshComponent>& t_event);
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
-		void OnMeshAssetDeletion(MeshAsset* p_asset);
-		void OnMaterialDeletion(Material* p_material, Material* p_replacement_material);
 
 		const auto& GetInstanceGroups() const { return m_instance_groups; }
 	private:
+		void OnMeshAssetDeletion(MeshAsset* p_asset);
+		void OnMaterialDeletion(Material* p_material);
+		// Listener for asset deletion
+		Events::EventListener<Events::ProjectEvent> m_asset_listener;
+
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<MeshComponent> m_mesh_listener;
 		std::vector<MeshInstanceGroup*> m_instance_groups;

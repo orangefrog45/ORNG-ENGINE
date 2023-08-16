@@ -43,7 +43,7 @@ namespace ORNG {
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 
-		// Renders material as a drag-drop target, returns pointer to the new material if a material was drag-dropped on it, else nullptr
+		// Renders material as a drag-drop target, returns ptr of the new material if a material was drag-dropped on it, else nullptr
 		Material* RenderMaterialComponent(const Material* p_material);
 
 		SceneEntity* DuplicateEntity(SceneEntity* p_original);
@@ -82,9 +82,7 @@ namespace ORNG {
 
 
 
-		/// Basic file explorer, success callback called when a file is clicked that has a valid extension, fail callback called when file has invalid extension.
-		/// Always provide extensions fully capitalized.
-		void ShowFileExplorer(std::string& path_ref, wchar_t extension_filter[], std::function<void()> valid_file_callback);
+		void ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback);
 
 		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
@@ -135,10 +133,8 @@ namespace ORNG {
 
 		// UI VARS
 		Texture2D* mp_selected_texture = nullptr;
-		Texture2D* mp_dragged_texture = nullptr;
 		Texture2DSpec m_current_2d_tex_spec;
 		Material* mp_selected_material = nullptr;
-		Material* mp_dragged_material = nullptr;
 
 
 		// STYLING

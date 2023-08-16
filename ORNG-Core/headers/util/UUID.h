@@ -5,6 +5,7 @@ namespace ORNG {
 
 	class UUID {
 	public:
+		friend class SceneSerializer;
 		UUID();
 		explicit UUID(uint64_t uuid) : m_uuid(uuid) {}
 		UUID(const UUID&) { UUID(); }
