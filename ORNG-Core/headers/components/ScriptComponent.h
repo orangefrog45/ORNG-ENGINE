@@ -1,5 +1,4 @@
 #pragma once
-//#include <functional>
 #include "components/Component.h"
 namespace ORNG {
 
@@ -9,7 +8,9 @@ namespace ORNG {
 	public:
 		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
+		std::function<void()> OnCreate = nullptr;
 		std::function<void()> OnUpdate = nullptr;
+		std::function<void()> OnDestroy = nullptr;
 	private:
 	};
 }

@@ -168,4 +168,7 @@ target_precompile_headers(ORNG_CORE PUBLIC
 headers/pch/pch.h
 )
 
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/")
+
+
 

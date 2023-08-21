@@ -17,7 +17,8 @@ namespace ORNG {
 
 		/* Will return true if the box is on or in front of the plane */
 		static bool TestAABBPlane(const AABB& box, const ExtraMath::Plane& p) {
-			float radius = box.center.x * abs(p.normal.x) + box.center.y * abs(p.normal.y) + box.center.z * abs(p.normal.z);
+			glm::vec3 extents = box.max - box.center;
+			float radius = extents.x * abs(p.normal.x) + extents.y * abs(p.normal.y) + extents.z * abs(p.normal.z);
 
 			return -radius <= p.GetSignedDistanceToPlane(box.center);
 		}

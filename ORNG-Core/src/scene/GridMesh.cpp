@@ -49,6 +49,9 @@ namespace ORNG {
 		m_ssbo_handle = m_vao.GenTransformSSBO();
 		m_vao.FullUpdateTransformSSBO(m_ssbo_handle, nullptr, sizeof(glm::mat4) * ceil(grid_width * grid_step) * 2);
 
+		// Trick just to get it to load
+		CheckBoundary({ 1000, 0, 1000 });
+		CheckBoundary({ 0, 0, 0 });
 	}
 
 

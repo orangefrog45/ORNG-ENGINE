@@ -30,6 +30,7 @@ namespace ORNG {
 		void DispatchUpdateEvent();
 		std::vector<const Material*> m_materials;
 
+		// Used in transform event listener in meshinstancingsystem, batched subbuffer transform updates
 		bool m_transform_update_flag = false;
 
 		MeshInstanceGroup* mp_instance_group = nullptr;

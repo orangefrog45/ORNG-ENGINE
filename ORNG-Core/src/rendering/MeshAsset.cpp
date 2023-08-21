@@ -39,7 +39,6 @@ namespace ORNG {
 
 	bool MeshAsset::InitFromScene(const aiScene* pScene) {
 		m_submeshes.resize(pScene->mNumMeshes);
-		m_original_materials.resize(pScene->mNumMaterials);
 
 		unsigned int num_vertices = 0;
 

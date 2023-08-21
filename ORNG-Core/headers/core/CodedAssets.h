@@ -4,6 +4,10 @@
 #include "rendering/MeshAsset.h"
 #include "core/GLStateManager.h"
 
+#define ORNG_BASE_MATERIAL_UUID 0
+#define ORNG_BASE_TEXTURE_UUID 0
+#define ORNG_CUBE_MESH_UUID 0
+
 namespace ORNG {
 	class CodedAssets { // Contains resources that need to be hard-coded into the library.
 	public:
@@ -107,30 +111,35 @@ namespace ORNG {
 			};
 
 			m_cube_mesh->m_vao.vertex_data.tex_coords = {
-			-1, 0, 0,
-			-1, 0, 0,
-			-1, 0, 0,
-			-1, 0, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			1, 0, 0,
-			1, 0, 0,
-			1, 0, 0,
-			1, 0, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
+				1.0, 0.0, // Vertex 0
+				1.0, 1.0, // Vertex 1
+				0.0, 1.0, // Vertex 2
+				0.0, 0.0, // Vertex 3
+
+				1.0, 0.0, // Vertex 4
+				1.0, 1.0, // Vertex 5
+				0.0, 1.0, // Vertex 6
+				0.0, 0.0, // Vertex 7
+
+				1.0, 0.0, // Vertex 8
+				1.0, 1.0, // Vertex 9
+				0.0, 1.0, // Vertex 10
+				0.0, 0.0, // Vertex 11
+
+				1.0, 0.0, // Vertex 12
+				1.0, 1.0, // Vertex 13
+				0.0, 1.0, // Vertex 14
+				0.0, 0.0, // Vertex 15
+
+				1.0, 0.0, // Vertex 16
+				1.0, 1.0, // Vertex 17
+				0.0, 1.0, // Vertex 18
+				0.0, 0.0, // Vertex 19
+
+				1.0, 0.0, // Vertex 20
+				1.0, 1.0, // Vertex 21
+				0.0, 1.0, // Vertex 22
+				0.0, 0.0  // Vertex 23
 			};
 
 
@@ -173,6 +182,7 @@ namespace ORNG {
 				,22
 				,23
 			};
+			m_cube_mesh->uuid = UUID(ORNG_CUBE_MESH_UUID);
 			m_cube_mesh->m_vao.FillBuffers();
 			m_cube_mesh->m_aabb.max = { 0.5, 0.5, 0.5 };
 			m_cube_mesh->m_aabb.min = { -0.5, -0.5, -0.5 };
@@ -184,6 +194,7 @@ namespace ORNG {
 			m_cube_mesh->m_submeshes.push_back(entry);
 
 			m_base_tex = std::make_unique<Texture2D>("Base coded texture", 0);
+			m_base_tex->uuid = UUID(ORNG_BASE_TEXTURE_UUID);
 			Texture2DSpec spec;
 			spec.format = GL_RGB;
 			spec.internal_format = GL_RGB8;
@@ -199,8 +210,9 @@ namespace ORNG {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, white_pixel);
 
 			m_base_material = std::make_unique<Material>(&*m_base_tex);
-			m_cube_mesh->m_original_materials.push_back(*m_base_material);
-			m_cube_mesh->m_scene_materials.push_back(&m_cube_mesh->m_original_materials[0]);
+			m_base_material->name = "NONE";
+			m_base_material->uuid = UUID(ORNG_BASE_MATERIAL_UUID);
+			m_cube_mesh->m_material_assets.push_back(&*m_base_material);
 			m_cube_mesh->m_is_loaded = true;
 		}
 
@@ -307,8 +319,11 @@ namespace ORNG {
 
 
 	private:
+		// Material used as a replacement for any meshes without materials.
 		inline static std::unique_ptr<Material> m_base_material;
+		// Cube mesh for rendering cube maps, also used as a replacement for missing meshes
 		inline static std::unique_ptr<MeshAsset> m_cube_mesh = nullptr;
+		// White pixel texture as a replacement for any missing textures during runtime
 		inline static std::unique_ptr<Texture2D> m_base_tex = nullptr;
 	};
 

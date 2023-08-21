@@ -17,9 +17,17 @@ namespace ORNG {
 
 				for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
 					[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
-						LoadMeshAssetIntoGL(m_mesh_loading_queue[i].get());
+						auto mesh_package = m_mesh_loading_queue[i].get();
+
 						m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
 						i--;
+
+						LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials);
+
+						Events::ProjectEvent e_event;
+						e_event.event_type = Events::ProjectEventType::MESH_LOADED;
+						e_event.data_payload = reinterpret_cast<uint8_t*>(mesh_package.p_asset);
+						Events::EventManager::DispatchEvent(e_event);
 					}
 
 				}
@@ -27,6 +35,48 @@ namespace ORNG {
 		};
 
 		Events::EventManager::RegisterListener(m_update_listener);
+
+	}
+
+	void AssetManager::IStallUntilMeshesLoaded() {
+		while (!m_mesh_loading_queue.empty()) {
+			for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
+				[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
+					auto mesh_package = m_mesh_loading_queue[i].get();
+
+					m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
+					i--;
+
+					LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials);
+					for (auto& future : m_texture_futures) {
+						future.get();
+					}
+					m_texture_futures.clear();
+					DispatchAssetEvent(Events::ProjectEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(mesh_package.p_asset));
+				}
+
+			}
+		}
+
+	}
+
+	void AssetManager::DispatchAssetEvent(Events::ProjectEventType type, uint8_t* data_payload) {
+		Events::ProjectEvent e_event;
+		e_event.event_type = type;
+		e_event.data_payload = data_payload;
+		Events::EventManager::DispatchEvent(e_event);
+	}
+
+	void AssetManager::IClearAll() {
+		while (!m_materials.empty()) {
+			DeleteMaterial(m_materials[0]);
+		}
+		while (!m_2d_textures.empty()) {
+			DeleteTexture(m_2d_textures[0]);
+		}
+		while (!m_meshes.empty()) {
+			DeleteMeshAsset(m_meshes[0]);
+		}
 
 	}
 
@@ -38,18 +88,20 @@ namespace ORNG {
 				return p_texture;
 			}
 		}
-		static std::vector<std::future<void>> futures;
 		static std::mutex m;
 		Texture2D* p_tex = uuid == 0 ? new Texture2D(spec.filepath.c_str()) : new Texture2D(spec.filepath.c_str(), uuid);
 		m_2d_textures.push_back(p_tex);
 		p_tex->SetSpec(spec);
-		futures.push_back(std::async(std::launch::async, [p_tex, this, spec] {
+		m_texture_futures.push_back(std::async(std::launch::async, [p_tex, this, spec] {
 			m.lock();
 			glfwMakeContextCurrent(mp_loading_context);
 			p_tex->LoadFromFile();
 			glfwMakeContextCurrent(nullptr);
 			m.unlock();
 			}));
+
+		DispatchAssetEvent(Events::ProjectEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
+
 
 		return p_tex;
 	}
@@ -73,18 +125,37 @@ namespace ORNG {
 			ORNG_CORE_WARN("Texture with ID '{0}' does not exist, not deleted", uuid);
 			return;
 		}
+
+		// If any materials use this texture, remove it from them
+		for (auto* p_material : m_materials) {
+			p_material->base_color_texture = p_material->base_color_texture == *it ? nullptr : p_material->base_color_texture;
+			p_material->normal_map_texture = p_material->normal_map_texture == *it ? nullptr : p_material->normal_map_texture;
+			p_material->emissive_texture = p_material->emissive_texture == *it ? nullptr : p_material->emissive_texture;
+			p_material->displacement_texture = p_material->displacement_texture == *it ? nullptr : p_material->displacement_texture;
+			p_material->metallic_texture = p_material->metallic_texture == *it ? nullptr : p_material->metallic_texture;
+			p_material->roughness_texture = p_material->roughness_texture == *it ? nullptr : p_material->roughness_texture;
+		}
+
+		DispatchAssetEvent(Events::ProjectEventType::TEXTURE_DELETED, reinterpret_cast<uint8_t*>(*it));
+
 		delete* it;
 		m_2d_textures.erase(it);
 	}
 
+
+
 	Material* AssetManager::ICreateMaterial(uint64_t uuid) {
 		Material* p_material = uuid == 0 ? new Material(&CodedAssets::GetBaseTexture()) : new Material(uuid);
+		ORNG_CORE_CRITICAL(p_material->uuid());
 		m_materials.push_back(p_material);
+
+		DispatchAssetEvent(Events::ProjectEventType::MATERIAL_LOADED, reinterpret_cast<uint8_t*>(p_material));
+
 		return p_material;
 	}
 
 	Material* AssetManager::IGetMaterial(uint64_t id) {
-		auto it = std::find_if(m_materials.begin(), m_materials.end(), [&](const auto* p_mat) {return p_mat->uuid() == id; });
+		auto it = std::find_if(m_materials.begin(), m_materials.end(), [id](const auto* p_mat) {return p_mat->uuid() == id; });
 
 		if (it == m_materials.end()) {
 			ORNG_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
@@ -102,11 +173,12 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
 			return;
 		}
-		GL_StateManager::BindVAO(asset->m_vao);
-		asset->PopulateBuffers();
-		asset->importer.FreeScene();
-		asset->m_is_loaded = true;
-		asset->m_scene_materials = materials;
+
+		Get().m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [asset, materials] {
+			asset->LoadMeshData();
+			return MeshAssetPackage{ asset, materials };
+			}));
+
 	}
 
 
@@ -118,17 +190,15 @@ namespace ORNG {
 		if (it == m_materials.end())
 			return;
 
-		Events::ProjectEvent e_event;
-		e_event.data_payload = reinterpret_cast<uint8_t*>(*it);
-		e_event.event_type = Events::ProjectEventType::MATERIAL_DELETED;
-		Events::EventManager::DispatchEvent(e_event);
+
+		DispatchAssetEvent(Events::ProjectEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(*it));
 
 		delete* it;
 		m_materials.erase(it);
 
 	}
 
-	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset) {
+	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials) {
 
 		if (asset->m_is_loaded) {
 			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
@@ -151,58 +221,67 @@ namespace ORNG {
 			dir = asset->GetFilename().substr(0, slash_index);
 		}
 
-		for (unsigned int i = 0; i < asset->p_scene->mNumMaterials; i++) {
-			const aiMaterial* p_material = asset->p_scene->mMaterials[i];
+		if (materials.empty()) {
+			for (unsigned int i = 0; i < asset->p_scene->mNumMaterials; i++) {
+				const aiMaterial* p_material = asset->p_scene->mMaterials[i];
+				Material* p_new_material = Get().ICreateMaterial();
 
-			// Load material textures
-			asset->m_original_materials[i].base_color_texture = LoadMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
-			asset->m_original_materials[i].normal_map_texture = LoadMeshAssetTexture(dir, aiTextureType_NORMALS, p_material);
-			asset->m_original_materials[i].roughness_texture = LoadMeshAssetTexture(dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
-			asset->m_original_materials[i].metallic_texture = LoadMeshAssetTexture(dir, aiTextureType_METALNESS, p_material);
-			asset->m_original_materials[i].ao_texture = LoadMeshAssetTexture(dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
+				// Load material textures
+				p_new_material->base_color_texture = CreateMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
+				p_new_material->normal_map_texture = CreateMeshAssetTexture(dir, aiTextureType_NORMALS, p_material);
+				p_new_material->roughness_texture = CreateMeshAssetTexture(dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
+				p_new_material->metallic_texture = CreateMeshAssetTexture(dir, aiTextureType_METALNESS, p_material);
+				p_new_material->ao_texture = CreateMeshAssetTexture(dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
 
-			// Load material properties 
-			aiColor3D base_color(0.0f, 0.0f, 0.0f);
-			if (p_material->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
-				asset->m_original_materials[i].base_color.r = base_color.r;
-				asset->m_original_materials[i].base_color.g = base_color.g;
-				asset->m_original_materials[i].base_color.b = base_color.b;
+				// Load material properties 
+				aiColor3D base_color(0.0f, 0.0f, 0.0f);
+				if (p_material->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
+					p_new_material->base_color.r = base_color.r;
+					p_new_material->base_color.g = base_color.g;
+					p_new_material->base_color.b = base_color.b;
+				}
+
+				float roughness;
+				float metallic;
+
+				if (p_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS)
+					p_new_material->roughness = roughness;
+
+				if (p_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == aiReturn_SUCCESS)
+					p_new_material->metallic = metallic;
+
+				// Check if the material has had any properties actually set - if not then use the default material instead of creating a new one.
+				if (!p_new_material->base_color_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
+					&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
+					DeleteMaterial(p_new_material);
+					asset->m_material_assets.emplace_back(&Get().m_replacement_material);
+				}
+				else {
+					asset->m_material_assets.emplace_back(p_new_material);
+				}
 			}
-
-			float roughness;
-			float metallic;
-
-			if (p_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS)
-				asset->m_original_materials[i].roughness = roughness;
-
-			if (p_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == aiReturn_SUCCESS)
-				asset->m_original_materials[i].metallic = metallic;
-
-			Material* p_scene_mat = CreateMaterial();
-			uint64_t old_id = p_scene_mat->uuid();
-			*p_scene_mat = asset->m_original_materials[i];
-			p_scene_mat->uuid = UUID{ old_id };
-
-			asset->m_scene_materials.push_back(p_scene_mat);
+		}
+		else {
+			asset->m_material_assets = materials;
 
 		}
+
 		asset->PopulateBuffers();
-		glFinish();
 		asset->importer.FreeScene();
 		asset->m_is_loaded = true;
 	}
 
 	void AssetManager::LoadMeshAsset(MeshAsset* p_asset) {
-		Get().m_mesh_loading_queue.push_back(std::async(std::launch::async, [p_asset] {
+		Get().m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset] {
 			p_asset->LoadMeshData();
-			return p_asset;
+			return MeshAssetPackage{ p_asset, {} };
 			}));
 	};
 
 
 
 
-	Texture2D* AssetManager::LoadMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* p_material) {
+	Texture2D* AssetManager::CreateMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* p_material) {
 		Texture2D* p_tex = nullptr;
 
 
@@ -275,10 +354,9 @@ namespace ORNG {
 			return;
 		}
 
-		Events::ProjectEvent e_event;
-		e_event.event_type = Events::ProjectEventType::MESH_DELETED;
-		e_event.data_payload = reinterpret_cast<uint8_t*>(*it);
-		Events::EventManager::DispatchEvent(e_event);
+
+		DispatchAssetEvent(Events::ProjectEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(*it));
+
 		delete* it;
 		m_meshes.erase(it);
 	};

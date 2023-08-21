@@ -56,6 +56,7 @@ namespace ORNG {
 		glShadeModel(GL_SMOOTH);
 		glLineWidth(3.f);
 
+
 		glDebugMessageCallback(GL_LogMessage, nullptr);
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);

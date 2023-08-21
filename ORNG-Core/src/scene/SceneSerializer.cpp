@@ -71,7 +71,15 @@ namespace YAML {
 	};
 }
 
-namespace ORNG {
+namespace bitsery {
+	using namespace ORNG;
+	template <typename S>
+	void serialize(S& s, glm::vec3& o) {
+		s.value4b(o.x);
+		s.value4b(o.y);
+		s.value4b(o.z);
+	}
+
 	template <typename S>
 	void serialize(S& s, VertexData3D& o) {
 		s.container4b(o.positions, ORNG_MAX_MESH_INDICES);
@@ -81,12 +89,6 @@ namespace ORNG {
 		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
 	}
 
-	template <typename S>
-	void serialize(S& s, glm::vec3& o) {
-		s.value4b(o.x);
-		s.value4b(o.y);
-		s.value4b(o.z);
-	}
 
 	template <typename S>
 	void serialize(S& s, AABB& o) {
@@ -102,7 +104,13 @@ namespace ORNG {
 		s.value4b(o.material_index);
 		s.value4b(o.num_indices);
 	}
+	template<typename S>
+	void serialize(S& s, VAO& o) {
+		s.object(o.vertex_data);
+	}
+}
 
+namespace ORNG {
 
 
 
@@ -153,6 +161,8 @@ namespace ORNG {
 		out << YAML::Key << "Pos" << YAML::Value << p_transform->GetPosition();
 		out << YAML::Key << "Scale" << YAML::Value << p_transform->GetScale();
 		out << YAML::Key << "Orientation" << YAML::Value << p_transform->GetOrientation();
+
+		out << YAML::Key << "Absolute" << YAML::Value << p_transform->m_is_absolute;
 
 		out << YAML::EndMap;
 
@@ -249,6 +259,7 @@ namespace ORNG {
 		p_transform->SetPosition(transform_node["Pos"].as<glm::vec3>());
 		p_transform->SetScale(transform_node["Scale"].as<glm::vec3>());
 		p_transform->SetOrientation(transform_node["Orientation"].as<glm::vec3>());
+		p_transform->SetAbsoluteMode(transform_node["Absolute"].as<bool>());
 
 
 		for (auto node : entity_node) {
@@ -260,7 +271,7 @@ namespace ORNG {
 			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(AssetManager::GetMeshAsset(mesh_asset_id));
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(mesh_asset_id == ORNG_CUBE_MESH_UUID ? &CodedAssets::GetCubeAsset() : AssetManager::GetMeshAsset(mesh_asset_id));
 
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
@@ -322,7 +333,7 @@ namespace ORNG {
 			out << YAML::Key << "Materials" << YAML::Value;
 			out << YAML::Flow;
 			out << YAML::BeginSeq;
-			for (auto* p_material : p_mesh_asset->m_scene_materials) {
+			for (auto* p_material : p_mesh_asset->m_material_assets) {
 				out << p_material->uuid();
 			}
 			out << YAML::EndSeq;
@@ -342,7 +353,7 @@ namespace ORNG {
 			out << YAML::Key << "Wrap mode" << YAML::Value << p_tex_asset->GetSpec().wrap_params;
 			out << YAML::Key << "Min filter" << YAML::Value << p_tex_asset->GetSpec().min_filter;
 			out << YAML::Key << "Mag filter" << YAML::Value << p_tex_asset->GetSpec().mag_filter;
-			out << YAML::Key << "SRGB" << YAML::Value << p_tex_asset->GetSpec().srgb_space;
+			out << YAML::Key << "SRGB" << YAML::Value << static_cast<uint32_t>(p_tex_asset->GetSpec().srgb_space);
 			out << YAML::EndMap;
 		}
 
@@ -435,7 +446,7 @@ namespace ORNG {
 				unsigned int wrap_mode = texture["Wrap mode"].as<unsigned int>();
 				unsigned int min_filter = texture["Min filter"].as<unsigned int>();
 				unsigned int mag_filter = texture["Mag filter"].as<unsigned int>();
-				bool srgb = texture["SRGB"].as<bool>();
+				bool srgb = static_cast<bool>(texture["SRGB"].as<uint32_t>());
 
 				base_spec.generate_mipmaps = true;
 				base_spec.mag_filter = mag_filter;
@@ -452,6 +463,7 @@ namespace ORNG {
 		auto materials = data["Materials"];
 
 		for (auto material : materials) {
+			ORNG_CORE_CRITICAL("SCENE {0}", material["SceneMaterial"].as<uint64_t>());
 			auto* p_material = AssetManager::CreateMaterial(material["SceneMaterial"].as<uint64_t>());
 			p_material->name = material["Name"].as<std::string>();
 			p_material->base_color_texture = AssetManager::GetTexture(material["Base colour texture"].as<uint64_t>());
@@ -479,17 +491,32 @@ namespace ORNG {
 				std::string asset_filepath = asset["Filepath"].as<std::string>();
 				uint64_t id = asset["MeshAsset"].as<uint64_t>();
 
+
 				auto material_ids = asset["Materials"];
 				std::vector<Material*> mesh_material_vec;
 				for (auto material_id : material_ids) {
+					ORNG_CORE_CRITICAL(material_id.as<uint64_t>());
 					mesh_material_vec.push_back(AssetManager::GetMaterial(material_id.as<uint64_t>()));
 				}
 				material_vec.push_back(mesh_material_vec);
-				auto* p_asset = AssetManager::CreateMeshAsset(asset_filepath, id);
-				AssetManager::LoadMeshAsset(p_asset);
+
+
+				if (std::string serialized_filepath = "./res/meshes/" + asset_filepath.substr(asset_filepath.find_last_of("/") + 1) + ".bin"; std::filesystem::exists(serialized_filepath)) {
+					// Load from binary file
+					auto* p_asset = AssetManager::CreateMeshAsset(serialized_filepath, id);
+					DeserializeMeshAssetBinary(serialized_filepath, *p_asset);
+					AssetManager::LoadMeshAssetIntoGL(p_asset, mesh_material_vec);
+					AssetManager::DispatchAssetEvent(Events::ProjectEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_asset));
+				}
+				else {
+					// Load from source asset file
+					auto* p_asset = AssetManager::CreateMeshAsset(asset_filepath, id);
+					AssetManager::LoadMeshAssetPreExistingMaterials(p_asset, mesh_material_vec);
+				}
+
 			}
 		}
-
+		AssetManager::StallUntilMeshesLoaded();
 
 		// Entities
 		auto entities = data["Entities"];
@@ -524,8 +551,8 @@ namespace ORNG {
 
 
 
-	void SceneSerializer::SerializeMeshAssetBinary(const std::string& filepath, const VertexData3D& data) {
-		std::ofstream s{ "res/" + filepath.substr(filepath.find_last_of('/')), s.binary | s.trunc | s.out };
+	void SceneSerializer::SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
+		std::ofstream s{ filepath, s.binary | s.trunc | s.out };
 		if (!s.is_open()) {
 			ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
 			return;
@@ -537,5 +564,28 @@ namespace ORNG {
 		// flush to writer
 		ser.adapter().flush();
 		s.close();
+	}
+
+	void SceneSerializer::DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
+		std::ifstream s{ filepath, std::ios::binary };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
+			return;
+		}
+
+		// Use buffered stream adapter
+		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
+
+		// Deserialize individual objects
+		des.object(data.m_vao);
+		des.object(data.m_aabb);
+		//des.object(data.m_aabb);
+		uint32_t size;
+		des.value4b(size);
+		data.m_submeshes.resize(size);
+		for (int i = 0; i < size; i++) {
+			des.object(data.m_submeshes[i]);
+		}
+
 	}
 }

@@ -50,6 +50,8 @@ namespace ORNG {
 		VertexData3D vertex_data;
 
 	private:
+
+
 		enum BUFFER_TYPE {
 			INDEX_BUFFER = 0,
 			POS_VB = 1,

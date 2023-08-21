@@ -11,17 +11,25 @@
 #include "../extern/imguizmo/ImGuizmo.h"
 #include "core/CodedAssets.h"
 #include "core/AssetManager.h"
+#include "yaml-cpp/yaml.h"
 
 
 namespace ORNG {
-
 	void EditorLayer::Init() {
 
+		char buffer[ORNG_MAX_FILEPATH_SIZE];
+		GetModuleFileName(nullptr, buffer, ORNG_MAX_FILEPATH_SIZE);
+		m_executable_directory = buffer;
+		m_executable_directory = m_executable_directory.substr(0, m_executable_directory.find_last_of('\\'));
+		m_executable_directory += "/";
 
 		InitImGui();
 		m_active_scene = std::make_unique<Scene>();
+		mp_preview_scene = std::make_unique<Scene>();
 
-
+		// For the grid
+		glEnable(GL_LINE_SMOOTH);
+		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
 		mp_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
@@ -48,18 +56,17 @@ namespace ORNG {
 		mp_highlight_shader->AddUniform("transform");
 
 		// Setting up the scene display texture 
-		Texture2DSpec color_render_texture_spec;
-		color_render_texture_spec.format = GL_RGBA;
-		color_render_texture_spec.internal_format = GL_RGBA16F;
-		color_render_texture_spec.storage_type = GL_FLOAT;
-		color_render_texture_spec.mag_filter = GL_NEAREST;
-		color_render_texture_spec.min_filter = GL_NEAREST;
-		color_render_texture_spec.width = Window::GetWidth();
-		color_render_texture_spec.height = Window::GetHeight();
-		color_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
+		m_color_render_texture_spec.format = GL_RGBA;
+		m_color_render_texture_spec.internal_format = GL_RGBA16F;
+		m_color_render_texture_spec.storage_type = GL_FLOAT;
+		m_color_render_texture_spec.mag_filter = GL_NEAREST;
+		m_color_render_texture_spec.min_filter = GL_NEAREST;
+		m_color_render_texture_spec.width = Window::GetWidth();
+		m_color_render_texture_spec.height = Window::GetHeight();
+		m_color_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
 		mp_scene_display_texture = std::make_unique<Texture2D>("Editor scene display");
-		mp_scene_display_texture->SetSpec(color_render_texture_spec);
+		mp_scene_display_texture->SetSpec(m_color_render_texture_spec);
 
 		// Adding a resize event listener so the scene display texture scales with the window
 		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
@@ -92,11 +99,53 @@ namespace ORNG {
 		mp_editor_pass_fb->AddShared2DTexture("Editor scene display", *mp_scene_display_texture, GL_COLOR_ATTACHMENT0);
 
 		m_active_scene->LoadScene("");
-		// Setup preview scene used for viewing materials on meshes
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
 		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
 		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 		mp_editor_camera->AddComponent<CharacterControllerComponent>();
+
+		// Setup preview scene used for viewing materials on meshes
+		mp_preview_scene->LoadScene("");
+		mp_preview_scene->post_processing.bloom.intensity = 0.25;
+		auto& cube_entity = mp_preview_scene->CreateEntity("Cube");
+		cube_entity.AddComponent<MeshComponent>(&CodedAssets::GetCubeAsset());
+
+		auto& cam_entity = mp_preview_scene->CreateEntity("Cam");
+		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
+		p_cam->fov = 60.f;
+		glm::vec3 cam_pos{ 3, 3, -3.0 };
+		cam_entity.GetComponent<TransformComponent>()->SetPosition(cam_pos);
+		mp_preview_scene->m_directional_light.SetLightDirection({ 0.1, 0.3, -1.0 });
+		p_cam->target = glm::normalize(-cam_pos);
+		p_cam->aspect_ratio = 1;
+		p_cam->MakeActive();
+		mp_preview_scene->Update(0);
+		mp_preview_scene->skybox.LoadEnvironmentMap(m_executable_directory + "/res/textures/AdobeStock_247957406.jpeg");
+
+
+		m_asset_preview_spec = m_color_render_texture_spec;
+		m_asset_preview_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		m_asset_preview_spec.mag_filter = GL_LINEAR;
+		m_asset_preview_spec.width = 256;
+		m_asset_preview_spec.height = 256;
+		m_asset_preview_spec.generate_mipmaps = true;
+
+		CreateMaterialPreview(&CodedAssets::GetBaseMaterial());
+		CreateMaterialPreview(&AssetManager::Get().m_replacement_material);
+		CreateMeshPreview(&CodedAssets::GetCubeAsset());
+
+		m_asset_listener.OnEvent = [this](const Events::ProjectEvent& t_event) {
+			OnProjectEvent(t_event);
+		};
+
+		// Make sure some project is active
+		std::string base_proj_dir = m_executable_directory + "/projects/base-project";
+		if (!std::filesystem::exists(base_proj_dir)) {
+			GenerateProject("base-project");
+		}
+		MakeProjectActive(base_proj_dir);
+
+		Events::EventManager::RegisterListener(m_asset_listener);
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
@@ -104,11 +153,53 @@ namespace ORNG {
 
 
 
+	void EditorLayer::OnProjectEvent(const Events::ProjectEvent& t_event) {
+		switch (t_event.event_type) {
+		case Events::ProjectEventType::MESH_LOADED: {
+			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
+			CreateMeshPreview(p_mesh);
+
+			std::string filepath{"./res/meshes/" + p_mesh->GetFilename().substr(p_mesh->GetFilename().find_last_of("/") + 1) + ".bin"};
+			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
+				// Gen binary file if none exists
+				SceneSerializer::SerializeMeshAssetBinary(filepath, *p_mesh);
+			}
+
+			break;
+		}
+		case Events::ProjectEventType::MATERIAL_LOADED:
+		{
+			auto* p_material = reinterpret_cast<Material*>(t_event.data_payload);
+			m_materials_to_gen_previews.push_back(p_material);
+			break;
+		}
+		case Events::ProjectEventType::MATERIAL_DELETED:
+		{
+			auto* p_material = reinterpret_cast<Material*>(t_event.data_payload);
+
+			// Check if the material is in a loading queue, if it is it needs to be removed
+			auto it = std::ranges::find(m_materials_to_gen_previews, p_material);
+			if (it != m_materials_to_gen_previews.end())
+				m_materials_to_gen_previews.erase(it);
+
+			m_material_preview_textures.erase(p_material);
+			break;
+		}
+		case Events::ProjectEventType::MESH_DELETED:
+		{
+			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
+			m_mesh_preview_textures.erase(p_mesh);
+			break;
+		}
+		}
+	}
+
 
 	void EditorLayer::InitImGui() {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.Fonts->AddFontDefault();
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("./res/fonts/PlatNomor-WyVnn.ttf", 18.0f);
+		io.FontDefault = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 18.0f);
+		mp_large_font = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 36.0f);
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		ImFontConfig config;
@@ -123,17 +214,19 @@ namespace ORNG {
 		ImGui::GetStyle().Colors[ImGuiCol_Button] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = lightest_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = lightest_grey_color;
-		ImGui::GetStyle().Colors[ImGuiCol_Border] = dark_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_Border] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_Tab] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = lightest_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_TabActive] = orange_color;
 		ImGui::GetStyle().Colors[ImGuiCol_Header] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered] = lightest_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_HeaderActive] = orange_color;
-		ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = dark_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive] = lightest_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_DockingEmptyBg] = lightest_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = dark_grey_color;
+		ImGui::GetStyle().Colors[ImGuiCol_Border] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_TitleBg] = lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = lighter_grey_color;
 	}
@@ -151,7 +244,6 @@ namespace ORNG {
 		m_active_scene->Update(ts);
 		// Updating here to work with the editor camera
 		m_active_scene->terrain.UpdateTerrainQuadtree(mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0]);
-
 
 		static float cooldown = 0;
 		cooldown -= glm::min(cooldown, ts);
@@ -193,8 +285,6 @@ namespace ORNG {
 
 
 	void EditorLayer::UpdateEditorCam() {
-		if (ImGui::GetIO().WantTextInput || (ImGui::GetIO().WantCaptureMouse && !ImGuizmo::IsOver()) || Window::GetScrollStatus().active)
-			return;
 
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
@@ -218,7 +308,7 @@ namespace ORNG {
 		if (ImGui::IsMouseClicked(1))
 			last_mouse_pos = Window::GetMousePos();
 
-		if (!p_cam->mouse_locked && ImGui::IsMouseDown(1)) {
+		if (ImGui::IsMouseDown(1)) {
 			glm::vec2 mouse_coords = Window::GetMousePos();
 			float rotation_speed = 0.005f;
 			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
@@ -258,16 +348,27 @@ namespace ORNG {
 
 	void EditorLayer::RenderUI() {
 		ORNG_PROFILE_FUNC();
-
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 
 		ImGui::NewFrame();
-		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight()));
+
+		RenderToolbar();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(15, 5));
+		ImGui::SetNextWindowPos(ImVec2(0, toolbar_height));
+		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight() - toolbar_height));
 		ImGui::Begin("##left window", (bool*)0, 0);
 		ImGui::End();
 
+		ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() - 450, toolbar_height));
+		ImGui::SetNextWindowSize(ImVec2(450, Window::GetHeight() - toolbar_height));
+		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
+			DisplayEntityEditor();
+
+		}
+		ImGui::End();
 
 		if (ImGui::Begin("Debug")) {
 			ImGui::AlignTextToFramePadding();
@@ -281,27 +382,164 @@ namespace ORNG {
 		}
 		ImGui::End();
 
+		if (mp_selected_material)
+			RenderMaterialEditorSection();
+
+		if (mp_selected_texture)
+			RenderTextureEditorSection();
+
+
 		RenderSceneGraph();
 		ShowAssetManager();
-		RenderEditorWindow();
+
+		ImGui::PopStyleVar(); // window border size
+		ImGui::PopStyleVar(); // window padding
+
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	}
 
-	SceneEntity* EditorLayer::DuplicateEntity(SceneEntity* p_original) {
-		SceneEntity& new_entity = m_active_scene->CreateEntity(p_original->name + " - Duplicate");
-		std::string str = SceneSerializer::SerializeEntityIntoString(*p_original);
-		SceneSerializer::DeserializeEntityFromString(*m_active_scene, str, new_entity);
+	void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
+		ImGui::SetNextWindowSize(ImVec2(500, 200));
+		ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() / 2 - 250, Window::GetHeight() / 2 - 100));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
+		static std::string project_name;
+		if (ImGui::Begin("##project gen", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar)) {
 
-		auto* p_relation_comp = p_original->GetComponent<RelationshipComponent>();
-		SceneEntity* p_current_child = m_active_scene->GetEntity(p_relation_comp->first);
-		while (p_current_child) {
-			DuplicateEntity(p_current_child)->SetParent(new_entity);
-			p_current_child = m_active_scene->GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
+			if (ImGui::IsMouseDoubleClicked(1)) // close window
+				selected_component_from_popup = 0;
+
+			ImGui::PushFont(mp_large_font);
+			ImGui::SeparatorText("Generate project");
+			ImGui::PopFont();
+			ImGui::Text("Name");
+			ImGui::InputText("##e", &project_name);
+
+			static std::string err_msg = "";
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+			ImGui::TextWrapped(err_msg.c_str());
+			ImGui::PopStyleColor();
+
+			if (ImGui::Button("Generate")) {
+				if (GenerateProject(project_name)) {
+					MakeProjectActive(m_executable_directory + "/projects/" + project_name);
+					selected_component_from_popup = 0;
+				}
+				else {
+					err_msg = Log::GetLastLog();
+				}
+			}
 		}
-		return &new_entity;
+		ImGui::End();
+		ImGui::PopStyleVar(); // window rounding
+	}
+
+	void EditorLayer::CreateMeshPreview(MeshAsset* p_asset) {
+
+		auto p_tex = std::make_shared<Texture2D>(p_asset->GetFilename().substr(p_asset->GetFilename().find_last_of("/") + 1) + " - Mesh preview");
+		p_tex->SetSpec(m_asset_preview_spec);
+		m_mesh_preview_textures[p_asset] = p_tex;
+
+		// Scale mesh so it always fits in camera frustum
+		glm::vec3 extents = p_asset->GetAABB().max - p_asset->GetAABB().center;
+		float largest_extent = glm::max(glm::max(extents.x, extents.y), extents.z);
+		glm::vec3 scale_factor = glm::vec3(1.0, 1.0, 1.0) / largest_extent;
+
+		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(scale_factor);
+		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
+		mp_preview_scene->Update(0);
+		SceneRenderer::SceneRenderingSettings settings;
+		SceneRenderer::SetActiveScene(&*mp_preview_scene);
+		settings.p_output_tex = &*p_tex;
+
+		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0, true);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
+
+	}
+
+	void EditorLayer::CreateMaterialPreview(const Material* p_material) {
+		auto p_tex = std::make_shared<Texture2D>(p_material->name + " - Material preview");
+		p_tex->SetSpec(m_asset_preview_spec);
+		m_material_preview_textures[p_material] = p_tex;
+
+
+		auto* p_mesh = mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>();
+		if (p_mesh->GetMeshData() != &CodedAssets::GetCubeAsset())
+			p_mesh->SetMeshAsset(&CodedAssets::GetCubeAsset());
+		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
+
+		mp_preview_scene->Update(0);
+		for (int i = 0; i < p_mesh->m_materials.size(); i++) {
+			p_mesh->SetMaterialID(i, p_material);
+		}
+		mp_preview_scene->Update(0);
+
+		SceneRenderer::SceneRenderingSettings settings;
+		SceneRenderer::SetActiveScene(&*mp_preview_scene);
+		settings.p_output_tex = &*p_tex;
+		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0, true);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
+
+	}
+
+
+	void EditorLayer::RenderToolbar() {
+		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
+			if (ImGui::Button("Files")) {
+				ImGui::OpenPopup("FilePopup");
+			}
+			static std::vector<std::string> file_options{"New project", "Open project", "Save project"};
+			static int selected_component = 0;
+
+
+			if (ImGui::BeginPopup("FilePopup"))
+			{
+				ImGui::PushID(1);
+				ImGui::SeparatorText("Files");
+				ImGui::PopID();
+				for (int i = 0; i < file_options.size(); i++) {
+					if (ImGui::Selectable(file_options[i].c_str()))
+						selected_component = i + 1;
+				}
+				ImGui::EndPopup();
+
+			}
+
+
+			switch (selected_component) {
+			case 1:
+				RenderProjectGenerator(selected_component);
+				break;
+			case 2: {
+				//setting up file explorer callbacks
+				wchar_t valid_extensions[MAX_PATH] = L"Project Files: *.yml\0*.yml\0";
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					MakeProjectActive(filepath.substr(0, filepath.find_last_of('/')));
+				};
+
+				ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
+				selected_component = 0;
+				break;
+			}
+			case 3:
+				SceneSerializer::SerializeScene(*m_active_scene, "scene.yml");
+			}
+
+
+			ImGui::SameLine();
+			std::string sep_text = "Project: " + m_current_project_directory.substr(m_current_project_directory.find_last_of("\\") + 1);
+			ImGui::SeparatorText(sep_text.c_str());
+		}
+		ImGui::End();
 	}
 
 
@@ -313,6 +551,16 @@ namespace ORNG {
 		if (ImGui::IsMouseDoubleClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
 			DoPickingPass();
 		}
+
+
+		// Generate previews at this stage, delayed as if done during the ImGui rendering phase ImGui will stop rendering on that frame, causing a UI flicker
+		for (auto* p_material : m_materials_to_gen_previews) {
+			CreateMaterialPreview(p_material);
+		}
+		if (mp_selected_material) {
+			CreateMaterialPreview(mp_selected_material);
+		}
+		m_materials_to_gen_previews.clear();
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*m_active_scene);
@@ -332,7 +580,96 @@ namespace ORNG {
 		glDisable(GL_DEPTH_TEST);
 		Renderer::DrawQuad();
 		glEnable(GL_DEPTH_TEST);
+	}
 
+
+
+
+	bool EditorLayer::GenerateProject(const std::string& project_name) {
+
+		if (std::filesystem::exists(m_executable_directory + "projects/" + project_name)) {
+			ORNG_CORE_ERROR("Project with name '{0}' already exists", project_name);
+			return false;
+		}
+
+		if (!std::filesystem::exists(m_executable_directory + "projects"))
+			std::filesystem::create_directory(m_executable_directory + "projects");
+
+		std::string project_path = m_executable_directory + "projects/" + project_name;
+		std::filesystem::create_directory(project_path);
+		// Create base scene for project to use
+		std::ofstream s{project_path + "/scene.yml"};
+		s << ORNG_BASE_SCENE_YAML;
+		s.close();
+
+		std::filesystem::create_directory(project_path + "/res");
+		std::filesystem::create_directory(project_path + "/res/meshes");
+		std::filesystem::create_directory(project_path + "/res/textures");
+		std::filesystem::create_directory(project_path + "/res/scripts");
+		std::filesystem::create_directory(project_path + "/res/shaders");
+
+		return true;
+
+	}
+
+
+
+	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
+		if (std::filesystem::exists(folder_path) &&
+			std::filesystem::exists(folder_path + "/scene.yml")) {
+			std::ifstream stream(folder_path + "/scene.yml");
+			std::stringstream str_stream;
+			str_stream << stream.rdbuf();
+			stream.close();
+
+			YAML::Node data = YAML::Load(str_stream.str());
+			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
+				ORNG_CORE_ERROR("Scene.yml file has invalid structure, likely corrupted");
+				return false;
+			}
+
+			std::filesystem::current_path(folder_path);
+			m_current_project_directory = folder_path;
+
+			mp_selected_material = nullptr;
+			mp_selected_texture = nullptr;
+			m_selected_entity_ids.clear();
+			glm::vec3 cam_pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+			m_active_scene->m_physics_system.SetIsPaused(true);
+			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
+
+			m_active_scene->UnloadScene();
+			AssetManager::ClearAll();
+			m_active_scene->LoadScene("scene.yml");
+
+
+			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
+			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
+			p_transform->SetAbsolutePosition(cam_pos);
+			mp_editor_camera->AddComponent<CameraComponent>();
+			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
+		}
+		else {
+			ORNG_CORE_ERROR("Project folder/scene.yml path invalid");
+			return false;
+		}
+		return true;
+	}
+
+
+
+	SceneEntity* EditorLayer::DuplicateEntity(SceneEntity* p_original) {
+		SceneEntity& new_entity = m_active_scene->CreateEntity(p_original->name + " - Duplicate");
+		std::string str = SceneSerializer::SerializeEntityIntoString(*p_original);
+		SceneSerializer::DeserializeEntityFromString(*m_active_scene, str, new_entity);
+
+		auto* p_relation_comp = p_original->GetComponent<RelationshipComponent>();
+		SceneEntity* p_current_child = m_active_scene->GetEntity(p_relation_comp->first);
+		while (p_current_child) {
+			DuplicateEntity(p_current_child)->SetParent(new_entity);
+			p_current_child = m_active_scene->GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
+		}
+		return &new_entity;
 	}
 
 
@@ -383,22 +720,7 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderEditorWindow() {
-		ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() - 400, 0));
-		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight()));
 
-		if (ImGui::Begin("Editor", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
-			DisplayEntityEditor();
-
-			if (mp_selected_material)
-				RenderMaterialEditorSection();
-
-			if (mp_selected_texture)
-				RenderTextureEditorSection();
-
-		}
-		ImGui::End();
-	}
 
 	void EditorLayer::DoPickingPass() {
 
@@ -469,18 +791,35 @@ namespace ORNG {
 	}
 
 
+	void NameWithTooltip(const std::string& name) {
+		ImGui::SeparatorText(name.c_str());
+		// Tooltip to reveal full name in case it overflows
+		if (ImGui::BeginItemTooltip()) {
+			ImGui::Text(name.c_str());
+			ImGui::EndTooltip();
+		}
+	}
+
+	bool CenteredImageButton(ImTextureID id, ImVec2 size) {
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0, 0));
+		float padding = (ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x - ImGui::GetStyle().ItemSpacing.x) / 2.0;
+		ImGui::Dummy(ImVec2(padding / 2.0, 0));
+		ImGui::SameLine();
+
+		bool ret = ImGui::ImageButton(id, size, ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::PopStyleVar();
+		return ret;
+	}
 
 
 	void EditorLayer::ShowAssetManager() {
 
 		int window_height = glm::clamp(static_cast<int>(Window::GetHeight()) / 4, 100, 500);
-		int window_width = Window::GetWidth() - 800;
-		ImVec2 delete_button_size{ 50, 50 };
-		ImVec2 button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
-		int column_count = 6;
+		int window_width = Window::GetWidth() - 850;
+		ImVec2 image_button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
+		int column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
 		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
 		ImGui::SetNextWindowPos(ImVec2(400, Window::GetHeight() - window_height));
-		ImGui::GetStyle().CellPadding = ImVec2(11.f, 15.f);
 
 		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::BeginTabBar("Selection");
@@ -513,27 +852,29 @@ namespace ORNG {
 
 			} // END MESH FILE EXPLORER
 
-
-			if (ImGui::BeginTable("Meshes", 4, ImGuiTableFlags_Borders)) // MESH VIEWING TABLE
+			static MeshAsset* p_dragged_mesh = nullptr;
+			if (ImGui::BeginTable("Meshes", column_count)) // MESH VIEWING TABLE
 			{
 				for (auto* p_mesh_asset : AssetManager::Get().m_meshes)
 				{
 					ImGui::PushID(p_mesh_asset);
 					ImGui::TableNextColumn();
-					ImGui::Text(p_mesh_asset->GetFilename().substr(p_mesh_asset->GetFilename().find_last_of('/') + 1).c_str());
-					ImGui::SameLine();
-					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1, 0, 0, 0.5));
 
-					if (p_mesh_asset->m_is_loaded && ImGui::SmallButton("X"))
-					{
-						AssetManager::DeleteMeshAsset(p_mesh_asset);
-					}
-
-					ImGui::PopStyleColor();
+					std::string name = p_mesh_asset->GetFilename().substr(p_mesh_asset->GetFilename().find_last_of('/') + 1);
+					NameWithTooltip(name);
 					if (p_mesh_asset->m_is_loaded)
-						ImGui::TextColored(ImVec4(0, 1, 0, 1), "LOADED");
+					{
+						CenteredImageButton(ImTextureID(m_mesh_preview_textures[p_mesh_asset]->GetTextureHandle()), image_button_size);
+						if (ImGui::BeginDragDropSource()) {
+							p_dragged_mesh = p_mesh_asset;
+							ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
+							ImGui::EndDragDropSource();
+						}
+
+					}
 					else
-						ImGui::TextColored(ImVec4(1, 0, 0, 1), "NOT LOADED");
+						ImGui::TextColored(ImVec4(1, 0, 0, 1), "Loading...");
+
 
 					ImGui::PopID();
 				}
@@ -553,62 +894,91 @@ namespace ORNG {
 				wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					m_current_2d_tex_spec.filepath = filepath;
-					AssetManager::CreateTexture2D(m_current_2d_tex_spec);
+					// Copy file so asset can be saved with project and accessed relatively
+					std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("/") + 1);
+					if (!std::filesystem::exists(new_filepath)) {
+						std::filesystem::copy_file(filepath, new_filepath);
+						m_current_2d_tex_spec.filepath = new_filepath;
+						AssetManager::CreateTexture2D(m_current_2d_tex_spec);
+					}
+					else {
+						ORNG_CORE_ERROR("Texture asset '{0}' not added, already found in project files", new_filepath);
+					}
 				};
 				ShowFileExplorer("", valid_extensions, success_callback);
 
 			}
 
 
-			if (ImGui::TreeNode("Texture viewer")) // TEXTURE VIEWING TREE NODE
+			static Texture2D* p_dragged_texture = nullptr;
+			// Create table for textures 
+			if (ImGui::BeginTable("Textures", column_count)); // TEXTURE VIEWING TABLE
 			{
-				static Texture2D* p_dragged_texture = nullptr;
-				// Create table for textures 
-				if (ImGui::BeginTable("Textures", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX)); // TEXTURE VIEWING TABLE
+				// Push textures into table 
+				for (auto* p_texture : AssetManager::Get().m_2d_textures)
 				{
-					// Push textures into table 
-					for (auto* p_texture : AssetManager::Get().m_2d_textures)
-					{
-						ImGui::PushID(p_texture);
-						ImGui::TableNextColumn();
+					bool deletion_flag = false;
+					ImGui::PushID(p_texture);
+					ImGui::TableNextColumn();
 
-						if (ImGui::ImageButton(ImTextureID(p_texture->GetTextureHandle()), button_size)) {
-							mp_selected_texture = p_texture;
-							m_current_2d_tex_spec = mp_selected_texture->m_spec;
-						};
+					NameWithTooltip(p_texture->m_spec.filepath.substr(p_texture->m_spec.filepath.find_last_of('/') + 1).c_str());
 
-						if (ImGui::BeginDragDropSource()) {
-							p_dragged_texture = p_texture;
-							ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
-							ImGui::EndDragDropSource();
-						}
+					if (CenteredImageButton(ImTextureID(p_texture->GetTextureHandle()), image_button_size)) {
+						mp_selected_texture = p_texture;
+						m_current_2d_tex_spec = mp_selected_texture->m_spec;
+					};
 
-
-
-						ImGui::Text(p_texture->m_spec.filepath.substr(p_texture->m_spec.filepath.find_last_of('/') + 1).c_str());
-
-						ImGui::PopID();
-
+					if (ImGui::BeginDragDropSource()) {
+						p_dragged_texture = p_texture;
+						ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
+						ImGui::EndDragDropSource();
 					}
 
-					ImGui::EndTable();
-				} // END TEXTURE VIEWING TABLE
-				ImGui::TreePop();
-			}
+					// Deletion popup
+					if (ImGui::IsItemHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
+						ImGui::OpenPopup("my_select_popup");
+					}
+
+					if (ImGui::BeginPopup("my_select_popup"))
+					{
+						if (ImGui::Selectable("Delete")) { // Base material not deletable
+							deletion_flag = true;
+						}
+						ImGui::EndPopup();
+					}
+
+					ImGui::PopID();
+
+					if (deletion_flag) {
+						AssetManager::DeleteTexture(p_texture);
+					}
+				}
+
+				ImGui::EndTable();
+			} // END TEXTURE VIEWING TABLE
 			ImGui::EndTabItem();
 		} // END TEXTURE TAB
 
 
 
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
-			static Material* p_dragged_material = nullptr;
+			if (ImGui::IsItemActive()) {
+				for (auto* p_material : AssetManager::Get().m_materials) {
+					m_materials_to_gen_previews.push_back(p_material);
+				}
+				glFinish();
+			}
+
 			if (ImGui::Button("Create material")) {
 				AssetManager::CreateMaterial();
 			}
-			if (ImGui::BeginTable("Material viewer", column_count, ImGuiTableFlags_Borders | ImGuiTableFlags_PadOuterX, ImVec2(window_width, window_height))) { //MATERIAL VIEWING TABLE
+			if (ImGui::BeginTable("Material viewer", column_count)) { //MATERIAL VIEWING TABLE
 
 				for (auto* p_material : AssetManager::Get().m_materials) {
+
+					if (!m_material_preview_textures.contains(p_material))
+						// No material preview so proceeding will lead to a crash
+						continue;
 
 					ImGui::TableNextColumn();
 					ImGui::PushID(p_material);
@@ -616,9 +986,13 @@ namespace ORNG {
 					bool deletion_flag = false;
 					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->m_texture_obj : CodedAssets::GetBaseTexture().GetTextureHandle();
 
-					if (ImGui::ImageButton(ImTextureID(tex_id), button_size))
+					NameWithTooltip(p_material->name.c_str());
+
+					if (CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
 						mp_selected_material = p_material;
 
+
+					static Material* p_dragged_material = nullptr;
 					if (ImGui::BeginDragDropSource()) {
 						p_dragged_material = p_material;
 						ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
@@ -638,13 +1012,12 @@ namespace ORNG {
 						if (ImGui::Selectable("Duplicate")) {
 							auto* p_new_material = AssetManager::CreateMaterial();
 							*p_new_material = *p_material;
+							// Render a preview for material
+							m_materials_to_gen_previews.push_back(p_new_material);
 						}
 						ImGui::EndPopup();
 					}
 
-
-
-					ImGui::Text(p_material->name.c_str());
 
 					if (deletion_flag) {
 						AssetManager::DeleteMaterial(p_material->uuid());
@@ -661,10 +1034,11 @@ namespace ORNG {
 		} //END MATERIAL TAB
 
 
-		ImGui::GetStyle().CellPadding = ImVec2(4.f, 4.f);
 		ImGui::EndTabBar();
 		ImGui::End();
 	}
+
+
 
 
 	void EditorLayer::RenderTextureEditorSection() {
@@ -677,37 +1051,49 @@ namespace ORNG {
 				goto window_end;
 			}
 
-			ImGui::Text(mp_selected_texture->GetSpec().filepath.c_str());
+			if (ImGui::BeginTable("##t", 2)) {
+				ImGui::TableNextColumn();
+				ImGui::TextWrapped(mp_selected_texture->GetSpec().filepath.c_str());
+				ImGui::Separator();
 
-			const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
-			const char* filter_modes[] = { "LINEAR", "NEAREST" };
-			static int selected_wrap_mode = m_current_2d_tex_spec.wrap_params == GL_REPEAT ? 0 : 1;
-			static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_LINEAR ? 0 : 1;
+				const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
+				const char* filter_modes[] = { "LINEAR", "NEAREST" };
+				static int selected_wrap_mode = m_current_2d_tex_spec.wrap_params == GL_REPEAT ? 0 : 1;
+				static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_LINEAR ? 0 : 1;
 
-			ImGui::Checkbox("SRGB", reinterpret_cast<bool*>(&m_current_2d_tex_spec.srgb_space));
+				ImGui::Checkbox("SRGB", reinterpret_cast<bool*>(&m_current_2d_tex_spec.srgb_space));
 
-			ImGui::Text("Wrap mode");
-			ImGui::SameLine();
-			ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
-			m_current_2d_tex_spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
+				ImGui::Text("Wrap mode");
+				ImGui::SameLine();
+				ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
+				m_current_2d_tex_spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 
-			ImGui::Text("Filtering");
-			ImGui::SameLine();
-			ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
-			m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_LINEAR : GL_NEAREST;
-			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST;
+				ImGui::Text("Filtering");
+				ImGui::SameLine();
+				ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
+				m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_LINEAR : GL_NEAREST;
+				m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST;
 
-			m_current_2d_tex_spec.generate_mipmaps = true;
+				if (ImGui::Button("Load")) {
+					mp_selected_texture->SetSpec(m_current_2d_tex_spec);
+					mp_selected_texture->LoadFromFile();
 
-			if (ImGui::Button("Load")) {
-				mp_selected_texture->SetSpec(m_current_2d_tex_spec);
-				mp_selected_texture->LoadFromFile();
+				}
+				m_current_2d_tex_spec.generate_mipmaps = true;
+
+				ImGui::TableNextColumn();
+				float size = glm::min(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+				CenteredImageButton(ImTextureID(mp_selected_texture->GetTextureHandle()), ImVec2(size, size));
+				ImGui::Spacing();
+				ImGui::EndTable();
 			}
+
 		}
 
 	window_end:
 		ImGui::End();
 	}
+
 
 
 
@@ -717,7 +1103,12 @@ namespace ORNG {
 			wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
 			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
-				m_active_scene->skybox.LoadEnvironmentMap(filepath);
+				// Check if texture is an asset or not, if not, add it
+				std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("/") + 1);
+				if (!std::filesystem::exists(new_filepath)) {
+					std::filesystem::copy_file(filepath, new_filepath);
+				}
+				m_active_scene->skybox.LoadEnvironmentMap(new_filepath);
 			};
 
 			if (ImGui::Button("Load skybox texture")) {
@@ -732,6 +1123,7 @@ namespace ORNG {
 
 		}
 	}
+
 
 
 
@@ -798,7 +1190,9 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
+	EditorLayer::EntityNodeEvent EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
+		EntityNodeEvent ret = EntityNodeEvent::E_NONE;
+
 		// Tree nodes that are open are stored here so their children are rendered with the logic below, independant of if the parent tree node is visible or not.
 		static std::vector<uint64_t> open_tree_nodes;
 
@@ -887,13 +1281,7 @@ namespace ORNG {
 
 			ImGui::SeparatorText("Options");
 			if (ImGui::Selectable("Delete")) {
-				// Delete all selected entities
-				for (auto id : m_selected_entity_ids) {
-					m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
-				}
-				m_selected_entity_ids.clear();
-
-				// Early return as logic below will now rely on a deleted entity
+				ret = EntityNodeEvent::E_DELETE;
 				ImGui::EndPopup();
 				goto exit;
 			}
@@ -901,9 +1289,9 @@ namespace ORNG {
 
 			// Creates clone of entity, puts it in scene
 			if (ImGui::Selectable("Duplicate")) {
-				for (auto id : m_selected_entity_ids) {
-					DuplicateEntity(m_active_scene->GetEntity(id));
-				}
+				ret = EntityNodeEvent::E_DUPLICATE;
+				ImGui::EndPopup();
+				goto exit;
 			}
 
 			ImGui::EndPopup();
@@ -919,14 +1307,16 @@ namespace ORNG {
 			entt::entity current_child_entity = p_entity_relationship_comp->first;
 			while (current_child_entity != entt::null) {
 				auto& child_rel_comp = m_active_scene->m_registry.get<RelationshipComponent>(current_child_entity);
-				RenderEntityNode(child_rel_comp.GetEntity(), layer + 1);
+				// Render child entity node, propagate event up
+				ret = static_cast<EntityNodeEvent>((ret | RenderEntityNode(child_rel_comp.GetEntity(), layer + 1)));
 				current_child_entity = child_rel_comp.next;
 			}
 		}
 
 		ImGui::PopID();
-		return;
+		return ret;
 	}
+
 
 
 
@@ -939,33 +1329,6 @@ namespace ORNG {
 
 			// Right click to bring up "new entity" popup
 			RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2));
-
-			if (ImGui::Button("Save")) {
-				SceneSerializer::SerializeScene(*m_active_scene, "scene.yml");
-			}
-			if (ImGui::Button("Load")) {
-				mp_selected_material = nullptr;
-				mp_selected_texture = nullptr;
-				m_selected_entity_ids.clear();
-				bool saved_physics_state = m_active_scene->m_physics_system.GetIsPaused();
-
-				auto camera_saved_transforms = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms();
-				glm::vec3 cam_pos = camera_saved_transforms[0];
-				glm::vec3 cam_orientation = camera_saved_transforms[2];
-				m_active_scene->m_physics_system.SetIsPaused(true);
-
-				mp_editor_camera = nullptr;
-				m_active_scene->UnloadScene();
-				m_active_scene->LoadScene("scene.yml");
-				mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
-				auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
-				p_transform->SetAbsolutePosition(cam_pos);
-				p_transform->SetAbsoluteOrientation(cam_orientation);
-				mp_editor_camera->AddComponent<CameraComponent>();
-				mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
-
-				m_active_scene->m_physics_system.SetIsPaused(saved_physics_state);
-			}
 
 			bool physics_paused = m_active_scene->m_physics_system.GetIsPaused();
 			if (ImGui::RadioButton("Physics", !physics_paused))
@@ -983,11 +1346,27 @@ namespace ORNG {
 				m_display_terrain_editor = EmptyTreeNode("Terrain");
 				m_display_bloom_editor = EmptyTreeNode("Bloom");
 
+				// Render entity nodes, setup event capture
+				EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
 				for (auto* p_entity : m_active_scene->m_entities) {
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
 
-					RenderEntityNode(p_entity, 0);
+					if (EntityNodeEvent e_event = RenderEntityNode(p_entity, 0); e_event == EntityNodeEvent::E_DUPLICATE || e_event == EntityNodeEvent::E_DELETE) {
+						active_event = e_event;
+					}
+				}
+
+				// Process node events
+				if (active_event & EntityNodeEvent::E_DUPLICATE) {
+					for (auto id : m_selected_entity_ids) {
+						DuplicateEntity(m_active_scene->GetEntity(id));
+					}
+				}
+				else if (active_event & EntityNodeEvent::E_DELETE) {
+					for (auto id : m_selected_entity_ids) {
+						m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
+					}
 				}
 			}
 
@@ -1008,6 +1387,8 @@ namespace ORNG {
 
 		ImGui::End();
 	}
+
+
 
 
 	void EditorLayer::DisplayEntityEditor() {
@@ -1053,11 +1434,10 @@ namespace ORNG {
 
 			//MESH
 			if (meshc) {
-
 				if (H2TreeNode("Mesh component")) {
-					ImGui::Text("Mesh asset name");
-					ImGui::SameLine();
-
+					if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+						entity->DeleteComponent<MeshComponent>();
+					}
 					if (meshc->mp_mesh_asset) {
 						RenderMeshComponentEditor(meshc);
 					}
@@ -1068,7 +1448,7 @@ namespace ORNG {
 
 			ImGui::PushID(plight);
 			if (plight && H2TreeNode("Pointlight component")) {
-				if (ImGui::Button("DELETE")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
 					entity->DeleteComponent<PointLightComponent>();
 				}
 				else {
@@ -1079,7 +1459,7 @@ namespace ORNG {
 
 			ImGui::PushID(slight);
 			if (slight && H2TreeNode("Spotlight component")) {
-				if (ImGui::Button("DELETE")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
 					entity->DeleteComponent<SpotLightComponent>();
 				}
 				else {
@@ -1090,7 +1470,7 @@ namespace ORNG {
 
 			ImGui::PushID(p_cam);
 			if (p_cam && H2TreeNode("Camera component")) {
-				if (ImGui::Button("DELETE")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
 					entity->DeleteComponent<CameraComponent>();
 				}
 				RenderCameraEditor(p_cam);
@@ -1099,7 +1479,7 @@ namespace ORNG {
 
 			ImGui::PushID(p_physics_comp);
 			if (p_physics_comp && H2TreeNode("Physics component")) {
-				if (ImGui::Button("DELETE")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
 					entity->DeleteComponent<PhysicsComponent>();
 				}
 				else {
@@ -1118,6 +1498,7 @@ namespace ORNG {
 		}
 		ImGui::End(); // end entity editor window
 	}
+
 
 
 
@@ -1277,10 +1658,12 @@ namespace ORNG {
 	}
 
 
+
+
 	Material* EditorLayer::RenderMaterialComponent(const Material* p_material) {
 		Material* ret = nullptr;
 
-		if (ImGui::ImageButton(ImTextureID(p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle()), ImVec2(100, 100))) {
+		if (ImGui::ImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0))) {
 			mp_selected_material = AssetManager::GetMaterial(p_material->uuid());
 		};
 
@@ -1296,15 +1679,17 @@ namespace ORNG {
 		return ret;
 	}
 
+
+
+
 	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
 		ImGui::PushID(p_tex);
 		if (p_tex) {
 			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
-			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75))) {
+			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75), ImVec2(0, 1), ImVec2(1, 0))) {
 				mp_selected_texture = p_tex;
 				m_current_2d_tex_spec = p_tex->m_spec;
 			};
-
 		}
 		else {
 			ImGui::Text(std::format("{} texture - NONE", name).c_str());
@@ -1329,29 +1714,22 @@ namespace ORNG {
 
 
 
+
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
 
 		ImGui::PushID(comp);
-		static std::string asset_name;
 
-		ImGui::InputText("Mesh asset", &asset_name);
-		if (ImGui::Button("Set")) {
-			for (auto* asset : AssetManager::Get().m_meshes) {
-				std::string current_asset_name = asset->m_filename;
-				for (auto& c : asset_name) {
-					c = std::toupper(c);
-				}
-				for (auto& c : current_asset_name) {
-					c = std::toupper(c);
-				}
-
-				if (current_asset_name.find(asset_name) != std::string::npos) {
-					ORNG_CORE_TRACE(asset->m_filename);
-					comp->SetMeshAsset(asset);
-				}
+		ImGui::SeparatorText("Mesh asset");
+		ImGui::ImageButton(ImTextureID(m_mesh_preview_textures[comp->mp_mesh_asset]->GetTextureHandle()), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
+				if (p_payload->DataSize == sizeof(MeshAsset*))
+					comp->SetMeshAsset(*static_cast<MeshAsset**>(p_payload->Data));
 			}
+			ImGui::EndDragDropTarget();
 		}
 
+		ImGui::SeparatorText("Materials");
 		for (int i = 0; i < comp->m_materials.size(); i++) {
 			auto p_material = comp->m_materials[i];
 			ImGui::PushID(i);
@@ -1366,6 +1744,7 @@ namespace ORNG {
 
 		ImGui::PopID();
 	};
+
 
 
 
@@ -1393,6 +1772,8 @@ namespace ORNG {
 		light->SetLightDirection(dir.x, dir.y, dir.z);
 		light->SetAperture(aperture);
 	}
+
+
 
 
 	void EditorLayer::RenderGlobalFogEditor() {
@@ -1426,6 +1807,7 @@ namespace ORNG {
 
 
 
+
 	void EditorLayer::RenderTerrainEditor() {
 		if (H2TreeNode("Terrain")) {
 			ImGui::InputFloat("Height factor", &m_active_scene->terrain.m_height_scale);
@@ -1448,6 +1830,9 @@ namespace ORNG {
 
 		}
 	}
+
+
+
 
 	void EditorLayer::RenderDirectionalLightEditor() {
 		if (H1TreeNode("Directional light")) {
@@ -1479,6 +1864,8 @@ namespace ORNG {
 	}
 
 
+
+
 	void EditorLayer::RenderPointlightEditor(PointLightComponent* light) {
 
 		ImGui::PushItemWidth(200.f);
@@ -1492,6 +1879,9 @@ namespace ORNG {
 		ShowColorVec3Editor("Color", light->color);
 	}
 
+
+
+
 	void EditorLayer::RenderCameraEditor(CameraComponent* p_cam) {
 		ImGui::PushItemWidth(200.f);
 		ImGui::SliderFloat("Exposure", &p_cam->exposure, 0.f, 10.f);
@@ -1504,6 +1894,7 @@ namespace ORNG {
 			p_cam->MakeActive();
 		}
 	}
+
 
 
 
@@ -1546,6 +1937,9 @@ namespace ORNG {
 		return ret;
 	}
 
+
+
+
 	bool EditorLayer::ShowVec2Editor(const char* name, glm::vec2& vec, float min, float max) {
 		bool ret = false;
 		glm::vec2 vec_copy = vec;
@@ -1578,8 +1972,8 @@ namespace ORNG {
 
 
 
+
 	void EditorLayer::ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback) {
-		// Create an OPENFILENAMEW structure
 		// Create an OPENFILENAMEW structure
 		OPENFILENAMEW ofn;
 		wchar_t fileNames[MAX_PATH * 100] = { 0 };
@@ -1589,7 +1983,7 @@ namespace ORNG {
 		ofn.lpstrFile = fileNames;
 		ofn.lpstrFilter = extension_filter;
 		ofn.nMaxFile = sizeof(fileNames);
-		ofn.Flags = OFN_EXPLORER | OFN_ALLOWMULTISELECT;
+		ofn.Flags = OFN_EXPLORER | OFN_ALLOWMULTISELECT | OFN_PATHMUSTEXIST;
 
 		// This needs to be stored to keep relative filepaths working, otherwise the working directory will be changed
 		std::filesystem::path prev_path{std::filesystem::current_path().generic_string()};
@@ -1617,8 +2011,7 @@ namespace ORNG {
 
 				std::string path_name = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(filePath);
 				std::ranges::for_each(path_name, [](char& c) { c = c == '\\' ? '/' : c; });
-				//path_name.erase(0, path_name.find("/res/"));
-				//path_name = "." + path_name;
+
 
 				// Reset path to stop relative paths breaking
 				std::filesystem::current_path(prev_path);

@@ -29,6 +29,7 @@ namespace ORNG {
 		// If the whole buffer needs to be updated, just do that, ignore sub updates as they'll happen anyway in the full buffer update 
 		if (m_update_world_mat_buffer_flag) {
 			m_update_world_mat_buffer_flag = false;
+			m_sub_update_world_mat_buffer_flag = false;
 			UpdateTransformSSBO();
 		}
 		else if (m_sub_update_world_mat_buffer_flag) {
@@ -85,7 +86,6 @@ namespace ORNG {
 		for (auto& p_mesh : m_instances) {
 			transforms.emplace_back(p_mesh->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 		}
-
 		m_mesh_asset->m_vao.FullUpdateTransformSSBO(m_transform_ssbo_handle, &transforms);
 
 	}

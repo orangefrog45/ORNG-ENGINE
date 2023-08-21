@@ -18,7 +18,7 @@ void main() {
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 	float gamma = 2.2;
 
-	vec4 sampled_fog_color = texelFetch(fog_overlay_sampler, tex_coords / 2, 0);
+	vec4 sampled_fog_color = texelFetch(fog_overlay_sampler, tex_coords, 0);
 	vec3 fog_mix_color = mix(imageLoad(u_output_texture, tex_coords).rgb, sampled_fog_color.rgb, clamp(sampled_fog_color.w, 0.f, 1.f));
 	fog_mix_color += texelFetch(bloom_sampler, tex_coords / 2, 0).rgb * u_bloom_intensity;
 	vec3 mapped = vec3(1.0) - exp(-fog_mix_color * exposure);

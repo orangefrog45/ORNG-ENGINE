@@ -73,21 +73,29 @@ namespace ORNG {
 		mp_output_fb->SetRenderBufferDimensions(tex_spec.width, tex_spec.height);
 		mp_diffuse_prefilter_shader->SetUniform("projection", proj_matrix);
 
+		// Directory to save processed image files to so this doesn't have to happen every time the engine starts
+		if (!std::filesystem::exists("res/textures/env_map"))
+			std::filesystem::create_directory("res/textures/env_map");
+
 		stbi_flip_vertically_on_write(1);
 
 		for (unsigned int i = 0; i < 6; i++) { // Check if diffuse prefilter has already been created and load it, or create it and save it, then load it.
+
+			if (std::filesystem::exists(tex_spec.filepaths[i])) // If this filepath exists it will be loaded in from the LoadFromFile call below this loop
+				continue;
+
 			mp_diffuse_prefilter_shader->SetUniform("view", view_matrices[i]);
 			mp_output_fb->BindTexture2D(skybox.m_diffuse_prefilter_map.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
-			GL_StateManager::DefaultClearBits();
-			Renderer::DrawCube();
-
-			// Write to disk so this computation isn't needed every time (causes large freeze at startup)
 			float* pixels = new float[tex_spec.width * tex_spec.height * 3];
 			glReadPixels(0, 0, tex_spec.width, tex_spec.height, tex_spec.format, tex_spec.storage_type, pixels);
 
+			if (!stbi_write_hdr(tex_spec.filepaths[i].c_str(), tex_spec.width, tex_spec.height, 3, pixels))
+				ORNG_CORE_CRITICAL("Error writing environment map diffuse prefilter texture");
 
 			delete[] pixels;
+
 		}
+			skybox.m_diffuse_prefilter_map.LoadFromFile();
 
 	}
 

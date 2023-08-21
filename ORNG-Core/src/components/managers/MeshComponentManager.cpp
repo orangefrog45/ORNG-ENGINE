@@ -28,7 +28,7 @@ namespace ORNG {
 
 		// check if new entity can merge into already existing instance group
 		for (int i = 0; i < m_instance_groups.size(); i++) {
-			//if same data, shader and material, can be combined so instancing is possible
+			//if same data and material, can be combined so instancing is possible
 			if (m_instance_groups[i]->m_mesh_asset == comp->mp_mesh_asset
 				&& m_instance_groups[i]->m_materials == comp->m_materials) {
 				group_index = i;
@@ -44,7 +44,7 @@ namespace ORNG {
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
 			std::vector<const Material*> material_vec;
 			if (comp->m_materials.empty()) {
-				for (auto* p_material : comp->mp_mesh_asset->m_scene_materials) {
+				for (auto* p_material : comp->mp_mesh_asset->m_material_assets) {
 					material_vec.push_back(p_material);
 				}
 			}
@@ -130,7 +130,7 @@ namespace ORNG {
 
 		for (auto& group : m_instance_groups) {
 			//Set materials
-			for (auto* p_material : group->m_mesh_asset->m_scene_materials) {
+			for (auto* p_material : group->m_mesh_asset->m_material_assets) {
 				group->m_materials.push_back(p_material);
 			}
 
@@ -215,8 +215,10 @@ namespace ORNG {
 
 			// Check if group should be deleted
 			if (group->m_instances.empty()) {
+				group->ProcessUpdates();
 				delete group;
 				m_instance_groups.erase(m_instance_groups.begin() + i);
+				i--;
 			}
 		}
 	}

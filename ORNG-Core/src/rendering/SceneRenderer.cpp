@@ -97,7 +97,7 @@ namespace ORNG {
 
 		// blue noise for post-processing effects in quad
 		Texture2DSpec noise_spec;
-		noise_spec.filepath = "./res/textures/BlueNoise64Tiled.png";
+		noise_spec.filepath = "../ORNG-Core/res/textures/BlueNoise64Tiled.png";
 		noise_spec.min_filter = GL_NEAREST;
 		noise_spec.mag_filter = GL_NEAREST;
 		noise_spec.wrap_params = GL_REPEAT;
@@ -157,7 +157,7 @@ namespace ORNG {
 
 		Texture2DSpec gbuffer_depth_spec;
 		gbuffer_depth_spec.format = GL_DEPTH_COMPONENT;
-		gbuffer_depth_spec.internal_format = GL_DEPTH_COMPONENT32;
+		gbuffer_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
 		gbuffer_depth_spec.storage_type = GL_FLOAT;
 		gbuffer_depth_spec.min_filter = GL_NEAREST;
 		gbuffer_depth_spec.mag_filter = GL_NEAREST;
@@ -307,15 +307,36 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingOutput output;
 		auto* p_cam = settings.p_cam_override ? settings.p_cam_override : mp_scene->m_camera_system.GetActiveCamera();
 		if (!p_cam) {
+			ORNG_CORE_ERROR("No camera found for scene renderer to render from");
 			return output;
 		}
 
-		glViewport(0, 0, settings.p_output_tex->GetSpec().width, settings.p_output_tex->GetSpec().height);
+
+		auto& spec = settings.p_output_tex->GetSpec();
+		Texture2DSpec fog_spec = m_fog_output_tex.GetSpec();
+
+		if (fog_spec.width != spec.width || fog_spec.height != fog_spec.height) {
+			fog_spec.width = spec.width / 2;
+			fog_spec.height = spec.height / 2;
+			m_fog_output_tex.SetSpec(fog_spec);
+
+			fog_spec.width = spec.width;
+			fog_spec.height = spec.height;
+			m_fog_blur_tex_1.SetSpec(fog_spec);
+			m_fog_blur_tex_2.SetSpec(fog_spec);
+
+			Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
+			resized_bloom_spec.width = spec.width / 2;
+			resized_bloom_spec.height = spec.height / 2;
+			m_bloom_tex.SetSpec(resized_bloom_spec);
+		}
+
+		glViewport(0, 0, spec.width, spec.height);
 		PrepRenderPasses(p_cam, settings.p_output_tex);
 		DoGBufferPass(p_cam);
 		DoDepthPass(p_cam, settings.p_output_tex);
 		DoLightingPass(settings.p_output_tex);
-		//DoFogPass();
+		DoFogPass(spec.width, spec.height);
 		DoPostProcessingPass(p_cam, settings.p_output_tex);
 
 		return output;
@@ -452,7 +473,7 @@ namespace ORNG {
 		const DirectionalLight& light = mp_scene->m_directional_light;
 
 		// Calculate light space matrices
-		const float aspect_ratio = static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight());
+		const float aspect_ratio = p_cam->aspect_ratio;
 		const glm::mat4 cam_view_matrix = p_cam->GetViewMatrix();
 		const float fov = glm::radians(p_cam->fov / 2.f);
 
@@ -539,19 +560,17 @@ namespace ORNG {
 
 	void SceneRenderer::DrawSkybox() {
 		glDisable(GL_CULL_FACE);
-		glDepthMask(GL_FALSE);
 		glDepthFunc(GL_LEQUAL);
 
 		Renderer::DrawCube();
 
 		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
 		glEnable(GL_CULL_FACE);
 	}
 
 
 
-	void SceneRenderer::DoFogPass() {
+	void SceneRenderer::DoFogPass(unsigned int width, unsigned int height) {
 		ORNG_PROFILE_FUNC_GPU();
 		//draw fog texture
 		m_fog_shader->ActivateProgram();
@@ -569,10 +588,10 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
 
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 16.f), (GLuint)glm::ceil((float)Window::GetHeight() / 16.f), 1);
+		glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
@@ -584,14 +603,24 @@ namespace ORNG {
 
 		m_blur_shader->SetUniform("u_first_iter", 1);
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_blur_tex_1.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 8.f), (GLuint)glm::ceil((float)Window::GetHeight() / 8.f), 1);
+		glDispatchCompute((GLuint)glm::ceil((float)width / 8.f), (GLuint)glm::ceil((float)height / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		m_blur_shader->SetUniform("u_first_iter", 0);
 
+		for (int i = 0; i < 2; i++) {
+			m_blur_shader->SetUniform("u_horizontal", 1);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_fog_blur_tex_1.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3);
+			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_blur_tex_2.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glDispatchCompute((GLuint)glm::ceil((float)width / 8.f), (GLuint)glm::ceil((float)height / 8.f), 1);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+			m_blur_shader->SetUniform("u_horizontal", 0);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_fog_blur_tex_2.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3);
+			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_blur_tex_1.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glDispatchCompute((GLuint)glm::ceil((float)width / 8.f), (GLuint)glm::ceil((float)height / 8.f), 1);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-
-
+		}
 
 	}
 
@@ -604,7 +633,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, mp_scene->m_spotlight_component_manager.m_spotlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SPOT_SHADOW_MAP, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("albedo").GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("normals").GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shader_ids").GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_IDS, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("roughness_metallic_ao").GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetIrradianceTexture().GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
@@ -616,9 +645,9 @@ namespace ORNG {
 		m_lighting_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
 		m_lighting_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
 		m_lighting_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
-
+		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 8.f), (GLuint)glm::ceil((float)Window::GetHeight() / 8.f), 1);
+		glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	}
@@ -639,15 +668,14 @@ namespace ORNG {
 	}
 
 
-	void SceneRenderer::DoBloomPass() {
+	void SceneRenderer::DoBloomPass(unsigned int width, unsigned int height) {
 		ORNG_PROFILE_FUNC_GPU();
 		mp_bloom_threshold_shader->ActivateProgram();
 		mp_bloom_threshold_shader->SetUniform("u_threshold", mp_scene->post_processing.bloom.threshold);
 		mp_bloom_threshold_shader->SetUniform("u_knee", mp_scene->post_processing.bloom.knee);
-
 		// Isolate bright spots
 		glBindImageTexture(0, m_bloom_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 16.f), (GLuint)glm::ceil((float)Window::GetHeight() / 16.f), 1);
+		glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		// Downsample passes
@@ -657,7 +685,7 @@ namespace ORNG {
 		for (int i = 1; i < max_mip_layer + 1; i++) {
 			mp_bloom_downsample_shader->SetUniform("u_mip_level", i);
 			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-			glDispatchCompute((GLuint)glm::ceil(((float)Window::GetWidth() / 32.f) / (float)i), (GLuint)glm::ceil(((float)Window::GetHeight() / 32.f) / (float)i), 1);
+			glDispatchCompute((GLuint)glm::ceil(((float)width / 32.f) / (float)i), (GLuint)glm::ceil(((float)height / 32.f) / (float)i), 1);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -667,7 +695,7 @@ namespace ORNG {
 		for (int i = max_mip_layer - 1; i >= 0; i--) {
 			mp_bloom_upsample_shader->SetUniform("u_mip_level", i);
 			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-			glDispatchCompute((GLuint)glm::ceil(((float)Window::GetWidth() / 16.f) / (float)(i + 1)), (GLuint)glm::ceil(((float)Window::GetHeight() / 16.f) / (float)(i + 1)), 1);
+			glDispatchCompute((GLuint)glm::ceil(((float)width / 16.f) / (float)(i + 1)), (GLuint)glm::ceil(((float)height / 16.f) / (float)(i + 1)), 1);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -676,18 +704,17 @@ namespace ORNG {
 
 	void SceneRenderer::DoPostProcessingPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
-		DoBloomPass();
+		auto& spec = p_output_tex->GetSpec();
+		DoBloomPass(spec.width, spec.height);
 
 		ORNG_PROFILE_FUNC_GPU();
 		m_post_process_shader->ActivateProgram();
 
 		m_post_process_shader->SetUniform("exposure", p_cam->exposure);
 		m_post_process_shader->SetUniform("u_bloom_intensity", mp_scene->post_processing.bloom.intensity);
-		//GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("world_positions").GetTextureHandle(), GL_StateManager::TextureUnits::WORLD_POSITIONS, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_fog_blur_tex_1.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_2, false);
-
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)Window::GetWidth() / 8.f), (GLuint)glm::ceil((float)Window::GetHeight() / 8.f), 1);
+		glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	}

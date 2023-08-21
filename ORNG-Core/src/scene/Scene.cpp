@@ -27,8 +27,8 @@ namespace ORNG {
 		m_pointlight_component_manager.OnUpdate();
 		m_spotlight_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
-
-		terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
+		if (m_camera_system.GetActiveCamera())
+			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 	}
 
 
@@ -39,8 +39,12 @@ namespace ORNG {
 
 		auto& current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
 		while (current_child_entity != entt::null) {
-			p_entity->mp_scene->DeleteEntity(GetEntity(current_child_entity));
+			auto* p_child_ent = GetEntity(current_child_entity);
+			entt::entity next = p_child_ent->GetComponent<RelationshipComponent>()->next;
+			DeleteEntity(p_child_ent);
+			current_child_entity = next;
 		}
+
 
 		delete p_entity;
 		m_entities.erase(it);
@@ -54,6 +58,11 @@ namespace ORNG {
 
 	SceneEntity* Scene::GetEntity(uint64_t uuid) {
 		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetUUID() == uuid; });
+		return it == m_entities.end() ? nullptr : *it;
+	}
+
+	SceneEntity* Scene::GetEntity(const std::string& name) {
+		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->name == name; });
 		return it == m_entities.end() ? nullptr : *it;
 	}
 	SceneEntity* Scene::GetEntity(entt::entity handle) {
@@ -83,8 +92,9 @@ namespace ORNG {
 		m_transform_system.OnLoad();
 
 		if (!SceneSerializer::DeserializeScene(*this, filepath)) {
-			EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
+			//EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
 		}
+		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}
 
@@ -93,9 +103,12 @@ namespace ORNG {
 
 	void Scene::UnloadScene() {
 		ORNG_CORE_INFO("Unloading scene...");
+		m_is_loaded = false;
 
-		for (auto* entity : m_entities) {
-			delete entity;
+
+		while (!m_entities.empty()) {
+			// Safe deletion method
+			DeleteEntity(m_entities[0]);
 		}
 
 		m_registry.clear();

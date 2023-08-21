@@ -264,12 +264,14 @@ namespace ORNG {
 			if (m_spec.generate_mipmaps)
 				glGenerateMipmap(m_texture_target);
 
+			//GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
 			return true;
 		}
 		else {
 			ORNG_CORE_ERROR("Texture2D failed setting spec: Invalid spec");
 			return false;
 		}
+
 	}
 
 	bool Texture2DArray::SetSpec(const Texture2DArraySpec& spec) {

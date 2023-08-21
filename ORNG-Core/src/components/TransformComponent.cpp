@@ -75,12 +75,13 @@ namespace ORNG {
 		else
 			m_transform = mp_parent->GetMatrix() * (trans_mat * rot_mat * scale_mat);
 
-		Events::ECS_Event<TransformComponent> e_event;
-		e_event.affected_components.push_back(this);
-		e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-		e_event.sub_event_type = type;
-		Events::EventManager::DispatchEvent(e_event);
-
+		if (GetEntity()) {
+			Events::ECS_Event<TransformComponent> e_event;
+			e_event.affected_components.push_back(this);
+			e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
+			e_event.sub_event_type = type;
+			Events::EventManager::DispatchEvent(e_event);
+		}
 	}
 
 }

@@ -34,7 +34,7 @@ namespace ORNG {
 
 		bool LoadMeshData();
 
-		const auto& GetSceneMaterials() const { return m_scene_materials; }
+		const auto& GetMaterials() const { return m_material_assets; }
 		std::string GetFilename() const { return m_filename; };
 
 		bool GetLoadStatus() const { return m_is_loaded; };
@@ -46,6 +46,16 @@ namespace ORNG {
 		const VAO& GetVAO() const { return m_vao; }
 
 		UUID uuid;
+
+		template<typename S>
+		void serialize(S& s) {
+			s.object(m_vao);
+			s.object(m_aabb);
+			s.value4b((uint32_t)m_submeshes.size());
+			for (auto& entry : m_submeshes) {
+				s.object(entry);
+			}
+		}
 
 	private:
 		AABB m_aabb;
@@ -88,10 +98,9 @@ namespace ORNG {
 		};
 
 		std::vector<MeshEntry> m_submeshes;
-		std::vector<Material> m_original_materials;
+		// Pointers to material assets created in assetmanager
+		std::vector<Material*> m_material_assets;
 
-		// Pointers to the material assets created in a scene with this asset
-		std::vector<Material*> m_scene_materials;
 
 	};
 }

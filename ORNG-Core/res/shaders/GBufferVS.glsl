@@ -114,22 +114,22 @@ void main() {
 
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_normal = vertex_normal;
-		vs_position = vec4(position + vec3(0.0, cnoise(position.xz * 0.01 + ubo_common.time_elapsed), 0.0) * 10.f, 1.f);
+		vs_position = vec4(position, 1.f);
 		gl_Position = PVMatrices.proj_view * vs_position;
 		mat3 tbn = CalculateTbnMatrix();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
 
 #elif defined SKYBOX_MODE
-		vec4 view_pos = vec4(mat3(PVMatrices.view) * position, 1.0);
+		vs_position = vec4(position, 0.0);
+		vec4 view_pos = vec4(mat3(PVMatrices.view) * vs_position.xyz, 1.0);
 		vec4 proj_pos = PVMatrices.projection * view_pos;
 		vs_tex_coord = position;
-		vs_position = vec4(position, 1.f);
 		gl_Position = proj_pos.xyww;
 #else
 		vs_tex_coord = vec3(tex_coord, 0.f);
 		vs_transform = transform_ssbo.transforms[gl_InstanceID];
 		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
-		vs_position = vs_transform * vec4(position, 1.0f);
+		vs_position = vs_transform * (vec4(position, 1.0f));
 
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);

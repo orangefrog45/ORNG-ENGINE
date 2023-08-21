@@ -17,9 +17,7 @@ namespace ORNG {
 	void MeshComponent::SetMeshAsset(MeshAsset* p_asset) {
 		mp_mesh_asset = p_asset;
 		m_materials.clear();
-
 		DispatchUpdateEvent();
-
 	};
 
 
@@ -40,8 +38,6 @@ namespace ORNG {
 		e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 
 		Events::EventManager::DispatchEvent(e_event);
-		//m_transform_update_flag = true;
-		//if (mp_mesh_asset && mp_mesh_asset->GetLoadStatus() == true) mp_instance_group->ActivateFlagSubUpdateWorldMatBuffer();
 	}
 
 

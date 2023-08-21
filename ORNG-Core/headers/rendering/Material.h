@@ -8,8 +8,18 @@ namespace ORNG {
 		friend class Scene;
 		explicit Material(Texture2D* p_base_color_tex) : base_color_texture(p_base_color_tex) {};
 		Material() = default;
-		explicit Material(uint64_t uuid) : uuid(uuid) {};
+		explicit Material(uint64_t t_uuid) { uuid = UUID(t_uuid); };
 		Material(const Material& other) = default;
+		bool ContainsTexture(Texture2D* p_tex) {
+			bool contains = false;
+			contains |= base_color_texture == p_tex;
+			contains |= normal_map_texture == p_tex;
+			contains |= emissive_texture == p_tex;
+			contains |= displacement_texture == p_tex;
+			contains |= metallic_texture == p_tex;
+			contains |= roughness_texture == p_tex;
+			return contains;
+		}
 
 		glm::vec3 base_color = glm::vec3(1.0f, 1.0f, 1.0f);
 

@@ -215,18 +215,13 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 
 
 vec3 GetWorldSpacePos(vec2 tex_coords, float depth) {
-    float z = depth * 2.0 - 1.0;
 
 	vec2 normalized_tex_coords = tex_coords / (vec2(imageSize(fog_texture)));
-    vec4 clipSpacePosition = vec4(normalized_tex_coords * 2.0 - 1.0, z, 1.0);
+    vec4 clipSpacePosition = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
     vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
-	
-
-    // Perspective division
-    viewSpacePosition /= viewSpacePosition.w;
-
     vec4 worldSpacePosition = PVMatrices.inv_view * viewSpacePosition;
-
+    // Perspective division
+    worldSpacePosition.xyz /=  worldSpacePosition.w;
     return worldSpacePosition.xyz;
 }
 
@@ -264,14 +259,14 @@ vec4 Accumulate(vec3 accum_light, float accum_transmittance, vec3 slice_light, f
 
 void main() {
 	// Tex coords in range (0, 0), (screen width, screen height)
-	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy) * 2; //multiplication by 2 as fog texture at half resolution
+	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy) ;
 
-	float noise_offset = texelFetch(blue_noise_sampler, ((tex_coords.xy / 2) * 7) % textureSize(blue_noise_sampler, 0), 0).r;
+	float noise_offset = texelFetch(blue_noise_sampler, ivec2(tex_coords.xy % textureSize(blue_noise_sampler, 0).xy), 0).r;
 
-	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords, 0).r;
-	vec3 frag_world_pos = GetWorldSpacePos(tex_coords / 2, fragment_depth);
+	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
+	vec3 frag_world_pos = GetWorldSpacePos(tex_coords, fragment_depth);
 	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float cam_to_frag_dist = length(cam_to_frag);
+	float cam_to_frag_dist = min(length(cam_to_frag), 2000.0);
 	float step_distance = cam_to_frag_dist / float(u_step_count);
 
 
@@ -279,7 +274,6 @@ void main() {
 
 	vec3 step_pos = ubo_common.camera_pos.xyz + ray_dir * noise_offset * step_distance;
 
-	vec3 luminance = vec3(0.0f);
 	vec4 accum = vec4(0, 0, 0, 1);
 
 	float extinction_coef = (u_absorption_coef + u_scattering_coef);
@@ -288,6 +282,7 @@ void main() {
 	for (int i = 0; i < u_step_count; i++) {
 		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
 		float fog_density = noise(fog_sampling_coords) * u_density_coef;
+		fog_density += 0.5 * u_density_coef;
 
 		vec3 slice_light = vec3(0);
 
@@ -307,8 +302,7 @@ void main() {
 
 	}
 
-	vec4 fog_color = vec4(u_fog_color * accum.rgb + texture(diffuse_prefilter_sampler, ray_dir).rgb * u_emissive, 1.0 - accum.a);
-
-	imageStore(fog_texture, tex_coords / 2, fog_color);
+	vec4 fog_color = vec4(u_fog_color * accum.rgb + texture(diffuse_prefilter_sampler, ray_dir).rgb * u_emissive, 1.0 - accum.a );
+	imageStore(fog_texture, tex_coords, fog_color);
 
 })""

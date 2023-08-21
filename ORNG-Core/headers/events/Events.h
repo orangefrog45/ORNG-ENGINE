@@ -39,6 +39,10 @@ namespace ORNG::Events {
 	enum class ProjectEventType {
 		MATERIAL_DELETED,
 		MESH_DELETED,
+		MESH_LOADED,
+		MATERIAL_LOADED,
+		TEXTURE_DELETED,
+		TEXTURE_LOADED,
 	};
 
 	struct ProjectEvent : public Event {

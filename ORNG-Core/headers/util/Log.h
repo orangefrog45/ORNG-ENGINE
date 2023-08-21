@@ -8,6 +8,7 @@ namespace ORNG {
 	public:
 
 		static void Init();
+		static std::string GetLastLog();
 		inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_core_logger; }
 		static void GLLogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*);
 	private:

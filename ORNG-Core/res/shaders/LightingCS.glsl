@@ -81,7 +81,7 @@ uniform mat4 u_dir_light_matrices[NUM_SHADOW_CASCADES];
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
-layout(binding = 6) uniform sampler2D view_depth_sampler;
+layout(binding = 16) uniform sampler2D view_depth_sampler;
 layout(binding = 7) uniform sampler2D normal_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 12) uniform usampler2D shader_id_sampler;
@@ -93,18 +93,13 @@ layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 
 vec3 WorldPosFromDepth(float depth) {
-    float z = depth * 2.0 - 1.0;
 
 	vec2 normalized_tex_coords = tex_coords / vec2(imageSize(u_output_texture));
-    vec4 clipSpacePosition = vec4(normalized_tex_coords * 2.0 - 1.0, z, 1.0);
+    vec4 clipSpacePosition = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
     vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
-	
-
-    // Perspective division
-    viewSpacePosition /= viewSpacePosition.w;
-
     vec4 worldSpacePosition = PVMatrices.inv_view * viewSpacePosition;
-
+    // Perspective division
+    worldSpacePosition.xyz /= max(worldSpacePosition.w, 0.0000001);
     return worldSpacePosition.xyz;
 }
 
@@ -482,5 +477,5 @@ void main()
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
-	imageStore(u_output_texture, tex_coords, vec4(light_color * 3.0, 1.0));
+	imageStore(u_output_texture, tex_coords, vec4(light_color , 1.0));
 };)""

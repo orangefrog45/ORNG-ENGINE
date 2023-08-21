@@ -62,7 +62,7 @@ namespace ORNG {
 	}
 
 	glm::mat4x4 CameraComponent::GetProjectionMatrix() const {
-		return glm::perspective(glm::radians(fov / 2.0f), static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight()), zNear, zFar);
+		return glm::perspective(glm::radians(fov / 2.0f), aspect_ratio, zNear, zFar);
 	}
 
 

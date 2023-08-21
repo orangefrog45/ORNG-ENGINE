@@ -14,6 +14,7 @@ namespace ORNG {
 	class Texture2D;
 	struct VertexData3D;
 	struct TextureFileData;
+	class MeshAsset;
 
 
 	class SceneSerializer {
@@ -24,7 +25,8 @@ namespace ORNG {
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
 
-		static void SerializeMeshAssetBinary(const std::string& filepath, const VertexData3D& data);
+		static void SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data);
+		static void DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 		// Entity argument is the entity that the data will be loaded into

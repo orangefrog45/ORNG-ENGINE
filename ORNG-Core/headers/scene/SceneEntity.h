@@ -15,16 +15,7 @@ namespace ORNG {
 		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene->uuid()) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
 
 		~SceneEntity() {
-
-			entt::entity current_child = GetComponent<RelationshipComponent>()->first;
-			while (current_child != entt::null) {
-				auto next = mp_scene->m_registry.get<RelationshipComponent>(current_child).next;
-				mp_scene->GetEntity(current_child)->RemoveParent();
-				current_child = next;
-			}
-
 			RemoveParent();
-
 			mp_scene->m_registry.destroy(m_entt_handle);
 		}
 
@@ -71,11 +62,14 @@ namespace ORNG {
 			}
 			p_comp->parent = entt::entity{ parent_entity.GetEnttHandle() };
 
-
+			// If parent has no children, link this to first
 			if (current_parent_child == entt::null) {
 				p_parent_comp->first = m_entt_handle;
 				p_parent_comp->num_children++;
-				GetComponent<TransformComponent>()->mp_parent = &mp_scene->m_registry.get<TransformComponent>(p_parent_comp->GetEnttHandle());
+				// Update transform hierarchy
+				auto* p_transform = GetComponent<TransformComponent>();
+				p_transform->mp_parent = &mp_scene->m_registry.get<TransformComponent>(p_parent_comp->GetEnttHandle());
+				p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 				return;
 			}
 
@@ -90,7 +84,9 @@ namespace ORNG {
 			p_parent_comp->num_children++;
 
 			// Update transform hierarchy
-			GetComponent<TransformComponent>()->mp_parent = &mp_scene->m_registry.get<TransformComponent>(p_parent_comp->GetEnttHandle());
+			auto* p_transform = GetComponent<TransformComponent>();
+			p_transform->mp_parent = &mp_scene->m_registry.get<TransformComponent>(p_parent_comp->GetEnttHandle());
+			p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 		}
 
 		void RemoveParent() {
@@ -102,8 +98,8 @@ namespace ORNG {
 			auto& parent_comp = mp_scene->m_registry.get<RelationshipComponent>(p_comp->parent);
 			parent_comp.num_children--;
 
-			if (parent_comp.first == entt::entity{m_entt_handle})
-				parent_comp.first = entt::null;
+			if (parent_comp.first == m_entt_handle)
+				parent_comp.first = p_comp->next;
 
 
 			// Patch hole in linked list

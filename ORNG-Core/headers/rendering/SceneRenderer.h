@@ -63,12 +63,12 @@ namespace ORNG {
 		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoGBufferPass(CameraComponent* p_cam);
 		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
-		void DoFogPass();
+		void DoFogPass(unsigned int width, unsigned int height);
 		void DoLightingPass(Texture2D* output_tex);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
 		void DrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
-		void DoBloomPass();
+		void DoBloomPass(unsigned int width, unsigned int height);
 		void DrawAllMeshes() const;
 
 		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);

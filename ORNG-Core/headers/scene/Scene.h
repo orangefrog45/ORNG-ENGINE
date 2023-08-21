@@ -27,6 +27,7 @@ namespace ORNG {
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
 		void DeleteEntity(SceneEntity* p_entity);
 		SceneEntity* GetEntity(uint64_t uuid);
+		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
 
 		Skybox skybox;
@@ -38,6 +39,7 @@ namespace ORNG {
 
 		UUID uuid;
 	private:
+		bool m_is_loaded = false;
 
 		BaseLight m_global_ambient_lighting = BaseLight(0);
 		DirectionalLight m_directional_light;

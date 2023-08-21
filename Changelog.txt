@@ -1,4 +1,14 @@
+22/8/23:
+-Concept of projects and project management added
+-3D Mesh/material asset previews in editor
+-Large UI changes in editor
+-Asset management improved, serialized/clone asset files kept with project files
+-Fixed some entity/transform hierarchy bugs
+-Mesh asset binary serialization
+-Some fog changes/fixes
+
 16/8/23:
+-Some work on binary asset serialization
 -Async mesh/texture loading
 -Asset management stuff in its own singleton class, moved out of Scene
 -ImGui drag and drop for materials/textures instead of scuffed system
