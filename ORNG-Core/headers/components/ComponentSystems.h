@@ -1,7 +1,7 @@
 #pragma once
 #include "components/ComponentAPI.h"
-#include "scene/MeshInstanceGroup.h"
 #include "events/EventManager.h"
+#include "rendering/Textures.h"
 
 
 namespace physx {
@@ -16,6 +16,7 @@ namespace physx {
 
 namespace ORNG {
 	class Scene;
+	class MeshInstanceGroup;
 
 	class ComponentSystem {
 	public:
@@ -177,7 +178,7 @@ namespace ORNG {
 	private:
 		Texture2DArray m_spotlight_depth_tex{ "Spotlight depth" }; // Used for shadow maps
 		entt::registry* mp_registry = nullptr;
-		GLuint m_spotlight_ssbo_handle;
+		unsigned int m_spotlight_ssbo_handle;
 	};
 
 
@@ -195,7 +196,7 @@ namespace ORNG {
 		void OnDepthMapUpdate();
 	private:
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
-		GLuint m_pointlight_ssbo_handle;
+		unsigned int m_pointlight_ssbo_handle;
 		entt::registry* mp_registry = nullptr;
 
 	};

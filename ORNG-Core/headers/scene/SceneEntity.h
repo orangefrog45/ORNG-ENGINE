@@ -1,10 +1,15 @@
-#pragma once
-#include "scene/Scene.h"
+#ifndef SCENE_ENTITY_H
+#define SCENE_ENTITY_H
+
+#define __cpp_lib_concepts
+#include <concepts>
+
+#include "Scene.h"
 #include "util/UUID.h"
 #include "util/util.h"
+
+/* Using the horrible template type restriction method instead of std::derived_from to support intellisense in scripts, doesn't work with concepts */
 namespace ORNG {
-
-
 
 	class SceneEntity {
 		friend class EditorLayer;
@@ -14,27 +19,28 @@ namespace ORNG {
 		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle), m_scene_uuid(scene->uuid()) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
 		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene->uuid()) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
 
+
 		~SceneEntity() {
 			RemoveParent();
 			mp_scene->m_registry.destroy(m_entt_handle);
 		}
 
-		template<std::derived_from<Component> T, typename... Args>
+		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>, typename... Args>
 		T* AddComponent(Args&&... args) { if (HasComponent<T>()) return GetComponent<T>(); return &mp_scene->m_registry.emplace<T>(m_entt_handle, this, std::forward<Args>(args)...); };
 
 		// Returns ptr to component or nullptr if no component was found
-		template<std::derived_from<Component> T>
+		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
 		T* GetComponent() {
 			return HasComponent<T>() ? &mp_scene->m_registry.get<T>(m_entt_handle) : nullptr;
 		}
 
-		template<typename T>
+		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
 		bool HasComponent() {
 			return mp_scene->m_registry.all_of<T>(m_entt_handle);
 		}
 
 		// Deletes component if found, else does nothing.
-		template<std::derived_from<Component> T>
+		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
 		void DeleteComponent() {
 			if (!HasComponent<T>())
 				return;
@@ -131,3 +137,5 @@ namespace ORNG {
 
 
 }
+
+#endif

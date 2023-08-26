@@ -463,7 +463,6 @@ namespace ORNG {
 		auto materials = data["Materials"];
 
 		for (auto material : materials) {
-			ORNG_CORE_CRITICAL("SCENE {0}", material["SceneMaterial"].as<uint64_t>());
 			auto* p_material = AssetManager::CreateMaterial(material["SceneMaterial"].as<uint64_t>());
 			p_material->name = material["Name"].as<std::string>();
 			p_material->base_color_texture = AssetManager::GetTexture(material["Base colour texture"].as<uint64_t>());

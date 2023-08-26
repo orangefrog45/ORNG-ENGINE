@@ -1,4 +1,6 @@
-#pragma once
+#ifndef PHYSICSCOMPONENT_H
+#define PHYSICSCOMPONENT_H
+
 #include "Component.h"
 
 namespace physx {
@@ -57,3 +59,5 @@ namespace ORNG {
 	};
 
 }
+
+#endif

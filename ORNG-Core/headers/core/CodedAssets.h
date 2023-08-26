@@ -3,6 +3,7 @@
 #define STR(...) STRINGIFY(__VA_ARGS__)
 #include "rendering/MeshAsset.h"
 #include "core/GLStateManager.h"
+#include "rendering/Textures.h"
 
 #define ORNG_BASE_MATERIAL_UUID 0
 #define ORNG_BASE_TEXTURE_UUID 0

@@ -4,6 +4,7 @@
 #include "scene/SceneEntity.h"
 #include "glm/glm/gtc/quaternion.hpp"
 #include "events/EventManager.h"
+#include "rendering/MeshAsset.h"
 
 
 namespace ORNG {

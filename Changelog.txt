@@ -1,3 +1,8 @@
+26/8/23:
+-Basic C++ scripting engine, runtime compilation/connecting of external c++ scripts to entities (currently only msvc supported)
+-UI integration with scripts
+-UI improvements, error window
+
 22/8/23:
 -Concept of projects and project management added
 -3D Mesh/material asset previews in editor
@@ -5,7 +10,8 @@
 -Asset management improved, serialized/clone asset files kept with project files
 -Fixed some entity/transform hierarchy bugs
 -Mesh asset binary serialization
--Some fog changes/fixes
+-Some vol. fog changes/fixes
+
 
 16/8/23:
 -Some work on binary asset serialization

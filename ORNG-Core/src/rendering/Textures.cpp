@@ -6,8 +6,49 @@
 
 namespace ORNG {
 
+	/*uint32_t format = GL_NONE;
+		uint32_t min_filter = GL_NONE;
+		uint32_t mag_filter = GL_NONE;
 
-	std::unique_ptr<TextureFileData> TextureBase::LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer) {
+		uint32_t wrap_params = GL_REPEAT;
+
+		uint32_t storage_type = GL_UNSIGNED_BYTE;*/
+
+	TextureBaseSpec::TextureBaseSpec() : internal_format(GL_NONE), format(GL_NONE), min_filter(GL_NONE), mag_filter(GL_NONE), wrap_params(GL_REPEAT), storage_type(GL_UNSIGNED_BYTE) {};
+
+	TextureBase::TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
+	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
+	void TextureBase::Unload() { glDeleteTextures(1, &m_texture_obj); };
+	Texture2D::Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
+	Texture2D::Texture2D(const std::string& name, uint64_t t_uuid) : TextureBase(GL_TEXTURE_2D, name, t_uuid) {};
+	Texture3D::Texture3D(const std::string& name) : TextureBase(GL_TEXTURE_3D, name) {};
+	Texture2DArray::Texture2DArray(const std::string& name) : TextureBase(GL_TEXTURE_2D_ARRAY, name) {};
+	TextureCubemap::TextureCubemap(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP, name) {};
+	TextureCubemapArray::TextureCubemapArray(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP_ARRAY, name) {};
+
+
+
+	bool TextureBase::ValidateBaseSpec(const TextureBaseSpec* spec, bool is_framebuffer_texture) {
+
+		if (is_framebuffer_texture) {
+			if (spec->width == 1 || spec->height == 1)
+			{
+				ORNG_CORE_WARN("Framebuffer texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
+			}
+
+			if (spec->internal_format == GL_NONE || spec->format == GL_NONE)
+			{
+				ORNG_CORE_WARN("Framebuffer texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
+
+				if (is_framebuffer_texture)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	std::unique_ptr<TextureFileData> TextureBase::LoadFloatImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer) {
 
 		stbi_set_flip_vertically_on_load(1);
 
@@ -60,7 +101,7 @@ namespace ORNG {
 		return std::make_unique<TextureFileData>(image_data, width, height, bpp);
 	}
 
-	std::unique_ptr<TextureFileData> TextureBase::LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer) {
+	std::unique_ptr<TextureFileData> TextureBase::LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer) {
 
 		stbi_set_flip_vertically_on_load(1);
 
@@ -118,6 +159,12 @@ namespace ORNG {
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
 		return  std::make_unique<TextureFileData>(image_data, width, height, bpp);
+	}
+
+	void TextureBase::GenerateMips() {
+		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
+		glGenerateMipmap(m_texture_target);
+		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 	}
 
 
@@ -336,7 +383,6 @@ namespace ORNG {
 
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, m_texture_obj, GL_TEXTURE0, true);
-
 
 			ASSERT(m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE);
 

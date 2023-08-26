@@ -1,8 +1,8 @@
 #include "pch/pch.h"
 #include "util/ExtraMath.h"
-#include "components/lights/DirectionalLight.h"
 #include "glm/glm/gtc/quaternion.hpp"
 #include "glm/glm/gtc/round.hpp"
+
 
 namespace ORNG {
 
@@ -42,7 +42,7 @@ namespace ORNG {
 
 
 
-	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, const DirectionalLight& light, float z_mult, float shadow_map_size)
+	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, glm::vec3 light_dir, float z_mult, float shadow_map_size)
 	{
 		auto corners = ExtraMath::GetFrustumCornersWorldSpace(proj, view);
 
@@ -66,7 +66,7 @@ namespace ORNG {
 
 		center = glm::roundMultiple(center, glm::vec3(0.05f));
 		radius = glm::roundMultiple(radius, 0.05f);
-		const glm::mat4 light_view = glm::lookAt(center + light.GetLightDirection(), center, glm::vec3(0.f, 1.f, 0.f));
+		const glm::mat4 light_view = glm::lookAt(center + light_dir, center, glm::vec3(0.f, 1.f, 0.f));
 
 		// Find bounding box that fits the sphere
 		glm::vec3 radius_vec(radius, radius, radius);

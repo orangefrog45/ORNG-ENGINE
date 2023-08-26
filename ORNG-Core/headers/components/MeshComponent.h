@@ -1,6 +1,6 @@
-#pragma once
+#ifndef MESHCOMPONENT_H
+#define MESHCOMPONENT_H
 #include "components/Component.h"
-#include "rendering/MeshAsset.h"
 
 namespace ORNG {
 
@@ -38,3 +38,4 @@ namespace ORNG {
 	};
 
 }
+#endif

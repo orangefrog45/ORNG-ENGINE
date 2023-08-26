@@ -1,14 +1,16 @@
 #pragma once
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include "rendering/Material.h"
 #include "components/BoundingVolume.h"
 #include "VAO.h"
 #include "util/UUID.h"
 
 #define ORNG_MAX_MESH_INDICES 50'000'000
+
+
+class aiScene;
+class aiMesh;
+
 
 namespace ORNG {
 
@@ -66,7 +68,6 @@ namespace ORNG {
 
 		const aiScene* p_scene = nullptr;
 
-		Assimp::Importer importer;
 
 		bool InitFromScene(const aiScene* pScene);
 

@@ -1,7 +1,5 @@
 #include "pch/pch.h"
-#include "components/lights/DirectionalLight.h"
-#include "components/lights/SpotLightComponent.h"
-#include "components/lights/PointLightComponent.h"
+#include "components/Lights.h"
 #include "util/ExtraMath.h"
 #include "components/ComponentSystems.h"
 

@@ -3,6 +3,7 @@
 #include "scene/SceneEntity.h"
 #include "core/AssetManager.h"
 #include "core/CodedAssets.h"
+#include "scene/MeshInstanceGroup.h"
 
 namespace ORNG {
 

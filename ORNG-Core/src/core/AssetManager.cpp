@@ -3,6 +3,10 @@
 #include "core/CodedAssets.h"
 #include "events/EventManager.h"
 #include "core/Window.h"
+#include "assimp/scene.h"
+
+// For glfwmakecontextcurrent
+#include <GLFW/glfw3.h>
 
 
 namespace ORNG {
@@ -77,6 +81,9 @@ namespace ORNG {
 		while (!m_meshes.empty()) {
 			DeleteMeshAsset(m_meshes[0]);
 		}
+		while (!m_scripts.empty()) {
+			DeleteScriptAsset(m_scripts.begin()->first);
+		}
 
 	}
 
@@ -146,7 +153,6 @@ namespace ORNG {
 
 	Material* AssetManager::ICreateMaterial(uint64_t uuid) {
 		Material* p_material = uuid == 0 ? new Material(&CodedAssets::GetBaseTexture()) : new Material(uuid);
-		ORNG_CORE_CRITICAL(p_material->uuid());
 		m_materials.push_back(p_material);
 
 		DispatchAssetEvent(Events::ProjectEventType::MATERIAL_LOADED, reinterpret_cast<uint8_t*>(p_material));
@@ -267,7 +273,8 @@ namespace ORNG {
 		}
 
 		asset->PopulateBuffers();
-		asset->importer.FreeScene();
+		// Free scene
+		delete asset->p_scene;
 		asset->m_is_loaded = true;
 	}
 
@@ -281,7 +288,7 @@ namespace ORNG {
 
 
 
-	Texture2D* AssetManager::CreateMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* p_material) {
+	Texture2D* AssetManager::CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material) {
 		Texture2D* p_tex = nullptr;
 
 
@@ -360,5 +367,46 @@ namespace ORNG {
 		delete* it;
 		m_meshes.erase(it);
 	};
+
+
+	ScriptSymbols* AssetManager::AddScriptAsset(const std::string& filepath) {
+		auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(filepath);
+
+		if (!symbols.loaded) {
+			ORNG_CORE_ERROR("Error adding script asset, symbols failed to be loaded by script engine");
+			return nullptr;
+		}
+
+		ScriptSymbols* p_symbols = new ScriptSymbols();
+		*p_symbols = symbols;
+
+		Get().m_scripts[filepath] = p_symbols;
+		return p_symbols;
+	}
+
+
+	ScriptSymbols* AssetManager::GetScriptAsset(const std::string& filepath) {
+		if (!Get().m_scripts.contains(filepath)) {
+			ORNG_CORE_TRACE("Failed to get script asset '{0}', not found in map", filepath);
+			return nullptr;
+		}
+		else {
+			return Get().m_scripts[filepath];
+		}
+	}
+
+	bool AssetManager::DeleteScriptAsset(const std::string& filepath) {
+		if (!GetScriptAsset(filepath)) {
+			ORNG_CORE_TRACE("Failed to delete script asset '{0}', not found in map", filepath);
+			return false;
+		}
+		else {
+			delete Get().m_scripts[filepath];
+			Get().m_scripts.erase(filepath);
+			ScriptingEngine::UnloadScriptDLL(filepath);
+			return true;
+		}
+	}
+
 
 }

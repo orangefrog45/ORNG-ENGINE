@@ -21,7 +21,7 @@ vec3 DiffusePrefilter(vec3 normal) {
 
 	mat3 tbn = mat3(tangent, bitangent, normal);
 
-	float sample_delta = 0.025;
+	float sample_delta = 0.0025;
 	uint sample_count = 0;
 
 	for (float phi = 0.0; phi < 2.0 * PI; phi += sample_delta) {

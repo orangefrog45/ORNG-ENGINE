@@ -4,7 +4,7 @@ project(ORNG_CORE)
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 set(ORNG_LIB_SOURCES 
-src/main.cpp
+
 src/stb_image.cpp
 src/components/Camera.cpp
 src/components/Component.cpp
@@ -62,7 +62,7 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
-)
+ "src/scripting/ScriptingEngine.cpp"  )
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
@@ -79,8 +79,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
 
-target_compile_options(glfw PRIVATE $<$<CONFIG:Debug>:/MTd>)
-target_compile_options(glfw PRIVATE $<$<CONFIG:Release>:/MT>)
+target_compile_options(glfw PRIVATE $<$<CONFIG:Debug>:/MDd>)
+target_compile_options(glfw PRIVATE $<$<CONFIG:Release>:/MD>)
 
 target_include_directories(imgui PUBLIC 
 extern/imgui
@@ -120,7 +120,7 @@ set(PX_BUILDSNIPPETS OFF CACHE BOOL "Generate the snippets" FORCE)
 set(PX_BUILDPUBLICSAMPLES OFF CACHE BOOL "Generate the samples projects" FORCE)
 set(PX_GENERATE_STATIC_LIBRARIES ON CACHE BOOL "Generate static libraries" FORCE)
 set(PX_FLOAT_POINT_PRECISE_MATH OFF CACHE BOOL "Float point precise math" FORCE)
-set(NV_USE_STATIC_WINCRT ON CACHE BOOL "Use the statically linked windows CRT" FORCE)
+set(NV_USE_STATIC_WINCRT OFF CACHE BOOL "Use the statically linked windows CRT" FORCE)
 set(NV_USE_DEBUG_WINCRT ON CACHE BOOL "Use the debug version of the CRT" FORCE)
 
 set( PHYSX_LIBRARIES
@@ -168,7 +168,17 @@ target_precompile_headers(ORNG_CORE PUBLIC
 headers/pch/pch.h
 )
 
+
+target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
+target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
+
+
+
+
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/")
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/extern/vswhere.exe DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/extern/")
+
+
 
 
 

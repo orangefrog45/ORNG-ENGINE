@@ -1,8 +1,8 @@
 #pragma once
 #include "util/TimeStep.h"
-#include "GLFW/glfw3.h"
+#include "util/util.h"
 
-
+class GLFWwindow;
 namespace ORNG {
 
 	class Window {
@@ -31,17 +31,10 @@ namespace ORNG {
 			return Get().I_IsKeyDown(key);
 		}
 
-		static bool IsMouseButtonDown(int button) {
-			return Get().I_IsMouseButtonInState(button, GLFW_PRESS);
-		}
+		static bool IsMouseButtonDown(int button);
 
-		static bool IsMouseButtonUp(int button) {
-			return Get().I_IsMouseButtonInState(button, GLFW_RELEASE);
-		}
+		static bool IsMouseButtonUp(int button);
 
-		static void Init(GLFWwindow* ptr) {
-			Get().I_Init(ptr);
-		}
 
 		static glm::vec2 GetMousePos() {
 			return Get().IGetMousePos();
@@ -72,21 +65,16 @@ namespace ORNG {
 	private:
 		void I_Init();
 
-		glm::vec2 IGetMousePos() {
-			glfwGetCursorPos(Get().p_window, &mouse_x, &mouse_y);
-			return glm::vec2(mouse_x, mouse_y);
-		};
+		glm::vec2 IGetMousePos();
 
 		void ISetWindowDimensions(int width, int height);
 
-		void ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); }
+		void ISetCursorPos(int x, int y);
 
-		bool I_IsKeyDown(int key) { return (glfwGetKey(p_window, std::toupper(key)) == GLFW_PRESS); }
+		bool I_IsKeyDown(int key);
 
-		bool I_IsMouseButtonInState(int key, unsigned int state) { return glfwGetMouseButton(p_window, key) == state; }
+		bool I_IsMouseButtonInState(int key, unsigned int state);
 
-		void I_Init(GLFWwindow* ptr) { p_window = ptr; }
-#
 		void IUpdate();
 
 		ScrollData m_scroll_data;

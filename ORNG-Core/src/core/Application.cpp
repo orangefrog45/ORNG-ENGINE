@@ -15,6 +15,8 @@
 #include "rendering/EnvMapLoader.h"
 #include "core/CodedAssets.h"
 #include "core/AssetManager.h"
+#include "core/Input.h"
+#include <glfw/glfw3.h>
 
 
 namespace ORNG {
@@ -51,6 +53,8 @@ namespace ORNG {
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
 		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 
+		Events::EventManager::Init();
+		Input::Init();
 		GL_StateManager::InitGL();
 		CodedAssets::Init();
 		Renderer::Init();
@@ -72,6 +76,7 @@ namespace ORNG {
 		{
 			// Update
 			glfwPollEvents();
+			Events::EventManager::ProcessQueuedEvents();
 			Events::EventManager::DispatchEvent(update_event);
 			Window::Update();
 

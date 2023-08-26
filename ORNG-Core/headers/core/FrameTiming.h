@@ -1,15 +1,21 @@
 #pragma once
 #include "util/TimeStep.h"
 
+namespace ScriptInterface {
+	class FrameTiming;
+}
+
 namespace ORNG {
 
 	class FrameTiming {
-
+		friend class ScriptInterface::FrameTiming;
 	public:
 		static FrameTiming& Get() {
 			static FrameTiming s_instance;
 			return s_instance;
 		}
+
+
 
 		static float GetTimeStep() {
 			return Get().IGetTimeStep();

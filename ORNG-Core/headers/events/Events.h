@@ -1,5 +1,5 @@
-#pragma once
-#include "core/Input.h"
+#ifndef EVENTS_H
+#define EVENTS_H
 #include "components/Component.h"
 
 
@@ -31,9 +31,16 @@ namespace ORNG::Events {
 
 	struct MouseEvent : public Event { // Not yet implemented
 
-		Input::MouseBindings mouse_button;
+		//Input::MouseBindings mouse_button;
 		glm::ivec2 mouse_pos_new;
 		glm::ivec2 mouse_pos_old;
+	};
+
+
+	struct KeyEvent : public Event {
+		char key;
+		uint8_t event_type; // will be InputType enum, can't declare as such due to circular include
+
 	};
 
 	enum class ProjectEventType {
@@ -63,8 +70,6 @@ namespace ORNG::Events {
 		std::vector<T*> affected_components;
 	};
 
-
-
 	template <std::derived_from<Event> T>
 	class EventListener {
 	public:
@@ -83,6 +88,21 @@ namespace ORNG::Events {
 		std::function<void()> OnDestroy = nullptr;
 	};
 
+	// Shortcut class for listening to single key, not case-sensitive
+	// For case sensitivity, use EventListener<KeyEvent> instead (will need to use own logic for key checks)
+	class SingleKeyEventListener : public EventListener<KeyEvent> {
+		friend class EventManager;
+	public:
+		SingleKeyEventListener() = delete;
+		// Not case sensitive, if listening for 'a' then 'A' will still trigger listener
+		explicit SingleKeyEventListener(char key_to_listen) : m_listening_key(std::toupper(key_to_listen)) {};
+
+		// Returns the key being listened for
+		char GetListeningKey() { return m_listening_key; }
+	private:
+		char m_listening_key;
+	};
+
 	template<std::derived_from<Component> T>
 	class ECS_EventListener : public EventListener<ECS_Event<T>> {
 	public:
@@ -91,3 +111,5 @@ namespace ORNG::Events {
 
 
 }
+
+#endif

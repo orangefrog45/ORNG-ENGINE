@@ -5,6 +5,7 @@
 #include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
 #include "core/FrameTiming.h"
+#include "components/Lights.h"
 
 
 namespace ORNG {

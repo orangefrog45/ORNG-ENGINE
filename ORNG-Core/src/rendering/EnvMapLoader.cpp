@@ -61,6 +61,7 @@ namespace ORNG {
 			GL_StateManager::DefaultClearBits();
 			Renderer::DrawCube();
 		}
+		cubemap_output.GenerateMips();
 	}
 
 
@@ -86,6 +87,8 @@ namespace ORNG {
 
 			mp_diffuse_prefilter_shader->SetUniform("view", view_matrices[i]);
 			mp_output_fb->BindTexture2D(skybox.m_diffuse_prefilter_map.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+			GL_StateManager::DefaultClearBits();
+			Renderer::DrawCube();
 			float* pixels = new float[tex_spec.width * tex_spec.height * 3];
 			glReadPixels(0, 0, tex_spec.width, tex_spec.height, tex_spec.format, tex_spec.storage_type, pixels);
 
@@ -95,7 +98,7 @@ namespace ORNG {
 			delete[] pixels;
 
 		}
-			skybox.m_diffuse_prefilter_map.LoadFromFile();
+		skybox.m_diffuse_prefilter_map.LoadFromFile();
 
 	}
 
@@ -170,7 +173,7 @@ namespace ORNG {
 		hdr_cubemap_spec.generate_mipmaps = false;
 		hdr_cubemap_spec.internal_format = GL_RGB16F;
 		hdr_cubemap_spec.format = GL_RGB;
-		hdr_cubemap_spec.min_filter = GL_LINEAR;
+		hdr_cubemap_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 		hdr_cubemap_spec.mag_filter = GL_LINEAR;
 		hdr_cubemap_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		hdr_cubemap_spec.storage_type = GL_FLOAT;
@@ -182,7 +185,7 @@ namespace ORNG {
 		specular_prefilter_spec.width = 512;
 		specular_prefilter_spec.height = 512;
 		specular_prefilter_spec.generate_mipmaps = true;
-		specular_prefilter_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		specular_prefilter_spec.min_filter = GL_LINEAR;
 		specular_prefilter_spec.mag_filter = GL_LINEAR;
 
 
@@ -198,6 +201,7 @@ namespace ORNG {
 
 		TextureCubemapSpec diffuse_prefilter_spec = hdr_cubemap_spec;
 		diffuse_prefilter_spec.width = 256;
+		diffuse_prefilter_spec.min_filter = GL_LINEAR;
 		diffuse_prefilter_spec.height = 256;
 		diffuse_prefilter_spec.filepaths = {
 			std::format("res/textures/env_map/diffuse_prefilter_{}_0.hdr", filepath.substr(filepath.find_last_of("/") + 1)),

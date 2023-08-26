@@ -8,6 +8,15 @@ static constexpr unsigned int NORMAL_LOCATION = 2;
 static constexpr unsigned int TANGENT_LOCATION = 3;
 
 namespace ORNG {
+	VAO::VAO() {
+		glGenVertexArrays(1, &m_vao_handle);
+		glGenBuffers(m_buffers.size(), &m_buffers[0]);
+	};
+
+	VAO::~VAO() {
+		glDeleteBuffers(m_buffers.size(), &m_buffers[0]);
+		glDeleteVertexArrays(1, &m_vao_handle);
+	};
 
 	void VAO::FillBuffers() {
 		GL_StateManager::BindVAO(*this);

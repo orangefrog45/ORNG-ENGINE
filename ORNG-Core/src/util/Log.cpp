@@ -5,9 +5,12 @@
 #include "util/Log.h"
 #include "util/util.h"
 
-namespace ORNG {
 
-	static auto s_ringbuffer_sink = std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(5);
+namespace ORNG {
+	// How many logged messages are saved and stored in memory that can be retrieved by the program
+	constexpr int MAX_LOG_HISTORY = 20;
+
+	static auto s_ringbuffer_sink = std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(MAX_LOG_HISTORY);
 	std::shared_ptr<spdlog::logger> Log::s_core_logger;
 
 	void Log::Init() {
@@ -25,6 +28,14 @@ namespace ORNG {
 
 	std::string Log::GetLastLog() {
 		return s_ringbuffer_sink->last_formatted()[4];
+	}
+
+	std::vector<std::string> Log::GetLastLogs() {
+		return std::move(s_ringbuffer_sink->last_formatted());
+	}
+
+	std::shared_ptr<spdlog::logger>& Log::GetCoreLogger() {
+		return s_core_logger;
 	}
 
 	void Log::GLLogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {

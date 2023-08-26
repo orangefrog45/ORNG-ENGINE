@@ -12,7 +12,7 @@ namespace ORNG {
 		friend class EditorLayer;
 
 		/*This constructor only to be used for master quadtree*/
-		TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader);
+		TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution);
 
 		void Update(glm::vec3 center_pos);
 		TerrainQuadtree* FindParentWithChunk();
@@ -45,7 +45,6 @@ namespace ORNG {
 	private:
 
 		TerrainChunk* m_chunk = nullptr;
-		ChunkLoader* m_loader = nullptr;
 
 		/* Nodes */
 		std::vector<TerrainQuadtree> m_child_nodes;

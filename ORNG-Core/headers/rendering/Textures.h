@@ -14,6 +14,8 @@ namespace ORNG {
 	struct TextureCubemapArraySpec;
 
 	struct TextureBaseSpec {
+		TextureBaseSpec();
+
 		template <typename S>
 		void serialize(S& s) {
 			s.value4b(internal_format);
@@ -28,15 +30,15 @@ namespace ORNG {
 			s.value1b(srgb_space);
 		}
 
-		uint32_t internal_format = GL_NONE;
-		uint32_t format = GL_NONE;
-		uint32_t min_filter = GL_NONE;
-		uint32_t mag_filter = GL_NONE;
+		uint32_t internal_format;
+		uint32_t format;
+		uint32_t min_filter;
+		uint32_t mag_filter;
 		uint32_t width = 1;
 		uint32_t height = 1;
 
-		uint32_t wrap_params = GL_REPEAT;
-		uint32_t storage_type = GL_UNSIGNED_BYTE;
+		uint32_t wrap_params;
+		uint32_t storage_type;
 
 		uint8_t generate_mipmaps = false;
 		uint8_t srgb_space = false;
@@ -60,11 +62,11 @@ namespace ORNG {
 		}
 
 		~TextureFileData() {
-			if (data_type == BIT8)
-				stbi_image_free(data_8_bit);
+			/*if (data_type == BIT8)
+				//stbi_image_free(data_8_bit);
 			else if (data_type == BIT32)
 
-				stbi_image_free(data_32_bit);
+				//stbi_image_free(data_32_bit);*/
 		}
 
 		template <typename S>
@@ -107,29 +109,14 @@ namespace ORNG {
 		TextureBase() = delete;
 		virtual ~TextureBase() { Unload(); };
 
-		void Unload() { glDeleteTextures(1, &m_texture_obj); };
+		void Unload();
 
 		unsigned int GetTextureHandle() const { return m_texture_obj; }
 
-		bool ValidateBaseSpec(const TextureBaseSpec* spec, bool is_framebuffer_texture = false) {
+		void GenerateMips();
 
-			if (is_framebuffer_texture) {
-				if (spec->width == 1 || spec->height == 1)
-				{
-					ORNG_CORE_WARN("Framebuffer texture '{0}' has default height/width of 1px, this will be changed to fit if loading texture from a file", m_name);
-				}
+		bool ValidateBaseSpec(const TextureBaseSpec* spec, bool is_framebuffer_texture = false);
 
-				if (spec->internal_format == GL_NONE || spec->format == GL_NONE)
-				{
-					ORNG_CORE_WARN("Framebuffer texture '{0}' has no internal/regular format, texture memory will not be allocated", m_name);
-
-					if (is_framebuffer_texture)
-						return false;
-				}
-			}
-
-			return true;
-		}
 
 		template <typename S>
 		void serialize(S& s) {
@@ -140,10 +127,10 @@ namespace ORNG {
 
 		UUID uuid;
 	protected:
-		std::unique_ptr<TextureFileData> LoadFloatImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		std::unique_ptr<TextureFileData> LoadImageFile(const std::string& filepath, GLenum target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		TextureBase(unsigned int texture_target, const std::string& name) : m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
-		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
+		std::unique_ptr<TextureFileData> LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		std::unique_ptr<TextureFileData> LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		TextureBase(unsigned int texture_target, const std::string& name);
+		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid);
 		uint32_t m_texture_target = 0;
 		uint32_t m_texture_obj = 0;
 		std::string m_name = "Unnamed texture";
@@ -176,7 +163,7 @@ namespace ORNG {
 	class Texture3D : public TextureBase {
 	public:
 		friend class Scene;
-		Texture3D(const std::string& name) : TextureBase(GL_TEXTURE_3D, name) {};
+		Texture3D(const std::string& name);
 
 		bool SetSpec(const Texture3DSpec& spec);
 		const Texture3DSpec& GetSpec() const { return m_spec; }
@@ -190,8 +177,8 @@ namespace ORNG {
 	public:
 		friend class EditorLayer;
 		friend class Scene;
-		Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
-		Texture2D(const std::string& name, uint64_t t_uuid) : TextureBase(GL_TEXTURE_2D, name, t_uuid) {};
+		Texture2D(const std::string& name);
+		Texture2D(const std::string& name, uint64_t t_uuid);
 		// Allocates a new texture object and copies texture data from other
 		Texture2D(const Texture2D& other);
 		Texture2D& operator=(const Texture2D& other);
@@ -214,7 +201,7 @@ namespace ORNG {
 
 	class Texture2DArray : public TextureBase {
 	public:
-		Texture2DArray(const std::string& name) : TextureBase(GL_TEXTURE_2D_ARRAY, name) {};
+		Texture2DArray(const std::string& name);
 		bool LoadFromFile();
 
 		bool SetSpec(const Texture2DArraySpec& spec);
@@ -228,7 +215,7 @@ namespace ORNG {
 	class TextureCubemap : public TextureBase {
 		friend class Renderer;
 	public:
-		TextureCubemap(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP, name) {};
+		TextureCubemap(const char* name);
 		bool SetSpec(const TextureCubemapSpec& spec);
 		bool LoadFromFile();
 		const TextureCubemapSpec& GetSpec() const { return m_spec; }
@@ -239,7 +226,7 @@ namespace ORNG {
 	class TextureCubemapArray : public TextureBase {
 		friend class Renderer;
 	public:
-		TextureCubemapArray(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP_ARRAY, name) {};
+		TextureCubemapArray(const char* name);
 		bool SetSpec(const TextureCubemapArraySpec& spec);
 		const TextureCubemapArraySpec& GetSpec() const { return m_spec; }
 	private:

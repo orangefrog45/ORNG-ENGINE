@@ -15,15 +15,9 @@ namespace ORNG {
 	class VAO {
 		friend class GL_StateManager;
 	public:
-		VAO() {
-			glGenVertexArrays(1, &m_vao_handle);
-			glGenBuffers((GLsizei)m_buffers.size(), &m_buffers[0]);
-		};
+		VAO();
 
-		~VAO() {
-			glDeleteBuffers((GLsizei)m_buffers.size(), &m_buffers[0]);
-			glDeleteVertexArrays(1, &m_vao_handle);
-		};
+		~VAO();
 
 		/* Fill all buffers with data provided to vectors in class
 		*/

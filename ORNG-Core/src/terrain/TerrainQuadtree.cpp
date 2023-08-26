@@ -27,22 +27,22 @@ namespace ORNG {
 	}
 
 	TerrainQuadtree::~TerrainQuadtree() {
-		m_loader->CancelChunkLoad(m_chunk->m_chunk_key);
+		ChunkLoader::CancelChunkLoad(m_chunk->m_chunk_key);
 		delete m_chunk;
 	}
 
 
 
-	TerrainQuadtree::TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution, ChunkLoader* loader) :
+	TerrainQuadtree::TerrainQuadtree(unsigned int width, float height_scale, unsigned int seed, glm::vec3 center_pos, unsigned int resolution) :
 		m_center_pos(center_pos), m_width(width), m_seed(seed), m_height_scale(height_scale), m_resolution(resolution), m_master_width(width),
-		m_is_root_node(true), m_loader(loader)
+		m_is_root_node(true)
 	{
 		//no. subdivisions before min grid width is hit
 		m_max_subdivision_layer = static_cast<int>(glm::log2(static_cast<float>(m_master_width) / static_cast<float>(m_min_grid_width)));
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - m_width * 0.5f, center_pos.y, center_pos.z - m_width * 0.5f);
 		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale);
-		m_loader->RequestChunkLoad(*m_chunk);
+		ChunkLoader::RequestChunkLoad(*m_chunk);
 	};
 
 
@@ -54,7 +54,6 @@ namespace ORNG {
 		m_max_subdivision_layer = parent->m_max_subdivision_layer;
 		m_seed = parent->m_seed;
 		m_width = parent->m_width * 0.5f;
-		m_loader = parent->m_loader;
 		m_min_grid_width = parent->m_min_grid_width;
 
 		m_height_scale = parent->m_height_scale;
@@ -66,8 +65,7 @@ namespace ORNG {
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - (float)m_width * 0.5f, center_pos.y, center_pos.z - (float)m_width * 0.5f);
 		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4, m_seed, m_height_scale);
-		m_loader->RequestChunkLoad(*m_chunk);
-
+		ChunkLoader::RequestChunkLoad(*m_chunk);
 
 	};
 
@@ -150,7 +148,7 @@ namespace ORNG {
 	void TerrainQuadtree::Unsubdivide() {
 		for (auto& node : m_child_nodes) {
 			node.Unsubdivide();
-			m_loader->CancelChunkLoad(node.m_chunk->m_chunk_key);
+			ChunkLoader::CancelChunkLoad(node.m_chunk->m_chunk_key);
 		}
 		m_child_nodes.clear();
 

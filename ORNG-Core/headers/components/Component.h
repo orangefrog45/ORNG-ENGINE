@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COMPONENT_H
+#define COMPONENT_H
 #include "entt/EnttSingleInclude.h"
 namespace ORNG {
 
@@ -14,6 +15,7 @@ namespace ORNG {
 		entt::entity GetEnttHandle() const;
 		uint64_t GetSceneUUID() const;
 		SceneEntity* GetEntity() { return mp_entity; }
+		std::string GetEntityName() const;
 
 	private:
 		SceneEntity* mp_entity = nullptr;
@@ -28,3 +30,5 @@ namespace ORNG {
 		entt::entity parent{ entt::null };
 	};
 }
+
+#endif

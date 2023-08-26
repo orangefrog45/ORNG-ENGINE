@@ -1,12 +1,9 @@
 #pragma once
-#include "rendering/Material.h"
 #include "Shader.h"
-#include "components/lights/DirectionalLight.h"
-#include "components/lights/BaseLight.h"
-#include "components/lights/PointLightComponent.h"
+
 
 namespace ORNG {
-
+	class DirectionalLight;
 	struct PointLightComponent;
 	struct SpotLightComponent;
 

@@ -283,6 +283,7 @@ void main() {
 		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
 		float fog_density = noise(fog_sampling_coords) * u_density_coef;
 		fog_density += 0.5 * u_density_coef;
+fog_density *= exp(-smoothstep(0.0, 10.0, step_pos.y*0.1));
 
 		vec3 slice_light = vec3(0);
 

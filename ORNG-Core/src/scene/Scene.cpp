@@ -27,6 +27,11 @@ namespace ORNG {
 		m_pointlight_component_manager.OnUpdate();
 		m_spotlight_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
+
+		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
+			script.OnUpdate(script.GetEntity());
+		}
+
 		if (m_camera_system.GetActiveCamera())
 			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 	}

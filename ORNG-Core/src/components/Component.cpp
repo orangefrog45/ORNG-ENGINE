@@ -8,4 +8,5 @@ namespace ORNG {
 	uint64_t Component::GetEntityUUID() const { return mp_entity->GetUUID(); }
 	entt::entity Component::GetEnttHandle() const { return mp_entity->GetEnttHandle(); }
 	uint64_t Component::GetSceneUUID() const { return mp_entity->GetSceneUUID(); }
+	std::string Component::GetEntityName() const { return mp_entity->name; }
 }

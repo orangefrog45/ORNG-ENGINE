@@ -2,8 +2,6 @@
 #include "scene/Skybox.h"
 #include "terrain/Terrain.h"
 #include "scene/GridMesh.h"
-#include "rendering/MeshAsset.h"
-#include "scene/MeshInstanceGroup.h"
 #include "components/ComponentSystems.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
@@ -55,8 +53,6 @@ namespace ORNG {
 
 		entt::registry m_registry;
 		std::string m_name = "Untitled scene";
-
-		std::vector<std::future<void>> m_futures;
 	};
 
 }

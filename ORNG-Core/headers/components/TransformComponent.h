@@ -1,4 +1,6 @@
-#pragma once
+#ifndef TRANSFORMCOMPONENT_H
+#define TRANSFORMCOMPONENT_H
+
 #include "Component.h"
 
 namespace ORNG {
@@ -114,3 +116,5 @@ namespace ORNG {
 	};
 
 }
+
+#endif

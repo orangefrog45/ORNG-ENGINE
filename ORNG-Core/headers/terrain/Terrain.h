@@ -1,9 +1,8 @@
 #pragma once
 #include "terrain/TerrainQuadtree.h"
-#include "terrain/ChunkLoader.h"
-#include "rendering/Material.h"
 
 namespace ORNG {
+	class Material;
 
 	class Terrain {
 	public:
@@ -15,7 +14,6 @@ namespace ORNG {
 		void ResetTerrainQuadtree();
 
 	private:
-		ChunkLoader m_loader;
 		std::unique_ptr<TerrainQuadtree> m_quadtree = nullptr;
 		Material* mp_material;
 

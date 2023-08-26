@@ -7,6 +7,7 @@ in vec3 vs_local_pos;
 layout(binding = 1) uniform samplerCube environment_map_sampler;
 
 uniform float u_roughness;
+uniform float u_env_cubemap_res;
 
 float RadicalInverse_VdC(uint bits)
 {
@@ -49,15 +50,29 @@ vec3 ImportanceSampleGGX(vec2 u, vec3 n, float roughness)
 	return normalize(sample_vec);
 }
 
+float DistributionGGX(vec3 h, vec3 normal, float roughness) {
+	float a = roughness * roughness;
+	float a2 = a * a;
+	float n_dot_h = max(dot(normal, h), 0.0);
+	float n_dot_h2 = n_dot_h * n_dot_h;
+
+	float num = a2;
+	float denom = (n_dot_h2 * (a2 - 1.0) + 1.0);
+	denom = PI * denom * denom;
+
+	return num / denom;
+}
+
 
 vec3 SpecularPrefilter(vec3 n) {
+// viewing angle assumed to be 0
 	vec3 r = n;
 	vec3 v = n;
 
 	const uint sample_count = 1024u;
 	float total_weight = 0.0;
 	vec3 prefiltered_color = vec3(0.0);
-
+	
 	for (uint i = 0u; i < sample_count; i++) {
 		vec2 u = Hammersley(i, sample_count);
 		vec3 h = ImportanceSampleGGX(u, n, u_roughness); // Bias towards normal
@@ -65,6 +80,13 @@ vec3 SpecularPrefilter(vec3 n) {
 
 		float n_dot_l = max(dot(n, l), 0.0);
 		if (n_dot_l > 0.0) {
+			float D = DistributionGGX(h, n, u_roughness);
+			float pdf = (D * clamp(dot(n, h), 0.0, 1.0)) / (4.0 * clamp(dot(h, v), 0.0, 1.0)) + 0.0001;
+			float resolution = 4096.0;
+			float sa_texel = 4.0 * PI / (6.0 * resolution * resolution);
+			float sa_sample = 1.0 / (float(sample_count) * pdf + 0.0001);
+			float mip_level = u_roughness == 0.0 ? 0.0 : 0.5 * log2(sa_sample / sa_texel);
+
 			prefiltered_color += texture(environment_map_sampler, l).rgb * n_dot_l;
 			total_weight += n_dot_l;
 		}

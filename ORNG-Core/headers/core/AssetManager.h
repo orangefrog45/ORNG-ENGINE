@@ -1,10 +1,14 @@
 #include "rendering/Textures.h"
 #include "rendering/MeshAsset.h"
 #include "events/Events.h"
+#include "scripting/ScriptingEngine.h"
 
 #define ORNG_REPLACEMENT_MATERIAL_ID 0
 
 class GLFWwindow;
+enum aiTextureType;
+class aiMaterial;
+
 namespace ORNG {
 
 	class AssetManager {
@@ -34,6 +38,11 @@ namespace ORNG {
 		inline static void DeleteMeshAsset(uint64_t uuid) { Get().IDeleteMeshAsset(uuid); }
 		inline static void DeleteMeshAsset(MeshAsset* p_mesh) { Get().IDeleteMeshAsset(p_mesh->uuid()); }
 
+		static ScriptSymbols* AddScriptAsset(const std::string& filepath);
+		// Returns either the script asset referenced with the filepath or nullptr if none found
+		static ScriptSymbols* GetScriptAsset(const std::string& filepath);
+		static bool DeleteScriptAsset(const std::string& filepath);
+
 		// Deletes all assets
 		inline static void ClearAll() { Get().IClearAll(); };
 
@@ -55,10 +64,11 @@ namespace ORNG {
 		MeshAsset* IGetMeshAsset(uint64_t uuid);
 		void IDeleteMeshAsset(uint64_t uuid);
 		static void LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials);
-		static Texture2D* CreateMeshAssetTexture(const std::string& dir, aiTextureType type, const aiMaterial* p_material);
+		static Texture2D* CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 		// Loads a mesh with other materials than contained in the files on disc, usually for deserialization after they've been modified in the editor.
 		static void LoadMeshAssetPreExistingMaterials(MeshAsset* asset, std::vector<Material*>& materials);
 		void IStallUntilMeshesLoaded();
+
 
 		static void DispatchAssetEvent(Events::ProjectEventType type, uint8_t* data_payload);
 
@@ -81,6 +91,9 @@ namespace ORNG {
 		Events::EventListener<Events::EngineCoreEvent> m_update_listener;
 		std::vector<std::future<MeshAssetPackage>> m_mesh_loading_queue;
 		std::vector<std::future<void>> m_texture_futures;
+
+		// Key=filepath
+		std::unordered_map<std::string, ScriptSymbols*> m_scripts;
 		// Used for texture loading
 		GLFWwindow* mp_loading_context = nullptr;
 	};

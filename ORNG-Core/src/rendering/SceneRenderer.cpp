@@ -8,11 +8,15 @@
 #include "core/GLStateManager.h"
 #include "scene/Scene.h"
 #include "components/CameraComponent.h"
-#include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "events/EventManager.h"
 #include "util/Timers.h"
 #include "scene/SceneEntity.h"
 #include "core/CodedAssets.h"
+#include "terrain/TerrainChunk.h"
+#include "core/FrameTiming.h"
+
+#include "scene/MeshInstanceGroup.h"
+
 
 
 namespace ORNG {
@@ -477,9 +481,10 @@ namespace ORNG {
 		const glm::mat4 cam_view_matrix = p_cam->GetViewMatrix();
 		const float fov = glm::radians(p_cam->fov / 2.f);
 
-		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light, light.z_mults[0], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light, light.z_mults[1], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light, light.z_mults[2], m_shadow_map_resolution);
+		glm::vec3 light_dir = light.GetLightDirection();
+		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light_dir, light.z_mults[0], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light_dir, light.z_mults[1], m_shadow_map_resolution);
+		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light_dir, light.z_mults[2], m_shadow_map_resolution);
 		m_light_space_matrices[0] = dir_light_space_matrix;
 		m_light_space_matrices[1] = dir_light_space_matrix_2;
 		m_light_space_matrices[2] = dir_light_space_matrix_3;
@@ -581,7 +586,7 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_scattering_anistropy", mp_scene->post_processing.global_fog.scattering_anistropy);
 		m_fog_shader->SetUniform("u_fog_color", mp_scene->post_processing.global_fog.color);
 		m_fog_shader->SetUniform("u_step_count", mp_scene->post_processing.global_fog.step_count);
-		m_fog_shader->SetUniform("u_time", static_cast<float>(glfwGetTime()));
+		m_fog_shader->SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));
 		m_fog_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
 		m_fog_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
@@ -589,6 +594,7 @@ namespace ORNG {
 
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
+
 
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);

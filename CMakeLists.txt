@@ -5,11 +5,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 project(ORNG_CORE)
 project(ORNG_EDITOR)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd" CACHE INTERNAL "" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" CACHE INTERNAL "" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd" CACHE INTERNAL "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD" CACHE INTERNAL "" FORCE)
 if(MSVC)
+message("MSVC")
     add_compile_options(/WX- /W4)
-      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
 # Disable treating warnings as errors for GCC and Clang
@@ -18,6 +19,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 add_subdirectory("ORNG-Core")
-add_subdirectory("ORNG Editor")
+add_subdirectory("ORNG-Editor")
 
 

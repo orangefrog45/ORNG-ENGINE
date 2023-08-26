@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include "core/Window.h"
 #include "events/EventManager.h"
+#include "core/Input.h"
 
 namespace ORNG {
 
@@ -26,6 +27,43 @@ namespace ORNG {
 	}
 
 
+	void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+		Events::KeyEvent e_event;
+		e_event.key = key;
+		switch (action) {
+		case GLFW_RELEASE:
+			e_event.event_type = Input::InputType::RELEASE;
+			break;
+		case GLFW_PRESS:
+			e_event.event_type = Input::InputType::PRESS;
+			break;
+		case GLFW_REPEAT:
+			e_event.event_type = Input::InputType::PRESS;
+			break;
+		}
+		Events::EventManager::DispatchEvent(e_event);
+	}
+
+	void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); }
+
+	bool Window::I_IsKeyDown(int key) { return (glfwGetKey(p_window, std::toupper(key)) == GLFW_PRESS); }
+
+	bool Window::I_IsMouseButtonInState(int key, unsigned int state) { return glfwGetMouseButton(p_window, key) == state; }
+
+	glm::vec2 Window::IGetMousePos() {
+		glfwGetCursorPos(Get().p_window, &mouse_x, &mouse_y);
+		return glm::vec2(mouse_x, mouse_y);
+	};
+
+	bool Window::IsMouseButtonDown(int button) {
+		return Get().I_IsMouseButtonInState(button, GLFW_PRESS);
+	}
+
+	bool Window::IsMouseButtonUp(int button) {
+		return Get().I_IsMouseButtonInState(button, GLFW_RELEASE);
+	}
+
 	void Window::IUpdate() {
 		m_scroll_data.active = false;
 		m_scroll_data.offset = { 0,0 };
@@ -47,6 +85,7 @@ namespace ORNG {
 		{
 			glfwTerminate();
 		}
+		glfwSetKeyCallback(p_window, key_callback);
 
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);

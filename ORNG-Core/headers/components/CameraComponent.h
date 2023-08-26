@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CAMERACOMPONENT_H
+#define CAMERACOMPONENT_H
+
 #include "util/ExtraMath.h"
 #include "Component.h"
 
@@ -34,3 +36,5 @@ namespace ORNG {
 		bool is_active = false;
 	};
 }
+
+#endif
