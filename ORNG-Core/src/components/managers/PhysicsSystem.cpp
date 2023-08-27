@@ -10,13 +10,20 @@
 namespace ORNG {
 	using namespace physx;
 
-
+	template <std::derived_from<PhysicsCompBase> T>
 	static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
-		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+		Events::ECS_Event<PhysicsCompBase> e_event;
+		e_event.affected_components.push_back(static_cast<PhysicsCompBase*>(&registry.get<T>(entity)));
+		e_event.event_type = Events::ECS_EventType::COMP_ADDED;
+		Events::EventManager::DispatchEvent(e_event);
 	}
 
+	template <std::derived_from<PhysicsCompBase> T>
 	static void OnPhysComponentDestroy(entt::registry& registry, entt::entity entity) {
-		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+		Events::ECS_Event<PhysicsCompBase> e_event;
+		e_event.affected_components.push_back(static_cast<PhysicsCompBase*>(&registry.get<T>(entity)));
+		e_event.event_type = Events::ECS_EventType::COMP_DELETED;
+		Events::EventManager::DispatchEvent(e_event);
 	}
 
 	static void OnCharacterControllerComponentAdd(entt::registry& registry, entt::entity entity) {
@@ -41,7 +48,7 @@ namespace ORNG {
 		ORNG_CORE_ERROR("PHYS {0}", scene_uuid);
 
 		m_phys_listener.scene_id = scene_uuid;
-		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsComponent>& t_event) {
+		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsCompBase>& t_event) {
 			switch (t_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
@@ -55,6 +62,7 @@ namespace ORNG {
 				break;
 			}
 		};
+
 
 		// Character controller listener
 		m_character_controller_listener.scene_id = scene_uuid;
@@ -71,15 +79,21 @@ namespace ORNG {
 			}
 		};
 
+
 		// Transform update listener
 		m_transform_listener.scene_id = scene_uuid;
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
 			if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 				auto* p_transform = t_event.affected_components[0];
-				auto* p_phys_comp = p_transform->GetEntity()->GetComponent<PhysicsComponent>();
+
 
 				if (p_transform == mp_currently_updating_transform) // Ignore transform event if it was updated by the physics engine, as the states are already synced
 					return;
+
+				// Check for both types of physics component
+				auto* p_phys_comp = static_cast<PhysicsCompBase*>(p_transform->GetEntity()->GetComponent<PhysicsComponentDynamic>());
+				if (!p_phys_comp)
+					p_phys_comp = static_cast<PhysicsCompBase*>(p_transform->GetEntity()->GetComponent<PhysicsComponentStatic>());
 
 				if (auto* p_controller_comp = p_transform->GetEntity()->GetComponent<CharacterControllerComponent>()) {
 					glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
@@ -139,15 +153,18 @@ namespace ORNG {
 		m_physics_materials.push_back(Physics::GetPhysics()->createMaterial(0.25f, 0.1f, 0.1f));
 		m_physics_materials[0]->acquireReference();
 
-		mp_registry->on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
-		mp_registry->on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
+		mp_registry->on_construct<PhysicsComponentDynamic>().connect<&OnPhysComponentAdd<PhysicsComponentDynamic>>();
+		mp_registry->on_construct<PhysicsComponentStatic>().connect<&OnPhysComponentAdd<PhysicsComponentStatic>>();
+		mp_registry->on_destroy<PhysicsComponentDynamic>().connect<&OnPhysComponentDestroy<PhysicsComponentDynamic>>();
+		mp_registry->on_destroy<PhysicsComponentStatic>().connect<&OnPhysComponentDestroy<PhysicsComponentStatic>>();
+
 		mp_registry->on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
 		mp_registry->on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
 
 	}
 
 
-	void PhysicsSystem::RemoveComponent(PhysicsComponent* p_comp) {
+	void PhysicsSystem::RemoveComponent(PhysicsCompBase* p_comp) {
 		mp_scene->removeActor(*p_comp->p_rigid_actor);
 		p_comp->p_rigid_actor->release();
 
@@ -214,7 +231,7 @@ namespace ORNG {
 
 
 
-	void PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
+	void PhysicsSystem::UpdateComponentState(PhysicsCompBase* p_comp) {
 		// Update component geometry
 		const auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
@@ -224,15 +241,15 @@ namespace ORNG {
 
 
 		switch (p_comp->geometry_type) {
-		case PhysicsComponent::SPHERE:
+		case PhysicsCompBase::SPHERE:
 			p_comp->p_shape->release();
 			p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material);
 			break;
-		case PhysicsComponent::BOX:
+		case PhysicsCompBase::BOX:
 			p_comp->p_shape->release();
 			p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material);
 			break;
-		case PhysicsComponent::TRIANGLE_MESH:
+		case PhysicsCompBase::TRIANGLE_MESH:
 			if (!p_mesh_comp)
 				return;
 
@@ -247,10 +264,11 @@ namespace ORNG {
 		PxTransform current_transform = p_comp->p_rigid_actor->getGlobalPose();
 		p_comp->p_rigid_actor->release();
 
-		if (p_comp->rigid_body_type == PhysicsComponent::STATIC) {
+
+		if (dynamic_cast<PhysicsComponentStatic*>(p_comp)) {
 			p_comp->p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape);
 		}
-		else if (p_comp->rigid_body_type == PhysicsComponent::DYNAMIC) {
+		else if (dynamic_cast<PhysicsComponentDynamic*>(p_comp)) {
 			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
 		}
 
@@ -258,7 +276,7 @@ namespace ORNG {
 	}
 
 
-	void PhysicsSystem::InitComponent(PhysicsComponent* p_comp) {
+	void PhysicsSystem::InitComponent(PhysicsCompBase* p_comp) {
 		const auto* p_meshc = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		const auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
 		auto transforms = p_transform->GetAbsoluteTransforms();
@@ -266,7 +284,6 @@ namespace ORNG {
 
 		glm::vec3 pos = transforms[0];
 		glm::vec3 rot = transforms[2];
-
 
 		glm::quat quat = glm::quat(glm::radians(rot));
 		PxQuat px_quat{ quat.x, quat.y, quat.z, quat.w };
@@ -279,11 +296,14 @@ namespace ORNG {
 		p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(extents.x, extents.y, extents.z), *p_comp->p_material);
 		p_comp->p_shape->acquireReference();
 
-		// Static by default
-		p_comp->p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_comp->p_shape);
+		if (dynamic_cast<PhysicsComponentStatic*>(p_comp)) {
+			p_comp->p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_comp->p_shape);
+		}
+		else if (dynamic_cast<PhysicsComponentDynamic*>(p_comp)) {
+			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_comp->p_shape, 1.f);
+		}
 
 		mp_scene->addActor(*p_comp->p_rigid_actor);
-		p_comp->rigid_body_type = PhysicsComponent::STATIC;
 
 	}
 
@@ -313,10 +333,7 @@ namespace ORNG {
 		mp_scene->simulate(m_step_size);
 		mp_scene->fetchResults(true);
 
-		for (auto [entity, phys, transform] : mp_registry->view<PhysicsComponent, TransformComponent>().each()) {
-			if (phys.rigid_body_type == PhysicsComponent::STATIC || static_cast<PxRigidDynamic*>(phys.p_rigid_actor)->isSleeping())
-				continue;
-
+		for (auto [entity, phys, transform] : mp_registry->view<PhysicsComponentDynamic, TransformComponent>().each()) {
 			mp_currently_updating_transform = &transform;
 			UpdateTransformCompFromGlobalPose(phys.p_rigid_actor->getGlobalPose(), transform);
 			mp_currently_updating_transform = nullptr;

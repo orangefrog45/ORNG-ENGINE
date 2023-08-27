@@ -2,6 +2,7 @@
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
 #include "core/FrameTiming.h"
+#include "util/UUID.h"
 
 
 namespace ORNG {
@@ -54,6 +55,7 @@ namespace ORNG {
 
 #ifdef _MSC_VER
 		bat_stream << "call " + ("\"" + GetVS_InstallDir(ORNG_CORE_MAIN_DIR "\\extern\\vswhere.exe") + "\\VC\\Auxiliary\\Build\\vcvars64.bat" + "\"\n");
+		std::string pdb_name = ".\\res\\scripts\\bin\\" + std::to_string(UUID()()) + ".pdb";
 #ifdef NDEBUG
 		bat_stream << "cl" <<
 			" /WX- /Zc:forScope /GR /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
@@ -64,13 +66,13 @@ namespace ORNG {
 		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib\n";
 #else
-		bat_stream << "cl" <<
+		bat_stream << "cl" << " /Fd:" << pdb_name << // Random pdb filename so I can reload during runtime
 			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\""
 			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
 
-		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR << "\\ORNG_COREd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib\n";
 #endif // ifdef NDEBUG
 #endif // ifdef _MSC_VER
@@ -93,7 +95,7 @@ namespace ORNG {
 		}
 
 		// Keep record of loaded DLL's
-		sm_loaded_script_dll_handles[dll_path] = script_dll;
+		sm_loaded_script_dll_handles[filepath] = script_dll;
 
 		ScriptSymbols symbols;
 		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
@@ -123,7 +125,8 @@ namespace ORNG {
 
 
 	bool ScriptingEngine::UnloadScriptDLL(const std::string& filepath) {
-		if (sm_loaded_script_dll_handles.contains(filepath) && CloseHandle(sm_loaded_script_dll_handles[filepath]) && FreeLibrary(sm_loaded_script_dll_handles[filepath])) {
+		if (sm_loaded_script_dll_handles.contains(filepath)) {
+			FreeLibrary(sm_loaded_script_dll_handles[filepath]);
 			CoFreeUnusedLibraries();
 			sm_loaded_script_dll_handles.erase(filepath);
 			return true;

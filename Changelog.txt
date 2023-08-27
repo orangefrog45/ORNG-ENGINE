@@ -1,7 +1,14 @@
 26/8/23:
 -Basic C++ scripting engine, runtime compilation/connecting of external c++ scripts to entities (currently only msvc supported)
+-Split physicscomponent into PhysicsComponentStatic and PhysicsComponentDynamic
+-Runtime reloading of scripts
 -UI integration with scripts
 -UI improvements, error window
+-Env map diffuse prefilter serialization for faster loading
+
+C:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\scripts\Script.cpp
+C:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\scripts\Script.cpp
+C:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\scripts\bin\Script.dll
 
 22/8/23:
 -Concept of projects and project management added

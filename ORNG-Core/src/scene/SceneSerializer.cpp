@@ -229,13 +229,15 @@ namespace ORNG {
 
 		}
 
-		const auto* p_physics_comp = entity.GetComponent<PhysicsComponent>();
+		PhysicsCompBase* p_physics_comp = static_cast<PhysicsCompBase*>(entity.GetComponent<PhysicsComponentDynamic>());
+		if (!p_physics_comp)
+			p_physics_comp = static_cast<PhysicsCompBase*>(entity.GetComponent<PhysicsComponentStatic>());
 
 		if (p_physics_comp) {
 			out << YAML::Key << "PhysicsComp";
 			out << YAML::BeginMap;
 
-			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->rigid_body_type;
+			out << YAML::Key << "RigidBodyType" << YAML::Value << (dynamic_cast<PhysicsComponentDynamic*>(p_physics_comp) ? PhysicsCompBase::RigidBodyType::DYNAMIC : PhysicsCompBase::RigidBodyType::STATIC);
 			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->geometry_type;
 
 			out << YAML::EndMap;
@@ -285,9 +287,10 @@ namespace ORNG {
 
 			if (tag == "PhysicsComp") {
 				auto physics_node = entity_node["PhysicsComp"];
-				auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
-				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
-				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
+				auto* p_physics_comp = static_cast<PhysicsCompBase::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()) == PhysicsCompBase::STATIC ?
+					static_cast<PhysicsCompBase*>(entity.AddComponent<PhysicsComponentStatic>()) : static_cast<PhysicsCompBase*>(entity.AddComponent<PhysicsComponentDynamic>());
+
+				p_physics_comp->UpdateGeometry(static_cast<PhysicsCompBase::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
 			}
 
 

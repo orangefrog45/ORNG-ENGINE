@@ -26,7 +26,21 @@ namespace ORNG {
 		}
 
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>, typename... Args>
-		T* AddComponent(Args&&... args) { if (HasComponent<T>()) return GetComponent<T>(); return &mp_scene->m_registry.emplace<T>(m_entt_handle, this, std::forward<Args>(args)...); };
+		T* AddComponent(Args&&... args) {
+			// Restriction, can only have one of either dynamic or static physics component
+			if constexpr (std::is_same_v<T, PhysicsComponentDynamic>) {
+				if (HasComponent<PhysicsComponentStatic>()) {
+					return nullptr;
+				}
+			}
+			else if constexpr (std::is_same_v<T, PhysicsComponentStatic>) {
+				if (HasComponent<PhysicsComponentDynamic>()) {
+					return nullptr;
+				}
+			}
+
+			if (HasComponent<T>()) return GetComponent<T>(); return &mp_scene->m_registry.emplace<T>(m_entt_handle, this, std::forward<Args>(args)...);
+		};
 
 		// Returns ptr to component or nullptr if no component was found
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>

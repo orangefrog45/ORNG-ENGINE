@@ -17,37 +17,51 @@ namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
 
-	struct PhysicsComponent : public Component {
+	class PhysicsCompBase : public Component {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		friend class SceneSerializer;
-		explicit PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
-		enum RigidBodyType {
-			STATIC = 0,
-			DYNAMIC = 1
-		};
+	public:
+		PhysicsCompBase(SceneEntity* p_entity) : Component(p_entity) {};
 
+		virtual ~PhysicsCompBase() = default;
 		enum GeometryType {
 			BOX = 0,
 			SPHERE = 1,
 			TRIANGLE_MESH = 2,
 		};
+		enum RigidBodyType {
+			STATIC = 0,
+			DYNAMIC = 1,
+		};
 
-		void SetBodyType(RigidBodyType type);
-		// Used for changing scale/type of geometry, e.g sphere collider to box collider
 		void UpdateGeometry(GeometryType type);
 
-
-	private:
+	protected:
 		void SendUpdateEvent();
 
-		physx::PxRigidActor* p_rigid_actor = nullptr;
 		physx::PxShape* p_shape = nullptr;
 		physx::PxMaterial* p_material = nullptr;
-
-		RigidBodyType rigid_body_type = STATIC;
+		physx::PxRigidActor* p_rigid_actor = nullptr;
 		GeometryType geometry_type = BOX;
 	};
+
+	class PhysicsComponentDynamic : public PhysicsCompBase {
+	public:
+		PhysicsComponentDynamic(SceneEntity* p_entity) : PhysicsCompBase(p_entity) {};
+
+		void SetVelocity(glm::vec3 v);
+		glm::vec3 GetVelocity() const;
+		void AddForce();
+
+	};
+
+	class PhysicsComponentStatic : public PhysicsCompBase {
+	public:
+		PhysicsComponentStatic(SceneEntity* p_entity) : PhysicsCompBase(p_entity) {};
+
+	};
+
 
 	class CharacterControllerComponent : public Component {
 	public:

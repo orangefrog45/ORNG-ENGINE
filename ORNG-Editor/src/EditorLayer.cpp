@@ -714,7 +714,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
 
-		const char* names[6] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script" };
+		const char* names[7] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Dynamic physics", "Static physics", "Script" };
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -750,9 +750,12 @@ namespace ORNG {
 			entity->AddComponent<CameraComponent>();
 			break;
 		case 4:
-			entity->AddComponent<PhysicsComponent>();
+			entity->AddComponent<PhysicsComponentDynamic>();
 			break;
 		case 5:
+			entity->AddComponent<PhysicsComponentStatic>();
+			break;
+		case 6:
 			entity->AddComponent<ScriptComponent>();
 			break;
 		}
@@ -1317,7 +1320,7 @@ namespace ORNG {
 
 		if (ImGui::IsItemVisible()) {
 			formatted_name += p_entity->HasComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
-			formatted_name += p_entity->HasComponent<PhysicsComponent>() ? " " ICON_FA_WIND : "";
+			formatted_name += p_entity->HasComponent<PhysicsComponentStatic>() || p_entity->HasComponent<PhysicsComponentDynamic>() ? " " ICON_FA_WIND : "";
 			formatted_name += p_entity->HasComponent<PointLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
 			formatted_name += p_entity->HasComponent<SpotLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
 			formatted_name += p_entity->HasComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";
@@ -1523,7 +1526,11 @@ namespace ORNG {
 			auto plight = entity->GetComponent<PointLightComponent>();
 			auto slight = entity->GetComponent<SpotLightComponent>();
 			auto p_cam = entity->GetComponent<CameraComponent>();
-			auto p_physics_comp = entity->GetComponent<PhysicsComponent>();
+
+			PhysicsCompBase* p_physics_comp = static_cast<PhysicsCompBase*>(entity->GetComponent<PhysicsComponentDynamic>());
+			if (!p_physics_comp)
+				p_physics_comp = static_cast<PhysicsCompBase*>(entity->GetComponent<PhysicsComponentStatic>());
+
 			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
 
 			std::vector<TransformComponent*> transforms;
@@ -1589,7 +1596,10 @@ namespace ORNG {
 			ImGui::PushID(p_physics_comp);
 			if (p_physics_comp && H2TreeNode("Physics component")) {
 				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<PhysicsComponent>();
+					if (dynamic_cast<PhysicsComponentStatic*>(p_physics_comp))
+						entity->DeleteComponent<PhysicsComponentStatic>();
+					else
+						entity->DeleteComponent<PhysicsComponentDynamic>();
 				}
 				else {
 					RenderPhysicsComponentEditor(p_physics_comp);
@@ -1665,28 +1675,19 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {
+	void EditorLayer::RenderPhysicsComponentEditor(PhysicsCompBase* p_comp) {
 		ImGui::SeparatorText("Collider geometry");
 
-		if (ImGui::RadioButton("Box", p_comp->geometry_type == PhysicsComponent::BOX)) {
-			p_comp->UpdateGeometry(PhysicsComponent::BOX);
+		if (ImGui::RadioButton("Box", p_comp->geometry_type == PhysicsCompBase::BOX)) {
+			p_comp->UpdateGeometry(PhysicsCompBase::BOX);
 		}
 		ImGui::SameLine();
-		if (ImGui::RadioButton("Sphere", p_comp->geometry_type == PhysicsComponent::SPHERE)) {
-			p_comp->UpdateGeometry(PhysicsComponent::SPHERE);
+		if (ImGui::RadioButton("Sphere", p_comp->geometry_type == PhysicsCompBase::SPHERE)) {
+			p_comp->UpdateGeometry(PhysicsCompBase::SPHERE);
 		}
 		ImGui::SameLine();
-		if (ImGui::RadioButton("Mesh", p_comp->geometry_type == PhysicsComponent::TRIANGLE_MESH)) {
-			p_comp->UpdateGeometry(PhysicsComponent::TRIANGLE_MESH);
-		}
-
-
-		ImGui::SeparatorText("Collider behaviour"); // Currently don't support dynamic triangle meshes
-		if (ImGui::RadioButton("Dynamic", p_comp->rigid_body_type == PhysicsComponent::DYNAMIC)) {
-			p_comp->SetBodyType(PhysicsComponent::DYNAMIC);
-		}
-		if (ImGui::RadioButton("Static", p_comp->rigid_body_type == PhysicsComponent::STATIC)) {
-			p_comp->SetBodyType(PhysicsComponent::STATIC);
+		if (ImGui::RadioButton("Mesh", p_comp->geometry_type == PhysicsCompBase::TRIANGLE_MESH)) {
+			p_comp->UpdateGeometry(PhysicsCompBase::TRIANGLE_MESH);
 		}
 
 

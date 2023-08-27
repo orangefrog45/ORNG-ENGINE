@@ -136,14 +136,14 @@ namespace ORNG {
 		void SetIsPaused(bool v) { m_physics_paused = v; };
 
 	private:
-		void InitComponent(PhysicsComponent* p_comp);
+		void InitComponent(PhysicsCompBase* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
-		void UpdateComponentState(PhysicsComponent* p_comp);
-		void RemoveComponent(PhysicsComponent* p_comp);
+		void UpdateComponentState(PhysicsCompBase* p_comp);
+		void RemoveComponent(PhysicsCompBase* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
 
 		entt::registry* mp_registry = nullptr;
-		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
+		Events::ECS_EventListener<PhysicsCompBase> m_phys_listener;
 		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 

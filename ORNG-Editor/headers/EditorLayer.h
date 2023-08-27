@@ -48,7 +48,7 @@ namespace ORNG {
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
-		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
+		void RenderPhysicsComponentEditor(PhysicsCompBase* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
 
