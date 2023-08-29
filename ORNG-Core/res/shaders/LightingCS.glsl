@@ -310,6 +310,7 @@ float DistributionGGX(vec3 h) {
 }
 
 float GeometrySchlickGGX(float n_dot_v) {
+
 	float r = (roughness + 1.0);
 	float k = (r * r) / 8.0;
 
@@ -455,6 +456,7 @@ void main()
 	// Ambient 
 	vec3 ks = FresnelSchlickRoughness(n_dot_v, f0);
 	vec3 kd = 1.0 - ks;
+	kd *= 1.0 - metallic;;
 	vec3 diffuse = texture(diffuse_prefilter_sampler, sampled_normal).rgb * sampled_albedo.xyz;
 
 	vec3 prefiltered_colour = textureLod(specular_prefilter_sampler, r, roughness * MAX_REFLECTION_LOD).rgb;

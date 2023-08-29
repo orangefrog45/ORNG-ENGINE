@@ -250,10 +250,6 @@ namespace ORNG {
 			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
 		float ts = FrameTiming::GetTimeStep();
-
-		if (Input::IsKeyDown('c')) {
-			ORNG_CORE_ERROR("C DOWN EDITOR");
-		}
 		UpdateEditorCam();
 
 		m_active_scene->Update(ts);
@@ -579,7 +575,6 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 		settings.p_output_tex = &*mp_scene_display_texture;
-		settings.p_cam_override = static_cast<CameraComponent*>(&*mp_editor_camera->GetComponent<CameraComponent>());
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
 
 		mp_editor_pass_fb->Bind();
@@ -934,6 +929,7 @@ namespace ORNG {
 					if (!std::filesystem::exists(new_filepath)) {
 						HandledFileSystemCopy(filepath, new_filepath);
 						m_current_2d_tex_spec.filepath = new_filepath;
+						m_current_2d_tex_spec.generate_mipmaps = true;
 						AssetManager::CreateTexture2D(m_current_2d_tex_spec);
 					}
 					else {
@@ -1185,12 +1181,12 @@ namespace ORNG {
 				m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_LINEAR : GL_NEAREST;
 				m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST;
 
+				m_current_2d_tex_spec.generate_mipmaps = true;
+
 				if (ImGui::Button("Load")) {
 					mp_selected_texture->SetSpec(m_current_2d_tex_spec);
 					mp_selected_texture->LoadFromFile();
-
 				}
-				m_current_2d_tex_spec.generate_mipmaps = true;
 
 				ImGui::TableNextColumn();
 				float size = glm::min(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
@@ -1298,7 +1294,26 @@ namespace ORNG {
 		ImGui::End();
 	}
 
+	struct BaseNode {
+		virtual void NodeFunc(); // Casts input and processes, result stored in p_output
+	};
 
+	struct VarNode {
+		int val;
+	};
+
+	struct OperatorNode : public BaseNode {
+		int* p_input;
+		void NodeFunc() final;
+		int output;
+	};
+
+	struct IfElseNode : public BaseNode {
+		bool* p_input;
+		void NodeFunc() final; // 
+		std::function<void()>* p_if;
+		std::function<void()>* p_else;
+	};
 
 
 	EditorLayer::EntityNodeEvent EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
@@ -1320,7 +1335,7 @@ namespace ORNG {
 
 		if (ImGui::IsItemVisible()) {
 			formatted_name += p_entity->HasComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
-			formatted_name += p_entity->HasComponent<PhysicsComponentStatic>() || p_entity->HasComponent<PhysicsComponentDynamic>() ? " " ICON_FA_WIND : "";
+			formatted_name += p_entity->HasComponent<PhysicsComponentStatic>() || p_entity->HasComponent<PhysicsComponentDynamic>() ? " " ICON_FA_BEZIER_CURVE : "";
 			formatted_name += p_entity->HasComponent<PointLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
 			formatted_name += p_entity->HasComponent<SpotLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
 			formatted_name += p_entity->HasComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";

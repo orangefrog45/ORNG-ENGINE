@@ -166,9 +166,9 @@ float cnoise(vec2 P) {
 void main() {
 #ifndef SKYBOX_MODE
 	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap()  : vs_tex_coord.xy * u_material.tile_scale;
-	roughness_metallic_ao.r = texture(roughness_sampler, adj_tex_coord.xy).r * int(u_roughness_sampler_active) + u_material.roughness * int(!u_roughness_sampler_active);
-	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * int(u_metallic_sampler_active) + u_material.base_color_and_metallic.a * int(!u_metallic_sampler_active);
-	roughness_metallic_ao.b = texture(ao_sampler, adj_tex_coord.xy).r * int(u_ao_sampler_active) + u_material.ao * int(!u_ao_sampler_active);
+	roughness_metallic_ao.r = texture(roughness_sampler, adj_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
+	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.base_color_and_metallic.a * float(!u_metallic_sampler_active);
+	roughness_metallic_ao.b = texture(ao_sampler, adj_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
 	roughness_metallic_ao.a = 1.f;
 #endif
 

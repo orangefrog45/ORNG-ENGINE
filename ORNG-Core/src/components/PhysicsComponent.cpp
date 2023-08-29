@@ -15,9 +15,16 @@ namespace ORNG {
 
 
 
-	void PhysicsComponentDynamic::AddForce() {
+	void PhysicsComponentDynamic::AddForce(glm::vec3 force) {
+		((PxRigidDynamic*)p_rigid_actor)->addForce(PxVec3(force.x, force.y, force.z));
 	}
 
+	void PhysicsComponentDynamic::SetVelocity(glm::vec3 v) {
+	}
+	glm::vec3 PhysicsComponentDynamic::GetVelocity() const {
+		auto vec = ((PxRigidDynamic*)p_rigid_actor)->getLinearVelocity();
+		return glm::vec3(vec.x, vec.y, vec.z);
+	}
 
 	void PhysicsCompBase::SendUpdateEvent() {
 		Events::ECS_Event<PhysicsCompBase> phys_event;

@@ -16,7 +16,7 @@
 [submodule "ORNG-Core/extern/imgui"]
 	path = ORNG-Core/extern/imgui
 	url = https://github.com/orangefrog45/imgui
-[submodule "ORNG Editor/extern/imguizmo"]
+[submodule "ORNG-Editor/extern/imguizmo"]
 	path = ORNG Editor/extern/imguizmo
 	url = https://github.com/orangefrog45/ImGuizmo
 [submodule "ORNG-Core/extern/spdlog"]

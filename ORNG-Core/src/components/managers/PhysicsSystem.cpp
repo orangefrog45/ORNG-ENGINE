@@ -9,6 +9,50 @@
 
 namespace ORNG {
 	using namespace physx;
+	// Conversion from glm::vec3 to PxVec3
+	inline PxVec3 ToPxVec3(const glm::vec3& glmVec) {
+		return PxVec3(glmVec.x, glmVec.y, glmVec.z);
+	}
+
+	// Conversion from PxVec3 to glm::vec3
+	inline glm::vec3 ToGlmVec3(const PxVec3& pxVec) {
+		return glm::vec3(pxVec.x, pxVec.y, pxVec.z);
+	}
+
+
+	RaycastResults PhysicsSystem::Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
+		PxRaycastBuffer ray_buffer;                 // [out] Raycast results
+		RaycastResults ret;
+
+		if (bool status = mp_scene->raycast(ToPxVec3(origin), ToPxVec3(unit_dir), max_distance, ray_buffer)) {
+			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
+
+			// Check dynamic physics components
+			for (auto [entity, phys_comp] : mp_registry->view<PhysicsComponentDynamic>().each()) {
+				if (phys_comp.p_rigid_actor == p_closest_actor) {
+					ret.p_phys_comp = &phys_comp;
+					ret.p_entity = phys_comp.GetEntity();
+				}
+			}
+
+			// Check static physics components
+			if (ret.p_phys_comp == nullptr) {
+				for (auto [entity, phys_comp] : mp_registry->view<PhysicsComponentStatic>().each()) {
+					if (phys_comp.p_rigid_actor == p_closest_actor) {
+						ret.p_phys_comp = &phys_comp;
+						ret.p_entity = phys_comp.GetEntity();
+					}
+				}
+			}
+
+			ret.hit = true;
+			ret.hit_pos = ToGlmVec3(ray_buffer.block.position);
+			ret.hit_normal = ToGlmVec3(ray_buffer.block.normal);
+			ret.hit_dist = ray_buffer.block.distance;
+		}
+
+		return ret;
+	}
 
 	template <std::derived_from<PhysicsCompBase> T>
 	static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
@@ -124,7 +168,6 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(m_phys_listener);
 		Events::EventManager::RegisterListener(m_character_controller_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
-
 
 	};
 

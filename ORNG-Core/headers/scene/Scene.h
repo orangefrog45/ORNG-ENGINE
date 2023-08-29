@@ -6,11 +6,17 @@
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
 
+namespace ScriptInterface {
+	class S_Scene;
+}
+
 namespace ORNG {
 
 	class SceneEntity;
 
+
 	class Scene {
+		friend class ScriptInterface::S_Scene;
 	public:
 		friend class EditorLayer;
 		friend class SceneRenderer;
@@ -27,6 +33,10 @@ namespace ORNG {
 		SceneEntity* GetEntity(uint64_t uuid);
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
+
+		inline RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
+			return m_physics_system.Raycast(origin, unit_dir, max_distance);
+		}
 
 		Skybox skybox;
 		Terrain terrain;
@@ -45,8 +55,6 @@ namespace ORNG {
 		std::vector<SceneEntity*> m_entities;
 
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
-		PointlightSystem m_pointlight_component_manager{ &m_registry , uuid() };
-		SpotlightSystem m_spotlight_component_manager{ &m_registry, uuid() };
 		PhysicsSystem m_physics_system{ &m_registry, uuid() };
 		CameraSystem m_camera_system{ &m_registry, uuid() };
 		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };

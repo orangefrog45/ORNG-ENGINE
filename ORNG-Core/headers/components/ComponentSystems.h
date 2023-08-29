@@ -20,7 +20,7 @@ namespace ORNG {
 
 	class ComponentSystem {
 	public:
-		explicit ComponentSystem(uint64_t scene_uuid) : m_scene_uuid(scene_uuid) {  };
+		explicit ComponentSystem(uint64_t scene_uuid) : m_scene_uuid(scene_uuid) {};
 		// Dispatches event attached to single component, used for connections with entt::registry::on_construct etc
 		template<std::derived_from<Component> T>
 		static void DispatchComponentEvent(entt::registry& registry, entt::entity entity, Events::ECS_EventType type) {
@@ -30,9 +30,6 @@ namespace ORNG {
 
 			Events::EventManager::DispatchEvent(e_event);
 		}
-
-		virtual void OnUpdate() {};
-		virtual void OnUnload() {};
 
 		inline uint64_t GetSceneUUID() const { return m_scene_uuid; }
 	private:
@@ -120,6 +117,16 @@ namespace ORNG {
 		entt::registry* mp_registry = nullptr;
 	};
 
+	struct RaycastResults {
+		bool hit = false;
+		glm::vec3 hit_pos{0, 0, 0};
+		glm::vec3 hit_normal{0, 0, 0};
+		float hit_dist = 0;
+		// Will be either PhysicsComponentStatic or PhysicsComponentDynamic
+		PhysicsCompBase* p_phys_comp = nullptr;
+		SceneEntity* p_entity = nullptr;
+	};
+
 
 	class PhysicsSystem : public ComponentSystem {
 	public:
@@ -127,10 +134,11 @@ namespace ORNG {
 		virtual ~PhysicsSystem() = default;
 
 		void OnUpdate(float ts);
-		void OnUnload() final;
+		void OnUnload();
 		void OnLoad();
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
+		__declspec(noinline) RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
 
 		bool GetIsPaused() const { return m_physics_paused; };
 		void SetIsPaused(bool v) { m_physics_paused = v; };
@@ -166,38 +174,36 @@ namespace ORNG {
 	};
 
 
-	class SpotlightSystem : public ComponentSystem {
+	class SpotlightSystem {
 		friend class SceneRenderer;
 	public:
-		SpotlightSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		SpotlightSystem() = default;
 		virtual ~SpotlightSystem() = default;
 
 		void OnLoad();
-		void OnUpdate() final;
-		void OnUnload() final;
+		void OnUpdate(entt::registry* p_registry);
+		void OnUnload();
 	private:
 		Texture2DArray m_spotlight_depth_tex{ "Spotlight depth" }; // Used for shadow maps
-		entt::registry* mp_registry = nullptr;
 		unsigned int m_spotlight_ssbo_handle;
 	};
 
 
 
-	class PointlightSystem : public ComponentSystem {
+	class PointlightSystem {
 		friend class SceneRenderer;
 	public:
-		PointlightSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
-		virtual ~PointlightSystem() = default;
+		PointlightSystem() = default;
+		~PointlightSystem() = default;
 		void OnLoad();
-		void OnUpdate() final;
-		void OnUnload() final;
+		void OnUpdate(entt::registry* p_registry);
+		void OnUnload();
 
 		// Checks if the depth map array needs to grow/shrink
 		void OnDepthMapUpdate();
 	private:
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
 		unsigned int m_pointlight_ssbo_handle;
-		entt::registry* mp_registry = nullptr;
 
 	};
 
@@ -209,8 +215,8 @@ namespace ORNG {
 		virtual ~MeshInstancingSystem() = default;
 		void SortMeshIntoInstanceGroup(MeshComponent* comp);
 		void OnLoad();
-		void OnUnload() final;
-		void OnUpdate() final;
+		void OnUnload();
+		void OnUpdate();
 		void OnMeshEvent(const Events::ECS_Event<MeshComponent>& t_event);
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
 

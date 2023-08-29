@@ -13,6 +13,11 @@ namespace ORNG {
 
 	class SceneRenderer {
 	public:
+		SceneRenderer() = default;
+		~SceneRenderer() {
+			m_spotlight_system.OnUnload();
+			m_pointlight_system.OnUnload();
+		}
 
 		static void Init() {
 			Get().I_Init();
@@ -105,6 +110,9 @@ namespace ORNG {
 		Texture2D m_fog_blur_tex_2{ "SR fog blur 2 tex" };
 		Texture2D m_bloom_tex{ "SR fog blur 1" };
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
+
+		PointlightSystem m_pointlight_system;
+		SpotlightSystem m_spotlight_system;
 
 
 		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };

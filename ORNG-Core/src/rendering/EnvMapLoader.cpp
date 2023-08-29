@@ -185,7 +185,6 @@ namespace ORNG {
 		specular_prefilter_spec.width = 512;
 		specular_prefilter_spec.height = 512;
 		specular_prefilter_spec.generate_mipmaps = true;
-		specular_prefilter_spec.min_filter = GL_LINEAR;
 		specular_prefilter_spec.mag_filter = GL_LINEAR;
 
 

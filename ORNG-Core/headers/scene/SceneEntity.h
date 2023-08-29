@@ -66,6 +66,10 @@ namespace ORNG {
 			return mp_scene->GetEntity(GetComponent<RelationshipComponent>()->parent);
 		}
 
+		Scene* GetScene() {
+			return mp_scene;
+		}
+
 		void SetParent(SceneEntity& parent_entity) {
 			RemoveParent();
 			auto* p_comp = AddComponent<RelationshipComponent>();

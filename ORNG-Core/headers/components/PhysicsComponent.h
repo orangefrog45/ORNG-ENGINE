@@ -48,16 +48,18 @@ namespace ORNG {
 
 	class PhysicsComponentDynamic : public PhysicsCompBase {
 	public:
+		friend class PhysicsSystem;
 		PhysicsComponentDynamic(SceneEntity* p_entity) : PhysicsCompBase(p_entity) {};
 
 		void SetVelocity(glm::vec3 v);
 		glm::vec3 GetVelocity() const;
-		void AddForce();
+		void AddForce(glm::vec3 force);
 
 	};
 
 	class PhysicsComponentStatic : public PhysicsCompBase {
 	public:
+		friend class PhysicsSystem;
 		PhysicsComponentStatic(SceneEntity* p_entity) : PhysicsCompBase(p_entity) {};
 
 	};

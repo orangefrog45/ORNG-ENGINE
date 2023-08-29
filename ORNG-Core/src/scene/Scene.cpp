@@ -24,12 +24,10 @@ namespace ORNG {
 		m_physics_system.OnUpdate(ts);
 
 		m_mesh_component_manager.OnUpdate();
-		m_pointlight_component_manager.OnUpdate();
-		m_spotlight_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
 
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			script.OnUpdate(script.GetEntity());
+			script.OnUpdate(script.GetEntity(), this);
 		}
 
 		if (m_camera_system.GetActiveCamera())
@@ -55,7 +53,6 @@ namespace ORNG {
 		m_entities.erase(it);
 
 	}
-
 
 
 
@@ -91,13 +88,11 @@ namespace ORNG {
 		terrain.Init(AssetManager::GetEmptyMaterial());
 		m_physics_system.OnLoad();
 		m_mesh_component_manager.OnLoad();
-		m_spotlight_component_manager.OnLoad();
-		m_pointlight_component_manager.OnLoad();
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
 
 		if (!SceneSerializer::DeserializeScene(*this, filepath)) {
-			//EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
+			EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
 		}
 		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
@@ -120,8 +115,6 @@ namespace ORNG {
 		m_transform_system.OnUnload();
 		m_physics_system.OnUnload();
 		m_mesh_component_manager.OnUnload();
-		m_spotlight_component_manager.OnUnload();
-		m_pointlight_component_manager.OnUnload();
 		m_camera_system.OnUnload();
 
 		m_entities.clear();

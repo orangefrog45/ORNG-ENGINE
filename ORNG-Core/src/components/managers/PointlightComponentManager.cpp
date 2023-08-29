@@ -26,10 +26,11 @@ namespace ORNG {
 
 
 
-	void PointlightSystem::OnUpdate() {
-		auto view = mp_registry->view<PointLightComponent>();
-		if (view.size() == 0)
+	void PointlightSystem::OnUpdate(entt::registry* p_registry) {
+		auto view = p_registry->view<PointLightComponent>();
+		if (view.size() == 0) {
 			return;
+		}
 
 		constexpr unsigned int point_light_fs_num_float = 12; // amount of floats in pointlight struct in shaders
 		std::vector<float> light_array;
@@ -59,7 +60,6 @@ namespace ORNG {
 			light_array[i++] = atten.exp;
 			// - END ATTENUATION
 		}
-
 
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_pointlight_ssbo_handle);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_STREAM_DRAW);

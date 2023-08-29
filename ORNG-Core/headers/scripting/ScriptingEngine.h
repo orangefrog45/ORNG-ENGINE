@@ -5,20 +5,22 @@ namespace ORNG {
 	class SceneEntity;
 	class Input;
 	class FrameTiming;
+	class Scene;
+
 	namespace Events {
 		class EventManager;
 	}
 
-	typedef void(__cdecl* ScriptFuncPtr)(SceneEntity*);
+	typedef void(__cdecl* ScriptFuncPtr)(SceneEntity*, Scene*);
 	typedef void(__cdecl* InputSetter)(Input*);
 	typedef void(__cdecl* EventInstanceSetter)(Events::EventManager*);
 	typedef void(__cdecl* FrameTimingSetter)(FrameTiming*);
 
 	struct ScriptSymbols {
 		bool loaded = false;
-		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
-		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
-		ScriptFuncPtr OnDestroy = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnDestroy symbol not loaded"); };
+		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity, Scene*) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
+		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity, Scene*) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
+		ScriptFuncPtr OnDestroy = [](SceneEntity* p_entity, Scene*) { ORNG_CORE_ERROR("OnDestroy symbol not loaded"); };
 	};
 
 	class ScriptingEngine {

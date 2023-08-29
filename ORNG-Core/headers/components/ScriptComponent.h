@@ -10,9 +10,9 @@ namespace ORNG {
 		friend class EditorLayer;
 		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
-		std::function<void(SceneEntity*)> OnCreate = [](SceneEntity*) {};
-		std::function<void(SceneEntity*)> OnUpdate = [](SceneEntity*) {};
-		std::function<void(SceneEntity*)> OnDestroy = [](SceneEntity*) {};
+		std::function<void(SceneEntity*, Scene*)> OnCreate = [](SceneEntity*, Scene*) {};
+		std::function<void(SceneEntity*, Scene*)> OnUpdate = [](SceneEntity*, Scene*) {};
+		std::function<void(SceneEntity*, Scene*)> OnDestroy = [](SceneEntity*, Scene*) {};
 	private:
 		std::string script_filepath = "";
 	};

@@ -37,7 +37,7 @@ void main() {
 				vec4 sampled_offset = texelFetch(in_tex, offset_coords, 0); // first tex will be raw fog input at half res, so adjust
 				float density_dif = abs(texelFetch(depth_sampler, offset_coords * 2 + ivec2(x, y), 0).r - original_depth);
 
-				float g_weight_1 = max(0.0, 1.0 - density_dif * 5000.f);
+				float g_weight_1 = max(0.0, 1.0 - density_dif * 2000.f);
 				result += sampled_offset * g_weight_1;
 
 				sum += g_weight_1;
@@ -53,7 +53,7 @@ void main() {
 			vec4 sampled_offset = texelFetch(in_tex, offset_coords, 0);
 			float density_dif = abs(texelFetch(depth_sampler, offset_coords, 0).r - original_depth);
 
-			g_weight_1 *= max(0.0, 1.0 - density_dif * 5000.f);
+			g_weight_1 *= max(0.0, 1.0 - density_dif * 2000.f);
 			result += sampled_offset * g_weight_1;
 
 			sum += g_weight_1;

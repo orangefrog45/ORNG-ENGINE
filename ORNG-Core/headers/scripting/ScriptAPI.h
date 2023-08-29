@@ -20,6 +20,22 @@
 #include "Scene.h"
 
 
+#ifdef ORNG_CORE_TRACE
+#undef ORNG_CORE_TRACE
+#endif
+#ifdef ORNG_CORE_INFO
+#undef ORNG_CORE_INFO
+#endif
+#ifdef ORNG_CORE_WARN
+#undef ORNG_CORE_WARN
+#endif
+#ifdef ORNG_CORE_ERROR
+#undef ORNG_CORE_ERROR 
+#endif
+#ifdef ORNG_CORE_CRITICAL
+#undef ORNG_CORE_CRITICAL
+#endif
+
 
 extern "C" {
 	namespace ORNG_Connectors {
@@ -48,7 +64,9 @@ extern "C" {
 		private:
 			inline static ORNG::FrameTiming* mp_instance = nullptr;
 		};
+
 	};
+
 
 
 	namespace ORNG_Connectors {
@@ -66,6 +84,8 @@ extern "C" {
 		__declspec(dllexport) void SetFrameTimingPtr(ORNG::FrameTiming* p_instance) {
 			ScriptInterface::FrameTiming::mp_instance = p_instance;
 		}
+
+
 	}
 
 }

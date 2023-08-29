@@ -68,9 +68,6 @@ add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
 )
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ORNG_LIB_SOURCES})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ORNG_LIB_SOURCES})
-
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
@@ -152,12 +149,12 @@ target_include_directories(ORNG_CORE
 )
 
 
-target_link_libraries(ORNG_CORE PUBLIC 
+target_link_libraries(ORNG_CORE PRIVATE 
 OpenGL::GL
 glfw
 libglew_static
 assimp
-spdlog
+spdlog::spdlog_header_only
 yaml-cpp
 ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
@@ -171,8 +168,7 @@ headers/pch/pch.h
 
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
-
-
+target_compile_definitions(ORNG_CORE PUBLIC PHYSX_BIN_OUTPUT_DIR="${PHYSX_ROOT_LIB_DIR}")
 
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/")

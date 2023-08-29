@@ -87,7 +87,7 @@ vec3 SpecularPrefilter(vec3 n) {
 			float sa_sample = 1.0 / (float(sample_count) * pdf + 0.0001);
 			float mip_level = u_roughness == 0.0 ? 0.0 : 0.5 * log2(sa_sample / sa_texel);
 
-			prefiltered_color += texture(environment_map_sampler, l).rgb * n_dot_l;
+			prefiltered_color += textureLod(environment_map_sampler, l, mip_level).rgb * n_dot_l;
 			total_weight += n_dot_l;
 		}
 	}

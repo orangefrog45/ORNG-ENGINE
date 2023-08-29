@@ -35,6 +35,54 @@ namespace ORNG {
 	}
 #endif
 
+	void GenBatFile(std::ofstream& bat_stream, const std::string& filepath, const std::string& filename, const std::string& filename_no_ext) {
+		std::string physx_lib_dir;
+		for (const auto& entry : std::filesystem::directory_iterator(ORNG_CORE_LIB_DIR "\\externals\\physx\\bin")) {
+			std::string entry_path = entry.path().string();
+			if (entry_path.ends_with("md")) {
+				physx_lib_dir = entry_path;
+			}
+		}
+
+
+#ifdef _MSC_VER
+		bat_stream << "call " + ("\"" + GetVS_InstallDir(ORNG_CORE_MAIN_DIR "\\extern\\vswhere.exe") + "\\VC\\Auxiliary\\Build\\vcvars64.bat" + "\"\n");
+		std::string pdb_name = ".\\res\\scripts\\bin\\" + std::to_string(UUID()()) + ".pdb";
+#ifdef NDEBUG
+		bat_stream << "cl" << " /Fd:" << pdb_name <<
+			" /WX- /Zc:forScope /GR /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
+			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
+			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\""
+			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
+
+		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib "
+			<< physx_lib_dir + "\\release\\PhysXFoundation_static.lib " << physx_lib_dir + "\\release\\PhysXExtensions_static.lib "
+			<< physx_lib_dir + "\\release\\PhysX_static.lib " << physx_lib_dir + "\\release\\PhysXCharacterKinematic_static.lib "
+			<< physx_lib_dir + "\\release\\PhysXCommon_static.lib " << physx_lib_dir + "\\release\\PhysXCooking_static.lib "
+			<< physx_lib_dir + "\\release\\PhysXPvdSDK_static.lib " << physx_lib_dir + "\\release\\PhysXVehicle_static.lib ";
+#else
+
+
+		bat_stream << "cl" << " /Fd:" << pdb_name << // Random pdb filename so I can reload during runtime
+			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
+			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
+			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\""
+			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
+
+		bat_stream << "link /DLL /INCREMENTAL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib "
+			<< physx_lib_dir + "\\debug\\PhysXFoundation_staticd.lib " << physx_lib_dir + "\\debug\\PhysXExtensions_staticd.lib "
+			<< physx_lib_dir + "\\debug\\PhysX_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCharacterKinematic_staticd.lib "
+			<< physx_lib_dir + "\\debug\\PhysXCommon_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCooking_staticd.lib "
+			<< physx_lib_dir + "\\debug\\PhysXPvdSDK_staticd.lib " << physx_lib_dir + "\\debug\\PhysXVehicle_staticd.lib ";
+#endif // ifdef NDEBUG
+#endif // ifdef _MSC_VER
+	}
+
+
+
+
 	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath) {
 		if (sm_loaded_script_dll_handles.contains(filepath)) {
 			ORNG_CORE_ERROR("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
@@ -52,31 +100,7 @@ namespace ORNG {
 		}
 
 		std::ofstream bat_stream("res/scripts/gen_scripts.bat");
-
-#ifdef _MSC_VER
-		bat_stream << "call " + ("\"" + GetVS_InstallDir(ORNG_CORE_MAIN_DIR "\\extern\\vswhere.exe") + "\\VC\\Auxiliary\\Build\\vcvars64.bat" + "\"\n");
-		std::string pdb_name = ".\\res\\scripts\\bin\\" + std::to_string(UUID()()) + ".pdb";
-#ifdef NDEBUG
-		bat_stream << "cl" <<
-			" /WX- /Zc:forScope /GR /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
-			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
-			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\""
-			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
-
-		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib\n";
-#else
-		bat_stream << "cl" << " /Fd:" << pdb_name << // Random pdb filename so I can reload during runtime
-			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
-			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
-			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\""
-			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
-
-		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR << "\\ORNG_COREd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib\n";
-#endif // ifdef NDEBUG
-#endif // ifdef _MSC_VER
-
+		GenBatFile(bat_stream, filepath, filename, filename_no_ext);
 		bat_stream.close();
 
 		// Run bat file
@@ -85,7 +109,6 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", filepath, dev_env_result);
 			return ScriptSymbols();
 		}
-
 		// Load the generated dll
 		std::string dll_path = ".\\res\\scripts\\bin\\" + filename_no_ext + ".dll";
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());

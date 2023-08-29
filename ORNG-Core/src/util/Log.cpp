@@ -38,6 +38,7 @@ namespace ORNG {
 		return s_core_logger;
 	}
 
+
 	void Log::GLLogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {
 		switch (severity)
 		{

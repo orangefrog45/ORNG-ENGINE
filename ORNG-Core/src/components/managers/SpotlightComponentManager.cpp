@@ -42,9 +42,9 @@ namespace ORNG {
 		return glm::mat4(light_perspective * spot_light_view);
 	}
 
-	void SpotlightSystem::OnUpdate() {
+	void SpotlightSystem::OnUpdate(entt::registry* p_registry) {
 
-		auto view = mp_registry->view<SpotLightComponent>();
+		auto view = p_registry->view<SpotLightComponent>();
 
 		if (view.empty())
 			return;

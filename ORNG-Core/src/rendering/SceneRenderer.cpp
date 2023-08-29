@@ -25,6 +25,8 @@ namespace ORNG {
 
 		mp_shader_library = &Renderer::GetShaderLibrary();
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
+		m_pointlight_system.OnLoad();
+		m_spotlight_system.OnLoad();
 
 		std::vector<std::string> gbuffer_uniforms {
 			"u_roughness_sampler_active",
@@ -295,6 +297,8 @@ namespace ORNG {
 
 
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
+		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
+		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
 		glm::mat4 view_mat = p_cam->GetViewMatrix();
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
 		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam->target, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
@@ -511,7 +515,7 @@ namespace ORNG {
 		int index = 0;
 		for (auto [entity, light] : spotlights.each()) {
 
-			m_depth_fb->BindTextureLayerToFBAttachment(mp_scene->m_spotlight_component_manager.m_spotlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
+			m_depth_fb->BindTextureLayerToFBAttachment(m_spotlight_system.m_spotlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
 			GL_StateManager::ClearDepthBits();
 
 			mp_persp_depth_shader->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
@@ -545,7 +549,7 @@ namespace ORNG {
 			// Draw depth cubemap
 			for (int i = 0; i < 6; i++) {
 
-				m_depth_fb->BindTextureLayerToFBAttachment(mp_scene->m_pointlight_component_manager.m_pointlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
+				m_depth_fb->BindTextureLayerToFBAttachment(m_pointlight_system.m_pointlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
 				GL_StateManager::ClearDepthBits();
 
 				mp_pointlight_depth_shader->SetUniform("u_light_pv_matrix", captureProjection * captureViews[i]);
@@ -636,7 +640,7 @@ namespace ORNG {
 		ORNG_PROFILE_FUNC_GPU();
 
 		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_directional_light_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::DIR_SHADOW_MAP, true);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, mp_scene->m_spotlight_component_manager.m_spotlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SPOT_SHADOW_MAP, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_spotlight_system.m_spotlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SPOT_SHADOW_MAP, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("albedo").GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("normals").GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
@@ -644,7 +648,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("roughness_metallic_ao").GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetIrradianceTexture().GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSpecularPrefilter().GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, mp_scene->m_pointlight_component_manager.m_pointlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_pointlight_system.m_pointlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 
 		m_lighting_shader->ActivateProgram();
 
