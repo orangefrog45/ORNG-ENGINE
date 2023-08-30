@@ -22,7 +22,7 @@ namespace ORNG {
 		void SetMaterialID(unsigned int index, const Material* p_material);
 		void SetMeshAsset(MeshAsset* p_asset);
 
-		inline const MeshAsset* GetMeshData() const { return mp_mesh_asset; }
+		inline  MeshAsset* GetMeshData() { return mp_mesh_asset; }
 		auto& GetMaterials() { return m_materials; }
 
 

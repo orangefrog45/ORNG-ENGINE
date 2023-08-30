@@ -17,14 +17,17 @@ namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
 
-	class PhysicsCompBase : public Component {
+	class PhysicsComponent : public Component {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		friend class SceneSerializer;
 	public:
-		PhysicsCompBase(SceneEntity* p_entity) : Component(p_entity) {};
+		PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
-		virtual ~PhysicsCompBase() = default;
+		void SetVelocity(glm::vec3 v);
+		glm::vec3 GetVelocity() const;
+		void AddForce(glm::vec3 force);
+
 		enum GeometryType {
 			BOX = 0,
 			SPHERE = 1,
@@ -36,6 +39,7 @@ namespace ORNG {
 		};
 
 		void UpdateGeometry(GeometryType type);
+		void SetBodyType(RigidBodyType type);
 
 	protected:
 		void SendUpdateEvent();
@@ -43,26 +47,10 @@ namespace ORNG {
 		physx::PxShape* p_shape = nullptr;
 		physx::PxMaterial* p_material = nullptr;
 		physx::PxRigidActor* p_rigid_actor = nullptr;
-		GeometryType geometry_type = BOX;
+		GeometryType m_geometry_type = BOX;
+		RigidBodyType m_body_type = STATIC;
 	};
 
-	class PhysicsComponentDynamic : public PhysicsCompBase {
-	public:
-		friend class PhysicsSystem;
-		PhysicsComponentDynamic(SceneEntity* p_entity) : PhysicsCompBase(p_entity) {};
-
-		void SetVelocity(glm::vec3 v);
-		glm::vec3 GetVelocity() const;
-		void AddForce(glm::vec3 force);
-
-	};
-
-	class PhysicsComponentStatic : public PhysicsCompBase {
-	public:
-		friend class PhysicsSystem;
-		PhysicsComponentStatic(SceneEntity* p_entity) : PhysicsCompBase(p_entity) {};
-
-	};
 
 
 	class CharacterControllerComponent : public Component {

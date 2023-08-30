@@ -20,4 +20,8 @@ extern "C" {
 
 	}
 
+	__declspec(dllexport) void OnCollision(ORNG::SceneEntity* p_this, ORNG::SceneEntity* p_other, ORNG::Scene* p_scene) {
+
+	}
+
 }

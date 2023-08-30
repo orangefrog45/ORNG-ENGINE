@@ -4,6 +4,8 @@
 #include "events/EventManager.h"
 #include "core/Window.h"
 #include "assimp/scene.h"
+#include "rendering/Textures.h"
+#include "rendering/MeshAsset.h"
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -113,6 +115,11 @@ namespace ORNG {
 		return p_tex;
 	}
 
+	void AssetManager::DeleteMeshAsset(MeshAsset* p_asset) {
+		Get().IDeleteMeshAsset(p_asset->uuid());
+	}
+
+	void AssetManager::DeleteTexture(Texture2D* p_tex) { Get().IDeleteTexture(p_tex->uuid()); }
 
 	Texture2D* AssetManager::IGetTexture(uint64_t uuid) {
 		auto it = std::find_if(m_2d_textures.begin(), m_2d_textures.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });

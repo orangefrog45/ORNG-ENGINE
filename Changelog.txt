@@ -1,4 +1,12 @@
+30/8/23:
+-Physics collision callbacks in scripts
+-MeshInstanceGroup improper sorting fixed
+-/DEBUG linker flag removed when compiling scripts in release 
+-Merged physics components back into one class - prevents having to cast everywhere
+
 29/08/23:
+-Play/simulate button in editor that saves previous state
+-Serialization/project validation changes
 -Scripts connected to physics
 -Raycasting
 
@@ -10,9 +18,6 @@
 -UI improvements, error window
 -Env map diffuse prefilter serialization for faster loading
 
-C:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\scripts\Script.cpp
-C:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\scripts\Script.cpp
-C:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\scripts\bin\Script.dll
 
 22/8/23:
 -Concept of projects and project management added

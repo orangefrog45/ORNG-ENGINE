@@ -95,11 +95,6 @@ namespace ORNG {
 		mp_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
 		mp_editor_pass_fb->AddShared2DTexture("Editor scene display", *mp_scene_display_texture, GL_COLOR_ATTACHMENT0);
 
-		m_active_scene->LoadScene("");
-		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
-		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
-		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
-		mp_editor_camera->AddComponent<CharacterControllerComponent>();
 
 		// Setup preview scene used for viewing materials on meshes
 		mp_preview_scene->LoadScene("");
@@ -113,7 +108,7 @@ namespace ORNG {
 		glm::vec3 cam_pos{ 3, 3, -3.0 };
 		cam_entity.GetComponent<TransformComponent>()->SetPosition(cam_pos);
 		mp_preview_scene->m_directional_light.SetLightDirection({ 0.1, 0.3, -1.0 });
-		p_cam->target = glm::normalize(-cam_pos);
+		cam_entity.GetComponent<TransformComponent>()->LookAt({ 0, 0, 0 });
 		p_cam->aspect_ratio = 1;
 		p_cam->MakeActive();
 		mp_preview_scene->Update(0);
@@ -140,6 +135,12 @@ namespace ORNG {
 		if (!std::filesystem::exists(base_proj_dir)) {
 			GenerateProject("base-project");
 		}
+
+		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
+		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
+		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
+		mp_editor_camera->AddComponent<CharacterControllerComponent>();
+
 		MakeProjectActive(base_proj_dir);
 		// Make sure some project is active
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
@@ -205,6 +206,19 @@ namespace ORNG {
 	}
 
 
+
+	void EditorLayer::BeginPlayScene() {
+		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
+		m_play_mode_active = true;
+	}
+
+	void EditorLayer::EndPlayScene() {
+		mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
+		m_active_scene->ClearAllEntities();
+		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization, false);
+		m_play_mode_active = false;
+	}
+
 	void EditorLayer::InitImGui() {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -252,29 +266,17 @@ namespace ORNG {
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
 
-		m_active_scene->Update(ts);
-		// Updating here to work with the editor camera
-		m_active_scene->terrain.UpdateTerrainQuadtree(mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0]);
+		if (m_play_mode_active)
+			m_active_scene->Update(ts);
+		else
+			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
+
+
 
 		static float cooldown = 0;
 		cooldown -= glm::min(cooldown, ts);
 		if (cooldown > 10)
 			return;
-
-		// Keybind to focus on selected entities
-		if (Window::IsKeyDown('F') && !m_selected_entity_ids.empty()) {
-			glm::vec3 avg_pos = { 0, 0, 0 };
-			int num_iters = 0;
-			for (auto id : m_selected_entity_ids) {
-				num_iters++;
-				avg_pos += m_active_scene->GetEntity(id)->GetComponent<TransformComponent>()->m_pos;
-			}
-
-			// Smoothly move camera target to focus point
-			glm::vec3 focused_target = glm::normalize(avg_pos / (float)num_iters - mp_editor_camera->GetComponent<TransformComponent>()->m_pos);
-			mp_editor_camera->GetComponent<CameraComponent>()->target += focused_target * FrameTiming::GetTimeStep() * 0.01f;
-			mp_editor_camera->GetComponent<CameraComponent>()->target = glm::normalize(mp_editor_camera->GetComponent<CameraComponent>()->target);
-		}
 
 		// Duplicate entity keybind
 		if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
@@ -297,20 +299,23 @@ namespace ORNG {
 
 	void EditorLayer::UpdateEditorCam() {
 
+		static float cam_speed = 0.01f;
+
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
+		auto abs_transforms = p_transform->GetAbsoluteTransforms();
 
 		// Camera movement
 		if (ImGui::IsMouseDown(1)) {
-			glm::vec3 pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+			glm::vec3 pos = abs_transforms[0];
 			glm::vec3 movement_vec{0.0, 0.0, 0.0};
 			float time_elapsed = FrameTiming::GetTimeStep();
-			movement_vec += p_cam->right * (float)Window::IsKeyDown(GLFW_KEY_D) * time_elapsed * p_cam->speed;
-			movement_vec -= p_cam->right * (float)Window::IsKeyDown(GLFW_KEY_A) * time_elapsed * p_cam->speed;
-			movement_vec += p_cam->target * (float)Window::IsKeyDown(GLFW_KEY_W) * time_elapsed * p_cam->speed;
-			movement_vec -= p_cam->target * (float)Window::IsKeyDown(GLFW_KEY_S) * time_elapsed * p_cam->speed;
-			movement_vec += p_cam->up * (float)Window::IsKeyDown(GLFW_KEY_E) * time_elapsed * p_cam->speed;
-			movement_vec -= p_cam->up * (float)Window::IsKeyDown(GLFW_KEY_Q) * time_elapsed * p_cam->speed;
+			movement_vec += p_transform->right * (float)Window::IsKeyDown(GLFW_KEY_D) * time_elapsed * cam_speed;
+			movement_vec -= p_transform->right * (float)Window::IsKeyDown(GLFW_KEY_A) * time_elapsed * cam_speed;
+			movement_vec += p_transform->forward * (float)Window::IsKeyDown(GLFW_KEY_W) * time_elapsed * cam_speed;
+			movement_vec -= p_transform->forward * (float)Window::IsKeyDown(GLFW_KEY_S) * time_elapsed * cam_speed;
+			movement_vec += glm::vec3(0, 1, 0) * (float)Window::IsKeyDown(GLFW_KEY_E) * time_elapsed * cam_speed;
+			movement_vec -= glm::vec3(0, 1, 0) * (float)Window::IsKeyDown(GLFW_KEY_Q) * time_elapsed * cam_speed;
 			p_transform->SetAbsolutePosition(pos + movement_vec);
 		}
 
@@ -324,12 +329,11 @@ namespace ORNG {
 			glm::vec2 mouse_coords = Window::GetMousePos();
 			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
 
-			p_cam->target = glm::rotate(mouse_delta.x * rotation_speed, p_cam->up) * glm::vec4(p_cam->target, 0);
-			glm::fvec3 target_new = glm::rotate(mouse_delta.y * rotation_speed, glm::cross(p_cam->target, p_cam->up)) * glm::vec4(p_cam->target, 0);
-			//constraint to stop lookAt flipping from y axis alignment
-			if (target_new.y <= 0.9996f && target_new.y >= -0.996f) {
-				p_cam->target = glm::normalize(target_new);
-			}
+			glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
+			glm::fvec3 rot_y = glm::rotate(mouse_delta.y * rotation_speed, glm::cross(glm::vec3(0.0, -1.0, 0.0), rot_x)) * glm::vec4(rot_x, 0);
+
+			if (rot_y.y <= 0.9999f && rot_y.y >= -0.9999f)
+				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_y));
 
 			Window::SetCursorPos(last_mouse_pos.x, last_mouse_pos.y);
 		}
@@ -434,7 +438,7 @@ namespace ORNG {
 
 			if (ImGui::Button("Generate")) {
 				if (GenerateProject(project_name)) {
-					MakeProjectActive(m_executable_directory + "/projects/" + project_name);
+					MakeProjectActive(m_executable_directory + "\\projects\\" + project_name);
 					selected_component_from_popup = 0;
 				}
 				else {
@@ -533,20 +537,30 @@ namespace ORNG {
 				//setting up file explorer callbacks
 				wchar_t valid_extensions[MAX_PATH] = L"Project Files: *.yml\0*.yml\0";
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					MakeProjectActive(filepath.substr(0, filepath.find_last_of('/')));
+					MakeProjectActive(filepath.substr(0, filepath.find_last_of('\\')));
 				};
 
 				ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
 				selected_component = 0;
 				break;
 			}
-			case 3:
-				SceneSerializer::SerializeScene(*m_active_scene, "scene.yml");
+			case 3: {
+				std::string scene_filepath{"scene.yml"};
+				SceneSerializer::SerializeAssets("assets.yml");
+				SceneSerializer::SerializeScene(*m_active_scene, scene_filepath);
+				selected_component = 0;
 			}
+			}
+
+			ImGui::SameLine();
+			if (m_play_mode_active && ImGui::Button(ICON_FA_PAUSE))
+				EndPlayScene();
+			else if (!m_play_mode_active && ImGui::Button(ICON_FA_PLAY))
+				BeginPlayScene();
 
 
 			ImGui::SameLine();
-			std::string sep_text = "Project: " + m_current_project_directory.substr(m_current_project_directory.find_last_of("\\") + 1);
+			std::string sep_text = "Project: " + m_current_project_directory;
 			ImGui::SeparatorText(sep_text.c_str());
 		}
 		ImGui::End();
@@ -611,6 +625,10 @@ namespace ORNG {
 		s << ORNG_BASE_SCENE_YAML;
 		s.close();
 
+		std::ofstream a{project_path + "/assets.yml"};
+		a << ORNG_BASE_ASSET_YAML;
+		a.close();
+
 		std::filesystem::create_directory(project_path + "/res");
 		std::filesystem::create_directory(project_path + "/res/meshes");
 		std::filesystem::create_directory(project_path + "/res/textures");
@@ -643,19 +661,77 @@ namespace ORNG {
 
 
 
-	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
-		if (std::filesystem::exists(folder_path) &&
-			std::filesystem::exists(folder_path + "/scene.yml")) {
-			std::ifstream stream(folder_path + "/scene.yml");
-			std::stringstream str_stream;
-			str_stream << stream.rdbuf();
-			stream.close();
 
-			YAML::Node data = YAML::Load(str_stream.str());
-			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
-				ORNG_CORE_ERROR("Scene.yml file has invalid structure, likely corrupted");
-				return false;
+	EditorLayer::ProjectErrFlags EditorLayer::ValidateProjectDir(const std::string& dir_path) {
+		int ret = NONE;
+
+		try {
+			ret = ret | (std::filesystem::exists(dir_path + "/scene.yml") ? 0 : NO_SCENE_YML);
+			ret = ret | (std::filesystem::exists(dir_path + "/assets.yml") ? 0 : NO_ASSET_YML);
+			ret = ret | (std::filesystem::exists(dir_path + "/res/") ? 0 : NO_RES_FOLDER);
+			ret = ret | (std::filesystem::exists(dir_path + "/res/meshes") ? 0 : NO_MESH_FOLDER);
+			ret = ret | (std::filesystem::exists(dir_path + "/res/textures") ? 0 : NO_TEXTURE_FOLDER);
+			ret = ret | (std::filesystem::exists(dir_path + "/res/shaders") ? 0 : NO_SHADER_FOLDER);
+			ret = ret | (std::filesystem::exists(dir_path + "/res/scripts") ? 0 : NO_SCRIPT_FOLDER);
+
+			if (std::filesystem::exists(dir_path + "/scene.yml")) {
+				std::ifstream stream(dir_path + "/scene.yml");
+				std::stringstream str_stream;
+				str_stream << stream.rdbuf();
+				stream.close();
+
+				YAML::Node data = YAML::Load(str_stream.str());
+
+				ret = ret | ((!data.IsDefined() || data.IsNull() || !data["Scene"]) ? CORRUPTED_SCENE_YML : 0);
+
 			}
+
+
+			if (std::filesystem::exists(dir_path + "/assets.yml")) {
+				std::ifstream stream(dir_path + "/assets.yml");
+				std::stringstream str_stream;
+				str_stream << stream.rdbuf();
+				stream.close();
+
+				YAML::Node data = YAML::Load(str_stream.str());
+
+				ret = ret | ((!data.IsDefined() || data.IsNull()) ? CORRUPTED_ASSET_YML : 0);
+			}
+		}
+		catch (const std::exception& e) {
+			ret = false;
+			ORNG_CORE_ERROR("Error validating project '{0}', : '{1}'", dir_path, e.what());
+		}
+
+		return static_cast<ProjectErrFlags>(ret);
+	}
+
+
+
+
+	bool EditorLayer::RepairProjectDir(const std::string& dir_path) {
+
+		if (!std::filesystem::exists(dir_path + "/scene.yml")) {
+			std::ofstream s(dir_path + "/scene.yml");
+			s << ORNG_BASE_SCENE_YAML;
+			s.close();
+		}
+
+		if (!std::filesystem::exists(dir_path + "/assets.yml")) {
+			std::ofstream s(dir_path + "/assets.yml");
+			s << ORNG_BASE_ASSET_YAML;
+			s.close();
+		}
+
+		return true;
+	}
+
+
+	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
+		if (ValidateProjectDir(folder_path) == 0) {
+
+			if (m_play_mode_active)
+				EndPlayScene();
 
 			std::filesystem::current_path(folder_path);
 			m_current_project_directory = folder_path;
@@ -664,26 +740,29 @@ namespace ORNG {
 			mp_selected_texture = nullptr;
 			m_selected_entity_ids.clear();
 			glm::vec3 cam_pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
-			m_active_scene->m_physics_system.SetIsPaused(true);
 			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
 
-			m_active_scene->UnloadScene();
+
+			if (m_active_scene->m_is_loaded)
+				m_active_scene->UnloadScene();
+
 			AssetManager::ClearAll();
 			//for (const auto& entry : std::filesystem::directory_iterator(".\\res\\scripts")) {
 				//if (entry.path().extension().string() == ".cpp")
 					//AssetManager::AddScriptAsset(entry.path().string());
 			//}
+			SceneSerializer::DeserializeAssets("assets.yml");
 			m_active_scene->LoadScene("scene.yml");
+			SceneSerializer::DeserializeScene(*m_active_scene, "scene.yml");
 
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 			p_transform->SetAbsolutePosition(cam_pos);
-			mp_editor_camera->AddComponent<CameraComponent>();
-			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
+			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 		}
 		else {
-			ORNG_CORE_ERROR("Project folder/scene.yml path invalid");
+			ORNG_CORE_ERROR("Project folder path invalid");
 			return false;
 		}
 		return true;
@@ -709,7 +788,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
 
-		const char* names[7] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Dynamic physics", "Static physics", "Script" };
+		const char* names[6] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script" };
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -745,12 +824,9 @@ namespace ORNG {
 			entity->AddComponent<CameraComponent>();
 			break;
 		case 4:
-			entity->AddComponent<PhysicsComponentDynamic>();
+			entity->AddComponent<PhysicsComponent>();
 			break;
 		case 5:
-			entity->AddComponent<PhysicsComponentStatic>();
-			break;
-		case 6:
 			entity->AddComponent<ScriptComponent>();
 			break;
 		}
@@ -925,7 +1001,7 @@ namespace ORNG {
 
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					// Copy file so asset can be saved with project and accessed relatively
-					std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("/") + 1);
+					std::string new_filepath = ".\\res\\textures\\" + filepath.substr(filepath.find_last_of("\\") + 1);
 					if (!std::filesystem::exists(new_filepath)) {
 						HandledFileSystemCopy(filepath, new_filepath);
 						m_current_2d_tex_spec.filepath = new_filepath;
@@ -1078,10 +1154,11 @@ namespace ORNG {
 						ImGui::TableNextColumn();
 
 						std::string entry_path = entry.path().string();
+						std::string relative_path = entry_path.substr(entry_path.rfind("\\res\\scripts"));
 						ImGui::PushID(entry_path.c_str());
 						NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
 
-						bool is_loaded = AssetManager::Get().m_scripts.contains(entry_path);
+						bool is_loaded = AssetManager::Get().m_scripts.contains(relative_path);
 						if (is_loaded)
 							ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
 						else
@@ -1089,8 +1166,8 @@ namespace ORNG {
 
 						ImGui::Button(ICON_FA_FILE, image_button_size);
 						static std::string dragged_script_filepath;
-						if (ImGui::BeginDragDropSource()) {
-							dragged_script_filepath = entry_path;
+						if (is_loaded && ImGui::BeginDragDropSource()) {
+							dragged_script_filepath = relative_path;
 							ImGui::SetDragDropPayload("SCRIPT", &dragged_script_filepath, sizeof(std::string));
 							ImGui::EndDragDropSource();
 						}
@@ -1103,20 +1180,18 @@ namespace ORNG {
 						if (ImGui::BeginPopup("script_option_popup"))
 						{
 							if ((!is_loaded && ImGui::Selectable("Load"))) {
-								if (!AssetManager::AddScriptAsset(entry_path))
+								if (!AssetManager::AddScriptAsset(relative_path))
 									GenerateErrorMessage("AssetManager::AddScriptAsset failed");
 							}
 							else if (is_loaded && ImGui::Selectable("Reload")) {
 								bool successful_reload = false;
 
 								// Reload script and reconnect it to script components previously using it
-								if (AssetManager::DeleteScriptAsset(entry_path)) {
-									if (auto* p_symbols = AssetManager::AddScriptAsset(entry_path)) {
+								if (AssetManager::DeleteScriptAsset(relative_path)) {
+									if (auto* p_symbols = AssetManager::AddScriptAsset(relative_path)) {
 										for (auto [entity, script_comp] : m_active_scene->m_registry.view<ScriptComponent>().each()) {
 											if (script_comp.script_filepath == entry_path) {
-												script_comp.OnCreate = p_symbols->OnCreate;
-												script_comp.OnUpdate = p_symbols->OnUpdate;
-												script_comp.OnDestroy = p_symbols->OnDestroy;
+												script_comp.SetSymbols(p_symbols);
 											}
 										}
 										successful_reload = true;
@@ -1335,7 +1410,7 @@ namespace ORNG {
 
 		if (ImGui::IsItemVisible()) {
 			formatted_name += p_entity->HasComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
-			formatted_name += p_entity->HasComponent<PhysicsComponentStatic>() || p_entity->HasComponent<PhysicsComponentDynamic>() ? " " ICON_FA_BEZIER_CURVE : "";
+			formatted_name += p_entity->HasComponent<PhysicsComponent>() || p_entity->HasComponent<PhysicsComponent>() ? " " ICON_FA_BEZIER_CURVE : "";
 			formatted_name += p_entity->HasComponent<PointLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
 			formatted_name += p_entity->HasComponent<SpotLightComponent>() ? " " ICON_FA_LIGHTBULB : "";
 			formatted_name += p_entity->HasComponent<CameraComponent>() ? " " ICON_FA_CAMERA : "";
@@ -1456,10 +1531,6 @@ namespace ORNG {
 			// Right click to bring up "new entity" popup
 			RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2));
 
-			bool physics_paused = m_active_scene->m_physics_system.GetIsPaused();
-			if (ImGui::RadioButton("Physics", !physics_paused))
-				m_active_scene->m_physics_system.SetIsPaused(!physics_paused);
-
 			ImGui::Text("Editor cam exposure");
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
@@ -1542,10 +1613,7 @@ namespace ORNG {
 			auto slight = entity->GetComponent<SpotLightComponent>();
 			auto p_cam = entity->GetComponent<CameraComponent>();
 
-			PhysicsCompBase* p_physics_comp = static_cast<PhysicsCompBase*>(entity->GetComponent<PhysicsComponentDynamic>());
-			if (!p_physics_comp)
-				p_physics_comp = static_cast<PhysicsCompBase*>(entity->GetComponent<PhysicsComponentStatic>());
-
+			PhysicsComponent* p_physics_comp = entity->GetComponent<PhysicsComponent>();
 			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
 
 			std::vector<TransformComponent*> transforms;
@@ -1611,10 +1679,7 @@ namespace ORNG {
 			ImGui::PushID(p_physics_comp);
 			if (p_physics_comp && H2TreeNode("Physics component")) {
 				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					if (dynamic_cast<PhysicsComponentStatic*>(p_physics_comp))
-						entity->DeleteComponent<PhysicsComponentStatic>();
-					else
-						entity->DeleteComponent<PhysicsComponentDynamic>();
+					entity->DeleteComponent<PhysicsComponent>();
 				}
 				else {
 					RenderPhysicsComponentEditor(p_physics_comp);
@@ -1675,10 +1740,7 @@ namespace ORNG {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("SCRIPT")) {
 				if (p_payload->DataSize == sizeof(std::string)) {
 					ScriptSymbols* p_symbols = AssetManager::GetScriptAsset(*static_cast<std::string*>(p_payload->Data));
-					p_script->OnCreate = p_symbols->OnCreate;
-					p_script->OnUpdate = p_symbols->OnUpdate;
-					p_script->OnDestroy = p_symbols->OnDestroy;
-					p_script->script_filepath = *static_cast<std::string*>(p_payload->Data);
+					p_script->SetSymbols(p_symbols);
 				}
 
 			}
@@ -1690,19 +1752,19 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderPhysicsComponentEditor(PhysicsCompBase* p_comp) {
+	void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {
 		ImGui::SeparatorText("Collider geometry");
 
-		if (ImGui::RadioButton("Box", p_comp->geometry_type == PhysicsCompBase::BOX)) {
-			p_comp->UpdateGeometry(PhysicsCompBase::BOX);
+		if (ImGui::RadioButton("Box", p_comp->m_geometry_type == PhysicsComponent::BOX)) {
+			p_comp->UpdateGeometry(PhysicsComponent::BOX);
 		}
 		ImGui::SameLine();
-		if (ImGui::RadioButton("Sphere", p_comp->geometry_type == PhysicsCompBase::SPHERE)) {
-			p_comp->UpdateGeometry(PhysicsCompBase::SPHERE);
+		if (ImGui::RadioButton("Sphere", p_comp->m_geometry_type == PhysicsComponent::SPHERE)) {
+			p_comp->UpdateGeometry(PhysicsComponent::SPHERE);
 		}
 		ImGui::SameLine();
-		if (ImGui::RadioButton("Mesh", p_comp->geometry_type == PhysicsCompBase::TRIANGLE_MESH)) {
-			p_comp->UpdateGeometry(PhysicsCompBase::TRIANGLE_MESH);
+		if (ImGui::RadioButton("Mesh", p_comp->m_geometry_type == PhysicsComponent::TRIANGLE_MESH)) {
+			p_comp->UpdateGeometry(PhysicsComponent::TRIANGLE_MESH);
 		}
 
 
@@ -1771,8 +1833,10 @@ namespace ORNG {
 
 		static glm::mat4 delta_matrix;
 		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
-
-		if (ImGuizmo::Manipulate(&p_cam->GetViewMatrix()[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
+		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
+		glm::mat4 view_mat = glm::lookAt(pos, pos + p_transform->forward, p_transform->up);
+		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
@@ -2045,7 +2109,6 @@ namespace ORNG {
 		ImGui::SliderFloat("FOV", &p_cam->fov, 0.f, 180.f);
 		ImGui::InputFloat("ZNEAR", &p_cam->zNear);
 		ImGui::InputFloat("ZFAR", &p_cam->zFar);
-		ShowVec3Editor("Up", p_cam->up);
 
 		if (ImGui::Button("Make active")) {
 			p_cam->MakeActive();
@@ -2167,7 +2230,6 @@ namespace ORNG {
 				std::wstring filePath = single_file ? folderPath : folderPath + L"\\" + currentFileName;
 
 				std::string path_name = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(filePath);
-				std::ranges::for_each(path_name, [](char& c) { c = c == '\\' ? '/' : c; });
 
 
 				// Reset path to stop relative paths breaking

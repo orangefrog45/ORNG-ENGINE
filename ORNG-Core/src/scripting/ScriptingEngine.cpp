@@ -50,13 +50,13 @@ namespace ORNG {
 		std::string pdb_name = ".\\res\\scripts\\bin\\" + std::to_string(UUID()()) + ".pdb";
 #ifdef NDEBUG
 		bat_stream << "cl" << " /Fd:" << pdb_name <<
-			" /WX- /Zc:forScope /GR /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
+			" /WX- /Zc:forScope /GR /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t- /D\"_MBCS\" /D\"NDEBUG\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\""
 			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
 
-		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib "
+		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << ORNG_CORE_LIB_DIR "\\extern\\glew-cmake\\lib\\glew.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\release\\PhysXFoundation_static.lib " << physx_lib_dir + "\\release\\PhysXExtensions_static.lib "
 			<< physx_lib_dir + "\\release\\PhysX_static.lib " << physx_lib_dir + "\\release\\PhysXCharacterKinematic_static.lib "
 			<< physx_lib_dir + "\\release\\PhysXCommon_static.lib " << physx_lib_dir + "\\release\\PhysXCooking_static.lib "
@@ -71,7 +71,7 @@ namespace ORNG {
 			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
 
 		bat_stream << "link /DLL /INCREMENTAL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib "
+			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << ORNG_CORE_LIB_DIR "\\extern\\glew-cmake\\lib\\glewd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\debug\\PhysXFoundation_staticd.lib " << physx_lib_dir + "\\debug\\PhysXExtensions_staticd.lib "
 			<< physx_lib_dir + "\\debug\\PhysX_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCharacterKinematic_staticd.lib "
 			<< physx_lib_dir + "\\debug\\PhysXCommon_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCooking_staticd.lib "
@@ -124,7 +124,10 @@ namespace ORNG {
 		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
 		symbols.OnUpdate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnUpdate"));
 		symbols.OnDestroy = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnDestroy"));
+		symbols.OnCollision = (PhysicsEventCallback)(GetProcAddress(script_dll, "OnCollision"));
 		symbols.loaded = true;
+		symbols.script_path = filepath;
+
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
 		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));
 		FrameTimingSetter frame_timing_setter = (FrameTimingSetter)(GetProcAddress(script_dll, "SetFrameTimingPtr"));
@@ -141,6 +144,9 @@ namespace ORNG {
 		}
 		if (!symbols.OnDestroy) {
 			ORNG_CORE_ERROR("Failed loading OnDestroy symbol from script file '{0}'", filepath);
+		}
+		if (!symbols.OnCollision) {
+			ORNG_CORE_ERROR("Failed loading OnCollision symbol from script file '{0}'", filepath);
 		}
 
 		return symbols;

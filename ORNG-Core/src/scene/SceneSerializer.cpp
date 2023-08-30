@@ -229,20 +229,34 @@ namespace ORNG {
 
 		}
 
-		PhysicsCompBase* p_physics_comp = static_cast<PhysicsCompBase*>(entity.GetComponent<PhysicsComponentDynamic>());
-		if (!p_physics_comp)
-			p_physics_comp = static_cast<PhysicsCompBase*>(entity.GetComponent<PhysicsComponentStatic>());
+		PhysicsComponent* p_physics_comp = entity.GetComponent<PhysicsComponent>();
+		if (!p_physics_comp) // Check for both types
+			p_physics_comp = static_cast<PhysicsComponent*>(entity.GetComponent<PhysicsComponent>());
 
 		if (p_physics_comp) {
 			out << YAML::Key << "PhysicsComp";
 			out << YAML::BeginMap;
 
-			out << YAML::Key << "RigidBodyType" << YAML::Value << (dynamic_cast<PhysicsComponentDynamic*>(p_physics_comp) ? PhysicsCompBase::RigidBodyType::DYNAMIC : PhysicsCompBase::RigidBodyType::STATIC);
-			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->geometry_type;
+			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->m_body_type;
+			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->m_geometry_type;
 
 			out << YAML::EndMap;
 
 		}
+
+		ScriptComponent* p_script_comp = entity.GetComponent<ScriptComponent>();
+		if (p_script_comp) {
+			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
+			out << YAML::Key << "ScriptPath" << YAML::Value << p_script_comp->script_filepath;
+			out << YAML::EndMap;
+		}
+
+		/*CameraComponent* p_cam = entity.GetComponent<CameraComponent>();
+		if (p_cam) {
+				out << YAML::Key << "CamComp" << YAML::BeginMap;
+				out << YAML::Key << "Target"
+			out << YAML::EndMap;
+		}*/
 
 		out << YAML::EndMap;
 	}
@@ -287,10 +301,10 @@ namespace ORNG {
 
 			if (tag == "PhysicsComp") {
 				auto physics_node = entity_node["PhysicsComp"];
-				auto* p_physics_comp = static_cast<PhysicsCompBase::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()) == PhysicsCompBase::STATIC ?
-					static_cast<PhysicsCompBase*>(entity.AddComponent<PhysicsComponentStatic>()) : static_cast<PhysicsCompBase*>(entity.AddComponent<PhysicsComponentDynamic>());
+				auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
 
-				p_physics_comp->UpdateGeometry(static_cast<PhysicsCompBase::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
+				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
+				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
 			}
 
 
@@ -313,6 +327,24 @@ namespace ORNG {
 				p_spotlight_comp->m_aperture = light_node["Aperture"].as<float>();
 				p_spotlight_comp->m_light_direction_vec = light_node["Direction"].as<glm::vec3>();
 			}
+
+			if (tag == "ScriptComp") {
+				auto script_node = entity_node["ScriptComp"];
+				auto* p_script_comp = entity.AddComponent<ScriptComponent>();
+				std::string script_filepath = script_node["ScriptPath"].as<std::string>();
+				p_script_comp->script_filepath = script_filepath;
+
+				auto* symbols = AssetManager::GetScriptAsset(script_filepath);
+				if (!symbols)
+					symbols = AssetManager::AddScriptAsset(script_filepath);
+
+				if (symbols) {
+					p_script_comp->SetSymbols(symbols);
+				}
+				else {
+					ORNG_CORE_ERROR("Scene deserialization error: no script file with filepath '{0}' found", script_filepath);
+				}
+			}
 		}
 
 
@@ -321,75 +353,11 @@ namespace ORNG {
 
 
 
-	void SceneSerializer::SerializeScene(const Scene& scene, const std::string& filepath) {
+	void SceneSerializer::SerializeScene(const Scene& scene, std::string& output, bool write_to_string) {
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
-		out << YAML::Key << "MeshAssets" << YAML::Value << YAML::BeginSeq; // Mesh assets
-
-		for (const auto* p_mesh_asset : AssetManager::Get().m_meshes) {
-			out << YAML::BeginMap;
-			out << YAML::Key << "MeshAsset" << p_mesh_asset->uuid();
-			out << YAML::Key << "Filepath" << YAML::Value << p_mesh_asset->GetFilename();
-
-			out << YAML::Key << "Materials" << YAML::Value;
-			out << YAML::Flow;
-			out << YAML::BeginSeq;
-			for (auto* p_material : p_mesh_asset->m_material_assets) {
-				out << p_material->uuid();
-			}
-			out << YAML::EndSeq;
-
-
-			out << YAML::EndMap;
-		}
-
-		out << YAML::EndSeq; // Mesh assets
-
-		out << YAML::Key << "TextureAssets" << YAML::Value << YAML::BeginSeq; // Texture assets
-
-		for (const auto* p_tex_asset : AssetManager::Get().m_2d_textures) {
-			out << YAML::BeginMap;
-			out << YAML::Key << "TextureAsset" << p_tex_asset->uuid();
-			out << YAML::Key << "Filepath" << YAML::Value << p_tex_asset->GetSpec().filepath;
-			out << YAML::Key << "Wrap mode" << YAML::Value << p_tex_asset->GetSpec().wrap_params;
-			out << YAML::Key << "Min filter" << YAML::Value << p_tex_asset->GetSpec().min_filter;
-			out << YAML::Key << "Mag filter" << YAML::Value << p_tex_asset->GetSpec().mag_filter;
-			out << YAML::Key << "SRGB" << YAML::Value << static_cast<uint32_t>(p_tex_asset->GetSpec().srgb_space);
-			out << YAML::EndMap;
-		}
-
-
-		out << YAML::EndSeq; // Texture assets
-
-		out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq; // Materials
-
-		for (const auto* p_material : AssetManager::Get().m_materials) {
-
-			if (p_material->uuid() == ORNG_REPLACEMENT_MATERIAL_ID) // Always created on startup by scene, doesn't need saving
-				continue;
-
-			out << YAML::BeginMap;
-			out << YAML::Key << "SceneMaterial" << p_material->uuid();
-			out << YAML::Key << "Name" << p_material->name;
-			out << YAML::Key << "Base colour texture" << YAML::Value << (p_material->base_color_texture ? p_material->base_color_texture->uuid() : 0);
-			out << YAML::Key << "Normal texture" << YAML::Value << (p_material->normal_map_texture ? p_material->normal_map_texture->uuid() : 0);
-			out << YAML::Key << "AO texture" << YAML::Value << (p_material->ao_texture ? p_material->ao_texture->uuid() : 0);
-			out << YAML::Key << "Metallic texture" << YAML::Value << (p_material->metallic_texture ? p_material->metallic_texture->uuid() : 0);
-			out << YAML::Key << "Roughness texture" << YAML::Value << (p_material->roughness_texture ? p_material->roughness_texture->uuid() : 0);
-			out << YAML::Key << "Emissive texture" << YAML::Value << (p_material->emissive_texture ? p_material->emissive_texture->uuid() : 0);
-			out << YAML::Key << "Base colour" << YAML::Value << p_material->base_color;
-			out << YAML::Key << "Metallic" << YAML::Value << p_material->metallic;
-			out << YAML::Key << "Roughness" << YAML::Value << p_material->roughness;
-			out << YAML::Key << "AO" << YAML::Value << p_material->ao;
-			out << YAML::Key << "TileScale" << YAML::Value << p_material->tile_scale;
-			out << YAML::Key << "Emissive" << YAML::Value << p_material->emissive;
-			out << YAML::Key << "Emissive strength" << YAML::Value << p_material->emissive_strength;
-			out << YAML::EndMap;
-		}
-
-		out << YAML::EndSeq;
 
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -420,22 +388,84 @@ namespace ORNG {
 
 
 		out << YAML::EndMap;
-		std::ofstream fout{filepath};
-		fout << out.c_str();
+
+		// Write to either the string or an output file
+		if (write_to_string) {
+			output = out.c_str();
+		}
+		else {
+			std::ofstream fout{output};
+			fout << out.c_str();
+		}
+
 	}
 
-	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& filepath) {
-		std::ifstream stream(filepath);
-		std::stringstream str_stream;
-		str_stream << stream.rdbuf();
 
-		YAML::Node data = YAML::Load(str_stream.str());
+
+
+	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {
+
+		YAML::Node data;
+
+		// Load yaml from either file or string itself 
+		if (input_is_filepath) {
+			std::stringstream str_stream;
+			std::ifstream stream(input);
+			str_stream << stream.rdbuf();
+			data = YAML::Load(str_stream.str());
+		}
+		else {
+			data = YAML::Load(input);
+		}
 
 		if (!data.IsDefined() || data.IsNull() || !data["Scene"])
 			return false;
 
 		std::string scene_name = data["Scene"].as<std::string>();
 		ORNG_CORE_TRACE("Deserializing scene '{0}'", scene_name);
+
+
+		// Entities
+		auto entities = data["Entities"];
+		//Create entities in first pass so they can be linked as parent/children in 2nd pass
+		for (auto entity_node : entities) {
+			scene.CreateEntity(entity_node["Name"].as<std::string>(), entity_node["Entity"].as<uint64_t>());
+		}
+		for (auto entity_node : entities) {
+			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
+		}
+
+		// Directional light
+		auto dir_light = data["DirLight"];
+		scene.m_directional_light.color = dir_light["Colour"].as<glm::vec3>();
+		scene.m_directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
+		glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
+		scene.m_directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
+		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
+		scene.m_directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
+
+		// Skybox/Env map
+		auto skybox = data["Skybox"];
+		scene.skybox.LoadEnvironmentMap(skybox["HDR filepath"].as<std::string>());
+
+		auto bloom = data["Bloom"];
+		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
+		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
+		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
+
+	}
+
+
+
+	bool SceneSerializer::DeserializeAssets(const std::string& filepath) {
+		std::ifstream stream(filepath);
+		std::stringstream str_stream;
+		str_stream << stream.rdbuf();
+
+		YAML::Node data = YAML::Load(str_stream.str());
+
+		if (!data.IsDefined() || data.IsNull())
+			return false;
 
 
 		// Creating textures
@@ -519,35 +549,82 @@ namespace ORNG {
 			}
 		}
 		AssetManager::StallUntilMeshesLoaded();
+		return true;
+	}
 
-		// Entities
-		auto entities = data["Entities"];
-		//Create entities in first pass so they can be linked as parent/children in 2nd pass
-		for (auto entity_node : entities) {
-			scene.CreateEntity(entity_node["Name"].as<std::string>(), entity_node["Entity"].as<uint64_t>());
+
+	void SceneSerializer::SerializeAssets(const std::string& filepath) {
+		YAML::Emitter out;
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "MeshAssets" << YAML::Value << YAML::BeginSeq; // Mesh assets
+
+		for (const auto* p_mesh_asset : AssetManager::Get().m_meshes) {
+			out << YAML::BeginMap;
+			out << YAML::Key << "MeshAsset" << p_mesh_asset->uuid();
+			out << YAML::Key << "Filepath" << YAML::Value << p_mesh_asset->GetFilename();
+
+			out << YAML::Key << "Materials" << YAML::Value;
+			out << YAML::Flow;
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_mesh_asset->m_material_assets) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+
+
+			out << YAML::EndMap;
 		}
-		for (auto entity_node : entities) {
-			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
+
+		out << YAML::EndSeq; // Mesh assets
+
+		out << YAML::Key << "TextureAssets" << YAML::Value << YAML::BeginSeq; // Texture assets
+
+		for (const auto* p_tex_asset : AssetManager::Get().m_2d_textures) {
+			out << YAML::BeginMap;
+			out << YAML::Key << "TextureAsset" << p_tex_asset->uuid();
+			out << YAML::Key << "Filepath" << YAML::Value << p_tex_asset->GetSpec().filepath;
+			out << YAML::Key << "Wrap mode" << YAML::Value << p_tex_asset->GetSpec().wrap_params;
+			out << YAML::Key << "Min filter" << YAML::Value << p_tex_asset->GetSpec().min_filter;
+			out << YAML::Key << "Mag filter" << YAML::Value << p_tex_asset->GetSpec().mag_filter;
+			out << YAML::Key << "SRGB" << YAML::Value << static_cast<uint32_t>(p_tex_asset->GetSpec().srgb_space);
+			out << YAML::EndMap;
 		}
 
-		// Directional light
-		auto dir_light = data["DirLight"];
-		scene.m_directional_light.color = dir_light["Colour"].as<glm::vec3>();
-		scene.m_directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
-		glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
-		scene.m_directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
-		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
-		scene.m_directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 
-		// Skybox/Env map
-		auto skybox = data["Skybox"];
-		scene.skybox.LoadEnvironmentMap(skybox["HDR filepath"].as<std::string>());
+		out << YAML::EndSeq; // Texture assets
 
-		auto bloom = data["Bloom"];
-		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
-		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
-		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
+		out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq; // Materials
 
+		for (const auto* p_material : AssetManager::Get().m_materials) {
+
+			if (p_material->uuid() == ORNG_REPLACEMENT_MATERIAL_ID) // Always created on startup by scene, doesn't need saving
+				continue;
+
+			out << YAML::BeginMap;
+			out << YAML::Key << "SceneMaterial" << p_material->uuid();
+			out << YAML::Key << "Name" << p_material->name;
+			out << YAML::Key << "Base colour texture" << YAML::Value << (p_material->base_color_texture ? p_material->base_color_texture->uuid() : 0);
+			out << YAML::Key << "Normal texture" << YAML::Value << (p_material->normal_map_texture ? p_material->normal_map_texture->uuid() : 0);
+			out << YAML::Key << "AO texture" << YAML::Value << (p_material->ao_texture ? p_material->ao_texture->uuid() : 0);
+			out << YAML::Key << "Metallic texture" << YAML::Value << (p_material->metallic_texture ? p_material->metallic_texture->uuid() : 0);
+			out << YAML::Key << "Roughness texture" << YAML::Value << (p_material->roughness_texture ? p_material->roughness_texture->uuid() : 0);
+			out << YAML::Key << "Emissive texture" << YAML::Value << (p_material->emissive_texture ? p_material->emissive_texture->uuid() : 0);
+			out << YAML::Key << "Base colour" << YAML::Value << p_material->base_color;
+			out << YAML::Key << "Metallic" << YAML::Value << p_material->metallic;
+			out << YAML::Key << "Roughness" << YAML::Value << p_material->roughness;
+			out << YAML::Key << "AO" << YAML::Value << p_material->ao;
+			out << YAML::Key << "TileScale" << YAML::Value << p_material->tile_scale;
+			out << YAML::Key << "Emissive" << YAML::Value << p_material->emissive;
+			out << YAML::Key << "Emissive strength" << YAML::Value << p_material->emissive_strength;
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+
+		std::ofstream fout{filepath};
+		fout << out.c_str();
 	}
 
 

@@ -31,7 +31,7 @@ namespace ORNG {
 		for (int i = 0; i < m_instance_groups.size(); i++) {
 			//if same data and material, can be combined so instancing is possible
 			if (m_instance_groups[i]->m_mesh_asset == comp->mp_mesh_asset
-				&& m_instance_groups[i]->m_materials == comp->m_materials) {
+				&& (m_instance_groups[i]->m_materials == comp->m_materials || comp->m_materials.empty())) {
 				group_index = i;
 				break;
 			}

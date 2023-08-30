@@ -299,9 +299,11 @@ namespace ORNG {
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
-		glm::mat4 view_mat = p_cam->GetViewMatrix();
+		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
+		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam->target, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
+		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light);
 	}
@@ -482,7 +484,9 @@ namespace ORNG {
 
 		// Calculate light space matrices
 		const float aspect_ratio = p_cam->aspect_ratio;
-		const glm::mat4 cam_view_matrix = p_cam->GetViewMatrix();
+		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
+		glm::mat4 cam_view_matrix = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		const float fov = glm::radians(p_cam->fov / 2.f);
 
 		glm::vec3 light_dir = light.GetLightDirection();
@@ -596,7 +600,7 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
 		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise.GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise->GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 
 

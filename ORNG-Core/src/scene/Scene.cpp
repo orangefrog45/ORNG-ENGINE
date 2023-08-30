@@ -6,9 +6,6 @@
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
-#include "scene/SceneSerializer.h"
-#include "core/CodedAssets.h"
-#include "rendering/EnvMapLoader.h"
 #include "core/AssetManager.h"
 
 
@@ -38,7 +35,6 @@ namespace ORNG {
 
 
 	void Scene::DeleteEntity(SceneEntity* p_entity) {
-		auto it = std::ranges::find(m_entities, p_entity);
 
 		auto& current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
 		while (current_child_entity != entt::null) {
@@ -49,6 +45,7 @@ namespace ORNG {
 		}
 
 
+		auto it = std::ranges::find(m_entities, p_entity);
 		delete p_entity;
 		m_entities.erase(it);
 
@@ -91,9 +88,6 @@ namespace ORNG {
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
 
-		if (!SceneSerializer::DeserializeScene(*this, filepath)) {
-			EnvMapLoader::LoadEnvironmentMap("", skybox, 1);
-		}
 		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}

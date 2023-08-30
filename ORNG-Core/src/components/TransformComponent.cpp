@@ -3,6 +3,9 @@
 #include "components/TransformComponent.h"
 #include "util/ExtraMath.h"
 #include "events/EventManager.h"
+#include "glm/glm/gtc/quaternion.hpp"
+
+
 
 namespace ORNG {
 
@@ -64,6 +67,21 @@ namespace ORNG {
 	}
 
 
+	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up, glm::vec3 t_right) {
+		glm::vec3 abs_pos = GetAbsoluteTransforms()[0];
+		glm::vec3 t_target = glm::normalize(t_pos - abs_pos);
+		t_target = glm::normalize(t_target);
+		t_right = glm::normalize(glm::cross(-t_up, t_target));
+		up = glm::cross(t_right, t_target);
+
+		glm::mat3 rotation_matrix = {
+			t_right.x, t_right.y, t_right.z,
+			up.x, up.y, up.z,
+			-t_target.x, -t_target.y, -t_target.z };
+
+		glm::vec3 euler_angles = glm::degrees(glm::eulerAngles(glm::quat_cast(rotation_matrix)));
+		SetAbsoluteOrientation(euler_angles);
+	}
 
 	void TransformComponent::RebuildMatrix(UpdateType type) {
 
@@ -74,6 +92,12 @@ namespace ORNG {
 			m_transform = trans_mat * rot_mat * scale_mat;
 		else
 			m_transform = mp_parent->GetMatrix() * (trans_mat * rot_mat * scale_mat);
+
+		glm::mat3 rot_mat_new{m_transform};
+
+		forward = glm::normalize(rot_mat_new * glm::vec3(0.0, 0.0, -1.0));
+		right = glm::normalize(glm::cross(-up, forward));
+		up = glm::normalize(glm::cross(right, forward));
 
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event;

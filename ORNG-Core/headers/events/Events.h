@@ -61,6 +61,7 @@ namespace ORNG::Events {
 		COMP_ADDED,
 		COMP_UPDATED,
 		COMP_DELETED,
+		COLLISION,
 	};
 
 	template <std::derived_from<Component> T>

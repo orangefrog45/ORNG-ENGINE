@@ -16,7 +16,6 @@ namespace ORNG {
 
 
 	class Scene {
-		friend class ScriptInterface::S_Scene;
 	public:
 		friend class EditorLayer;
 		friend class SceneRenderer;
@@ -42,6 +41,21 @@ namespace ORNG {
 		Terrain terrain;
 		PostProcessing post_processing;
 
+		void ClearAllEntities() {
+			unsigned int max_iters = 10'000'000;
+			unsigned int i = 0;
+			while (!m_entities.empty()) {
+				i++;
+
+				if (i > max_iters) {
+					ORNG_CORE_CRITICAL("ClearAllEntities exceeded max iteration count of 10,000,000, exiting");
+					break;
+				}
+
+				DeleteEntity(m_entities[0]);
+			}
+		}
+
 		void LoadScene(const std::string& filepath);
 		void UnloadScene();
 
@@ -55,7 +69,7 @@ namespace ORNG {
 		std::vector<SceneEntity*> m_entities;
 
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
-		PhysicsSystem m_physics_system{ &m_registry, uuid() };
+		PhysicsSystem m_physics_system{ &m_registry, uuid(), this };
 		CameraSystem m_camera_system{ &m_registry, uuid() };
 		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };
 

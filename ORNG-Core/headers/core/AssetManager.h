@@ -1,7 +1,7 @@
-#include "rendering/Textures.h"
-#include "rendering/MeshAsset.h"
+#include "rendering/Material.h"
 #include "events/Events.h"
 #include "scripting/ScriptingEngine.h"
+#include "rendering/Textures.h"
 
 #define ORNG_REPLACEMENT_MATERIAL_ID 0
 
@@ -10,6 +10,9 @@ enum aiTextureType;
 class aiMaterial;
 
 namespace ORNG {
+	class Texture2D;
+	class MeshAsset;
+	class Texture2DSpec;
 
 	class AssetManager {
 	public:
@@ -30,13 +33,13 @@ namespace ORNG {
 		inline static Texture2D* CreateTexture2D(const Texture2DSpec& spec, uint64_t uuid = 0) { return Get().ICreateTexture2D(spec, uuid); };
 		inline static Texture2D* GetTexture(uint64_t uuid) { return Get().IGetTexture(uuid); }
 		inline static void DeleteTexture(uint64_t uuid) { Get().IDeleteTexture(uuid); }
-		inline static void DeleteTexture(Texture2D* p_tex) { Get().IDeleteTexture(p_tex->uuid()); }
+		static void DeleteTexture(Texture2D* p_tex);
 
 		inline static MeshAsset* CreateMeshAsset(const std::string& filename, uint64_t uuid = 0) { return Get().ICreateMeshAsset(filename, uuid); }
 		inline static MeshAsset* GetMeshAsset(uint64_t uuid) { return Get().IGetMeshAsset(uuid); }
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		inline static void DeleteMeshAsset(uint64_t uuid) { Get().IDeleteMeshAsset(uuid); }
-		inline static void DeleteMeshAsset(MeshAsset* p_mesh) { Get().IDeleteMeshAsset(p_mesh->uuid()); }
+		static void DeleteMeshAsset(MeshAsset* p_mesh);
 
 		static ScriptSymbols* AddScriptAsset(const std::string& filepath);
 		// Returns either the script asset referenced with the filepath or nullptr if none found

@@ -63,6 +63,8 @@ namespace ORNG {
 			SetPosition(pos);
 		}
 
+		void LookAt(glm::vec3 t_pos, glm::vec3 t_up = { 0.0, 1.0,0.0 }, glm::vec3 t_right = { 1.0, 0.0, 0.0 });
+
 		inline void SetPosition(const glm::vec3 pos) {
 			m_pos = pos;
 			RebuildMatrix(UpdateType::TRANSLATION);
@@ -100,6 +102,11 @@ namespace ORNG {
 			ALL = 3
 		};
 
+
+		glm::vec3 forward = { 0.0, 0.0, -1.0 };
+		glm::vec3 up = { 0.0, 1.0, 0.0 };
+		glm::vec3 right = { 1.0, 0.0, 0.0 };
+
 		void RebuildMatrix(UpdateType type);
 	private:
 		TransformComponent* mp_parent = nullptr;
@@ -111,7 +118,6 @@ namespace ORNG {
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 m_orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-
 
 	};
 

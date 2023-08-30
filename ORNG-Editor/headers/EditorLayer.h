@@ -39,6 +39,9 @@ namespace ORNG {
 		/* Highlight the selected entities in the editor */
 		void DoSelectedEntityHighlightPass();
 
+		void BeginPlayScene();
+		void EndPlayScene();
+
 
 		// Renders a popup with shortcuts to create a new entity with a component, e.g mesh
 		void RenderCreationWidget(SceneEntity* p_entity, bool trigger);
@@ -48,7 +51,7 @@ namespace ORNG {
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
-		void RenderPhysicsComponentEditor(PhysicsCompBase* p_comp);
+		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
 
@@ -58,6 +61,25 @@ namespace ORNG {
 		void RenderErrorMessages();
 		void GenerateErrorMessage(const std::string& error_str = "");
 		void RenderProjectGenerator(int& selected_component_from_popup);
+
+		enum ProjectErrFlags {
+			NONE = 0,
+			NO_SCENE_YML = 1 << 0,
+			NO_ASSET_YML = 1 << 1,
+			NO_RES_FOLDER = 1 << 2,
+			NO_MESH_FOLDER = 1 << 3,
+			NO_TEXTURE_FOLDER = 1 << 4,
+			NO_SHADER_FOLDER = 1 << 5,
+			NO_SCRIPT_FOLDER = 1 << 6,
+			CORRUPTED_SCENE_YML = 1 << 7,
+			CORRUPTED_ASSET_YML = 1 << 8,
+		};
+
+
+
+		// Ensures a project directory is in the correct state to be used in the editor, 
+		ProjectErrFlags ValidateProjectDir(const std::string& dir_path);
+		bool RepairProjectDir(const std::string& dir_path);
 
 		// Renders material as a drag-drop target, returns ptr of the new material if a material was drag-dropped on it, else nullptr
 		Material* RenderMaterialComponent(const Material* p_material);
@@ -117,6 +139,11 @@ namespace ORNG {
 		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		// Creates an empty imgui tree node
 		static bool EmptyTreeNode(const char* name);
+
+		// Stores temporary serialized yaml data to load back in after exiting "play mode"
+		std::string m_temp_scene_serialization;
+		// If true editor will start simulating the scene as if it were running in a runtime layer
+		bool m_play_mode_active = false;
 
 		// Texture spec for rendering the scene
 		Texture2DSpec m_color_render_texture_spec;
@@ -193,17 +220,11 @@ namespace ORNG {
 	};
 
 #define ORNG_BASE_SCENE_YAML R"(Scene: Untitled scene
-MeshAssets:
-  []
-TextureAssets:
-  []
-Materials:
-  []
 Entities:
   []
 DirLight:
   Colour: [4.61000013, 4.92500019, 4.375]
-  Direction: [0, 0.707106769, 0.707106769]
+  Direction: [0, 0.707106829, 0.707106829]
   CascadeRanges: [20, 75, 200]
   Zmults: [5, 5, 5]
 Skybox:
@@ -212,5 +233,13 @@ Bloom:
   Intensity: 1
   Knee: 0.100000001
   Threshold: 1)"
+
+#define ORNG_BASE_ASSET_YAML R"(MeshAssets:
+  []
+TextureAssets:
+  []
+Materials:
+  []
+)"
 }
 

@@ -2,7 +2,7 @@
 #include "components/ComponentAPI.h"
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
-
+#include "physx/physx/include/PxPhysicsAPI.h"
 
 namespace physx {
 	class PxScene;
@@ -13,6 +13,7 @@ namespace physx {
 	class PxTriangleMesh;
 	class PxControllerManager;
 }
+using namespace physx;
 
 namespace ORNG {
 	class Scene;
@@ -123,14 +124,17 @@ namespace ORNG {
 		glm::vec3 hit_normal{0, 0, 0};
 		float hit_dist = 0;
 		// Will be either PhysicsComponentStatic or PhysicsComponentDynamic
-		PhysicsCompBase* p_phys_comp = nullptr;
+		PhysicsComponent* p_phys_comp = nullptr;
 		SceneEntity* p_entity = nullptr;
 	};
 
 
+
+
+
 	class PhysicsSystem : public ComponentSystem {
 	public:
-		PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid);
+		PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene);
 		virtual ~PhysicsSystem() = default;
 
 		void OnUpdate(float ts);
@@ -143,33 +147,72 @@ namespace ORNG {
 		bool GetIsPaused() const { return m_physics_paused; };
 		void SetIsPaused(bool v) { m_physics_paused = v; };
 
+		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
+		SceneEntity* TryGetEntityFromPxActor(const physx::PxActor* p_actor) {
+			if (m_entity_lookup.contains(p_actor))
+				return m_entity_lookup[p_actor];
+			else
+				return nullptr;
+		}
+
 	private:
-		void InitComponent(PhysicsCompBase* p_comp);
+		void InitComponent(PhysicsComponent* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
-		void UpdateComponentState(PhysicsCompBase* p_comp);
-		void RemoveComponent(PhysicsCompBase* p_comp);
+		void UpdateComponentState(PhysicsComponent* p_comp);
+		void RemoveComponent(PhysicsComponent* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
 
+		void QueueCollisionEvent(const Events::ECS_Event<PhysicsComponent>& t_event);
+
+		Scene* mp_scene = nullptr;
 		entt::registry* mp_registry = nullptr;
-		Events::ECS_EventListener<PhysicsCompBase> m_phys_listener;
+		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
 		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 
 		physx::PxBroadPhase* mp_broadphase = nullptr;
 		physx::PxAABBManager* mp_aabb_manager = nullptr;
-		physx::PxScene* mp_scene = nullptr;
+		physx::PxScene* mp_phys_scene = nullptr;
 		physx::PxControllerManager* mp_controller_manager = nullptr;
 
 		std::vector<physx::PxMaterial*> m_physics_materials;
 		std::unordered_map<const MeshAsset*, physx::PxTriangleMesh*> m_triangle_meshes;
 
+		// Quick way to find an entity from its corresponding phys comps PxRigidActor
+		std::unordered_map<const physx::PxActor*, SceneEntity*> m_entity_lookup;
+		// Queue of entities that need OnCollision script events (if they have one) to fire, has to be done outside of simulation due to restrictions with rigidbody modification during simulation, processed each frame in OnUpdate
+		std::vector<std::pair<SceneEntity*, SceneEntity*>> m_entity_collision_queue;
+
+
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		bool m_physics_paused = true;
+		bool m_physics_paused = false;
 		float m_step_size = (1.f / 60.f);
 		float m_accumulator = 0.f;
 
+		class PhysCollisionCallback : public physx::PxSimulationFilterCallback {
+		public:
+			PhysCollisionCallback(PhysicsSystem* p_system) : mp_system(p_system) {};
+
+			PxFilterFlags pairFound(PxU64 pairID,
+				PxFilterObjectAttributes attributes0, PxFilterData filterData0, const PxActor* a0, const PxShape* s0,
+				PxFilterObjectAttributes attributes1, PxFilterData filterData1, const PxActor* a1, const PxShape* s1,
+				PxPairFlags& pairFlags) override;
+
+			void pairLost(PxU64 pairID,
+				PxFilterObjectAttributes attributes0, PxFilterData filterData0,
+				PxFilterObjectAttributes attributes1, PxFilterData filterData1,
+				bool objectRemoved) override {};
+
+			bool statusChange(PxU64& pairID, PxPairFlags& pairFlags, PxFilterFlags& filterFlags) override { return false; };
+
+		private:
+			// Used for its PxActor entity lookup map
+			PhysicsSystem* mp_system = nullptr;
+		};
+
+		PhysCollisionCallback m_collision_callback{ this };
 
 	};
 
