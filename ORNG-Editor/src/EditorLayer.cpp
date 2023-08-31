@@ -560,7 +560,7 @@ namespace ORNG {
 
 
 			ImGui::SameLine();
-			std::string sep_text = "Project: " + m_current_project_directory;
+			std::string sep_text = "Project: " + m_current_project_directory.substr(m_current_project_directory.find_last_of("\\") + 1);
 			ImGui::SeparatorText(sep_text.c_str());
 		}
 		ImGui::End();
@@ -1286,7 +1286,7 @@ namespace ORNG {
 
 			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
 				// Check if texture is an asset or not, if not, add it
-				std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("/") + 1);
+				std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("\\") + 1);
 				if (!std::filesystem::exists(new_filepath)) {
 					HandledFileSystemCopy(filepath, new_filepath);
 				}

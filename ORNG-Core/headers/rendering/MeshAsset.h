@@ -5,6 +5,10 @@
 #include "VAO.h"
 #include "util/UUID.h"
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 #define ORNG_MAX_MESH_INDICES 50'000'000
 
 
@@ -48,6 +52,9 @@ namespace ORNG {
 		const VAO& GetVAO() const { return m_vao; }
 
 		UUID uuid;
+
+		Assimp::Importer importer;
+
 
 		template<typename S>
 		void serialize(S& s) {

@@ -281,7 +281,8 @@ namespace ORNG {
 
 		asset->PopulateBuffers();
 		// Free scene
-		delete asset->p_scene;
+
+		//free((void*)asset->p_scene);
 		asset->m_is_loaded = true;
 	}
 

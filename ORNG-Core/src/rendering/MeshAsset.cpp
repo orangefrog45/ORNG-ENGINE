@@ -1,9 +1,7 @@
 #include "pch/pch.h"
 
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+
 
 #include "rendering/MeshAsset.h"
 #include "util/util.h"
@@ -24,7 +22,6 @@ namespace ORNG {
 		ORNG_CORE_INFO("Loading mesh: {0}", m_filename);
 
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
-		Assimp::Importer importer;
 		bool ret = false;
 		p_scene = importer.ReadFile(m_filename.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
 			| aiProcess_ImproveCacheLocality);
