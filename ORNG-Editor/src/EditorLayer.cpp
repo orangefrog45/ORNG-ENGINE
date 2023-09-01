@@ -170,7 +170,7 @@ namespace ORNG {
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
 			CreateMeshPreview(p_mesh);
 
-			std::string filepath{"./res/meshes/" + p_mesh->GetFilename().substr(p_mesh->GetFilename().find_last_of("/") + 1) + ".bin"};
+			std::string filepath{".\\res\\meshes\\" + p_mesh->GetFilename().substr(p_mesh->GetFilename().find_last_of("\\") + 1) + ".bin"};
 			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
 				SceneSerializer::SerializeMeshAssetBinary(filepath, *p_mesh);
@@ -351,7 +351,9 @@ namespace ORNG {
 		}
 		if (ProfilingTimers::AreTimersEnabled()) {
 			for (auto& string : ProfilingTimers::GetTimerData()) {
+				ImGui::PushID(&string);
 				ImGui::Text(string.c_str());
+				ImGui::PopID();
 			}
 			ProfilingTimers::UpdateTimers(FrameTiming::GetTimeStep());
 		}
@@ -388,16 +390,15 @@ namespace ORNG {
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::Text(std::format("Draw calls: {}", Renderer::Get().m_draw_call_amount).c_str());
-
 			RenderProfilingTimers();
-
 			Renderer::ResetDrawCallCounter();
-
 		}
+
 		ImGui::End();
 
-		if (mp_selected_material)
-			RenderMaterialEditorSection();
+
+		if (mp_selected_material && RenderMaterialEditorSection())
+			m_materials_to_gen_previews.push_back(mp_selected_material);
 
 		if (mp_selected_texture)
 			RenderTextureEditorSection();
@@ -581,9 +582,7 @@ namespace ORNG {
 		for (auto* p_material : m_materials_to_gen_previews) {
 			CreateMaterialPreview(p_material);
 		}
-		if (mp_selected_material) {
-			CreateMaterialPreview(mp_selected_material);
-		}
+
 		m_materials_to_gen_previews.clear();
 
 		SceneRenderer::SceneRenderingSettings settings;
@@ -751,9 +750,9 @@ namespace ORNG {
 				//if (entry.path().extension().string() == ".cpp")
 					//AssetManager::AddScriptAsset(entry.path().string());
 			//}
-			SceneSerializer::DeserializeAssets("assets.yml");
-			m_active_scene->LoadScene("scene.yml");
-			SceneSerializer::DeserializeScene(*m_active_scene, "scene.yml");
+			SceneSerializer::DeserializeAssets(m_current_project_directory + "\\assets.yml");
+			m_active_scene->LoadScene(m_current_project_directory + "\\scene.yml");
+			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml");
 
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
@@ -1092,17 +1091,24 @@ namespace ORNG {
 					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->m_texture_obj : CodedAssets::GetBaseTexture().GetTextureHandle();
 
 					NameWithTooltip(p_material->name.c_str());
-
-					if (CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
-						mp_selected_material = p_material;
-
-
 					static Material* p_dragged_material = nullptr;
-					if (ImGui::BeginDragDropSource()) {
+
+					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
 						p_dragged_material = p_material;
 						ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
 						ImGui::EndDragDropSource();
 					}
+					if (CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
+						mp_selected_material = p_material;
+
+					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+						p_dragged_material = p_material;
+						ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
+						ImGui::EndDragDropSource();
+					}
+
+					if (ImGui::IsItemActive())
+						ORNG_CORE_ERROR("ACTIVE");
 
 					// Deletion popup
 					if (ImGui::IsItemHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
@@ -1117,6 +1123,8 @@ namespace ORNG {
 						if (ImGui::Selectable("Duplicate")) {
 							auto* p_new_material = AssetManager::CreateMaterial();
 							*p_new_material = *p_material;
+							// Give clone a unique UUID
+							p_new_material->uuid = UUID();
 							// Render a preview for material
 							m_materials_to_gen_previews.push_back(p_new_material);
 						}
@@ -1309,11 +1317,11 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderMaterialEditorSection() {
+	bool EditorLayer::RenderMaterialEditorSection() {
+		bool ret = false;
 
 		if (ImGui::Begin("Material editor")) {
-
-			if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+			if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
 				// Hide this tree node
 				mp_selected_material = nullptr;
 				goto window_end;
@@ -1325,48 +1333,47 @@ namespace ORNG {
 			ImGui::InputText("##name input", &mp_selected_material->name);
 			ImGui::Spacing();
 
-			RenderMaterialTexture("Base", mp_selected_material->base_color_texture);
-			RenderMaterialTexture("Normal", mp_selected_material->normal_map_texture);
-			RenderMaterialTexture("Roughness", mp_selected_material->roughness_texture);
-			RenderMaterialTexture("Metallic", mp_selected_material->metallic_texture);
-			RenderMaterialTexture("AO", mp_selected_material->ao_texture);
-			RenderMaterialTexture("Displacement", mp_selected_material->displacement_texture);
-			RenderMaterialTexture("Emissive", mp_selected_material->emissive_texture);
+			ret |= RenderMaterialTexture("Base", mp_selected_material->base_color_texture);
+			ret |= RenderMaterialTexture("Normal", mp_selected_material->normal_map_texture);
+			ret |= RenderMaterialTexture("Roughness", mp_selected_material->roughness_texture);
+			ret |= RenderMaterialTexture("Metallic", mp_selected_material->metallic_texture);
+			ret |= RenderMaterialTexture("AO", mp_selected_material->ao_texture);
+			ret |= RenderMaterialTexture("Displacement", mp_selected_material->displacement_texture);
+			ret |= RenderMaterialTexture("Emissive", mp_selected_material->emissive_texture);
 
 			ImGui::Text("Colors");
 			ImGui::Spacing();
-			ShowVec3Editor("Base color", mp_selected_material->base_color);
+			ret |= ShowVec3Editor("Base color", mp_selected_material->base_color);
 
 			if (!mp_selected_material->roughness_texture)
-				ImGui::SliderFloat("Roughness", &mp_selected_material->roughness, 0.f, 1.f);
+				ret |= ImGui::SliderFloat("Roughness", &mp_selected_material->roughness, 0.f, 1.f);
 
 			if (!mp_selected_material->metallic_texture)
-				ImGui::SliderFloat("Metallic", &mp_selected_material->metallic, 0.f, 1.f);
+				ret |= ImGui::SliderFloat("Metallic", &mp_selected_material->metallic, 0.f, 1.f);
 
 			if (!mp_selected_material->ao_texture)
-				ImGui::SliderFloat("AO", &mp_selected_material->ao, 0.f, 1.f);
+				ret |= ImGui::SliderFloat("AO", &mp_selected_material->ao, 0.f, 1.f);
 
 			ImGui::Checkbox("Emissive", &mp_selected_material->emissive);
 
 			if (mp_selected_material->emissive || mp_selected_material->emissive_texture)
-				ImGui::SliderFloat("Emissive strength", &mp_selected_material->emissive_strength, -10.f, 10.f);
+				ret |= ImGui::SliderFloat("Emissive strength", &mp_selected_material->emissive_strength, -10.f, 10.f);
 
 			int num_parallax_layers = mp_selected_material->parallax_layers;
 			if (mp_selected_material->displacement_texture) {
-				ImGui::InputInt("Parallax layers", &num_parallax_layers);
+				ret |= ImGui::InputInt("Parallax layers", &num_parallax_layers);
 
 				if (num_parallax_layers >= 0)
 					mp_selected_material->parallax_layers = num_parallax_layers;
 
-				ImGui::InputFloat("Parallax scale", &mp_selected_material->parallax_height_scale);
+				ret |= ImGui::InputFloat("Parallax scale", &mp_selected_material->parallax_height_scale);
 			}
 
-			ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
+			ret |= ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
 		}
-
 	window_end:
-
 		ImGui::End();
+		return ret;
 	}
 
 	struct BaseNode {
@@ -1903,18 +1910,20 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
+	bool EditorLayer::RenderMaterialTexture(const char* name, Texture2D*& p_tex) {
+		bool ret = false;
 		ImGui::PushID(p_tex);
 		if (p_tex) {
 			ImGui::Text(std::format("{} texture - {}", name, p_tex->m_name).c_str());
 			if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75), ImVec2(0, 1), ImVec2(1, 0))) {
 				mp_selected_texture = p_tex;
 				m_current_2d_tex_spec = p_tex->m_spec;
+				ret = true;
 			};
 		}
 		else {
 			ImGui::Text(std::format("{} texture - NONE", name).c_str());
-			ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
+			ret |= ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
 		}
 
 		if (ImGui::BeginDragDropTarget()) {
@@ -1923,14 +1932,19 @@ namespace ORNG {
 					p_tex = *static_cast<Texture2D**>(p_payload->Data);
 			}
 			ImGui::EndDragDropTarget();
+			ret = true;
 		}
 
 		if (ImGui::IsItemHovered()) {
-			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) // Delete texture from material
+			if (Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2)) {
+				// Delete texture from material
 				p_tex = nullptr;
+				ret = true;
+			}
 		}
 
 		ImGui::PopID();
+		return ret;
 	}
 
 

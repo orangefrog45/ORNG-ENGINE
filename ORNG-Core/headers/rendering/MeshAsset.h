@@ -1,13 +1,12 @@
 #pragma once
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include "rendering/Material.h"
 #include "components/BoundingVolume.h"
 #include "VAO.h"
 #include "util/UUID.h"
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 #define ORNG_MAX_MESH_INDICES 50'000'000
 
@@ -53,7 +52,6 @@ namespace ORNG {
 
 		UUID uuid;
 
-		Assimp::Importer importer;
 
 
 		template<typename S>
@@ -67,13 +65,10 @@ namespace ORNG {
 		}
 
 	private:
-		AABB m_aabb;
 
-		unsigned int num_indices = 0;
-
-		bool m_is_loaded = false;
-
-		const aiScene* p_scene = nullptr;
+		// Callback for when this mesh has a VAO created for it and its materials set up by the AssetManager class
+		// This is split from "LoadMeshData" so vertex data can be loaded asynchronously, cannot create the VAO asynchronously due to opengl contexts
+		void OnLoadIntoGL();
 
 
 		bool InitFromScene(const aiScene* pScene);
@@ -92,6 +87,15 @@ namespace ORNG {
 
 		VAO m_vao;
 
+		AABB m_aabb;
+
+		Assimp::Importer m_importer;
+
+		unsigned int num_indices = 0;
+
+		bool m_is_loaded = false;
+
+		const aiScene* p_scene = nullptr;
 
 
 #define INVALID_MATERIAL 0xFFFFFFFF

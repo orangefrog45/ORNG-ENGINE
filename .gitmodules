@@ -31,3 +31,6 @@
 [submodule "ORNG-Core/extern/bitsery"]
 	path = ORNG-Core/extern/bitsery
 	url = https://github.com/fraillt/bitsery
+[submodule "ORNG-Core/extern/fmod"]
+	path = ORNG-Core/extern/fmod
+	url = https://github.com/orangefrog45/fmod-module

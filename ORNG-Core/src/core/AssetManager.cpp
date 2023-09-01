@@ -280,9 +280,6 @@ namespace ORNG {
 		}
 
 		asset->PopulateBuffers();
-		// Free scene
-
-		//free((void*)asset->p_scene);
 		asset->m_is_loaded = true;
 	}
 

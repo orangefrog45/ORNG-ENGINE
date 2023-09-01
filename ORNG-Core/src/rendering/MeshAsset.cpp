@@ -8,6 +8,10 @@
 #include "util/Log.h"
 #include "components/TransformComponent.h"
 #include "util/TimeStep.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 
 namespace ORNG {
 
@@ -21,16 +25,17 @@ namespace ORNG {
 
 		ORNG_CORE_INFO("Loading mesh: {0}", m_filename);
 
+
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 		bool ret = false;
-		p_scene = importer.ReadFile(m_filename.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
+		p_scene = m_importer.ReadFile(m_filename.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
 			| aiProcess_ImproveCacheLocality);
 
 		if (p_scene) {
 			ret = InitFromScene(p_scene);
 		}
 		else {
-			ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", m_filename.c_str(), importer.GetErrorString());
+			ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", m_filename.c_str(), m_importer.GetErrorString());
 			return false;
 		}
 
@@ -181,6 +186,11 @@ namespace ORNG {
 
 	}
 
+	void MeshAsset::OnLoadIntoGL() {
+		PopulateBuffers();
+		m_is_loaded = true;
+		//m_importer.FreeScene();
+	}
 
 	void MeshAsset::PopulateBuffers() {
 		m_vao.FillBuffers();

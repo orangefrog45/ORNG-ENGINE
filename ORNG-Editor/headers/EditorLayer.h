@@ -124,7 +124,7 @@ namespace ORNG {
 
 		void ShowAssetManager();
 		void RenderTextureEditorSection();
-		void RenderMaterialEditorSection();
+		bool RenderMaterialEditorSection();
 
 
 
@@ -133,7 +133,7 @@ namespace ORNG {
 		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
-		void RenderMaterialTexture(const char* name, Texture2D*& p_tex);
+		bool RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		static bool H1TreeNode(const char* name);
 		static bool H2TreeNode(const char* name);
 		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());

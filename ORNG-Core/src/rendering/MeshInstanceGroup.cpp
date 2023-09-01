@@ -1,5 +1,6 @@
 #include "pch/pch.h"
 
+#include "rendering/MeshAsset.h"
 #include "scene/MeshInstanceGroup.h"
 #include "components/ComponentSystems.h"
 #include "components/TransformComponent.h"

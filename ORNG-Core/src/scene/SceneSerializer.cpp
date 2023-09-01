@@ -457,6 +457,63 @@ namespace ORNG {
 
 
 
+
+	void SceneSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
+		std::string mesh_folder = project_dir + "\\res\\meshes\\";
+		std::string texture_folder = project_dir + "\\res\\textures\\";
+
+		Texture2DSpec default_spec;
+		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		default_spec.mag_filter = GL_LINEAR;
+		default_spec.generate_mipmaps = true;
+		default_spec.storage_type = GL_UNSIGNED_BYTE;
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
+			bool is_mesh_loaded = false;
+
+			for (const auto* p_mesh : AssetManager::Get().m_meshes) {
+				try {
+					is_mesh_loaded |= std::filesystem::equivalent(p_mesh->m_filename, entry.path().string());
+				}
+				catch (std::exception e) {
+					ORNG_CORE_ERROR("std::filesystem err: '{0}'", e.what());
+				}
+			}
+
+			if (is_mesh_loaded)
+				continue;
+			else {
+				std::string path = entry.path().string();
+				AssetManager::CreateMeshAsset(path.substr(path.rfind("\\res\\") + 1));
+			}
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
+			bool is_tex_loaded = false;
+
+			for (const auto* p_tex : AssetManager::Get().m_2d_textures) {
+				try {
+					is_tex_loaded |= std::filesystem::equivalent(p_tex->GetSpec().filepath, entry.path().string());
+				}
+				catch (std::exception e) {
+					ORNG_CORE_ERROR("std::filesystem err: '{0}'", e.what());
+				}
+			}
+
+			if (is_tex_loaded)
+				continue;
+			else {
+				std::string path = entry.path().string();
+				default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
+				AssetManager::CreateTexture2D(default_spec);
+			}
+		}
+
+
+	}
+
+
+
 	bool SceneSerializer::DeserializeAssets(const std::string& filepath) {
 		std::ifstream stream(filepath);
 		std::stringstream str_stream;
@@ -533,7 +590,7 @@ namespace ORNG {
 				material_vec.push_back(mesh_material_vec);
 
 
-				if (std::string serialized_filepath = "./res/meshes/" + asset_filepath.substr(asset_filepath.find_last_of("/") + 1) + ".bin"; std::filesystem::exists(serialized_filepath)) {
+				if (std::string serialized_filepath = "res\\meshes\\" + asset_filepath.substr(asset_filepath.find_last_of("\\") + 1) + ".bin"; std::filesystem::exists(serialized_filepath)) {
 					// Load from binary file
 					auto* p_asset = AssetManager::CreateMeshAsset(serialized_filepath, id);
 					DeserializeMeshAssetBinary(serialized_filepath, *p_asset);
@@ -548,9 +605,13 @@ namespace ORNG {
 
 			}
 		}
+		LoadAssetsFromProjectPath(filepath.substr(0, filepath.find_last_of("\\")));
 		AssetManager::StallUntilMeshesLoaded();
+
+
 		return true;
 	}
+
 
 
 	void SceneSerializer::SerializeAssets(const std::string& filepath) {

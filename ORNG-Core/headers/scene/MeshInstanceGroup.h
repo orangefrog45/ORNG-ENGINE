@@ -1,5 +1,4 @@
 #pragma once
-#include "rendering/MeshAsset.h"
 #include "components/MeshComponent.h"
 
 
@@ -7,6 +6,7 @@ namespace ORNG {
 	class TransformComponent;
 	class Scene;
 	class MeshInstancingSystem;
+	class MeshAsset;
 
 	class MeshInstanceGroup {
 	public:
