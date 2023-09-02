@@ -64,6 +64,7 @@ namespace ORNG::Events {
 		COLLISION,
 	};
 
+
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
 		ECS_EventType event_type;
@@ -81,10 +82,10 @@ namespace ORNG::Events {
 		std::function<void(const T&)> OnEvent = nullptr;
 
 		// Handle used for deregistration, set by eventmanager on listener registration
-		uint32_t GetRegisterID() { return m_entt_handle; }
+		entt::entity GetRegisterID() { return m_entt_handle; }
 	private:
 		// Given upon listener being registered with EventManager
-		uint32_t m_entt_handle = 0;
+		entt::entity m_entt_handle = entt::entity(0);
 		// Function given by event manager when listener is registered
 		std::function<void()> OnDestroy = nullptr;
 	};

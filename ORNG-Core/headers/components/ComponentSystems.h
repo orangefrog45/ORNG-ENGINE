@@ -13,6 +13,11 @@ namespace physx {
 	class PxTriangleMesh;
 	class PxControllerManager;
 }
+
+namespace FMOD {
+	class ChannelGroup;
+}
+
 using namespace physx;
 
 namespace ORNG {
@@ -36,6 +41,28 @@ namespace ORNG {
 	private:
 		uint64_t m_scene_uuid = 0;
 	};
+
+
+
+	class AudioSystem : public ComponentSystem {
+	public:
+		AudioSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		void OnLoad();
+		void OnUnload();
+	private:
+
+		void OnAudioDeleteEvent(const Events::ECS_Event<AudioComponent>& e_event);
+		void OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event);
+		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& e_event);
+
+		Events::ECS_EventListener<AudioComponent> m_audio_listener;
+		Events::ECS_EventListener<TransformComponent> m_transform_listener;
+
+		FMOD::ChannelGroup* mp_channel_group = nullptr;
+		entt::registry* mp_registry = nullptr;
+	};
+
+
 
 	class TransformHierarchySystem : public ComponentSystem {
 	public:
@@ -161,6 +188,12 @@ namespace ORNG {
 		void UpdateComponentState(PhysicsComponent* p_comp);
 		void RemoveComponent(PhysicsComponent* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
+
+		void InitListeners();
+		void DeinitListeners();
+
+
+		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
 
 		void QueueCollisionEvent(const Events::ECS_Event<PhysicsComponent>& t_event);
 

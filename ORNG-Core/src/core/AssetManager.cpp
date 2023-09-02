@@ -6,6 +6,9 @@
 #include "assimp/scene.h"
 #include "rendering/Textures.h"
 #include "rendering/MeshAsset.h"
+#include "audio/AudioEngine.h"
+#include <fmod.hpp>
+#include <fmod_errors.h>
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -414,4 +417,41 @@ namespace ORNG {
 	}
 
 
+	SoundAsset* AssetManager::AddSoundAsset(const std::string& filepath) {
+		if (auto* p_existing_sound = GetSoundAsset(filepath)) {
+			return p_existing_sound;
+		}
+		else {
+			FMOD::Sound* p_fmod_sound = nullptr;
+			AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_DEFAULT, nullptr, &p_fmod_sound);
+			auto* p_sound = new SoundAsset(p_fmod_sound, filepath);
+			Get().m_sound_assets[filepath] = p_sound;
+			return p_sound;
+		}
+	}
+
+
+	SoundAsset* AssetManager::GetSoundAsset(const std::string& filepath) {
+		if (!Get().m_sound_assets.contains(filepath)) {
+			return nullptr;
+		}
+		else {
+			return Get().m_sound_assets[filepath];
+		}
+	}
+
+
+	void AssetManager::DeleteSoundAsset(SoundAsset* p_asset) {
+		if (auto* p_existing_sound = GetSoundAsset(p_asset->filepath)) {
+			delete p_existing_sound;
+			Get().m_sound_assets.erase(p_asset->filepath);
+		}
+		else {
+			ORNG_CORE_ERROR("Asset manager failed to delete sound asset '{0}', not found", p_asset->filepath);
+		}
+	}
+
+	SoundAsset::~SoundAsset() {
+		p_sound->release();
+	}
 }

@@ -9,10 +9,22 @@ class GLFWwindow;
 enum aiTextureType;
 class aiMaterial;
 
+namespace FMOD {
+	class Sound;
+}
+
 namespace ORNG {
 	class Texture2D;
 	class MeshAsset;
 	class Texture2DSpec;
+
+	struct SoundAsset {
+		// Sound will be provided by AssetManager
+		SoundAsset(FMOD::Sound* t_p_sound, const std::string& t_filepath) : p_sound(t_p_sound), filepath(t_filepath) {};
+		~SoundAsset();
+		std::string filepath;
+		FMOD::Sound* p_sound;
+	};
 
 	class AssetManager {
 	public:
@@ -40,6 +52,10 @@ namespace ORNG {
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		inline static void DeleteMeshAsset(uint64_t uuid) { Get().IDeleteMeshAsset(uuid); }
 		static void DeleteMeshAsset(MeshAsset* p_mesh);
+
+		static SoundAsset* AddSoundAsset(const std::string& filepath);
+		static SoundAsset* GetSoundAsset(const std::string& filepath);
+		static void DeleteSoundAsset(SoundAsset* p_asset);
 
 		static ScriptSymbols* AddScriptAsset(const std::string& filepath);
 		// Returns either the script asset referenced with the filepath or nullptr if none found
@@ -82,6 +98,7 @@ namespace ORNG {
 		std::vector<Material*> m_materials;
 		std::vector<MeshAsset*> m_meshes;
 		std::vector<Texture2D*> m_2d_textures;
+		std::map<std::string, SoundAsset*> m_sound_assets;
 
 		struct MeshAssetPackage {
 			MeshAssetPackage(MeshAsset* t_asset, std::vector<Material*> t_materials) : p_asset(t_asset), materials(t_materials) {}; // Copying materials here instead of ref due to async code

@@ -20,50 +20,14 @@ namespace ORNG {
 	}
 
 
-	RaycastResults PhysicsSystem::Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
-		PxRaycastBuffer ray_buffer;                 // [out] Raycast results
-		RaycastResults ret;
-
-		if (bool status = mp_phys_scene->raycast(ToPxVec3(origin), ToPxVec3(unit_dir), max_distance, ray_buffer)) {
-			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
-
-			// Check dynamic physics components
-			for (auto [entity, phys_comp] : mp_registry->view<PhysicsComponent>().each()) {
-				if (phys_comp.p_rigid_actor == p_closest_actor) {
-					ret.p_phys_comp = &phys_comp;
-					ret.p_entity = phys_comp.GetEntity();
-				}
-			}
-
-			ret.hit = true;
-			ret.hit_pos = ToGlmVec3(ray_buffer.block.position);
-			ret.hit_normal = ToGlmVec3(ray_buffer.block.normal);
-			ret.hit_dist = ray_buffer.block.distance;
-		}
-
-		return ret;
-	}
-
-
-
 	static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
-		auto* p_comp = &registry.get<PhysicsComponent>(entity);
-		Events::ECS_Event<PhysicsComponent> e_event;
-		e_event.affected_components.push_back(p_comp);
-		e_event.event_type = Events::ECS_EventType::COMP_ADDED;
-		Events::EventManager::DispatchEvent(e_event);
-
+		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
-
 
 
 	static void OnPhysComponentDestroy(entt::registry& registry, entt::entity entity) {
-		Events::ECS_Event<PhysicsComponent> e_event;
-		e_event.affected_components.push_back(&registry.get<PhysicsComponent>(entity));
-		e_event.event_type = Events::ECS_EventType::COMP_DELETED;
-		Events::EventManager::DispatchEvent(e_event);
+		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
-
 
 
 	static void OnCharacterControllerComponentAdd(entt::registry& registry, entt::entity entity) {
@@ -74,94 +38,10 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<CharacterControllerComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
-	static PxTransform TransformComponentToPxTransform(const TransformComponent& transform) {
-		auto abs_transforms = transform.GetAbsoluteTransforms();
-		glm::quat quat{abs_transforms[2]};
 
-		return PxTransform{ { abs_transforms[0].x, abs_transforms[0].y, abs_transforms[0].z }, { quat.x, quat.y, quat.z, quat.w } };
-	}
 
 
 	PhysicsSystem::PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene) : mp_registry(p_registry), ComponentSystem(scene_uuid), mp_scene(p_scene) {
-		// Initialize event listeners
-		// Physics listener
-		ORNG_CORE_ERROR("PHYS {0}", scene_uuid);
-
-		m_phys_listener.scene_id = scene_uuid;
-		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsComponent>& t_event) {
-			switch (t_event.event_type) {
-				using enum Events::ECS_EventType;
-			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
-				InitComponent(t_event.affected_components[0]);
-				break;
-			case COMP_UPDATED:
-				UpdateComponentState(t_event.affected_components[0]);
-				break;
-			case COMP_DELETED:
-				RemoveComponent(t_event.affected_components[0]);
-				break;
-			case COLLISION:
-				QueueCollisionEvent(t_event);
-			};
-
-		};
-		// Character controller listener
-		m_character_controller_listener.scene_id = scene_uuid;
-		m_character_controller_listener.OnEvent = [this](const Events::ECS_Event<CharacterControllerComponent>& t_event) {
-			using enum Events::ECS_EventType;
-			switch (t_event.event_type) {
-			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
-				InitComponent(t_event.affected_components[0]);
-				break;
-			case COMP_DELETED:
-				RemoveComponent(t_event.affected_components[0]);
-				break;
-			}
-		};
-
-
-		// Transform update listener
-		m_transform_listener.scene_id = scene_uuid;
-		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
-			if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
-				auto* p_transform = t_event.affected_components[0];
-
-
-				if (p_transform == mp_currently_updating_transform) // Ignore transform event if it was updated by the physics engine, as the states are already synced
-					return;
-
-				// Check for both types of physics component
-				auto* p_phys_comp = p_transform->GetEntity()->GetComponent<PhysicsComponent>();
-
-				if (auto* p_controller_comp = p_transform->GetEntity()->GetComponent<CharacterControllerComponent>()) {
-					glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
-					p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
-				}
-
-				if (p_phys_comp) {
-
-					if (t_event.sub_event_type == TransformComponent::UpdateType::SCALE || t_event.sub_event_type == TransformComponent::UpdateType::ALL) { // Whole shape needs to be rebuilt
-						UpdateComponentState(p_phys_comp);
-						return;
-					}
-
-					auto n_transforms = p_transform->GetAbsoluteTransforms();
-					glm::vec3 abs_pos = n_transforms[0];
-					glm::quat n_quat{glm::radians(n_transforms[2])};
-
-					PxVec3 px_pos{ abs_pos.x, abs_pos.y, abs_pos.z };
-					PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
-					PxTransform px_transform{ px_pos, n_px_quat };
-
-					p_phys_comp->p_rigid_actor->setGlobalPose(px_transform);
-				}
-
-			}
-		};
-
-		Events::EventManager::RegisterListener(m_phys_listener);
-		Events::EventManager::RegisterListener(m_character_controller_listener);
-		Events::EventManager::RegisterListener(m_transform_listener);
 
 	};
 
@@ -213,12 +93,69 @@ namespace ORNG {
 		m_physics_materials.push_back(Physics::GetPhysics()->createMaterial(0.25f, 0.1f, 0.1f));
 		m_physics_materials[0]->acquireReference();
 
+
+		InitListeners();
 		mp_registry->on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
 		mp_registry->on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
 
 		mp_registry->on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
 		mp_registry->on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
+	}
 
+
+	void PhysicsSystem::InitListeners() {
+		// Initialize event listeners
+	// Physics listener
+		m_phys_listener.scene_id = GetSceneUUID();
+		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsComponent>& t_event) {
+			switch (t_event.event_type) {
+				using enum Events::ECS_EventType;
+			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
+				InitComponent(t_event.affected_components[0]);
+				break;
+			case COMP_UPDATED:
+				UpdateComponentState(t_event.affected_components[0]);
+				break;
+			case COMP_DELETED:
+				RemoveComponent(t_event.affected_components[0]);
+				break;
+			case COLLISION:
+				QueueCollisionEvent(t_event);
+			};
+
+		};
+		// Character controller listener
+		m_character_controller_listener.scene_id = GetSceneUUID();
+		m_character_controller_listener.OnEvent = [this](const Events::ECS_Event<CharacterControllerComponent>& t_event) {
+			using enum Events::ECS_EventType;
+			switch (t_event.event_type) {
+			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
+				InitComponent(t_event.affected_components[0]);
+				break;
+			case COMP_DELETED:
+				RemoveComponent(t_event.affected_components[0]);
+				break;
+			}
+		};
+
+
+		// Transform update listener
+		m_transform_listener.scene_id = GetSceneUUID();
+		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
+			OnTransformEvent(t_event);
+		};
+
+		Events::EventManager::RegisterListener(m_phys_listener);
+		Events::EventManager::RegisterListener(m_character_controller_listener);
+		Events::EventManager::RegisterListener(m_transform_listener);
+	}
+
+
+
+	void PhysicsSystem::DeinitListeners() {
+		Events::EventManager::DeregisterListener(m_phys_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_character_controller_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 	}
 
 
@@ -237,7 +174,7 @@ namespace ORNG {
 
 
 	void PhysicsSystem::OnUnload() {
-
+		DeinitListeners();
 		for (auto* p_material : m_physics_materials) {
 			p_material->release();
 		}
@@ -248,6 +185,45 @@ namespace ORNG {
 		mp_aabb_manager->release();
 		PX_RELEASE(mp_broadphase);
 	}
+
+
+	void PhysicsSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event) {
+		if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
+			auto* p_transform = t_event.affected_components[0];
+
+
+			if (p_transform == mp_currently_updating_transform) // Ignore transform event if it was updated by the physics engine, as the states are already synced
+				return;
+
+			// Check for both types of physics component
+			auto* p_phys_comp = p_transform->GetEntity()->GetComponent<PhysicsComponent>();
+
+			if (auto* p_controller_comp = p_transform->GetEntity()->GetComponent<CharacterControllerComponent>()) {
+				glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
+				p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
+			}
+
+			if (p_phys_comp) {
+
+				if (t_event.sub_event_type == TransformComponent::UpdateType::SCALE || t_event.sub_event_type == TransformComponent::UpdateType::ALL) { // Whole shape needs to be rebuilt
+					UpdateComponentState(p_phys_comp);
+					return;
+				}
+
+				auto n_transforms = p_transform->GetAbsoluteTransforms();
+				glm::vec3 abs_pos = n_transforms[0];
+				glm::quat n_quat{glm::radians(n_transforms[2])};
+
+				PxVec3 px_pos{ abs_pos.x, abs_pos.y, abs_pos.z };
+				PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
+				PxTransform px_transform{ px_pos, n_px_quat };
+
+				p_phys_comp->p_rigid_actor->setGlobalPose(px_transform);
+			}
+
+		}
+	}
+
 
 
 
@@ -499,6 +475,31 @@ namespace ORNG {
 			ORNG_CORE_ERROR("PhysCollisionCallback failed to find components from collision event");
 
 		return  PxFilterFlag::eDEFAULT;
+	}
+
+
+	RaycastResults PhysicsSystem::Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
+		PxRaycastBuffer ray_buffer;                 // [out] Raycast results
+		RaycastResults ret;
+
+		if (bool status = mp_phys_scene->raycast(ToPxVec3(origin), ToPxVec3(unit_dir), max_distance, ray_buffer)) {
+			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
+
+			// Check dynamic physics components
+			for (auto [entity, phys_comp] : mp_registry->view<PhysicsComponent>().each()) {
+				if (phys_comp.p_rigid_actor == p_closest_actor) {
+					ret.p_phys_comp = &phys_comp;
+					ret.p_entity = phys_comp.GetEntity();
+				}
+			}
+
+			ret.hit = true;
+			ret.hit_pos = ToGlmVec3(ray_buffer.block.position);
+			ret.hit_normal = ToGlmVec3(ray_buffer.block.normal);
+			ret.hit_dist = ray_buffer.block.distance;
+		}
+
+		return ret;
 	}
 
 

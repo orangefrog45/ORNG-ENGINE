@@ -87,6 +87,7 @@ namespace ORNG {
 		m_mesh_component_manager.OnLoad();
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
+		m_audio_system.OnLoad();
 
 		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
@@ -110,6 +111,7 @@ namespace ORNG {
 		m_physics_system.OnUnload();
 		m_mesh_component_manager.OnUnload();
 		m_camera_system.OnUnload();
+		m_audio_system.OnUnload();
 
 		m_entities.clear();
 		ORNG_CORE_INFO("Scene unloaded");
