@@ -385,6 +385,38 @@ namespace ORNG {
 		}
 
 
+		if (ImGui::BeginTabItem("Audio")) {
+			if (ImGui::Button("Add audio")) {
+				wchar_t valid_extensions[MAX_PATH] = L"Audio Files: *.mp3;*.wav\0*.mp3;*.wav\0";
+
+				//setting up file explorer callbacks
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					AssetManager::AddSoundAsset(filepath);
+				};
+
+				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			}
+
+			if (ImGui::BeginTable("##audio asset table", column_count)) {
+				for (auto& [key, val] : AssetManager::Get().m_sound_assets) {
+					ImGui::TableNextColumn();
+					ExtraUI::NameWithTooltip(val->filepath.substr(val->filepath.rfind("\\")));
+
+					ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, image_button_size);
+
+					static SoundAsset* p_dragged_sound_asset;
+					if (ImGui::BeginDragDropSource()) {
+						p_dragged_sound_asset = val;
+						ImGui::SetDragDropPayload("AUDIO", &p_dragged_sound_asset, sizeof(SoundAsset*));
+						ImGui::EndDragDropSource();
+					}
+
+				}
+				ImGui::EndTable();
+			}
+			ImGui::EndTabItem();
+		}
+
 		ImGui::EndTabBar();
 		ImGui::End();
 	}

@@ -22,6 +22,7 @@ namespace ORNG {
 
 		m_mesh_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
+		m_audio_system.OnUpdate();
 
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			script.OnUpdate(script.GetEntity(), this);

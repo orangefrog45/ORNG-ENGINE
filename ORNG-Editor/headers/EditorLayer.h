@@ -53,6 +53,7 @@ namespace ORNG {
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
+		void RenderAudioComponentEditor(AudioComponent* p_audio);
 
 		void RenderErrorMessages();
 		void GenerateErrorMessage(const std::string& error_str = "");

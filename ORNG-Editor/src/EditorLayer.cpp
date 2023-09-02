@@ -650,7 +650,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
 
-		const char* names[6] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script" };
+		const char* names[7] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio" };
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -690,6 +690,9 @@ namespace ORNG {
 			break;
 		case 5:
 			entity->AddComponent<ScriptComponent>();
+			break;
+		case 6:
+			entity->AddComponent<AudioComponent>();
 			break;
 		}
 	}
@@ -1024,9 +1027,9 @@ namespace ORNG {
 			auto plight = entity->GetComponent<PointLightComponent>();
 			auto slight = entity->GetComponent<SpotLightComponent>();
 			auto p_cam = entity->GetComponent<CameraComponent>();
-
 			PhysicsComponent* p_physics_comp = entity->GetComponent<PhysicsComponent>();
 			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
+			auto* p_audio_comp = entity->GetComponent<AudioComponent>();
 
 			std::vector<TransformComponent*> transforms;
 			for (auto id : m_selected_entity_ids) {
@@ -1108,6 +1111,15 @@ namespace ORNG {
 				}
 			}
 
+			if (p_audio_comp && ExtraUI::H2TreeNode("Audio component")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+					entity->DeleteComponent<AudioComponent>();
+				}
+				else {
+					RenderAudioComponentEditor(p_audio_comp);
+				}
+			}
+
 			glm::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
 			glm::vec2 button_size = { 200, 50 };
 			glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
@@ -1162,6 +1174,23 @@ namespace ORNG {
 		ImGui::PopID(); // p_script
 	}
 
+
+	void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
+		ImGui::PushID(p_audio);
+
+		if (ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, ImVec2(100, 100))) {
+			p_audio->Play();
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("AUDIO")) {
+				if (p_payload->DataSize == sizeof(SoundAsset*)) {
+					p_audio->SetSound(*static_cast<SoundAsset**>(p_payload->Data));
+				}
+			}
+		}
+		ImGui::PopID(); // p_audio
+	}
 
 
 	void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {

@@ -5,6 +5,7 @@ namespace ORNG {
 	public:
 		static void  NameWithTooltip(const std::string& name);
 		static bool CenteredImageButton(ImTextureID id, ImVec2 size);
+		static bool CenteredSquareButton(const std::string& content, ImVec2 size);
 		static void ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback);
 		static bool H1TreeNode(const char* name);
 		static bool H2TreeNode(const char* name);

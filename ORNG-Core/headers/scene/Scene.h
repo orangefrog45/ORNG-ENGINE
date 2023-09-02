@@ -71,7 +71,7 @@ namespace ORNG {
 		PhysicsSystem m_physics_system{ &m_registry, uuid(), this };
 		CameraSystem m_camera_system{ &m_registry, uuid() };
 		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };
-		AudioSystem m_audio_system{ &m_registry, uuid() };
+		AudioSystem m_audio_system{ &m_registry, uuid(), &m_camera_system.m_active_cam_entity_handle };
 
 		entt::registry m_registry;
 		std::string m_name = "Untitled scene";

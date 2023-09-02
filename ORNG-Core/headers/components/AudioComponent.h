@@ -3,14 +3,10 @@
 namespace FMOD {
 	class Channel;
 }
+struct FMOD_VECTOR;
 
 namespace ORNG {
 	class SoundAsset;
-
-	enum class AudioEventType {
-		PLAY,
-		PAUSE
-	};
 
 	class AudioComponent : public Component {
 		friend class AudioSystem;
@@ -21,8 +17,17 @@ namespace ORNG {
 		void Play();
 		void Pause();
 
+		enum class AudioEventType {
+			PLAY,
+			PAUSE
+		};
+
 	private:
-		FMOD::Channel* mp_channel = nullptr;
-		SoundAsset* mp_asset = nullptr;
+		// Memory managed by AudioSystem
+		FMOD_VECTOR* mp_fmod_pos;
+		FMOD_VECTOR* mp_fmod_vel;
+
+		FMOD::Channel* mp_channel;
+		const SoundAsset* mp_asset = nullptr;
 	};
 }

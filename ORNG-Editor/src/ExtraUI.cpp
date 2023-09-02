@@ -26,6 +26,17 @@ namespace ORNG {
 		return ret;
 	}
 
+	bool ExtraUI::CenteredSquareButton(const std::string& content, ImVec2 size) {
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0, 0));
+		float padding = (ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x - ImGui::GetStyle().ItemSpacing.x) / 2.0;
+		ImGui::Dummy(ImVec2(padding / 2.0, 0));
+		ImGui::SameLine();
+
+		bool ret = ImGui::Button(content.c_str(), size);
+		ImGui::PopStyleVar();
+		return ret;
+	}
+
 
 	void ExtraUI::ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback) {
 		// Create an OPENFILENAMEW structure

@@ -423,7 +423,7 @@ namespace ORNG {
 		}
 		else {
 			FMOD::Sound* p_fmod_sound = nullptr;
-			AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_DEFAULT, nullptr, &p_fmod_sound);
+			AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_fmod_sound);
 			auto* p_sound = new SoundAsset(p_fmod_sound, filepath);
 			Get().m_sound_assets[filepath] = p_sound;
 			return p_sound;
@@ -432,12 +432,12 @@ namespace ORNG {
 
 
 	SoundAsset* AssetManager::GetSoundAsset(const std::string& filepath) {
-		if (!Get().m_sound_assets.contains(filepath)) {
-			return nullptr;
+		for (auto& [key, val] : Get().m_sound_assets) {
+			if (std::filesystem::equivalent(filepath, val->filepath))
+				return val;
 		}
-		else {
-			return Get().m_sound_assets[filepath];
-		}
+
+		return nullptr;
 	}
 
 

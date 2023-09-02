@@ -46,13 +46,15 @@ namespace ORNG {
 
 	class AudioSystem : public ComponentSystem {
 	public:
-		AudioSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		AudioSystem(entt::registry* p_registry, uint64_t scene_uuid, entt::entity* p_active_cam_id) : ComponentSystem(scene_uuid), mp_registry(p_registry), mp_active_cam_id(p_active_cam_id) {};
 		void OnLoad();
 		void OnUnload();
+		void OnUpdate();
 	private:
 
 		void OnAudioDeleteEvent(const Events::ECS_Event<AudioComponent>& e_event);
 		void OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event);
+		void OnAudioAddEvent(const Events::ECS_Event<AudioComponent>& e_event);
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& e_event);
 
 		Events::ECS_EventListener<AudioComponent> m_audio_listener;
@@ -60,6 +62,9 @@ namespace ORNG {
 
 		FMOD::ChannelGroup* mp_channel_group = nullptr;
 		entt::registry* mp_registry = nullptr;
+
+		// Points to memory in scene's "CameraSystem" to find active camera
+		entt::entity* mp_active_cam_id;
 	};
 
 
@@ -95,6 +100,7 @@ namespace ORNG {
 
 
 	class CameraSystem : public ComponentSystem {
+		friend class Scene;
 	public:
 		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {
 			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
