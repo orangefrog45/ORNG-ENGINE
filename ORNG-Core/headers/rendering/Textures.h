@@ -117,6 +117,9 @@ namespace ORNG {
 
 		bool ValidateBaseSpec(const TextureBaseSpec* spec, bool is_framebuffer_texture = false);
 
+		const std::string& GetName() {
+			return m_name;
+		}
 
 		template <typename S>
 		void serialize(S& s) {

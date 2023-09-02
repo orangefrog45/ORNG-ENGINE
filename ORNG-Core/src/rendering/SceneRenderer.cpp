@@ -305,7 +305,7 @@ namespace ORNG {
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
 		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
-		mp_shader_library->SetGlobalLighting(mp_scene->m_directional_light);
+		mp_shader_library->SetGlobalLighting(mp_scene->directional_light);
 	}
 
 
@@ -480,7 +480,7 @@ namespace ORNG {
 	void SceneRenderer::DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
 		ORNG_PROFILE_FUNC_GPU();
 
-		const DirectionalLight& light = mp_scene->m_directional_light;
+		const DirectionalLight& light = mp_scene->directional_light;
 
 		// Calculate light space matrices
 		const float aspect_ratio = p_cam->aspect_ratio;

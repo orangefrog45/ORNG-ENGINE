@@ -33,8 +33,8 @@ namespace ORNG {
 
 						LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials);
 
-						Events::ProjectEvent e_event;
-						e_event.event_type = Events::ProjectEventType::MESH_LOADED;
+						Events::AssetEvent e_event;
+						e_event.event_type = Events::AssetEventType::MESH_LOADED;
 						e_event.data_payload = reinterpret_cast<uint8_t*>(mesh_package.p_asset);
 						Events::EventManager::DispatchEvent(e_event);
 					}
@@ -61,7 +61,7 @@ namespace ORNG {
 						future.get();
 					}
 					m_texture_futures.clear();
-					DispatchAssetEvent(Events::ProjectEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(mesh_package.p_asset));
+					DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(mesh_package.p_asset));
 				}
 
 			}
@@ -69,8 +69,8 @@ namespace ORNG {
 
 	}
 
-	void AssetManager::DispatchAssetEvent(Events::ProjectEventType type, uint8_t* data_payload) {
-		Events::ProjectEvent e_event;
+	void AssetManager::DispatchAssetEvent(Events::AssetEventType type, uint8_t* data_payload) {
+		Events::AssetEvent e_event;
 		e_event.event_type = type;
 		e_event.data_payload = data_payload;
 		Events::EventManager::DispatchEvent(e_event);
@@ -112,7 +112,7 @@ namespace ORNG {
 			m.unlock();
 			}));
 
-		DispatchAssetEvent(Events::ProjectEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
+		DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
 
 
 		return p_tex;
@@ -153,7 +153,7 @@ namespace ORNG {
 			p_material->roughness_texture = p_material->roughness_texture == *it ? nullptr : p_material->roughness_texture;
 		}
 
-		DispatchAssetEvent(Events::ProjectEventType::TEXTURE_DELETED, reinterpret_cast<uint8_t*>(*it));
+		DispatchAssetEvent(Events::AssetEventType::TEXTURE_DELETED, reinterpret_cast<uint8_t*>(*it));
 
 		delete* it;
 		m_2d_textures.erase(it);
@@ -165,7 +165,7 @@ namespace ORNG {
 		Material* p_material = uuid == 0 ? new Material(&CodedAssets::GetBaseTexture()) : new Material(uuid);
 		m_materials.push_back(p_material);
 
-		DispatchAssetEvent(Events::ProjectEventType::MATERIAL_LOADED, reinterpret_cast<uint8_t*>(p_material));
+		DispatchAssetEvent(Events::AssetEventType::MATERIAL_LOADED, reinterpret_cast<uint8_t*>(p_material));
 
 		return p_material;
 	}
@@ -207,7 +207,7 @@ namespace ORNG {
 			return;
 
 
-		DispatchAssetEvent(Events::ProjectEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(*it));
+		DispatchAssetEvent(Events::AssetEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(*it));
 
 		delete* it;
 		m_materials.erase(it);
@@ -370,7 +370,7 @@ namespace ORNG {
 		}
 
 
-		DispatchAssetEvent(Events::ProjectEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(*it));
+		DispatchAssetEvent(Events::AssetEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(*it));
 
 		delete* it;
 		m_meshes.erase(it);

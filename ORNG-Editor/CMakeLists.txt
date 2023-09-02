@@ -5,7 +5,7 @@ project(ORNG_EDITOR)
 add_executable(ORNG_EDITOR 
 src/EditorLayer.cpp
 src/main.cpp
-)
+ "headers/AssetManagerWindow.h" "src/AssetManager.cpp" "headers/ExtraUI.h" "src/ExtraUI.cpp")
 
 
 target_include_directories(ORNG_EDITOR PUBLIC

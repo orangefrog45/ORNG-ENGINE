@@ -301,7 +301,7 @@ namespace ORNG {
 		void OnMeshAssetDeletion(MeshAsset* p_asset);
 		void OnMaterialDeletion(Material* p_material);
 		// Listener for asset deletion
-		Events::EventListener<Events::ProjectEvent> m_asset_listener;
+		Events::EventListener<Events::AssetEvent> m_asset_listener;
 
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<MeshComponent> m_mesh_listener;

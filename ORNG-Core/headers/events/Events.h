@@ -43,7 +43,7 @@ namespace ORNG::Events {
 
 	};
 
-	enum class ProjectEventType {
+	enum class AssetEventType {
 		MATERIAL_DELETED,
 		MESH_DELETED,
 		MESH_LOADED,
@@ -52,8 +52,8 @@ namespace ORNG::Events {
 		TEXTURE_LOADED,
 	};
 
-	struct ProjectEvent : public Event {
-		ProjectEventType event_type;
+	struct AssetEvent : public Event {
+		AssetEventType event_type;
 		uint8_t* data_payload = nullptr; // Data payload will be a ptr to the asset being modified if it's an asset event
 	};
 

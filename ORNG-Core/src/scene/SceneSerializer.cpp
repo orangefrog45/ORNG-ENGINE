@@ -369,10 +369,10 @@ namespace ORNG {
 		out << YAML::EndSeq;
 
 		out << YAML::Key << "DirLight" << YAML::BeginMap;
-		out << YAML::Key << "Colour" << YAML::Value << scene.m_directional_light.color;
-		out << YAML::Key << "Direction" << YAML::Value << scene.m_directional_light.GetLightDirection();
-		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.m_directional_light.cascade_ranges[0], scene.m_directional_light.cascade_ranges[1], scene.m_directional_light.cascade_ranges[2]);
-		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.m_directional_light.z_mults[0], scene.m_directional_light.z_mults[1], scene.m_directional_light.z_mults[2]);
+		out << YAML::Key << "Colour" << YAML::Value << scene.directional_light.color;
+		out << YAML::Key << "Direction" << YAML::Value << scene.directional_light.GetLightDirection();
+		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
+		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
 		out << YAML::EndMap;
 
 
@@ -437,12 +437,12 @@ namespace ORNG {
 
 		// Directional light
 		auto dir_light = data["DirLight"];
-		scene.m_directional_light.color = dir_light["Colour"].as<glm::vec3>();
-		scene.m_directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
+		scene.directional_light.color = dir_light["Colour"].as<glm::vec3>();
+		scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
 		glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
-		scene.m_directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
+		scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
 		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
-		scene.m_directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
+		scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 
 		// Skybox/Env map
 		auto skybox = data["Skybox"];
@@ -490,6 +490,9 @@ namespace ORNG {
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
 			bool is_tex_loaded = false;
+
+			if (entry.is_directory() || entry.path().string().find("diffuse_prefilter") != std::string::npos) // Skip serialized diffuse prefilter
+				continue;
 
 			for (const auto* p_tex : AssetManager::Get().m_2d_textures) {
 				try {
@@ -595,7 +598,7 @@ namespace ORNG {
 					auto* p_asset = AssetManager::CreateMeshAsset(serialized_filepath, id);
 					DeserializeMeshAssetBinary(serialized_filepath, *p_asset);
 					AssetManager::LoadMeshAssetIntoGL(p_asset, mesh_material_vec);
-					AssetManager::DispatchAssetEvent(Events::ProjectEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_asset));
+					AssetManager::DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_asset));
 				}
 				else {
 					// Load from source asset file

@@ -76,11 +76,11 @@ namespace ORNG {
 			OnMeshEvent(t_event);
 		};
 
-		m_asset_listener.OnEvent = [this](const Events::ProjectEvent& t_event) {
-			if (t_event.event_type == Events::ProjectEventType::MATERIAL_DELETED) {
+		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
+			if (t_event.event_type == Events::AssetEventType::MATERIAL_DELETED) {
 				OnMaterialDeletion(reinterpret_cast<Material*>(t_event.data_payload));
 			}
-			else if (t_event.event_type == Events::ProjectEventType::MESH_DELETED) {
+			else if (t_event.event_type == Events::AssetEventType::MESH_DELETED) {
 				OnMeshAssetDeletion(reinterpret_cast<MeshAsset*>(t_event.data_payload));
 			}
 		};

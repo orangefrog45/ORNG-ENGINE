@@ -28,6 +28,7 @@ namespace ORNG {
 
 	class AssetManager {
 	public:
+		friend class AssetManagerWindow;
 		friend class EditorLayer;
 		friend class SceneSerializer;
 		static AssetManager& Get() {
@@ -89,7 +90,7 @@ namespace ORNG {
 		void IStallUntilMeshesLoaded();
 
 
-		static void DispatchAssetEvent(Events::ProjectEventType type, uint8_t* data_payload);
+		static void DispatchAssetEvent(Events::AssetEventType type, uint8_t* data_payload);
 
 		void IClearAll();
 
