@@ -15,5 +15,7 @@ namespace ORNG {
 		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
 		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
+		static bool ColoredButton(const char* content, ImVec4 col);
+		static bool RightClickPopup(const char* id);
 	};
 }

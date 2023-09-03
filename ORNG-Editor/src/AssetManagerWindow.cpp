@@ -19,6 +19,13 @@ namespace ORNG {
 
 	}
 
+	inline static std::string GenerateMeshBinaryPath(MeshAsset* p_mesh) {
+		return ".\\res\\meshes\\" + p_mesh->GetFilename().substr(p_mesh->GetFilename().find_last_of("\\") + 1) + ".bin";
+	}
+
+	inline static std::string GenerateAudioFileClonePath(std::string og_path) {
+		return ".\\res\\audio\\" + og_path.substr(og_path.rfind("\\") + 1);
+	}
 
 	void AssetManagerWindow::Init() {
 		mp_preview_scene = std::make_unique<Scene>();
@@ -75,6 +82,26 @@ namespace ORNG {
 	}
 
 
+	void AssetManagerWindow::RenderConfirmationWindow(ConfirmationWindowData& data, int index) {
+		ImVec2 window_size{ 600, 200 };
+		ImGui::SetNextWindowSize(window_size);
+		ImGui::SetNextWindowPos(ImVec2((Window::GetWidth() - window_size.x) / 2.0, (Window::GetHeight() - window_size.y) / 2.0));
+		if (ImGui::Begin("Confirm")) {
+			ImGui::SeparatorText("Confirm");
+			ImGui::Text(data.str.c_str());
+
+			if (ExtraUI::ColoredButton("No", ImVec4(0.5, 0, 0, 1)))
+				m_confirmation_window_stack.erase(m_confirmation_window_stack.begin() + index);
+
+			ImGui::SameLine();
+
+			if (ExtraUI::ColoredButton("Yes", ImVec4(0, 0.5, 0, 1))) {
+				data.callback();
+				m_confirmation_window_stack.erase(m_confirmation_window_stack.begin() + index);
+			}
+		}
+		ImGui::End();
+	}
 
 	void AssetManagerWindow::OnRenderUI() {
 		RenderMainAssetWindow();
@@ -84,6 +111,10 @@ namespace ORNG {
 
 		if (mp_selected_texture)
 			RenderTextureEditorSection();
+
+		for (int i = m_confirmation_window_stack.size() - 1; i >= 0; i--) {
+			RenderConfirmationWindow(m_confirmation_window_stack[i], i);
+		}
 	}
 
 
@@ -111,6 +142,7 @@ namespace ORNG {
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					MeshAsset* asset = AssetManager::CreateMeshAsset(filepath);
 					AssetManager::LoadMeshAsset(asset);
+					SceneSerializer::SerializeAssets(*mp_active_project_dir + "\\assets.yml");
 				};
 
 
@@ -141,6 +173,17 @@ namespace ORNG {
 					else
 						ImGui::TextColored(ImVec4(1, 0, 0, 1), "Loading...");
 
+					if (ExtraUI::RightClickPopup("mesh_popup"))
+					{
+						if (ImGui::Selectable("Delete")) { // Base material not deletable
+							PushConfirmationWindow("Delete Mesh?", [this, p_mesh_asset] {
+								AssetManager::DeleteMeshAsset(p_mesh_asset);
+								SceneSerializer::SerializeAssets(*mp_active_project_dir + "\\assets.yml");
+
+								});
+						}
+						ImGui::EndPopup();
+					}
 
 					ImGui::PopID();
 				}
@@ -184,11 +227,10 @@ namespace ORNG {
 				// Push textures into table 
 				for (auto* p_texture : AssetManager::Get().m_2d_textures)
 				{
-					bool deletion_flag = false;
 					ImGui::PushID(p_texture);
 					ImGui::TableNextColumn();
 
-					ExtraUI::NameWithTooltip(p_texture->GetSpec().filepath.substr(p_texture->GetSpec().filepath.find_last_of('/') + 1).c_str());
+					ExtraUI::NameWithTooltip(p_texture->GetSpec().filepath.substr(p_texture->GetSpec().filepath.find_last_of('\\') + 1).c_str());
 
 					if (ExtraUI::CenteredImageButton(ImTextureID(p_texture->GetTextureHandle()), image_button_size)) {
 						mp_selected_texture = p_texture;
@@ -201,24 +243,21 @@ namespace ORNG {
 						ImGui::EndDragDropSource();
 					}
 
-					// Deletion popup
-					if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
-						ImGui::OpenPopup("my_select_popup");
-					}
-
-					if (ImGui::BeginPopup("my_select_popup"))
+					if (ExtraUI::RightClickPopup("tex_popup"))
 					{
 						if (ImGui::Selectable("Delete")) { // Base material not deletable
-							deletion_flag = true;
+							PushConfirmationWindow("Delete texture?", [p_texture] {
+								if (std::filesystem::exists(p_texture->GetSpec().filepath)) {
+									std::filesystem::remove(p_texture->GetSpec().filepath);
+								}
+								AssetManager::DeleteTexture(p_texture);
+								});
 						}
 						ImGui::EndPopup();
 					}
 
 					ImGui::PopID();
 
-					if (deletion_flag) {
-						AssetManager::DeleteTexture(p_texture);
-					}
 				}
 
 				ImGui::EndTable();
@@ -367,9 +406,13 @@ namespace ORNG {
 									}*/
 								}
 
+
 								if (!successful_reload)
 									GenerateErrorMessage("Failed to reload script");
 
+							}
+							if (ImGui::Selectable("Delete")) {
+								PushConfirmationWindow("Delete script asset?", [entry] {std::filesystem::remove(entry); });
 							}
 							ImGui::EndPopup();
 						}
@@ -391,24 +434,40 @@ namespace ORNG {
 
 				//setting up file explorer callbacks
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					AssetManager::AddSoundAsset(filepath);
+					// Give relative path to current project directory
+					std::string new_filepath{GenerateAudioFileClonePath(filepath)};
+					HandledFileSystemCopy(filepath, new_filepath);
+					AssetManager::AddSoundAsset(new_filepath);
 				};
+
 
 				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
 			}
 
 			if (ImGui::BeginTable("##audio asset table", column_count)) {
-				for (auto& [key, val] : AssetManager::Get().m_sound_assets) {
+				for (auto* p_sound : AssetManager::Get().m_sound_assets) {
 					ImGui::TableNextColumn();
-					ExtraUI::NameWithTooltip(val->filepath.substr(val->filepath.rfind("\\")));
+					ExtraUI::NameWithTooltip(p_sound->filepath.substr(p_sound->filepath.rfind("\\")));
 
 					ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, image_button_size);
 
 					static SoundAsset* p_dragged_sound_asset;
 					if (ImGui::BeginDragDropSource()) {
-						p_dragged_sound_asset = val;
+						p_dragged_sound_asset = p_sound;
 						ImGui::SetDragDropPayload("AUDIO", &p_dragged_sound_asset, sizeof(SoundAsset*));
 						ImGui::EndDragDropSource();
+					}
+
+					if (ExtraUI::RightClickPopup("audio popup")) {
+						if (ImGui::Selectable("Delete")) {
+							std::string path = p_sound->filepath;
+							PushConfirmationWindow("Delete audio asset?", [p_sound, path] {
+								AssetManager::DeleteSoundAsset(p_sound);
+								if (std::filesystem::exists(path))
+									std::filesystem::remove(path);
+								});
+						}
+						ImGui::EndPopup();
 					}
 
 				}
@@ -429,10 +488,10 @@ namespace ORNG {
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
 			CreateMeshPreview(p_mesh);
 
-			std::string filepath{".\\res\\meshes\\" + p_mesh->GetFilename().substr(p_mesh->GetFilename().find_last_of("\\") + 1) + ".bin"};
+			std::string filepath{GenerateMeshBinaryPath(p_mesh)};
 			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
-				SceneSerializer::SerializeMeshAssetBinary(filepath, *p_mesh);
+				AssetManager::SerializeMeshAssetBinary(filepath, *p_mesh);
 			}
 
 			break;
@@ -459,6 +518,13 @@ namespace ORNG {
 		{
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
 			m_mesh_preview_textures.erase(p_mesh);
+
+			std::string filepath{GenerateMeshBinaryPath(p_mesh)};
+			if (std::filesystem::exists(filepath)) {
+				// Cleanup binary file
+				std::filesystem::remove(filepath);
+			}
+
 			break;
 		}
 		}

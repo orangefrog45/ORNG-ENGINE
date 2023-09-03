@@ -9,10 +9,53 @@
 #include "audio/AudioEngine.h"
 #include <fmod.hpp>
 #include <fmod_errors.h>
+#include <bitsery/bitsery.h>
+#include <bitsery/traits/vector.h>
+#include <bitsery/adapter/stream.h>
+#include "bitsery/traits/string.h"
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
 
+
+namespace bitsery {
+	using namespace ORNG;
+	template <typename S>
+	void serialize(S& s, glm::vec3& o) {
+		s.value4b(o.x);
+		s.value4b(o.y);
+		s.value4b(o.z);
+	}
+
+	template <typename S>
+	void serialize(S& s, VertexData3D& o) {
+		s.container4b(o.positions, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.normals, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.tangents, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.tex_coords, ORNG_MAX_MESH_INDICES);
+		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
+	}
+
+
+	template <typename S>
+	void serialize(S& s, AABB& o) {
+		s.object(o.max);
+		s.object(o.min);
+		s.object(o.center);
+	}
+
+	template <typename S>
+	void serialize(S& s, MeshAsset::MeshEntry& o) {
+		s.value4b(o.base_index);
+		s.value4b(o.base_vertex);
+		s.value4b(o.material_index);
+		s.value4b(o.num_indices);
+	}
+	template<typename S>
+	void serialize(S& s, VAO& o) {
+		s.object(o.vertex_data);
+	}
+}
 
 namespace ORNG {
 
@@ -31,7 +74,7 @@ namespace ORNG {
 						m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
 						i--;
 
-						LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials);
+						LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials, mesh_package.use_external_materials);
 
 						Events::AssetEvent e_event;
 						e_event.event_type = Events::AssetEventType::MESH_LOADED;
@@ -56,7 +99,7 @@ namespace ORNG {
 					m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
 					i--;
 
-					LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials);
+					LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials, mesh_package.use_external_materials);
 					for (auto& future : m_texture_futures) {
 						future.get();
 					}
@@ -143,6 +186,7 @@ namespace ORNG {
 			return;
 		}
 
+
 		// If any materials use this texture, remove it from them
 		for (auto* p_material : m_materials) {
 			p_material->base_color_texture = p_material->base_color_texture == *it ? nullptr : p_material->base_color_texture;
@@ -192,7 +236,7 @@ namespace ORNG {
 
 		Get().m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [asset, materials] {
 			asset->LoadMeshData();
-			return MeshAssetPackage{ asset, materials };
+			return MeshAssetPackage{ asset, materials, true };
 			}));
 
 	}
@@ -214,7 +258,7 @@ namespace ORNG {
 
 	}
 
-	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials) {
+	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials, bool use_external_materials) {
 
 		if (asset->m_is_loaded) {
 			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
@@ -224,20 +268,20 @@ namespace ORNG {
 		GL_StateManager::BindVAO(asset->GetVAO());
 
 		// Get directory used for finding material textures
-		std::string::size_type slash_index = asset->GetFilename().find_last_of("/");
+		std::string::size_type slash_index = asset->GetFilename().find_last_of("\\");
 		std::string dir;
 
 		if (slash_index == std::string::npos) {
 			dir = ".";
 		}
 		else if (slash_index == 0) {
-			dir = "/";
+			dir = "\\";
 		}
 		else {
 			dir = asset->GetFilename().substr(0, slash_index);
 		}
 
-		if (materials.empty()) {
+		if (use_external_materials) {
 			for (unsigned int i = 0; i < asset->p_scene->mNumMaterials; i++) {
 				const aiMaterial* p_material = asset->p_scene->mMaterials[i];
 				Material* p_new_material = Get().ICreateMaterial();
@@ -278,7 +322,18 @@ namespace ORNG {
 			}
 		}
 		else {
-			asset->m_material_assets = materials;
+			if (!materials.empty())
+				asset->m_material_assets = materials;
+			else
+			{ // Make sure the mesh has enough materials for the indices
+				int num_materials = 0;
+				for (auto& submesh : asset->m_submeshes) {
+					num_materials = num_materials < submesh.material_index ? submesh.material_index : num_materials;
+				}
+				for (int i = 0; i < num_materials + 1; i++) {
+					asset->m_material_assets.push_back(&Get().m_replacement_material);
+				}
+			}
 
 		}
 
@@ -289,10 +344,47 @@ namespace ORNG {
 	void AssetManager::LoadMeshAsset(MeshAsset* p_asset) {
 		Get().m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset] {
 			p_asset->LoadMeshData();
-			return MeshAssetPackage{ p_asset, {} };
+			return MeshAssetPackage{ p_asset, {}, false };
 			}));
 	};
 
+	void AssetManager::SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
+		std::ofstream s{ filepath, s.binary | s.trunc | s.out };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
+			return;
+		}
+		// we cannot use quick serialization function, because streams cannot use
+// writtenBytesCount method
+		bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
+		ser.object(data);
+		// flush to writer
+		ser.adapter().flush();
+		s.close();
+	}
+
+	void AssetManager::DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
+		std::ifstream s{ filepath, std::ios::binary };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
+			return;
+		}
+
+		// Use buffered stream adapter
+		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
+
+		// Deserialize individual objects
+		des.object(data.m_vao);
+		des.object(data.m_aabb);
+		//des.object(data.m_aabb);
+		uint32_t size;
+		des.value4b(size);
+		data.m_submeshes.resize(size);
+		for (int i = 0; i < size; i++) {
+			des.object(data.m_submeshes[i]);
+		}
+
+	}
 
 
 
@@ -418,6 +510,11 @@ namespace ORNG {
 
 
 	SoundAsset* AssetManager::AddSoundAsset(const std::string& filepath) {
+		if (!std::filesystem::exists(filepath)) {
+			ORNG_CORE_ERROR("Invalid sound asset filepath, not added to AssetManager");
+			return nullptr;
+		}
+
 		if (auto* p_existing_sound = GetSoundAsset(filepath)) {
 			return p_existing_sound;
 		}
@@ -425,16 +522,16 @@ namespace ORNG {
 			FMOD::Sound* p_fmod_sound = nullptr;
 			AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_fmod_sound);
 			auto* p_sound = new SoundAsset(p_fmod_sound, filepath);
-			Get().m_sound_assets[filepath] = p_sound;
+			Get().m_sound_assets.push_back(p_sound);
 			return p_sound;
 		}
 	}
 
 
 	SoundAsset* AssetManager::GetSoundAsset(const std::string& filepath) {
-		for (auto& [key, val] : Get().m_sound_assets) {
-			if (std::filesystem::equivalent(filepath, val->filepath))
-				return val;
+		for (auto* p_sound : Get().m_sound_assets) {
+			if (std::filesystem::equivalent(filepath, p_sound->filepath))
+				return p_sound;
 		}
 
 		return nullptr;
@@ -444,7 +541,7 @@ namespace ORNG {
 	void AssetManager::DeleteSoundAsset(SoundAsset* p_asset) {
 		if (auto* p_existing_sound = GetSoundAsset(p_asset->filepath)) {
 			delete p_existing_sound;
-			Get().m_sound_assets.erase(p_asset->filepath);
+			Get().m_sound_assets.erase(std::ranges::find(Get().m_sound_assets, p_asset));
 		}
 		else {
 			ORNG_CORE_ERROR("Asset manager failed to delete sound asset '{0}', not found", p_asset->filepath);
@@ -452,6 +549,7 @@ namespace ORNG {
 	}
 
 	SoundAsset::~SoundAsset() {
-		p_sound->release();
+		if (p_sound)
+			p_sound->release();
 	}
 }

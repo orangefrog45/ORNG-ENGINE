@@ -63,9 +63,6 @@ namespace ORNG {
 
 
 	void AudioSystem::OnUpdate() {
-		for (auto [entity, audio] : mp_registry->view<AudioComponent>().each()) {
-			audio.mp_channel->set3DAttributes(audio.mp_fmod_pos, audio.mp_fmod_vel);
-		}
 
 		if (auto* p_active_cam = mp_registry->try_get<CameraComponent>(*mp_active_cam_id)) {
 			auto& transform = mp_registry->get<TransformComponent>(*mp_active_cam_id);
@@ -88,6 +85,8 @@ namespace ORNG {
 		if (auto* p_sound_comp = e_event.affected_components[0]->GetEntity()->GetComponent<AudioComponent>()) {
 			auto pos = e_event.affected_components[0]->GetAbsoluteTransforms()[0];
 			*p_sound_comp->mp_fmod_pos = { pos.x, pos.y, pos.z };
+			p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel);
+
 		}
 	}
 
@@ -96,6 +95,8 @@ namespace ORNG {
 		auto pos = e_event.affected_components[0]->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 		e_event.affected_components[0]->mp_fmod_pos = new FMOD_VECTOR{ pos.x, pos.y, pos.z };
 		e_event.affected_components[0]->mp_fmod_vel = new FMOD_VECTOR{ 0, 0, 0 };
+		e_event.affected_components[0]->mp_channel->set3DAttributes(e_event.affected_components[0]->mp_fmod_pos, e_event.affected_components[0]->mp_fmod_vel);
+
 
 	}
 

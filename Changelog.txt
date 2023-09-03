@@ -1,5 +1,7 @@
 2/9/23:
 -Asset manager window class and ExtraUI created, editorlayer refactoring
+-(Physics comp editor added back bodytype changing)
+-(Asset management changes - more stable file management)
 -(Basic audio integration - needs a lot more work but positional works now)
 
 

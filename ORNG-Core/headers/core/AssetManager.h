@@ -23,7 +23,7 @@ namespace ORNG {
 		SoundAsset(FMOD::Sound* t_p_sound, const std::string& t_filepath) : p_sound(t_p_sound), filepath(t_filepath) {};
 		~SoundAsset();
 		std::string filepath;
-		FMOD::Sound* p_sound;
+		FMOD::Sound* p_sound = nullptr;
 	};
 
 	class AssetManager {
@@ -69,6 +69,10 @@ namespace ORNG {
 		// Stalls program and waits for meshes to load - this will cause the program to freeze
 		inline static void StallUntilMeshesLoaded() { Get().IStallUntilMeshesLoaded(); }
 
+		static void SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data);
+		static void DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data);
+
+
 	private:
 		void I_Init();
 		Material* ICreateMaterial(uint64_t uuid = 0);
@@ -83,7 +87,7 @@ namespace ORNG {
 		MeshAsset* ICreateMeshAsset(const std::string& filename, uint64_t uuid = 0);
 		MeshAsset* IGetMeshAsset(uint64_t uuid);
 		void IDeleteMeshAsset(uint64_t uuid);
-		static void LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials);
+		static void LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials, bool use_external_materials);
 		static Texture2D* CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 		// Loads a mesh with other materials than contained in the files on disc, usually for deserialization after they've been modified in the editor.
 		static void LoadMeshAssetPreExistingMaterials(MeshAsset* asset, std::vector<Material*>& materials);
@@ -99,13 +103,14 @@ namespace ORNG {
 		std::vector<Material*> m_materials;
 		std::vector<MeshAsset*> m_meshes;
 		std::vector<Texture2D*> m_2d_textures;
-		std::map<std::string, SoundAsset*> m_sound_assets;
+		std::vector<SoundAsset*> m_sound_assets;
 
 		struct MeshAssetPackage {
-			MeshAssetPackage(MeshAsset* t_asset, std::vector<Material*> t_materials) : p_asset(t_asset), materials(t_materials) {}; // Copying materials here instead of ref due to async code
+			MeshAssetPackage(MeshAsset* t_asset, std::vector<Material*> t_materials, bool t_use_external_materials) : p_asset(t_asset), materials(t_materials), use_external_materials(t_use_external_materials) {}; // Copying materials here instead of ref due to async code
 			MeshAsset* p_asset = nullptr;
 			// Materials will be used if "LoadMeshAssetPreExistingMaterials" called
 			std::vector<Material*> materials;
+			bool use_external_materials = false;
 		};
 
 		// Update listener checks if futures in m_mesh_loading_queue are ready and handles them if they are

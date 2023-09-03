@@ -207,8 +207,20 @@ namespace ORNG {
 		return ret;
 	}
 
+	bool ExtraUI::RightClickPopup(const char* id) {
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
+			ImGui::OpenPopup(id);
+		}
 
+		return (ImGui::BeginPopup(id));
+	}
 
+	bool ExtraUI::ColoredButton(const char* content, ImVec4 col) {
+		ImGui::PushStyleColor(ImGuiCol_Button, col);
+		bool ret = ImGui::Button(content);
+		ImGui::PopStyleColor();
+		return ret;
+	}
 
 	bool ExtraUI::ShowVec2Editor(const char* name, glm::vec2& vec, float min, float max) {
 		bool ret = false;

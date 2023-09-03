@@ -30,6 +30,7 @@ namespace ORNG {
 
 		InitImGui();
 		m_active_scene = std::make_unique<Scene>();
+		m_asset_manager_window.Init();
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
@@ -125,7 +126,6 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
-		m_asset_manager_window.Init();
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
@@ -498,6 +498,7 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/scripts/includes");
 		std::filesystem::create_directory(project_path + "/res/scripts/bin");
 		std::filesystem::create_directory(project_path + "/res/shaders");
+		std::filesystem::create_directory(project_path + "/res/audio");
 
 
 
@@ -1208,6 +1209,14 @@ namespace ORNG {
 			p_comp->UpdateGeometry(PhysicsComponent::TRIANGLE_MESH);
 		}
 
+		ImGui::SeparatorText("Body type");
+		if (ImGui::RadioButton("Dynamic", p_comp->m_body_type == PhysicsComponent::DYNAMIC)) {
+			p_comp->SetBodyType(PhysicsComponent::DYNAMIC);
+		}
+		ImGui::SameLine();
+		if (ImGui::RadioButton("Static", p_comp->m_body_type == PhysicsComponent::STATIC)) {
+			p_comp->SetBodyType(PhysicsComponent::STATIC);
+		}
 
 		RenderPhysicsMaterial(p_comp->p_material);
 

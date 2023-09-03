@@ -6,6 +6,13 @@ namespace ORNG {
 
 	class MeshAsset;
 	class Material;
+
+	struct ConfirmationWindowData {
+		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {};
+		std::string str;
+		std::function<void()> callback;
+	};
+
 	class AssetManagerWindow {
 	public:
 		AssetManagerWindow(std::string* p_active_project_dir) : mp_active_project_dir(p_active_project_dir) {};
@@ -25,6 +32,10 @@ namespace ORNG {
 
 	private:
 		void RenderMainAssetWindow();
+		void RenderConfirmationWindow(ConfirmationWindowData& data, int index);
+		void PushConfirmationWindow(const std::string& str, std::function<void()> func) {
+			m_confirmation_window_stack.emplace_back(str, func);
+		}
 		void CreateMaterialPreview(const Material* p_material);
 		void CreateMeshPreview(MeshAsset* p_asset);
 		void OnProjectEvent(const Events::AssetEvent& t_event);
@@ -36,6 +47,8 @@ namespace ORNG {
 		Material* mp_selected_material = nullptr;
 
 		Events::EventListener<Events::AssetEvent> m_asset_listener;
+
+		std::vector<ConfirmationWindowData> m_confirmation_window_stack;
 
 		std::unique_ptr<Scene> mp_preview_scene = nullptr;
 
