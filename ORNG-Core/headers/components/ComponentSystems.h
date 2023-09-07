@@ -31,7 +31,7 @@ namespace ORNG {
 		template<std::derived_from<Component> T>
 		static void DispatchComponentEvent(entt::registry& registry, entt::entity entity, Events::ECS_EventType type) {
 			Events::ECS_Event<T> e_event;
-			e_event.affected_components.push_back(&registry.get<T>(entity));
+			e_event.affected_components[0] = &registry.get<T>(entity);
 			e_event.event_type = type;
 
 			Events::EventManager::DispatchEvent(e_event);
@@ -72,23 +72,7 @@ namespace ORNG {
 	class TransformHierarchySystem : public ComponentSystem {
 	public:
 		TransformHierarchySystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
-		void OnLoad() {
-			// On transform update event, update all child transforms
-			m_transform_event_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
-				[[likely]] if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
-					auto& relationship_comp = mp_registry->get<RelationshipComponent>(entt::entity(t_event.affected_components[0]->GetEnttHandle()));
-					entt::entity current_entity = relationship_comp.first;
-
-					for (int i = 0; i < relationship_comp.num_children; i++) {
-						mp_registry->get<TransformComponent>(current_entity).RebuildMatrix(static_cast<TransformComponent::UpdateType>(t_event.sub_event_type));
-						current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
-					}
-
-				}
-			};
-			m_transform_event_listener.scene_id = GetSceneUUID();
-			Events::EventManager::RegisterListener(m_transform_event_listener);
-		}
+		void OnLoad();
 
 		void OnUnload() {
 			Events::EventManager::DeregisterListener((entt::entity)m_transform_event_listener.GetRegisterID());
@@ -177,8 +161,6 @@ namespace ORNG {
 
 		__declspec(noinline) RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
 
-		bool GetIsPaused() const { return m_physics_paused; };
-		void SetIsPaused(bool v) { m_physics_paused = v; };
 
 		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
 		SceneEntity* TryGetEntityFromPxActor(const physx::PxActor* p_actor) {
@@ -226,25 +208,24 @@ namespace ORNG {
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		bool m_physics_paused = false;
 		float m_step_size = (1.f / 60.f);
 		float m_accumulator = 0.f;
 
-		class PhysCollisionCallback : public physx::PxSimulationFilterCallback {
+		class PhysCollisionCallback : public physx::PxSimulationEventCallback {
 		public:
 			PhysCollisionCallback(PhysicsSystem* p_system) : mp_system(p_system) {};
+			virtual void onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) override {};
 
-			PxFilterFlags pairFound(PxU64 pairID,
-				PxFilterObjectAttributes attributes0, PxFilterData filterData0, const PxActor* a0, const PxShape* s0,
-				PxFilterObjectAttributes attributes1, PxFilterData filterData1, const PxActor* a1, const PxShape* s1,
-				PxPairFlags& pairFlags) override;
+			virtual void onWake(PxActor** actors, PxU32 count) override {};
 
-			void pairLost(PxU64 pairID,
-				PxFilterObjectAttributes attributes0, PxFilterData filterData0,
-				PxFilterObjectAttributes attributes1, PxFilterData filterData1,
-				bool objectRemoved) override {};
+			virtual void onSleep(PxActor** actors, PxU32 count) override {};
 
-			bool statusChange(PxU64& pairID, PxPairFlags& pairFlags, PxFilterFlags& filterFlags) override { return false; };
+			virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
+
+			virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) override {};
+
+			virtual void onAdvance(const PxRigidBody* const* bodyBuffer, const PxTransform* poseBuffer, const PxU32 count) override {};
+
 
 		private:
 			// Used for its PxActor entity lookup map

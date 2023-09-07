@@ -65,7 +65,11 @@ namespace ORNG {
 		if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
 			pairFlags |= PxPairFlag::eNOTIFY_TOUCH_FOUND;
 
-		return PxFilterFlag::eCALLBACK;
+		// Flag stays active so events can be passed to the engine
+		pairFlags |= PxPairFlag::eNOTIFY_TOUCH_FOUND;
+
+
+		return PxFilterFlag::eDEFAULT;
 	}
 
 
@@ -85,7 +89,7 @@ namespace ORNG {
 		scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
 		scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
-		scene_desc.filterCallback = &m_collision_callback;
+		scene_desc.simulationEventCallback = &m_collision_callback;
 
 
 		mp_phys_scene = Physics::GetPhysics()->createScene(scene_desc);
@@ -119,8 +123,6 @@ namespace ORNG {
 			case COMP_DELETED:
 				RemoveComponent(t_event.affected_components[0]);
 				break;
-			case COLLISION:
-				QueueCollisionEvent(t_event);
 			};
 
 		};
@@ -196,9 +198,9 @@ namespace ORNG {
 				return;
 
 			// Check for both types of physics component
-			auto* p_phys_comp = p_transform->GetEntity()->GetComponent<PhysicsComponent>();
+			auto* p_phys_comp = t_event.affected_entities[0]->GetComponent<PhysicsComponent>();
 
-			if (auto* p_controller_comp = p_transform->GetEntity()->GetComponent<CharacterControllerComponent>()) {
+			if (auto* p_controller_comp = t_event.affected_entities[0]->GetComponent<CharacterControllerComponent>()) {
 				glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
 				p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
 			}
@@ -303,7 +305,7 @@ namespace ORNG {
 
 		// Update rigid body type
 		PxTransform current_transform = p_comp->p_rigid_actor->getGlobalPose();
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = nullptr;
+		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_rigid_actor));
 
 		p_comp->p_rigid_actor->release();
 
@@ -352,10 +354,10 @@ namespace ORNG {
 			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_comp->p_shape, 1.f);
 		}
 
+		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
+
 		// Store in entity lookup map for fast retrieval 
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
-
-		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 
 	}
 
@@ -379,13 +381,11 @@ namespace ORNG {
 
 	void PhysicsSystem::OnUpdate(float ts) {
 
-		if (m_physics_paused)
-			return;
-
 		m_accumulator += ts;
 
 		if (m_accumulator < m_step_size)
 			return;
+
 
 		m_accumulator -= m_step_size * 1000.f;
 		mp_phys_scene->simulate(m_step_size);
@@ -408,25 +408,28 @@ namespace ORNG {
 
 		// Process OnCollision callbacks
 		for (auto& pair : m_entity_collision_queue) {
-			if (auto* p_script = pair.first->GetComponent<ScriptComponent>())
-				p_script->OnCollision(pair.first, pair.second, mp_scene);
+			auto* p_first_script = pair.first->GetComponent<ScriptComponent>();
+			auto* p_second_script = pair.second->GetComponent<ScriptComponent>();
 
-			if (auto* p_script = pair.second->GetComponent<ScriptComponent>())
-				p_script->OnCollision(pair.second, pair.first, mp_scene);
+			if (p_first_script)
+				p_first_script->p_symbols->OnCollision(pair.first, pair.second);
+
+			if (p_second_script)
+				p_second_script->p_symbols->OnCollision(pair.second, pair.first);
 		}
 
 		m_entity_collision_queue.clear();
+		m_entity_collision_queue.reserve(500);
 	}
 
 
 
 
 	void PhysicsSystem::QueueCollisionEvent(const Events::ECS_Event<PhysicsComponent>& t_event) {
-		ASSERT(t_event.affected_components.size() == 2 && t_event.affected_components[0] && t_event.affected_components[1]);
-
-		SceneEntity* p_first_ent = t_event.affected_components[0]->GetEntity();
-		SceneEntity* p_second_ent = t_event.affected_components[1]->GetEntity();
-		m_entity_collision_queue.push_back(std::make_pair(p_first_ent, p_second_ent));
+		ASSERT(t_event.affected_components.size() == 2 && t_event.affected_entities[0] && t_event.affected_entities[1]);
+		if (m_entity_collision_queue.size() > 5)
+			BREAKPOINT;
+		//m_entity_collision_queue.push_back(std::make_pair(t_event.affected_entities[0], t_event.affected_entities[1]));
 	}
 
 
@@ -451,30 +454,19 @@ namespace ORNG {
 
 
 
-	PxFilterFlags PhysicsSystem::PhysCollisionCallback::pairFound
-	(PxU64 pairID,
-		PxFilterObjectAttributes attributes0, PxFilterData filterData0, const PxActor* a0, const PxShape* s0,
-		PxFilterObjectAttributes attributes1, PxFilterData filterData1, const PxActor* a1, const PxShape* s1,
-		PxPairFlags& pairFlags) {
-		Events::ECS_Event<PhysicsComponent> e_event;
+	void PhysicsSystem::PhysCollisionCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs)
+	{
 
-		SceneEntity* p_first_ent = mp_system->TryGetEntityFromPxActor(a0);
-		SceneEntity* p_second_ent = mp_system->TryGetEntityFromPxActor(a1);
+		SceneEntity* p_first_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[0]);
+		SceneEntity* p_second_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[1]);
 
-		if (!p_first_ent || !p_second_ent)
-			BREAKPOINT;
+		if (!p_first_ent || !p_second_ent) {
+			ORNG_CORE_ERROR("PhysCollisionCallback failed to find entities from collision event");
+			return;
+		}
 
-		e_event.affected_components.push_back(p_first_ent->GetComponent<PhysicsComponent>());
-		e_event.affected_components.push_back(p_second_ent->GetComponent<PhysicsComponent>());
+		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent, p_second_ent));
 
-		e_event.event_type = Events::ECS_EventType::COLLISION;
-
-		if (e_event.affected_components.size() == 2 && e_event.affected_components[0] && e_event.affected_components[1]) // Ensure components are valid
-			Events::EventManager::DispatchEvent(e_event);
-		else
-			ORNG_CORE_ERROR("PhysCollisionCallback failed to find components from collision event");
-
-		return  PxFilterFlag::eDEFAULT;
 	}
 
 

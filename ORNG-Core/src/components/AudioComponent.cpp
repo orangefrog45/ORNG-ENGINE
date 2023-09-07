@@ -7,7 +7,8 @@ namespace ORNG {
 		Events::ECS_Event<AudioComponent> e_event;
 		e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 		e_event.sub_event_type = (uint32_t)type;
-		e_event.affected_components.push_back(p_comp);
+		e_event.affected_components[0] = p_comp;
+		e_event.affected_entities[0] = p_comp->GetEntity();
 
 		Events::EventManager::DispatchEvent(e_event);
 	}

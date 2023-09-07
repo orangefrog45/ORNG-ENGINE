@@ -115,7 +115,7 @@ namespace ORNG {
 		if (t_event.event_type != Events::ECS_EventType::COMP_UPDATED)
 			return;
 
-		if (auto* meshc = t_event.affected_components[0]->GetEntity()->GetComponent<MeshComponent>()) {
+		if (auto* meshc = t_event.affected_entities[0]->GetComponent<MeshComponent>()) {
 			meshc->mp_instance_group->ActivateFlagSubUpdateWorldMatBuffer();
 			meshc->m_transform_update_flag = true;
 		}

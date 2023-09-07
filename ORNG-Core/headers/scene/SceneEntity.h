@@ -33,7 +33,7 @@ namespace ORNG {
 		// Returns ptr to component or nullptr if no component was found
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
 		T* GetComponent() {
-			return HasComponent<T>() ? &mp_scene->m_registry.get<T>(m_entt_handle) : nullptr;
+			return mp_scene->m_registry.try_get<T>(m_entt_handle);
 		}
 
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>

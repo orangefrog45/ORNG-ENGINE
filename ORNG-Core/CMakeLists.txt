@@ -62,7 +62,7 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
- "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp")
+ "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp" "src/components/TransfomHierarchySystem.cpp")
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
@@ -176,14 +176,16 @@ ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.dll
 ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXDevice64.dll
 CACHE string "Copy these into your .exe directory"
 )
-elseif(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
 ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.dll
 ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXDevice64.dll
 CACHE string "Copy these into your .exe directory"
 )
-else()
+elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     message(FATAL_ERROR "Only debug and release builds are supported")
 endif()
 

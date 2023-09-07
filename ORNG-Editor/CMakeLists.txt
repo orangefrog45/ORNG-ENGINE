@@ -4,8 +4,10 @@ project(ORNG_EDITOR)
 
 add_executable(ORNG_EDITOR 
 src/EditorLayer.cpp
+src/AssetManagerWindow.cpp
+src/ExtraUI.cpp
 src/main.cpp
- "headers/AssetManagerWindow.h" "src/AssetManagerWindow.cpp" "headers/ExtraUI.h" "src/ExtraUI.cpp")
+)
 
 
 target_include_directories(ORNG_EDITOR PUBLIC
@@ -48,7 +50,7 @@ file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Ed
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
 
-file(COPY ${ORNG_CORE_BINARY} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY ${ORNG_CORE_BINARIES} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 
 

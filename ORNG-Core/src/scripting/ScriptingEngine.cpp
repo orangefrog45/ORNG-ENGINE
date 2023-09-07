@@ -125,6 +125,8 @@ namespace ORNG {
 		symbols.OnUpdate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnUpdate"));
 		symbols.OnDestroy = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnDestroy"));
 		symbols.OnCollision = (PhysicsEventCallback)(GetProcAddress(script_dll, "OnCollision"));
+		symbols.SceneEntityCreationSetter = (CreateEntitySetter)(GetProcAddress(script_dll, "SetCreateEntityCallback"));
+		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
 		symbols.loaded = true;
 		symbols.script_path = filepath;
 

@@ -3,9 +3,11 @@
 #include "components/Component.h"
 
 
+namespace ORNG {
+	class SceneEntity;
+}
 
 namespace ORNG::Events {
-	class SceneEntity;
 
 	struct Event {
 		enum EventType {
@@ -61,7 +63,6 @@ namespace ORNG::Events {
 		COMP_ADDED,
 		COMP_UPDATED,
 		COMP_DELETED,
-		COLLISION,
 	};
 
 
@@ -69,7 +70,9 @@ namespace ORNG::Events {
 	struct ECS_Event : public Event {
 		ECS_EventType event_type;
 		uint32_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
-		std::vector<T*> affected_components;
+		std::array<T*, 2> affected_components;
+
+		std::array<SceneEntity*, 2> affected_entities;
 	};
 
 	template <std::derived_from<Event> T>

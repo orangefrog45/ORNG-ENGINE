@@ -13,18 +13,13 @@ namespace ORNG {
 		friend class SceneSerializer;
 		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
-		void SetSymbols(const ScriptSymbols* p_symbols) {
-			OnCreate = p_symbols->OnCreate;
-			OnUpdate = p_symbols->OnUpdate;
-			OnDestroy = p_symbols->OnDestroy;
-			OnCollision = p_symbols->OnCollision;
-			script_filepath = p_symbols->script_path;
+		void SetSymbols(const ScriptSymbols* t_symbols) {
+			p_symbols = t_symbols;
+			script_filepath = t_symbols->script_path;
 		}
 
-		std::function<void(SceneEntity*, Scene*)> OnCreate = [](SceneEntity*, Scene*) {};
-		std::function<void(SceneEntity*, Scene*)> OnUpdate = [](SceneEntity*, Scene*) {};
-		std::function<void(SceneEntity*, Scene*)> OnDestroy = [](SceneEntity*, Scene*) {};
-		std::function<void(SceneEntity*, SceneEntity*, Scene*)> OnCollision = [](SceneEntity*, SceneEntity*, Scene*) {};
+		const ScriptSymbols* p_symbols = nullptr;
+
 	private:
 		std::string script_filepath = "";
 	};
