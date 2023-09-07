@@ -1,3 +1,13 @@
+7/9/23:
+-(Fixed physx collision callback system - nothing to do with fmod but urgently needed doing, memory corruption and crashes)
+
+2/9/23:
+-Asset manager window class and ExtraUI created, editorlayer refactoring
+-(Physics comp editor added back bodytype changing)
+-(Asset management changes - more stable file management)
+-(Basic audio integration - needs a lot more work but positional works now)
+
+
 31/8/23:
 -Material drag and drop fix
 

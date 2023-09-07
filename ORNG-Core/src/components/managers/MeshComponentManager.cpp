@@ -76,11 +76,11 @@ namespace ORNG {
 			OnMeshEvent(t_event);
 		};
 
-		m_asset_listener.OnEvent = [this](const Events::ProjectEvent& t_event) {
-			if (t_event.event_type == Events::ProjectEventType::MATERIAL_DELETED) {
+		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
+			if (t_event.event_type == Events::AssetEventType::MATERIAL_DELETED) {
 				OnMaterialDeletion(reinterpret_cast<Material*>(t_event.data_payload));
 			}
-			else if (t_event.event_type == Events::ProjectEventType::MESH_DELETED) {
+			else if (t_event.event_type == Events::AssetEventType::MESH_DELETED) {
 				OnMeshAssetDeletion(reinterpret_cast<MeshAsset*>(t_event.data_payload));
 			}
 		};
@@ -115,7 +115,7 @@ namespace ORNG {
 		if (t_event.event_type != Events::ECS_EventType::COMP_UPDATED)
 			return;
 
-		if (auto* meshc = t_event.affected_components[0]->GetEntity()->GetComponent<MeshComponent>()) {
+		if (auto* meshc = t_event.affected_entities[0]->GetComponent<MeshComponent>()) {
 			meshc->mp_instance_group->ActivateFlagSubUpdateWorldMatBuffer();
 			meshc->m_transform_update_flag = true;
 		}

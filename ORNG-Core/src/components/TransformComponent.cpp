@@ -101,7 +101,8 @@ namespace ORNG {
 
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event;
-			e_event.affected_components.push_back(this);
+			e_event.affected_components[0] = this;
+			e_event.affected_entities[0] = GetEntity();
 			e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 			e_event.sub_event_type = type;
 			Events::EventManager::DispatchEvent(e_event);

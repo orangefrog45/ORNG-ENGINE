@@ -38,7 +38,7 @@ namespace ORNG::Events {
 
 			// Copy of listener stored instead of pointer for faster iteration.
 			auto entity = Get().m_listener_registry.create();
-			listener.m_entt_handle = (uint32_t)entity;
+			listener.m_entt_handle = entity;
 			Get().m_listener_registry.emplace<EventListener<T>>(entity, listener);
 
 
@@ -56,7 +56,7 @@ namespace ORNG::Events {
 			}
 			// Copy of listener stored instead of pointer for faster iteration.
 			auto entity = Get().m_listener_registry.create();
-			listener.m_entt_handle = (uint32_t)entity;
+			listener.m_entt_handle = entity;
 			Get().m_listener_registry.emplace<ECS_EventListener<T>>(entity, listener);
 
 			// For safety, upon listener being destroyed the copy is too.

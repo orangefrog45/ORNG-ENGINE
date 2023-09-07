@@ -18,7 +18,6 @@
 #include "PhysicsComponent.h"
 
 #include "SceneEntity.h"
-#include "Scene.h"
 
 /* TODO: Provide interface override for logging macros */
 #ifdef ORNG_CORE_TRACE
@@ -67,6 +66,13 @@ extern "C" {
 			inline static ORNG::FrameTiming* mp_instance = nullptr;
 		};
 
+
+		namespace Scene {
+			std::function<ORNG::SceneEntity& (const std::string&)> CreateEntity = nullptr;
+			std::function<void(ORNG::SceneEntity*)> DeleteEntity = nullptr;
+			//__declspec(dllimport) ORNG::SceneEntity& DeleteEntity();
+		}
+
 	};
 
 
@@ -85,6 +91,14 @@ extern "C" {
 		// Connect main application's frametiming system with dll
 		__declspec(dllexport) void SetFrameTimingPtr(ORNG::FrameTiming* p_instance) {
 			ScriptInterface::FrameTiming::mp_instance = p_instance;
+		}
+
+		__declspec(dllexport) void SetCreateEntityCallback(std::function<ORNG::SceneEntity& (const std::string&)> func) {
+			ScriptInterface::Scene::CreateEntity = func;
+		}
+
+		__declspec(dllexport) void SetDeleteEntityCallback(std::function<void(ORNG::SceneEntity*)> func) {
+			ScriptInterface::Scene::DeleteEntity = func;
 		}
 
 

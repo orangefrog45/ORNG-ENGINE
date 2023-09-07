@@ -11,19 +11,25 @@ namespace ORNG {
 		class EventManager;
 	}
 
-	typedef void(__cdecl* ScriptFuncPtr)(SceneEntity*, Scene*);
-	typedef void(__cdecl* PhysicsEventCallback)(SceneEntity*, SceneEntity*, Scene*);
+	typedef void(__cdecl* ScriptFuncPtr)(SceneEntity*);
+	typedef void(__cdecl* PhysicsEventCallback)(SceneEntity*, SceneEntity*);
 	typedef void(__cdecl* InputSetter)(Input*);
 	typedef void(__cdecl* EventInstanceSetter)(Events::EventManager*);
 	typedef void(__cdecl* FrameTimingSetter)(FrameTiming*);
+	typedef void(__cdecl* CreateEntitySetter)(std::function<ORNG::SceneEntity& (const std::string&)>);
+	typedef void(__cdecl* DeleteEntitySetter)(std::function<void(SceneEntity* p_entity)>);
 
 	struct ScriptSymbols {
 		bool loaded = false;
 		std::string script_path;
-		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity, Scene*) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
-		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity, Scene*) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
-		ScriptFuncPtr OnDestroy = [](SceneEntity* p_entity, Scene*) { ORNG_CORE_ERROR("OnDestroy symbol not loaded"); };
-		PhysicsEventCallback OnCollision = [](SceneEntity* p_this, SceneEntity* p_other, Scene*) {};
+		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
+		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
+		ScriptFuncPtr OnDestroy = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnDestroy symbol not loaded"); };
+		PhysicsEventCallback OnCollision = [](SceneEntity* p_this, SceneEntity* p_other) {};
+
+		// These set the appropiate callback functions in the scripts DLL so they can modify the scene
+		CreateEntitySetter SceneEntityCreationSetter = nullptr;
+		DeleteEntitySetter SceneEntityDeletionSetter = nullptr;
 	};
 
 	class ScriptingEngine {

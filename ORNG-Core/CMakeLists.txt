@@ -62,11 +62,12 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
- "src/scripting/ScriptingEngine.cpp"  )
+ "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp" "src/components/TransfomHierarchySystem.cpp")
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
 )
+
 
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
@@ -76,8 +77,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
 
-target_compile_options(glfw PRIVATE $<$<CONFIG:Debug>:/MDd>)
-target_compile_options(glfw PRIVATE $<$<CONFIG:Release>:/MD>)
+target_compile_options(glfw PRIVATE /MD$<$<CONFIG:Debug>:d>)
 
 target_include_directories(imgui PUBLIC 
 extern/imgui
@@ -133,10 +133,6 @@ set( PHYSX_LIBRARIES
 
 
 
-
-#set(PX_COPY_EXTERNAL_DLL OFF CACHE BOOL "Physx copies external dlls" FORCE)
-#set(PUBLIC_RELEASE OFF CACHE BOOL "" FORCE)
-
 add_compile_definitions(PX_PHYSX_STATIC_LIB PX_SUPPORT_GPU_PHYSX)
 add_subdirectory(extern/physx/physx/compiler/public)
 
@@ -146,6 +142,7 @@ target_include_directories(ORNG_CORE
 	"physx-complete/physx/physx/include/" 
 	"physx-complete/physx/pxshared/include/" 
 	"physx-complete/physx/physx/snippets/"
+	"${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc"
 )
 
 
@@ -156,6 +153,7 @@ libglew_static
 assimp
 spdlog::spdlog_header_only
 yaml-cpp
+${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib
 ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}
@@ -169,6 +167,27 @@ headers/pch/pch.h
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
 target_compile_definitions(ORNG_CORE PUBLIC PHYSX_BIN_OUTPUT_DIR="${PHYSX_ROOT_LIB_DIR}")
+
+
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+set(ORNG_CORE_BINARIES 
+${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmodL.dll
+${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.dll
+${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXDevice64.dll
+CACHE string "Copy these into your .exe directory"
+)
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+set(ORNG_CORE_BINARIES 
+${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
+${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.dll
+${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXDevice64.dll
+CACHE string "Copy these into your .exe directory"
+)
+elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
+    message(FATAL_ERROR "Only debug and release builds are supported")
+endif()
 
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/")

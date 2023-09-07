@@ -23,8 +23,11 @@ namespace ORNG {
 			((PxRigidDynamic*)p_rigid_actor)->addForce(PxVec3(force.x, force.y, force.z));
 	}
 
+
 	void PhysicsComponent::SetVelocity(glm::vec3 v) {
 	}
+
+
 	glm::vec3 PhysicsComponent::GetVelocity() const {
 		auto vec = ((PxRigidDynamic*)p_rigid_actor)->getLinearVelocity();
 		return glm::vec3(vec.x, vec.y, vec.z);
@@ -32,7 +35,8 @@ namespace ORNG {
 
 	void PhysicsComponent::SendUpdateEvent() {
 		Events::ECS_Event<PhysicsComponent> phys_event;
-		phys_event.affected_components.push_back(this);
+		phys_event.affected_components[0] = this;
+		phys_event.affected_entities[0] = GetEntity();
 		phys_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 
 		Events::EventManager::DispatchEvent(phys_event);

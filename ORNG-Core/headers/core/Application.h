@@ -6,7 +6,7 @@ namespace ORNG {
 	class Application
 	{
 	public:
-		Application();
+		Application() = default;
 		~Application() = default;
 
 		// Initializes all core engine modules and starts propagating events

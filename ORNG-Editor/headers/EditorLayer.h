@@ -1,6 +1,7 @@
 #pragma once
 #include "EngineAPI.h"
 #include "../extern/imgui/imgui.h"
+#include "AssetManagerWindow.h"
 
 namespace physx {
 	class PxMaterial;
@@ -19,8 +20,6 @@ namespace ORNG {
 		void OnInit() override { Init(); };
 		void Update() override;
 		void OnRender() override { RenderDisplayWindow(); RenderUI(); };
-		void OnProjectEvent(const Events::ProjectEvent& t_event);
-
 
 		// Sets up directory structure for a new project
 		bool GenerateProject(const std::string& project_name);
@@ -54,9 +53,7 @@ namespace ORNG {
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
-
-		void CreateMeshPreview(MeshAsset* p_asset);
-		void CreateMaterialPreview(const Material* p_material);
+		void RenderAudioComponentEditor(AudioComponent* p_audio);
 
 		void RenderErrorMessages();
 		void GenerateErrorMessage(const std::string& error_str = "");
@@ -121,24 +118,7 @@ namespace ORNG {
 				m_selected_entity_ids.erase(it);
 		}
 
-
-		void ShowAssetManager();
-		void RenderTextureEditorSection();
-		bool RenderMaterialEditorSection();
-
-
-
-		void ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback);
-
-		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
-		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
-		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
-		bool RenderMaterialTexture(const char* name, Texture2D*& p_tex);
-		static bool H1TreeNode(const char* name);
-		static bool H2TreeNode(const char* name);
-		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
-		// Creates an empty imgui tree node
-		static bool EmptyTreeNode(const char* name);
+		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory };
 
 		// Stores temporary serialized yaml data to load back in after exiting "play mode"
 		std::string m_temp_scene_serialization;
@@ -147,7 +127,6 @@ namespace ORNG {
 
 		// Texture spec for rendering the scene
 		Texture2DSpec m_color_render_texture_spec;
-		Texture2DSpec m_asset_preview_spec;
 
 		std::string m_executable_directory;
 		// Working directory will always be this
@@ -165,21 +144,15 @@ namespace ORNG {
 
 		// Contains the actual rendering of the scene
 		std::unique_ptr<Texture2D> mp_scene_display_texture{ nullptr };
-		std::unordered_map<const MeshAsset*, std::shared_ptr<Texture2D>> m_mesh_preview_textures;
-		std::unordered_map<const Material*, std::shared_ptr<Texture2D>> m_material_preview_textures;
-		// Have to store these in a vector and process at a specific stage otherwise ImGui breaks, any material in this vector will have a preview rendered for use in its imgui imagebutton
-		std::vector<Material*> m_materials_to_gen_previews;
 
 		// Used to render error messages - stores log history at point the error occured
 		std::vector<std::vector<std::string>> m_error_log_stack;
 
-		Events::EventListener<Events::ProjectEvent> m_asset_listener;
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
 		std::unique_ptr<Scene> m_active_scene = nullptr;
-		std::unique_ptr<Scene> mp_preview_scene = nullptr;
 
 		std::unique_ptr<SceneEntity> mp_editor_camera{nullptr };
 

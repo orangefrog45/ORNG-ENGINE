@@ -33,8 +33,6 @@ namespace ORNG {
 		// Deserializes assets and links meshes with their materials
 		static bool DeserializeAssets(const std::string& filepath);
 
-		static void SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data);
-		static void DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 		// Entity argument is the entity that the data will be loaded into

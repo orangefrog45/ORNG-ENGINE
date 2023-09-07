@@ -6,3 +6,4 @@
 #include "components/ScriptComponent.h"
 #include "components/TransformComponent.h"
 #include "components/PhysicsComponent.h"
+#include "components/AudioComponent.h"

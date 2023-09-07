@@ -1,10 +1,7 @@
 #include "pch/pch.h"
 
 #include <yaml-cpp/yaml.h>
-#include <bitsery/bitsery.h>
-#include <bitsery/traits/vector.h>
-#include <bitsery/adapter/stream.h>
-#include "bitsery/traits/string.h"
+
 
 
 
@@ -71,44 +68,6 @@ namespace YAML {
 	};
 }
 
-namespace bitsery {
-	using namespace ORNG;
-	template <typename S>
-	void serialize(S& s, glm::vec3& o) {
-		s.value4b(o.x);
-		s.value4b(o.y);
-		s.value4b(o.z);
-	}
-
-	template <typename S>
-	void serialize(S& s, VertexData3D& o) {
-		s.container4b(o.positions, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.normals, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.tangents, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.tex_coords, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
-	}
-
-
-	template <typename S>
-	void serialize(S& s, AABB& o) {
-		s.object(o.max);
-		s.object(o.min);
-		s.object(o.center);
-	}
-
-	template <typename S>
-	void serialize(S& s, MeshAsset::MeshEntry& o) {
-		s.value4b(o.base_index);
-		s.value4b(o.base_vertex);
-		s.value4b(o.material_index);
-		s.value4b(o.num_indices);
-	}
-	template<typename S>
-	void serialize(S& s, VAO& o) {
-		s.object(o.vertex_data);
-	}
-}
 
 namespace ORNG {
 
@@ -369,10 +328,10 @@ namespace ORNG {
 		out << YAML::EndSeq;
 
 		out << YAML::Key << "DirLight" << YAML::BeginMap;
-		out << YAML::Key << "Colour" << YAML::Value << scene.m_directional_light.color;
-		out << YAML::Key << "Direction" << YAML::Value << scene.m_directional_light.GetLightDirection();
-		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.m_directional_light.cascade_ranges[0], scene.m_directional_light.cascade_ranges[1], scene.m_directional_light.cascade_ranges[2]);
-		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.m_directional_light.z_mults[0], scene.m_directional_light.z_mults[1], scene.m_directional_light.z_mults[2]);
+		out << YAML::Key << "Colour" << YAML::Value << scene.directional_light.color;
+		out << YAML::Key << "Direction" << YAML::Value << scene.directional_light.GetLightDirection();
+		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
+		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
 		out << YAML::EndMap;
 
 
@@ -437,12 +396,12 @@ namespace ORNG {
 
 		// Directional light
 		auto dir_light = data["DirLight"];
-		scene.m_directional_light.color = dir_light["Colour"].as<glm::vec3>();
-		scene.m_directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
+		scene.directional_light.color = dir_light["Colour"].as<glm::vec3>();
+		scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
 		glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
-		scene.m_directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
+		scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
 		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
-		scene.m_directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
+		scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 
 		// Skybox/Env map
 		auto skybox = data["Skybox"];
@@ -459,8 +418,8 @@ namespace ORNG {
 
 
 	void SceneSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
-		std::string mesh_folder = project_dir + "\\res\\meshes\\";
 		std::string texture_folder = project_dir + "\\res\\textures\\";
+		std::string audio_folder = project_dir + "\\res\\audio\\";
 
 		Texture2DSpec default_spec;
 		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -468,28 +427,12 @@ namespace ORNG {
 		default_spec.generate_mipmaps = true;
 		default_spec.storage_type = GL_UNSIGNED_BYTE;
 
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
-			bool is_mesh_loaded = false;
-
-			for (const auto* p_mesh : AssetManager::Get().m_meshes) {
-				try {
-					is_mesh_loaded |= std::filesystem::equivalent(p_mesh->m_filename, entry.path().string());
-				}
-				catch (std::exception e) {
-					ORNG_CORE_ERROR("std::filesystem err: '{0}'", e.what());
-				}
-			}
-
-			if (is_mesh_loaded)
-				continue;
-			else {
-				std::string path = entry.path().string();
-				AssetManager::CreateMeshAsset(path.substr(path.rfind("\\res\\") + 1));
-			}
-		}
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
 			bool is_tex_loaded = false;
+
+			if (entry.is_directory() || entry.path().string().find("diffuse_prefilter") != std::string::npos) // Skip serialized diffuse prefilter
+				continue;
 
 			for (const auto* p_tex : AssetManager::Get().m_2d_textures) {
 				try {
@@ -507,6 +450,14 @@ namespace ORNG {
 				default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
 				AssetManager::CreateTexture2D(default_spec);
 			}
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(audio_folder)) {
+			auto path = entry.path();
+			if (entry.is_directory() || !(path.extension() == ".mp3" || path.extension() == ".wav"))
+				continue;
+			else
+				AssetManager::AddSoundAsset(entry.path().string());
 		}
 
 
@@ -590,17 +541,15 @@ namespace ORNG {
 				material_vec.push_back(mesh_material_vec);
 
 
-				if (std::string serialized_filepath = "res\\meshes\\" + asset_filepath.substr(asset_filepath.find_last_of("\\") + 1) + ".bin"; std::filesystem::exists(serialized_filepath)) {
+				if (asset_filepath.ends_with(".bin") && std::filesystem::exists(asset_filepath)) {
 					// Load from binary file
-					auto* p_asset = AssetManager::CreateMeshAsset(serialized_filepath, id);
-					DeserializeMeshAssetBinary(serialized_filepath, *p_asset);
-					AssetManager::LoadMeshAssetIntoGL(p_asset, mesh_material_vec);
-					AssetManager::DispatchAssetEvent(Events::ProjectEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_asset));
+					auto* p_asset = AssetManager::CreateMeshAsset(asset_filepath, id);
+					AssetManager::DeserializeMeshAssetBinary(asset_filepath, *p_asset);
+					AssetManager::LoadMeshAssetIntoGL(p_asset, mesh_material_vec, false);
+					AssetManager::DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_asset));
 				}
 				else {
-					// Load from source asset file
-					auto* p_asset = AssetManager::CreateMeshAsset(asset_filepath, id);
-					AssetManager::LoadMeshAssetPreExistingMaterials(p_asset, mesh_material_vec);
+					ORNG_CORE_ERROR("Invalid mesh asset filepath serialized in assets.yml: '{0}'", asset_filepath);
 				}
 
 			}
@@ -691,41 +640,5 @@ namespace ORNG {
 
 
 
-	void SceneSerializer::SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
-		std::ofstream s{ filepath, s.binary | s.trunc | s.out };
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
-			return;
-		}
-		// we cannot use quick serialization function, because streams cannot use
-// writtenBytesCount method
-		bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
-		ser.object(data);
-		// flush to writer
-		ser.adapter().flush();
-		s.close();
-	}
 
-	void SceneSerializer::DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
-		std::ifstream s{ filepath, std::ios::binary };
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
-			return;
-		}
-
-		// Use buffered stream adapter
-		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
-
-		// Deserialize individual objects
-		des.object(data.m_vao);
-		des.object(data.m_aabb);
-		//des.object(data.m_aabb);
-		uint32_t size;
-		des.value4b(size);
-		data.m_submeshes.resize(size);
-		for (int i = 0; i < size; i++) {
-			des.object(data.m_submeshes[i]);
-		}
-
-	}
 }

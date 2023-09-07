@@ -8,19 +8,19 @@
 extern "C" {
 	using namespace ORNG;
 
-	__declspec(dllexport) void OnCreate(ORNG::SceneEntity* p_entity, ORNG::Scene* p_scene) {
+	__declspec(dllexport) void OnCreate(ORNG::SceneEntity* p_entity) {
 
 	}
 
-	__declspec(dllexport) void OnUpdate(ORNG::SceneEntity* p_entity, ORNG::Scene* p_scene) {
+	__declspec(dllexport) void OnUpdate(ORNG::SceneEntity* p_entity) {
 
 	}
 
-	__declspec(dllexport) void OnDestroy(ORNG::SceneEntity* p_entity, ORNG::Scene* p_scene) {
+	__declspec(dllexport) void OnDestroy(ORNG::SceneEntity* p_entity) {
 
 	}
 
-	__declspec(dllexport) void OnCollision(ORNG::SceneEntity* p_this, ORNG::SceneEntity* p_other, ORNG::Scene* p_scene) {
+	__declspec(dllexport) void OnCollision(ORNG::SceneEntity* p_this, ORNG::SceneEntity* p_other) {
 
 	}
 

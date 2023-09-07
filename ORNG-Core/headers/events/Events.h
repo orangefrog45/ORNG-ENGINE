@@ -3,9 +3,11 @@
 #include "components/Component.h"
 
 
+namespace ORNG {
+	class SceneEntity;
+}
 
 namespace ORNG::Events {
-	class SceneEntity;
 
 	struct Event {
 		enum EventType {
@@ -43,7 +45,7 @@ namespace ORNG::Events {
 
 	};
 
-	enum class ProjectEventType {
+	enum class AssetEventType {
 		MATERIAL_DELETED,
 		MESH_DELETED,
 		MESH_LOADED,
@@ -52,8 +54,8 @@ namespace ORNG::Events {
 		TEXTURE_LOADED,
 	};
 
-	struct ProjectEvent : public Event {
-		ProjectEventType event_type;
+	struct AssetEvent : public Event {
+		AssetEventType event_type;
 		uint8_t* data_payload = nullptr; // Data payload will be a ptr to the asset being modified if it's an asset event
 	};
 
@@ -61,14 +63,16 @@ namespace ORNG::Events {
 		COMP_ADDED,
 		COMP_UPDATED,
 		COMP_DELETED,
-		COLLISION,
 	};
+
 
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
 		ECS_EventType event_type;
 		uint32_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
-		std::vector<T*> affected_components;
+		std::array<T*, 2> affected_components;
+
+		std::array<SceneEntity*, 2> affected_entities;
 	};
 
 	template <std::derived_from<Event> T>
@@ -81,10 +85,10 @@ namespace ORNG::Events {
 		std::function<void(const T&)> OnEvent = nullptr;
 
 		// Handle used for deregistration, set by eventmanager on listener registration
-		uint32_t GetRegisterID() { return m_entt_handle; }
+		entt::entity GetRegisterID() { return m_entt_handle; }
 	private:
 		// Given upon listener being registered with EventManager
-		uint32_t m_entt_handle = 0;
+		entt::entity m_entt_handle = entt::entity(0);
 		// Function given by event manager when listener is registered
 		std::function<void()> OnDestroy = nullptr;
 	};

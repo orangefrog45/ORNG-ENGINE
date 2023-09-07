@@ -1,5 +1,4 @@
 #include "pch/pch.h"
-
 #include "util/TimeStep.h"
 #include "scene/Scene.h"
 #include "util/util.h"
@@ -18,14 +17,25 @@ namespace ORNG {
 
 	void Scene::Update(float ts) {
 
-		m_physics_system.OnUpdate(ts);
 
 		m_mesh_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
+		m_audio_system.OnUpdate();
 
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			script.OnUpdate(script.GetEntity(), this);
+			script.p_symbols->SceneEntityCreationSetter([this](const std::string& str) -> SceneEntity& {
+				return CreateEntity(str);
+				});
+
+			script.p_symbols->SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
+				DeleteEntity(p_entity);
+				});
+
+			script.p_symbols->OnUpdate(script.GetEntity());
 		}
+
+		m_physics_system.OnUpdate(ts);
+
 
 		if (m_camera_system.GetActiveCamera())
 			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
@@ -87,6 +97,7 @@ namespace ORNG {
 		m_mesh_component_manager.OnLoad();
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
+		m_audio_system.OnLoad();
 
 		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
@@ -110,6 +121,7 @@ namespace ORNG {
 		m_physics_system.OnUnload();
 		m_mesh_component_manager.OnUnload();
 		m_camera_system.OnUnload();
+		m_audio_system.OnUnload();
 
 		m_entities.clear();
 		ORNG_CORE_INFO("Scene unloaded");

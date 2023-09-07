@@ -40,6 +40,7 @@ namespace ORNG {
 		Skybox skybox;
 		Terrain terrain;
 		PostProcessing post_processing;
+		DirectionalLight directional_light;
 
 		void ClearAllEntities() {
 			unsigned int max_iters = 10'000'000;
@@ -63,8 +64,6 @@ namespace ORNG {
 	private:
 		bool m_is_loaded = false;
 
-		BaseLight m_global_ambient_lighting = BaseLight(0);
-		DirectionalLight m_directional_light;
 
 		std::vector<SceneEntity*> m_entities;
 
@@ -72,6 +71,7 @@ namespace ORNG {
 		PhysicsSystem m_physics_system{ &m_registry, uuid(), this };
 		CameraSystem m_camera_system{ &m_registry, uuid() };
 		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };
+		AudioSystem m_audio_system{ &m_registry, uuid(), &m_camera_system.m_active_cam_entity_handle };
 
 		entt::registry m_registry;
 		std::string m_name = "Untitled scene";
