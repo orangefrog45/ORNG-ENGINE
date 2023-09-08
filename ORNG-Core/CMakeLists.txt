@@ -62,7 +62,8 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
- "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp" "src/components/TransfomHierarchySystem.cpp")
+ "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp" "src/components/TransfomHierarchySystem.cpp"
+ "src/scene/SceneManager.cpp")
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
@@ -167,6 +168,29 @@ headers/pch/pch.h
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
 target_compile_definitions(ORNG_CORE PUBLIC PHYSX_BIN_OUTPUT_DIR="${PHYSX_ROOT_LIB_DIR}")
+
+# Decompress physx gpu dll (has to be compressed to stay under github's file size limit)
+if (CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+	set(PHYSX_GPU_DLL_ZIP "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.zip")
+	set(EXTRACTION_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release")
+endif()
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+set(PHYSX_GPU_DLL_ZIP "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.zip")
+	set(EXTRACTION_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug")
+	endif()
+
+
+set(POWERSHELL_COMMAND "Expand-Archive -Path \"${PHYSX_GPU_DLL_ZIP}\" -DestinationPath \"${EXTRACTION_DIRECTORY}\"")
+execute_process(
+    COMMAND powershell.exe -ExecutionPolicy Bypass -Command "${POWERSHELL_COMMAND}"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    RESULT_VARIABLE ZIP_EXTRACTION_RESULT
+)
+if (ZIP_EXTRACTION_RESULT EQUAL 0)
+    message(STATUS "Successfully extracted ${ZIP_FILE} to ${EXTRACTION_DIRECTORY}")
+else ()
+    message(FATAL_ERROR "Failed to extract ${ZIP_FILE}. Error code: ${ZIP_EXTRACTION_RESULT}")
+endif ()
 
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)

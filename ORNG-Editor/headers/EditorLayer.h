@@ -16,6 +16,13 @@ namespace ORNG {
 	public:
 		void Init();
 
+		enum EntityNodeEvent {
+
+			E_NONE = 0,
+			E_DELETE = 1,
+			E_DUPLICATE = 2
+		};
+
 	private:
 		void OnInit() override { Init(); };
 		void Update() override;
@@ -87,12 +94,7 @@ namespace ORNG {
 		void RenderProfilingTimers();
 		void RenderSkyboxEditor();
 
-		enum EntityNodeEvent {
 
-			E_NONE = 0,
-			E_DELETE = 1,
-			E_DUPLICATE = 2
-		};
 
 		EntityNodeEvent RenderEntityNode(SceneEntity* p_entity, unsigned int layer);
 		void RenderDirectionalLightEditor();

@@ -66,6 +66,7 @@ namespace ORNG {
 
 
 		std::vector<SceneEntity*> m_entities;
+		std::vector<SceneEntity*> m_entity_deletion_queue;
 
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
 		PhysicsSystem m_physics_system{ &m_registry, uuid(), this };
@@ -74,6 +75,9 @@ namespace ORNG {
 		AudioSystem m_audio_system{ &m_registry, uuid(), &m_camera_system.m_active_cam_entity_handle };
 
 		entt::registry m_registry;
+
+		entt::registry m_prefabs;
+
 		std::string m_name = "Untitled scene";
 	};
 

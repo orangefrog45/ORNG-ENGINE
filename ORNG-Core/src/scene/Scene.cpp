@@ -28,17 +28,28 @@ namespace ORNG {
 				});
 
 			script.p_symbols->SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
-				DeleteEntity(p_entity);
+				m_entity_deletion_queue.push_back(p_entity);
 				});
 
-			script.p_symbols->OnUpdate(script.GetEntity());
+			try {
+				script.p_symbols->OnUpdate(script.GetEntity());
+			}
+			catch (std::exception e) {
+				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.p_symbols->script_path, e.what());
+			}
 		}
 
 		m_physics_system.OnUpdate(ts);
 
-
 		if (m_camera_system.GetActiveCamera())
 			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
+
+
+		for (auto* p_entity : m_entity_deletion_queue) {
+			DeleteEntity(p_entity);
+		}
+
+		m_entity_deletion_queue.clear();
 	}
 
 

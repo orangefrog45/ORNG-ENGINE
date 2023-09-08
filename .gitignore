@@ -8,8 +8,7 @@ ORNG Editor/res/meshes
 ORNG Editor/res/textures
 
 x64/
-OAR/x64/
-
+PhysXGpu_64.dll
 *.yml
 
 CMakeLists.txt.user

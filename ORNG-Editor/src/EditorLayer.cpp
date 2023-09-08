@@ -936,7 +936,6 @@ namespace ORNG {
 
 
 
-
 	void EditorLayer::RenderSceneGraph() {
 		if (ImGui::Begin("Scene graph")) {
 			// Click anywhere on window to deselect entity nodes
@@ -950,6 +949,9 @@ namespace ORNG {
 			ImGui::Text("Editor cam exposure");
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
+			if (ExtraUI::H2TreeNode("Prefabs")) {
+
+			}
 
 			if (ExtraUI::H2TreeNode("Entities")) {
 
@@ -965,9 +967,7 @@ namespace ORNG {
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
 
-					if (EntityNodeEvent e_event = RenderEntityNode(p_entity, 0); e_event == EntityNodeEvent::E_DUPLICATE || e_event == EntityNodeEvent::E_DELETE) {
-						active_event = e_event;
-					}
+					active_event = (EntityNodeEvent)(RenderEntityNode(p_entity, 0) | active_event);
 				}
 
 				// Process node events
