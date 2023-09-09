@@ -13,11 +13,13 @@ namespace ORNG {
 
 	typedef void(__cdecl* ScriptFuncPtr)(SceneEntity*);
 	typedef void(__cdecl* PhysicsEventCallback)(SceneEntity*, SceneEntity*);
+	// Function ptr setters that enable the script to call some engine functions without dealing with certain unnecessary libs/includes
 	typedef void(__cdecl* InputSetter)(Input*);
 	typedef void(__cdecl* EventInstanceSetter)(Events::EventManager*);
 	typedef void(__cdecl* FrameTimingSetter)(FrameTiming*);
 	typedef void(__cdecl* CreateEntitySetter)(std::function<ORNG::SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* DeleteEntitySetter)(std::function<void(SceneEntity* p_entity)>);
+	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
 
 	struct ScriptSymbols {
 		bool loaded = false;
@@ -30,6 +32,7 @@ namespace ORNG {
 		// These set the appropiate callback functions in the scripts DLL so they can modify the scene
 		CreateEntitySetter SceneEntityCreationSetter = nullptr;
 		DeleteEntitySetter SceneEntityDeletionSetter = nullptr;
+		DuplicateEntitySetter SceneEntityDuplicationSetter = nullptr;
 	};
 
 	class ScriptingEngine {

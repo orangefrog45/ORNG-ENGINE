@@ -18,6 +18,7 @@
 #include "PhysicsComponent.h"
 
 #include "SceneEntity.h"
+#include "scripting/SceneScriptInterface.h"
 
 /* TODO: Provide interface override for logging macros */
 #ifdef ORNG_CORE_TRACE
@@ -67,12 +68,6 @@ extern "C" {
 		};
 
 
-		namespace Scene {
-			std::function<ORNG::SceneEntity& (const std::string&)> CreateEntity = nullptr;
-			std::function<void(ORNG::SceneEntity*)> DeleteEntity = nullptr;
-			//__declspec(dllimport) ORNG::SceneEntity& DeleteEntity();
-		}
-
 	};
 
 
@@ -99,6 +94,10 @@ extern "C" {
 
 		__declspec(dllexport) void SetDeleteEntityCallback(std::function<void(ORNG::SceneEntity*)> func) {
 			ScriptInterface::Scene::DeleteEntity = func;
+		}
+
+		__declspec(dllexport) void SetDuplicateEntityCallback(std::function<ORNG::SceneEntity& (ORNG::SceneEntity&)> func) {
+			ScriptInterface::Scene::DuplicateEntity = func;
 		}
 
 

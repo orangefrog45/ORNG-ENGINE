@@ -45,8 +45,8 @@ namespace ORNG {
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
 			std::vector<const Material*> material_vec;
 			if (comp->m_materials.empty()) {
-				for (auto* p_material : comp->mp_mesh_asset->m_material_assets) {
-					material_vec.push_back(p_material);
+				for (int i = 0; i < comp->mp_mesh_asset->num_materials; i++) {
+					material_vec.push_back(AssetManager::GetEmptyMaterial());
 				}
 			}
 			else {
@@ -131,8 +131,8 @@ namespace ORNG {
 
 		for (auto& group : m_instance_groups) {
 			//Set materials
-			for (auto* p_material : group->m_mesh_asset->m_material_assets) {
-				group->m_materials.push_back(p_material);
+			for (int i = 0; i < group->m_mesh_asset->num_materials; i++) {
+				group->m_materials.push_back(AssetManager::GetEmptyMaterial());
 			}
 
 			for (auto* p_mesh : group->m_instances) {

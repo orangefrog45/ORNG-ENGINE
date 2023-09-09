@@ -6,6 +6,7 @@
 #include "scene/SceneEntity.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "core/AssetManager.h"
+#include "scene/SceneSerializer.h"
 
 
 namespace ORNG {
@@ -29,6 +30,10 @@ namespace ORNG {
 
 			script.p_symbols->SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
 				m_entity_deletion_queue.push_back(p_entity);
+				});
+
+			script.p_symbols->SceneEntityDuplicationSetter([this](SceneEntity& ent) -> SceneEntity& {
+				return DuplicateEntity(ent);
 				});
 
 			try {
@@ -73,9 +78,6 @@ namespace ORNG {
 	}
 
 
-
-
-
 	SceneEntity* Scene::GetEntity(uint64_t uuid) {
 		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetUUID() == uuid; });
 		return it == m_entities.end() ? nullptr : *it;
@@ -90,6 +92,21 @@ namespace ORNG {
 		return it == m_entities.end() ? nullptr : *it;
 	}
 
+
+
+	SceneEntity& Scene::DuplicateEntity(SceneEntity& original) {
+		SceneEntity& new_entity = CreateEntity(original.name + " - Duplicate");
+		std::string str = SceneSerializer::SerializeEntityIntoString(original);
+		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity);
+
+		auto* p_relation_comp = original.GetComponent<RelationshipComponent>();
+		SceneEntity* p_current_child = GetEntity(p_relation_comp->first);
+		while (p_current_child) {
+			DuplicateEntity(*p_current_child).SetParent(new_entity);
+			p_current_child = GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
+		}
+		return new_entity;
+	}
 
 
 
@@ -139,8 +156,8 @@ namespace ORNG {
 	}
 
 
+
 	SceneEntity& Scene::CreateEntity(const std::string& name, uint64_t uuid) {
-		// Choose to create with uuid or not
 		auto reg_ent = m_registry.create();
 		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent) : new SceneEntity(uuid, reg_ent, this);
 		ent->name = name;

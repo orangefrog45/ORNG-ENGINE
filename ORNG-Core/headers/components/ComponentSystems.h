@@ -183,7 +183,6 @@ namespace ORNG {
 
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
 
-		void QueueCollisionEvent(const Events::ECS_Event<PhysicsComponent>& t_event);
 
 		Scene* mp_scene = nullptr;
 		entt::registry* mp_registry = nullptr;

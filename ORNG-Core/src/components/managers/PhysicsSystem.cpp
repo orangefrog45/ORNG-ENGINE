@@ -424,16 +424,6 @@ namespace ORNG {
 
 
 
-
-	void PhysicsSystem::QueueCollisionEvent(const Events::ECS_Event<PhysicsComponent>& t_event) {
-		ASSERT(t_event.affected_components.size() == 2 && t_event.affected_entities[0] && t_event.affected_entities[1]);
-		if (m_entity_collision_queue.size() > 5)
-			BREAKPOINT;
-		//m_entity_collision_queue.push_back(std::make_pair(t_event.affected_entities[0], t_event.affected_entities[1]));
-	}
-
-
-
 	void PhysicsSystem::RemoveComponent(CharacterControllerComponent* p_comp) {
 		p_comp->mp_controller->release();
 	};

@@ -69,16 +69,16 @@ namespace ORNG {
 
 				for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
 					[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
-						auto mesh_package = m_mesh_loading_queue[i].get();
+						auto* p_mesh = m_mesh_loading_queue[i].get();
 
 						m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
 						i--;
 
-						LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials, mesh_package.use_external_materials);
+						LoadMeshAssetIntoGL(p_mesh);
 
 						Events::AssetEvent e_event;
 						e_event.event_type = Events::AssetEventType::MESH_LOADED;
-						e_event.data_payload = reinterpret_cast<uint8_t*>(mesh_package.p_asset);
+						e_event.data_payload = reinterpret_cast<uint8_t*>(p_mesh);
 						Events::EventManager::DispatchEvent(e_event);
 					}
 
@@ -94,17 +94,17 @@ namespace ORNG {
 		while (!m_mesh_loading_queue.empty()) {
 			for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
 				[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
-					auto mesh_package = m_mesh_loading_queue[i].get();
+					auto* p_mesh_asset = m_mesh_loading_queue[i].get();
 
 					m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
 					i--;
 
-					LoadMeshAssetIntoGL(mesh_package.p_asset, mesh_package.materials, mesh_package.use_external_materials);
+					LoadMeshAssetIntoGL(p_mesh_asset);
 					for (auto& future : m_texture_futures) {
 						future.get();
 					}
 					m_texture_futures.clear();
-					DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(mesh_package.p_asset));
+					DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_mesh_asset));
 				}
 
 			}
@@ -227,23 +227,6 @@ namespace ORNG {
 	}
 
 
-
-	void AssetManager::LoadMeshAssetPreExistingMaterials(MeshAsset* asset, std::vector<Material*>& materials) {
-		if (asset->m_is_loaded) {
-			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
-			return;
-		}
-
-		Get().m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [asset, materials] {
-			asset->LoadMeshData();
-			return MeshAssetPackage{ asset, materials, true };
-			}));
-
-	}
-
-
-
-
 	void AssetManager::IDeleteMaterial(uint64_t uuid) {
 		auto it = std::ranges::find_if(m_materials, [uuid](auto* p_mat) {return p_mat->uuid() == uuid; });
 
@@ -258,7 +241,7 @@ namespace ORNG {
 
 	}
 
-	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset, std::vector<Material*>& materials, bool use_external_materials) {
+	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset) {
 
 		if (asset->m_is_loaded) {
 			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
@@ -281,8 +264,10 @@ namespace ORNG {
 			dir = asset->GetFilename().substr(0, slash_index);
 		}
 
-		if (use_external_materials) {
+		// p_scene will be nullptr if the mesh was loaded from a binary file, then default materials will be provided
+		if (asset->p_scene) {
 			for (unsigned int i = 0; i < asset->p_scene->mNumMaterials; i++) {
+				asset->num_materials++;
 				const aiMaterial* p_material = asset->p_scene->mMaterials[i];
 				Material* p_new_material = Get().ICreateMaterial();
 
@@ -314,37 +299,22 @@ namespace ORNG {
 				if (!p_new_material->base_color_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
 					&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
 					DeleteMaterial(p_new_material);
-					asset->m_material_assets.emplace_back(&Get().m_replacement_material);
 				}
-				else {
-					asset->m_material_assets.emplace_back(p_new_material);
-				}
-			}
-		}
-		else {
-			if (!materials.empty())
-				asset->m_material_assets = materials;
-			else
-			{ // Make sure the mesh has enough materials for the indices
-				int num_materials = 0;
-				for (auto& submesh : asset->m_submeshes) {
-					num_materials = num_materials < submesh.material_index ? submesh.material_index : num_materials;
-				}
-				for (int i = 0; i < num_materials + 1; i++) {
-					asset->m_material_assets.push_back(&Get().m_replacement_material);
-				}
-			}
 
+
+			}
 		}
 
 		asset->PopulateBuffers();
 		asset->m_is_loaded = true;
+		DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(asset));
+
 	}
 
 	void AssetManager::LoadMeshAsset(MeshAsset* p_asset) {
 		Get().m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset] {
 			p_asset->LoadMeshData();
-			return MeshAssetPackage{ p_asset, {}, false };
+			return p_asset;
 			}));
 	};
 
@@ -383,7 +353,7 @@ namespace ORNG {
 		for (int i = 0; i < size; i++) {
 			des.object(data.m_submeshes[i]);
 		}
-
+		des.value1b(data.num_materials);
 	}
 
 

@@ -88,8 +88,6 @@ namespace ORNG {
 		// Renders material as a drag-drop target, returns ptr of the new material if a material was drag-dropped on it, else nullptr
 		Material* RenderMaterialComponent(const Material* p_material);
 
-		SceneEntity* DuplicateEntity(SceneEntity* p_original);
-
 		void RenderSceneGraph();
 		void RenderProfilingTimers();
 		void RenderSkyboxEditor();
@@ -209,9 +207,7 @@ Bloom:
   Knee: 0.100000001
   Threshold: 1)"
 
-#define ORNG_BASE_ASSET_YAML R"(MeshAssets:
-  []
-TextureAssets:
+#define ORNG_BASE_ASSET_YAML R"(TextureAssets:
   []
 Materials:
   []

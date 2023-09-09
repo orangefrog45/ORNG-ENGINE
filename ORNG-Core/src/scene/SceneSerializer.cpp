@@ -217,6 +217,7 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}*/
 
+
 		out << YAML::EndMap;
 	}
 
@@ -320,7 +321,6 @@ namespace ORNG {
 
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
-
 		for (auto* p_entity : scene.m_entities) {
 			SerializeEntity(*p_entity, out);
 		}
@@ -419,6 +419,7 @@ namespace ORNG {
 
 	void SceneSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
 		std::string texture_folder = project_dir + "\\res\\textures\\";
+		std::string mesh_folder = project_dir + "\\res\\meshes\\";
 		std::string audio_folder = project_dir + "\\res\\audio\\";
 
 		Texture2DSpec default_spec;
@@ -426,6 +427,19 @@ namespace ORNG {
 		default_spec.mag_filter = GL_LINEAR;
 		default_spec.generate_mipmaps = true;
 		default_spec.storage_type = GL_UNSIGNED_BYTE;
+
+
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
+
+			if (entry.is_directory() || entry.path().extension() != ".bin")
+				continue;
+
+			std::string path = entry.path().string();
+			auto* p_mesh = AssetManager::CreateMeshAsset(path);
+			AssetManager::DeserializeMeshAssetBinary(path, *p_mesh);
+			AssetManager::LoadMeshAssetIntoGL(p_mesh);
+		}
 
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
@@ -522,38 +536,7 @@ namespace ORNG {
 
 		}
 
-		// Create mesh assets and link materials
-		std::vector<std::vector<Material*>> material_vec; // Used to link assets with their materials below
-		auto mesh_assets = data["MeshAssets"];
 
-		if (mesh_assets) {
-			for (auto asset : mesh_assets) {
-				std::string asset_filepath = asset["Filepath"].as<std::string>();
-				uint64_t id = asset["MeshAsset"].as<uint64_t>();
-
-
-				auto material_ids = asset["Materials"];
-				std::vector<Material*> mesh_material_vec;
-				for (auto material_id : material_ids) {
-					ORNG_CORE_CRITICAL(material_id.as<uint64_t>());
-					mesh_material_vec.push_back(AssetManager::GetMaterial(material_id.as<uint64_t>()));
-				}
-				material_vec.push_back(mesh_material_vec);
-
-
-				if (asset_filepath.ends_with(".bin") && std::filesystem::exists(asset_filepath)) {
-					// Load from binary file
-					auto* p_asset = AssetManager::CreateMeshAsset(asset_filepath, id);
-					AssetManager::DeserializeMeshAssetBinary(asset_filepath, *p_asset);
-					AssetManager::LoadMeshAssetIntoGL(p_asset, mesh_material_vec, false);
-					AssetManager::DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_asset));
-				}
-				else {
-					ORNG_CORE_ERROR("Invalid mesh asset filepath serialized in assets.yml: '{0}'", asset_filepath);
-				}
-
-			}
-		}
 		LoadAssetsFromProjectPath(filepath.substr(0, filepath.find_last_of("\\")));
 		AssetManager::StallUntilMeshesLoaded();
 
@@ -567,26 +550,6 @@ namespace ORNG {
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
-		out << YAML::Key << "MeshAssets" << YAML::Value << YAML::BeginSeq; // Mesh assets
-
-		for (const auto* p_mesh_asset : AssetManager::Get().m_meshes) {
-			out << YAML::BeginMap;
-			out << YAML::Key << "MeshAsset" << p_mesh_asset->uuid();
-			out << YAML::Key << "Filepath" << YAML::Value << p_mesh_asset->GetFilename();
-
-			out << YAML::Key << "Materials" << YAML::Value;
-			out << YAML::Flow;
-			out << YAML::BeginSeq;
-			for (auto* p_material : p_mesh_asset->m_material_assets) {
-				out << p_material->uuid();
-			}
-			out << YAML::EndSeq;
-
-
-			out << YAML::EndMap;
-		}
-
-		out << YAML::EndSeq; // Mesh assets
 
 		out << YAML::Key << "TextureAssets" << YAML::Value << YAML::BeginSeq; // Texture assets
 
@@ -600,7 +563,6 @@ namespace ORNG {
 			out << YAML::Key << "SRGB" << YAML::Value << static_cast<uint32_t>(p_tex_asset->GetSpec().srgb_space);
 			out << YAML::EndMap;
 		}
-
 
 		out << YAML::EndSeq; // Texture assets
 

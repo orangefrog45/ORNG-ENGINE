@@ -39,7 +39,6 @@ namespace ORNG {
 
 		bool LoadMeshData();
 
-		const auto& GetMaterials() const { return m_material_assets; }
 		std::string GetFilename() const { return m_filename; };
 
 		bool GetLoadStatus() const { return m_is_loaded; };
@@ -62,6 +61,7 @@ namespace ORNG {
 			for (auto& entry : m_submeshes) {
 				s.object(entry);
 			}
+			s.value1b((uint8_t)num_materials);
 		}
 
 	private:
@@ -92,6 +92,7 @@ namespace ORNG {
 		Assimp::Importer m_importer;
 
 		unsigned int num_indices = 0;
+		uint8_t num_materials = 0;
 
 		bool m_is_loaded = false;
 
@@ -110,9 +111,6 @@ namespace ORNG {
 		};
 
 		std::vector<MeshEntry> m_submeshes;
-		// Pointers to material assets created in assetmanager
-		std::vector<Material*> m_material_assets;
-
 
 	};
 }

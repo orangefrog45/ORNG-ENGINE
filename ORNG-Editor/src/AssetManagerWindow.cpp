@@ -142,7 +142,6 @@ namespace ORNG {
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					MeshAsset* asset = AssetManager::CreateMeshAsset(filepath);
 					AssetManager::LoadMeshAsset(asset);
-					SceneSerializer::SerializeAssets(*mp_active_project_dir + "\\assets.yml");
 				};
 
 
@@ -175,10 +174,15 @@ namespace ORNG {
 
 					if (ExtraUI::RightClickPopup("mesh_popup"))
 					{
-						if (ImGui::Selectable("Delete")) { // Base material not deletable
+						if (ImGui::Selectable("Delete")) {
 							PushConfirmationWindow("Delete Mesh?", [this, p_mesh_asset] {
 								AssetManager::DeleteMeshAsset(p_mesh_asset);
 								SceneSerializer::SerializeAssets(*mp_active_project_dir + "\\assets.yml");
+								std::string filepath{GenerateMeshBinaryPath(p_mesh_asset)};
+								if (std::filesystem::exists(filepath)) {
+									// Cleanup binary file
+									std::filesystem::remove(filepath);
+								}
 
 								});
 						}
@@ -476,6 +480,12 @@ namespace ORNG {
 			ImGui::EndTabItem();
 		}
 
+
+		if (ImGui::BeginTabItem("Prefabs")) {
+
+			ImGui::EndTabItem();
+		}
+
 		ImGui::EndTabBar();
 		ImGui::End();
 	}
@@ -519,11 +529,7 @@ namespace ORNG {
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
 			m_mesh_preview_textures.erase(p_mesh);
 
-			std::string filepath{GenerateMeshBinaryPath(p_mesh)};
-			if (std::filesystem::exists(filepath)) {
-				// Cleanup binary file
-				std::filesystem::remove(filepath);
-			}
+
 
 			break;
 		}

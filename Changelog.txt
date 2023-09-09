@@ -1,5 +1,9 @@
+9/8/23:
+-Mesh default material system removed - just considering meshes pure vertex data now
+-Editor mesh asset management fixes and improvements
+
 8/9/23:
--Safer script execution, deletion queue and try-catches
+-Safer script execution - deletion queue and try-catches
 
 
 7/9/23:

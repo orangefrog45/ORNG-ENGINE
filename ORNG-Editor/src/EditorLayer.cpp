@@ -215,7 +215,7 @@ namespace ORNG {
 				SceneEntity* p_entity = m_active_scene->GetEntity(id);
 				if (!p_entity) continue;
 
-				DuplicateEntity(p_entity);
+				p_entity->Duplicate();
 				duplicate_ids.push_back(p_entity->GetUUID());
 			}
 
@@ -499,6 +499,7 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/scripts/bin");
 		std::filesystem::create_directory(project_path + "/res/shaders");
 		std::filesystem::create_directory(project_path + "/res/audio");
+		std::filesystem::create_directory(project_path + "/res/prefabs");
 
 
 
@@ -629,22 +630,6 @@ namespace ORNG {
 			return false;
 		}
 		return true;
-	}
-
-
-
-	SceneEntity* EditorLayer::DuplicateEntity(SceneEntity* p_original) {
-		SceneEntity& new_entity = m_active_scene->CreateEntity(p_original->name + " - Duplicate");
-		std::string str = SceneSerializer::SerializeEntityIntoString(*p_original);
-		SceneSerializer::DeserializeEntityFromString(*m_active_scene, str, new_entity);
-
-		auto* p_relation_comp = p_original->GetComponent<RelationshipComponent>();
-		SceneEntity* p_current_child = m_active_scene->GetEntity(p_relation_comp->first);
-		while (p_current_child) {
-			DuplicateEntity(p_current_child)->SetParent(new_entity);
-			p_current_child = m_active_scene->GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
-		}
-		return &new_entity;
 	}
 
 
@@ -949,9 +934,9 @@ namespace ORNG {
 			ImGui::Text("Editor cam exposure");
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
-			if (ExtraUI::H2TreeNode("Prefabs")) {
+			EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
 
-			}
+
 
 			if (ExtraUI::H2TreeNode("Entities")) {
 
@@ -961,25 +946,24 @@ namespace ORNG {
 				m_display_terrain_editor = ExtraUI::EmptyTreeNode("Terrain");
 				m_display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
 
-				// Render entity nodes, setup event capture
-				EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
 				for (auto* p_entity : m_active_scene->m_entities) {
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
-						continue;
-
+						return;
 					active_event = (EntityNodeEvent)(RenderEntityNode(p_entity, 0) | active_event);
 				}
 
-				// Process node events
-				if (active_event & EntityNodeEvent::E_DUPLICATE) {
-					for (auto id : m_selected_entity_ids) {
-						DuplicateEntity(m_active_scene->GetEntity(id));
-					}
+
+			}
+
+			// Process node events
+			if (active_event & EntityNodeEvent::E_DUPLICATE) {
+				for (auto id : m_selected_entity_ids) {
+					m_active_scene->GetEntity(id)->Duplicate();
 				}
-				else if (active_event & EntityNodeEvent::E_DELETE) {
-					for (auto id : m_selected_entity_ids) {
-						m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
-					}
+			}
+			else if (active_event & EntityNodeEvent::E_DELETE) {
+				for (auto id : m_selected_entity_ids) {
+					m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
 				}
 			}
 

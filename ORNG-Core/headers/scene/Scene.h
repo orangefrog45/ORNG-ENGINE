@@ -33,6 +33,11 @@ namespace ORNG {
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
 
+
+		SceneEntity& DuplicateEntity(SceneEntity& original);
+
+
+
 		inline RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
 			return m_physics_system.Raycast(origin, unit_dir, max_distance);
 		}
@@ -49,7 +54,7 @@ namespace ORNG {
 				i++;
 
 				if (i > max_iters) {
-					ORNG_CORE_CRITICAL("ClearAllEntities exceeded max iteration count of 10,000,000, exiting");
+					ORNG_CORE_CRITICAL("Scene::ClearAllEntities exceeded max iteration count of 10,000,000, exiting");
 					break;
 				}
 
@@ -68,6 +73,7 @@ namespace ORNG {
 		std::vector<SceneEntity*> m_entities;
 		std::vector<SceneEntity*> m_entity_deletion_queue;
 
+
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
 		PhysicsSystem m_physics_system{ &m_registry, uuid(), this };
 		CameraSystem m_camera_system{ &m_registry, uuid() };
@@ -75,8 +81,6 @@ namespace ORNG {
 		AudioSystem m_audio_system{ &m_registry, uuid(), &m_camera_system.m_active_cam_entity_handle };
 
 		entt::registry m_registry;
-
-		entt::registry m_prefabs;
 
 		std::string m_name = "Untitled scene";
 	};

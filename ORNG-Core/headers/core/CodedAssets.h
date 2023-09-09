@@ -213,7 +213,7 @@ namespace ORNG {
 			m_base_material = std::make_unique<Material>(&*m_base_tex);
 			m_base_material->name = "NONE";
 			m_base_material->uuid = UUID(ORNG_BASE_MATERIAL_UUID);
-			m_cube_mesh->m_material_assets.push_back(&*m_base_material);
+			m_cube_mesh->num_materials = 1;
 			m_cube_mesh->m_is_loaded = true;
 		}
 
