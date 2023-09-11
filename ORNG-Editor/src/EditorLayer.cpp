@@ -503,6 +503,7 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/shaders");
 		std::filesystem::create_directory(project_path + "/res/audio");
 		std::filesystem::create_directory(project_path + "/res/prefabs");
+		std::filesystem::create_directory(project_path + "/res/materials");
 
 
 

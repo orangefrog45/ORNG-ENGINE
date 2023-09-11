@@ -70,6 +70,7 @@ ${ORNG_LIB_SOURCES}
 )
 
 
+set(ASSIMP_BUILD_STATIC_LIB ON)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
@@ -86,13 +87,12 @@ extern/glfw/include
 )
 
 find_package(OpenGL REQUIRED)
-
-
 target_include_directories(ORNG_CORE PUBLIC
 extern/spdlog/include
 extern/assimp/include
 extern/assimp/build/include
 extern/glfw/include
+${CMAKE_CURRENT_BINARY_DIR}/extern/assimp/include
 extern/glew-cmake/include
 extern/physx/physx/include
 extern
@@ -103,6 +103,7 @@ extern/yaml/include
 extern/plog/include
 extern/bitsery/include
 )
+
 
 set(TARGET_BUILD_PLATFORM "windows")
 set(PHYSX_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/extern/physx/physx)
