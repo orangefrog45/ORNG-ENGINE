@@ -19,7 +19,7 @@ namespace ORNG {
 
 	class TransformComponent;
 
-	class MeshAsset {
+	class MeshAsset : public Asset {
 	public:
 		friend class Renderer;
 		friend class EditorLayer;
@@ -32,14 +32,12 @@ namespace ORNG {
 
 
 		MeshAsset() = delete;
-		MeshAsset(const std::string& filename) : m_filename(filename) {};
-		MeshAsset(const std::string& filename, uint64_t t_uuid) : m_filename(filename), uuid(t_uuid) {};
+		MeshAsset(const std::string& filename) : Asset(filename) {};
+		MeshAsset(const std::string& filename, uint64_t t_uuid) : Asset(filename) { uuid = UUID(t_uuid); };
 		MeshAsset(const MeshAsset& other) = default;
 		~MeshAsset() = default;
 
 		bool LoadMeshData();
-
-		std::string GetFilename() const { return m_filename; };
 
 		bool GetLoadStatus() const { return m_is_loaded; };
 
@@ -48,9 +46,6 @@ namespace ORNG {
 		const AABB& GetAABB() const { return m_aabb; }
 
 		const VAO& GetVAO() const { return m_vao; }
-
-		UUID uuid;
-
 
 
 		template<typename S>
@@ -62,6 +57,7 @@ namespace ORNG {
 				s.object(entry);
 			}
 			s.value1b((uint8_t)num_materials);
+			Asset::serialize(s);
 		}
 
 	private:
@@ -82,8 +78,6 @@ namespace ORNG {
 		void CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices);
 
 		void PopulateBuffers();
-
-		std::string m_filename = "";
 
 		VAO m_vao;
 

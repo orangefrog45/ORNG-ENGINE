@@ -1,7 +1,7 @@
 #include "pch/pch.h"
 #include <imgui.h>
 #include "AssetManagerWindow.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "core/Window.h"
 #include "ExtraUI.h"
 #include "rendering/MeshAsset.h"
@@ -20,7 +20,7 @@ namespace ORNG {
 	}
 
 	inline static std::string GenerateMeshBinaryPath(MeshAsset* p_mesh) {
-		return ".\\res\\meshes\\" + p_mesh->GetFilename().substr(p_mesh->GetFilename().find_last_of("\\") + 1) + ".bin";
+		return ".\\res\\meshes\\" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("\\") + 1) + ".bin";
 	}
 
 	inline static std::string GenerateAudioFileClonePath(std::string og_path) {
@@ -57,6 +57,9 @@ namespace ORNG {
 		m_asset_preview_spec.internal_format = GL_RGBA16F;
 		m_asset_preview_spec.storage_type = GL_FLOAT;
 		m_asset_preview_spec.wrap_params = GL_CLAMP_TO_EDGE;
+
+		m_current_2d_tex_spec = m_asset_preview_spec;
+		m_current_2d_tex_spec.storage_type = GL_UNSIGNED_BYTE;
 
 		CreateMaterialPreview(&CodedAssets::GetBaseMaterial());
 		CreateMaterialPreview(&AssetManager::Get().m_replacement_material);
@@ -140,7 +143,7 @@ namespace ORNG {
 
 				//setting up file explorer callbacks
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					MeshAsset* asset = AssetManager::CreateMeshAsset(filepath);
+					MeshAsset* asset = AssetManager::AddAsset(new MeshAsset(filepath));
 					AssetManager::LoadMeshAsset(asset);
 				};
 
@@ -152,12 +155,15 @@ namespace ORNG {
 			static MeshAsset* p_dragged_mesh = nullptr;
 			if (ImGui::BeginTable("Meshes", column_count)) // MESH VIEWING TABLE
 			{
-				for (auto* p_mesh_asset : AssetManager::Get().m_meshes)
+				for (auto [key, val] : AssetManager::Get().m_assets)
 				{
+					auto* p_mesh_asset = dynamic_cast<MeshAsset*>(val);
+					if (!p_mesh_asset)
+						continue;
 					ImGui::PushID(p_mesh_asset);
 					ImGui::TableNextColumn();
 
-					std::string name = p_mesh_asset->GetFilename().substr(p_mesh_asset->GetFilename().find_last_of('/') + 1);
+					std::string name = p_mesh_asset->filepath.substr(p_mesh_asset->filepath.find_last_of('\\') + 1);
 					ExtraUI::NameWithTooltip(name);
 					if (p_mesh_asset->GetLoadStatus())
 					{
@@ -176,9 +182,8 @@ namespace ORNG {
 					{
 						if (ImGui::Selectable("Delete")) {
 							PushConfirmationWindow("Delete Mesh?", [this, p_mesh_asset] {
-								AssetManager::DeleteMeshAsset(p_mesh_asset);
-								SceneSerializer::SerializeAssets(*mp_active_project_dir + "\\assets.yml");
 								std::string filepath{GenerateMeshBinaryPath(p_mesh_asset)};
+								AssetManager::DeleteAsset(p_mesh_asset);
 								if (std::filesystem::exists(filepath)) {
 									// Cleanup binary file
 									std::filesystem::remove(filepath);
@@ -213,7 +218,9 @@ namespace ORNG {
 						HandledFileSystemCopy(filepath, new_filepath);
 						m_current_2d_tex_spec.filepath = new_filepath;
 						m_current_2d_tex_spec.generate_mipmaps = true;
-						AssetManager::CreateTexture2D(m_current_2d_tex_spec);
+						Texture2D* p_new_tex = new Texture2D(filepath);
+						p_new_tex->SetSpec(m_current_2d_tex_spec);
+						AssetManager::LoadTexture2D(AssetManager::AddAsset(p_new_tex));
 					}
 					else {
 						ORNG_CORE_ERROR("Texture asset '{0}' not added, already found in project files", new_filepath);
@@ -229,8 +236,12 @@ namespace ORNG {
 			if (ImGui::BeginTable("Textures", column_count)); // TEXTURE VIEWING TABLE
 			{
 				// Push textures into table 
-				for (auto* p_texture : AssetManager::Get().m_2d_textures)
+				for (auto [key, asset] : AssetManager::Get().m_assets)
 				{
+					auto* p_texture = dynamic_cast<Texture2D*>(asset);
+					if (!p_texture)
+						continue;
+
 					ImGui::PushID(p_texture);
 					ImGui::TableNextColumn();
 
@@ -254,7 +265,7 @@ namespace ORNG {
 								if (std::filesystem::exists(p_texture->GetSpec().filepath)) {
 									std::filesystem::remove(p_texture->GetSpec().filepath);
 								}
-								AssetManager::DeleteTexture(p_texture);
+								AssetManager::DeleteAsset(p_texture);
 								});
 						}
 						ImGui::EndPopup();
@@ -271,18 +282,26 @@ namespace ORNG {
 
 
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
-			if (ImGui::IsItemActive()) {
-				for (auto* p_material : AssetManager::Get().m_materials) {
-					m_materials_to_gen_previews.push_back(p_material);
+
+			if (ImGui::IsItemClicked()) {
+				// Refresh previews (they update automatically mostly but this fixes some bugs)
+				for (auto& [name, p_asset] : AssetManager::Get().m_assets) {
+					if (auto* p_mat = dynamic_cast<Material*>(p_asset)) {
+						m_materials_to_gen_previews.push_back(p_mat);
+					}
 				}
 			}
 
 			if (ImGui::Button("Create material")) {
-				AssetManager::CreateMaterial();
+				auto* p_mat = new Material();
+				AssetManager::AddAsset(p_mat);
 			}
-			if (ImGui::BeginTable("Material viewer", column_count)) { //MATERIAL VIEWING TABLE
 
-				for (auto* p_material : AssetManager::Get().m_materials) {
+			if (ImGui::BeginTable("Material viewer", column_count)) { //MATERIAL VIEWING TABLE
+				for (auto [key, asset] : AssetManager::Get().m_assets) {
+					Material* p_material = dynamic_cast<Material*>(asset);
+					if (!p_material)
+						continue;
 
 					if (!m_material_preview_textures.contains(p_material))
 						// No material preview so proceeding will lead to a crash
@@ -325,7 +344,7 @@ namespace ORNG {
 							deletion_flag = true;
 						}
 						if (ImGui::Selectable("Duplicate")) {
-							auto* p_new_material = AssetManager::CreateMaterial();
+							auto* p_new_material = AssetManager::AddAsset(new Material());
 							*p_new_material = *p_material;
 							// Give clone a unique UUID
 							p_new_material->uuid = UUID();
@@ -337,7 +356,7 @@ namespace ORNG {
 
 
 					if (deletion_flag) {
-						AssetManager::DeleteMaterial(p_material->uuid());
+						AssetManager::DeleteAsset(p_material->uuid());
 						mp_selected_material = p_material == mp_selected_material ? nullptr : mp_selected_material;
 					}
 
@@ -366,11 +385,11 @@ namespace ORNG {
 						ImGui::TableNextColumn();
 
 						std::string entry_path = entry.path().string();
-						std::string relative_path = entry_path.substr(entry_path.rfind("\\res\\scripts"));
+						std::string relative_path = entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
 						ImGui::PushID(entry_path.c_str());
 						ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
 
-						bool is_loaded = AssetManager::Get().m_scripts.contains(relative_path);
+						bool is_loaded = AssetManager::GetAsset<ScriptAsset>(relative_path);
 						if (is_loaded)
 							ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
 						else
@@ -392,14 +411,14 @@ namespace ORNG {
 						if (ImGui::BeginPopup("script_option_popup"))
 						{
 							if ((!is_loaded && ImGui::Selectable("Load"))) {
-								if (!AssetManager::AddScriptAsset(relative_path))
+								if (!AssetManager::AddAsset(new ScriptAsset(relative_path)))
 									GenerateErrorMessage("AssetManager::AddScriptAsset failed");
 							}
 							else if (is_loaded && ImGui::Selectable("Reload")) {
 								bool successful_reload = false;
 
 								// Reload script and reconnect it to script components previously using it
-								if (AssetManager::DeleteScriptAsset(relative_path)) {
+								if (/*AssetManager::DeleteAsset(relative_path)*/false) {
 									/*if (auto* p_symbols = AssetManager::AddScriptAsset(relative_path)) {
 										for (auto [entity, script_comp] : m_active_scene->m_registry.view<ScriptComponent>().each()) {
 											if (script_comp.script_filepath == entry_path) {
@@ -441,7 +460,7 @@ namespace ORNG {
 					// Give relative path to current project directory
 					std::string new_filepath{GenerateAudioFileClonePath(filepath)};
 					HandledFileSystemCopy(filepath, new_filepath);
-					AssetManager::AddSoundAsset(new_filepath);
+					AssetManager::AddAsset(new SoundAsset(new_filepath));
 				};
 
 
@@ -449,7 +468,12 @@ namespace ORNG {
 			}
 
 			if (ImGui::BeginTable("##audio asset table", column_count)) {
-				for (auto* p_sound : AssetManager::Get().m_sound_assets) {
+				for (auto [key, asset] : AssetManager::Get().m_assets) {
+
+					auto* p_sound = dynamic_cast<SoundAsset*>(asset);
+					if (!p_sound)
+						continue;
+
 					ImGui::TableNextColumn();
 					ExtraUI::NameWithTooltip(p_sound->filepath.substr(p_sound->filepath.rfind("\\")));
 
@@ -466,7 +490,7 @@ namespace ORNG {
 						if (ImGui::Selectable("Delete")) {
 							std::string path = p_sound->filepath;
 							PushConfirmationWindow("Delete audio asset?", [p_sound, path] {
-								AssetManager::DeleteSoundAsset(p_sound);
+								AssetManager::DeleteAsset(p_sound);
 								if (std::filesystem::exists(path))
 									std::filesystem::remove(path);
 								});
@@ -501,7 +525,7 @@ namespace ORNG {
 			std::string filepath{GenerateMeshBinaryPath(p_mesh)};
 			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
-				AssetManager::SerializeMeshAssetBinary(filepath, *p_mesh);
+				AssetManager::SerializeAssetBinary(filepath, *p_mesh);
 			}
 
 			break;
@@ -540,7 +564,7 @@ namespace ORNG {
 
 	void AssetManagerWindow::CreateMeshPreview(MeshAsset* p_asset) {
 
-		auto p_tex = std::make_shared<Texture2D>(p_asset->GetFilename().substr(p_asset->GetFilename().find_last_of("/") + 1) + " - Mesh preview");
+		auto p_tex = std::make_shared<Texture2D>(p_asset->filepath.substr(p_asset->filepath.find_last_of("/") + 1) + " - Mesh preview");
 		p_tex->SetSpec(m_asset_preview_spec);
 		m_mesh_preview_textures[p_asset] = p_tex;
 

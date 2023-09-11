@@ -1,7 +1,7 @@
 #include "pch/pch.h"
 #include "components/ComponentSystems.h"
 #include "scene/SceneEntity.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "core/CodedAssets.h"
 #include "scene/MeshInstanceGroup.h"
 
@@ -146,7 +146,6 @@ namespace ORNG {
 
 
 	void MeshInstancingSystem::OnUnload() {
-		mp_registry->clear<MeshComponent>();
 		for (auto* group : m_instance_groups) {
 			delete group;
 		}

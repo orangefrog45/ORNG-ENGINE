@@ -1,5 +1,6 @@
 #pragma once
 #include "util/util.h"
+#include "assets/Asset.h"
 
 namespace ORNG {
 	class SceneEntity;
@@ -35,6 +36,7 @@ namespace ORNG {
 		DuplicateEntitySetter SceneEntityDuplicationSetter = nullptr;
 	};
 
+
 	class ScriptingEngine {
 	public:
 		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath);
@@ -44,4 +46,10 @@ namespace ORNG {
 		inline static std::map<std::string, HMODULE> sm_loaded_script_dll_handles;
 	};
 
+	struct ScriptAsset : public Asset {
+		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { ASSERT(symbols.loaded); };
+		ScriptAsset(const std::string& filepath) : Asset(filepath), symbols(ScriptingEngine::GetSymbolsFromScriptCpp(filepath)) { ASSERT(symbols.loaded); };
+
+		ScriptSymbols symbols;
+	};
 }

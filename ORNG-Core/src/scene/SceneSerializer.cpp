@@ -11,7 +11,7 @@
 #include "components/ComponentAPI.h"
 #include "rendering/Textures.h"
 #include "core/CodedAssets.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 
 /*
 	struct VertexData {
@@ -247,12 +247,12 @@ namespace ORNG {
 			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(mesh_asset_id == ORNG_CUBE_MESH_UUID ? &CodedAssets::GetCubeAsset() : AssetManager::GetMeshAsset(mesh_asset_id));
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(mesh_asset_id == ORNG_CUBE_MESH_UUID ? &CodedAssets::GetCubeAsset() : AssetManager::GetAsset<MeshAsset>(mesh_asset_id));
 
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
 				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
-					p_mesh_comp->m_materials[i] = AssetManager::GetMaterial(ids[i]);
+					p_mesh_comp->m_materials[i] = ids[i] == 0 ? AssetManager::GetEmptyMaterial() : AssetManager::GetAsset<Material>(ids[i]);
 				}
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 
@@ -294,12 +294,12 @@ namespace ORNG {
 				std::string script_filepath = script_node["ScriptPath"].as<std::string>();
 				p_script_comp->script_filepath = script_filepath;
 
-				auto* symbols = AssetManager::GetScriptAsset(script_filepath);
-				if (!symbols)
-					symbols = AssetManager::AddScriptAsset(script_filepath);
+				auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_filepath);
+				if (!p_asset)
+					p_asset = AssetManager::AddAsset(new ScriptAsset(script_filepath));
 
-				if (symbols) {
-					p_script_comp->SetSymbols(symbols);
+				if (p_asset) {
+					p_script_comp->SetSymbols(&p_asset->symbols);
 				}
 				else {
 					ORNG_CORE_ERROR("Scene deserialization error: no script file with filepath '{0}' found", script_filepath);
@@ -412,191 +412,6 @@ namespace ORNG {
 		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
 		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
 
-	}
-
-
-
-
-	void SceneSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
-		std::string texture_folder = project_dir + "\\res\\textures\\";
-		std::string mesh_folder = project_dir + "\\res\\meshes\\";
-		std::string audio_folder = project_dir + "\\res\\audio\\";
-
-		Texture2DSpec default_spec;
-		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-		default_spec.mag_filter = GL_LINEAR;
-		default_spec.generate_mipmaps = true;
-		default_spec.storage_type = GL_UNSIGNED_BYTE;
-
-
-
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
-
-			if (entry.is_directory() || entry.path().extension() != ".bin")
-				continue;
-
-			std::string path = entry.path().string();
-			auto* p_mesh = AssetManager::CreateMeshAsset(path);
-			AssetManager::DeserializeMeshAssetBinary(path, *p_mesh);
-			AssetManager::LoadMeshAssetIntoGL(p_mesh);
-		}
-
-
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
-			bool is_tex_loaded = false;
-
-			if (entry.is_directory() || entry.path().string().find("diffuse_prefilter") != std::string::npos) // Skip serialized diffuse prefilter
-				continue;
-
-			for (const auto* p_tex : AssetManager::Get().m_2d_textures) {
-				try {
-					is_tex_loaded |= std::filesystem::equivalent(p_tex->GetSpec().filepath, entry.path().string());
-				}
-				catch (std::exception e) {
-					ORNG_CORE_ERROR("std::filesystem err: '{0}'", e.what());
-				}
-			}
-
-			if (is_tex_loaded)
-				continue;
-			else {
-				std::string path = entry.path().string();
-				default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
-				AssetManager::CreateTexture2D(default_spec);
-			}
-		}
-
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(audio_folder)) {
-			auto path = entry.path();
-			if (entry.is_directory() || !(path.extension() == ".mp3" || path.extension() == ".wav"))
-				continue;
-			else
-				AssetManager::AddSoundAsset(entry.path().string());
-		}
-
-
-	}
-
-
-
-	bool SceneSerializer::DeserializeAssets(const std::string& filepath) {
-		std::ifstream stream(filepath);
-		std::stringstream str_stream;
-		str_stream << stream.rdbuf();
-
-		YAML::Node data = YAML::Load(str_stream.str());
-
-		if (!data.IsDefined() || data.IsNull())
-			return false;
-
-
-		// Creating textures
-		auto textures = data["TextureAssets"];
-
-		if (textures) {
-			Texture2DSpec base_spec;
-			for (auto texture : textures) {
-				uint64_t id = texture["TextureAsset"].as<uint64_t>();
-				std::string tex_filepath = texture["Filepath"].as<std::string>();
-				unsigned int wrap_mode = texture["Wrap mode"].as<unsigned int>();
-				unsigned int min_filter = texture["Min filter"].as<unsigned int>();
-				unsigned int mag_filter = texture["Mag filter"].as<unsigned int>();
-				bool srgb = static_cast<bool>(texture["SRGB"].as<uint32_t>());
-
-				base_spec.generate_mipmaps = true;
-				base_spec.mag_filter = mag_filter;
-				base_spec.min_filter = min_filter;
-				base_spec.filepath = tex_filepath;
-				base_spec.wrap_params = wrap_mode;
-				base_spec.srgb_space = srgb;
-
-				AssetManager::CreateTexture2D(base_spec, id);
-			}
-		}
-
-		// Creating materials
-		auto materials = data["Materials"];
-
-		for (auto material : materials) {
-			auto* p_material = AssetManager::CreateMaterial(material["SceneMaterial"].as<uint64_t>());
-			p_material->name = material["Name"].as<std::string>();
-			p_material->base_color_texture = AssetManager::GetTexture(material["Base colour texture"].as<uint64_t>());
-			p_material->normal_map_texture = AssetManager::GetTexture(material["Normal texture"].as<uint64_t>());
-			p_material->ao_texture = AssetManager::GetTexture(material["AO texture"].as<uint64_t>());
-			p_material->metallic_texture = AssetManager::GetTexture(material["Metallic texture"].as<uint64_t>());
-			p_material->roughness_texture = AssetManager::GetTexture(material["Roughness texture"].as<uint64_t>());
-			p_material->emissive_texture = AssetManager::GetTexture(material["Emissive texture"].as<uint64_t>());
-			p_material->base_color = material["Base colour"].as<glm::vec3>();
-			p_material->metallic = material["Metallic"].as<float>();
-			p_material->roughness = material["Roughness"].as<float>();
-			p_material->ao = material["AO"].as<float>();
-			p_material->tile_scale = material["TileScale"].as<glm::vec2>();
-			p_material->emissive = material["Emissive"].as<bool>();
-			p_material->emissive_strength = material["Emissive strength"].as<float>();
-
-		}
-
-
-		LoadAssetsFromProjectPath(filepath.substr(0, filepath.find_last_of("\\")));
-		AssetManager::StallUntilMeshesLoaded();
-
-
-		return true;
-	}
-
-
-
-	void SceneSerializer::SerializeAssets(const std::string& filepath) {
-		YAML::Emitter out;
-
-		out << YAML::BeginMap;
-
-		out << YAML::Key << "TextureAssets" << YAML::Value << YAML::BeginSeq; // Texture assets
-
-		for (const auto* p_tex_asset : AssetManager::Get().m_2d_textures) {
-			out << YAML::BeginMap;
-			out << YAML::Key << "TextureAsset" << p_tex_asset->uuid();
-			out << YAML::Key << "Filepath" << YAML::Value << p_tex_asset->GetSpec().filepath;
-			out << YAML::Key << "Wrap mode" << YAML::Value << p_tex_asset->GetSpec().wrap_params;
-			out << YAML::Key << "Min filter" << YAML::Value << p_tex_asset->GetSpec().min_filter;
-			out << YAML::Key << "Mag filter" << YAML::Value << p_tex_asset->GetSpec().mag_filter;
-			out << YAML::Key << "SRGB" << YAML::Value << static_cast<uint32_t>(p_tex_asset->GetSpec().srgb_space);
-			out << YAML::EndMap;
-		}
-
-		out << YAML::EndSeq; // Texture assets
-
-		out << YAML::Key << "Materials" << YAML::Value << YAML::BeginSeq; // Materials
-
-		for (const auto* p_material : AssetManager::Get().m_materials) {
-
-			if (p_material->uuid() == ORNG_REPLACEMENT_MATERIAL_ID) // Always created on startup by scene, doesn't need saving
-				continue;
-
-			out << YAML::BeginMap;
-			out << YAML::Key << "SceneMaterial" << p_material->uuid();
-			out << YAML::Key << "Name" << p_material->name;
-			out << YAML::Key << "Base colour texture" << YAML::Value << (p_material->base_color_texture ? p_material->base_color_texture->uuid() : 0);
-			out << YAML::Key << "Normal texture" << YAML::Value << (p_material->normal_map_texture ? p_material->normal_map_texture->uuid() : 0);
-			out << YAML::Key << "AO texture" << YAML::Value << (p_material->ao_texture ? p_material->ao_texture->uuid() : 0);
-			out << YAML::Key << "Metallic texture" << YAML::Value << (p_material->metallic_texture ? p_material->metallic_texture->uuid() : 0);
-			out << YAML::Key << "Roughness texture" << YAML::Value << (p_material->roughness_texture ? p_material->roughness_texture->uuid() : 0);
-			out << YAML::Key << "Emissive texture" << YAML::Value << (p_material->emissive_texture ? p_material->emissive_texture->uuid() : 0);
-			out << YAML::Key << "Base colour" << YAML::Value << p_material->base_color;
-			out << YAML::Key << "Metallic" << YAML::Value << p_material->metallic;
-			out << YAML::Key << "Roughness" << YAML::Value << p_material->roughness;
-			out << YAML::Key << "AO" << YAML::Value << p_material->ao;
-			out << YAML::Key << "TileScale" << YAML::Value << p_material->tile_scale;
-			out << YAML::Key << "Emissive" << YAML::Value << p_material->emissive;
-			out << YAML::Key << "Emissive strength" << YAML::Value << p_material->emissive_strength;
-			out << YAML::EndMap;
-		}
-
-		out << YAML::EndSeq;
-		out << YAML::EndMap;
-
-		std::ofstream fout{filepath};
-		fout << out.c_str();
 	}
 
 

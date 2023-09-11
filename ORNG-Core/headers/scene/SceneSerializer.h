@@ -29,10 +29,6 @@ namespace ORNG {
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
 
-		static void SerializeAssets(const std::string& filepath);
-		// Deserializes assets and links meshes with their materials
-		static bool DeserializeAssets(const std::string& filepath);
-
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 		// Entity argument is the entity that the data will be loaded into
@@ -45,9 +41,6 @@ namespace ORNG {
 		}
 
 	private:
-		// Any assets not stored in the asset.yml file (could be due to user putting files manually in res folder) loaded here
-		// Done seperately as this will not connect any materials or remember any texture spec data, just load with defaults
-		static void LoadAssetsFromProjectPath(const std::string& project_dir);
 
 	};
 }

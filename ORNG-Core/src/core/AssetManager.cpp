@@ -1,5 +1,5 @@
 #include "pch/pch.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "core/CodedAssets.h"
 #include "events/EventManager.h"
 #include "core/Window.h"
@@ -9,53 +9,13 @@
 #include "audio/AudioEngine.h"
 #include <fmod.hpp>
 #include <fmod_errors.h>
-#include <bitsery/bitsery.h>
-#include <bitsery/traits/vector.h>
-#include <bitsery/adapter/stream.h>
-#include "bitsery/traits/string.h"
+
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
 
 
-namespace bitsery {
-	using namespace ORNG;
-	template <typename S>
-	void serialize(S& s, glm::vec3& o) {
-		s.value4b(o.x);
-		s.value4b(o.y);
-		s.value4b(o.z);
-	}
 
-	template <typename S>
-	void serialize(S& s, VertexData3D& o) {
-		s.container4b(o.positions, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.normals, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.tangents, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.tex_coords, ORNG_MAX_MESH_INDICES);
-		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
-	}
-
-
-	template <typename S>
-	void serialize(S& s, AABB& o) {
-		s.object(o.max);
-		s.object(o.min);
-		s.object(o.center);
-	}
-
-	template <typename S>
-	void serialize(S& s, MeshAsset::MeshEntry& o) {
-		s.value4b(o.base_index);
-		s.value4b(o.base_vertex);
-		s.value4b(o.material_index);
-		s.value4b(o.num_indices);
-	}
-	template<typename S>
-	void serialize(S& s, VAO& o) {
-		s.object(o.vertex_data);
-	}
-}
 
 namespace ORNG {
 
@@ -120,138 +80,66 @@ namespace ORNG {
 	}
 
 	void AssetManager::IClearAll() {
-		while (!m_materials.empty()) {
-			DeleteMaterial(m_materials[0]);
-		}
-		while (!m_2d_textures.empty()) {
-			DeleteTexture(m_2d_textures[0]);
-		}
-		while (!m_meshes.empty()) {
-			DeleteMeshAsset(m_meshes[0]);
-		}
-		while (!m_scripts.empty()) {
-			DeleteScriptAsset(m_scripts.begin()->first);
-		}
 
+		auto it = m_assets.begin();
+		while (it != m_assets.end()) {
+			HandleAssetDeletion(it->second);
+			delete it->second;
+			it = m_assets.erase(it);
+		}
+		m_assets.clear();
 	}
 
-	Texture2D* AssetManager::ICreateTexture2D(const Texture2DSpec& spec, uint64_t uuid) {
+	void AssetManager::LoadTexture2D(Texture2D* p_tex) {
 
-		for (auto* p_texture : m_2d_textures) {
-			if (p_texture->GetSpec().filepath == spec.filepath) {
-				ORNG_CORE_WARN("Texture '{0}' already created", spec.filepath);
-				return p_texture;
-			}
-		}
 		static std::mutex m;
-		Texture2D* p_tex = uuid == 0 ? new Texture2D(spec.filepath.c_str()) : new Texture2D(spec.filepath.c_str(), uuid);
-		m_2d_textures.push_back(p_tex);
-		p_tex->SetSpec(spec);
-		m_texture_futures.push_back(std::async(std::launch::async, [p_tex, this, spec] {
+		Get().m_texture_futures.push_back(std::async(std::launch::async, [p_tex] {
 			m.lock();
-			glfwMakeContextCurrent(mp_loading_context);
+			glfwMakeContextCurrent(Get().mp_loading_context);
 			p_tex->LoadFromFile();
+			DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
 			glfwMakeContextCurrent(nullptr);
 			m.unlock();
 			}));
 
-		DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
-
-
-		return p_tex;
 	}
 
-	void AssetManager::DeleteMeshAsset(MeshAsset* p_asset) {
-		Get().IDeleteMeshAsset(p_asset->uuid());
-	}
 
-	void AssetManager::DeleteTexture(Texture2D* p_tex) { Get().IDeleteTexture(p_tex->uuid()); }
 
-	Texture2D* AssetManager::IGetTexture(uint64_t uuid) {
-		auto it = std::find_if(m_2d_textures.begin(), m_2d_textures.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
-
-		if (it == m_2d_textures.end()) {
-			ORNG_CORE_WARN("Texture with ID '{0}' does not exist, not found", uuid);
-			return nullptr;
-		}
-
-		return *it;
-	}
-
-	void AssetManager::IDeleteTexture(uint64_t uuid) {
-		auto it = std::find_if(m_2d_textures.begin(), m_2d_textures.end(), [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
-
-		if (it == m_2d_textures.end()) {
-			ORNG_CORE_WARN("Texture with ID '{0}' does not exist, not deleted", uuid);
-			return;
-		}
-
+	void AssetManager::OnTextureDelete(Texture2D* p_tex) {
 
 		// If any materials use this texture, remove it from them
-		for (auto* p_material : m_materials) {
-			p_material->base_color_texture = p_material->base_color_texture == *it ? nullptr : p_material->base_color_texture;
-			p_material->normal_map_texture = p_material->normal_map_texture == *it ? nullptr : p_material->normal_map_texture;
-			p_material->emissive_texture = p_material->emissive_texture == *it ? nullptr : p_material->emissive_texture;
-			p_material->displacement_texture = p_material->displacement_texture == *it ? nullptr : p_material->displacement_texture;
-			p_material->metallic_texture = p_material->metallic_texture == *it ? nullptr : p_material->metallic_texture;
-			p_material->roughness_texture = p_material->roughness_texture == *it ? nullptr : p_material->roughness_texture;
+		for (auto& [key, p_asset] : Get().m_assets) {
+
+			auto* p_material = dynamic_cast<Material*>(p_asset);
+			if (!p_material)
+				continue;
+
+			p_material->base_color_texture = p_material->base_color_texture == p_tex ? nullptr : p_material->base_color_texture;
+			p_material->normal_map_texture = p_material->normal_map_texture == p_tex ? nullptr : p_material->normal_map_texture;
+			p_material->emissive_texture = p_material->emissive_texture == p_tex ? nullptr : p_material->emissive_texture;
+			p_material->displacement_texture = p_material->displacement_texture == p_tex ? nullptr : p_material->displacement_texture;
+			p_material->metallic_texture = p_material->metallic_texture == p_tex ? nullptr : p_material->metallic_texture;
+			p_material->roughness_texture = p_material->roughness_texture == p_tex ? nullptr : p_material->roughness_texture;
 		}
 
-		DispatchAssetEvent(Events::AssetEventType::TEXTURE_DELETED, reinterpret_cast<uint8_t*>(*it));
-
-		delete* it;
-		m_2d_textures.erase(it);
 	}
 
 
 
-	Material* AssetManager::ICreateMaterial(uint64_t uuid) {
-		Material* p_material = uuid == 0 ? new Material(&CodedAssets::GetBaseTexture()) : new Material(uuid);
-		m_materials.push_back(p_material);
 
-		DispatchAssetEvent(Events::AssetEventType::MATERIAL_LOADED, reinterpret_cast<uint8_t*>(p_material));
-
-		return p_material;
-	}
-
-	Material* AssetManager::IGetMaterial(uint64_t id) {
-		auto it = std::find_if(m_materials.begin(), m_materials.end(), [id](const auto* p_mat) {return p_mat->uuid() == id; });
-
-		if (it == m_materials.end()) {
-			ORNG_CORE_ERROR("Material with ID '{0}' does not exist, not found", id);
-			return &m_replacement_material;
-		}
-
-		return *it;
-
-	}
-
-
-	void AssetManager::IDeleteMaterial(uint64_t uuid) {
-		auto it = std::ranges::find_if(m_materials, [uuid](auto* p_mat) {return p_mat->uuid() == uuid; });
-
-		if (it == m_materials.end())
-			return;
-
-
-		DispatchAssetEvent(Events::AssetEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(*it));
-
-		delete* it;
-		m_materials.erase(it);
-
-	}
 
 	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset) {
 
 		if (asset->m_is_loaded) {
-			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->m_filename);
+			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->filepath);
 			return;
 		}
 
 		GL_StateManager::BindVAO(asset->GetVAO());
 
 		// Get directory used for finding material textures
-		std::string::size_type slash_index = asset->GetFilename().find_last_of("\\");
+		std::string::size_type slash_index = asset->filepath.find_last_of("\\");
 		std::string dir;
 
 		if (slash_index == std::string::npos) {
@@ -261,7 +149,7 @@ namespace ORNG {
 			dir = "\\";
 		}
 		else {
-			dir = asset->GetFilename().substr(0, slash_index);
+			dir = asset->filepath.substr(0, slash_index);
 		}
 
 		// p_scene will be nullptr if the mesh was loaded from a binary file, then default materials will be provided
@@ -269,7 +157,7 @@ namespace ORNG {
 			for (unsigned int i = 0; i < asset->p_scene->mNumMaterials; i++) {
 				asset->num_materials++;
 				const aiMaterial* p_material = asset->p_scene->mMaterials[i];
-				Material* p_new_material = Get().ICreateMaterial();
+				Material* p_new_material = Get().AddAsset(new Material());
 
 				// Load material textures
 				p_new_material->base_color_texture = CreateMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
@@ -298,7 +186,7 @@ namespace ORNG {
 				// Check if the material has had any properties actually set - if not then use the default material instead of creating a new one.
 				if (!p_new_material->base_color_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
 					&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
-					DeleteMaterial(p_new_material);
+					DeleteAsset(p_new_material);
 				}
 
 
@@ -318,43 +206,7 @@ namespace ORNG {
 			}));
 	};
 
-	void AssetManager::SerializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
-		std::ofstream s{ filepath, s.binary | s.trunc | s.out };
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
-			return;
-		}
-		// we cannot use quick serialization function, because streams cannot use
-// writtenBytesCount method
-		bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
-		ser.object(data);
-		// flush to writer
-		ser.adapter().flush();
-		s.close();
-	}
 
-	void AssetManager::DeserializeMeshAssetBinary(const std::string& filepath, MeshAsset& data) {
-		std::ifstream s{ filepath, std::ios::binary };
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
-			return;
-		}
-
-		// Use buffered stream adapter
-		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
-
-		// Deserialize individual objects
-		des.object(data.m_vao);
-		des.object(data.m_aabb);
-		//des.object(data.m_aabb);
-		uint32_t size;
-		des.value4b(size);
-		data.m_submeshes.resize(size);
-		for (int i = 0; i < size; i++) {
-			des.object(data.m_submeshes[i]);
-		}
-		des.value1b(data.num_materials);
-	}
 
 
 
@@ -372,8 +224,7 @@ namespace ORNG {
 				if (p.starts_with(".\\"))
 					p = p.substr(2, p.size() - 2);
 
-				full_path = dir + "/" + p;
-				std::ranges::for_each(full_path, [](char& c) {if (c == '\\') c = '/'; });
+				full_path = dir + "\\" + p;
 
 				Texture2DSpec base_spec;
 				base_spec.generate_mipmaps = true;
@@ -382,8 +233,10 @@ namespace ORNG {
 				base_spec.filepath = full_path;
 				base_spec.srgb_space = type == aiTextureType_BASE_COLOR ? true : false;
 
-				p_tex = CreateTexture2D(base_spec);
-
+				p_tex = new Texture2D(full_path);
+				p_tex->SetSpec(base_spec);
+				p_tex = AddAsset(p_tex);
+				Get().LoadTexture2D(p_tex);
 			}
 
 		}
@@ -392,131 +245,120 @@ namespace ORNG {
 	}
 
 
+	void AssetManager::HandleAssetAddition(Asset* p_asset) {
+		if (auto* p_material = dynamic_cast<Material*>(p_asset)) {
+			DispatchAssetEvent(Events::AssetEventType::MATERIAL_LOADED, reinterpret_cast<uint8_t*>(p_material));
+		}
+	}
 
-	MeshAsset* AssetManager::ICreateMeshAsset(const std::string& filename, uint64_t uuid) {
-		for (auto mesh_data : m_meshes) {
-			if (mesh_data->GetFilename() == filename) {
-				ORNG_CORE_WARN("Mesh asset already loaded in: {0}", filename);
-				return mesh_data;
+	void AssetManager::HandleAssetDeletion(Asset* p_asset) {
+		if (auto* p_tex = dynamic_cast<Texture2D*>(p_asset)) {
+			OnTextureDelete(p_tex);
+			DispatchAssetEvent(Events::AssetEventType::TEXTURE_DELETED, reinterpret_cast<uint8_t*>(p_tex));
+		}
+		if (auto* p_mesh = dynamic_cast<MeshAsset*>(p_asset)) {
+			DispatchAssetEvent(Events::AssetEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(p_mesh));
+		}
+		else if (auto* p_script = dynamic_cast<ScriptAsset*>(p_asset)) {
+			ScriptingEngine::UnloadScriptDLL(p_script->symbols.script_path);
+		}
+
+	}
+
+
+	void AssetManager::LoadAssetsFromProjectPath(const std::string& project_dir) {
+		std::string texture_folder = project_dir + "\\res\\textures\\";
+		std::string mesh_folder = project_dir + "\\res\\meshes\\";
+		std::string audio_folder = project_dir + "\\res\\audio\\";
+		std::string material_folder = project_dir + "\\res\\materials\\";
+
+		Texture2DSpec default_spec;
+		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		default_spec.mag_filter = GL_LINEAR;
+		default_spec.generate_mipmaps = true;
+		default_spec.storage_type = GL_UNSIGNED_BYTE;
+
+
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
+
+			if (entry.is_directory() || entry.path().extension() != ".bin")
+				continue;
+
+			std::string path = entry.path().string();
+			auto* p_mesh = new MeshAsset(path);
+			DeserializeAssetBinary(path, *p_mesh);
+			AddAsset(p_mesh);
+			LoadMeshAssetIntoGL(p_mesh);
+		}
+
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
+			std::string path = entry.path().string();
+			bool is_tex_loaded = AssetManager::GetAsset<Texture2D>(path) ? true : false;
+
+			if (entry.is_directory() || path.find("diffuse_prefilter") != std::string::npos || is_tex_loaded || entry.path().extension() != ".otex") // Skip serialized diffuse prefilter
+				continue;
+
+			default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
+			auto* p_tex = new Texture2D(default_spec.filepath);
+			DeserializeAssetBinary(path, *p_tex);
+			AddAsset(p_tex);
+			LoadTexture2D(p_tex);
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(audio_folder)) {
+			auto path = entry.path();
+			if (entry.is_directory() || !(path.extension() == ".mp3" || path.extension() == ".wav"))
+				continue;
+			else
+				AddAsset(new SoundAsset(entry.path().string()));
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(material_folder)) {
+			auto path = entry.path();
+			if (entry.is_directory() || path.extension() != ".omat")
+				continue;
+			else {
+				auto* p_mat = new Material();
+				DeserializeAssetBinary(path.string(), *p_mat);
+				AddAsset(p_mat);
 			}
 		}
 
 
-		MeshAsset* p_asset = uuid == 0 ? new MeshAsset(filename) : new MeshAsset(filename, uuid);
-		m_meshes.push_back(p_asset);
-		return p_asset;
+
 	}
 
 
+	void AssetManager::SerializeAssets(const std::string& filepath) {
 
 
-	MeshAsset* AssetManager::IGetMeshAsset(uint64_t uuid) {
-		auto it = std::ranges::find_if(m_meshes, [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
-
-		if (it == m_meshes.end()) {
-			ORNG_CORE_TRACE("Mesh with ID '{0}' does not exist, using CodedCube as replacement", uuid);
-			return &CodedAssets::GetCubeAsset();
+		for (const auto& [uuid, p_asset] : Get().m_assets) {
+			auto* p_tex_asset = dynamic_cast<Texture2D*>(p_asset);
+			if (!p_tex_asset)
+				continue;
+			SerializeAssetBinary(".\\res\\textures\\" + p_tex_asset->filepath.substr(p_tex_asset->filepath.rfind("\\") + 1) + ".otex", *p_tex_asset);
 		}
 
-		return *it;
+
+		for (const auto& [uuid, p_asset] : Get().m_assets) {
+			auto* p_material = dynamic_cast<Material*>(p_asset);
+			if (!p_material)
+				continue;
+
+			SerializeAssetBinary(".\\res\\materials\\" + p_material->name + ".omat", *p_material);
+
+		}
+
 	}
 
 
-
-	void AssetManager::IDeleteMeshAsset(uint64_t uuid) {
-		auto it = std::ranges::find_if(m_meshes, [&](const auto* p_tex) {return p_tex->uuid() == uuid; });
-
-		if (it == m_meshes.end()) {
-			ORNG_CORE_TRACE("Mesh with ID '{0}' does not exist, using CodedCube as replacement", uuid);
-			return;
-		}
-
-
-		DispatchAssetEvent(Events::AssetEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(*it));
-
-		delete* it;
-		m_meshes.erase(it);
-	};
-
-
-	ScriptSymbols* AssetManager::AddScriptAsset(const std::string& filepath) {
-		auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(filepath);
-
-		if (!symbols.loaded) {
-			ORNG_CORE_ERROR("Error adding script asset, symbols failed to be loaded by script engine");
-			return nullptr;
-		}
-
-		ScriptSymbols* p_symbols = new ScriptSymbols();
-		*p_symbols = symbols;
-
-		Get().m_scripts[filepath] = p_symbols;
-		return p_symbols;
+	SoundAsset::SoundAsset(const std::string& t_filepath) : Asset(t_filepath), filepath(t_filepath) {
+		AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_sound);
 	}
 
 
-	ScriptSymbols* AssetManager::GetScriptAsset(const std::string& filepath) {
-		if (!Get().m_scripts.contains(filepath)) {
-			ORNG_CORE_TRACE("Failed to get script asset '{0}', not found in map", filepath);
-			return nullptr;
-		}
-		else {
-			return Get().m_scripts[filepath];
-		}
-	}
-
-	bool AssetManager::DeleteScriptAsset(const std::string& filepath) {
-		if (!GetScriptAsset(filepath)) {
-			ORNG_CORE_TRACE("Failed to delete script asset '{0}', not found in map", filepath);
-			return false;
-		}
-		else {
-			delete Get().m_scripts[filepath];
-			Get().m_scripts.erase(filepath);
-			ScriptingEngine::UnloadScriptDLL(filepath);
-			return true;
-		}
-	}
-
-
-	SoundAsset* AssetManager::AddSoundAsset(const std::string& filepath) {
-		if (!std::filesystem::exists(filepath)) {
-			ORNG_CORE_ERROR("Invalid sound asset filepath, not added to AssetManager");
-			return nullptr;
-		}
-
-		if (auto* p_existing_sound = GetSoundAsset(filepath)) {
-			return p_existing_sound;
-		}
-		else {
-			FMOD::Sound* p_fmod_sound = nullptr;
-			AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_fmod_sound);
-			auto* p_sound = new SoundAsset(p_fmod_sound, filepath);
-			Get().m_sound_assets.push_back(p_sound);
-			return p_sound;
-		}
-	}
-
-
-	SoundAsset* AssetManager::GetSoundAsset(const std::string& filepath) {
-		for (auto* p_sound : Get().m_sound_assets) {
-			if (std::filesystem::equivalent(filepath, p_sound->filepath))
-				return p_sound;
-		}
-
-		return nullptr;
-	}
-
-
-	void AssetManager::DeleteSoundAsset(SoundAsset* p_asset) {
-		if (auto* p_existing_sound = GetSoundAsset(p_asset->filepath)) {
-			delete p_existing_sound;
-			Get().m_sound_assets.erase(std::ranges::find(Get().m_sound_assets, p_asset));
-		}
-		else {
-			ORNG_CORE_ERROR("Asset manager failed to delete sound asset '{0}', not found", p_asset->filepath);
-		}
-	}
 
 	SoundAsset::~SoundAsset() {
 		if (p_sound)

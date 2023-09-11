@@ -1,4 +1,3 @@
-#include "core/AssetManager.h"
 #include "entt/EnttSingleInclude.h"
 namespace ORNG {
 
@@ -10,7 +9,6 @@ namespace ORNG {
 	public:
 		Scene* p_active_scene;
 		std::vector<Scene*> scenes;
-		AssetManager asset_manager;
 
 	private:
 

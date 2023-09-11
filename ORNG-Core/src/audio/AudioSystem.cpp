@@ -3,7 +3,7 @@
 #include <fmod_errors.h>
 #include "components/ComponentSystems.h"
 #include "audio/AudioEngine.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {

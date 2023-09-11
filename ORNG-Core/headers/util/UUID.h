@@ -1,5 +1,7 @@
 #pragma once
-
+#include <bitsery/bitsery.h>
+#include <bitsery/adapter/buffer.h>
+#include <bitsery/traits/string.h>
 
 namespace ORNG {
 
@@ -12,6 +14,11 @@ namespace ORNG {
 
 		explicit operator uint64_t() const { return m_uuid; }
 		uint64_t operator() () const { return m_uuid; };
+
+		template<typename S>
+		void serialize(S& s) {
+			s.value8b(m_uuid);
+		}
 	private:
 		uint64_t m_uuid;
 	};

@@ -20,6 +20,12 @@ namespace ORNG {
 		void OnMainRender();
 		void OnRenderUI();
 		void Init();
+		void SelectMaterial(Material* p_material) {
+			mp_selected_material = p_material;
+		}
+		void SelectTexture(Texture2D* p_texture) {
+			mp_selected_texture = p_texture;
+		}
 
 		// Returns 0 if preview not found for material
 		uint32_t GetMaterialPreviewTex(const Material* p_material) {

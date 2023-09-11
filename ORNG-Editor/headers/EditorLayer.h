@@ -76,7 +76,6 @@ namespace ORNG {
 			NO_SHADER_FOLDER = 1 << 5,
 			NO_SCRIPT_FOLDER = 1 << 6,
 			CORRUPTED_SCENE_YML = 1 << 7,
-			CORRUPTED_ASSET_YML = 1 << 8,
 		};
 
 
@@ -172,12 +171,6 @@ namespace ORNG {
 		};
 
 
-
-
-		// UI VARS
-		Texture2D* mp_selected_texture = nullptr;
-		Texture2DSpec m_current_2d_tex_spec;
-		Material* mp_selected_material = nullptr;
 
 
 		// STYLING

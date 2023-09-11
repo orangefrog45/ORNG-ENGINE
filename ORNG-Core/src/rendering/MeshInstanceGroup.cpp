@@ -95,7 +95,7 @@ namespace ORNG {
 		auto it = std::find(m_instances.begin(), m_instances.end(), ptr);
 
 		if (it == m_instances.end()) {
-			ORNG_CORE_ERROR("Mesh component ptr not found in instance group with asset '{0}', material[0]= '{1}'", m_mesh_asset->m_filename, m_materials[0]->uuid());
+			ORNG_CORE_ERROR("Mesh component ptr not found in instance group with asset '{0}', material[0]= '{1}'", m_mesh_asset->filepath, m_materials[0]->uuid());
 			return -1;
 		}
 

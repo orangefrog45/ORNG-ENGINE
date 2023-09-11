@@ -166,7 +166,7 @@ namespace ORNG {
 
 		hdr_texture.SetSpec(hdr_spec);
 
-		if (hdr_texture.LoadFromFile()->data_type == TextureFileData::DataType::INVALID)
+		if (!hdr_texture.LoadFromFile())
 			hdr_texture = CodedAssets::GetBaseTexture();
 
 		TextureCubemapSpec hdr_cubemap_spec;

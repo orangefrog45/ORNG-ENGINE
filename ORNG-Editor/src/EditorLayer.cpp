@@ -10,7 +10,7 @@
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
 #include "core/CodedAssets.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "yaml-cpp/yaml.h"
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
@@ -260,7 +260,7 @@ namespace ORNG {
 			glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
 			glm::fvec3 rot_y = glm::rotate(mouse_delta.y * rotation_speed, glm::cross(glm::vec3(0.0, -1.0, 0.0), rot_x)) * glm::vec4(rot_x, 0);
 
-			if (rot_y.y <= 0.9999f && rot_y.y >= -0.9999f)
+			if (rot_y.y <= 0.99f && rot_y.y >= -0.99f)
 				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_y));
 
 			Window::SetCursorPos(last_mouse_pos.x, last_mouse_pos.y);
@@ -386,6 +386,7 @@ namespace ORNG {
 
 			if (ImGui::BeginPopup("FilePopup"))
 			{
+
 				ImGui::PushID(1);
 				ImGui::SeparatorText("Files");
 				ImGui::PopID();
@@ -415,7 +416,7 @@ namespace ORNG {
 			}
 			case 3: {
 				std::string scene_filepath{"scene.yml"};
-				SceneSerializer::SerializeAssets("assets.yml");
+				AssetManager::SerializeAssets("assets.yml");
 				SceneSerializer::SerializeScene(*m_active_scene, scene_filepath);
 				selected_component = 0;
 			}
@@ -550,17 +551,6 @@ namespace ORNG {
 
 			}
 
-
-			if (std::filesystem::exists(dir_path + "/assets.yml")) {
-				std::ifstream stream(dir_path + "/assets.yml");
-				std::stringstream str_stream;
-				str_stream << stream.rdbuf();
-				stream.close();
-
-				YAML::Node data = YAML::Load(str_stream.str());
-
-				ret = ret | ((!data.IsDefined() || data.IsNull()) ? CORRUPTED_ASSET_YML : 0);
-			}
 		}
 		catch (const std::exception& e) {
 			ret = false;
@@ -593,15 +583,16 @@ namespace ORNG {
 
 	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		if (ValidateProjectDir(folder_path) == 0) {
-
 			if (m_play_mode_active)
 				EndPlayScene();
 
 			std::filesystem::current_path(folder_path);
 			m_current_project_directory = folder_path;
 
-			mp_selected_material = nullptr;
-			mp_selected_texture = nullptr;
+			// Deselect material and texture that's about to be deleted
+			m_asset_manager_window.SelectMaterial(nullptr);
+			m_asset_manager_window.SelectTexture(nullptr);
+
 			m_selected_entity_ids.clear();
 			glm::vec3 cam_pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
@@ -615,7 +606,7 @@ namespace ORNG {
 				//if (entry.path().extension().string() == ".cpp")
 					//AssetManager::AddScriptAsset(entry.path().string());
 			//}
-			SceneSerializer::DeserializeAssets(m_current_project_directory + "\\assets.yml");
+			AssetManager::LoadAssetsFromProjectPath(m_current_project_directory);
 			m_active_scene->LoadScene(m_current_project_directory + "\\scene.yml");
 			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml");
 
@@ -948,7 +939,8 @@ namespace ORNG {
 
 				for (auto* p_entity : m_active_scene->m_entities) {
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
-						return;
+						continue;
+
 					active_event = (EntityNodeEvent)(RenderEntityNode(p_entity, 0) | active_event);
 				}
 
@@ -1148,7 +1140,7 @@ namespace ORNG {
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("SCRIPT")) {
 				if (p_payload->DataSize == sizeof(std::string)) {
-					ScriptSymbols* p_symbols = AssetManager::GetScriptAsset(*static_cast<std::string*>(p_payload->Data));
+					ScriptSymbols* p_symbols = &AssetManager::GetAsset<ScriptAsset>(*static_cast<std::string*>(p_payload->Data))->symbols;
 					p_script->SetSymbols(p_symbols);
 				}
 
@@ -1319,7 +1311,7 @@ namespace ORNG {
 		Material* ret = nullptr;
 
 		if (ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMaterialPreviewTex(p_material)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0))) {
-			mp_selected_material = AssetManager::GetMaterial(p_material->uuid());
+			m_asset_manager_window.SelectMaterial(AssetManager::GetAsset<Material>(p_material->uuid()));
 		};
 
 		if (ImGui::BeginDragDropTarget()) {

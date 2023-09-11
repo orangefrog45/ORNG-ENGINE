@@ -5,7 +5,7 @@
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
 
 

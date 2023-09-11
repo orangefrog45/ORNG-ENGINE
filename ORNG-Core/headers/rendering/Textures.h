@@ -4,6 +4,7 @@
 #include "util/Log.h"
 #include "bitsery/traits/string.h"
 #include "bitsery/traits/core/traits.h"
+#include "assets/Asset.h"
 
 namespace ORNG {
 
@@ -44,65 +45,8 @@ namespace ORNG {
 		uint8_t srgb_space = false;
 	};
 
-	// Struct containing raw texture data loaded from files, data will automatically be freed when this goes out of scope
-	struct TextureFileData {
-		// Default constructor returns invalid data - this will be handled by the engine.
-		TextureFileData() : data_type(INVALID) {};
-		TextureFileData(unsigned char* p_data, uint32_t  t_width, uint32_t t_height, uint8_t t_channels) : data_8_bit(p_data), data_type(BIT8), width(t_width), height(t_height), channels(t_channels) {};
-		TextureFileData(float* p_data, uint32_t  t_width, uint32_t t_height, uint8_t t_channels) : data_32_bit(p_data), data_type(BIT32), width(t_width), height(t_height), channels(t_channels) {};
-		TextureFileData(TextureFileData&& other) = default;
 
-		TextureFileData& operator=(TextureFileData&& other) noexcept {
-			if (this != &other) {
-				data_8_bit = other.data_8_bit;
-				data_32_bit = other.data_32_bit;
-				data_type = other.data_type;
-			}
-			return *this;
-		}
-
-		~TextureFileData() {
-			/*if (data_type == BIT8)
-				//stbi_image_free(data_8_bit);
-			else if (data_type == BIT32)
-
-				//stbi_image_free(data_32_bit);*/
-		}
-
-		template <typename S>
-		void serialize(S& s) {
-			if (data_type == BIT8) {
-				for (size_t i = 0; i < (size_t)width * (size_t)height * (size_t)channels; i++) {
-					s.value1b(*((uint8_t*)data_8_bit + i));
-				}
-			}
-			else if (data_type == BIT32) {
-				for (size_t i = 0; i < (size_t)width * (size_t)height * (size_t)channels; i++) {
-					s.value4b(*((float*)data_32_bit + i));
-				}
-			}
-
-
-			s.value4b(width);
-			s.value4b(height);
-			s.value1b((uint8_t)data_type);
-			s.value1b(channels);
-		}
-
-		unsigned char* data_8_bit = nullptr;
-		float* data_32_bit = nullptr;
-		enum DataType {
-			INVALID,
-			BIT8,
-			BIT32
-		};
-
-		DataType data_type = INVALID;
-		uint32_t width = 0;
-		uint32_t height = 0;
-		uint8_t channels = 0;
-	};
-	class TextureBase {
+	class TextureBase : public Asset {
 
 	public:
 		friend class Framebuffer;
@@ -130,8 +74,8 @@ namespace ORNG {
 
 		UUID uuid;
 	protected:
-		std::unique_ptr<TextureFileData> LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		std::unique_ptr<TextureFileData> LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		bool LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
+		bool LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
 		TextureBase(unsigned int texture_target, const std::string& name);
 		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid);
 		uint32_t m_texture_target = 0;
@@ -143,6 +87,7 @@ namespace ORNG {
 	struct Texture2DSpec : public TextureBaseSpec {
 		template <typename S>
 		void serialize(S& s) {
+			TextureBaseSpec::serialize(s);
 			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 		std::string filepath;
@@ -180,19 +125,21 @@ namespace ORNG {
 	public:
 		friend class EditorLayer;
 		friend class Scene;
-		Texture2D(const std::string& name);
-		Texture2D(const std::string& name, uint64_t t_uuid);
+		Texture2D(const std::string& filepath);
+		Texture2D(const std::string& filepath, uint64_t t_uuid);
 		// Allocates a new texture object and copies texture data from other
 		Texture2D(const Texture2D& other);
 		Texture2D& operator=(const Texture2D& other);
 
 		bool SetSpec(const Texture2DSpec& spec);
-		std::unique_ptr<TextureFileData> LoadFromFile();
+		bool LoadFromFile();
 		const Texture2DSpec& GetSpec() const { return m_spec; }
 
 		template <typename S>
 		void serialize(S& s) {
 			s.object(m_spec);
+			s.object(uuid);
+			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 
 	private:

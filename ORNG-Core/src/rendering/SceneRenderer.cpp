@@ -462,15 +462,6 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
 		DrawSkybox();
 
-
-		/*if (sample_world_pos) {sc
-			glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
-
-			GLfloat* pixels = new GLfloat[4];
-			glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RGB, GL_FLOAT, pixels);
-			m_sampled_world_pos = glm::vec3(pixels[0], pixels[1], pixels[2]);
-			delete[] pixels;
-		}*/
 	}
 
 

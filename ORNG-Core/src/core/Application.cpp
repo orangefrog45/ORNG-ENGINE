@@ -14,7 +14,7 @@
 #include "physics/Physics.h"
 #include "rendering/EnvMapLoader.h"
 #include "core/CodedAssets.h"
-#include "core/AssetManager.h"
+#include "assets/AssetManager.h"
 #include "core/Input.h"
 #include "audio/AudioEngine.h"
 #include <glfw/glfw3.h>

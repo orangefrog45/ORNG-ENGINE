@@ -1,8 +1,5 @@
 #include "pch/pch.h"
 
-
-
-
 #include "rendering/MeshAsset.h"
 #include "util/util.h"
 #include "util/Log.h"
@@ -19,27 +16,27 @@ namespace ORNG {
 	bool MeshAsset::LoadMeshData() {
 
 		if (m_is_loaded) {
-			ORNG_CORE_TRACE("Mesh '{0}' is already loaded", m_filename);
+			ORNG_CORE_TRACE("Mesh '{0}' is already loaded", filepath);
 			return true;
 		}
 
-		ORNG_CORE_INFO("Loading mesh: {0}", m_filename);
+		ORNG_CORE_INFO("Loading mesh: {0}", filepath);
 
 
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 		bool ret = false;
-		p_scene = m_importer.ReadFile(m_filename.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
+		p_scene = m_importer.ReadFile(filepath.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
 			| aiProcess_ImproveCacheLocality);
 
 		if (p_scene) {
 			ret = InitFromScene(p_scene);
 		}
 		else {
-			ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", m_filename.c_str(), m_importer.GetErrorString());
+			ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", filepath.c_str(), m_importer.GetErrorString());
 			return false;
 		}
 
-		ORNG_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), m_filename);
+		ORNG_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), filepath);
 		return ret;
 	}
 
@@ -52,7 +49,7 @@ namespace ORNG {
 		CountVerticesAndIndices(pScene, num_vertices, num_indices);
 
 		if (num_vertices > ORNG_MAX_MESH_INDICES || num_indices > ORNG_MAX_MESH_INDICES) {
-			ORNG_CORE_ERROR("Mesh asset '{0}' exceeds maximum number of vertices, limit is {1}", m_filename, ORNG_MAX_MESH_INDICES);
+			ORNG_CORE_ERROR("Mesh asset '{0}' exceeds maximum number of vertices, limit is {1}", filepath, ORNG_MAX_MESH_INDICES);
 			delete p_scene;
 			return false;
 		}
