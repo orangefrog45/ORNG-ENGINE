@@ -24,10 +24,6 @@ namespace ORNG {
 
 	struct ScriptSymbols {
 		bool loaded = false;
-
-		// Are these symbols from an old dll
-		bool using_old_dll = false;
-
 		std::string script_path;
 		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
 		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
@@ -53,8 +49,8 @@ namespace ORNG {
 	};
 
 	struct ScriptAsset : public Asset {
-		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { ASSERT(symbols.loaded); };
-		ScriptAsset(const std::string& filepath) : Asset(filepath), symbols(ScriptingEngine::GetSymbolsFromScriptCpp(filepath)) { ASSERT(symbols.loaded); };
+		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { };
+		ScriptAsset(const std::string& filepath) : Asset(filepath), symbols(ScriptingEngine::GetSymbolsFromScriptCpp(filepath)) {  };
 
 		ScriptSymbols symbols;
 	};

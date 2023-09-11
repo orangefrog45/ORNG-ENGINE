@@ -262,8 +262,11 @@ namespace ORNG {
 			glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
 			glm::fvec3 rot_y = glm::rotate(mouse_delta.y * rotation_speed, glm::cross(glm::vec3(0.0, -1.0, 0.0), rot_x)) * glm::vec4(rot_x, 0);
 
-			if (rot_y.y <= 0.99f && rot_y.y >= -0.99f)
+			if (rot_y.y <= 0.997f && rot_y.y >= -0.997f)
 				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_y));
+			else 
+				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_x));
+
 
 			Window::SetCursorPos(last_mouse_pos.x, last_mouse_pos.y);
 		}
@@ -530,62 +533,66 @@ namespace ORNG {
 
 
 
-	EditorLayer::ProjectErrFlags EditorLayer::ValidateProjectDir(const std::string& dir_path) {
-		int ret = NONE;
-
+	bool EditorLayer::ValidateProjectDir(const std::string& dir_path) {
 		try {
-			ret = ret | (std::filesystem::exists(dir_path + "/scene.yml") ? 0 : NO_SCENE_YML);
-			ret = ret | (std::filesystem::exists(dir_path + "/assets.yml") ? 0 : NO_ASSET_YML);
-			ret = ret | (std::filesystem::exists(dir_path + "/res/") ? 0 : NO_RES_FOLDER);
-			ret = ret | (std::filesystem::exists(dir_path + "/res/meshes") ? 0 : NO_MESH_FOLDER);
-			ret = ret | (std::filesystem::exists(dir_path + "/res/textures") ? 0 : NO_TEXTURE_FOLDER);
-			ret = ret | (std::filesystem::exists(dir_path + "/res/shaders") ? 0 : NO_SHADER_FOLDER);
-			ret = ret | (std::filesystem::exists(dir_path + "/res/scripts") ? 0 : NO_SCRIPT_FOLDER);
-
-			if (std::filesystem::exists(dir_path + "/scene.yml")) {
-				std::ifstream stream(dir_path + "/scene.yml");
-				std::stringstream str_stream;
-				str_stream << stream.rdbuf();
-				stream.close();
-
-				YAML::Node data = YAML::Load(str_stream.str());
-
-				ret = ret | ((!data.IsDefined() || data.IsNull() || !data["Scene"]) ? CORRUPTED_SCENE_YML : 0);
-
+			if (!std::filesystem::exists(dir_path + "/scene.yml")) {
+				std::ofstream s{dir_path + "/scene.yml"};
+				s << ORNG_BASE_SCENE_YAML;
+				s.close();
 			}
+
+			if (!std::filesystem::exists(dir_path + "/res/"))
+				std::filesystem::create_directory(dir_path + "/res");
+
+			if (!std::filesystem::exists(dir_path + "/res/meshes"))
+				std::filesystem::create_directory(dir_path + "/res/meshes");
+
+			if (!std::filesystem::exists(dir_path + "/res/textures"))
+				std::filesystem::create_directory(dir_path + "/res/textures");
+
+			if (!std::filesystem::exists(dir_path + "/res/shaders"))
+				std::filesystem::create_directory(dir_path + "/res/shaders");
+
+			if (!std::filesystem::exists(dir_path + "/res/scripts"))
+				std::filesystem::create_directory(dir_path + "/res/scripts");
+
+			if (!std::filesystem::exists(dir_path + "/res/prefabs"))
+				std::filesystem::create_directory(dir_path + "/res/prefabs");
+
+			if (!std::filesystem::exists(dir_path + "/res/materials"))
+				std::filesystem::create_directory(dir_path + "/res/materials");
+
+
+
+			std::ifstream stream(dir_path + "/scene.yml");
+			std::stringstream str_stream;
+			str_stream << stream.rdbuf();
+			stream.close();
+
+			YAML::Node data = YAML::Load(str_stream.str());
+			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
+				std::filesystem::copy_file(dir_path + "/scene.yml", dir_path + "/sceneCORRUPTED.yml");
+				ORNG_CORE_WARN("scene.yml file is corrupted, replacing with default template");
+				std::ofstream s{dir_path + "/scene.yml"};
+				s << ORNG_BASE_SCENE_YAML;
+				s.close();
+			}
+
 
 		}
 		catch (const std::exception& e) {
-			ret = false;
 			ORNG_CORE_ERROR("Error validating project '{0}', : '{1}'", dir_path, e.what());
-		}
-
-		return static_cast<ProjectErrFlags>(ret);
-	}
-
-
-
-
-	bool EditorLayer::RepairProjectDir(const std::string& dir_path) {
-
-		if (!std::filesystem::exists(dir_path + "/scene.yml")) {
-			std::ofstream s(dir_path + "/scene.yml");
-			s << ORNG_BASE_SCENE_YAML;
-			s.close();
-		}
-
-		if (!std::filesystem::exists(dir_path + "/assets.yml")) {
-			std::ofstream s(dir_path + "/assets.yml");
-			s << ORNG_BASE_ASSET_YAML;
-			s.close();
+			return false;
 		}
 
 		return true;
 	}
 
 
+
+
 	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
-		if (ValidateProjectDir(folder_path) == 0) {
+		if (ValidateProjectDir(folder_path)) {
 			if (m_play_mode_active)
 				EndPlayScene();
 

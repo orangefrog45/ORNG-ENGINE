@@ -1,7 +1,12 @@
+
 11/9/23:
+-Project file structure validation and repair system
+-Script loading/execution stability improvements
+-Cmake assimp include fix
 -Fixed script reloading
 -Overhaul of asset manager, full switch to binary asset serialization and code improvements
 -Further general asset/project management improvements
+-Editor cam rotation improvements (no more sticking at high/low y target values)
 
 9/9/23:
 -Mesh default material system removed - just considering meshes pure vertex data now

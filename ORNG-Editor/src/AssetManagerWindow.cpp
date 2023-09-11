@@ -120,6 +120,25 @@ namespace ORNG {
 		}
 	}
 
+	// Attempts to load a script and generate a script asset from it, will return an asset with "filler" symbols if loading fails (just function ptrs that print errors)
+	ScriptAsset* TryLoadScript(const std::string& relative_path) {
+		std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
+
+		// This status is used to check if an older .dll for the script exists, if it does then compare before/after compilation to see if the script compilation was actually successful (if it wasn't the file will be identical)
+		// Can't use symbols.loaded for this as they will load the old existing .dll file if the new script fails to compile
+		std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
+
+		ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
+		ScriptAsset* p_asset = nullptr;
+		if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
+			GenerateErrorMessage("Failed to load script");
+		}
+
+		p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
+
+		return p_asset;
+
+	}
 
 	void AssetManagerWindow::RenderMainAssetWindow() {
 
@@ -411,33 +430,18 @@ namespace ORNG {
 						if (ImGui::BeginPopup("script_option_popup"))
 						{
 							if ((!is_loaded && ImGui::Selectable("Load"))) {
-								if (!AssetManager::AddAsset(new ScriptAsset(relative_path)))
-									GenerateErrorMessage("AssetManager::AddScriptAsset failed");
+								TryLoadScript(relative_path);
 							}
 							else if (is_loaded && ImGui::Selectable("Reload")) {
 
 								// Reload script and reconnect it to script components previously using it
 								if (AssetManager::DeleteAsset(AssetManager::GetAsset<ScriptAsset>(relative_path))) {
-									std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
-									std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
-
-									ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
-									ScriptAsset* p_asset = nullptr;
-									if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
-										GenerateErrorMessage("Failed to reload script");
-									}
-
-									p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
-
-
+									ScriptAsset* p_asset = TryLoadScript(relative_path);
 									for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
 										if (p_asset->PathEqualTo(relative_path)) {
 											script_comp.SetSymbols(&p_asset->symbols);
 										}
 									}
-
-
-
 								}
 
 							}

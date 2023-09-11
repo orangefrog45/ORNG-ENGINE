@@ -66,23 +66,10 @@ namespace ORNG {
 		void GenerateErrorMessage(const std::string& error_str = "");
 		void RenderProjectGenerator(int& selected_component_from_popup);
 
-		enum ProjectErrFlags {
-			NONE = 0,
-			NO_SCENE_YML = 1 << 0,
-			NO_ASSET_YML = 1 << 1,
-			NO_RES_FOLDER = 1 << 2,
-			NO_MESH_FOLDER = 1 << 3,
-			NO_TEXTURE_FOLDER = 1 << 4,
-			NO_SHADER_FOLDER = 1 << 5,
-			NO_SCRIPT_FOLDER = 1 << 6,
-			CORRUPTED_SCENE_YML = 1 << 7,
-		};
 
 
-
-		// Ensures a project directory is in the correct state to be used in the editor, 
-		ProjectErrFlags ValidateProjectDir(const std::string& dir_path);
-		bool RepairProjectDir(const std::string& dir_path);
+		// Ensures a project directory is in the correct state to be used in the editor, attempts repairs if not
+		bool ValidateProjectDir(const std::string& dir_path);
 
 		// Renders material as a drag-drop target, returns ptr of the new material if a material was drag-dropped on it, else nullptr
 		Material* RenderMaterialComponent(const Material* p_material);
