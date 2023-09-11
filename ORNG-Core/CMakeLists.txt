@@ -195,6 +195,7 @@ endif ()
 
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
+set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmodL.dll
 ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.dll
@@ -204,6 +205,7 @@ CACHE string "Copy these into your .exe directory"
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
 ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.dll
@@ -213,6 +215,7 @@ CACHE string "Copy these into your .exe directory"
 elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     message(FATAL_ERROR "Only debug and release builds are supported")
 endif()
+
 
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/")

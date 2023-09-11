@@ -1,3 +1,5 @@
+12/9/23:
+-Build fixes for CMake
 
 11/9/23:
 -Project file structure validation and repair system
