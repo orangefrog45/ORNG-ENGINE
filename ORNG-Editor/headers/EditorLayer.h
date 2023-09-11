@@ -117,7 +117,7 @@ namespace ORNG {
 				m_selected_entity_ids.erase(it);
 		}
 
-		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory };
+		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory, m_active_scene };
 
 		// Stores temporary serialized yaml data to load back in after exiting "play mode"
 		std::string m_temp_scene_serialization;

@@ -410,12 +410,16 @@ namespace ORNG {
 		for (auto& pair : m_entity_collision_queue) {
 			auto* p_first_script = pair.first->GetComponent<ScriptComponent>();
 			auto* p_second_script = pair.second->GetComponent<ScriptComponent>();
+			try {
+				if (p_first_script)
+					p_first_script->p_symbols->OnCollision(pair.first, pair.second);
 
-			if (p_first_script)
-				p_first_script->p_symbols->OnCollision(pair.first, pair.second);
-
-			if (p_second_script)
-				p_second_script->p_symbols->OnCollision(pair.second, pair.first);
+				if (p_second_script)
+					p_second_script->p_symbols->OnCollision(pair.second, pair.first);
+			}
+			catch (std::exception e) {
+				ORNG_CORE_ERROR("Script OnCollision err for collision pair '{0}', '{1}' : '{2}'", pair.first->name, pair.second->name, e.what());
+			}
 		}
 
 		m_entity_collision_queue.clear();

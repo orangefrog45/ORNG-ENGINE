@@ -34,7 +34,17 @@ namespace ORNG {
 		// Returns ptr to component or nullptr if no component was found
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
 		T* GetComponent() {
+#ifdef ORNG_SCRIPT_ENV
+			auto* p_comp = mp_registry->try_get<T>(m_entt_handle);
+			if (!p_comp) {
+				throw std::runtime_error("GetComponent call failed, entity does not have specified component. Validate with HasComponent first!");
+			}
+			else {
+				return p_comp;
+			}
+#else
 			return mp_registry->try_get<T>(m_entt_handle);
+#endif
 		}
 
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>

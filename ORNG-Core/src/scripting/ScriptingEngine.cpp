@@ -80,7 +80,11 @@ namespace ORNG {
 #endif // ifdef _MSC_VER
 	}
 
-
+	std::string ScriptingEngine::GetDllPathFromScriptCpp(const std::string& script_filepath) {
+		std::string filename = script_filepath.substr(script_filepath.find_last_of("\\") + 1);
+		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
+		return ".\\res\\scripts\\bin\\" + filename_no_ext + ".dll";
+	}
 
 
 	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath) {
@@ -92,6 +96,7 @@ namespace ORNG {
 		std::string filename = filepath.substr(filepath.find_last_of("\\") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
 		std::string file_dir = filepath.substr(0, filepath.find_last_of("\\") + 1);
+		std::string dll_path = GetDllPathFromScriptCpp(filepath);
 
 
 		if (!std::filesystem::exists("res\\scripts\\" + filename)) {
@@ -110,17 +115,19 @@ namespace ORNG {
 			return ScriptSymbols();
 		}
 		// Load the generated dll
-		std::string dll_path = ".\\res\\scripts\\bin\\" + filename_no_ext + ".dll";
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
 		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
 			ORNG_CORE_ERROR("Script DLL failed to load or not found at res/scripts/bin/'{0}'", filename_no_ext + ".dll");
 			return ScriptSymbols();
 		}
 
+
 		// Keep record of loaded DLL's
 		sm_loaded_script_dll_handles[filepath] = script_dll;
 
 		ScriptSymbols symbols;
+
+
 		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
 		symbols.OnUpdate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnUpdate"));
 		symbols.OnDestroy = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnDestroy"));

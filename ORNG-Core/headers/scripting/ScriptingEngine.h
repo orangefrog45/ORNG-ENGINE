@@ -24,6 +24,10 @@ namespace ORNG {
 
 	struct ScriptSymbols {
 		bool loaded = false;
+
+		// Are these symbols from an old dll
+		bool using_old_dll = false;
+
 		std::string script_path;
 		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
 		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
@@ -40,6 +44,8 @@ namespace ORNG {
 	class ScriptingEngine {
 	public:
 		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath);
+		// Produces a path that a scripts dll will be stored in
+		static std::string GetDllPathFromScriptCpp(const std::string& script_filepath);
 		static bool UnloadScriptDLL(const std::string& filepath);
 	private:
 		// Filepaths always absolute and use "\" as directory seperators

@@ -111,8 +111,8 @@ namespace ORNG {
 		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 		mp_editor_camera->AddComponent<CharacterControllerComponent>();
 
-		MakeProjectActive(base_proj_dir);
 		// Make sure some project is active
+		std::filesystem::current_path(base_proj_dir);
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/core/Input.h", "./res/scripts/includes/Input.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
@@ -126,6 +126,8 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
+
+		MakeProjectActive(base_proj_dir);
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}

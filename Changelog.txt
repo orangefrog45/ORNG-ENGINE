@@ -1,4 +1,5 @@
 11/9/23:
+-Fixed script reloading
 -Overhaul of asset manager, full switch to binary asset serialization and code improvements
 -Further general asset/project management improvements
 

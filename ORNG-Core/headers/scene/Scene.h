@@ -21,6 +21,7 @@ namespace ORNG {
 		friend class SceneRenderer;
 		friend class SceneSerializer;
 		friend class SceneEntity;
+		friend class AssetManagerWindow;
 		Scene() = default;
 		~Scene();
 

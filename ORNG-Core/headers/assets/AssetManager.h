@@ -94,16 +94,11 @@ namespace ORNG {
 		template<std::derived_from<Asset> T>
 		static T* AddAsset(T* p_asset) {
 			uint64_t uuid = p_asset->uuid();
-			if (Get().m_assets.contains(uuid)) {
-				ORNG_CORE_TRACE("Conflicting asset uuid '{0}', not added", uuid);
-				auto* p_asset = dynamic_cast<T*>(Get().m_assets[uuid]);
-				return p_asset ? p_asset : nullptr;
-			}
-			else {
-				Get().m_assets[uuid] = static_cast<Asset*>(p_asset);
-				HandleAssetAddition(p_asset);
-				return p_asset;
-			}
+			ASSERT(!Get().m_assets.contains(uuid));
+
+			Get().m_assets[uuid] = static_cast<Asset*>(p_asset);
+			HandleAssetAddition(p_asset);
+			return p_asset;
 
 		}
 

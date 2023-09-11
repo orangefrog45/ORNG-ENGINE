@@ -10,7 +10,7 @@ layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 15) uniform sampler3D fog_noise_sampler;
 layout(binding = 16) uniform sampler2D gbuffer_depth_sampler;
-layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
+layout(binding = 21) uniform samplerCube diffuse_prefilter_sampler;
 
 
 uniform float u_scattering_anistropy;
@@ -303,7 +303,7 @@ fog_density *= exp(-smoothstep(0.0, 10.0, step_pos.y*0.1));
 
 	}
 
-	vec4 fog_color = vec4(u_fog_color * accum.rgb + texture(diffuse_prefilter_sampler, ray_dir).rgb * u_emissive, 1.0 - accum.a );
+	vec4 fog_color = vec4(u_fog_color * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 5).rgb * u_emissive, 1.0 - accum.a );
 	imageStore(fog_texture, tex_coords, fog_color);
 
 })""

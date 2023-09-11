@@ -13,9 +13,15 @@ namespace ORNG {
 		std::function<void()> callback;
 	};
 
+	struct ErrorMessage {
+		ErrorMessage(const char* err, std::vector<std::string>& logs) : error(err), prev_logs(std::move(logs)) {};
+		std::string error;
+		std::vector<std::string> prev_logs;
+	};
+
 	class AssetManagerWindow {
 	public:
-		AssetManagerWindow(std::string* p_active_project_dir) : mp_active_project_dir(p_active_project_dir) {};
+		AssetManagerWindow(std::string* p_active_project_dir, std::unique_ptr<Scene>& scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(&scene_context) {};
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
@@ -51,10 +57,12 @@ namespace ORNG {
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
 		Material* mp_selected_material = nullptr;
+		std::unique_ptr<Scene>* mp_scene_context = nullptr;
 
 		Events::EventListener<Events::AssetEvent> m_asset_listener;
 
 		std::vector<ConfirmationWindowData> m_confirmation_window_stack;
+		std::vector<ErrorMessage> m_error_messages;
 
 		std::unique_ptr<Scene> mp_preview_scene = nullptr;
 

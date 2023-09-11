@@ -415,23 +415,30 @@ namespace ORNG {
 									GenerateErrorMessage("AssetManager::AddScriptAsset failed");
 							}
 							else if (is_loaded && ImGui::Selectable("Reload")) {
-								bool successful_reload = false;
 
 								// Reload script and reconnect it to script components previously using it
-								if (/*AssetManager::DeleteAsset(relative_path)*/false) {
-									/*if (auto* p_symbols = AssetManager::AddScriptAsset(relative_path)) {
-										for (auto [entity, script_comp] : m_active_scene->m_registry.view<ScriptComponent>().each()) {
-											if (script_comp.script_filepath == entry_path) {
-												script_comp.SetSymbols(p_symbols);
-											}
+								if (AssetManager::DeleteAsset(AssetManager::GetAsset<ScriptAsset>(relative_path))) {
+									std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
+									std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
+
+									ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
+									ScriptAsset* p_asset = nullptr;
+									if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
+										GenerateErrorMessage("Failed to reload script");
+									}
+
+									p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
+
+
+									for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+										if (p_asset->PathEqualTo(relative_path)) {
+											script_comp.SetSymbols(&p_asset->symbols);
 										}
-										successful_reload = true;
-									}*/
+									}
+
+
+
 								}
-
-
-								if (!successful_reload)
-									GenerateErrorMessage("Failed to reload script");
 
 							}
 							if (ImGui::Selectable("Delete")) {

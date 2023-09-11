@@ -54,6 +54,7 @@ namespace ORNG {
 		glEnable(GL_DEPTH_TEST);
 		glShadeModel(GL_SMOOTH);
 		glLineWidth(3.f);
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 
 		glDebugMessageCallback(GL_LogMessage, nullptr);
