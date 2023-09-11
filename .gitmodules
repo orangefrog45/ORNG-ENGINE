@@ -24,7 +24,7 @@
 	url = https://github.com/gabime/spdlog
 [submodule "ORNG-Core/extern/physx"]
 	path = ORNG-Core/extern/physx
-	url = https://github.com/orangefrog45/PhysX/
+	url = https://github.com/orangefrog45/PhysX
 [submodule "ORNG-Core/extern/stb"]
 	path = ORNG-Core/extern/stb
 	url = https://github.com/nothings/stb
