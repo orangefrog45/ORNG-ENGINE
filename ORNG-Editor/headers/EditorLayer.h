@@ -109,7 +109,8 @@ namespace ORNG {
 		// Stores temporary serialized yaml data to load back in after exiting "play mode"
 		std::string m_temp_scene_serialization;
 		// If true editor will start simulating the scene as if it were running in a runtime layer
-		bool m_play_mode_active = false;
+		bool m_simulate_mode_active = false;
+		bool m_simulate_mode_paused = false;
 
 		// Texture spec for rendering the scene
 		Texture2DSpec m_color_render_texture_spec;

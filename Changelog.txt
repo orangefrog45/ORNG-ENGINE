@@ -1,4 +1,7 @@
 12/9/23:
+-Pause button for editor simulation mode
+-Slightly improved entity node drag/drop + select controls
+-More script stability
 -Build fixes for CMake
 
 11/9/23:

@@ -139,14 +139,14 @@ namespace ORNG {
 
 	void EditorLayer::BeginPlayScene() {
 		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
-		m_play_mode_active = true;
+		m_simulate_mode_active = true;
 	}
 
 	void EditorLayer::EndPlayScene() {
 		mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 		m_active_scene->ClearAllEntities();
 		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization, false);
-		m_play_mode_active = false;
+		m_simulate_mode_active = false;
 	}
 
 	void EditorLayer::InitImGui() {
@@ -196,7 +196,7 @@ namespace ORNG {
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
 
-		if (m_play_mode_active)
+		if (m_simulate_mode_active && !m_simulate_mode_paused)
 			m_active_scene->Update(ts);
 		else
 			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
@@ -264,7 +264,7 @@ namespace ORNG {
 
 			if (rot_y.y <= 0.997f && rot_y.y >= -0.997f)
 				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_y));
-			else 
+			else
 				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_x));
 
 
@@ -428,10 +428,15 @@ namespace ORNG {
 			}
 
 			ImGui::SameLine();
-			if (m_play_mode_active && ImGui::Button(ICON_FA_PAUSE))
+			if (m_simulate_mode_active && ImGui::Button(ICON_FA_CIRCLE))
 				EndPlayScene();
-			else if (!m_play_mode_active && ImGui::Button(ICON_FA_PLAY))
+			else if (!m_simulate_mode_active && ImGui::Button(ICON_FA_PLAY))
 				BeginPlayScene();
+
+			ImGui::SameLine();
+			if (m_simulate_mode_active && ((!m_simulate_mode_paused && ImGui::Button((ICON_FA_PAUSE)) || (m_simulate_mode_paused && ImGui::Button((ICON_FA_ANGLES_UP)))))) {
+				m_simulate_mode_paused = !m_simulate_mode_paused;
+			}
 
 
 			ImGui::SameLine();
@@ -593,7 +598,7 @@ namespace ORNG {
 
 	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		if (ValidateProjectDir(folder_path)) {
-			if (m_play_mode_active)
+			if (m_simulate_mode_active)
 				EndPlayScene();
 
 			std::filesystem::current_path(folder_path);
@@ -792,7 +797,6 @@ namespace ORNG {
 
 
 
-
 	EditorLayer::EntityNodeEvent EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
 		EntityNodeEvent ret = EntityNodeEvent::E_NONE;
 
@@ -832,6 +836,15 @@ namespace ORNG {
 		flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
 		flags |= p_entity_relationship_comp->num_children > 0 ? ImGuiTreeNodeFlags_OpenOnArrow : 0;
 		bool is_tree_node_open = ImGui::TreeNodeEx(formatted_name.c_str(), flags);
+
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
+				/* Functionality handled externally */
+			}
+			ImGui::EndDragDropTarget();
+		}
+
 		if (ImGui::IsItemToggledOpen()) {
 			auto it = std::ranges::find(open_tree_nodes, p_entity->GetUUID());
 			if (it == open_tree_nodes.end())
@@ -840,15 +853,18 @@ namespace ORNG {
 				open_tree_nodes.erase(it);
 		}
 
-		m_selected_entities_are_dragged |= ImGui::IsItemActive() && !ImGui::IsItemHovered();
+		m_selected_entities_are_dragged |= ImGui::IsItemHovered() && ImGui::IsMouseDragging(0);
 
-
+		if (m_selected_entities_are_dragged) {
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern)) {
+				ImGui::SetDragDropPayload("ENTITY", &p_entity, sizeof(SceneEntity*));
+				ImGui::EndDragDropSource();
+			}
+		}
 		ImGui::PopStyleVar();
 		ImGui::PopStyleColor();
 
 		std::string popup_id = std::format("{}", p_entity->GetUUID()); // unique popup id
-
-
 		if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
 			// Drag entities into another entity node to make them children of it
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
@@ -865,16 +881,40 @@ namespace ORNG {
 				ImGui::OpenPopup(popup_id.c_str());
 
 		}
+
+
+
 		// If clicked, select current entity
-		if (ImGui::IsItemHovered() && (ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right))) { // Doing this instead of IsActive() because IsActive wont trigger if ctrl is held down
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) { // Doing this instead of IsActive() because IsActive wont trigger if ctrl is held down
+
 			if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
 				m_selected_entity_ids.clear();
 
 
-			if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_selected_entity_ids, p_entity->GetUUID())) // Deselect entity from group of entities currently selected
+			if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_selected_entity_ids, p_entity->GetUUID()) && ImGui::IsMouseReleased(0)) // Deselect entity from group of entities currently selected
 				m_selected_entity_ids.erase(std::ranges::find(m_selected_entity_ids, p_entity->GetUUID()));
-			else
+			else {
 				SelectEntity(p_entity->GetUUID());
+			}
+
+		}
+
+
+
+		if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
+			// Drag entities into another entity node to make them children of it
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
+				DeselectEntity(p_entity->GetUUID());
+				for (auto id : m_selected_entity_ids) {
+					m_active_scene->GetEntity(id)->SetParent(*p_entity);
+				}
+
+				m_selected_entities_are_dragged = false;
+			}
+
+			// Right click to open popup 
+			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+				ImGui::OpenPopup(popup_id.c_str());
 
 		}
 

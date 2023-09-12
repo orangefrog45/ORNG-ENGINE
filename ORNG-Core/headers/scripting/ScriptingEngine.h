@@ -18,7 +18,7 @@ namespace ORNG {
 	typedef void(__cdecl* InputSetter)(Input*);
 	typedef void(__cdecl* EventInstanceSetter)(Events::EventManager*);
 	typedef void(__cdecl* FrameTimingSetter)(FrameTiming*);
-	typedef void(__cdecl* CreateEntitySetter)(std::function<ORNG::SceneEntity& (const std::string&)>);
+	typedef void(__cdecl* CreateEntitySetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* DeleteEntitySetter)(std::function<void(SceneEntity* p_entity)>);
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
 
@@ -31,9 +31,9 @@ namespace ORNG {
 		PhysicsEventCallback OnCollision = [](SceneEntity* p_this, SceneEntity* p_other) {};
 
 		// These set the appropiate callback functions in the scripts DLL so they can modify the scene
-		CreateEntitySetter SceneEntityCreationSetter = nullptr;
-		DeleteEntitySetter SceneEntityDeletionSetter = nullptr;
-		DuplicateEntitySetter SceneEntityDuplicationSetter = nullptr;
+		CreateEntitySetter SceneEntityCreationSetter = [](std::function<SceneEntity& (const std::string&)>) {};
+		DeleteEntitySetter SceneEntityDeletionSetter = [](std::function<void(SceneEntity* p_entity)>) {};
+		DuplicateEntitySetter SceneEntityDuplicationSetter = [](std::function<SceneEntity& (SceneEntity& p_entity)>) {};
 	};
 
 

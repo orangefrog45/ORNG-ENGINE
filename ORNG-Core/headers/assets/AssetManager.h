@@ -70,6 +70,20 @@ namespace ORNG {
 	class MeshAsset;
 	class Texture2DSpec;
 
+	struct Prefab : public Asset {
+
+		Prefab(const std::string& filepath) : Asset(filepath) {};
+		// Yaml string that can be deserialized into entity
+		std::string serialized_content;
+
+		template<typename S>
+		void serialize(S& s) {
+			s.text1b(serialized_content, ORNG_MAX_FILEPATH_SIZE);
+			s.object(uuid);
+			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
+		}
+	};
+
 	struct SoundAsset : public Asset {
 		// Sound will be provided by AssetManager
 		SoundAsset(const std::string& t_filepath);
