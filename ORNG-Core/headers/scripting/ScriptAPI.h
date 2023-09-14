@@ -4,6 +4,8 @@
 */
 #include <filesystem>
 #include <chrono>
+#include <string>
+#include <functional>
 
 #include "glm/glm.hpp"
 #include "Input.h"
@@ -18,7 +20,8 @@
 #include "PhysicsComponent.h"
 
 #include "SceneEntity.h"
-#include "scripting/SceneScriptInterface.h"
+#include "./SceneScriptInterface.h"
+#include "./uuids.h" // Generated through editor on save
 
 /* TODO: Provide interface override for logging macros */
 #ifdef ORNG_CORE_TRACE
@@ -98,6 +101,10 @@ extern "C" {
 
 		__declspec(dllexport) void SetDuplicateEntityCallback(std::function<ORNG::SceneEntity& (ORNG::SceneEntity&)> func) {
 			ScriptInterface::Scene::DuplicateEntity = func;
+		}
+
+		__declspec(dllexport) void SetInstantiatePrefabCallback(std::function<ORNG::SceneEntity& (const std::string&)> func) {
+			ScriptInterface::Scene::InstantiatePrefab = func;
 		}
 
 

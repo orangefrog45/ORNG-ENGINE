@@ -41,8 +41,9 @@ namespace ORNG {
 		uint32_t GetMeshPreviewTex(const MeshAsset* p_mesh) {
 			return m_mesh_preview_textures.contains(p_mesh) ? m_mesh_preview_textures[p_mesh]->GetTextureHandle() : 0;
 		}
-
+		inline static const int window_height = 300;
 	private:
+		void CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp);
 		void RenderMainAssetWindow();
 		void RenderConfirmationWindow(ConfirmationWindowData& data, int index);
 		void PushConfirmationWindow(const std::string& str, std::function<void()> func) {

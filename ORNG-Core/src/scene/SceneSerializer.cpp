@@ -237,6 +237,7 @@ namespace ORNG {
 		p_transform->SetOrientation(transform_node["Orientation"].as<glm::vec3>());
 		p_transform->SetAbsoluteMode(transform_node["Absolute"].as<bool>());
 
+		entity.name = entity_node["Name"].as<std::string>();
 
 		for (auto node : entity_node) {
 			if (!node.first.IsDefined())
@@ -311,7 +312,46 @@ namespace ORNG {
 	}
 
 
+	void SceneSerializer::SerializeSceneUUIDs(const Scene& scene, std::string& output) {
+		std::unordered_set<std::string> names_taken;
 
+		std::ofstream fout{output};
+		fout << "#pragma once" << "\n";
+		fout << "namespace ScriptInterface {\n";
+		fout << "namespace Scene {\n";
+		fout << "namespace Entities {\n";
+
+		for (auto* p_entity : scene.m_entities) {
+			std::string ent_name = p_entity->name;
+			// Replace spaces with underscores
+			std::ranges::for_each(ent_name, [](char& c) {if (c == ' ') c = '_'; });
+			// Ensure a unique name
+			if (names_taken.contains(ent_name)) {
+				int iter = 1;
+				while (names_taken.contains(ent_name)) {
+					ent_name = ent_name + "_" + std::to_string(iter);
+				}
+			}
+			names_taken.emplace(ent_name);
+			fout << "constexpr uint64_t " << ent_name << " = " << p_entity->GetUUID() << ";\n";
+		}
+		fout << "};"; // namespace Entities
+
+		fout << "namespace Prefabs {\n";
+		for (auto [uuid, p_asset] : AssetManager::Get().m_assets) {
+			if (auto* p_prefab = dynamic_cast<Prefab*>(p_asset)) {
+				std::string prefab_name = p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1);
+				prefab_name = prefab_name.substr(0, prefab_name.find(".opfb"));
+				std::ranges::for_each(prefab_name, [](char& c) {if (c == ' ') c = '_'; });
+				fout << "inline static const std::string " << prefab_name << " = R\"(" << p_prefab->serialized_content << ")\"; \n";
+			}
+		}
+		fout << "};"; // namespace Prefabs
+		fout << "};"; // namespace Scene
+		fout << "};"; // namespace ScriptInterface
+
+
+	}
 
 	void SceneSerializer::SerializeScene(const Scene& scene, std::string& output, bool write_to_string) {
 		YAML::Emitter out;

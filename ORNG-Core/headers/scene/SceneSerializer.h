@@ -22,6 +22,10 @@ namespace ORNG {
 		// Output is either the filepath to write to or a string to be written to, if write_to_string is true then the string will be written to, no files
 		static void SerializeScene(const Scene& scene, std::string& output, bool write_to_string = false);
 
+		// Produces a .h file with UUID values for each named entity and asset, used in scripts
+		static void SerializeSceneUUIDs(const Scene& scene, std::string& output);
+
+
 		// Deserializes from filepath at "input" if input_is_filepath = true, else deserializes from the string itself assuming it contains valid yaml data
 		static bool DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath = true);
 

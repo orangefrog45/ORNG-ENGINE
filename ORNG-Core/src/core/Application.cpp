@@ -1,6 +1,4 @@
 #include "pch/pch.h"
-
-#include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include "rendering/Renderer.h"
@@ -18,10 +16,32 @@
 #include "core/Input.h"
 #include "audio/AudioEngine.h"
 #include <glfw/glfw3.h>
+#include "util/ExtraUI.h"
 
 
 namespace ORNG {
 
+	void InitImGui() {
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			style.WindowRounding = 0.0f;
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
+		ImGui_ImplGlfw_InitForOpenGL(Window::GetGLFWwindow(), true);
+		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
+	}
+
+	void Application::Shutdown() {
+		//ImGui::DestroyContext();
+	}
 
 	void Application::Init() {
 
@@ -47,10 +67,8 @@ namespace ORNG {
 
 		//IMGUI INIT
 		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
 
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
+		InitImGui();
 		AudioEngine::Init();
 		Events::EventManager::Init();
 		Input::Init();

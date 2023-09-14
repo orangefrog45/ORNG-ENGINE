@@ -21,6 +21,8 @@ namespace ORNG {
 	typedef void(__cdecl* CreateEntitySetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* DeleteEntitySetter)(std::function<void(SceneEntity* p_entity)>);
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
+	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (const std::string&)>);
+
 
 	struct ScriptSymbols {
 		bool loaded = false;
@@ -30,10 +32,12 @@ namespace ORNG {
 		ScriptFuncPtr OnDestroy = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnDestroy symbol not loaded"); };
 		PhysicsEventCallback OnCollision = [](SceneEntity* p_this, SceneEntity* p_other) {};
 
-		// These set the appropiate callback functions in the scripts DLL so they can modify the scene
+		// These set the appropiate callback functions in the scripts DLL so they can modify the scene, the scene class will call these methods during Update
+		// Would like to expose the entire scene class but due to the amount of dependencies I would need to include doing this for now
 		CreateEntitySetter SceneEntityCreationSetter = [](std::function<SceneEntity& (const std::string&)>) {};
 		DeleteEntitySetter SceneEntityDeletionSetter = [](std::function<void(SceneEntity* p_entity)>) {};
 		DuplicateEntitySetter SceneEntityDuplicationSetter = [](std::function<SceneEntity& (SceneEntity& p_entity)>) {};
+		InstantiatePrefabSetter ScenePrefabInstantSetter = [](std::function<SceneEntity& (const std::string&)>) {};
 	};
 
 

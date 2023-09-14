@@ -23,6 +23,7 @@ namespace ORNG {
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
+		// Script state updates need to be set far less frequently, use events for this soon
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			script.p_symbols->SceneEntityCreationSetter([this](const std::string& str) -> SceneEntity& {
 				return CreateEntity(str);
@@ -34,6 +35,10 @@ namespace ORNG {
 
 			script.p_symbols->SceneEntityDuplicationSetter([this](SceneEntity& ent) -> SceneEntity& {
 				return DuplicateEntity(ent);
+				});
+
+			script.p_symbols->ScenePrefabInstantSetter([this](const std::string& str) -> SceneEntity& {
+				return InstantiatePrefab(str);
 				});
 
 			try {
@@ -92,6 +97,28 @@ namespace ORNG {
 		return it == m_entities.end() ? nullptr : *it;
 	}
 
+
+	SceneEntity& Scene::InstantiatePrefab(Prefab* p_prefab) {
+		auto& ent = CreateEntity("Prefab instantiation");
+		SceneSerializer::DeserializeEntityFromString(*this, p_prefab->serialized_content, ent);
+		return ent;
+	}
+	SceneEntity& Scene::InstantiatePrefab(const std::string& serialized_data) {
+		auto& ent = CreateEntity("Prefab instantiation");
+		SceneSerializer::DeserializeEntityFromString(*this, serialized_data, ent);
+		return ent;
+	}
+
+	SceneEntity& Scene::InstantiatePrefab(uint64_t prefab_id) {
+		Prefab* p_prefab = AssetManager::GetAsset<Prefab>(prefab_id);
+		if (!p_prefab) {
+			ORNG_CORE_ERROR("Prefab with ID '{0}' doesn't exist, instantiation failed");
+			return CreateEntity("Invalid prefab");
+		}
+		else {
+			return InstantiatePrefab(p_prefab);
+		}
+	}
 
 
 	SceneEntity& Scene::DuplicateEntity(SceneEntity& original) {

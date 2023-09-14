@@ -1,3 +1,9 @@
+14/9/23:
+-Intellisense improvements/fixes for scripts, entity/prefab data written to header file to be used by them
+-Proper scene display panel added (not just imgui drawn over a fullscreen display)
+-Scene display panel drag/drop with meshes/prefabs
+-Further work on prefabs
+
 12/9/23:
 -Pause button for editor simulation mode
 -Slightly improved entity node drag/drop + select controls

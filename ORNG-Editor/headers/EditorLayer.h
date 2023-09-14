@@ -57,6 +57,7 @@ namespace ORNG {
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
+		void RenderTransformGizmos();
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
@@ -105,7 +106,8 @@ namespace ORNG {
 		}
 
 		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory, m_active_scene };
-
+		// Size, not position
+		ImVec2 m_scene_display_rect{ 10, 10 };
 		// Stores temporary serialized yaml data to load back in after exiting "play mode"
 		std::string m_temp_scene_serialization;
 		// If true editor will start simulating the scene as if it were running in a runtime layer

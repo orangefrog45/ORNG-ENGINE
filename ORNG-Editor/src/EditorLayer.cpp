@@ -14,7 +14,7 @@
 #include "yaml-cpp/yaml.h"
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
-#include "ExtraUI.h"
+#include "util/ExtraUI.h"
 
 
 
@@ -126,13 +126,13 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
+
 
 		MakeProjectActive(base_proj_dir);
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
-
-
 
 
 
@@ -149,9 +149,11 @@ namespace ORNG {
 		m_simulate_mode_active = false;
 	}
 
+
+
 	void EditorLayer::InitImGui() {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
 		io.Fonts->AddFontDefault();
 		io.FontDefault = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 18.0f);
 
@@ -160,6 +162,7 @@ namespace ORNG {
 		static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
 		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-regular-400.ttf", 18.0f, &config, icon_ranges);
 		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
+
 
 		mp_large_font = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 36.0f);
 
@@ -234,7 +237,7 @@ namespace ORNG {
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
 		auto abs_transforms = p_transform->GetAbsoluteTransforms();
-
+		p_cam->aspect_ratio = m_scene_display_rect.x / m_scene_display_rect.y;
 		// Camera movement
 		if (ImGui::IsMouseDown(1)) {
 			glm::vec3 pos = abs_transforms[0];
@@ -299,26 +302,88 @@ namespace ORNG {
 		ORNG_PROFILE_FUNC();
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
-
 		ImGui::NewFrame();
+
 		RenderErrorMessages();
 		RenderToolbar();
 
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, toolbar_height)));
+		m_scene_display_rect = { ImVec2(Window::GetWidth() - 850, Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
+		ImGui::SetNextWindowSize(m_scene_display_rect);
+
+		// Scene display is rendered during RenderDisplayWindow and for now is rendered across the full screen with ImGui just overlapping some parts
+		// Would like to put it into a texture but can't get this to work with gizmos, they will not render correctly
+		// For now this invisible window "simulates" the scene panel so I can put drag and drop stuff on it
+		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs))) {
+			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
+			ImGui::Image((ImTextureID)mp_scene_display_texture->GetTextureHandle(), ImVec2(m_scene_display_rect.x, m_scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
+			ImGui::SetCursorPos(prev_curs_pos);
+			ImGui::Dummy(ImVec2(0, 5));
+			ImGui::Dummy(ImVec2(5, 0));
+			ImGui::SameLine();
+			ImGui::InvisibleButton("##drag-drop-scene-target", ImVec2(m_scene_display_rect.x - 20, m_scene_display_rect.y - 20));
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
+					/* Functionality handled externally */
+				}
+				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
+					if (p_payload->DataSize == sizeof(MeshAsset*)) {
+						auto& ent = m_active_scene->CreateEntity("Mesh");
+						ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_payload->Data));
+						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
+						auto& mesh_aabb = ent.GetComponent<MeshComponent>()->GetMeshData()->m_aabb;
+						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsoluteTransforms()[0] + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f));
+						SelectEntity(ent.GetUUID());
+					}
+				}
+				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
+					if (p_payload->DataSize == sizeof(Prefab*)) {
+						auto& ent = m_active_scene->CreateEntity("Prefab instance");
+						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
+						SceneSerializer::DeserializeEntityFromString(*m_active_scene, (*static_cast<Prefab**>(p_payload->Data))->serialized_content, ent);
+						glm::vec3 pos;
+						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
+							auto& mesh_aabb = p_mesh->GetMeshData()->m_aabb;
+							pos = p_cam_transform->GetAbsoluteTransforms()[0] + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f);
+						}
+						else {
+							pos = p_cam_transform->GetAbsoluteTransforms()[0] + p_cam_transform->forward * 5.f;
+						}
+						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(pos);
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+		ImGui::End();
+		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();
+
+
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(15, 5));
-		ImGui::SetNextWindowPos(ImVec2(0, toolbar_height));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight() - toolbar_height));
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
+
 		ImGui::Begin("##left window", (bool*)0, 0);
 		ImGui::End();
 
-		ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() - 450, toolbar_height));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - 450, toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(450, Window::GetHeight() - toolbar_height));
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
 			DisplayEntityEditor();
 
 		}
 		ImGui::End();
 
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("Debug")) {
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -335,11 +400,93 @@ namespace ORNG {
 		ImGui::PopStyleVar(); // window border size
 		ImGui::PopStyleVar(); // window padding
 
-
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			GLFWwindow* backup_current_context = glfwGetCurrentContext();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			glfwMakeContextCurrent(backup_current_context);
+		}
+
+
 	}
+
+
+
+	void EditorLayer::RenderToolbar() {
+		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
+
+		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
+			if (ImGui::Button("Files")) {
+				ImGui::OpenPopup("FilePopup");
+			}
+			static std::vector<std::string> file_options{"New project", "Open project", "Save project"};
+			static int selected_component = 0;
+
+
+			if (ImGui::BeginPopup("FilePopup"))
+			{
+
+				ImGui::PushID(1);
+				ImGui::SeparatorText("Files");
+				ImGui::PopID();
+				for (int i = 0; i < file_options.size(); i++) {
+					if (ImGui::Selectable(file_options[i].c_str()))
+						selected_component = i + 1;
+				}
+				ImGui::EndPopup();
+
+			}
+
+			switch (selected_component) {
+			case 1:
+				RenderProjectGenerator(selected_component);
+				break;
+			case 2: {
+				//setting up file explorer callbacks
+				wchar_t valid_extensions[MAX_PATH] = L"Project Files: *.yml\0*.yml\0";
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					MakeProjectActive(filepath.substr(0, filepath.find_last_of('\\')));
+				};
+
+				ExtraUI::ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
+				selected_component = 0;
+				break;
+			}
+			case 3: {
+				std::string scene_filepath{"scene.yml"};
+				std::string uuid_filepath{"./res/scripts/includes/uuids.h"};
+				AssetManager::SerializeAssets();
+				SceneSerializer::SerializeScene(*m_active_scene, scene_filepath);
+				SceneSerializer::SerializeSceneUUIDs(*m_active_scene, uuid_filepath);
+				selected_component = 0;
+			}
+			}
+
+			ImGui::SameLine();
+			if (m_simulate_mode_active && ImGui::Button(ICON_FA_CIRCLE))
+				EndPlayScene();
+			else if (!m_simulate_mode_active && ImGui::Button(ICON_FA_PLAY))
+				BeginPlayScene();
+
+			ImGui::SameLine();
+			if (m_simulate_mode_active && ((!m_simulate_mode_paused && ImGui::Button((ICON_FA_PAUSE)) || (m_simulate_mode_paused && ImGui::Button((ICON_FA_ANGLES_UP)))))) {
+				m_simulate_mode_paused = !m_simulate_mode_paused;
+			}
+
+
+			ImGui::SameLine();
+			std::string sep_text = "Project: " + m_current_project_directory.substr(m_current_project_directory.find_last_of("\\") + 1);
+			ImGui::SeparatorText(sep_text.c_str());
+		}
+		ImGui::End();
+	}
+
+
 
 	void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
 		ImGui::SetNextWindowSize(ImVec2(500, 200));
@@ -376,85 +523,13 @@ namespace ORNG {
 		ImGui::PopStyleVar(); // window rounding
 	}
 
-
-
-	void EditorLayer::RenderToolbar() {
-		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
-		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
-			if (ImGui::Button("Files")) {
-				ImGui::OpenPopup("FilePopup");
-			}
-			static std::vector<std::string> file_options{"New project", "Open project", "Save project"};
-			static int selected_component = 0;
-
-
-			if (ImGui::BeginPopup("FilePopup"))
-			{
-
-				ImGui::PushID(1);
-				ImGui::SeparatorText("Files");
-				ImGui::PopID();
-				for (int i = 0; i < file_options.size(); i++) {
-					if (ImGui::Selectable(file_options[i].c_str()))
-						selected_component = i + 1;
-				}
-				ImGui::EndPopup();
-
-			}
-
-
-			switch (selected_component) {
-			case 1:
-				RenderProjectGenerator(selected_component);
-				break;
-			case 2: {
-				//setting up file explorer callbacks
-				wchar_t valid_extensions[MAX_PATH] = L"Project Files: *.yml\0*.yml\0";
-				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					MakeProjectActive(filepath.substr(0, filepath.find_last_of('\\')));
-				};
-
-				ExtraUI::ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
-				selected_component = 0;
-				break;
-			}
-			case 3: {
-				std::string scene_filepath{"scene.yml"};
-				AssetManager::SerializeAssets("assets.yml");
-				SceneSerializer::SerializeScene(*m_active_scene, scene_filepath);
-				selected_component = 0;
-			}
-			}
-
-			ImGui::SameLine();
-			if (m_simulate_mode_active && ImGui::Button(ICON_FA_CIRCLE))
-				EndPlayScene();
-			else if (!m_simulate_mode_active && ImGui::Button(ICON_FA_PLAY))
-				BeginPlayScene();
-
-			ImGui::SameLine();
-			if (m_simulate_mode_active && ((!m_simulate_mode_paused && ImGui::Button((ICON_FA_PAUSE)) || (m_simulate_mode_paused && ImGui::Button((ICON_FA_ANGLES_UP)))))) {
-				m_simulate_mode_paused = !m_simulate_mode_paused;
-			}
-
-
-			ImGui::SameLine();
-			std::string sep_text = "Project: " + m_current_project_directory.substr(m_current_project_directory.find_last_of("\\") + 1);
-			ImGui::SeparatorText(sep_text.c_str());
-		}
-		ImGui::End();
-	}
-
-
-
 	void EditorLayer::RenderDisplayWindow() {
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		GL_StateManager::DefaultClearBits();
 
 		m_asset_manager_window.OnMainRender();
 
-		if (ImGui::IsMouseDoubleClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
+		if (ImGui::IsMouseDoubleClicked(0)) {
 			DoPickingPass();
 		}
 
@@ -468,14 +543,9 @@ namespace ORNG {
 		DoSelectedEntityHighlightPass();
 		RenderGrid();
 
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		mp_quad_shader->ActivateProgram();
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR, true);
 
-		// Render scene texture to editor display window (currently just fullscreen quad)
-		glDisable(GL_DEPTH_TEST);
-		Renderer::DrawQuad();
-		glEnable(GL_DEPTH_TEST);
+		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+
 	}
 
 
@@ -521,6 +591,7 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", project_path + "/res/scripts/includes/SceneScriptInterface.h");
 		// Components
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", project_path + "/res/scripts/includes/Component.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", project_path + "/res/scripts/includes/MeshComponent.h");
@@ -661,7 +732,6 @@ namespace ORNG {
 			return;
 
 		auto* entity = p_entity ? p_entity : &m_active_scene->CreateEntity("New entity");
-		m_selected_entity_ids.clear(); // Clear selected ids as now only the new entity should be selected
 		SelectEntity(entity->GetUUID());
 
 		switch (selected_component) {
@@ -717,7 +787,11 @@ namespace ORNG {
 		}
 
 		glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
-
+		// Transform mouse coordinates to full window space for the proper texture coordinates
+		mouse_coords.x -= 400;
+		mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - 850));
+		mouse_coords.y -= toolbar_height;
+		mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
 		uint32_t* pixels = new uint32_t[2];
 		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
 		uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
@@ -857,7 +931,7 @@ namespace ORNG {
 
 		if (m_selected_entities_are_dragged) {
 			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern)) {
-				ImGui::SetDragDropPayload("ENTITY", &p_entity, sizeof(SceneEntity*));
+				ImGui::SetDragDropPayload("ENTITY", &m_selected_entity_ids, sizeof(std::vector<uint64_t>));
 				ImGui::EndDragDropSource();
 			}
 		}
@@ -963,6 +1037,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("Scene graph")) {
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
@@ -1028,9 +1103,17 @@ namespace ORNG {
 	}
 
 
+	int InputTextCallback(ImGuiInputTextCallbackData* data)
+	{
+		int iters = 0;
+		if (std::isalnum(data->EventChar) == 0) return 1;
 
+
+		return 0;
+	}
 
 	void EditorLayer::DisplayEntityEditor() {
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("Entity editor")) {
 
 			if (m_display_directional_light_editor)
@@ -1058,12 +1141,15 @@ namespace ORNG {
 			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
 			auto* p_audio_comp = entity->GetComponent<AudioComponent>();
 
-			std::vector<TransformComponent*> transforms;
+			static std::vector<TransformComponent*> transforms;
+			transforms.clear();
 			for (auto id : m_selected_entity_ids) {
 				transforms.push_back(m_active_scene->GetEntity(id)->GetComponent<TransformComponent>());
 			}
 			std::string ent_text = std::format("Entity '{}'", entity->name);
-			ImGui::InputText("Name", &entity->name);
+			ImGui::Text("Name: ");
+			ImGui::SameLine();
+			ImGui::InputText("##entname", &entity->name, ImGuiInputTextFlags_CallbackCharFilter, InputTextCallback);
 			ImGui::Text(ent_text.c_str());
 
 
@@ -1285,7 +1371,7 @@ namespace ORNG {
 		// Gizmos 
 		ImGuiIO& io = ImGui::GetIO();
 		ImGuizmo::BeginFrame();
-		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+		ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x + 400, ImGui::GetMainViewport()->Pos.y + toolbar_height, Window::GetWidth() - 850, Window::GetHeight() - 300 - toolbar_height);
 
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
@@ -1351,6 +1437,8 @@ namespace ORNG {
 
 			}
 		};
+
+
 
 	}
 

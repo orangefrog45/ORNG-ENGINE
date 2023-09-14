@@ -187,7 +187,7 @@ namespace ORNG {
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		static void LoadTexture2D(Texture2D* p_tex);
 		static void LoadAssetsFromProjectPath(const std::string& project_dir);
-		static void SerializeAssets(const std::string& filepath);
+		static void SerializeAssets();
 
 		// Deletes all assets
 		inline static void ClearAll() { Get().IClearAll(); };

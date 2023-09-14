@@ -1,4 +1,4 @@
-#include "includes/ScriptAPI.h"
+#include "./includes/ScriptAPI.h"
 
 /*
 	Apart from entity/scene methods, only use methods inside the "ScriptInterface" namespace

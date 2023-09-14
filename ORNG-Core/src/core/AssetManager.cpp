@@ -271,6 +271,7 @@ namespace ORNG {
 		std::string mesh_folder = project_dir + "\\res\\meshes\\";
 		std::string audio_folder = project_dir + "\\res\\audio\\";
 		std::string material_folder = project_dir + "\\res\\materials\\";
+		std::string prefab_folder = project_dir + "\\res\\prefabs\\";
 
 		Texture2DSpec default_spec;
 		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -326,12 +327,23 @@ namespace ORNG {
 			}
 		}
 
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(prefab_folder)) {
+			auto path = entry.path();
+			if (entry.is_directory() || path.extension() != ".opfb")
+				continue;
+			else {
+				auto* p_mat = new Prefab(path.string());
+				DeserializeAssetBinary(path.string(), *p_mat);
+				AddAsset(p_mat);
+			}
+		}
+
 
 
 	}
 
 
-	void AssetManager::SerializeAssets(const std::string& filepath) {
+	void AssetManager::SerializeAssets() {
 
 
 		for (const auto& [uuid, p_asset] : Get().m_assets) {

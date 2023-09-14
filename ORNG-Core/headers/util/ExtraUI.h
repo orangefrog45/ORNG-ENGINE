@@ -1,5 +1,7 @@
+#pragma once
 #include <imgui/imgui.h>
 
+class GLFWwindow;
 namespace ORNG {
 	class ExtraUI {
 	public:
@@ -17,5 +19,10 @@ namespace ORNG {
 		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ColoredButton(const char* content, ImVec4 col);
 		static bool RightClickPopup(const char* id);
+
 	};
+
+	inline static ImVec2 AddImVec2(ImVec2 v1, ImVec2 v2) {
+		return ImVec2{ v1.x + v2.x, v1.y + v2.y };
+	}
 }

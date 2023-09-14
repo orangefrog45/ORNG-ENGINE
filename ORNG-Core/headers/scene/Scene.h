@@ -6,12 +6,9 @@
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
 
-namespace ScriptInterface {
-	class S_Scene;
-}
 
 namespace ORNG {
-
+	class Prefab;
 	class SceneEntity;
 
 
@@ -33,6 +30,10 @@ namespace ORNG {
 		SceneEntity* GetEntity(uint64_t uuid);
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
+
+		SceneEntity& InstantiatePrefab(Prefab* p_prefab);
+		SceneEntity& InstantiatePrefab(uint64_t prefab_id);
+		SceneEntity& InstantiatePrefab(const std::string& serialized_data);
 
 
 		SceneEntity& DuplicateEntity(SceneEntity& original);

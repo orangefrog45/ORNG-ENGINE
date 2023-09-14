@@ -56,7 +56,7 @@ namespace ORNG {
 			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
 
 		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << ORNG_CORE_LIB_DIR "\\extern\\glew-cmake\\lib\\glew.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
+			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cpp.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\release\\PhysXFoundation_static.lib " << physx_lib_dir + "\\release\\PhysXExtensions_static.lib "
 			<< physx_lib_dir + "\\release\\PhysX_static.lib " << physx_lib_dir + "\\release\\PhysXCharacterKinematic_static.lib "
 			<< physx_lib_dir + "\\release\\PhysXCommon_static.lib " << physx_lib_dir + "\\release\\PhysXCooking_static.lib "
@@ -71,7 +71,7 @@ namespace ORNG {
 			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
 
 		bat_stream << "link /DLL /INCREMENTAL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib " << ORNG_CORE_LIB_DIR "\\extern\\glew-cmake\\lib\\glewd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
+			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cppd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\debug\\PhysXFoundation_staticd.lib " << physx_lib_dir + "\\debug\\PhysXExtensions_staticd.lib "
 			<< physx_lib_dir + "\\debug\\PhysX_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCharacterKinematic_staticd.lib "
 			<< physx_lib_dir + "\\debug\\PhysXCommon_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCooking_staticd.lib "
@@ -135,7 +135,8 @@ namespace ORNG {
 		symbols.SceneEntityCreationSetter = (CreateEntitySetter)(GetProcAddress(script_dll, "SetCreateEntityCallback"));
 		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
 		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
-
+		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
+		
 		symbols.loaded = true;
 		symbols.script_path = filepath;
 

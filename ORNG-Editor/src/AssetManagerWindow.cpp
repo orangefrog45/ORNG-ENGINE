@@ -3,7 +3,7 @@
 #include "AssetManagerWindow.h"
 #include "assets/AssetManager.h"
 #include "core/Window.h"
-#include "ExtraUI.h"
+#include "util/ExtraUI.h"
 #include "rendering/MeshAsset.h"
 #include "core/CodedAssets.h"
 #include "Icons.h"
@@ -121,14 +121,21 @@ namespace ORNG {
 	}
 
 
+	void AssetManagerWindow::CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp) {
+		if (auto* p_entity = (*mp_scene_context)->GetEntity(entt_id)) {
+			Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
+			prefab->serialized_content = SceneSerializer::SerializeEntityIntoString(*p_entity);
+			AssetManager::SerializeAssetBinary(fp, *prefab);
+		}
+	}
+
 	void AssetManagerWindow::RenderMainAssetWindow() {
 
-		int window_height = glm::clamp(static_cast<int>(Window::GetHeight()) / 4, 100, 500);
 		int window_width = Window::GetWidth() - 850;
 		ImVec2 image_button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
 		int column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
 		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
-		ImGui::SetNextWindowPos(ImVec2(400, Window::GetHeight() - window_height));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, Window::GetHeight() - window_height)));
 
 		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::BeginTabBar("Selection");
@@ -168,7 +175,7 @@ namespace ORNG {
 					if (p_mesh_asset->GetLoadStatus())
 					{
 						ExtraUI::CenteredImageButton(ImTextureID(m_mesh_preview_textures[p_mesh_asset]->GetTextureHandle()), image_button_size);
-						if (ImGui::BeginDragDropSource()) {
+						if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
 							p_dragged_mesh = p_mesh_asset;
 							ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
 							ImGui::EndDragDropSource();
@@ -395,7 +402,7 @@ namespace ORNG {
 						else
 							ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not loaded");
 
-						ImGui::Button(ICON_FA_FILE, image_button_size);
+						ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
 						static std::string dragged_script_filepath;
 						if (is_loaded && ImGui::BeginDragDropSource()) {
 							dragged_script_filepath = relative_path;
@@ -511,28 +518,65 @@ namespace ORNG {
 
 
 		if (ImGui::BeginTabItem("Prefabs")) {
-			ImGui::InvisibleButton("prefab-child", ImGui::GetContentRegionAvail());
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
-					if (p_payload->DataSize == sizeof(SceneEntity*)) {
-						SceneEntity* p_entity = *static_cast<SceneEntity**>(p_payload->Data);
-						std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_entity->name + ".opfb";
-						Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
-						prefab->serialized_content = SceneSerializer::SerializeEntityIntoString(*p_entity);
-						AssetManager::SerializeAssetBinary(fp, *prefab);
-					}
-				}
-			}
+			ImVec2 start_cursor_pos = ImGui::GetCursorPos();
 
-			if (ImGui::BeginTable("##audio asset table", column_count)) {
+			if (ImGui::BeginTable("##prefab table", column_count)) {
 				for (auto [key, p_asset] : AssetManager::Get().m_assets) {
 					auto* p_prefab = dynamic_cast<Prefab*>(p_asset);
 					if (!p_prefab)
 						continue;
+
+					ImGui::PushID(p_asset);
 					ImGui::TableNextColumn();
-					ExtraUI::NameWithTooltip(p_prefab->filepath);
+					ExtraUI::NameWithTooltip(p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1));
+					ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
+					static Prefab* p_dragged_prefab = nullptr;
+
+					if (ImGui::BeginDragDropSource()) {
+						p_dragged_prefab = p_prefab;
+						ImGui::SetDragDropPayload("PREFAB", &p_dragged_prefab, sizeof(Prefab*));
+						ImGui::EndDragDropSource();
+					}
+
+					if (ExtraUI::RightClickPopup("prefab-poup")) {
+						if (ImGui::Selectable("Delete")) {
+							m_confirmation_window_stack.emplace_back("Delete prefab?", [=] {
+								if (auto* p_curr_asset = AssetManager::GetAsset<Prefab>(key)) {
+									if (std::filesystem::exists(p_curr_asset->filepath))
+										std::filesystem::remove(p_curr_asset->filepath);
+
+									AssetManager::DeleteAsset(p_curr_asset);
+
+								}
+								});
+						}
+						ImGui::EndPopup();
+					}
+					ImGui::PopID();
 				}
 				ImGui::EndTable();
+			}
+
+			ImGui::SetCursorPos(start_cursor_pos);
+			ImGui::InvisibleButton("prefab-child", ImGui::GetContentRegionAvail());
+
+			// Setup entity drag drop on entire section
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
+					if (p_payload->DataSize == sizeof(std::vector<uint64_t>)) {
+						std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
+						for (auto id : id_vec) {
+							SceneEntity* p_entity = (*mp_scene_context)->GetEntity(id);
+							std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_entity->name + ".opfb";
+
+							if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
+								m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(p_entity->GetUUID(), fp); });
+							}
+							else
+								CreateAndSerializePrefab(p_entity->GetUUID(), fp);
+						}
+					}
+				}
 			}
 			ImGui::EndTabItem();
 		}
