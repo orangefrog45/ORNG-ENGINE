@@ -32,6 +32,8 @@ float cam_zfar;
 float cam_znear;
 } ubo_common;
 
+
+
 struct BaseLight {
 	vec4 color;
 };
@@ -79,18 +81,27 @@ layout(std140, binding = 0) uniform Matrices{
 	mat4 inv_view;
 } PVMatrices;
 
+layout(std140, binding = 2) buffer PointLights {
+	PointLight lights[];
+} ubo_point_lights_shadow;
+
+
+layout(std140, binding = 1) buffer PointLightsShadowless {
+	PointLight lights[];
+} ubo_point_lights_shadowless;
+
+layout(std140, binding = 4) buffer SpotLights {
+	SpotLight lights[];
+} ubo_spot_lights;
+
+layout(std140, binding = 3) buffer SpotLightsShadowless {
+	SpotLight lights[];
+} ubo_spot_lights_shadowless;
+
 layout(std140, binding = 1) uniform GlobalLighting{
 	DirectionalLight directional_light;
 } ubo_global_lighting;
 
-
-layout(std140, binding = 1) buffer PointLights {
-	PointLight lights[];
-} point_lights;
-
-layout(std140, binding = 2) buffer SpotLights {
-	SpotLight lights[];
-} spot_lights;
 
 uniform mat4 u_dir_light_matrices[3];
 
@@ -287,13 +298,13 @@ fog_density *= exp(-smoothstep(0.0, 10.0, step_pos.y*0.1));
 
 		vec3 slice_light = vec3(0);
 
-		for (unsigned int i = 0; i < point_lights.lights.length(); i++) {
-			slice_light += CalcPointLight(point_lights.lights[i], step_pos) * phase(ray_dir, normalize(point_lights.lights[i].pos.xyz - step_pos));
+		for (unsigned int i = 0; i < ubo_point_lights_shadowless.lights.length(); i++) {
+			slice_light += CalcPointLight(ubo_point_lights_shadowless.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights_shadowless.lights[i].pos.xyz - step_pos));
 		}
 
-		for (unsigned int i = 0; i < spot_lights.lights.length(); i++) {
-			slice_light += CalcSpotLight(spot_lights.lights[i], step_pos, i) * phase(ray_dir, -spot_lights.lights[i].dir.xyz);
-		}
+		//for (unsigned int i = 0; i < spot_lights.lights.length(); i++) {
+			//slice_light += CalcSpotLight(spot_lights.lights[i], step_pos, i) * phase(ray_dir, -spot_lights.lights[i].dir.xyz);
+		//}
 
 		float dir_shadow = ShadowCalculationDirectional(ubo_global_lighting.directional_light.direction.xyz, step_pos);
 		slice_light += ubo_global_lighting.directional_light.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);

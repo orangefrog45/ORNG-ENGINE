@@ -153,6 +153,8 @@ namespace ORNG {
 			out << YAML::Key << "AttenConstant" << YAML::Value << p_pointlight->attenuation.constant;
 			out << YAML::Key << "AttenLinear" << YAML::Value << p_pointlight->attenuation.linear;
 			out << YAML::Key << "AttenExp" << YAML::Value << p_pointlight->attenuation.exp;
+			out << YAML::Key << "Shadows" << YAML::Value << p_pointlight->shadows_enabled;
+			out << YAML::Key << "ShadowDistance" << YAML::Value << p_pointlight->shadow_distance;
 
 			out << YAML::EndMap;
 		}
@@ -168,7 +170,8 @@ namespace ORNG {
 			out << YAML::Key << "AttenLinear" << YAML::Value << p_spotlight->attenuation.linear;
 			out << YAML::Key << "AttenExp" << YAML::Value << p_spotlight->attenuation.exp;
 			out << YAML::Key << "Aperture" << YAML::Value << p_spotlight->m_aperture;
-			out << YAML::Key << "Direction" << YAML::Value << p_spotlight->m_light_direction_vec;
+			out << YAML::Key << "Shadows" << YAML::Value << p_spotlight->shadows_enabled;
+			out << YAML::Key << "ShadowDistance" << YAML::Value << p_spotlight->shadow_distance;
 
 			out << YAML::EndMap;
 		}
@@ -276,6 +279,8 @@ namespace ORNG {
 				p_pointlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
 				p_pointlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
 				p_pointlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
+				p_pointlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
+				p_pointlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
 			}
 
 			if (tag == "SpotlightComp") {
@@ -286,7 +291,8 @@ namespace ORNG {
 				p_spotlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
 				p_spotlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
 				p_spotlight_comp->m_aperture = light_node["Aperture"].as<float>();
-				p_spotlight_comp->m_light_direction_vec = light_node["Direction"].as<glm::vec3>();
+				p_spotlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
+				p_spotlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
 			}
 
 			if (tag == "ScriptComp") {

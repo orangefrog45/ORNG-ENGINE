@@ -7,6 +7,7 @@
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
+#include "util/Timers.h"
 
 
 namespace ORNG {
@@ -18,8 +19,8 @@ namespace ORNG {
 
 	void Scene::Update(float ts) {
 
+		ORNG_PROFILE_FUNC();
 
-		m_mesh_component_manager.OnUpdate();
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
@@ -50,6 +51,7 @@ namespace ORNG {
 		}
 
 		m_physics_system.OnUpdate(ts);
+		m_mesh_component_manager.OnUpdate();
 
 		if (m_camera_system.GetActiveCamera())
 			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
@@ -58,6 +60,7 @@ namespace ORNG {
 		for (auto* p_entity : m_entity_deletion_queue) {
 			DeleteEntity(p_entity);
 		}
+
 
 		m_entity_deletion_queue.clear();
 	}

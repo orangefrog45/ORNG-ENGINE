@@ -509,6 +509,8 @@ namespace ORNG {
 
 		int index = 0;
 		for (auto [entity, light] : spotlights.each()) {
+			if (!light.shadows_enabled)
+				continue;
 
 			m_depth_fb->BindTextureLayerToFBAttachment(m_spotlight_system.m_spotlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
 			GL_StateManager::ClearDepthBits();
@@ -525,6 +527,8 @@ namespace ORNG {
 		auto pointlights = mp_scene->m_registry.view<PointLightComponent>();
 
 		for (auto [entity, pointlight] : pointlights.each()) {
+			if (!pointlight.shadows_enabled)
+				continue;
 			glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, pointlight.shadow_distance);
 			glm::vec3 light_pos = pointlight.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 

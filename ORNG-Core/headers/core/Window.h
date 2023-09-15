@@ -89,8 +89,8 @@ namespace ORNG {
 		GLFWwindow* p_window = nullptr;
 		double mouse_x = 0;
 		double mouse_y = 0;
-		unsigned int m_window_width = 1920;
-		unsigned int m_window_height = 1080;
+		unsigned int m_window_width = 2560;
+		unsigned int m_window_height = 1440;
 	};
 
 }

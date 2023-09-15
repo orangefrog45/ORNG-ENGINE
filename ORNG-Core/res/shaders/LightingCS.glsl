@@ -44,13 +44,23 @@ struct SpotLight { //140 BYTES
 };
 
 
-layout(std140, binding = 1) buffer PointLights {
+layout(std140, binding = 2) buffer PointLights {
 	PointLight lights[];
-} point_lights;
+} ubo_point_lights_shadow;
 
-layout(std140, binding = 2) buffer SpotLights {
+
+layout(std140, binding = 1) buffer PointLightsShadowless {
+	PointLight lights[];
+} ubo_point_lights_shadowless;
+
+layout(std140, binding = 4) buffer SpotLights {
 	SpotLight lights[];
-} spot_lights;
+} ubo_spot_lights_shadow;
+
+layout(std140, binding = 3) buffer SpotLightsShadowless {
+	SpotLight lights[];
+} ubo_spot_lights_shadowless;
+
 
 layout(std140, binding = 1) uniform GlobalLighting{
 	DirectionalLight directional_light;
@@ -359,10 +369,9 @@ vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0, int index) {
 	kd *= 1.0 - metallic;
 
 	float n_dot_l = max(dot(sampled_normal, l), 0.0);
+	
 
-	float shadow = ShadowCalculationPointlight(light, index);
-
-	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation) * (1.0 - shadow);
+	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation);
 
 }
 
@@ -371,14 +380,10 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index) {
 
 	vec3 frag_to_light = light.pos.xyz - sampled_world_pos.xyz;
 	float spot_factor = dot(normalize(frag_to_light), -light.dir.xyz);
+	if (spot_factor >= 0.99)
+		return vec3(0.0);
 
-	//SHADOW
 	vec3 color = vec3(0);
-	float shadow = ShadowCalculationSpotlight(light, index);
-
-	if (shadow >= 0.99 || spot_factor <= 0.0) {
-		return color; // early return as no light will reach this spot
-	}
 
 	float distance = length(frag_to_light);
 	float attenuation = light.constant +
@@ -403,7 +408,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index) {
 	float n_dot_l = max(dot(sampled_normal, l), 0.0);
 
 	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / (1.0 - light.aperture));
-	return max((kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation) * spotlight_intensity, vec3(0.0, 0.0, 0.0)) * (1.0 - shadow);
+	return max((kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation) * spotlight_intensity, vec3(0.0, 0.0, 0.0));
 }
 
 
@@ -468,13 +473,26 @@ void main()
 
 
 	// Pointlights
-	for (int i = 0; i < point_lights.lights.length(); i++) {
-		total_light += (CalcPointLight(point_lights.lights[i], v, f0, i));
+	for (int i = 0; i < ubo_point_lights_shadow.lights.length(); i++) {
+		total_light += (CalcPointLight(ubo_point_lights_shadow.lights[i], v, f0, i)) * (1.0 - ShadowCalculationPointlight(ubo_point_lights_shadow.lights[i], i));
 	}
 
-	// Spotlights
-	for (int i = 0; i < spot_lights.lights.length(); i++) {
-		total_light += (CalcSpotLight(spot_lights.lights[i], v, f0, i));
+	for (int i = 0; i < ubo_point_lights_shadowless.lights.length(); i++) {
+		total_light += (CalcPointLight(ubo_point_lights_shadowless.lights[i], v, f0, i));
+
+	}
+
+	 //Spotlights
+	for (int i = 0; i < ubo_spot_lights_shadowless.lights.length(); i++) {
+		total_light += (CalcSpotLight(ubo_spot_lights_shadowless.lights[i], v, f0, i));
+	}
+
+for (int i = 0; i < ubo_spot_lights_shadow.lights.length(); i++) {
+		float shadow = ShadowCalculationSpotlight(ubo_spot_lights_shadow.lights[i], i);
+		if (shadow >= 0.99)
+			continue;
+
+		total_light += (CalcSpotLight(ubo_spot_lights_shadow.lights[i], v, f0, i)) * (1.0 - shadow);
 	}
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));

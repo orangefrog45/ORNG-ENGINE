@@ -5,6 +5,7 @@
 #include "glm/glm/gtc/quaternion.hpp"
 #include "events/EventManager.h"
 #include "rendering/MeshAsset.h"
+#include "util/Timers.h"
 
 
 namespace ORNG {
@@ -385,7 +386,6 @@ namespace ORNG {
 
 		if (m_accumulator < m_step_size)
 			return;
-
 
 		m_accumulator -= m_step_size * 1000.f;
 		mp_phys_scene->simulate(m_step_size);

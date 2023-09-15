@@ -65,8 +65,10 @@ namespace ORNG {
 
 		struct SSBO_BindingPoints {
 			static const int TRANSFORMS = 0;
-			static const int POINT_LIGHTS = 1;
-			static const int SPOT_LIGHTS = 2;
+			static const int POINT_LIGHTS_SHADOWLESS = 1;
+			static const int POINT_LIGHTS_SHADOW = 2;
+			static const int SPOT_LIGHTS_SHADOWLESS = 3;
+			static const int SPOT_LIGHTS_SHADOW = 4;
 		};
 
 		struct TextureUnits {

@@ -351,10 +351,11 @@ namespace ORNG {
 							deletion_flag = true;
 						}
 						if (ImGui::Selectable("Duplicate")) {
-							auto* p_new_material = AssetManager::AddAsset(new Material());
+							auto* p_new_material = new Material();
 							*p_new_material = *p_material;
 							// Give clone a unique UUID
 							p_new_material->uuid = UUID();
+							AssetManager::AddAsset(p_new_material);
 							// Render a preview for material
 							m_materials_to_gen_previews.push_back(p_new_material);
 						}
@@ -691,7 +692,7 @@ namespace ORNG {
 		bool ret = false;
 
 		if (ImGui::Begin("Material editor")) {
-			if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Right)) {
 				// Hide this tree node
 				mp_selected_material = nullptr;
 				goto window_end;

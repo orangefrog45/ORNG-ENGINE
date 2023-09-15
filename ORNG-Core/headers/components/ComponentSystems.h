@@ -246,8 +246,12 @@ namespace ORNG {
 		void OnUpdate(entt::registry* p_registry);
 		void OnUnload();
 	private:
-		Texture2DArray m_spotlight_depth_tex{ "Spotlight depth" }; // Used for shadow maps
-		unsigned int m_spotlight_ssbo_handle;
+		void WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index);
+		Texture2DArray m_spotlight_depth_tex{
+		"Spotlight depth"
+		}; // Used for shadow maps
+		unsigned int m_shadow_spotlight_ssbo_handle;
+		unsigned int m_shadowless_spotlight_ssbo_handle;
 	};
 
 
@@ -260,12 +264,14 @@ namespace ORNG {
 		void OnLoad();
 		void OnUpdate(entt::registry* p_registry);
 		void OnUnload();
+		void WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, int& index);
 
 		// Checks if the depth map array needs to grow/shrink
 		void OnDepthMapUpdate();
 	private:
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
-		unsigned int m_pointlight_ssbo_handle;
+		unsigned int m_shadowless_pointlight_ssbo_handle;
+		unsigned int m_shadow_pointlight_ssbo_handle;
 
 	};
 

@@ -1,3 +1,9 @@
+15/9/23:
+-Spotlight + pointlight shadow system overhaul, no shadow limit and functional shadow toggles
+-Mesh manager now updates last to catch all transform events (was causing stuttery movement before)
+-Fixed material window closing bug
+-Spotlight direction vec now from transform
+
 14/9/23:
 -Intellisense improvements/fixes for scripts, entity/prefab data written to header file to be used by them
 -Proper scene display panel added (not just imgui drawn over a fullscreen display)

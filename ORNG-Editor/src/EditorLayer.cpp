@@ -299,7 +299,6 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderUI() {
-		ORNG_PROFILE_FUNC();
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -403,6 +402,7 @@ namespace ORNG {
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+		ORNG_PROFILE_FUNC();
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			GLFWwindow* backup_current_context = glfwGetCurrentContext();
@@ -1106,7 +1106,7 @@ namespace ORNG {
 	int InputTextCallback(ImGuiInputTextCallbackData* data)
 	{
 		int iters = 0;
-		if (std::isalnum(data->EventChar) == 0) return 1;
+		if (std::isalnum(data->EventChar) == 0 && data->EventChar != '_') return 1;
 
 
 		return 0;
@@ -1505,7 +1505,6 @@ namespace ORNG {
 	void EditorLayer::RenderSpotlightEditor(SpotLightComponent* light) {
 
 		float aperture = glm::degrees(acosf(light->m_aperture));
-		glm::vec3 dir = light->m_light_direction_vec;
 
 		ImGui::PushItemWidth(200.f);
 		ImGui::SliderFloat("constant", &light->attenuation.constant, 0.0f, 1.0f);
@@ -1520,10 +1519,8 @@ namespace ORNG {
 
 		ImGui::PopItemWidth();
 
-		ExtraUI::ShowVec3Editor("Direction", dir);
 		ExtraUI::ShowColorVec3Editor("Color", light->color);
 
-		light->SetLightDirection(dir.x, dir.y, dir.z);
 		light->SetAperture(aperture);
 	}
 

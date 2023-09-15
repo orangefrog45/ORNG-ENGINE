@@ -15,9 +15,6 @@ namespace ORNG {
 
 	}
 
-	void SpotLightComponent::SetLightDirection(float i, float j, float k) {
-		m_light_direction_vec = glm::normalize(glm::vec3(i, j, k));
-	}
 
 	SpotLightComponent::SpotLightComponent(SceneEntity* p_entity) : PointLightComponent(p_entity)
 	{

@@ -8,13 +8,16 @@
 namespace ORNG {
 
 	void SpotlightSystem::OnUnload() {
-		glDeleteBuffers(1, &m_spotlight_ssbo_handle);
+		glDeleteBuffers(1, &m_shadow_spotlight_ssbo_handle);
+		glDeleteBuffers(1, &m_shadowless_spotlight_ssbo_handle);
 	}
 
 
 	void SpotlightSystem::OnLoad() {
-		m_spotlight_ssbo_handle = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
+		m_shadowless_spotlight_ssbo_handle = GL_StateManager::GenBuffer();
+		GL_StateManager::BindSSBO(m_shadowless_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS_SHADOWLESS);
+		m_shadow_spotlight_ssbo_handle = GL_StateManager::GenBuffer();
+		GL_StateManager::BindSSBO(m_shadow_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS_SHADOW);
 
 		Texture2DArraySpec spotlight_depth_spec;
 		spotlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
@@ -36,98 +39,122 @@ namespace ORNG {
 		float z_far = light.shadow_distance;
 		glm::mat4 light_perspective = glm::perspective(glm::degrees(acosf(light.GetAperture())), 1.0f, z_near, z_far);
 		glm::vec3 pos = transforms[0];
-		glm::vec3 rotated_dir = glm::normalize(glm::mat3(ExtraMath::Init3DRotateTransform(transforms[2].x, transforms[2].y, transforms[2].z)) * glm::vec3(0, 0, 1));
-		glm::mat4 spot_light_view = glm::lookAt(pos, pos + rotated_dir, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::vec3 light_dir = light.GetEntity()->GetComponent<TransformComponent>()->forward;
+		glm::mat4 spot_light_view = glm::lookAt(pos, pos + light_dir, glm::vec3(0.0f, 1.0f, 0.0f));
 
 		return glm::mat4(light_perspective * spot_light_view);
 	}
+
+	void SpotlightSystem::WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index) {
+		auto color = light.color;
+		output_vec[index++] = color.x;
+		output_vec[index++] = color.y;
+		output_vec[index++] = color.z;
+		output_vec[index++] = 0; //padding
+		//16 - END COLOR - START POS
+		auto pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		output_vec[index++] = pos.x;
+		output_vec[index++] = pos.y;
+		output_vec[index++] = pos.z;
+		output_vec[index++] = 0; //padding
+		//32 - END POS, START DIR
+		auto dir = light.GetEntity()->GetComponent<TransformComponent>()->forward;
+		output_vec[index++] = dir.x;
+		output_vec[index++] = dir.y;
+		output_vec[index++] = dir.z;
+		output_vec[index++] = 0; // padding
+		//48 - END DIR, START LIGHT TRANSFORM MAT
+		glm::mat4 mat = CalculateLightSpaceTransform(light);
+		light.m_light_transform_matrix = mat;
+		output_vec[index++] = mat[0][0];
+		output_vec[index++] = mat[0][1];
+		output_vec[index++] = mat[0][2];
+		output_vec[index++] = mat[0][3];
+		output_vec[index++] = mat[1][0];
+		output_vec[index++] = mat[1][1];
+		output_vec[index++] = mat[1][2];
+		output_vec[index++] = mat[1][3];
+		output_vec[index++] = mat[2][0];
+		output_vec[index++] = mat[2][1];
+		output_vec[index++] = mat[2][2];
+		output_vec[index++] = mat[2][3];
+		output_vec[index++] = mat[3][0];
+		output_vec[index++] = mat[3][1];
+		output_vec[index++] = mat[3][2];
+		output_vec[index++] = mat[3][3];
+		//40 - END INTENSITY - START MAX_DISTANCE
+		output_vec[index++] = light.shadow_distance;
+		//44 - END MA++TANCE - START ATTENUATION
+		auto& atten = light.attenuation;
+		output_vec[index++] = atten.constant;
+		output_vec[index++] = atten.linear;
+		output_vec[index++] = atten.exp;
+		//52 - END AT++TION - START APERTURE
+		output_vec[index++] = light.GetAperture();
+		output_vec[index++] = 0; //padding
+		output_vec[index++] = 0; //padding
+		output_vec[index++] = 0; //padding
+	}
+
+
 
 	void SpotlightSystem::OnUpdate(entt::registry* p_registry) {
 
 		auto view = p_registry->view<SpotLightComponent>();
 
-		if (view.empty())
+		if (view.empty()) {
+			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_spotlight_ssbo_handle);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_spotlight_ssbo_handle);
+			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
 			return;
+		}
 
+		int num_shadow = 0;
+		int num_shadowless = 0;
+		for (auto [entity, light] : view.each()) {
+			if (light.shadows_enabled)
+				num_shadow++;
+			else
+				num_shadowless++;
+		}
+
+		auto& spec = m_spotlight_depth_tex.GetSpec();
+		[[unlikely]] if (spec.layer_count < num_shadow) {
+			auto spec_copy = m_spotlight_depth_tex.GetSpec();
+			spec_copy.layer_count = num_shadow * 3 / 2;
+			m_spotlight_depth_tex.SetSpec(spec_copy);
+		}
+		else [[unlikely]] if (spec.layer_count > 4 && spec.layer_count > num_shadow * 3) {
+			auto spec_copy = m_spotlight_depth_tex.GetSpec();
+			spec_copy.layer_count /= 2;
+			m_spotlight_depth_tex.SetSpec(spec_copy);
+		}
 
 		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
-		std::vector<float> light_array;
+		std::vector<float> light_array_shadow;
+		std::vector<float> light_array_shadowless;
 
-		light_array.resize(view.size() * spot_light_fs_num_float);
+		light_array_shadow.resize(num_shadow * spot_light_fs_num_float);
+		light_array_shadowless.resize(num_shadowless * spot_light_fs_num_float);
 
 		int i = 0;
+		int s = 0;
+
+		int* p_ia = nullptr;
 		for (auto [entity, light] : view.each()) {
-			//0 - START COLOR
-			auto color = light.color;
-			light_array[i++] = color.x;
-			light_array[i++] = color.y;
-			light_array[i++] = color.z;
-			light_array[i++] = 0; //padding
-			//16 - END COLOR - START POS
-			auto pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
-			light_array[i++] = pos.x;
-			light_array[i++] = pos.y;
-			light_array[i++] = pos.z;
-			light_array[i++] = 0; //padding
-			//32 - END POS, START DIR
-			auto dir = light.GetLightDirection();
-			light_array[i++] = dir.x;
-			light_array[i++] = dir.y;
-			light_array[i++] = dir.z;
-			light_array[i++] = 0; // padding
-			//48 - END DIR, START LIGHT TRANSFORM MAT
-			glm::mat4 mat = CalculateLightSpaceTransform(light);
-			light.m_light_transform_matrix = mat;
-			light_array[i++] = mat[0][0];
-			light_array[i++] = mat[0][1];
-			light_array[i++] = mat[0][2];
-			light_array[i++] = mat[0][3];
-			light_array[i++] = mat[1][0];
-			light_array[i++] = mat[1][1];
-			light_array[i++] = mat[1][2];
-			light_array[i++] = mat[1][3];
-			light_array[i++] = mat[2][0];
-			light_array[i++] = mat[2][1];
-			light_array[i++] = mat[2][2];
-			light_array[i++] = mat[2][3];
-			light_array[i++] = mat[3][0];
-			light_array[i++] = mat[3][1];
-			light_array[i++] = mat[3][2];
-			light_array[i++] = mat[3][3];
-			//40 - END INTENSITY - START MAX_DISTANCE
-			light_array[i++] = light.shadow_distance;
-			//44 - END MA++TANCE - START ATTENUATION
-			auto& atten = light.attenuation;
-			light_array[i++] = atten.constant;
-			light_array[i++] = atten.linear;
-			light_array[i++] = atten.exp;
-			//52 - END AT++TION - START APERTURE
-			light_array[i++] = light.GetAperture();
-			light_array[i++] = 0; //padding
-			light_array[i++] = 0; //padding
-			light_array[i++] = 0; //padding
+			if (light.shadows_enabled)
+				WriteLightToVector(light_array_shadow, light, s);
+			else
+				WriteLightToVector(light_array_shadowless, light, i);
 		}
 
 
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_spotlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array.size(), &light_array[0], GL_STREAM_DRAW);
+		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_spotlight_ssbo_handle);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), &light_array_shadowless[0], GL_STREAM_DRAW);
+		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_spotlight_ssbo_handle);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadow.size(), &light_array_shadow[0], GL_STREAM_DRAW);
 	}
 
-	/*	SpotLightComponent* SpotlightSystem::AddComponent(SceneEntity* p_entity) {
-
-			if (GetComponent(p_entity->GetID())) {
-				ORNG_CORE_WARN("Pointlight component not added, entity '{0}' already has a pointlight component", p_entity->name);
-				return nullptr;
-			}
-
-			auto* p_transform = p_entity->GetComponent<TransformComponent>();
-			SpotLightComponent* comp = new SpotLightComponent(p_entity, p_transform);
-			p_transform->update_callbacks[TransformComponent::CallbackType::SPOTLIGHT] = ([comp](TransformComponent::UpdateType type) {
-				comp->UpdateLightTransform();
-				});
-
-			m_spotlight_components.push_back(comp);
-			return comp;
-		}*/
 
 }
