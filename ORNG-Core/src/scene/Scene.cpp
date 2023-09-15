@@ -24,24 +24,10 @@ namespace ORNG {
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
+
 		// Script state updates need to be set far less frequently, use events for this soon
+		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			script.p_symbols->SceneEntityCreationSetter([this](const std::string& str) -> SceneEntity& {
-				return CreateEntity(str);
-				});
-
-			script.p_symbols->SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
-				m_entity_deletion_queue.push_back(p_entity);
-				});
-
-			script.p_symbols->SceneEntityDuplicationSetter([this](SceneEntity& ent) -> SceneEntity& {
-				return DuplicateEntity(ent);
-				});
-
-			script.p_symbols->ScenePrefabInstantSetter([this](const std::string& str) -> SceneEntity& {
-				return InstantiatePrefab(str);
-				});
-
 			try {
 				script.p_symbols->OnUpdate(script.GetEntity());
 			}
@@ -64,7 +50,6 @@ namespace ORNG {
 
 		m_entity_deletion_queue.clear();
 	}
-
 
 
 
@@ -101,27 +86,21 @@ namespace ORNG {
 	}
 
 
-	SceneEntity& Scene::InstantiatePrefab(Prefab* p_prefab) {
-		auto& ent = CreateEntity("Prefab instantiation");
-		SceneSerializer::DeserializeEntityFromString(*this, p_prefab->serialized_content, ent);
-		return ent;
-	}
-	SceneEntity& Scene::InstantiatePrefab(const std::string& serialized_data) {
-		auto& ent = CreateEntity("Prefab instantiation");
-		SceneSerializer::DeserializeEntityFromString(*this, serialized_data, ent);
+	SceneEntity& Scene::InstantiatePrefabCallScript(const std::string& serialized_data) {
+		auto& ent = InstantiatePrefab(serialized_data);
+		if (auto* p_script = ent.GetComponent<ScriptComponent>())
+			p_script->p_symbols->OnCreate(&ent);
+
 		return ent;
 	}
 
-	SceneEntity& Scene::InstantiatePrefab(uint64_t prefab_id) {
-		Prefab* p_prefab = AssetManager::GetAsset<Prefab>(prefab_id);
-		if (!p_prefab) {
-			ORNG_CORE_ERROR("Prefab with ID '{0}' doesn't exist, instantiation failed");
-			return CreateEntity("Invalid prefab");
-		}
-		else {
-			return InstantiatePrefab(p_prefab);
-		}
+	SceneEntity& Scene::InstantiatePrefab(const std::string& serialized_data) {
+		auto& ent = CreateEntity("Prefab instantiation");
+		SceneSerializer::DeserializeEntityFromString(*this, serialized_data, ent);
+
+		return ent;
 	}
+
 
 
 	SceneEntity& Scene::DuplicateEntity(SceneEntity& original) {
@@ -139,6 +118,13 @@ namespace ORNG {
 	}
 
 
+	SceneEntity& Scene::DuplicateEntityCallScript(SceneEntity& original) {
+		auto& ent = DuplicateEntity(original);
+		if (auto* p_script = ent.GetComponent<ScriptComponent>())
+			p_script->p_symbols->OnCreate(&ent);
+
+		return ent;
+	}
 
 	void Scene::LoadScene(const std::string& filepath) {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
@@ -162,6 +148,33 @@ namespace ORNG {
 	}
 
 
+	void Scene::OnStart() {
+		SetScriptState();
+
+		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
+			script.p_symbols->OnCreate(GetEntity(entity));
+		}
+	}
+
+	void Scene::SetScriptState() {
+		for (auto* p_script_asset : AssetManager::GetView<ScriptAsset>()) {
+			p_script_asset->symbols.SceneEntityCreationSetter([this](const std::string& str) -> SceneEntity& {
+				return CreateEntity(str);
+				});
+
+			p_script_asset->symbols.SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
+				m_entity_deletion_queue.push_back(p_entity);
+				});
+
+			p_script_asset->symbols.SceneEntityDuplicationSetter([this](SceneEntity& ent) -> SceneEntity& {
+				return DuplicateEntityCallScript(ent);
+				});
+
+			p_script_asset->symbols.ScenePrefabInstantSetter([this](const std::string& str) -> SceneEntity& {
+				return InstantiatePrefabCallScript(str);
+				});
+		}
+	}
 
 
 	void Scene::UnloadScene() {

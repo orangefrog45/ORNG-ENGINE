@@ -31,12 +31,20 @@ namespace ORNG {
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
 
-		SceneEntity& InstantiatePrefab(Prefab* p_prefab);
-		SceneEntity& InstantiatePrefab(uint64_t prefab_id);
+		void OnStart();
+
+
+		// Instantiates prefab without calling OnCreate, used for instantiation while the scene is paused e.g in the editor
 		SceneEntity& InstantiatePrefab(const std::string& serialized_data);
 
+		// This instantiation method is what scripts will use, it calls the OnCreate method on the script component of the prefab if it has one
+		SceneEntity& InstantiatePrefabCallScript(const std::string& serialized_data);
 
+		// Internal method
 		SceneEntity& DuplicateEntity(SceneEntity& original);
+
+		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
+		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
 
 
 
@@ -69,7 +77,9 @@ namespace ORNG {
 
 		UUID uuid;
 	private:
+		void SetScriptState();
 		bool m_is_loaded = false;
+		bool active = false;
 
 
 		std::vector<SceneEntity*> m_entities;

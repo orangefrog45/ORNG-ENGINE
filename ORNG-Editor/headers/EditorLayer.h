@@ -87,6 +87,14 @@ namespace ORNG {
 		void RenderBloomEditor();
 		void RenderTerrainEditor();
 
+		// Duplicates entity and conditionally calls OnCreate on it depending on if simulate mode is active
+		inline SceneEntity& DuplicateEntity(SceneEntity& entity) {
+			if (m_simulate_mode_active)
+				return m_active_scene->DuplicateEntityCallScript(entity);
+			else
+				return entity.Duplicate();
+		}
+
 #define INVALID_ENTITY_ID 0
 
 		inline void SelectEntity(uint64_t id) {

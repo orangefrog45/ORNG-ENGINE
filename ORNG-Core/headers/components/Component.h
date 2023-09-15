@@ -29,6 +29,11 @@ namespace ORNG {
 		entt::entity next{ entt::null };
 		entt::entity parent{ entt::null };
 	};
+
+	template<typename T>
+	struct DataComponent : public Component {
+		std::unordered_map<std::string, T> data;
+	};
 }
 
 #endif

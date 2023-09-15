@@ -116,6 +116,17 @@ namespace ORNG {
 
 		}
 
+		template<std::derived_from<Asset> T>
+		static std::vector<T*> GetView() {
+			std::vector<T*> vec;
+			for (auto [uuid, p_asset] : Get().m_assets) {
+				if (T* p_typed_asset = dynamic_cast<T*>(p_asset))
+					vec.push_back(p_typed_asset);
+			}
+
+			return vec;
+		}
+
 		// Returns ptr to asset or nullptr if no valid asset was found
 		template<std::derived_from<Asset> T>
 		static T* GetAsset(uint64_t uuid) {

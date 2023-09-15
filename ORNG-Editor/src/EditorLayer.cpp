@@ -140,6 +140,7 @@ namespace ORNG {
 	void EditorLayer::BeginPlayScene() {
 		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
 		m_simulate_mode_active = true;
+		m_active_scene->OnStart();
 	}
 
 	void EditorLayer::EndPlayScene() {
@@ -190,7 +191,6 @@ namespace ORNG {
 		ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = lighter_grey_color;
 	}
 
-
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
 		if (Window::IsKeyDown('K'))
@@ -218,9 +218,7 @@ namespace ORNG {
 			std::vector<uint64_t> duplicate_ids;
 			for (auto id : m_selected_entity_ids) {
 				SceneEntity* p_entity = m_active_scene->GetEntity(id);
-				if (!p_entity) continue;
-
-				p_entity->Duplicate();
+				DuplicateEntity(*p_entity);
 				duplicate_ids.push_back(p_entity->GetUUID());
 			}
 
@@ -341,9 +339,9 @@ namespace ORNG {
 				}
 				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
 					if (p_payload->DataSize == sizeof(Prefab*)) {
-						auto& ent = m_active_scene->CreateEntity("Prefab instance");
+						std::string prefab_data = (*static_cast<Prefab**>(p_payload->Data))->serialized_content;
+						auto& ent = m_simulate_mode_active ? m_active_scene->InstantiatePrefabCallScript(prefab_data) : m_active_scene->InstantiatePrefab(prefab_data);
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
-						SceneSerializer::DeserializeEntityFromString(*m_active_scene, (*static_cast<Prefab**>(p_payload->Data))->serialized_content, ent);
 						glm::vec3 pos;
 						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
 							auto& mesh_aabb = p_mesh->GetMeshData()->m_aabb;
@@ -1075,7 +1073,7 @@ namespace ORNG {
 			// Process node events
 			if (active_event & EntityNodeEvent::E_DUPLICATE) {
 				for (auto id : m_selected_entity_ids) {
-					m_active_scene->GetEntity(id)->Duplicate();
+					DuplicateEntity(*m_active_scene->GetEntity(id));
 				}
 			}
 			else if (active_event & EntityNodeEvent::E_DELETE) {

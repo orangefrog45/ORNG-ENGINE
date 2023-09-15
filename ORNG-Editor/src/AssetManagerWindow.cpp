@@ -162,11 +162,8 @@ namespace ORNG {
 			static MeshAsset* p_dragged_mesh = nullptr;
 			if (ImGui::BeginTable("Meshes", column_count)) // MESH VIEWING TABLE
 			{
-				for (auto [key, val] : AssetManager::Get().m_assets)
+				for (auto* p_mesh_asset : AssetManager::GetView<MeshAsset>())
 				{
-					auto* p_mesh_asset = dynamic_cast<MeshAsset*>(val);
-					if (!p_mesh_asset)
-						continue;
 					ImGui::PushID(p_mesh_asset);
 					ImGui::TableNextColumn();
 
@@ -243,11 +240,8 @@ namespace ORNG {
 			if (ImGui::BeginTable("Textures", column_count)); // TEXTURE VIEWING TABLE
 			{
 				// Push textures into table 
-				for (auto [key, asset] : AssetManager::Get().m_assets)
+				for (auto* p_texture : AssetManager::GetView<Texture2D>())
 				{
-					auto* p_texture = dynamic_cast<Texture2D*>(asset);
-					if (!p_texture)
-						continue;
 
 					ImGui::PushID(p_texture);
 					ImGui::TableNextColumn();
@@ -305,11 +299,7 @@ namespace ORNG {
 			}
 
 			if (ImGui::BeginTable("Material viewer", column_count)) { //MATERIAL VIEWING TABLE
-				for (auto [key, asset] : AssetManager::Get().m_assets) {
-					Material* p_material = dynamic_cast<Material*>(asset);
-					if (!p_material)
-						continue;
-
+				for (auto p_material : AssetManager::GetView<Material>()) {
 					if (!m_material_preview_textures.contains(p_material))
 						// No material preview so proceeding will lead to a crash
 						continue;
@@ -450,6 +440,10 @@ namespace ORNG {
 							if (ImGui::Selectable("Delete")) {
 								PushConfirmationWindow("Delete script asset?", [entry] {std::filesystem::remove(entry); });
 							}
+							if (ImGui::Selectable("Edit")) {
+								std::string open_file_command = "start " + relative_path;
+								std::system(open_file_command.c_str());
+							}
 							ImGui::EndPopup();
 						}
 
@@ -522,12 +516,9 @@ namespace ORNG {
 			ImVec2 start_cursor_pos = ImGui::GetCursorPos();
 
 			if (ImGui::BeginTable("##prefab table", column_count)) {
-				for (auto [key, p_asset] : AssetManager::Get().m_assets) {
-					auto* p_prefab = dynamic_cast<Prefab*>(p_asset);
-					if (!p_prefab)
-						continue;
+				for (auto p_prefab : AssetManager::GetView<Prefab>()) {
 
-					ImGui::PushID(p_asset);
+					ImGui::PushID(p_prefab);
 					ImGui::TableNextColumn();
 					ExtraUI::NameWithTooltip(p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1));
 					ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
@@ -541,6 +532,7 @@ namespace ORNG {
 
 					if (ExtraUI::RightClickPopup("prefab-poup")) {
 						if (ImGui::Selectable("Delete")) {
+							uint64_t key = p_prefab->uuid();
 							m_confirmation_window_stack.emplace_back("Delete prefab?", [=] {
 								if (auto* p_curr_asset = AssetManager::GetAsset<Prefab>(key)) {
 									if (std::filesystem::exists(p_curr_asset->filepath))

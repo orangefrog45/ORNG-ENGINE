@@ -1,4 +1,5 @@
 15/9/23:
+-Data components
 -Spotlight + pointlight shadow system overhaul, no shadow limit and functional shadow toggles
 -Mesh manager now updates last to catch all transform events (was causing stuttery movement before)
 -Fixed material window closing bug

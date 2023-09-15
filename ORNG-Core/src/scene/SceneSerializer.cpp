@@ -213,13 +213,6 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		/*CameraComponent* p_cam = entity.GetComponent<CameraComponent>();
-		if (p_cam) {
-				out << YAML::Key << "CamComp" << YAML::BeginMap;
-				out << YAML::Key << "Target"
-			out << YAML::EndMap;
-		}*/
-
 
 		out << YAML::EndMap;
 	}
@@ -293,6 +286,15 @@ namespace ORNG {
 				p_spotlight_comp->m_aperture = light_node["Aperture"].as<float>();
 				p_spotlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
 				p_spotlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
+			}
+
+			if (tag == "CameraComp") {
+				auto cam_node = entity_node["CameraComp"];
+				auto* p_cam_comp = entity.AddComponent<CameraComponent>();
+				p_cam_comp->fov = cam_node["FOV"].as<float>();
+				p_cam_comp->exposure = cam_node["Exposure"].as<float>();
+				p_cam_comp->zFar = cam_node["zFar"].as<float>();
+				p_cam_comp->zNear = cam_node["zNear"].as<float>();
 			}
 
 			if (tag == "ScriptComp") {
