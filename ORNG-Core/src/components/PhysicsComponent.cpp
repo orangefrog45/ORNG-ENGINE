@@ -1,9 +1,9 @@
 #include "pch/pch.h"
 #include "components/PhysicsComponent.h"
 #include "events/EventManager.h"
-#include "physx/physx/include/characterkinematic/PxCapsuleController.h"
-#include "physx/physx/include/PxRigidDynamic.h"
-#include "physx/physx/include/PxRigidBody.h"
+#include <characterkinematic/PxCapsuleController.h>
+#include <PxRigidDynamic.h>
+#include <PxRigidBody.h>
 
 namespace ORNG {
 	using namespace physx;

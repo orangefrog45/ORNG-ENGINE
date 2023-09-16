@@ -72,14 +72,6 @@ ${ORNG_LIB_SOURCES}
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
 
-if(WIN32)
-    add_custom_command(TARGET ORNG_CORE POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    $<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
-                    $<TARGET_FILE_DIR:ORNG_CORE>)
-endif()
-
-
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
 
@@ -109,6 +101,8 @@ extern/physx/physx/include
 extern
 extern/imgui
 headers
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
 extern/fastnoise2/include
 extern/yaml/include
 extern/plog/include
@@ -149,7 +143,6 @@ headers/pch/pch.h
 
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
-target_compile_definitions(ORNG_CORE PUBLIC PHYSX_BIN_OUTPUT_DIR="${PHYSX_ROOT_LIB_DIR}")
 
 
 get_target_property(GPU_DEVICE_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-device-library LOCATION)

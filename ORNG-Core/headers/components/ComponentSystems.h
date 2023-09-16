@@ -2,7 +2,7 @@
 #include "components/ComponentAPI.h"
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
-#include "physx/physx/include/PxPhysicsAPI.h"
+#include "physx/PxPhysicsAPI.h"
 
 namespace physx {
 	class PxScene;
