@@ -36,13 +36,7 @@ namespace ORNG {
 #endif
 
 	void GenBatFile(std::ofstream& bat_stream, const std::string& filepath, const std::string& filename, const std::string& filename_no_ext) {
-		std::string physx_lib_dir;
-		for (const auto& entry : std::filesystem::directory_iterator(ORNG_CORE_LIB_DIR "\\externals\\physx\\bin")) {
-			std::string entry_path = entry.path().string();
-			if (entry_path.ends_with("md")) {
-				physx_lib_dir = entry_path;
-			}
-		}
+		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\lib";
 
 
 #ifdef _MSC_VER
@@ -57,10 +51,10 @@ namespace ORNG {
 
 		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cpp.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
-			<< physx_lib_dir + "\\release\\PhysXFoundation_static.lib " << physx_lib_dir + "\\release\\PhysXExtensions_static.lib "
-			<< physx_lib_dir + "\\release\\PhysX_static.lib " << physx_lib_dir + "\\release\\PhysXCharacterKinematic_static.lib "
-			<< physx_lib_dir + "\\release\\PhysXCommon_static.lib " << physx_lib_dir + "\\release\\PhysXCooking_static.lib "
-			<< physx_lib_dir + "\\release\\PhysXPvdSDK_static.lib " << physx_lib_dir + "\\release\\PhysXVehicle_static.lib ";
+			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
+			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
+			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
+			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib ";
 #else
 
 
@@ -71,11 +65,11 @@ namespace ORNG {
 			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
 
 		bat_stream << "link /DLL /INCREMENTAL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cppd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
-			<< physx_lib_dir + "\\debug\\PhysXFoundation_staticd.lib " << physx_lib_dir + "\\debug\\PhysXExtensions_staticd.lib "
-			<< physx_lib_dir + "\\debug\\PhysX_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCharacterKinematic_staticd.lib "
-			<< physx_lib_dir + "\\debug\\PhysXCommon_staticd.lib " << physx_lib_dir + "\\debug\\PhysXCooking_staticd.lib "
-			<< physx_lib_dir + "\\debug\\PhysXPvdSDK_staticd.lib " << physx_lib_dir + "\\debug\\PhysXVehicle_staticd.lib ";
+			<< ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cppd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
+			<< physx_lib_dir + "\\PhysXFoundation_staticd.lib " << physx_lib_dir + "\\PhysXExtensions_staticd.lib "
+			<< physx_lib_dir + "\\PhysX_staticd.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_staticd.lib "
+			<< physx_lib_dir + "\\PhysXCommon_staticd.lib " << physx_lib_dir + "\\PhysXCooking_staticd.lib "
+			<< physx_lib_dir + "\\PhysXPvdSDK_staticd.lib " << physx_lib_dir + "\\PhysXVehicle_staticd.lib ";
 #endif // ifdef NDEBUG
 #endif // ifdef _MSC_VER
 	}
@@ -136,7 +130,7 @@ namespace ORNG {
 		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
 		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
 		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
-		
+
 		symbols.loaded = true;
 		symbols.script_path = filepath;
 

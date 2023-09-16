@@ -34,3 +34,6 @@
 [submodule "ORNG-Core/extern/fmod"]
 	path = ORNG-Core/extern/fmod
 	url = https://github.com/orangefrog45/fmod-module
+[submodule "extern/vcpkg"]
+	path = extern/vcpkg
+	url = https://github.com/Microsoft/vcpkg.git

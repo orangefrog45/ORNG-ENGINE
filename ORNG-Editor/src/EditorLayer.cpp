@@ -582,7 +582,6 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/materials");
 
 
-
 		// Include header files for API so intellisense works
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/core/Input.h", project_path + "/res/scripts/includes/Input.h");
@@ -1049,7 +1048,6 @@ namespace ORNG {
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
 			EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
-
 
 
 			if (ExtraUI::H2TreeNode("Entities")) {

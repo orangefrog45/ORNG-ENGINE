@@ -69,6 +69,17 @@ add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
 )
 
+find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
+target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
+
+if(WIN32)
+    add_custom_command(TARGET ORNG_CORE POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    $<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
+                    $<TARGET_FILE_DIR:ORNG_CORE>)
+endif()
+
+
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
 
@@ -105,38 +116,8 @@ extern/bitsery/include
 )
 
 
-set(TARGET_BUILD_PLATFORM "windows")
-set(PHYSX_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/extern/physx/physx)
-set(PXSHARED_PATH ${PHYSX_ROOT_DIR}/../pxshared)
-set(PXSHARED_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
-set(CMAKEMODULES_VERSION "1.27")
-set(CMAKEMODULES_PATH ${PHYSX_ROOT_DIR}/../externals/cmakemodules)
-set(PX_OUTPUT_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/externals/physx)
-set(PX_OUTPUT_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/externals/physx)
 
 
-set(PX_BUILDSNIPPETS OFF CACHE BOOL "Generate the snippets" FORCE)
-set(PX_BUILDPUBLICSAMPLES OFF CACHE BOOL "Generate the samples projects" FORCE)
-set(PX_GENERATE_STATIC_LIBRARIES ON CACHE BOOL "Generate static libraries" FORCE)
-set(PX_FLOAT_POINT_PRECISE_MATH OFF CACHE BOOL "Float point precise math" FORCE)
-set(NV_USE_STATIC_WINCRT OFF CACHE BOOL "Use the statically linked windows CRT" FORCE)
-set(NV_USE_DEBUG_WINCRT ON CACHE BOOL "Use the debug version of the CRT" FORCE)
-
-set( PHYSX_LIBRARIES
-	PhysXExtensions
-	PhysX
-	PhysXPvdSDK
-	PhysXVehicle
-	PhysXCharacterKinematic
-	PhysXCooking
-	PhysXCommon
-	PhysXFoundation
-)
-
-
-
-add_compile_definitions(PX_PHYSX_STATIC_LIB PX_SUPPORT_GPU_PHYSX)
-add_subdirectory(extern/physx/physx/compiler/public)
 
 
 target_include_directories(ORNG_CORE
@@ -170,36 +151,17 @@ target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
 target_compile_definitions(ORNG_CORE PUBLIC PHYSX_BIN_OUTPUT_DIR="${PHYSX_ROOT_LIB_DIR}")
 
-# Decompress physx gpu dll (has to be compressed to stay under github's file size limit)
-if (CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-	set(PHYSX_GPU_DLL_ZIP "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.zip")
-	set(EXTRACTION_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release")
-endif()
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-set(PHYSX_GPU_DLL_ZIP "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.zip")
-	set(EXTRACTION_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug")
-	endif()
 
-
-set(POWERSHELL_COMMAND "Expand-Archive -Path \"${PHYSX_GPU_DLL_ZIP}\" -DestinationPath \"${EXTRACTION_DIRECTORY}\"")
-execute_process(
-    COMMAND powershell.exe -ExecutionPolicy Bypass -Command "${POWERSHELL_COMMAND}"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    RESULT_VARIABLE ZIP_EXTRACTION_RESULT
-)
-if (ZIP_EXTRACTION_RESULT EQUAL 0)
-    message(STATUS "Successfully extracted ${ZIP_FILE} to ${EXTRACTION_DIRECTORY}")
-else ()
-    message(FATAL_ERROR "Failed to extract ${ZIP_FILE}. Error code: ${ZIP_EXTRACTION_RESULT}")
-endif ()
+get_target_property(GPU_DEVICE_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-device-library LOCATION)
+get_target_property(GPU_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-library LOCATION)
 
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmodL.dll
-${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXGpu_64.dll
-${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/debug/PhysXDevice64.dll
+${GPU_LIBRARY_LOCATION}
+${GPU_DEVICE_LIBRARY_LOCATION}
 CACHE string "Copy these into your .exe directory"
 )
 endif()
@@ -208,8 +170,8 @@ if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
-${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXGpu_64.dll
-${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/dll/release/PhysXDevice64.dll
+${GPU_LIBRARY_LOCATION}
+${GPU_DEVICE_LIBRARY_LOCATION}
 CACHE string "Copy these into your .exe directory"
 )
 elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)

@@ -1,3 +1,6 @@
+16/9/23:
+-Switched to vcpkg for managing physx
+
 15/9/23:
 -Data components
 -Spotlight + pointlight shadow system overhaul, no shadow limit and functional shadow toggles

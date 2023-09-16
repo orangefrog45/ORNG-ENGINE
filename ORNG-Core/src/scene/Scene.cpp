@@ -65,6 +65,7 @@ namespace ORNG {
 
 
 		auto it = std::ranges::find(m_entities, p_entity);
+		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 		delete p_entity;
 		m_entities.erase(it);
 

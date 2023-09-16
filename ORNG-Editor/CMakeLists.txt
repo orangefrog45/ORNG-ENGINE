@@ -47,9 +47,13 @@ target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
 
 
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/projects)
-
-file(COPY ${ORNG_CORE_BINARIES} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-
+add_custom_command(TARGET ORNG_EDITOR POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:ORNG_EDITOR>)
+foreach(core_binary IN LISTS ORNG_CORE_BINARIES)
+    add_custom_command(TARGET ORNG_EDITOR POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${core_binary}
+        $<TARGET_FILE_DIR:ORNG_EDITOR>)
+endforeach()
 
 
