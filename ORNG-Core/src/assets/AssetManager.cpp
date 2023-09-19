@@ -381,7 +381,9 @@ namespace ORNG {
 
 
 	SoundAsset::SoundAsset(const std::string& t_filepath) : Asset(t_filepath), filepath(t_filepath) {
-		AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_sound);
+		if (auto result = AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_sound); result != FMOD_OK) {
+			ORNG_CORE_ERROR("Error loading sound: '{0}', '{1}'", filepath, FMOD_ErrorString(result));
+		}
 	}
 
 

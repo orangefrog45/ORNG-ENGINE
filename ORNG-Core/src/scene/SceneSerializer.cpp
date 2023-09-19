@@ -355,6 +355,16 @@ namespace ORNG {
 			}
 		}
 		fout << "};"; // namespace Prefabs
+
+		fout << "namespace Sounds {\n";
+		for (auto* p_asset : AssetManager::GetView<SoundAsset>()) {
+			std::string name = p_asset->filepath.substr(p_asset->filepath.rfind("\\") + 1);
+			name = name.substr(0, name.rfind("."));
+			std::ranges::for_each(name, [](char& c) {if (c == ' ' || c == '-') c = '_'; });
+			fout << "inline static const uint64_t " << name << " = " << p_asset->uuid() << "; \n";
+		}
+		fout << "};"; // namespace Sounds
+
 		fout << "};"; // namespace Scene
 		fout << "};"; // namespace ScriptInterface
 

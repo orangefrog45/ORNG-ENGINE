@@ -99,7 +99,6 @@ namespace ORNG {
 			m_transform = trans_mat * rot_mat * scale_mat;
 		else
 			m_transform = p_parent->GetMatrix() * (trans_mat * rot_mat * scale_mat);
-
 		glm::mat3 rot_mat_new{m_transform};
 
 		forward = glm::normalize(rot_mat_new * glm::vec3(0.0, 0.0, -1.0));
@@ -109,7 +108,6 @@ namespace ORNG {
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event;
 			e_event.affected_components[0] = this;
-			e_event.affected_entities[0] = GetEntity();
 			e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 			e_event.sub_event_type = type;
 			Events::EventManager::DispatchEvent(e_event);

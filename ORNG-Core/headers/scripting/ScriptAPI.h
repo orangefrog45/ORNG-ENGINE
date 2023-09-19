@@ -3,6 +3,7 @@
 * All of these includes the script will still compile without (including the core engine headers instead of these copies), however they are needed for correct intellisense
 */
 #include <chrono>
+#include <cstdint>
 
 // SAFE = fine to use in scripts
 // UNSAFE = should only be used in here
@@ -27,6 +28,7 @@
 #include "ScriptComponent.h"
 #include "TransformComponent.h"
 #include "PhysicsComponent.h"
+#include "AudioComponent.h"
 #include "SceneEntity.h"
 #include "./SceneScriptInterface.h"
 #include "./uuids.h" // Generated through editor on save

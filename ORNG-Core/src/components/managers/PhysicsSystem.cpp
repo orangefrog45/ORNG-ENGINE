@@ -199,9 +199,10 @@ namespace ORNG {
 				return;
 
 			// Check for both types of physics component
-			auto* p_phys_comp = t_event.affected_entities[0]->GetComponent<PhysicsComponent>();
+			auto* p_ent = t_event.affected_components[0]->GetEntity();
+			auto* p_phys_comp = p_ent->GetComponent<PhysicsComponent>();
 
-			if (auto* p_controller_comp = t_event.affected_entities[0]->GetComponent<CharacterControllerComponent>()) {
+			if (auto* p_controller_comp = p_ent->GetComponent<CharacterControllerComponent>()) {
 				glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
 				p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
 			}

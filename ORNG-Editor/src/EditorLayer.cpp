@@ -126,6 +126,8 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
+
 
 
 		MakeProjectActive(base_proj_dir);
@@ -295,29 +297,15 @@ namespace ORNG {
 		}
 	}
 
-
-
-
-	void EditorLayer::RenderUI() {
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-		RenderErrorMessages();
-		RenderToolbar();
-		m_asset_manager_window.OnRenderUI();
-
-
+	void EditorLayer::RenderSceneDisplayPanel() {
+		
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, toolbar_height)));
 		m_scene_display_rect = { ImVec2(Window::GetWidth() - 850, Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
 		ImGui::SetNextWindowSize(m_scene_display_rect);
 
-		// Scene display is rendered during RenderDisplayWindow and for now is rendered across the full screen with ImGui just overlapping some parts
-		// Would like to put it into a texture but can't get this to work with gizmos, they will not render correctly
-		// For now this invisible window "simulates" the scene panel so I can put drag and drop stuff on it
-		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs))) {
+		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)mp_scene_display_texture->GetTextureHandle(), ImVec2(m_scene_display_rect.x, m_scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
@@ -363,6 +351,23 @@ namespace ORNG {
 		ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
 
+	}
+
+
+	void EditorLayer::RenderUI() {
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		if (m_simulate_mode_active) {
+			RenderToolbar();
+			goto exit;
+		}
+
+		RenderErrorMessages();
+		RenderToolbar();
+		m_asset_manager_window.OnRenderUI();
+		RenderSceneDisplayPanel();
 
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
@@ -398,7 +403,7 @@ namespace ORNG {
 
 		ImGui::PopStyleVar(); // window border size
 		ImGui::PopStyleVar(); // window padding
-
+		exit:
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -545,6 +550,11 @@ namespace ORNG {
 
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		if (m_simulate_mode_active) {
+			mp_quad_shader->ActivateProgram();
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+			Renderer::DrawQuad();
+		}
 
 	}
 
@@ -599,6 +609,7 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", project_path + "/res/scripts/includes/TransformComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", project_path + "/res/scripts/includes/PhysicsComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", project_path + "/res/scripts/includes/CameraComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", project_path + "/res/scripts/includes/AudioComponent.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");
 
 		return true;
@@ -1291,7 +1302,7 @@ namespace ORNG {
 	void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		ImGui::PushID(p_audio);
 
-		if (ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, ImVec2(100, 100))) {
+		/*if (ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, ImVec2(100, 100))) {
 			p_audio->Play();
 		}
 
@@ -1301,7 +1312,7 @@ namespace ORNG {
 					p_audio->SetSound(*static_cast<SoundAsset**>(p_payload->Data));
 				}
 			}
-		}
+		}*/
 		ImGui::PopID(); // p_audio
 	}
 
@@ -1393,11 +1404,11 @@ namespace ORNG {
 
 		glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
-		static glm::mat4 delta_matrix;
+		 glm::mat4 delta_matrix;
 		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
-		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
-		glm::mat4 view_mat = glm::lookAt(pos, pos + p_transform->forward, p_transform->up);
+		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
+		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
@@ -1416,10 +1427,12 @@ namespace ORNG {
 				auto current_transforms = p_transform->GetAbsoluteTransforms();
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
-					p_transform->SetAbsolutePosition(p_transform->GetPosition() + delta_translation);
+					ORNG_CORE_TRACE("T: {0}, {1}, {2}", delta_translation.x, delta_translation.y, delta_translation.z);
+					ORNG_CORE_TRACE("C: {0}, {1}, {2}", current_transforms[0].x, current_transforms[0].y, current_transforms[0].z);
+					p_transform->SetAbsolutePosition(current_transforms[0] + delta_translation);
 					break;
 				case ImGuizmo::SCALE:
-					p_transform->SetAbsoluteScale(p_transform->GetScale() * delta_scale);
+					p_transform->SetScale(p_transform->GetScale() * delta_scale);
 					break;
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
 					glm::vec3 abs_rotation = current_transforms[2];

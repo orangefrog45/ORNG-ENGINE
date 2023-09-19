@@ -91,14 +91,13 @@ namespace ORNG::Events {
 		COMP_DELETED,
 	};
 
-
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
 		ECS_EventType event_type;
 		uint32_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
-		std::array<T*, 2> affected_components;
 
-		std::array<SceneEntity*, 2> affected_entities;
+		std::array<T*, 2> affected_components = { nullptr, nullptr };
+		uint8_t* data_payload = nullptr;
 	};
 
 	template <std::derived_from<Event> T>

@@ -34,7 +34,6 @@ namespace ORNG {
 			((PxRigidDynamic*)p_rigid_actor)->setMass(mass);
 	}
 
-
 	void PhysicsComponent::SetVelocity(glm::vec3 v) {
 		if (m_body_type == DYNAMIC)
 			((PxRigidDynamic*)p_rigid_actor)->setLinearVelocity(PxVec3(v.x, v.y, v.z));
@@ -49,7 +48,6 @@ namespace ORNG {
 	void PhysicsComponent::SendUpdateEvent() {
 		Events::ECS_Event<PhysicsComponent> phys_event;
 		phys_event.affected_components[0] = this;
-		phys_event.affected_entities[0] = GetEntity();
 		phys_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 
 		Events::EventManager::DispatchEvent(phys_event);

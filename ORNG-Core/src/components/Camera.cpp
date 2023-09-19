@@ -1,9 +1,7 @@
 #include "pch/pch.h"
 
 #include "components/CameraComponent.h"
-#include "rendering/Renderer.h"
 #include "core/Window.h"
-#include "core/FrameTiming.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
@@ -18,7 +16,7 @@ namespace ORNG {
 
 	}
 
-
+	/* TODO - MOVE TO CAMERASYSTEM */
 	void CameraComponent::UpdateFrustum() {
 
 		const float half_far_plane_height = tanf(glm::radians(fov * 0.5f)) * zFar;
@@ -54,7 +52,6 @@ namespace ORNG {
 		is_active = true;
 		Events::ECS_Event<CameraComponent> update_event;
 		update_event.affected_components[0] = this;
-		update_event.affected_entities[0] = GetEntity();
 		update_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 
 		Events::EventManager::DispatchEvent(update_event);

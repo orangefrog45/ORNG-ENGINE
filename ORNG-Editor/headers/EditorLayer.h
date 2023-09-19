@@ -37,6 +37,7 @@ namespace ORNG {
 		void RenderDisplayWindow();
 		void RenderToolbar();
 		void RenderUI();
+		void RenderSceneDisplayPanel();
 		// Movement
 		void UpdateEditorCam();
 

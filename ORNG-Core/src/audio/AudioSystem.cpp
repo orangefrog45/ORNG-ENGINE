@@ -104,9 +104,16 @@ namespace ORNG {
 		switch (e_event.sub_event_type) {
 			using enum AudioComponent::AudioEventType;
 		case (uint32_t)PLAY:
-			if (auto result = AudioEngine::GetSystem()->playSound(e_event.affected_components[0]->mp_asset->p_sound, mp_channel_group, false, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
-				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", e_event.affected_components[0]->mp_asset->filepath, FMOD_ErrorString(result));
+		{
+			uint64_t uuid = *reinterpret_cast<uint64_t*>(e_event.data_payload);
+			auto* p_asset = AssetManager::GetAsset<SoundAsset>(uuid);
+			if (!p_asset)
+				return;
+
+			if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, false, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
+				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", p_asset->filepath, FMOD_ErrorString(result));
 			break;
+		}
 		case (uint32_t)PAUSE:
 			e_event.affected_components[0]->mp_channel->setPaused(true);
 			break;
