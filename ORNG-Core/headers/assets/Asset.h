@@ -1,6 +1,7 @@
 #pragma once
 #include "../util/UUID.h"
 #include "../util/Log.h"
+#include "util/util.h"
 
 
 namespace ORNG {
@@ -12,18 +13,8 @@ namespace ORNG {
 			return PathEqualTo(t_filepath);
 		}
 
-		inline bool PathEqualTo(const std::string& path) {
-			if (filepath.empty())
-				return false;
-
-			bool ret = false;
-			try {
-				ret = std::filesystem::equivalent(path, filepath);
-			}
-			catch (std::exception e) {
-				ORNG_CORE_ERROR("PathEqualTo err: '{0}'", e.what());
-			}
-			return ret;
+		bool PathEqualTo(const std::string& path) {
+			return ORNG::PathEqualTo(path, filepath);
 		}
 
 		std::string filepath = "";

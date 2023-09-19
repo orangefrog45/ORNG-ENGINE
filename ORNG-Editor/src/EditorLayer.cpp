@@ -114,7 +114,6 @@ namespace ORNG {
 		// Make sure some project is active
 		std::filesystem::current_path(base_proj_dir);
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/core/Input.h", "./res/scripts/includes/Input.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", "./res/scripts/includes/Component.h");
@@ -191,6 +190,8 @@ namespace ORNG {
 		ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = lighter_grey_color;
 	}
 
+
+
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
 		if (Window::IsKeyDown('K'))
@@ -198,11 +199,12 @@ namespace ORNG {
 
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
-
 		if (m_simulate_mode_active && !m_simulate_mode_paused)
 			m_active_scene->Update(ts);
-		else
+		else {
 			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
+			m_active_scene->terrain.UpdateTerrainQuadtree(m_active_scene->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
+		}
 
 
 
@@ -303,6 +305,7 @@ namespace ORNG {
 
 		RenderErrorMessages();
 		RenderToolbar();
+		m_asset_manager_window.OnRenderUI();
 
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
@@ -392,7 +395,6 @@ namespace ORNG {
 		ImGui::End();
 
 		RenderSceneGraph();
-		m_asset_manager_window.OnRenderUI();
 
 		ImGui::PopStyleVar(); // window border size
 		ImGui::PopStyleVar(); // window padding
@@ -549,6 +551,7 @@ namespace ORNG {
 
 
 
+
 	bool EditorLayer::GenerateProject(const std::string& project_name) {
 
 		if (std::filesystem::exists(m_executable_directory + "/projects/" + project_name)) {
@@ -584,7 +587,6 @@ namespace ORNG {
 
 		// Include header files for API so intellisense works
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/core/Input.h", project_path + "/res/scripts/includes/Input.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
@@ -793,6 +795,8 @@ namespace ORNG {
 		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
 		uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
 		delete[] pixels;
+
+
 
 		if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 			m_selected_entity_ids.clear();
@@ -1412,10 +1416,10 @@ namespace ORNG {
 				auto current_transforms = p_transform->GetAbsoluteTransforms();
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
-					p_transform->SetPosition(p_transform->GetPosition() + delta_translation);
+					p_transform->SetAbsolutePosition(p_transform->GetPosition() + delta_translation);
 					break;
 				case ImGuizmo::SCALE:
-					p_transform->SetScale(p_transform->GetScale() * delta_scale);
+					p_transform->SetAbsoluteScale(p_transform->GetScale() * delta_scale);
 					break;
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
 					glm::vec3 abs_rotation = current_transforms[2];

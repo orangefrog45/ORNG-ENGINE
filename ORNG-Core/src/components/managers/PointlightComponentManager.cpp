@@ -98,11 +98,11 @@ namespace ORNG {
 		}
 
 
-
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_pointlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), &light_array_shadowless[0], GL_STREAM_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), light_array_shadowless.data(), GL_STREAM_DRAW);
+
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_pointlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadows.size(), &light_array_shadows[0], GL_STREAM_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadows.size(), light_array_shadows.data(), GL_STREAM_DRAW);
 	}
 
 

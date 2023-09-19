@@ -107,6 +107,11 @@ namespace ORNG {
 	}
 
 	void AssetManagerWindow::OnRenderUI() {
+		for (auto* p_material : m_material_deletion_queue) {
+			AssetManager::DeleteAsset(p_material->uuid());
+			mp_selected_material = p_material == mp_selected_material ? nullptr : mp_selected_material;
+		}
+		m_material_deletion_queue.clear();
 		RenderMainAssetWindow();
 
 		if (mp_selected_material && RenderMaterialEditorSection())
@@ -139,7 +144,6 @@ namespace ORNG {
 
 		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::BeginTabBar("Selection");
-
 
 		if (ImGui::BeginTabItem("Meshes")) // MESH TAB
 		{
@@ -307,7 +311,6 @@ namespace ORNG {
 					ImGui::TableNextColumn();
 					ImGui::PushID(p_material);
 
-					bool deletion_flag = false;
 					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle();
 
 					ExtraUI::NameWithTooltip(p_material->name.c_str());
@@ -327,9 +330,6 @@ namespace ORNG {
 						ImGui::EndDragDropSource();
 					}
 
-					if (ImGui::IsItemActive())
-						ORNG_CORE_ERROR("ACTIVE");
-
 					// Deletion popup
 					if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
 						ImGui::OpenPopup("my_select_popup");
@@ -338,7 +338,8 @@ namespace ORNG {
 					if (ImGui::BeginPopup("my_select_popup"))
 					{
 						if (p_material->uuid() != ORNG_REPLACEMENT_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
-							deletion_flag = true;
+							// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
+							m_material_deletion_queue.push_back(p_material);
 						}
 						if (ImGui::Selectable("Duplicate")) {
 							auto* p_new_material = new Material();
@@ -350,12 +351,6 @@ namespace ORNG {
 							m_materials_to_gen_previews.push_back(p_new_material);
 						}
 						ImGui::EndPopup();
-					}
-
-
-					if (deletion_flag) {
-						AssetManager::DeleteAsset(p_material->uuid());
-						mp_selected_material = p_material == mp_selected_material ? nullptr : mp_selected_material;
 					}
 
 					ImGui::PopID();
@@ -387,9 +382,12 @@ namespace ORNG {
 						ImGui::PushID(entry_path.c_str());
 						ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
 
-						bool is_loaded = AssetManager::GetAsset<ScriptAsset>(relative_path);
-						if (is_loaded)
+						auto* p_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
+						bool is_loaded = p_asset ? p_asset->symbols.loaded : false;
+						if (p_asset && p_asset->symbols.loaded)
 							ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
+						else if (p_asset && !p_asset->symbols.loaded)
+							ImGui::TextColored(ImVec4(1, 0.2, 0, 1), "Loading failed");
 						else
 							ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not loaded");
 
@@ -413,9 +411,19 @@ namespace ORNG {
 									GenerateErrorMessage("AssetManager::AddScriptAsset failed");
 							}
 							else if (is_loaded && ImGui::Selectable("Reload")) {
+								// Store all components that have this script as their symbols will need to be updated after the script reloads
+								auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
+								std::vector<ScriptComponent*> components_to_reconnect;
+								for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+									if (p_curr_asset->PathEqualTo(script_comp.p_symbols->script_path))
+										components_to_reconnect.push_back(&script_comp);
+									else {
+										ORNG_CORE_TRACE("SCRIPT PAIR '{0}' : '{1}' IGNORED", relative_path, script_comp.p_symbols->script_path);
+									}
+								}
 
 								// Reload script and reconnect it to script components previously using it
-								if (AssetManager::DeleteAsset(AssetManager::GetAsset<ScriptAsset>(relative_path))) {
+								if (AssetManager::DeleteAsset(p_curr_asset)) {
 									std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
 									std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
 
@@ -427,11 +435,9 @@ namespace ORNG {
 
 									p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
 
-
-									for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-										if (p_asset->PathEqualTo(relative_path)) {
-											script_comp.SetSymbols(&p_asset->symbols);
-										}
+									// Reconnect script components that were using this script
+									for (auto p_script : components_to_reconnect) {
+										p_script->SetSymbols(&p_asset->symbols);
 									}
 
 								}

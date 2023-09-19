@@ -3,6 +3,7 @@
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
 #include "physx/PxPhysicsAPI.h"
+#include "scripting/ScriptShared.h"
 
 namespace physx {
 	class PxScene;
@@ -78,6 +79,7 @@ namespace ORNG {
 			Events::EventManager::DeregisterListener((entt::entity)m_transform_event_listener.GetRegisterID());
 		}
 	private:
+		void UpdateChildTransforms(const Events::ECS_Event<TransformComponent>&);
 		Events::ECS_EventListener<TransformComponent> m_transform_event_listener;
 		entt::registry* mp_registry = nullptr;
 	};
@@ -135,15 +137,6 @@ namespace ORNG {
 		entt::registry* mp_registry = nullptr;
 	};
 
-	struct RaycastResults {
-		bool hit = false;
-		glm::vec3 hit_pos{0, 0, 0};
-		glm::vec3 hit_normal{0, 0, 0};
-		float hit_dist = 0;
-		// Will be either PhysicsComponentStatic or PhysicsComponentDynamic
-		PhysicsComponent* p_phys_comp = nullptr;
-		SceneEntity* p_entity = nullptr;
-	};
 
 
 
@@ -159,7 +152,7 @@ namespace ORNG {
 		void OnLoad();
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
-		__declspec(noinline) RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
+		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
 
 
 		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
@@ -207,7 +200,7 @@ namespace ORNG {
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		float m_step_size = (1.f / 60.f);
+		float m_step_size = (1.f / 120.f);
 		float m_accumulator = 0.f;
 
 		class PhysCollisionCallback : public physx::PxSimulationEventCallback {

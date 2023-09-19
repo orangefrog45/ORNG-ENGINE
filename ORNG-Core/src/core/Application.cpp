@@ -45,12 +45,8 @@ namespace ORNG {
 
 	void Application::Init() {
 
+		Events::EventManager::Init();
 		Log::Init();
-		//GLFW INIT
-
-		if (!glfwInit())
-			exit(1);
-
 		Window::Init();
 		GLFWwindow* window = Window::GetGLFWwindow();
 
@@ -70,7 +66,6 @@ namespace ORNG {
 
 		InitImGui();
 		AudioEngine::Init();
-		Events::EventManager::Init();
 		Input::Init();
 		GL_StateManager::InitGL();
 		CodedAssets::Init();

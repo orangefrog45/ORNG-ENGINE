@@ -17,6 +17,7 @@ namespace ORNG {
 		void Update();
 		void MakeActive();
 		glm::mat4x4 GetProjectionMatrix() const;
+		// TODO: move functionality outside
 		void UpdateFrustum();
 
 

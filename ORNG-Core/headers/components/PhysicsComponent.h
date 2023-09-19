@@ -26,7 +26,10 @@ namespace ORNG {
 
 		void SetVelocity(glm::vec3 v);
 		glm::vec3 GetVelocity() const;
+
 		void AddForce(glm::vec3 force);
+		void ToggleGravity(bool on);
+		void SetMass(float mass);
 
 		enum GeometryType {
 			BOX = 0,

@@ -1,16 +1,25 @@
 /* This file sets up all interfaces and includes for external scripts to be connected to the engine
-* Include paths are invalid if not used in a project - do not include this file anywhere
-* All of these includes the script will still compile without, however they are needed for correct intellisense
+* Include paths are invalid if not used in a project - do not include this file anywhere except in a script
+* All of these includes the script will still compile without (including the core engine headers instead of these copies), however they are needed for correct intellisense
 */
-#include <filesystem>
 #include <chrono>
-#include <string>
-#include <functional>
 
-#include "glm/glm.hpp"
-#include "Input.h"
+// SAFE = fine to use in scripts
+// UNSAFE = should only be used in here
 
+// SAFE
+#include "./glm/glm.hpp"
+#include "./glm/gtx/transform.hpp"
+//
+
+// Wont be included in intellisense however will still be able to be accessed - if scripts try to access these except in here they will break.
+// UNSAFE
 #include "core/FrameTiming.h"
+#include "events/EventManager.h"
+#include "core/Input.h"
+//
+
+// SAFE
 #include "Component.h"
 #include "Lights.h"
 #include "MeshComponent.h"
@@ -18,10 +27,11 @@
 #include "ScriptComponent.h"
 #include "TransformComponent.h"
 #include "PhysicsComponent.h"
-
 #include "SceneEntity.h"
 #include "./SceneScriptInterface.h"
 #include "./uuids.h" // Generated through editor on save
+//
+
 
 /* TODO: Provide interface override for logging macros */
 #ifdef ORNG_CORE_TRACE
@@ -51,7 +61,23 @@ extern "C" {
 		class Input {
 		public:
 			static bool IsKeyDown(char key) {
-				return mp_input->I_IsKeyDown(key);
+				return mp_input->m_key_states[std::toupper(key)];
+			}
+
+			static bool IsMouseDown(ORNG::MouseButton btn) {
+				return mp_input->m_mouse_states[btn];
+			}
+
+			static bool IsMouseDown(int btn) {
+				return mp_input->m_mouse_states[static_cast<ORNG::MouseButton>(btn)];
+			}
+
+			static glm::ivec2 GetMousePos() {
+				return mp_input->m_mouse_position;
+			}
+
+			static void SetMousePos(float x, float y) {
+				mp_input->SetCursorPos(x, y);
 			}
 
 			static void SetInput(ORNG::Input* p_input) {
@@ -65,7 +91,7 @@ extern "C" {
 			friend void ORNG_Connectors::SetFrameTimingPtr(ORNG::FrameTiming* p_instance);
 		public:
 			static float GetDeltaTime() { return mp_instance->IGetTimeStep(); }
-			static float GetElapsedTime() { return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - mp_instance->m_application_start_time).count() / 1000.0; }
+			static float GetElapsedTime() { return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mp_instance->m_application_start_time).count() / 1000.0; }
 		private:
 			inline static ORNG::FrameTiming* mp_instance = nullptr;
 		};
@@ -107,6 +133,9 @@ extern "C" {
 			ScriptInterface::Scene::InstantiatePrefab = func;
 		}
 
+		__declspec(dllexport) void SetRaycastCallback(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)> func) {
+			ScriptInterface::Scene::Raycast = func;
+		}
 
 	}
 

@@ -667,7 +667,7 @@ namespace ORNG {
 
 		std::vector<TerrainQuadtree*> node_array;
 
-		mp_scene->terrain.m_quadtree->QueryChunks(node_array, p_cam->GetEntity()->GetComponent<TransformComponent>()->GetPosition(), mp_scene->terrain.m_width);
+		mp_scene->terrain.m_quadtree->QueryChunks(node_array, p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], mp_scene->terrain.m_width);
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();
 			if (chunk->m_bounding_box.IsOnFrustum(p_cam->view_frustum)) {

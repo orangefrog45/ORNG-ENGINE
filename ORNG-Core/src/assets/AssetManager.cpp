@@ -259,6 +259,9 @@ namespace ORNG {
 		if (auto* p_mesh = dynamic_cast<MeshAsset*>(p_asset)) {
 			DispatchAssetEvent(Events::AssetEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(p_mesh));
 		}
+		if (auto* p_material = dynamic_cast<Material*>(p_asset)) {
+			DispatchAssetEvent(Events::AssetEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(p_material));
+		}
 		else if (auto* p_script = dynamic_cast<ScriptAsset*>(p_asset)) {
 			ScriptingEngine::UnloadScriptDLL(p_script->symbols.script_path);
 		}
@@ -272,6 +275,7 @@ namespace ORNG {
 		std::string audio_folder = project_dir + "\\res\\audio\\";
 		std::string material_folder = project_dir + "\\res\\materials\\";
 		std::string prefab_folder = project_dir + "\\res\\prefabs\\";
+		std::string script_folder = project_dir + "\\res\\scripts\\";
 
 		Texture2DSpec default_spec;
 		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -335,6 +339,16 @@ namespace ORNG {
 				auto* p_mat = new Prefab(path.string());
 				DeserializeAssetBinary(path.string(), *p_mat);
 				AddAsset(p_mat);
+			}
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(script_folder)) {
+			auto path = entry.path();
+			if (entry.is_directory() || path.extension() != ".cpp")
+				continue;
+			else {
+				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(path.string());
+				AddAsset(new ScriptAsset(symbols));
 			}
 		}
 

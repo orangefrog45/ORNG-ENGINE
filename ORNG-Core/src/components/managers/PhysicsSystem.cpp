@@ -330,7 +330,7 @@ namespace ORNG {
 
 
 		auto* p_meshc = p_comp->GetEntity()->GetComponent<MeshComponent>();
-		const auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
+		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
 		auto transforms = p_transform->GetAbsoluteTransforms();
 		glm::vec3 extents = p_transform->GetScale() * (p_meshc ? p_meshc->GetMeshData()->GetAABB().max : glm::vec3(1));
 

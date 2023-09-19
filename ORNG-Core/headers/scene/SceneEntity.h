@@ -65,6 +65,10 @@ namespace ORNG {
 			return mp_scene->GetEntity(GetComponent<RelationshipComponent>()->parent);
 		}
 
+		entt::registry* GetRegistry() {
+			return mp_registry;
+		}
+
 		Scene* GetScene() {
 			return mp_scene;
 		}
@@ -79,7 +83,7 @@ namespace ORNG {
 #else
 			return mp_scene->DuplicateEntity(*this);
 #endif
-		}
+	}
 
 
 		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
@@ -93,7 +97,7 @@ namespace ORNG {
 		Scene* mp_scene = nullptr;
 		entt::registry* mp_registry = nullptr;
 		uint64_t m_scene_uuid; // Stored seperately for faster access
-	};
+};
 
 
 }

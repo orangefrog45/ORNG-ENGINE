@@ -21,19 +21,8 @@ namespace ORNG {
 		return std::ranges::find(vec, value) != vec.end();
 	}
 
-	static void HandledFileSystemCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false) {
-		try {
-			if (recursive)
-				std::filesystem::copy(file_to_copy, copy_location, std::filesystem::copy_options::recursive);
-			else
-				std::filesystem::copy_file(file_to_copy, copy_location);
-
-		}
-		catch (const std::exception& e) {
-			ORNG_CORE_ERROR("std::filesystem::copy_file failed : '{0}'", e.what());
-		}
-	}
-
+	void HandledFileSystemCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false);
+	bool PathEqualTo(const std::string& path1, const std::string& path2);
 
 }
 

@@ -164,7 +164,8 @@ namespace ORNG {
 				});
 
 			p_script_asset->symbols.SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
-				m_entity_deletion_queue.push_back(p_entity);
+				if (!VectorContains(m_entity_deletion_queue, p_entity))
+					m_entity_deletion_queue.push_back(p_entity);
 				});
 
 			p_script_asset->symbols.SceneEntityDuplicationSetter([this](SceneEntity& ent) -> SceneEntity& {
@@ -173,6 +174,10 @@ namespace ORNG {
 
 			p_script_asset->symbols.ScenePrefabInstantSetter([this](const std::string& str) -> SceneEntity& {
 				return InstantiatePrefabCallScript(str);
+				});
+
+			p_script_asset->symbols.SceneRaycastSetter([this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
+				return m_physics_system.Raycast(origin, unit_dir, max_distance);
 				});
 		}
 	}

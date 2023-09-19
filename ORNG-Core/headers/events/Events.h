@@ -5,6 +5,25 @@
 
 namespace ORNG {
 	class SceneEntity;
+
+	enum MouseButton {
+		LEFT_BUTTON = 0,
+		RIGHT_BUTTON = 1,
+		SCROLL = 2,
+		NONE = 3,
+	};
+
+	enum MouseAction {
+		UP = 0,
+		DOWN = 1,
+		MOVE = 2,
+	};
+
+	enum InputType {
+		PRESS,
+		RELEASE
+	};
+
 }
 
 namespace ORNG::Events {
@@ -31,9 +50,16 @@ namespace ORNG::Events {
 		glm::ivec2 new_window_size;
 	};
 
-	struct MouseEvent : public Event { // Not yet implemented
 
-		//Input::MouseBindings mouse_button;
+	enum MouseEventType {
+		RECEIVE, // Input received 
+		SET // State/window should be updated, e.g change cursor pos, listened for and handled in Window class
+	};
+
+	struct MouseEvent : public Event {
+		MouseEventType event_type;
+		MouseAction mouse_action;
+		MouseButton mouse_button;
 		glm::ivec2 mouse_pos_new;
 		glm::ivec2 mouse_pos_old;
 	};

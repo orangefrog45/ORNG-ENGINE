@@ -48,10 +48,6 @@ namespace ORNG {
 
 
 
-		inline RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
-			return m_physics_system.Raycast(origin, unit_dir, max_distance);
-		}
-
 		Skybox skybox;
 		Terrain terrain;
 		PostProcessing post_processing;

@@ -27,8 +27,8 @@ namespace ORNG {
 		friend class SceneSerializer;
 		friend class EditorLayer;
 		friend class SceneEntity;
+		friend class TransformHierarchySystem;
 		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
-
 
 
 		void SetScale(float scaleX, float scaleY, float scaleZ) {
@@ -63,6 +63,10 @@ namespace ORNG {
 			SetPosition(pos);
 		}
 
+		bool IsAbsolute() {
+			return m_is_absolute;
+		}
+
 		void LookAt(glm::vec3 t_pos, glm::vec3 t_up = { 0.0, 1.0,0.0 }, glm::vec3 t_right = { 1.0, 0.0, 0.0 });
 
 		inline void SetPosition(const glm::vec3 pos) {
@@ -84,11 +88,13 @@ namespace ORNG {
 			m_is_absolute = mode;
 			RebuildMatrix(UpdateType::ALL);
 		}
+		// Returns inherited position([0]), scale([1]), rotation ([2]) including this components transforms.
+		std::array<glm::vec3, 3> GetAbsoluteTransforms();
+
+		TransformComponent* GetParent();
 
 		const glm::mat4x4& GetMatrix() const { return m_transform; };
 
-		// Returns inherited position([0]), scale([1]), rotation ([2]) including this components transforms.
-		std::array<glm::vec3, 3> GetAbsoluteTransforms() const;
 
 		glm::vec3 GetPosition() const;
 		glm::vec3 GetScale() const { return m_scale; };
@@ -109,7 +115,7 @@ namespace ORNG {
 
 		void RebuildMatrix(UpdateType type);
 	private:
-		TransformComponent* mp_parent = nullptr;
+		entt::entity m_parent_handle = entt::null;
 		// If true, transform will not take parent transforms into account when building matrix.
 		bool m_is_absolute = false;
 

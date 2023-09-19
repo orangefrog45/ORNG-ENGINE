@@ -2,7 +2,6 @@
 #include <GLFW/glfw3.h>
 #include "core/Window.h"
 #include "events/EventManager.h"
-#include "core/Input.h"
 
 namespace ORNG {
 
@@ -33,25 +32,56 @@ namespace ORNG {
 		e_event.key = key;
 		switch (action) {
 		case GLFW_RELEASE:
-			e_event.event_type = Input::InputType::RELEASE;
+			e_event.event_type = InputType::RELEASE;
 			break;
 		case GLFW_PRESS:
-			e_event.event_type = Input::InputType::PRESS;
+			e_event.event_type = InputType::PRESS;
 			break;
 		case GLFW_REPEAT:
-			e_event.event_type = Input::InputType::PRESS;
+			e_event.event_type = InputType::PRESS;
 			break;
 		}
 		Events::EventManager::DispatchEvent(e_event);
 	}
 
-	void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); }
+	static glm::ivec2 gs_mouse_coords;
+
+	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+		Events::MouseEvent e_event;
+		e_event.event_type = Events::MouseEventType::RECEIVE;
+		e_event.mouse_action = static_cast<MouseAction>(glm::min(action, 1));
+		e_event.mouse_button = static_cast<MouseButton>(button);
+		double posx, posy;
+		glfwGetCursorPos(window, &posx, &posy);
+		e_event.mouse_pos_old = gs_mouse_coords;
+		e_event.mouse_pos_new = glm::ivec2(floor(posx), floor(posy));
+
+		Events::EventManager::DispatchEvent(e_event);
+
+		gs_mouse_coords = e_event.mouse_pos_new;
+	}
+
+	void CursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
+		Events::MouseEvent e_event;
+		e_event.event_type = Events::MouseEventType::RECEIVE;
+		e_event.mouse_action = MOVE;
+		e_event.mouse_button = MouseButton::NONE;
+		e_event.mouse_pos_old = gs_mouse_coords;
+		e_event.mouse_pos_new = glm::ivec2(floor(xPos), floor(yPos));
+
+		Events::EventManager::DispatchEvent(e_event);
+
+		gs_mouse_coords = e_event.mouse_pos_new;
+	}
+
+	void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); gs_mouse_coords = { x, y }; }
 
 	bool Window::I_IsKeyDown(int key) { return (glfwGetKey(p_window, std::toupper(key)) == GLFW_PRESS); }
 
 	bool Window::I_IsMouseButtonInState(int key, unsigned int state) { return glfwGetMouseButton(p_window, key) == state; }
 
 	glm::vec2 Window::IGetMousePos() {
+		double mouse_x, mouse_y;
 		glfwGetCursorPos(Get().p_window, &mouse_x, &mouse_y);
 		return glm::vec2(mouse_x, mouse_y);
 	};
@@ -71,6 +101,11 @@ namespace ORNG {
 
 
 	void Window::I_Init() {
+		if (!glfwInit()) {
+			ORNG_CORE_CRITICAL("GLFW Failed to initialize");
+			exit(1);
+		}
+
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -80,7 +115,8 @@ namespace ORNG {
 
 		p_window = glfwCreateWindow(m_window_width, m_window_height, "ORANGE ENGINE", nullptr, nullptr);
 		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
-
+		glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
+		glfwSetCursorPosCallback(p_window, CursorPosCallback);
 		glfwSetWindowSizeCallback(p_window, [](GLFWwindow*, int width, int height)
 			{
 				Window::SetWindowDimensions(width, height);
@@ -97,6 +133,16 @@ namespace ORNG {
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
+
+		m_mouse_listener.OnEvent = [this](const Events::MouseEvent& t_event) {
+			if (t_event.event_type != Events::MouseEventType::SET)
+				return;
+
+			if (t_event.mouse_action == MOVE)
+				SetCursorPos(t_event.mouse_pos_new.x, t_event.mouse_pos_new.y);
+		};
+
+		Events::EventManager::RegisterListener(m_mouse_listener);
 
 	}
 }

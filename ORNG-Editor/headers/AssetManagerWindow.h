@@ -60,6 +60,8 @@ namespace ORNG {
 		Material* mp_selected_material = nullptr;
 		std::unique_ptr<Scene>* mp_scene_context = nullptr;
 
+		std::vector<Material*> m_material_deletion_queue;
+
 		Events::EventListener<Events::AssetEvent> m_asset_listener;
 
 		std::vector<ConfirmationWindowData> m_confirmation_window_stack;

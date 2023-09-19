@@ -25,7 +25,7 @@ namespace ORNG {
 			p_parent_comp->num_children++;
 			// Update transform hierarchy
 			auto* p_transform = GetComponent<TransformComponent>();
-			p_transform->mp_parent = &mp_registry->get<TransformComponent>(p_parent_comp->GetEnttHandle());
+			p_transform->m_parent_handle = p_parent_comp->GetEnttHandle();
 			p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 			return;
 		}
@@ -42,7 +42,7 @@ namespace ORNG {
 
 		// Update transform hierarchy
 		auto* p_transform = GetComponent<TransformComponent>();
-		p_transform->mp_parent = &mp_registry->get<TransformComponent>(p_parent_comp->GetEnttHandle());
+		p_transform->m_parent_handle = p_parent_comp->GetEnttHandle();
 		p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 	}
 
@@ -70,7 +70,7 @@ namespace ORNG {
 		p_comp->prev = entt::null;
 		p_comp->parent = entt::null;
 
-		GetComponent<TransformComponent>()->mp_parent = nullptr;
+		GetComponent<TransformComponent>()->m_parent_handle = entt::null;
 	}
 
 }

@@ -4,6 +4,7 @@
 #include "util/ExtraMath.h"
 #include "events/EventManager.h"
 #include "glm/glm/gtc/quaternion.hpp"
+#include "scene/SceneEntity.h"
 
 
 
@@ -38,24 +39,24 @@ namespace ORNG {
 	}
 
 
-	std::array<glm::vec3, 3> TransformComponent::GetAbsoluteTransforms() const {
-
-		if (!mp_parent)
-			return std::array<glm::vec3, 3>{m_pos, m_scale, m_orientation};
+	std::array<glm::vec3, 3> TransformComponent::GetAbsoluteTransforms() {
 
 		// Sum all parent transforms to get absolute position
-		TransformComponent* p_parent_transform = mp_parent;
+		TransformComponent* p_parent_transform = GetParent();
 
 		glm::vec3 abs_rotation = m_orientation;
 		glm::vec3 abs_translation = m_pos;
 		glm::vec3 abs_scale = m_scale;
+
+		if (!p_parent_transform || m_is_absolute)
+			return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
 
 		while (p_parent_transform) {
 			abs_rotation += p_parent_transform->m_orientation;
 			abs_translation += p_parent_transform->m_pos;
 			abs_scale *= p_parent_transform->m_scale;
 
-			p_parent_transform = p_parent_transform->mp_parent;
+			p_parent_transform = p_parent_transform->GetParent();
 		}
 
 		glm::vec3 parent_abs_translation = abs_translation - m_pos;
@@ -83,15 +84,21 @@ namespace ORNG {
 		SetAbsoluteOrientation(euler_angles);
 	}
 
+
+	TransformComponent* TransformComponent::GetParent() {
+		return m_parent_handle == entt::null ? nullptr : GetEntity()->GetRegistry()->try_get<TransformComponent>(m_parent_handle);
+	}
+
 	void TransformComponent::RebuildMatrix(UpdateType type) {
 
 		glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
 		glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
 		glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
-		if (m_is_absolute || !mp_parent)
+		auto* p_parent = GetParent();
+		if (m_is_absolute || !p_parent)
 			m_transform = trans_mat * rot_mat * scale_mat;
 		else
-			m_transform = mp_parent->GetMatrix() * (trans_mat * rot_mat * scale_mat);
+			m_transform = p_parent->GetMatrix() * (trans_mat * rot_mat * scale_mat);
 
 		glm::mat3 rot_mat_new{m_transform};
 

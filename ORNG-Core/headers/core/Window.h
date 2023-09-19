@@ -1,6 +1,7 @@
 #pragma once
 #include "util/TimeStep.h"
 #include "util/util.h"
+#include "events/EventManager.h"
 
 class GLFWwindow;
 namespace ORNG {
@@ -79,6 +80,8 @@ namespace ORNG {
 
 		ScrollData m_scroll_data;
 
+		// Handles events with event_type == SET to update window
+		Events::EventListener<Events::MouseEvent> m_mouse_listener;
 
 
 		static Window& Get() {
@@ -87,8 +90,6 @@ namespace ORNG {
 		}
 
 		GLFWwindow* p_window = nullptr;
-		double mouse_x = 0;
-		double mouse_y = 0;
 		unsigned int m_window_width = 2560;
 		unsigned int m_window_height = 1440;
 	};

@@ -95,7 +95,7 @@ namespace ORNG {
 
 		if (!std::filesystem::exists("res\\scripts\\" + filename)) {
 			ORNG_CORE_ERROR("Script file not found, ensure it is in the res/scripts path of your project");
-			return ScriptSymbols();
+			return ScriptSymbols(filepath);
 		}
 
 		std::ofstream bat_stream("res/scripts/gen_scripts.bat");
@@ -106,20 +106,20 @@ namespace ORNG {
 		int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
 		if (dev_env_result != 0) {
 			ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", filepath, dev_env_result);
-			return ScriptSymbols();
+			return ScriptSymbols(filepath);
 		}
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
 		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
 			ORNG_CORE_ERROR("Script DLL failed to load or not found at res/scripts/bin/'{0}'", filename_no_ext + ".dll");
-			return ScriptSymbols();
+			return ScriptSymbols(filepath);
 		}
 
 
 		// Keep record of loaded DLL's
 		sm_loaded_script_dll_handles[filepath] = script_dll;
 
-		ScriptSymbols symbols;
+		ScriptSymbols symbols{ filepath };
 
 
 		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
@@ -132,7 +132,6 @@ namespace ORNG {
 		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
 
 		symbols.loaded = true;
-		symbols.script_path = filepath;
 
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
 		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));

@@ -151,9 +151,9 @@ namespace ORNG {
 
 
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_spotlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), &light_array_shadowless[0], GL_STREAM_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), light_array_shadowless.data(), GL_STREAM_DRAW);
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_spotlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadow.size(), &light_array_shadow[0], GL_STREAM_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadow.size(), light_array_shadow.data(), GL_STREAM_DRAW);
 	}
 
 

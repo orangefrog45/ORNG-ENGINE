@@ -1,7 +1,7 @@
  ## ORNG Engine
  This is a hobby windows-based OpenGL 3D game engine project, currently not in a state to be used. It is not documented and still requires a lot of work. This is my first attempt building a game engine.
 
- However, if you do decide to try and build, it is currently only properly supported for MSVC using VS (and only tested on VS2022), there are plans to change this, but it is currently non-urgent for me. Cloning this repo recursively and opening the folder in VS should allow you to build error-free. Make sure the editor .exe is set as the startup item. You can also create a build folder and do "cmake -DCMAKE_BUILD_TYPE=X ..", build type must be either "Release" or "Debug".
+ However, if you do decide to try and build, it is currently only properly supported for MSVC using VS (and only tested on VS2022), there are plans to change this, but it is currently non-urgent for me. Cloning this repo recursively and opening the folder in VS should allow you to build error-free. Make sure the editor .exe is set as the startup item.
 
 ![Engine screenshot](ORNG_IMAGE.jpg)
  ### Controls:

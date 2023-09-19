@@ -21,8 +21,8 @@ namespace ORNG {
 			return Get().IGetTimeStep();
 		}
 
-		static double GetTotalElapsedTime() {
-			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_application_start_time).count() / 1000.0;
+		static float GetTotalElapsedTime() {
+			return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - m_application_start_time).count() / 1000.0;
 		}
 
 		static void UpdateTimeStep() {

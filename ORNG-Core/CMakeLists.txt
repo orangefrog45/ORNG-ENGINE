@@ -53,7 +53,7 @@ src/util/Log.cpp
 src/util/Timers.cpp
 src/util/TimeStep.cpp
 src/util/UUID.cpp
-src/core/AssetManager.cpp
+"src/assets/AssetManager.cpp"
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx512.cpp
@@ -63,7 +63,7 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp" "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
- "src/scene/SceneManager.cpp")
+ "src/scene/SceneManager.cpp" "src/util/util.cpp" )
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}

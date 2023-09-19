@@ -1,6 +1,7 @@
 #pragma once
 #include "util/util.h"
 #include "assets/Asset.h"
+#include "ScriptShared.h"
 
 namespace ORNG {
 	class SceneEntity;
@@ -14,7 +15,7 @@ namespace ORNG {
 
 	typedef void(__cdecl* ScriptFuncPtr)(SceneEntity*);
 	typedef void(__cdecl* PhysicsEventCallback)(SceneEntity*, SceneEntity*);
-	// Function ptr setters that enable the script to call some engine functions without dealing with certain unnecessary libs/includes
+	// Function ptr setters that enable the script to call some engine functions without dealing with certain unwanted libs/includes
 	typedef void(__cdecl* InputSetter)(Input*);
 	typedef void(__cdecl* EventInstanceSetter)(Events::EventManager*);
 	typedef void(__cdecl* FrameTimingSetter)(FrameTiming*);
@@ -22,9 +23,14 @@ namespace ORNG {
 	typedef void(__cdecl* DeleteEntitySetter)(std::function<void(SceneEntity* p_entity)>);
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
 	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (const std::string&)>);
+	typedef void(__cdecl* RaycastSetter)(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>);
+
 
 
 	struct ScriptSymbols {
+		// Even if script fails to load, path must be preserved
+		ScriptSymbols(const std::string& path) : script_path(path) {};
+
 		bool loaded = false;
 		std::string script_path;
 		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
@@ -38,6 +44,7 @@ namespace ORNG {
 		DeleteEntitySetter SceneEntityDeletionSetter = [](std::function<void(SceneEntity* p_entity)>) {};
 		DuplicateEntitySetter SceneEntityDuplicationSetter = [](std::function<SceneEntity& (SceneEntity& p_entity)>) {};
 		InstantiatePrefabSetter ScenePrefabInstantSetter = [](std::function<SceneEntity& (const std::string&)>) {};
+		RaycastSetter SceneRaycastSetter = [](std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>) {};
 	};
 
 

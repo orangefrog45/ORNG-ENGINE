@@ -21,15 +21,14 @@ namespace ORNG {
 
 	void CameraComponent::UpdateFrustum() {
 
-		/*const float half_far_plane_height = tanf(glm::radians(fov * 0.5f)) * zFar;
+		const float half_far_plane_height = tanf(glm::radians(fov * 0.5f)) * zFar;
 		const float half_far_plane_width = half_far_plane_height * (static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetHeight()));
-
-		auto transforms = GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms();
+		auto* p_transform = GetEntity()->GetComponent<TransformComponent>();
+		auto transforms = p_transform->GetAbsoluteTransforms();
 		glm::vec3 rot = transforms[1];
 		glm::vec3 target = glm::normalize(glm::mat3(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z)) * glm::vec3{ 0.0, 0.0, -1.0 });
 
-		right = glm::normalize(glm::cross(target, up));
-		const glm::vec3 up = glm::cross(right, target);
+		const glm::vec3 up = glm::cross(p_transform->right, target);
 
 		glm::vec3 pos = transforms[0];
 
@@ -38,17 +37,17 @@ namespace ORNG {
 		view_frustum.near_plane = { target , pos + zNear * target };
 		view_frustum.far_plane = { -target , far_point };
 
-		const glm::vec3 point_right_plane = far_point + right * half_far_plane_width;
+		const glm::vec3 point_right_plane = far_point + p_transform->right * half_far_plane_width;
 		view_frustum.right_plane = { glm::cross(up, point_right_plane - pos), pos };
 
-		const glm::vec3 point_left_plane = far_point - right * half_far_plane_width;
+		const glm::vec3 point_left_plane = far_point - p_transform->right * half_far_plane_width;
 		view_frustum.left_plane = { glm::cross(up, pos - point_left_plane), pos };
 
 		const glm::vec3 point_up_plane = far_point + up * half_far_plane_height;
-		view_frustum.top_plane = { glm::cross(right, pos - point_up_plane), pos };
+		view_frustum.top_plane = { glm::cross(p_transform->right, pos - point_up_plane), pos };
 
 		const glm::vec3 point_down_plane = far_point - up * half_far_plane_height;
-		view_frustum.bottom_plane = { glm::cross(right, point_down_plane - pos), pos };*/
+		view_frustum.bottom_plane = { glm::cross(p_transform->right, point_down_plane - pos), pos };
 	}
 
 	void CameraComponent::MakeActive() {

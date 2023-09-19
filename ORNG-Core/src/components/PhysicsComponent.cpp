@@ -23,8 +23,21 @@ namespace ORNG {
 			((PxRigidDynamic*)p_rigid_actor)->addForce(PxVec3(force.x, force.y, force.z));
 	}
 
+	void PhysicsComponent::ToggleGravity(bool on) {
+		if (m_body_type == DYNAMIC) {
+			((PxRigidDynamic*)p_rigid_actor)->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !on);
+		}
+	}
+
+	void PhysicsComponent::SetMass(float mass) {
+		if (m_body_type == DYNAMIC && mass >= 0.f)
+			((PxRigidDynamic*)p_rigid_actor)->setMass(mass);
+	}
+
 
 	void PhysicsComponent::SetVelocity(glm::vec3 v) {
+		if (m_body_type == DYNAMIC)
+			((PxRigidDynamic*)p_rigid_actor)->setLinearVelocity(PxVec3(v.x, v.y, v.z));
 	}
 
 

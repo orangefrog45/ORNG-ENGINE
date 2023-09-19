@@ -162,61 +162,15 @@ namespace ORNG {
 
 	}
 
-	glm::mat4 ExtraMath::GetCameraComponentTransMatrix(glm::vec3 pos) {
-		glm::mat4x4 CameraComponentTransMatrix(
-			1.0f, 0.0f, 0.0f, pos.x,
-			0.0f, 1.0f, 0.0f, pos.y,
-			0.0f, 0.0f, 1.0f, pos.z,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		return CameraComponentTransMatrix;
-	}
 
-	glm::mat4x4 ExtraMath::Init3DCameraComponentTransform(const glm::vec3& pos, const glm::vec3& target, const glm::vec3& up) {
-		glm::vec3 n = target;
-		glm::normalize(n);
 
-		glm::vec3 u;
-		u = glm::cross(up, n);
+	glm::vec3 ExtraMath::ScreenCoordsToRayDir(glm::mat4 proj_matrix, glm::vec2 coords, glm::vec3 cam_pos, glm::vec3 cam_forward, glm::vec3 cam_up, unsigned int window_width, unsigned int window_height) {
 
-		glm::vec3 v = glm::cross(n, u);
-		glm::normalize(v);
-
-		glm::mat4x4 CameraComponentRotMatrix(
-			u.x, u.y, u.z, 0.0f,
-			v.x, v.y, v.z, 0.0f,
-			n.x, n.y, n.z, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-
-		glm::mat4x4 CameraComponentTransMatrix(
-			1.0f, 0.0f, 0.0f, -pos.x,
-			0.0f, 1.0f, 0.0f, -pos.y,
-			0.0f, 0.0f, 1.0f, -pos.z,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-
-		return CameraComponentRotMatrix * CameraComponentTransMatrix;
-	}
-
-	glm::mat4x4 ExtraMath::InitPersProjTransform(float FOV, float WINDOW_WIDTH, float WINDOW_HEIGHT, float zNear, float zFar) {
-		const float ar = WINDOW_WIDTH / WINDOW_HEIGHT;
-		const float zRange = zNear - zFar;
-		const float tanHalfFOV = tanf(glm::radians(FOV / 2.0f));
-		const float f = 1.0f / tanHalfFOV;
-
-		//normalize, due to precision keep z-values low anyway
-		const float A = (-zFar - zNear) / zRange;
-		const float B = 2.0f * zFar * zNear / zRange;
-
-		glm::mat4x4 projectionMatrix(
-			f / ar, 0.0f, 0.0f, 0.0f,
-			0.0f, f, 0.0f, 0.0f,
-			0.0f, 0.0f, A, B,
-			0.0f, 0.0f, 1.0f, 0.0f
-		);
-
-		return projectionMatrix;
+		glm::vec2 norm = coords / glm::vec2(window_width, window_height);
+		glm::vec4 clipspace = glm::vec4(norm, 1.0, 1.0) * 2.f - 1.f;
+		glm::vec4 viewspace = glm::inverse(proj_matrix) * clipspace;
+		glm::vec4 worldspace = glm::inverse(glm::lookAt(cam_pos, cam_pos + cam_forward, cam_up)) * viewspace;
+		return glm::normalize(glm::vec3(worldspace) - cam_pos);
 	}
 
 }

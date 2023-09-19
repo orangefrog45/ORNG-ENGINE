@@ -1,3 +1,13 @@
+17/9/23:
+-Exposed raycasting to scripts
+-Mouse input stuff added in scripts
+-Fixed script filepaths not being preserved if not loaded correctly causing them to disconnect from entities
+-Fixed deleteentity script crash where entities could be pushed into the deletion queue multiple times
+-Fixed total elapsed time calculation
+-Fixed material deletion crash where imgui would try to render the deleted preview image
+-Fixed script reconnection after reload bug where all script components would be reconnected even if they didn't have it
+-Fixed material preview crash caused by trying to render a material preview for a material that could have been deleted
+
 16/9/23:
 -Switched to vcpkg for managing physx
 
