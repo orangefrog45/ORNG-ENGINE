@@ -473,7 +473,9 @@ namespace ORNG {
 					// Give relative path to current project directory
 					std::string new_filepath{GenerateAudioFileClonePath(filepath)};
 					HandledFileSystemCopy(filepath, new_filepath);
-					AssetManager::AddAsset(new SoundAsset(new_filepath));
+					auto* p_sound = new SoundAsset(new_filepath);
+					AssetManager::AddAsset(p_sound);
+					p_sound->CreateSound();
 				};
 
 
@@ -488,7 +490,7 @@ namespace ORNG {
 						continue;
 
 					ImGui::TableNextColumn();
-					ExtraUI::NameWithTooltip(p_sound->filepath.substr(p_sound->filepath.rfind("\\")));
+					ExtraUI::NameWithTooltip(p_sound->filepath);
 
 					ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, image_button_size);
 

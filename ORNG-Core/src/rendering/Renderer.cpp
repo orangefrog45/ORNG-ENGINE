@@ -18,8 +18,6 @@ namespace ORNG {
 		mp_quad = new Quad();
 		mp_quad->Load();
 
-
-
 		ORNG_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
 	}
 
@@ -32,14 +30,38 @@ namespace ORNG {
 
 	void Renderer::IDrawQuad() const
 	{
-		GL_StateManager::BindVAO(mp_quad->m_vao);
+		GL_StateManager::BindVAO(mp_quad->m_vao.GetHandle());
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
 
 
+	void Renderer::IDrawLines(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines) {
+		GL_StateManager::BindVAO(vao.GetHandle());
+		glDrawArrays(GL_LINES,
+			0,
+			nb_lines
+		);
+		m_draw_call_amount++;
+	}
 
-	void Renderer::IDrawVAO_Elements(GLenum primitive_type, const VAO& vao) {
-		GL_StateManager::BindVAO(vao);
+	void Renderer::IDrawPoints(const std::vector<Point>& points) {
+		/*	m_line_vao->vertex_data.positions.clear();
+
+		for (auto& point : points) {
+			VEC_PUSH_VEC3(m_line_vao->vertex_data.positions,point.p);
+		}
+
+		m_line_vao->FillBuffers();
+		GL_StateManager::BindVAO(m_line_vao->GetHandle());
+		glDrawArrays(GL_LINES,
+			0,
+			m_line_vao->vertex_data.positions.size() / 3
+		);
+		m_draw_call_amount++;*/
+	}
+
+	void Renderer::IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao) {
+		GL_StateManager::BindVAO(vao.GetHandle());
 
 		glDrawElements(primitive_type,
 			vao.vertex_data.indices.size(),
@@ -50,12 +72,12 @@ namespace ORNG {
 	};
 
 
-	void Renderer::IDrawVAO_ArraysInstanced(GLenum primitive_type, const VAO& vao, unsigned int instance_count) {
-		GL_StateManager::BindVAO(vao);
+	void Renderer::IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count) {
+		GL_StateManager::BindVAO(vao.GetHandle());
 
 		glDrawArraysInstanced(primitive_type,
 			0,
-			vao.vertex_data.positions.size(),
+			vao.vertex_data.positions.size() / 3,
 			instance_count
 		);
 
@@ -64,7 +86,7 @@ namespace ORNG {
 
 
 	void Renderer::DrawBoundingBox(const MeshAsset& asset) {
-		GL_StateManager::BindVAO(asset.m_vao);
+		GL_StateManager::BindVAO(asset.m_vao.GetHandle());
 
 		glDrawArrays(GL_QUADS, 0, 24);
 		Get().m_draw_call_amount++;
@@ -72,10 +94,10 @@ namespace ORNG {
 
 
 	void Renderer::IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count) {
-		GL_StateManager::BindVAO(p_mesh->m_vao);
+		GL_StateManager::BindVAO(p_mesh->m_vao.GetHandle());
 
 		for (int i = 0; i < p_mesh->m_submeshes.size(); i++) {
-			GL_StateManager::BindVAO(p_mesh->m_vao);
+			GL_StateManager::BindVAO(p_mesh->m_vao.GetHandle());
 
 			glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 				p_mesh->m_submeshes[i].num_indices,
@@ -89,7 +111,7 @@ namespace ORNG {
 	}
 
 	void Renderer::IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index) {
-		GL_StateManager::BindVAO(data->m_vao);
+		GL_StateManager::BindVAO(data->m_vao.GetHandle());
 
 
 		glDrawElementsBaseVertex(GL_TRIANGLES,
@@ -102,7 +124,7 @@ namespace ORNG {
 	}
 
 	void Renderer::IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index) {
-		GL_StateManager::BindVAO(mesh_data->m_vao);
+		GL_StateManager::BindVAO(mesh_data->m_vao.GetHandle());
 
 		glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 			mesh_data->m_submeshes[submesh_index].num_indices,

@@ -1,3 +1,4 @@
+#pragma once
 namespace FMOD {
 	class System;
 }
@@ -13,6 +14,8 @@ namespace ORNG {
 		}
 
 		static void Init() { Get().I_Init(); }
+
+		~AudioEngine();
 
 	private:
 		static AudioEngine& Get() {

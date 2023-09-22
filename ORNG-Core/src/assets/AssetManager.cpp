@@ -136,7 +136,7 @@ namespace ORNG {
 			return;
 		}
 
-		GL_StateManager::BindVAO(asset->GetVAO());
+		GL_StateManager::BindVAO(asset->GetVAO().GetHandle());
 
 		// Get directory used for finding material textures
 		std::string::size_type slash_index = asset->filepath.find_last_of("\\");
@@ -314,10 +314,14 @@ namespace ORNG {
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(audio_folder)) {
 			auto path = entry.path();
-			if (entry.is_directory() || !(path.extension() == ".mp3" || path.extension() == ".wav"))
+			if (entry.is_directory() || !(path.extension() == ".osound"))
 				continue;
-			else
-				AddAsset(new SoundAsset(entry.path().string()));
+			else {
+				auto* p_sound = new SoundAsset(entry.path().string());
+				DeserializeAssetBinary(entry.path().string(), *p_sound);
+				p_sound->CreateSound();
+				AddAsset(p_sound);
+			}
 		}
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(material_folder)) {
@@ -377,11 +381,16 @@ namespace ORNG {
 
 		}
 
+		for (auto* p_sound : Get().GetView<SoundAsset>()) {
+			std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
+			SerializeAssetBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
+		}
+
 	}
 
 
-	SoundAsset::SoundAsset(const std::string& t_filepath) : Asset(t_filepath), filepath(t_filepath) {
-		if (auto result = AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_3D, nullptr, &p_sound); result != FMOD_OK) {
+	void SoundAsset::CreateSound() {
+		if (auto result = AudioEngine::GetSystem()->createSound(filepath.c_str(), FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF, nullptr, &p_sound); result != FMOD_OK) {
 			ORNG_CORE_ERROR("Error loading sound: '{0}', '{1}'", filepath, FMOD_ErrorString(result));
 		}
 	}

@@ -7,9 +7,13 @@
 #include "events/Events.h"
 
 
+namespace ORNG {
+	class MeshComponent;
+	class SpotLightComponent;
+	class PointLightComponent;
+}
 
 namespace ORNG::Events {
-
 
 	class EventManager {
 	public:
@@ -27,6 +31,7 @@ namespace ORNG::Events {
 			for (auto& func : Get().m_events_to_process) {
 				func();
 			}
+			Get().m_events_to_process.clear();
 		}
 
 		template <std::derived_from<Event> T>
@@ -89,18 +94,26 @@ namespace ORNG::Events {
 
 		template<std::derived_from<Component> T>
 		static void DispatchEvent(const ECS_Event<T>& t_event) {
-#ifdef ORNG_SCRIPT_ENV // Push event to queue so it's processed by the main application, not the script itself (needed for opengl operations)
-			Get().m_events_to_process.push_back([t_event] {
-#endif
+			auto p_func = [t_event] {
 				for (auto [entity, listener] : Get().m_listener_registry.view<ECS_EventListener<T>>().each()) {
 					// Check if the event listener is listening to the scene the event was dispatched from
 					if (listener.scene_id == static_cast<Component*>(t_event.affected_components[0])->GetSceneUUID())
 						listener.OnEvent(t_event);
 				}
-#ifdef ORNG_SCRIPT_ENV
-				; });
+			};
+#ifdef ORNG_SCRIPT_ENV // Push event to queue so it's processed by the main application, not the script itself (needed for opengl operations)
+			if constexpr (std::is_same_v<T, ORNG::MeshComponent> || std::is_same_v<T, ORNG::PointLightComponent> || std::is_same_v<T, ORNG::SpotLightComponent>) {
+				m_events_to_process.push_back(p_func);
+			}
+			else {
+				// No opengl, safe to handle in script environment
+				p_func();
+			}
+			
+#else
+			// In-engine event, handle immediately
+			p_func();
 #endif
-
 		}
 
 

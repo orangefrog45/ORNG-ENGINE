@@ -27,4 +27,8 @@ namespace ORNG {
 
 
 	}
+
+	AudioEngine::~AudioEngine() {
+		mp_system->release();
+	}
 }

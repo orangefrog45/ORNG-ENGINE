@@ -32,6 +32,7 @@ namespace ORNG {
 	}
 
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath, const std::vector<std::string>& defines) {
+		ASSERT(std::filesystem::exists(filepath));
 		unsigned int shader_handle = 0;
 		CompileShader(shader_type, ParseShader(filepath, defines), shader_handle);
 		m_shader_handles.push_back(shader_handle);

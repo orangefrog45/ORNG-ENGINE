@@ -19,7 +19,7 @@ namespace ORNG {
 		unsigned int m_chunk_key;
 
 		AABB m_bounding_box;
-		VAO m_vao;
+		MeshVAO m_vao;
 		TerrainGenerator::TerrainData data;
 
 		glm::vec3 m_bot_left_coord;

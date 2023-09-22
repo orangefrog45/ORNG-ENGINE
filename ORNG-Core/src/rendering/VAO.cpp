@@ -8,18 +8,39 @@ static constexpr unsigned int NORMAL_LOCATION = 2;
 static constexpr unsigned int TANGENT_LOCATION = 3;
 
 namespace ORNG {
-	VAO::VAO() {
-		glGenVertexArrays(1, &m_vao_handle);
+
+
+	VAO_Base::~VAO_Base() {
+		glDeleteVertexArrays(1, &m_vao_handle);
+	}
+
+
+	void VAO::FillBuffers() {
+		GL_StateManager::BindVAO(GetHandle());
+		for (auto [index, p_buf] : m_buffers) {
+			GL_StateManager::BindBuffer(p_buf->buffer_type, p_buf->m_ogl_handle);
+			glBufferData(p_buf->buffer_type, p_buf->GetSize(), p_buf->GetDataPtr(), p_buf->draw_type);
+			glEnableVertexAttribArray(index);
+			glVertexAttribPointer(index, p_buf->comps_per_attribute, p_buf->data_type, GL_FALSE, p_buf->stride, 0);
+		}
+	}
+
+	BufferBase::BufferBase(GLenum t_buffer_type) : buffer_type(t_buffer_type) {
+		glGenBuffers(1, &m_ogl_handle);
+	};
+
+	MeshVAO::MeshVAO() {
+		Init();
 		glGenBuffers(m_buffers.size(), &m_buffers[0]);
 	};
 
-	VAO::~VAO() {
+	MeshVAO::~MeshVAO() {
 		glDeleteBuffers(m_buffers.size(), &m_buffers[0]);
-		glDeleteVertexArrays(1, &m_vao_handle);
 	};
 
-	void VAO::FillBuffers() {
-		GL_StateManager::BindVAO(*this);
+	void MeshVAO::FillBuffers() {
+		GL_StateManager::BindVAO(GetHandle());
+
 
 		if (!vertex_data.positions.empty()) {
 			GL_StateManager::BindBuffer(GL_ARRAY_BUFFER, m_buffers[POS_VB]);
@@ -56,7 +77,7 @@ namespace ORNG {
 
 	}
 
-	unsigned int VAO::GenTransformSSBO() {
+	unsigned int MeshVAO::GenTransformSSBO() {
 		unsigned int ssbo_handle = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_handle);
 
@@ -64,9 +85,9 @@ namespace ORNG {
 		return ssbo_handle;
 	}
 
-	void VAO::FullUpdateTransformSSBO(unsigned int ssbo_handle, const std::vector<glm::mat4>* transforms, long long buffer_size) {
+	void MeshVAO::FullUpdateTransformSSBO(unsigned int ssbo_handle, const std::vector<glm::mat4>* transforms, long long buffer_size) {
 		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
-			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in VAO.");
+			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in MeshVAO.");
 			BREAKPOINT;
 		}
 
@@ -88,9 +109,9 @@ namespace ORNG {
 		}
 	}
 
-	void VAO::DeleteTransformSSBO(unsigned int ssbo_handle) {
+	void MeshVAO::DeleteTransformSSBO(unsigned int ssbo_handle) {
 		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
-			ORNG_CORE_ERROR("VAO does not contain SSBO with handle '{0}', failed to delete!", ssbo_handle);
+			ORNG_CORE_ERROR("MeshVAO does not contain SSBO with handle '{0}', failed to delete!", ssbo_handle);
 		}
 		else {
 			glDeleteBuffers(1, &ssbo_handle);
@@ -98,9 +119,9 @@ namespace ORNG {
 
 	}
 
-	void VAO::SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms) {
+	void MeshVAO::SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms) {
 		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
-			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in VAO.");
+			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in MeshVAO.");
 			BREAKPOINT;
 		}
 

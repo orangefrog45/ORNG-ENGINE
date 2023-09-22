@@ -10,6 +10,15 @@ namespace ORNG {
 	class Skybox;
 	class MeshAsset;
 
+	struct Line {
+		glm::vec3 p1;
+		glm::vec3 p2;
+		glm::vec3 col;
+	};
+
+	struct Point {
+		glm::vec3 p;
+	};
 
 	class Renderer {
 	public:
@@ -32,7 +41,7 @@ namespace ORNG {
 		};
 
 
-		static void DrawVAO_Elements(GLenum primitive_type, const VAO& vao) {
+		static void DrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao) {
 			Get().IDrawVAO_Elements(primitive_type, vao);
 		}
 
@@ -40,7 +49,7 @@ namespace ORNG {
 			Get().IDrawMeshInstanced(p_mesh, instance_count);
 		}
 
-		static void DrawVAO_ArraysInstanced(GLenum primitive_type, const VAO& vao, unsigned int instance_count) {
+		static void DrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count) {
 			Get().IDrawVAO_ArraysInstanced(primitive_type, vao, instance_count);
 		}
 
@@ -50,6 +59,14 @@ namespace ORNG {
 
 		inline static void DrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index) {
 			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index);
+		}
+
+		static void DrawVAOLines(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines) {
+			Get().IDrawLines(vao, line_buffer, nb_lines);
+		}
+
+		static void DrawPoints(const std::vector<Point>& points) {
+			Get().IDrawPoints(points);
 		}
 
 		inline static ShaderLibrary& GetShaderLibrary() {
@@ -74,15 +91,15 @@ namespace ORNG {
 		unsigned int m_draw_call_amount = 0;
 
 		Renderer() = default;
-
-		void IDrawVAO_Elements(GLenum primitive_type, const VAO& vao);
-		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const VAO& vao, unsigned int instance_count);
+		void IDrawLines(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines);
+		void IDrawPoints(const std::vector<Point>& lines);
+		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
+		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);
 		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);
 		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index);
 		void IDrawUnitCube() const;
 		void IDrawQuad() const;
 		void IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count);
-
 
 		Quad* mp_quad = nullptr;
 		FramebufferLibrary m_framebuffer_library;

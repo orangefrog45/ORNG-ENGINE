@@ -17,7 +17,6 @@ layout(std140, binding = 0) buffer transforms {
 
 out vec3 vs_position;
 
-
 void main() {
 	vec4 world_pos = transform_ssbo.transforms[gl_InstanceID] * vec4(position, 1.0);
 	vs_position = vec3(world_pos);

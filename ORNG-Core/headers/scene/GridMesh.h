@@ -12,8 +12,7 @@ namespace ORNG {
 		float grid_width = 400.0f;
 	private:
 		glm::vec2 m_center = glm::vec2(0); // center position on XZ plane
-		VAO m_vao;
-		unsigned int m_ssbo_handle;
-
+		MeshVAO m_vao;
+		uint32_t m_ssbo_handle;
 	};
 }

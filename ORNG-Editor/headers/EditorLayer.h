@@ -2,6 +2,7 @@
 #include "EngineAPI.h"
 #include "../extern/imgui/imgui.h"
 #include "AssetManagerWindow.h"
+#include "scene/GridMesh.h"
 
 namespace physx {
 	class PxMaterial;
@@ -15,7 +16,6 @@ namespace ORNG {
 	class EditorLayer : public Layer {
 	public:
 		void Init();
-
 		enum EntityNodeEvent {
 
 			E_NONE = 0,
@@ -27,6 +27,13 @@ namespace ORNG {
 		void OnInit() override { Init(); };
 		void Update() override;
 		void OnRender() override { RenderDisplayWindow(); RenderUI(); };
+		void OnShutdown() override {
+			if (m_simulate_mode_active)
+				EndPlayScene();
+
+			mp_editor_camera = nullptr;
+			m_active_scene->UnloadScene();
+		}
 
 		// Sets up directory structure for a new project
 		bool GenerateProject(const std::string& project_name);
@@ -136,6 +143,7 @@ namespace ORNG {
 		Shader* mp_picking_shader = nullptr;
 		Shader* mp_grid_shader = nullptr;
 		Shader* mp_highlight_shader = nullptr;
+
 
 		Framebuffer* mp_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
 		Framebuffer* mp_picking_fb = nullptr;

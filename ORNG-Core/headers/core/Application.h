@@ -7,9 +7,6 @@ namespace ORNG {
 	{
 	public:
 		Application() = default;
-		~Application() {
-			Shutdown();
-		};
 
 		// Initializes all core engine modules and starts propagating events
 		void Init();

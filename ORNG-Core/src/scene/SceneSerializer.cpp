@@ -110,7 +110,8 @@ namespace ORNG {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Entity" << YAML::Value << entity.GetUUID();
 		out << YAML::Key << "Name" << YAML::Value << entity.name;
-		out << YAML::Key << "ParentID" << YAML::Value << (entity.GetParent() ? entity.GetParent()->GetUUID() : 0);
+		auto* p_parent = entity.GetScene()->GetEntity(entity.GetParent());
+		out << YAML::Key << "ParentID" << YAML::Value << (p_parent ? p_parent->GetUUID() : 0);
 
 		const auto* p_transform = entity.GetComponent<TransformComponent>();
 
@@ -211,6 +212,13 @@ namespace ORNG {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
 			out << YAML::Key << "ScriptPath" << YAML::Value << p_script_comp->script_filepath;
 			out << YAML::EndMap;
+		}
+
+		AudioComponent* p_audio_comp = entity.GetComponent<AudioComponent>();
+		if (p_audio_comp) {
+			out << YAML::Key << "AudioComp" << YAML::BeginMap;
+			out << YAML::EndMap;
+
 		}
 
 
@@ -350,7 +358,7 @@ namespace ORNG {
 			if (auto* p_prefab = dynamic_cast<Prefab*>(p_asset)) {
 				std::string prefab_name = p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1);
 				prefab_name = prefab_name.substr(0, prefab_name.find(".opfb"));
-				std::ranges::for_each(prefab_name, [](char& c) {if (c == ' ') c = '_'; });
+				std::ranges::for_each(prefab_name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 				fout << "inline static const std::string " << prefab_name << " = R\"(" << p_prefab->serialized_content << ")\"; \n";
 			}
 		}
@@ -360,7 +368,7 @@ namespace ORNG {
 		for (auto* p_asset : AssetManager::GetView<SoundAsset>()) {
 			std::string name = p_asset->filepath.substr(p_asset->filepath.rfind("\\") + 1);
 			name = name.substr(0, name.rfind("."));
-			std::ranges::for_each(name, [](char& c) {if (c == ' ' || c == '-') c = '_'; });
+			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "inline static const uint64_t " << name << " = " << p_asset->uuid() << "; \n";
 		}
 		fout << "};"; // namespace Sounds

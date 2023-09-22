@@ -2,6 +2,7 @@
 #define PHYSICSCOMPONENT_H
 
 #include "Component.h"
+#include "events/EventManager.h"
 
 namespace physx {
 	class PxRigidDynamic;
@@ -11,16 +12,23 @@ namespace physx {
 	class PxMaterial;
 	class PxScene;
 	class PxController;
+	class PxFixedJoint;
+	class PxActor;
+	class PxSphericalJoint;
 }
 
 namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
 
+
+
+
 	class PhysicsComponent : public Component {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		friend class SceneSerializer;
+		friend class FixedJointComponent;
 	public:
 		PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
@@ -63,6 +71,29 @@ namespace ORNG {
 		void Move(glm::vec3 disp, float minDist, float elapsedTime);
 	private:
 		physx::PxController* mp_controller = nullptr;
+	};
+
+	enum JointEventType {
+		CONNECT,
+		BREAK
+	};
+
+	struct FixedJointComponent : public Component {
+		friend class PhysicsSystem;
+		friend class EditorLayer;
+		FixedJointComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		void Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1) {
+					Events::ECS_Event<FixedJointComponent> joint_event;
+		joint_event.affected_components[0] = this;
+		joint_event.event_type = Events::ECS_EventType::COMP_UPDATED;
+		joint_event.sub_event_type = static_cast<uint8_t>(JointEventType::CONNECT);
+		joint_event.data_payload = std::make_pair(t_a0, t_a1);
+		Events::EventManager::DispatchEvent(joint_event);
+		}
+		void Break();
+
+	private:
+		physx::PxSphericalJoint* mp_joint = nullptr;
 	};
 
 }

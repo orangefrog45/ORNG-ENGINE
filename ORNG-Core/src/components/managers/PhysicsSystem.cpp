@@ -11,39 +11,40 @@
 namespace ORNG {
 	using namespace physx;
 	// Conversion from glm::vec3 to PxVec3
-	inline PxVec3 ToPxVec3(const glm::vec3& glmVec) {
-		return PxVec3(glmVec.x, glmVec.y, glmVec.z);
-	}
-
-	// Conversion from PxVec3 to glm::vec3
-	inline glm::vec3 ToGlmVec3(const PxVec3& pxVec) {
-		return glm::vec3(pxVec.x, pxVec.y, pxVec.z);
-	}
 
 
-	static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
+	inline static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
 
 
-	static void OnPhysComponentDestroy(entt::registry& registry, entt::entity entity) {
+	inline static void OnPhysComponentDestroy(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
 
-	static void OnCharacterControllerComponentAdd(entt::registry& registry, entt::entity entity) {
+	inline static void OnCharacterControllerComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<CharacterControllerComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
 
-	static void OnCharacterControllerComponentDestroy(entt::registry& registry, entt::entity entity) {
+	inline static void OnCharacterControllerComponentDestroy(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<CharacterControllerComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
+
+	inline static void OnFixedJointAdd(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<FixedJointComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+	}
+
+	inline static void OnFixedJointDestroy(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<FixedJointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+	}
+
+
 
 
 
 
 	PhysicsSystem::PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene) : mp_registry(p_registry), ComponentSystem(scene_uuid), mp_scene(p_scene) {
-
 	};
 
 
@@ -94,6 +95,9 @@ namespace ORNG {
 
 
 		mp_phys_scene = Physics::GetPhysics()->createScene(scene_desc);
+		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);
+		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
+		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 		mp_controller_manager = PxCreateControllerManager(*mp_phys_scene);
 		m_physics_materials.push_back(Physics::GetPhysics()->createMaterial(0.25f, 0.1f, 0.1f));
 		m_physics_materials[0]->acquireReference();
@@ -103,6 +107,9 @@ namespace ORNG {
 		mp_registry->on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
 		mp_registry->on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
 
+		mp_registry->on_construct<FixedJointComponent>().connect<&OnFixedJointAdd>();
+		mp_registry->on_destroy<FixedJointComponent>().connect<&OnFixedJointDestroy>();
+
 		mp_registry->on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
 		mp_registry->on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
 	}
@@ -110,6 +117,7 @@ namespace ORNG {
 
 	void PhysicsSystem::InitListeners() {
 		// Initialize event listeners
+		// 
 	// Physics listener
 		m_phys_listener.scene_id = GetSceneUUID();
 		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsComponent>& t_event) {
@@ -118,7 +126,7 @@ namespace ORNG {
 			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
 				InitComponent(t_event.affected_components[0]);
 				break;
-			case COMP_UPDATED:
+			case COMP_UPDATED: 
 				UpdateComponentState(t_event.affected_components[0]);
 				break;
 			case COMP_DELETED:
@@ -127,6 +135,25 @@ namespace ORNG {
 			};
 
 		};
+
+		// Joint listener
+		m_joint_listener.scene_id = GetSceneUUID();
+		m_joint_listener.OnEvent = [this](const Events::ECS_Event<FixedJointComponent>& t_event) {
+			switch (t_event.event_type) {
+				using enum Events::ECS_EventType;
+			case COMP_ADDED:
+				InitComponent(t_event.affected_components[0]);
+				break;
+			case COMP_UPDATED:
+				HandleComponentUpdate(t_event);
+				break;
+			case COMP_DELETED:
+				RemoveComponent(t_event.affected_components[0]);
+				break;
+			}
+		};
+
+
 		// Character controller listener
 		m_character_controller_listener.scene_id = GetSceneUUID();
 		m_character_controller_listener.OnEvent = [this](const Events::ECS_Event<CharacterControllerComponent>& t_event) {
@@ -149,16 +176,37 @@ namespace ORNG {
 		};
 
 		Events::EventManager::RegisterListener(m_phys_listener);
+		Events::EventManager::RegisterListener(m_joint_listener);
 		Events::EventManager::RegisterListener(m_character_controller_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 	}
 
+	void PhysicsSystem::InitComponent(FixedJointComponent* p_comp) {
 
+	}
 
-	void PhysicsSystem::DeinitListeners() {
-		Events::EventManager::DeregisterListener(m_phys_listener.GetRegisterID());
-		Events::EventManager::DeregisterListener(m_character_controller_listener.GetRegisterID());
-		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
+	void PhysicsSystem::RemoveComponent(FixedJointComponent* p_comp) {
+		if (p_comp->mp_joint)
+			p_comp->mp_joint->release();
+	}
+
+	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event) {
+		switch (t_event.sub_event_type) {
+			case JointEventType::CONNECT:
+				std::pair<PhysicsComponent*, PhysicsComponent*> comps = std::any_cast<std::pair<PhysicsComponent*, PhysicsComponent*>>(t_event.data_payload);
+
+				auto middle = (comps.first->p_rigid_actor->getGlobalPose().p + comps.second->p_rigid_actor->getGlobalPose().p) * 0.5f;
+
+				PxTransform m0(middle - comps.first->p_rigid_actor->getGlobalPose().p);
+				PxTransform m1(middle - comps.second->p_rigid_actor->getGlobalPose().p);
+
+				auto* p_phys = Physics::GetPhysics();
+				t_event.affected_components[0]->mp_joint = PxSphericalJointCreate(*p_phys, comps.first->p_rigid_actor, m0, comps.second->p_rigid_actor, m1);
+				t_event.affected_components[0]->mp_joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
+				PxJointLimitCone c{ 3.14, 3.14 };
+				t_event.affected_components[0]->mp_joint->setLimitCone(c);
+				break;
+		}
 	}
 
 
@@ -184,9 +232,16 @@ namespace ORNG {
 		m_physics_materials.clear();
 
 		mp_controller_manager->release();
-		mp_phys_scene->release();
 		mp_aabb_manager->release();
+		mp_phys_scene->release();
 		PX_RELEASE(mp_broadphase);
+	}
+
+	void PhysicsSystem::DeinitListeners() {
+		Events::EventManager::DeregisterListener(m_phys_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_character_controller_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_joint_listener.GetRegisterID());
 	}
 
 
@@ -237,7 +292,7 @@ namespace ORNG {
 
 
 		PxTolerancesScale scale(1.f);
-		const VAO& vao = p_mesh_asset->GetVAO();
+		const MeshVAO& vao = p_mesh_asset->GetVAO();
 		PxCookingParams params(scale);
 		//params.buildGPUData = true;
 		// disable mesh cleaning - perform mesh validation on development configurations
@@ -319,8 +374,10 @@ namespace ORNG {
 			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
 		}
 
+
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
+		p_comp->p_rigid_actor->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 	}
 
 
@@ -328,7 +385,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::InitComponent(PhysicsComponent* p_comp) {
-
 
 		auto* p_meshc = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
@@ -357,6 +413,7 @@ namespace ORNG {
 		}
 
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
+		p_comp->p_rigid_actor->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 
 		// Store in entity lookup map for fast retrieval 
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();

@@ -114,7 +114,6 @@ namespace ORNG {
 		PointlightSystem m_pointlight_system;
 		SpotlightSystem m_spotlight_system;
 
-
 		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };
 		unsigned int m_num_shadow_cascades = 3;
 		unsigned int m_shadow_map_resolution = 4096;

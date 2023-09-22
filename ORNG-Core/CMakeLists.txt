@@ -34,7 +34,7 @@ src/rendering/Quad.cpp
 src/rendering/Renderer.cpp
 src/rendering/SceneRenderer.cpp
 src/rendering/Textures.cpp
-src/rendering/VAO.cpp
+"src/rendering/VAO.cpp"
 src/scene/GridMesh.cpp
 src/scene/Scene.cpp
 src/scene/SceneEntity.cpp
@@ -63,7 +63,7 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp" "src/components/AudioComponent.cpp" "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
- "src/scene/SceneManager.cpp" "src/util/util.cpp" )
+ "src/scene/SceneManager.cpp" "src/util/util.cpp"  )
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}

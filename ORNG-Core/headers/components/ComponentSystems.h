@@ -143,6 +143,7 @@ namespace ORNG {
 
 
 	class PhysicsSystem : public ComponentSystem {
+		friend class EditorLayer;
 	public:
 		PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene);
 		virtual ~PhysicsSystem() = default;
@@ -166,9 +167,12 @@ namespace ORNG {
 	private:
 		void InitComponent(PhysicsComponent* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
+		void InitComponent(FixedJointComponent* p_comp);
+		void HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event);
 		void UpdateComponentState(PhysicsComponent* p_comp);
 		void RemoveComponent(PhysicsComponent* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
+		void RemoveComponent(FixedJointComponent* p_comp);
 
 		void InitListeners();
 		void DeinitListeners();
@@ -180,6 +184,7 @@ namespace ORNG {
 		Scene* mp_scene = nullptr;
 		entt::registry* mp_registry = nullptr;
 		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
+		Events::ECS_EventListener<FixedJointComponent> m_joint_listener;
 		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 

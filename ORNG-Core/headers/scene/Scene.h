@@ -1,7 +1,6 @@
 #pragma once
 #include "scene/Skybox.h"
 #include "terrain/Terrain.h"
-#include "scene/GridMesh.h"
 #include "components/ComponentSystems.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
@@ -70,6 +69,10 @@ namespace ORNG {
 
 		void LoadScene(const std::string& filepath);
 		void UnloadScene();
+
+		bool IsLoaded() {
+			return m_is_loaded;
+		}
 
 		UUID uuid;
 	private:

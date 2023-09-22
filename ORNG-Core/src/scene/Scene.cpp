@@ -151,9 +151,13 @@ namespace ORNG {
 
 	void Scene::OnStart() {
 		SetScriptState();
-
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
+			try {
 			script.p_symbols->OnCreate(GetEntity(entity));
+			}
+			catch (std::exception e) {
+				ORNG_CORE_ERROR("Script execution error for entity '{0}' : '{1}'", GetEntity(entity)->name, e.what());
+			}
 		}
 	}
 
@@ -184,8 +188,10 @@ namespace ORNG {
 
 
 	void Scene::UnloadScene() {
+		if (!m_is_loaded) {
+			return;
+		}
 		ORNG_CORE_INFO("Unloading scene...");
-		m_is_loaded = false;
 
 
 		while (!m_entities.empty()) {
@@ -202,13 +208,14 @@ namespace ORNG {
 
 		m_entities.clear();
 		ORNG_CORE_INFO("Scene unloaded");
+		m_is_loaded = false;
 	}
 
 
 
 	SceneEntity& Scene::CreateEntity(const std::string& name, uint64_t uuid) {
 		auto reg_ent = m_registry.create();
-		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent) : new SceneEntity(uuid, reg_ent, this);
+		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent, &m_registry, this->uuid()) : new SceneEntity(uuid, reg_ent, this, &m_registry, this->uuid());
 		ent->name = name;
 		m_entities.push_back(ent);
 

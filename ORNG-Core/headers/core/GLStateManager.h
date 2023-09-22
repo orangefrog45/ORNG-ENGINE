@@ -13,9 +13,6 @@ namespace ORNG {
 			Get().IBindVAO(vao);
 		}
 
-		inline static void BindVAO(const VAO& vao) {
-			Get().IBindVAO(vao.m_vao_handle);
-		}
 
 		inline static void BindSSBO(unsigned int ssbo, unsigned int binding_index) {
 			Get().IBindSSBO(ssbo, binding_index);

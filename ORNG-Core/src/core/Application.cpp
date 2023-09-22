@@ -40,6 +40,8 @@ namespace ORNG {
 	}
 
 	void Application::Shutdown() {
+		layer_stack.Shutdown();
+		Physics::Shutdown();
 		//ImGui::DestroyContext();
 	}
 
@@ -100,6 +102,7 @@ namespace ORNG {
 		}
 
 		// Cleanup
+		Shutdown();
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();

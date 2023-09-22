@@ -45,7 +45,7 @@ namespace ORNG {
 
 		const AABB& GetAABB() const { return m_aabb; }
 
-		const VAO& GetVAO() const { return m_vao; }
+		const MeshVAO& GetVAO() const { return m_vao; }
 
 
 		template<typename S>
@@ -79,7 +79,7 @@ namespace ORNG {
 
 		void PopulateBuffers();
 
-		VAO m_vao;
+		MeshVAO m_vao;
 
 		AABB m_aabb;
 

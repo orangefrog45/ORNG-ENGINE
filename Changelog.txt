@@ -1,5 +1,15 @@
+22/9/23:
+-In-engine rendering of physx debug graphics
+-Rewrite of VAO's and buffers, more generalized
+-Physx visual debugger connections established
+-Start on physx joint components
+-Switched from uint_8t* to std::any for event data payloads
+
+
 19/9/23:
--Audio "fixes"
+-Fullscreen scene panel during simulation mode (done for simplifying mouse transformations etc with scripts)
+-Fixed script event queue not being cleared each frame
+-Audio fixes
 
 17/9/23:
 -Exposed raycasting to scripts

@@ -22,7 +22,7 @@ namespace ORNG {
 			Events::ECS_Event<AudioComponent> e_event;
 			e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
 			e_event.sub_event_type = (uint32_t)AudioEventType::PLAY;
-			e_event.data_payload = reinterpret_cast<uint8_t*>(&id);
+			e_event.data_payload = id;
 			e_event.affected_components[0] = this;
 
 			Events::EventManager::DispatchEvent(e_event);

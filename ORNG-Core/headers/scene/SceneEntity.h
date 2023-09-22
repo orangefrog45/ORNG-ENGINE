@@ -4,7 +4,9 @@
 #define __cpp_lib_concepts
 #include <concepts>
 
+#ifndef ORNG_SCRIPT_ENV
 #include "Scene.h"
+#endif
 #include "util/UUID.h"
 #include "util/util.h"
 #include "scripting/SceneScriptInterface.h"
@@ -17,8 +19,8 @@ namespace ORNG {
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle) : mp_scene(scene), m_entt_handle(entt_handle), m_scene_uuid(scene->uuid()), mp_registry(&scene->m_registry) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene->uuid()), mp_registry(&scene->m_registry) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
+		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
 
 
 		~SceneEntity() {
@@ -61,8 +63,8 @@ namespace ORNG {
 			mp_registry->remove<T>(m_entt_handle);
 		}
 
-		SceneEntity* GetParent() {
-			return mp_scene->GetEntity(GetComponent<RelationshipComponent>()->parent);
+		entt::entity GetParent() {
+			return GetComponent<RelationshipComponent>()->parent;
 		}
 
 		entt::registry* GetRegistry() {
@@ -87,7 +89,7 @@ namespace ORNG {
 
 
 		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
-		uint64_t GetSceneUUID() const { return m_scene_uuid; };
+		//uint64_t GetSceneUUID() const { return m_scene_uuid; };
 		entt::entity GetEnttHandle() const { return m_entt_handle; };
 
 		std::string name = "Entity";

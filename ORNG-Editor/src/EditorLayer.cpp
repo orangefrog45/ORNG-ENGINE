@@ -15,6 +15,7 @@
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
 #include "util/ExtraUI.h"
+#include <glm/glm/gtx/quaternion.hpp>
 
 
 
@@ -38,6 +39,8 @@ namespace ORNG {
 		mp_grid_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GridVS.glsl");
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
+
+
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
 		mp_quad_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
@@ -106,7 +109,7 @@ namespace ORNG {
 			GenerateProject("base-project");
 		}
 
-		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
+		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
 		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
 		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 		mp_editor_camera->AddComponent<CharacterControllerComponent>();
@@ -201,6 +204,11 @@ namespace ORNG {
 
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
+		if (m_simulate_mode_active)
+			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = (float)Window::GetWidth() / (float)Window::GetHeight();
+		else
+			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_scene_display_rect.x / m_scene_display_rect.y;
+
 		if (m_simulate_mode_active && !m_simulate_mode_paused)
 			m_active_scene->Update(ts);
 		else {
@@ -421,7 +429,42 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderToolbar() {
+
+	void EditorLayer::RenderDisplayWindow() {
+		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		GL_StateManager::DefaultClearBits();
+
+		m_asset_manager_window.OnMainRender();
+
+		if (ImGui::IsMouseDoubleClicked(0)) {
+			DoPickingPass();
+		}
+
+
+		SceneRenderer::SceneRenderingSettings settings;
+		SceneRenderer::SetActiveScene(&*m_active_scene);
+		settings.p_output_tex = &*mp_scene_display_texture;
+		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+
+		mp_editor_pass_fb->Bind();
+		DoSelectedEntityHighlightPass();
+		RenderGrid();
+		Physics::RenderDebug(m_active_scene->m_physics_system.mp_phys_scene->getRenderBuffer(), &*mp_scene_display_texture, &Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"));
+
+
+		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		if (m_simulate_mode_active) {
+			mp_quad_shader->ActivateProgram();
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+			Renderer::DrawQuad();
+		}
+
+	}
+
+
+
+
+		void EditorLayer::RenderToolbar() {
 		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
 
@@ -528,35 +571,6 @@ namespace ORNG {
 		ImGui::PopStyleVar(); // window rounding
 	}
 
-	void EditorLayer::RenderDisplayWindow() {
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		GL_StateManager::DefaultClearBits();
-
-		m_asset_manager_window.OnMainRender();
-
-		if (ImGui::IsMouseDoubleClicked(0)) {
-			DoPickingPass();
-		}
-
-
-		SceneRenderer::SceneRenderingSettings settings;
-		SceneRenderer::SetActiveScene(&*m_active_scene);
-		settings.p_output_tex = &*mp_scene_display_texture;
-		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
-
-		mp_editor_pass_fb->Bind();
-		DoSelectedEntityHighlightPass();
-		RenderGrid();
-
-
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		if (m_simulate_mode_active) {
-			mp_quad_shader->ActivateProgram();
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
-			Renderer::DrawQuad();
-		}
-
-	}
 
 
 
@@ -707,7 +721,7 @@ namespace ORNG {
 			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml");
 
 
-			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create());
+			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
@@ -819,6 +833,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
+			glDisable(GL_DEPTH_TEST);
 		for (auto id : m_selected_entity_ids) {
 			auto* current_entity = m_active_scene->GetEntity(id);
 
@@ -831,10 +846,9 @@ namespace ORNG {
 			mp_highlight_shader->ActivateProgram();
 
 			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
-			glDisable(GL_DEPTH_TEST);
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
-			glEnable(GL_DEPTH_TEST);
 		}
+			glEnable(GL_DEPTH_TEST);
 
 	}
 
@@ -1091,7 +1105,8 @@ namespace ORNG {
 			}
 			else if (active_event & EntityNodeEvent::E_DELETE) {
 				for (auto id : m_selected_entity_ids) {
-					m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
+					if (auto* p_entity = m_active_scene->GetEntity(id))
+					m_active_scene->DeleteEntity(p_entity);
 				}
 			}
 

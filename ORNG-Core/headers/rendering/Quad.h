@@ -16,6 +16,6 @@ namespace ORNG {
 
 	private:
 		TransformComponent2D m_world_transform;
-		VAO m_vao;
+		MeshVAO m_vao;
 	};
 }

@@ -230,6 +230,10 @@ namespace ORNG {
 			#include "../res/shaders/BloomThresholdCS.glsl"
 		};
 
+		inline static const char* ColorFS = {
+			#include "../res/shaders/ColorFS.glsl"
+		};
+
 		inline static const char* BloomUpsampleCS = {
 			#include "../res/shaders/BloomUpsampleCS.glsl"
 		};

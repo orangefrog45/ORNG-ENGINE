@@ -21,7 +21,6 @@ namespace ORNG {
 	void AudioSystem::OnLoad() {
 		const char* name = std::to_string(GetSceneUUID()).c_str();
 		AudioEngine::GetSystem()->createChannelGroup(name, &mp_channel_group);
-
 		m_audio_listener.scene_id = GetSceneUUID();
 		m_audio_listener.OnEvent = [this](const Events::ECS_Event<AudioComponent>& e_event) {
 			using enum Events::ECS_EventType;
@@ -49,7 +48,10 @@ namespace ORNG {
 
 
 	void AudioSystem::OnAudioDeleteEvent(const Events::ECS_Event<AudioComponent>& e_event) {
-		e_event.affected_components[0]->mp_channel->stop();
+		if (auto result = e_event.affected_components[0]->mp_channel->stop(); result != FMOD_OK) {
+			ORNG_CORE_ERROR("Fmod channel stop error '{0}'", FMOD_ErrorString(result));
+		}
+
 		delete e_event.affected_components[0]->mp_fmod_pos;
 		delete e_event.affected_components[0]->mp_fmod_vel;
 
@@ -95,9 +97,6 @@ namespace ORNG {
 		auto pos = e_event.affected_components[0]->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 		e_event.affected_components[0]->mp_fmod_pos = new FMOD_VECTOR{ pos.x, pos.y, pos.z };
 		e_event.affected_components[0]->mp_fmod_vel = new FMOD_VECTOR{ 0, 0, 0 };
-		e_event.affected_components[0]->mp_channel->set3DAttributes(e_event.affected_components[0]->mp_fmod_pos, e_event.affected_components[0]->mp_fmod_vel);
-
-
 	}
 
 	void AudioSystem::OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event) {
@@ -105,13 +104,23 @@ namespace ORNG {
 			using enum AudioComponent::AudioEventType;
 		case (uint32_t)PLAY:
 		{
-			uint64_t uuid = *reinterpret_cast<uint64_t*>(e_event.data_payload);
+			ORNG_CORE_CRITICAL("PLAY EVENT");
+			uint64_t uuid = std::any_cast<uint64_t>(e_event.data_payload);
 			auto* p_asset = AssetManager::GetAsset<SoundAsset>(uuid);
-			if (!p_asset)
+
+			bool playing = false;
+			if (e_event.affected_components[0]->mp_channel)
+				e_event.affected_components[0]->mp_channel->isPlaying(&playing);
+
+			if (!p_asset || playing)
 				return;
 
-			if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, false, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
+			if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
 				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", p_asset->filepath, FMOD_ErrorString(result));
+
+			e_event.affected_components[0]->mp_channel->set3DAttributes(e_event.affected_components[0]->mp_fmod_pos, e_event.affected_components[0]->mp_fmod_vel);
+			e_event.affected_components[0]->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF);
+			e_event.affected_components[0]->mp_channel->setPaused(false);
 			break;
 		}
 		case (uint32_t)PAUSE:

@@ -3,7 +3,7 @@
 * All of these includes the script will still compile without (including the core engine headers instead of these copies), however they are needed for correct intellisense
 */
 #include <chrono>
-#include <cstdint>
+#include <any>
 
 // SAFE = fine to use in scripts
 // UNSAFE = should only be used in here
@@ -13,8 +13,8 @@
 #include "./glm/gtx/transform.hpp"
 //
 
-// Wont be included in intellisense however will still be able to be accessed - if scripts try to access these except in here they will break.
 // UNSAFE
+// Wont be included in intellisense however will still be able to be accessed - if scripts try to access these except in here they will break.
 #include "core/FrameTiming.h"
 #include "events/EventManager.h"
 #include "core/Input.h"

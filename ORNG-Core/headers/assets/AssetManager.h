@@ -59,7 +59,7 @@ namespace bitsery {
 		s.value4b(o.num_indices);
 	}
 	template<typename S>
-	void serialize(S& s, VAO& o) {
+	void serialize(S& s, MeshVAO& o) {
 		s.object(o.vertex_data);
 	}
 }
@@ -85,11 +85,18 @@ namespace ORNG {
 	};
 
 	struct SoundAsset : public Asset {
-		// Sound will be provided by AssetManager
-		SoundAsset(const std::string& t_filepath);
+		SoundAsset(const std::string& t_filepath) : Asset(t_filepath) {};
 		~SoundAsset();
-		std::string filepath;
+
 		FMOD::Sound* p_sound = nullptr;
+
+		template<typename S>
+		void serialize(S& s) {
+			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
+			s.object(uuid);
+		}
+
+		void CreateSound();
 	};
 
 	class AssetManager {

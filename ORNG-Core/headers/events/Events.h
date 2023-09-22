@@ -97,7 +97,7 @@ namespace ORNG::Events {
 		uint32_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
 
 		std::array<T*, 2> affected_components = { nullptr, nullptr };
-		uint8_t* data_payload = nullptr;
+		std::any data_payload;
 	};
 
 	template <std::derived_from<Event> T>
