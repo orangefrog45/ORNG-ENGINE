@@ -61,8 +61,8 @@ namespace ORNG {
 			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index);
 		}
 
-		static void DrawVAOLines(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines) {
-			Get().IDrawLines(vao, line_buffer, nb_lines);
+		static void DrawVAOArrays(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines, GLenum primitive_type) {
+			Get().IDrawVAOArrays(vao, line_buffer, nb_lines, primitive_type);
 		}
 
 		static void DrawPoints(const std::vector<Point>& points) {
@@ -91,7 +91,7 @@ namespace ORNG {
 		unsigned int m_draw_call_amount = 0;
 
 		Renderer() = default;
-		void IDrawLines(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines);
+		void IDrawVAOArrays(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines,  GLenum primitive_type);
 		void IDrawPoints(const std::vector<Point>& lines);
 		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
 		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);

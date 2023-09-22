@@ -83,11 +83,26 @@ namespace ORNG {
 		p_debug_render_fb->Bind();
 		p_debug_render_fb->BindTexture2D(p_output_tex->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		p_debug_render_fb->BindTexture2D(p_input_depth->GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
-		auto* p_position_buf = m_physx_data_vao.GetBuffer<VertexBufferGL<float>>(0);
-		p_position_buf->data.clear();
-		auto* p_col_buf = m_physx_data_vao.GetBuffer<VertexBufferGL<float>>(1);
-		p_col_buf->data.clear();
 		p_debug_shader->SetUniform("transform", glm::mat4(1));
+
+
+
+		auto* p_position_buf = m_physx_data_vao.GetBuffer<VertexBufferGL<float>>(0);
+		auto* p_col_buf = m_physx_data_vao.GetBuffer<VertexBufferGL<float>>(1);
+		p_position_buf->data.clear();
+		p_col_buf->data.clear();
+
+			for (int i = 0; i < buf.getNbPoints(); i++) {
+			auto& point = buf.getPoints()[i];
+			VEC_PUSH_VEC3(p_position_buf->data, point.pos);
+			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(point.color));
+		}
+		m_physx_data_vao.FillBuffers();
+		Renderer::DrawVAOArrays(m_physx_data_vao, p_position_buf, buf.getNbPoints(), GL_POINTS);
+
+
+		p_position_buf->data.clear();
+		p_col_buf->data.clear();
 		for (int i = 0; i < buf.getNbLines(); i++) {
 			auto& phys_line = buf.getLines()[i];
 			VEC_PUSH_VEC3(p_position_buf->data, phys_line.pos0);
@@ -96,8 +111,22 @@ namespace ORNG {
 			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(phys_line.color1));
 		}
 		m_physx_data_vao.FillBuffers();
+		Renderer::DrawVAOArrays(m_physx_data_vao, p_position_buf, buf.getNbLines(), GL_LINES);
 
-		Renderer::DrawVAOLines(m_physx_data_vao, p_position_buf, buf.getNbLines());
+
+		p_position_buf->data.clear();
+		p_col_buf->data.clear();
+		for (int i = 0; i < buf.getNbTriangles(); i++) {
+			auto& phys_tri = buf.getTriangles()[i];
+			VEC_PUSH_VEC3(p_position_buf->data, phys_tri.pos0);
+			VEC_PUSH_VEC3(p_position_buf->data, phys_tri.pos1);
+			VEC_PUSH_VEC3(p_position_buf->data, phys_tri.pos2);
+			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(phys_tri.color0));
+			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(phys_tri.color1));
+			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(phys_tri.color2));
+		}
+		m_physx_data_vao.FillBuffers();
+		Renderer::DrawVAOArrays(m_physx_data_vao, p_position_buf, buf.getNbTriangles(), GL_TRIANGLES);
 	}
 
 	void Physics::InitDebugRenderPass() {

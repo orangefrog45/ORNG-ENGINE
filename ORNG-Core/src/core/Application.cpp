@@ -90,7 +90,6 @@ namespace ORNG {
 		{
 			// Update
 			glfwPollEvents();
-			Events::EventManager::ProcessQueuedEvents();
 			Events::EventManager::DispatchEvent(update_event);
 			Window::Update();
 

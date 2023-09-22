@@ -2,6 +2,7 @@
 -In-engine rendering of physx debug graphics
 -Rewrite of VAO's and buffers, more generalized
 -Physx visual debugger connections established
+-Removed event queueing system (misunderstood dll execution environments)
 -Start on physx joint components
 -Switched from uint_8t* to std::any for event data payloads
 

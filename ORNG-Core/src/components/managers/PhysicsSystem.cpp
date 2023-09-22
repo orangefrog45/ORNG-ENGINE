@@ -201,10 +201,8 @@ namespace ORNG {
 				PxTransform m1(middle - comps.second->p_rigid_actor->getGlobalPose().p);
 
 				auto* p_phys = Physics::GetPhysics();
-				t_event.affected_components[0]->mp_joint = PxSphericalJointCreate(*p_phys, comps.first->p_rigid_actor, m0, comps.second->p_rigid_actor, m1);
+				t_event.affected_components[0]->mp_joint = PxFixedJointCreate(*p_phys, comps.first->p_rigid_actor, m0, comps.second->p_rigid_actor, m1);
 				t_event.affected_components[0]->mp_joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
-				PxJointLimitCone c{ 3.14, 3.14 };
-				t_event.affected_components[0]->mp_joint->setLimitCone(c);
 				break;
 		}
 	}

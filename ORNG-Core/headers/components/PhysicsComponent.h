@@ -93,7 +93,7 @@ namespace ORNG {
 		void Break();
 
 	private:
-		physx::PxSphericalJoint* mp_joint = nullptr;
+		physx::PxFixedJoint* mp_joint = nullptr;
 	};
 
 }
