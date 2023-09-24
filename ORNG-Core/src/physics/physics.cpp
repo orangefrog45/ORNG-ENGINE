@@ -92,7 +92,7 @@ namespace ORNG {
 		p_position_buf->data.clear();
 		p_col_buf->data.clear();
 
-			for (int i = 0; i < buf.getNbPoints(); i++) {
+		for (int i = 0; i < buf.getNbPoints(); i++) {
 			auto& point = buf.getPoints()[i];
 			VEC_PUSH_VEC3(p_position_buf->data, point.pos);
 			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(point.color));

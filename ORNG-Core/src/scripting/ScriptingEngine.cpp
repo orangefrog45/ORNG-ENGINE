@@ -91,11 +91,11 @@ namespace ORNG {
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
 		std::string file_dir = filepath.substr(0, filepath.find_last_of("\\") + 1);
 		std::string dll_path = GetDllPathFromScriptCpp(filepath);
-
+		std::string relative_path = ".\\" + filepath.substr(filepath.rfind("res\\scripts"));
 
 		if (!std::filesystem::exists("res\\scripts\\" + filename)) {
 			ORNG_CORE_ERROR("Script file not found, ensure it is in the res/scripts path of your project");
-			return ScriptSymbols(filepath);
+			return ScriptSymbols(relative_path);
 		}
 
 		std::ofstream bat_stream("res/scripts/gen_scripts.bat");
@@ -105,21 +105,21 @@ namespace ORNG {
 		// Run bat file
 		int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
 		if (dev_env_result != 0) {
-			ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", filepath, dev_env_result);
-			return ScriptSymbols(filepath);
+			ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
+			return ScriptSymbols(relative_path);
 		}
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
 		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
 			ORNG_CORE_ERROR("Script DLL failed to load or not found at res/scripts/bin/'{0}'", filename_no_ext + ".dll");
-			return ScriptSymbols(filepath);
+			return ScriptSymbols(relative_path);
 		}
 
 
 		// Keep record of loaded DLL's
-		sm_loaded_script_dll_handles[filepath] = script_dll;
+		sm_loaded_script_dll_handles[relative_path] = script_dll;
 
-		ScriptSymbols symbols{ filepath };
+		ScriptSymbols symbols{ relative_path };
 
 
 		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));

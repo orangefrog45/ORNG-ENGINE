@@ -1,3 +1,9 @@
+24/9/23:
+-Made exiting simulation mode in the editor much faster (was reloading the env map each time previously)
+-Fixed large texture memory leak not freeing stbi data (forgot to correct changes made ages ago), this has fixed a lot of bugs I didn't understand (was just running out of memory)
+-Fixed some bugs with filepath serialization and absolute/relative issues
+-Fixed VAO memory leak
+
 22/9/23:
 -In-engine rendering of physx debug graphics
 -Rewrite of VAO's and buffers, more generalized

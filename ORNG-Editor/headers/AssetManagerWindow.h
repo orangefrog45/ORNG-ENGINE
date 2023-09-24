@@ -26,6 +26,11 @@ namespace ORNG {
 		void OnMainRender();
 		void OnRenderUI();
 		void Init();
+
+		void OnShutdown() {
+			mp_preview_scene = nullptr;
+		}
+
 		void SelectMaterial(Material* p_material) {
 			mp_selected_material = p_material;
 		}

@@ -60,7 +60,7 @@ namespace ORNG {
 			if (!HasComponent<T>())
 				return;
 
-			mp_registry->remove<T>(m_entt_handle);
+			mp_registry->erase<T>(m_entt_handle);
 		}
 
 		entt::entity GetParent() {

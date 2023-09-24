@@ -53,19 +53,7 @@ namespace ORNG {
 			if (tex.second.is_shared)
 				continue;
 
-
-			switch (tex.second.p_texture->m_texture_target) {
-
-			case GL_TEXTURE_2D:
-				delete static_cast<Texture2D*>(tex.second.p_texture);
-				break;
-			case GL_TEXTURE_2D_ARRAY:
-				delete static_cast<Texture2DArray*>(tex.second.p_texture);
-				break;
-			case GL_TEXTURE_CUBE_MAP:
-				delete static_cast<TextureCubemap*>(tex.second.p_texture);
-				break;
-			}
+			delete tex.second.p_texture;
 		}
 
 		ORNG_CORE_INFO("Framebuffer '{0}' deleted", m_name);

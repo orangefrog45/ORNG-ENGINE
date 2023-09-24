@@ -140,18 +140,21 @@ namespace ORNG {
 
 
 
-
 	void EditorLayer::BeginPlayScene() {
 		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
 		m_simulate_mode_active = true;
+
+		// Set to fullscreen so mouse coordinate and gui operations in scripts work correctly as they would in a runtime layer
+		m_fullscreen_scene_display = true;
 		m_active_scene->OnStart();
 	}
 
 	void EditorLayer::EndPlayScene() {
 		mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 		m_active_scene->ClearAllEntities();
-		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization, false);
+		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization,false, false);
 		m_simulate_mode_active = false;
+		m_fullscreen_scene_display = false;
 	}
 
 
@@ -202,8 +205,11 @@ namespace ORNG {
 		if (Window::IsKeyDown('K'))
 			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
+
+
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
+
 		if (m_simulate_mode_active)
 			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = (float)Window::GetWidth() / (float)Window::GetHeight();
 		else
@@ -220,8 +226,14 @@ namespace ORNG {
 
 		static float cooldown = 0;
 		cooldown -= glm::min(cooldown, ts);
-		if (cooldown > 10)
+		if (cooldown > 1)
 			return;
+
+		// Show/hide ui in simulation mode
+		if (Window::IsKeyDown(GLFW_KEY_ESCAPE) && m_fullscreen_scene_display) {
+			cooldown += 1000;
+			m_render_ui = !m_render_ui;
+		}
 
 		// Duplicate entity keybind
 		if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
@@ -306,7 +318,7 @@ namespace ORNG {
 	}
 
 	void EditorLayer::RenderSceneDisplayPanel() {
-		
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, toolbar_height)));
@@ -367,15 +379,15 @@ namespace ORNG {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		if (m_simulate_mode_active) {
+		if (m_simulate_mode_active && !m_render_ui) {
 			RenderToolbar();
 			goto exit;
 		}
 
-		RenderErrorMessages();
 		RenderToolbar();
 		m_asset_manager_window.OnRenderUI();
-		RenderSceneDisplayPanel();
+		if (!m_simulate_mode_active)
+			RenderSceneDisplayPanel();
 
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
@@ -411,7 +423,7 @@ namespace ORNG {
 
 		ImGui::PopStyleVar(); // window border size
 		ImGui::PopStyleVar(); // window padding
-		exit:
+	exit:
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -464,7 +476,7 @@ namespace ORNG {
 
 
 
-		void EditorLayer::RenderToolbar() {
+	void EditorLayer::RenderToolbar() {
 		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
 
@@ -718,7 +730,7 @@ namespace ORNG {
 			//}
 			AssetManager::LoadAssetsFromProjectPath(m_current_project_directory);
 			m_active_scene->LoadScene(m_current_project_directory + "\\scene.yml");
-			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml");
+			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml", true);
 
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
@@ -811,11 +823,15 @@ namespace ORNG {
 		}
 
 		glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
-		// Transform mouse coordinates to full window space for the proper texture coordinates
-		mouse_coords.x -= 400;
-		mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - 850));
-		mouse_coords.y -= toolbar_height;
-		mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
+
+		if (!m_fullscreen_scene_display) {
+			// Transform mouse coordinates to full window space for the proper texture coordinates
+			mouse_coords.x -= 400;
+			mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - 850));
+			mouse_coords.y -= toolbar_height;
+			mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
+		}
+
 		uint32_t* pixels = new uint32_t[2];
 		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
 		uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
@@ -833,7 +849,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
-			glDisable(GL_DEPTH_TEST);
+		glDisable(GL_DEPTH_TEST);
 		for (auto id : m_selected_entity_ids) {
 			auto* current_entity = m_active_scene->GetEntity(id);
 
@@ -848,7 +864,7 @@ namespace ORNG {
 			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
 		}
-			glEnable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST);
 
 	}
 
@@ -1106,7 +1122,7 @@ namespace ORNG {
 			else if (active_event & EntityNodeEvent::E_DELETE) {
 				for (auto id : m_selected_entity_ids) {
 					if (auto* p_entity = m_active_scene->GetEntity(id))
-					m_active_scene->DeleteEntity(p_entity);
+						m_active_scene->DeleteEntity(p_entity);
 				}
 			}
 
@@ -1419,7 +1435,7 @@ namespace ORNG {
 
 		glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
-		 glm::mat4 delta_matrix;
+		glm::mat4 delta_matrix;
 		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
@@ -1679,48 +1695,6 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderErrorMessages() {
-		ImVec2 window_size{ 750, 500 };
-		ImGui::SetNextWindowSize(window_size);
-		ImGui::SetNextWindowPos(ImVec2((Window::GetWidth() - window_size.x) / 2.f, (Window::GetHeight() - window_size.y) / 2.f));
-		for (int i = m_error_log_stack.size() - 1; i >= 0; i--) {
-			ImGui::PushID(&m_error_log_stack[i]);
 
-			if (ImGui::Begin("Error window")) {
-
-				ImGui::PushFont(mp_large_font);
-				ImGui::SeparatorText("Error");
-				ImGui::SameLine(ImGui::GetContentRegionAvail().x - 50);
-
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8, 0, 0, 1));
-				if (ImGui::IsWindowHovered && ImGui::IsMouseDoubleClicked(1) || ImGui::Button("X")) {
-					m_error_log_stack.erase(m_error_log_stack.begin() + i);
-					ImGui::PopFont();
-					ImGui::PopStyleColor();
-					ImGui::End();
-					ImGui::PopID();
-					continue;
-				}
-				ImGui::PopStyleColor();
-
-				ImGui::PopFont();
-				ImGui::SeparatorText("Recent logs");
-
-				for (int y = m_error_log_stack[i].size() - 1; y >= 0; y--) {
-					ImGui::Text(m_error_log_stack[i][y].c_str());
-				}
-
-			}
-
-			ImGui::End();
-			ImGui::PopID();
-		}
-
-	}
-
-	void EditorLayer::GenerateErrorMessage(const std::string& error_str) {
-		auto& str_vec = m_error_log_stack.emplace_back(Log::GetLastLogs());
-		str_vec.push_back(error_str);
-	}
 
 }

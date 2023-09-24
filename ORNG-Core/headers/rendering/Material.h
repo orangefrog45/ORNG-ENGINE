@@ -7,8 +7,17 @@ namespace ORNG {
 	struct Material : public Asset {
 		friend class Scene;
 		explicit Material(Texture2D* p_base_color_tex) : Asset(""), base_color_texture(p_base_color_tex) {};
-		Material() : Asset("") {};
-		explicit Material(uint64_t t_uuid) : Asset("") { uuid = UUID(t_uuid); };
+
+		// New material wont have a path until saved
+		Material() : Asset("UNSAVED_PATH") {};
+
+		// If being deserialized, provide filepath
+		explicit Material(const std::string& filepath) : Asset(filepath) {};
+
+		// Set ID explicitly, this is only to be used in rare scenarios (e.g the base replacement material in-engine)
+		explicit Material(uint64_t id) : Asset("") { uuid = UUID(0); };
+
+
 		Material(const Material& other) = default;
 
 		template<typename S>
@@ -31,7 +40,6 @@ namespace ORNG {
 			s.object(tile_scale);
 			s.text1b(name, ORNG_MAX_NAME_SIZE);
 			s.object(uuid);
-			s.text1b(filepath, ORNG_MAX_NAME_SIZE);
 		}
 
 

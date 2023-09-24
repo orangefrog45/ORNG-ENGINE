@@ -290,9 +290,10 @@ namespace ORNG {
 			if (entry.is_directory() || entry.path().extension() != ".bin")
 				continue;
 
-			std::string path = entry.path().string();
-			auto* p_mesh = new MeshAsset(path);
-			DeserializeAssetBinary(path, *p_mesh);
+			std::string str_path = entry.path().string();
+			std::string rel_path = ".\\" + str_path.substr(str_path.rfind("res\\meshes"));
+			auto* p_mesh = new MeshAsset(rel_path);
+			DeserializeAssetBinary(rel_path, *p_mesh);
 			AddAsset(p_mesh);
 			LoadMeshAssetIntoGL(p_mesh);
 		}
@@ -317,6 +318,7 @@ namespace ORNG {
 			if (entry.is_directory() || !(path.extension() == ".osound"))
 				continue;
 			else {
+				std::string rel_path = ".\\" + entry.path().string().substr(path.string().rfind("res\\audio"));
 				auto* p_sound = new SoundAsset(entry.path().string());
 				DeserializeAssetBinary(entry.path().string(), *p_sound);
 				p_sound->CreateSound();
@@ -329,8 +331,9 @@ namespace ORNG {
 			if (entry.is_directory() || path.extension() != ".omat")
 				continue;
 			else {
-				auto* p_mat = new Material();
-				DeserializeAssetBinary(path.string(), *p_mat);
+				std::string rel_path = ".\\" + entry.path().string().substr(path.string().rfind("res\\materials"));
+				auto* p_mat = new Material(rel_path);
+				DeserializeAssetBinary(rel_path, *p_mat);
 				AddAsset(p_mat);
 			}
 		}
@@ -340,9 +343,10 @@ namespace ORNG {
 			if (entry.is_directory() || path.extension() != ".opfb")
 				continue;
 			else {
-				auto* p_mat = new Prefab(path.string());
-				DeserializeAssetBinary(path.string(), *p_mat);
-				AddAsset(p_mat);
+				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\prefabs"));
+				auto* p_prefab = new Prefab(rel_path);
+				DeserializeAssetBinary(rel_path, *p_prefab);
+				AddAsset(p_prefab);
 			}
 		}
 
@@ -351,7 +355,8 @@ namespace ORNG {
 			if (entry.is_directory() || path.extension() != ".cpp")
 				continue;
 			else {
-				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(path.string());
+				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\scripts"));
+				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
 				AddAsset(new ScriptAsset(symbols));
 			}
 		}

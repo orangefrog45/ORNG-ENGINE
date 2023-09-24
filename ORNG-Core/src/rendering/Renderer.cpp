@@ -44,21 +44,6 @@ namespace ORNG {
 		m_draw_call_amount++;
 	}
 
-	void Renderer::IDrawPoints(const std::vector<Point>& points) {
-		/*	m_line_vao->vertex_data.positions.clear();
-
-		for (auto& point : points) {
-			VEC_PUSH_VEC3(m_line_vao->vertex_data.positions,point.p);
-		}
-
-		m_line_vao->FillBuffers();
-		GL_StateManager::BindVAO(m_line_vao->GetHandle());
-		glDrawArrays(GL_LINES,
-			0,
-			m_line_vao->vertex_data.positions.size() / 3
-		);
-		m_draw_call_amount++;*/
-	}
 
 	void Renderer::IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao) {
 		GL_StateManager::BindVAO(vao.GetHandle());

@@ -126,7 +126,7 @@ namespace ORNG {
 			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
 				InitComponent(t_event.affected_components[0]);
 				break;
-			case COMP_UPDATED: 
+			case COMP_UPDATED:
 				UpdateComponentState(t_event.affected_components[0]);
 				break;
 			case COMP_DELETED:
@@ -192,18 +192,18 @@ namespace ORNG {
 
 	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event) {
 		switch (t_event.sub_event_type) {
-			case JointEventType::CONNECT:
-				std::pair<PhysicsComponent*, PhysicsComponent*> comps = std::any_cast<std::pair<PhysicsComponent*, PhysicsComponent*>>(t_event.data_payload);
+		case JointEventType::CONNECT:
+			std::pair<PhysicsComponent*, PhysicsComponent*> comps = std::any_cast<std::pair<PhysicsComponent*, PhysicsComponent*>>(t_event.data_payload);
 
-				auto middle = (comps.first->p_rigid_actor->getGlobalPose().p + comps.second->p_rigid_actor->getGlobalPose().p) * 0.5f;
+			auto middle = (comps.first->p_rigid_actor->getGlobalPose().p + comps.second->p_rigid_actor->getGlobalPose().p) * 0.5f;
 
-				PxTransform m0(middle - comps.first->p_rigid_actor->getGlobalPose().p);
-				PxTransform m1(middle - comps.second->p_rigid_actor->getGlobalPose().p);
+			PxTransform m0(middle - comps.first->p_rigid_actor->getGlobalPose().p);
+			PxTransform m1(middle - comps.second->p_rigid_actor->getGlobalPose().p);
 
-				auto* p_phys = Physics::GetPhysics();
-				t_event.affected_components[0]->mp_joint = PxFixedJointCreate(*p_phys, comps.first->p_rigid_actor, m0, comps.second->p_rigid_actor, m1);
-				t_event.affected_components[0]->mp_joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
-				break;
+			auto* p_phys = Physics::GetPhysics();
+			t_event.affected_components[0]->mp_joint = PxFixedJointCreate(*p_phys, comps.first->p_rigid_actor, m0, comps.second->p_rigid_actor, m1);
+			t_event.affected_components[0]->mp_joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
+			break;
 		}
 	}
 
@@ -224,9 +224,11 @@ namespace ORNG {
 
 	void PhysicsSystem::OnUnload() {
 		DeinitListeners();
+
 		for (auto* p_material : m_physics_materials) {
 			p_material->release();
 		}
+
 		m_physics_materials.clear();
 
 		mp_controller_manager->release();

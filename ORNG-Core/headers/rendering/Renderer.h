@@ -65,9 +65,6 @@ namespace ORNG {
 			Get().IDrawVAOArrays(vao, line_buffer, nb_lines, primitive_type);
 		}
 
-		static void DrawPoints(const std::vector<Point>& points) {
-			Get().IDrawPoints(points);
-		}
 
 		inline static ShaderLibrary& GetShaderLibrary() {
 			return Get().m_shader_library;
@@ -83,8 +80,6 @@ namespace ORNG {
 
 		static void DrawBoundingBox(const MeshAsset& asset);
 
-		static const unsigned int max_materials = 128;
-
 	private:
 		void I_Init();
 
@@ -92,7 +87,6 @@ namespace ORNG {
 
 		Renderer() = default;
 		void IDrawVAOArrays(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines,  GLenum primitive_type);
-		void IDrawPoints(const std::vector<Point>& lines);
 		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
 		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);
 		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);

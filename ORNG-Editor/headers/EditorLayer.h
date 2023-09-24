@@ -33,6 +33,7 @@ namespace ORNG {
 
 			mp_editor_camera = nullptr;
 			m_active_scene->UnloadScene();
+			m_asset_manager_window.OnShutdown();
 		}
 
 		// Sets up directory structure for a new project
@@ -71,8 +72,6 @@ namespace ORNG {
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
 		void RenderAudioComponentEditor(AudioComponent* p_audio);
 
-		void RenderErrorMessages();
-		void GenerateErrorMessage(const std::string& error_str = "");
 		void RenderProjectGenerator(int& selected_component_from_popup);
 
 
@@ -122,13 +121,21 @@ namespace ORNG {
 		}
 
 		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory, m_active_scene };
+
 		// Size, not position
-		ImVec2 m_scene_display_rect{ 10, 10 };
+		ImVec2 m_scene_display_rect{ 1, 1 };
+
 		// Stores temporary serialized yaml data to load back in after exiting "play mode"
 		std::string m_temp_scene_serialization;
+
 		// If true editor will start simulating the scene as if it were running in a runtime layer
 		bool m_simulate_mode_active = false;
 		bool m_simulate_mode_paused = false;
+
+		// Whenever simulation mode is active this will be true
+		bool m_fullscreen_scene_display = false;
+		// In simulation mode, determines if UI will be rendered on top. UI is always rendered in non-simulation mode, no matter this setting
+		bool m_render_ui = false;
 
 		// Texture spec for rendering the scene
 		Texture2DSpec m_color_render_texture_spec;
@@ -150,9 +157,6 @@ namespace ORNG {
 
 		// Contains the actual rendering of the scene
 		std::unique_ptr<Texture2D> mp_scene_display_texture{ nullptr };
-
-		// Used to render error messages - stores log history at point the error occured
-		std::vector<std::vector<std::string>> m_error_log_stack;
 
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;

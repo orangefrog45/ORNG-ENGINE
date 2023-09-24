@@ -422,13 +422,12 @@ namespace ORNG {
 			std::ofstream fout{output};
 			fout << out.c_str();
 		}
-
 	}
 
 
 
 
-	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {
+	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool load_env_map, bool input_is_filepath) {
 
 		YAML::Node data;
 
@@ -470,13 +469,16 @@ namespace ORNG {
 		scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 
 		// Skybox/Env map
-		auto skybox = data["Skybox"];
-		scene.skybox.LoadEnvironmentMap(skybox["HDR filepath"].as<std::string>());
+		if (load_env_map) {
+			auto skybox = data["Skybox"];
+			scene.skybox.LoadEnvironmentMap(skybox["HDR filepath"].as<std::string>());
+		}
 
 		auto bloom = data["Bloom"];
 		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
 		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
 		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
+
 
 	}
 

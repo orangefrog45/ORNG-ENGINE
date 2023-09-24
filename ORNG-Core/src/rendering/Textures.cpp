@@ -98,6 +98,8 @@ namespace ORNG {
 
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
+		stbi_image_free(image_data);
+
 		return true;
 	}
 
@@ -157,6 +159,8 @@ namespace ORNG {
 		if (base_spec->generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
+
+		stbi_image_free(image_data);
 
 		return true;
 	}

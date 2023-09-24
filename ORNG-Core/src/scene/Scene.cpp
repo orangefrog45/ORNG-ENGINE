@@ -14,7 +14,8 @@ namespace ORNG {
 
 
 	Scene::~Scene() {
-		UnloadScene();
+		if (m_is_loaded)
+			UnloadScene();
 	}
 
 	void Scene::Update(float ts) {
@@ -55,7 +56,9 @@ namespace ORNG {
 
 	void Scene::DeleteEntity(SceneEntity* p_entity) {
 
-		auto& current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
+		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
+
+		auto current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
 		while (current_child_entity != entt::null) {
 			auto* p_child_ent = GetEntity(current_child_entity);
 			entt::entity next = p_child_ent->GetComponent<RelationshipComponent>()->next;
@@ -65,7 +68,8 @@ namespace ORNG {
 
 
 		auto it = std::ranges::find(m_entities, p_entity);
-		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
+		ASSERT(it != m_entities.end());
+		ORNG_CORE_TRACE("'{0}' DELETING", (uint32_t)p_entity->GetEnttHandle());
 		delete p_entity;
 		m_entities.erase(it);
 
@@ -153,7 +157,7 @@ namespace ORNG {
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
-			script.p_symbols->OnCreate(GetEntity(entity));
+				script.p_symbols->OnCreate(GetEntity(entity));
 			}
 			catch (std::exception e) {
 				ORNG_CORE_ERROR("Script execution error for entity '{0}' : '{1}'", GetEntity(entity)->name, e.what());

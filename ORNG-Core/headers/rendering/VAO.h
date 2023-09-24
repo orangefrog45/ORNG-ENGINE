@@ -34,12 +34,12 @@ namespace ORNG {
 	};
 
 
-	
+
 	class VertexBufferBase : public BufferBase {
 		friend class VAO;
 	public:
 		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER) {};
-		uint32_t GetSize() override =0;
+		uint32_t GetSize() override = 0;
 		void* GetDataPtr() override = 0;
 		uint8_t comps_per_attribute = 0;
 		uint32_t stride = 0;
@@ -52,7 +52,7 @@ namespace ORNG {
 		friend class VAO;
 	public:
 		std::vector<T> data;
-		uint32_t GetSize() override { 
+		uint32_t GetSize() override {
 			return sizeof(T) * data.size();
 		}
 	private:
@@ -111,9 +111,14 @@ namespace ORNG {
 	class VAO : public VAO_Base {
 	public:
 		void FillBuffers() override;
+		~VAO() {
+			for (auto it = m_buffers.begin(); it != m_buffers.end(); it++) {
+				delete it->second;
+				it = m_buffers.erase(it);
+			}
+		}
 
 		// Index = buffer position in vao, e.g index 0 can be accessed in shader as layout(location=0)
-
 		template<std::derived_from<VertexBufferBase> T>
 		T* AddBuffer(uint8_t index, GLenum data_type, uint8_t comps_per_attribute, GLenum draw_type) {
 			auto* p_buf = new T();
@@ -140,7 +145,7 @@ namespace ORNG {
 				m_buffers.erase(index);
 			}
 		}
-		
+
 		// Leave as nullptr if not using indices
 		std::unique_ptr<ElementBufferGL> p_element_buffer = nullptr;
 	private:

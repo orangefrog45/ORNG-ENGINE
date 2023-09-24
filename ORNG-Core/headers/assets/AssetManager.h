@@ -80,7 +80,6 @@ namespace ORNG {
 		void serialize(S& s) {
 			s.text1b(serialized_content, ORNG_MAX_FILEPATH_SIZE);
 			s.object(uuid);
-			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 	};
 
@@ -92,7 +91,6 @@ namespace ORNG {
 
 		template<typename S>
 		void serialize(S& s) {
-			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 			s.object(uuid);
 		}
 
@@ -250,7 +248,6 @@ namespace ORNG {
 				}
 				des.value1b(data.num_materials);
 				des.object(data.uuid);
-				des.container1b(data.filepath, 10000);
 			}
 			else if constexpr (std::is_same_v<T, Material>) {
 				des.object(data.base_color);
@@ -280,7 +277,6 @@ namespace ORNG {
 				des.object(data.tile_scale);
 				des.text1b(data.name, ORNG_MAX_NAME_SIZE);
 				des.object(data.uuid);
-				des.text1b(data.filepath, ORNG_MAX_NAME_SIZE);
 			}
 			else {
 				des.object(data);

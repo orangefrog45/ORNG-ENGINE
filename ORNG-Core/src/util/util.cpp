@@ -22,7 +22,7 @@ namespace ORNG {
 			ret = std::filesystem::equivalent(path1, path2);
 		}
 		catch (std::exception e) {
-			ORNG_CORE_ERROR("PathEqualTo err: '{0}'", e.what());
+			ORNG_CORE_ERROR("PathEqualTo err: '{0}' with '{1}' : '{2}'", e.what(), path1, path2);
 		}
 		return ret;
 	}

@@ -57,7 +57,7 @@ namespace ORNG {
 				s.object(entry);
 			}
 			s.value1b((uint8_t)num_materials);
-			Asset::serialize(s);
+			s.object(uuid);
 		}
 
 	private:

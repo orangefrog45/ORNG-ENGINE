@@ -65,7 +65,6 @@ namespace ORNG {
 
 		//IMGUI INIT
 		IMGUI_CHECKVERSION();
-
 		InitImGui();
 		AudioEngine::Init();
 		Input::Init();
