@@ -16,7 +16,8 @@ namespace ORNG {
 		friend class MeshInstanceGroup;
 		friend class SceneRenderer;
 		friend class SceneSerializer;
-		explicit MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset);
+		explicit MeshComponent(SceneEntity* p_entity);
+		MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset);
 		MeshComponent(const MeshComponent& other) = delete;
 
 		void SetMaterialID(unsigned int index, const Material* p_material);

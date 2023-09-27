@@ -65,6 +65,9 @@ namespace ORNG {
 
 				DeleteEntity(m_entities[0]);
 			}
+
+			m_registry.clear();
+			ASSERT(m_entities.empty());
 		}
 
 		void LoadScene(const std::string& filepath);

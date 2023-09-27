@@ -25,7 +25,6 @@ namespace ORNG {
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
-
 		// Script state updates need to be set far less frequently, use events for this soon
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
@@ -68,8 +67,8 @@ namespace ORNG {
 
 
 		auto it = std::ranges::find(m_entities, p_entity);
+		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 		ASSERT(it != m_entities.end());
-		ORNG_CORE_TRACE("'{0}' DELETING", (uint32_t)p_entity->GetEnttHandle());
 		delete p_entity;
 		m_entities.erase(it);
 
@@ -147,6 +146,21 @@ namespace ORNG {
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
 		m_audio_system.OnLoad();
+
+		// Allocate storage for components on this side of the boundary
+		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
+		// Not sure why reallocation doesn't break when storage needs to grow but for now just accepting it, for now this is a temp urgent fix to stop constant crashes
+		// TODO: Change when custom components need adding
+		auto& ent = CreateEntity("allocator");
+		ent.AddComponent<MeshComponent>();
+		ent.AddComponent<PointLightComponent>();
+		ent.AddComponent<SpotLightComponent>();
+		ent.AddComponent<ScriptComponent>();
+		ent.AddComponent<DataComponent>();
+		ent.AddComponent<PhysicsComponent>();
+		ent.AddComponent<CharacterControllerComponent>();
+		ent.AddComponent<CameraComponent>();
+		DeleteEntity(&ent);
 
 		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());

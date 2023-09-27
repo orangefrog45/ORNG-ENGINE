@@ -30,10 +30,33 @@ namespace ORNG {
 		entt::entity parent{ entt::null };
 	};
 
-	template<typename T>
 	struct DataComponent : public Component {
-		std::unordered_map<std::string, T> data;
+		DataComponent(SceneEntity* p_entity) : Component(p_entity) { };
+
+		template<typename T>
+		T Get(const std::string& s) {
+
+			if (!data.contains(s)) {
+				throw std::runtime_error(std::format("DataComponent::Get failed, string key '{}' not found", s));
+			}
+
+			try {
+				return entt::any_cast<T>(data[s]);
+			}
+			catch (std::exception& e) {
+				throw std::runtime_error(std::format("DataComponent::Get failed at string key '{}', type is invalid", s));
+			}
+		}; 
+
+		template<typename T>
+		void Push(const std::string& s,  T& val) {
+			data[s] = static_cast<T>(val);
+		}
+
+		std::unordered_map<std::string, entt::any> data;
 	};
+
+
 }
 
 #endif

@@ -19,8 +19,10 @@ namespace ORNG {
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
+		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { ASSERT(mp_registry->valid(entt_handle));  AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); ASSERT(HasComponent< RelationshipComponent>()); };
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
+			ASSERT(mp_registry->valid(entt_handle)); AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); ASSERT(HasComponent< RelationshipComponent>());
+		};
 
 
 		~SceneEntity() {

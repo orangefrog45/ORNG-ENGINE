@@ -73,11 +73,10 @@ namespace ORNG {
 		glm::vec3 t_target = glm::normalize(t_pos - abs_pos);
 		t_target = glm::normalize(t_target);
 		t_right = glm::normalize(glm::cross(-t_up, t_target));
-		up = glm::cross(t_right, t_target);
 
 		glm::mat3 rotation_matrix = {
 			t_right.x, t_right.y, t_right.z,
-			up.x, up.y, up.z,
+			t_up.x, t_up.y, t_up.z,
 			-t_target.x, -t_target.y, -t_target.z };
 
 		glm::vec3 euler_angles = glm::degrees(glm::eulerAngles(glm::quat_cast(rotation_matrix)));
@@ -102,8 +101,8 @@ namespace ORNG {
 		glm::mat3 rot_mat_new{m_transform};
 
 		forward = glm::normalize(rot_mat_new * glm::vec3(0.0, 0.0, -1.0));
+		up = glm::normalize(rot_mat_new * glm::vec3(0, 1, 0));
 		right = glm::normalize(glm::cross(-up, forward));
-		up = glm::normalize(glm::cross(right, forward));
 
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event;

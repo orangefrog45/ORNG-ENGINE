@@ -132,7 +132,6 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
 
 
-
 		MakeProjectActive(base_proj_dir);
 
 		ORNG_CORE_INFO("Editor layer initialized");
@@ -150,9 +149,17 @@ namespace ORNG {
 	}
 
 	void EditorLayer::EndPlayScene() {
-		mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
+		glm::vec3 cam_pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		mp_editor_camera = nullptr;
+
 		m_active_scene->ClearAllEntities();
 		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization,false, false);
+
+		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
+		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
+		p_transform->SetAbsolutePosition(cam_pos);
+		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
+
 		m_simulate_mode_active = false;
 		m_fullscreen_scene_display = false;
 	}
@@ -285,7 +292,8 @@ namespace ORNG {
 			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
 
 			glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
-			glm::fvec3 rot_y = glm::rotate(mouse_delta.y * rotation_speed, glm::cross(glm::vec3(0.0, -1.0, 0.0), rot_x)) * glm::vec4(rot_x, 0);
+			glm::fvec3 rot_y = glm::rotate(mouse_delta.y * rotation_speed, p_transform->right) * glm::vec4(rot_x, 0);
+
 
 			if (rot_y.y <= 0.997f && rot_y.y >= -0.997f)
 				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_y));
@@ -793,6 +801,7 @@ namespace ORNG {
 			entity->AddComponent<AudioComponent>();
 			break;
 		}
+
 	}
 
 
@@ -1104,6 +1113,8 @@ namespace ORNG {
 				m_display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
 
 				for (auto* p_entity : m_active_scene->m_entities) {
+					ASSERT(p_entity->HasComponent<RelationshipComponent>());
+					ASSERT(p_entity->HasComponent<TransformComponent>());
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
 

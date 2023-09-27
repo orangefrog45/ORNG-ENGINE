@@ -417,9 +417,6 @@ namespace ORNG {
 								for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
 									if (p_curr_asset->PathEqualTo(script_comp.p_symbols->script_path))
 										components_to_reconnect.push_back(&script_comp);
-									else {
-										ORNG_CORE_TRACE("SCRIPT PAIR '{0}' : '{1}' IGNORED", relative_path, script_comp.p_symbols->script_path);
-									}
 								}
 
 								// Reload script and reconnect it to script components previously using it

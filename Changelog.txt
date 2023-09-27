@@ -1,3 +1,6 @@
+27/9/23:
+-Fixed terrible ecs bug, have to do all component memory allocation in engine instead of scripts - fixes a really common crash occuring after recompiling scripts
+
 24/9/23:
 -Made exiting simulation mode in the editor much faster (was reloading the env map each time previously)
 -Fixed large texture memory leak not freeing stbi data (forgot to correct changes made ages ago), this has fixed a lot of bugs I didn't understand (was just running out of memory)
