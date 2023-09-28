@@ -67,13 +67,35 @@ namespace ORNG {
 		return std::array<glm::vec3, 3>{parent_abs_translation + rotation_offset, abs_scale, abs_rotation};
 	}
 
+	/*
+		GLM_FUNC_QUALIFIER mat<4, 4, T, Q> lookAtRH(vec<3, T, Q> const& eye, vec<3, T, Q> const& center, vec<3, T, Q> const& up)
+	{
+		vec<3, T, Q> const f(normalize(center - eye));
+		vec<3, T, Q> const s(normalize(cross(f, up)));
+		vec<3, T, Q> const u(cross(s, f));
+
+		mat<4, 4, T, Q> Result(1);
+		Result[0][0] = s.x;
+		Result[1][0] = s.y;
+		Result[2][0] = s.z;
+		Result[0][1] = u.x;
+		Result[1][1] = u.y;
+		Result[2][1] = u.z;
+		Result[0][2] =-f.x;
+		Result[1][2] =-f.y;
+		Result[2][2] =-f.z;
+		Result[3][0] =-dot(s, eye);
+		Result[3][1] =-dot(u, eye);
+		Result[3][2] = dot(f, eye);
+	*/
 
 	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up, glm::vec3 t_right) {
 		glm::vec3 abs_pos = GetAbsoluteTransforms()[0];
 		glm::vec3 t_target = glm::normalize(t_pos - abs_pos);
 		t_target = glm::normalize(t_target);
-		t_right = glm::normalize(glm::cross(-t_up, t_target));
-
+		t_right = glm::normalize(glm::cross(t_target, up));
+		g_up = t_up;
+		 t_up = glm::normalize(glm::cross(t_right, t_target));
 		glm::mat3 rotation_matrix = {
 			t_right.x, t_right.y, t_right.z,
 			t_up.x, t_up.y, t_up.z,
@@ -101,8 +123,8 @@ namespace ORNG {
 		glm::mat3 rot_mat_new{m_transform};
 
 		forward = glm::normalize(rot_mat_new * glm::vec3(0.0, 0.0, -1.0));
-		up = glm::normalize(rot_mat_new * glm::vec3(0, 1, 0));
-		right = glm::normalize(glm::cross(-up, forward));
+		right = glm::normalize(glm::cross(forward, g_up));
+		up = glm::normalize(glm::cross(right, forward));
 
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event;

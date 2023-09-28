@@ -301,7 +301,7 @@ namespace ORNG {
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
-		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, glm::vec3(0, 1, 0));
+		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
 		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);

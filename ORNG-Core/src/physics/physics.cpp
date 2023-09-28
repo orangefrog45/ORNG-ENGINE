@@ -11,8 +11,8 @@ namespace ORNG {
 		mp_pvd->disconnect();
 		mp_pvd->release();
 #endif
-		//mp_cuda_context_manager->release();
-		//mp_physics->release();
+		mp_cuda_context_manager->release();
+		mp_physics->release();
 		mp_foundation->release();
 		PxCloseExtensions();
 	}

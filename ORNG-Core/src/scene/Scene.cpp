@@ -149,7 +149,6 @@ namespace ORNG {
 
 		// Allocate storage for components on this side of the boundary
 		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
-		// Not sure why reallocation doesn't break when storage needs to grow but for now just accepting it, for now this is a temp urgent fix to stop constant crashes
 		// TODO: Change when custom components need adding
 		auto& ent = CreateEntity("allocator");
 		ent.AddComponent<MeshComponent>();

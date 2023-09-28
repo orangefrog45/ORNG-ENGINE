@@ -1,3 +1,6 @@
+28/9/23:
+-LookAt transform fixed
+
 27/9/23:
 -Fixed terrible ecs bug, have to do all component memory allocation in engine instead of scripts - fixes a really common crash occuring after recompiling scripts
 
