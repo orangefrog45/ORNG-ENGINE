@@ -1424,7 +1424,10 @@ namespace ORNG {
 		// Gizmos 
 		ImGuiIO& io = ImGui::GetIO();
 		ImGuizmo::BeginFrame();
-		ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x + 400, ImGui::GetMainViewport()->Pos.y + toolbar_height, Window::GetWidth() - 850, Window::GetHeight() - 300 - toolbar_height);
+		if (m_fullscreen_scene_display)
+			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y + toolbar_height, m_scene_display_rect.x, m_scene_display_rect.y);
+		else
+			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x + 400, ImGui::GetMainViewport()->Pos.y + toolbar_height, m_scene_display_rect.x, m_scene_display_rect.y);
 
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
@@ -1446,11 +1449,12 @@ namespace ORNG {
 
 		glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
-		glm::mat4 delta_matrix;
 		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
 		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
+
+		glm::mat4 delta_matrix;
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
@@ -1469,19 +1473,18 @@ namespace ORNG {
 				auto current_transforms = p_transform->GetAbsoluteTransforms();
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
-					ORNG_CORE_TRACE("T: {0}, {1}, {2}", delta_translation.x, delta_translation.y, delta_translation.z);
-					ORNG_CORE_TRACE("C: {0}, {1}, {2}", current_transforms[0].x, current_transforms[0].y, current_transforms[0].z);
 					p_transform->SetAbsolutePosition(current_transforms[0] + delta_translation);
 					break;
 				case ImGuizmo::SCALE:
-					p_transform->SetScale(p_transform->GetScale() * delta_scale);
+					p_transform->SetAbsoluteScale(p_transform->GetScale() * delta_scale);
 					break;
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
 					glm::vec3 abs_rotation = current_transforms[2];
 					glm::vec3 inherited_rotation = abs_rotation - p_transform->GetOrientation();
-					glm::mat4 new_rotation_mat = ExtraMath::Init3DRotateTransform(delta_rotation.x, delta_rotation.y, delta_rotation.z) * ExtraMath::Init3DRotateTransform(abs_rotation.x, abs_rotation.y, abs_rotation.z);
-					ImGuizmo::DecomposeMatrixToComponents(&new_rotation_mat[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
-					p_transform->SetOrientation(matrix_rotation);
+					glm::vec3 local_rot = glm::inverse(glm::quat(glm::radians(inherited_rotation))) * glm::vec4( glm::radians(delta_rotation), 0.0);
+					glm::vec3 total = glm::eulerAngles(glm::quat(local_rot) * glm::quat(glm::radians(p_transform->m_orientation)));
+					total = glm::degrees(total);
+					p_transform->SetOrientation(total);
 
 					glm::vec3 abs_translation = current_transforms[0];
 					glm::vec3 transformed_pos = abs_translation - base_abs_translation;

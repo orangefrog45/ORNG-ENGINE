@@ -7,14 +7,14 @@
 namespace ORNG {
 	using namespace physx;
 	void Physics::IShutdown() {
-#ifndef NDEBUG
+/*#ifndef NDEBUG
 		mp_pvd->disconnect();
 		mp_pvd->release();
 #endif
 		mp_cuda_context_manager->release();
-		mp_physics->release();
-		mp_foundation->release();
 		PxCloseExtensions();
+		mp_physics->release();
+		mp_foundation->release();*/
 	}
 
 	void Physics::I_Init() {

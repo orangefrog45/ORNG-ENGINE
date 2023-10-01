@@ -2,6 +2,8 @@
 #define TRANSFORMCOMPONENT_H
 
 #include "Component.h"
+#include "glm/glm/gtc/quaternion.hpp"
+#include "util/ExtraMath.h"
 
 namespace ORNG {
 
@@ -43,14 +45,16 @@ namespace ORNG {
 		}
 
 		inline void SetAbsolutePosition(glm::vec3 pos) {
-			glm::vec3 absolute_pos = GetAbsoluteTransforms()[0];
+			glm::vec3 final_pos = pos;
+			if (GetParent() && !m_is_absolute) {
+				final_pos = glm::inverse(GetParent()->GetMatrix()) * glm::vec4(pos, 1.0);
+			}
 
-			SetPosition(pos - (absolute_pos - m_pos));
+			SetPosition(final_pos);
 		}
 
 		inline void SetAbsoluteOrientation(glm::vec3 orientation) {
 			glm::vec3 absolute_orientation = GetAbsoluteTransforms()[2];
-
 			SetOrientation(orientation - (absolute_orientation - m_orientation));
 		}
 

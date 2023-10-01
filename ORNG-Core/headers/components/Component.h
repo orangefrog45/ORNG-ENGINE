@@ -41,7 +41,7 @@ namespace ORNG {
 			}
 
 			try {
-				return entt::any_cast<T>(data[s]);
+				return std::any_cast<T>(data[s]);
 			}
 			catch (std::exception& e) {
 				throw std::runtime_error(std::format("DataComponent::Get failed at string key '{}', type is invalid", s));
@@ -53,7 +53,7 @@ namespace ORNG {
 			data[s] = static_cast<T>(val);
 		}
 
-		std::unordered_map<std::string, entt::any> data;
+		std::unordered_map<std::string, std::any> data;
 	};
 
 

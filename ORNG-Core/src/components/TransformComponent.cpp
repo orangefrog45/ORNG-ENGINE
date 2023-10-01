@@ -3,7 +3,6 @@
 #include "components/TransformComponent.h"
 #include "util/ExtraMath.h"
 #include "events/EventManager.h"
-#include "glm/glm/gtc/quaternion.hpp"
 #include "scene/SceneEntity.h"
 
 
@@ -44,12 +43,14 @@ namespace ORNG {
 		// Sum all parent transforms to get absolute position
 		TransformComponent* p_parent_transform = GetParent();
 
-		glm::vec3 abs_rotation = m_orientation;
 		glm::vec3 abs_translation = m_pos;
 		glm::vec3 abs_scale = m_scale;
+		glm::vec3 abs_rotation = m_orientation;
 
 		if (!p_parent_transform || m_is_absolute)
-			return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
+			return std::array<glm::vec3, 3>{abs_translation, abs_scale, m_orientation};
+
+
 
 		while (p_parent_transform) {
 			abs_rotation += p_parent_transform->m_orientation;
@@ -59,35 +60,11 @@ namespace ORNG {
 			p_parent_transform = p_parent_transform->GetParent();
 		}
 
-		glm::vec3 parent_abs_translation = abs_translation - m_pos;
-		glm::vec3 parent_abs_rot = abs_rotation - m_orientation;
-		glm::vec3 parent_abs_scale = abs_scale / m_scale;
-		glm::vec3 rotation_offset = glm::mat3(ExtraMath::Init3DRotateTransform(parent_abs_rot.x, parent_abs_rot.y, parent_abs_rot.z)) * m_pos;
-		rotation_offset *= glm::vec3(parent_abs_scale.x, parent_abs_scale.y, parent_abs_scale.z);
-		return std::array<glm::vec3, 3>{parent_abs_translation + rotation_offset, abs_scale, abs_rotation};
+
+		glm::vec3 pos = GetParent()->GetMatrix() * glm::vec4(m_pos, 1.0);
+		return std::array<glm::vec3, 3>{pos, abs_scale, abs_rotation};
 	}
 
-	/*
-		GLM_FUNC_QUALIFIER mat<4, 4, T, Q> lookAtRH(vec<3, T, Q> const& eye, vec<3, T, Q> const& center, vec<3, T, Q> const& up)
-	{
-		vec<3, T, Q> const f(normalize(center - eye));
-		vec<3, T, Q> const s(normalize(cross(f, up)));
-		vec<3, T, Q> const u(cross(s, f));
-
-		mat<4, 4, T, Q> Result(1);
-		Result[0][0] = s.x;
-		Result[1][0] = s.y;
-		Result[2][0] = s.z;
-		Result[0][1] = u.x;
-		Result[1][1] = u.y;
-		Result[2][1] = u.z;
-		Result[0][2] =-f.x;
-		Result[1][2] =-f.y;
-		Result[2][2] =-f.z;
-		Result[3][0] =-dot(s, eye);
-		Result[3][1] =-dot(u, eye);
-		Result[3][2] = dot(f, eye);
-	*/
 
 	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up, glm::vec3 t_right) {
 		glm::vec3 abs_pos = GetAbsoluteTransforms()[0];
@@ -96,6 +73,7 @@ namespace ORNG {
 		t_right = glm::normalize(glm::cross(t_target, up));
 		g_up = t_up;
 		 t_up = glm::normalize(glm::cross(t_right, t_target));
+
 		glm::mat3 rotation_matrix = {
 			t_right.x, t_right.y, t_right.z,
 			t_up.x, t_up.y, t_up.z,
@@ -113,15 +91,30 @@ namespace ORNG {
 	void TransformComponent::RebuildMatrix(UpdateType type) {
 
 		glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
-		glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
-		glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
 		auto* p_parent = GetParent();
-		if (m_is_absolute || !p_parent)
+		if (m_is_absolute || !p_parent) {
+		glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
+			glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x, m_pos.y, m_pos.z);
 			m_transform = trans_mat * rot_mat * scale_mat;
-		else
-			m_transform = p_parent->GetMatrix() * (trans_mat * rot_mat * scale_mat);
-		glm::mat3 rot_mat_new{m_transform};
+		}
+		else {
+			auto transforms = p_parent->GetAbsoluteTransforms();
+			auto s = transforms[1];
+			auto r = transforms[2];
+			auto t = transforms[0];
+			// Apply parent scaling to the position and scale to make up for not using the scale transform below
+			glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x * s.x, m_scale.y * s.y, m_scale.z * s.z);
+			glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x * s.x, m_pos.y * s.y, m_pos.z * s.z);
 
+			// Seperate out rotation and translation transformations from scaling to prevent shearing (unwanted)
+			glm::mat4x4 rm = ExtraMath::Init3DRotateTransform(r.x, r.y, r.z);
+			glm::mat4x4 tm = ExtraMath::Init3DTranslationTransform(t.x, t.y, t.z);
+			m_transform = (tm * rm) * (trans_mat * rot_mat * scale_mat);
+		}
+
+
+		glm::mat3 rot_mat_new{m_transform};
+		
 		forward = glm::normalize(rot_mat_new * glm::vec3(0.0, 0.0, -1.0));
 		right = glm::normalize(glm::cross(forward, g_up));
 		up = glm::normalize(glm::cross(right, forward));
