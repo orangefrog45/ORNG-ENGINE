@@ -64,7 +64,7 @@ namespace ORNG {
 		m_resolution = (unsigned int)pow(m_max_subdivision_layer + 1 - m_subdivision_layer, 2);
 
 		glm::vec3 bot_left_coord = glm::vec3(center_pos.x - (float)m_width * 0.5f, center_pos.y, center_pos.z - (float)m_width * 0.5f);
-		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width + 4, m_seed, m_height_scale);
+		m_chunk = new TerrainChunk(bot_left_coord, m_resolution, m_width, m_seed, m_height_scale);
 		ChunkLoader::RequestChunkLoad(*m_chunk);
 
 	};

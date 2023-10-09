@@ -671,7 +671,7 @@ namespace ORNG {
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();
 			if (chunk->m_bounding_box.IsOnFrustum(p_cam->view_frustum)) {
-				Renderer::DrawVAO_Elements(GL_QUADS, chunk->m_vao);
+				Renderer::DrawVAO_Elements(GL_TRIANGLES, chunk->m_vao);
 			}
 		}
 	}

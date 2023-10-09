@@ -388,6 +388,7 @@ namespace ORNG {
 
 		for (auto* p_sound : Get().GetView<SoundAsset>()) {
 			std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
+			fn = fn.substr(0, fn.rfind(".osound"));
 			SerializeAssetBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
 		}
 

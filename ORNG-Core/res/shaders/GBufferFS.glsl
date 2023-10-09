@@ -174,7 +174,7 @@ void main() {
 
 #ifdef TERRAIN_MODE
 	shader_id = u_shader_id;
-	normal = u_normal_sampler_active ? vec4(CalculateTbnMatrix() * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0) : vec4(vs_normal, 1.0);
+	normal = u_normal_sampler_active ? vec4(CalculateTbnMatrix() * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0) : vec4(normalize(vs_normal), 1.0);
 
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
 

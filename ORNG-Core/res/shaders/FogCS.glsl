@@ -265,6 +265,29 @@ vec4 Accumulate(vec3 accum_light, float accum_transmittance, vec3 slice_light, f
 	return vec4(accum_light, accum_transmittance);
 }
 
+float fbm(vec3 p)
+{
+    vec3 q = p;
+    //q.xy = rotate(p.xy, ubo_common.time_elapsed);
+    
+    p += (noise(p * 3.0) - 0.5) * 0.3;
+    
+    //float v = nse3d(p) * 0.5 + nse3d(p * 2.0) * 0.25 + nse3d(p * 4.0) * 0.125 + nse3d(p * 8.0) * 0.0625;
+    
+    //p.y += ubo_common.time_elapsed * 0.2;
+    
+    float mtn = ubo_common.time_elapsed * 0.0001;
+    
+    float v = 0.0;
+    float fq = 1.0, am = 0.5;
+    for(int i = 0; i < 6; i++)
+    {
+        v += noise(p * fq + mtn * fq) * am;
+        fq *= 2.0;
+        am *= 0.5;
+    }
+    return v;
+}
 
 
 
@@ -291,10 +314,9 @@ void main() {
 
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
+		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) ;
+		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = noise(fog_sampling_coords) * u_density_coef;
-		fog_density += 0.5 * u_density_coef;
-fog_density *= exp(-smoothstep(0.0, 10.0, step_pos.y*0.1));
 
 		vec3 slice_light = vec3(0);
 

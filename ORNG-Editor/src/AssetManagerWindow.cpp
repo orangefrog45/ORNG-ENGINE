@@ -107,11 +107,20 @@ namespace ORNG {
 	}
 
 	void AssetManagerWindow::OnRenderUI() {
-		for (auto* p_material : m_material_deletion_queue) {
-			AssetManager::DeleteAsset(p_material->uuid());
-			mp_selected_material = p_material == mp_selected_material ? nullptr : mp_selected_material;
+		for (auto uuid : m_asset_deletion_queue) {
+
+			if (mp_selected_material && mp_selected_material->uuid() == uuid)
+				mp_selected_material = nullptr;
+
+			if (mp_selected_texture && mp_selected_texture->uuid() == uuid)
+				mp_selected_texture = nullptr;
+
+			AssetManager::DeleteAsset(uuid);
+
 		}
-		m_material_deletion_queue.clear();
+
+
+		m_asset_deletion_queue.clear();
 		RenderMainAssetWindow();
 
 		if (mp_selected_material && RenderMaterialEditorSection())
@@ -190,12 +199,11 @@ namespace ORNG {
 					{
 						if (ImGui::Selectable("Delete")) {
 							PushConfirmationWindow("Delete Mesh?", [this, p_mesh_asset] {
-								std::string filepath{GenerateMeshBinaryPath(p_mesh_asset)};
-								AssetManager::DeleteAsset(p_mesh_asset);
-								if (std::filesystem::exists(filepath)) {
-									// Cleanup binary file
-									std::filesystem::remove(filepath);
+								// Cleanup binary file
+								if (std::filesystem::exists(p_mesh_asset->filepath)) {
+									std::filesystem::remove(p_mesh_asset->filepath);
 								}
+								m_asset_deletion_queue.push_back(p_mesh_asset->uuid());
 
 								});
 						}
@@ -339,7 +347,7 @@ namespace ORNG {
 					{
 						if (p_material->uuid() != ORNG_REPLACEMENT_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
 							// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
-							m_material_deletion_queue.push_back(p_material);
+							m_asset_deletion_queue.push_back(p_material->uuid());
 						}
 						if (ImGui::Selectable("Duplicate")) {
 							auto* p_new_material = new Material();
