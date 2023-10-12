@@ -2,7 +2,6 @@
 * Include paths are invalid if not used in a project - do not include this file anywhere except in a script
 * All of these includes the script will still compile without (including the core engine headers instead of these copies), however they are needed for correct intellisense
 */
-#define CPP
 #include <chrono>
 #include <any>
 

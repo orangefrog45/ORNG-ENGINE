@@ -1,4 +1,14 @@
+12/10/23:
+-Rotation error in transform hierarchies fixed, unoptimized
+
+10/10/23:
+-More audio component settings
+-Fixed another audio asset serialization bug
+-Audio component serialization
+-Few other small bugfixes
+
 9/10/23:
+-Lowered terrain memory cost significantly and improved shading
 -Fixed terrain generation, LOD seams still present 
 -Fixed mesh deletion crash caused by attempting to render a deleted preview image with imgui
 

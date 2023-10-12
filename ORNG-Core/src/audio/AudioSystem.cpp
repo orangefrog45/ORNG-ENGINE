@@ -100,6 +100,7 @@ namespace ORNG {
 	}
 
 	void AudioSystem::OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event) {
+		auto* p_sound_comp = e_event.affected_components[0];
 		switch (e_event.sub_event_type) {
 			using enum AudioComponent::AudioEventType;
 		case (uint32_t)PLAY:
@@ -109,22 +110,34 @@ namespace ORNG {
 			auto* p_asset = AssetManager::GetAsset<SoundAsset>(uuid);
 
 			bool playing = false;
-			if (e_event.affected_components[0]->mp_channel)
-				e_event.affected_components[0]->mp_channel->isPlaying(&playing);
+			if (p_sound_comp->mp_channel)
+				p_sound_comp->mp_channel->isPlaying(&playing);
 
 			if (!p_asset || playing)
 				return;
 
 			if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
-				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", p_asset->filepath, FMOD_ErrorString(result));
+				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", p_asset->source_filepath, FMOD_ErrorString(result));
 
-			e_event.affected_components[0]->mp_channel->set3DAttributes(e_event.affected_components[0]->mp_fmod_pos, e_event.affected_components[0]->mp_fmod_vel);
-			e_event.affected_components[0]->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF);
-			e_event.affected_components[0]->mp_channel->setPaused(false);
+			p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel);
+			p_sound_comp->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF);
+			p_sound_comp->mp_channel->setPaused(false);
+			break;
+		}
+		case (uint32_t)SET_PITCH:
+			p_sound_comp->mp_channel->setPitch(std::any_cast<float>(e_event.data_payload));
+			break;
+		case (uint32_t)SET_VOLUME:
+			p_sound_comp->mp_channel->setVolume(std::any_cast<float>(e_event.data_payload));
+			break;
+		case (uint32_t)SET_RANGE:
+		{
+			AudioComponent::AudioRange range = std::any_cast<AudioComponent::AudioRange>(e_event.data_payload);
+			p_sound_comp->mp_channel->set3DMinMaxDistance(range.min, range.max);
 			break;
 		}
 		case (uint32_t)PAUSE:
-			e_event.affected_components[0]->mp_channel->setPaused(true);
+			p_sound_comp->mp_channel->setPaused(true);
 			break;
 		}
 	}

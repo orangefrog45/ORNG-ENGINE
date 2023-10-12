@@ -23,7 +23,6 @@
 
 namespace ORNG {
 	void EditorLayer::Init() {
-
 		char buffer[ORNG_MAX_FILEPATH_SIZE];
 		GetModuleFileName(nullptr, buffer, ORNG_MAX_FILEPATH_SIZE);
 		m_executable_directory = buffer;
@@ -60,7 +59,7 @@ namespace ORNG {
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
 
-		// Setting up the scene display texture 
+		// Setting up the scene display texture
 		m_color_render_texture_spec.format = GL_RGBA;
 		m_color_render_texture_spec.internal_format = GL_RGBA16F;
 		m_color_render_texture_spec.storage_type = GL_FLOAT;
@@ -81,7 +80,7 @@ namespace ORNG {
 				spec.height = t_event.new_window_size.y;
 				mp_scene_display_texture->SetSpec(spec);
 			}
-		};
+			};
 
 		Events::EventManager::RegisterListener(m_window_event_listener);
 
@@ -153,7 +152,7 @@ namespace ORNG {
 		mp_editor_camera = nullptr;
 
 		m_active_scene->ClearAllEntities();
-		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization,false, false);
+		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization, false, false);
 
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -226,6 +225,7 @@ namespace ORNG {
 			m_active_scene->Update(ts);
 		else {
 			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
+			m_active_scene->m_audio_system.OnUpdate(); // For audio samples
 			m_active_scene->terrain.UpdateTerrainQuadtree(m_active_scene->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
 
@@ -255,12 +255,10 @@ namespace ORNG {
 
 			m_selected_entity_ids = duplicate_ids;
 		}
-
 	}
 
 
 	void EditorLayer::UpdateEditorCam() {
-
 		static float cam_speed = 0.01f;
 
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
@@ -270,7 +268,7 @@ namespace ORNG {
 		// Camera movement
 		if (ImGui::IsMouseDown(1)) {
 			glm::vec3 pos = abs_transforms[0];
-			glm::vec3 movement_vec{0.0, 0.0, 0.0};
+			glm::vec3 movement_vec{ 0.0, 0.0, 0.0 };
 			float time_elapsed = FrameTiming::GetTimeStep();
 			movement_vec += p_transform->right * (float)Window::IsKeyDown(GLFW_KEY_D) * time_elapsed * cam_speed;
 			movement_vec -= p_transform->right * (float)Window::IsKeyDown(GLFW_KEY_A) * time_elapsed * cam_speed;
@@ -326,7 +324,6 @@ namespace ORNG {
 	}
 
 	void EditorLayer::RenderSceneDisplayPanel() {
-
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, toolbar_height)));
@@ -378,7 +375,6 @@ namespace ORNG {
 		ImGui::End();
 		ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
-
 	}
 
 
@@ -412,7 +408,6 @@ namespace ORNG {
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
 			DisplayEntityEditor();
-
 		}
 		ImGui::End();
 
@@ -443,8 +438,6 @@ namespace ORNG {
 			ImGui::RenderPlatformWindowsDefault();
 			glfwMakeContextCurrent(backup_current_context);
 		}
-
-
 	}
 
 
@@ -478,7 +471,6 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 			Renderer::DrawQuad();
 		}
-
 	}
 
 
@@ -492,13 +484,12 @@ namespace ORNG {
 			if (ImGui::Button("Files")) {
 				ImGui::OpenPopup("FilePopup");
 			}
-			static std::vector<std::string> file_options{"New project", "Open project", "Save project"};
+			static std::vector<std::string> file_options{ "New project", "Open project", "Save project" };
 			static int selected_component = 0;
 
 
 			if (ImGui::BeginPopup("FilePopup"))
 			{
-
 				ImGui::PushID(1);
 				ImGui::SeparatorText("Files");
 				ImGui::PopID();
@@ -507,7 +498,6 @@ namespace ORNG {
 						selected_component = i + 1;
 				}
 				ImGui::EndPopup();
-
 			}
 
 			switch (selected_component) {
@@ -519,15 +509,15 @@ namespace ORNG {
 				wchar_t valid_extensions[MAX_PATH] = L"Project Files: *.yml\0*.yml\0";
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					MakeProjectActive(filepath.substr(0, filepath.find_last_of('\\')));
-				};
+					};
 
 				ExtraUI::ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
 				selected_component = 0;
 				break;
 			}
 			case 3: {
-				std::string scene_filepath{"scene.yml"};
-				std::string uuid_filepath{"./res/scripts/includes/uuids.h"};
+				std::string scene_filepath{ "scene.yml" };
+				std::string uuid_filepath{ "./res/scripts/includes/uuids.h" };
 				AssetManager::SerializeAssets();
 				SceneSerializer::SerializeScene(*m_active_scene, scene_filepath);
 				SceneSerializer::SerializeSceneUUIDs(*m_active_scene, uuid_filepath);
@@ -562,7 +552,6 @@ namespace ORNG {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
 		static std::string project_name;
 		if (ImGui::Begin("##project gen", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar)) {
-
 			if (ImGui::IsMouseDoubleClicked(1)) // close window
 				selected_component_from_popup = 0;
 
@@ -597,7 +586,6 @@ namespace ORNG {
 
 
 	bool EditorLayer::GenerateProject(const std::string& project_name) {
-
 		if (std::filesystem::exists(m_executable_directory + "/projects/" + project_name)) {
 			ORNG_CORE_ERROR("Project with name '{0}' already exists", project_name);
 			return false;
@@ -609,11 +597,11 @@ namespace ORNG {
 		std::string project_path = m_executable_directory + "/projects/" + project_name;
 		std::filesystem::create_directory(project_path);
 		// Create base scene for project to use
-		std::ofstream s{project_path + "/scene.yml"};
+		std::ofstream s{ project_path + "/scene.yml" };
 		s << ORNG_BASE_SCENE_YAML;
 		s.close();
 
-		std::ofstream a{project_path + "/assets.yml"};
+		std::ofstream a{ project_path + "/assets.yml" };
 		a << ORNG_BASE_ASSET_YAML;
 		a.close();
 
@@ -647,7 +635,6 @@ namespace ORNG {
 		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");
 
 		return true;
-
 	}
 
 
@@ -656,7 +643,7 @@ namespace ORNG {
 	bool EditorLayer::ValidateProjectDir(const std::string& dir_path) {
 		try {
 			if (!std::filesystem::exists(dir_path + "/scene.yml")) {
-				std::ofstream s{dir_path + "/scene.yml"};
+				std::ofstream s{ dir_path + "/scene.yml" };
 				s << ORNG_BASE_SCENE_YAML;
 				s.close();
 			}
@@ -693,12 +680,10 @@ namespace ORNG {
 			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
 				std::filesystem::copy_file(dir_path + "/scene.yml", dir_path + "/sceneCORRUPTED.yml");
 				ORNG_CORE_WARN("scene.yml file is corrupted, replacing with default template");
-				std::ofstream s{dir_path + "/scene.yml"};
+				std::ofstream s{ dir_path + "/scene.yml" };
 				s << ORNG_BASE_SCENE_YAML;
 				s.close();
 			}
-
-
 		}
 		catch (const std::exception& e) {
 			ORNG_CORE_ERROR("Error validating project '{0}', : '{1}'", dir_path, e.what());
@@ -756,7 +741,6 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-
 		const char* names[7] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio" };
 
 		if (trigger)
@@ -801,7 +785,6 @@ namespace ORNG {
 			entity->AddComponent<AudioComponent>();
 			break;
 		}
-
 	}
 
 
@@ -810,7 +793,6 @@ namespace ORNG {
 
 
 	void EditorLayer::DoPickingPass() {
-
 		mp_picking_fb->Bind();
 		mp_picking_shader->ActivateProgram();
 
@@ -823,7 +805,7 @@ namespace ORNG {
 			uint64_t full_id = mesh.GetEntityUUID();
 			uint32_t half_id_1 = (uint32_t)(full_id >> 32);
 			uint32_t half_id_2 = (uint32_t)(full_id);
-			glm::uvec2 id_vec{half_id_1, half_id_2};
+			glm::uvec2 id_vec{ half_id_1, half_id_2 };
 
 			mp_picking_shader->SetUniform("comp_id", id_vec);
 			mp_picking_shader->SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
@@ -874,7 +856,6 @@ namespace ORNG {
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
 		}
 		glEnable(GL_DEPTH_TEST);
-
 	}
 
 
@@ -894,7 +875,6 @@ namespace ORNG {
 
 	void EditorLayer::RenderSkyboxEditor() {
 		if (ExtraUI::H1TreeNode("Skybox")) {
-
 			wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
 			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
@@ -904,7 +884,7 @@ namespace ORNG {
 					HandledFileSystemCopy(filepath, new_filepath);
 				}
 				m_active_scene->skybox.LoadEnvironmentMap(new_filepath);
-			};
+				};
 
 			if (ImGui::Button("Load skybox texture")) {
 				ExtraUI::ShowFileExplorer("", valid_extensions, file_explorer_callback);
@@ -915,7 +895,6 @@ namespace ORNG {
 				ImGui::Text("Converts an equirectangular image into a cubemap for use in a skybox. For best results, use HDRI's!");
 				ImGui::EndTooltip();
 			}
-
 		}
 	}
 
@@ -1001,17 +980,15 @@ namespace ORNG {
 				m_selected_entities_are_dragged = false;
 			}
 
-			// Right click to open popup 
+			// Right click to open popup
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 				ImGui::OpenPopup(popup_id.c_str());
-
 		}
 
 
 
 		// If clicked, select current entity
 		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) { // Doing this instead of IsActive() because IsActive wont trigger if ctrl is held down
-
 			if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
 				m_selected_entity_ids.clear();
 
@@ -1021,7 +998,6 @@ namespace ORNG {
 			else {
 				SelectEntity(p_entity->GetUUID());
 			}
-
 		}
 
 
@@ -1037,16 +1013,14 @@ namespace ORNG {
 				m_selected_entities_are_dragged = false;
 			}
 
-			// Right click to open popup 
+			// Right click to open popup
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 				ImGui::OpenPopup(popup_id.c_str());
-
 		}
 
 		// Popup opened above if node is right clicked
 		if (ImGui::BeginPopup(popup_id.c_str()))
 		{
-
 			ImGui::SeparatorText("Options");
 			if (ImGui::Selectable("Delete")) {
 				ret = EntityNodeEvent::E_DELETE;
@@ -1071,7 +1045,6 @@ namespace ORNG {
 		}
 		// Render entity nodes for all the children of this entity
 		if (p_entity && VectorContains(open_tree_nodes, p_entity->GetUUID())) {
-
 			entt::entity current_child_entity = p_entity_relationship_comp->first;
 			while (current_child_entity != entt::null) {
 				auto& child_rel_comp = m_active_scene->m_registry.get<RelationshipComponent>(current_child_entity);
@@ -1105,7 +1078,6 @@ namespace ORNG {
 
 
 			if (ExtraUI::H2TreeNode("Entities")) {
-
 				m_display_skybox_editor = ExtraUI::EmptyTreeNode("Skybox");
 				m_display_directional_light_editor = ExtraUI::EmptyTreeNode("Directional Light");
 				m_display_global_fog_editor = ExtraUI::EmptyTreeNode("Global fog");
@@ -1120,8 +1092,6 @@ namespace ORNG {
 
 					active_event = (EntityNodeEvent)(RenderEntityNode(p_entity, 0) | active_event);
 				}
-
-
 			}
 
 			// Process node events
@@ -1147,9 +1117,6 @@ namespace ORNG {
 
 				m_selected_entities_are_dragged = false;
 			}
-
-
-
 		} // begin "scene graph"
 
 		ImGui::End();
@@ -1168,7 +1135,6 @@ namespace ORNG {
 	void EditorLayer::DisplayEntityEditor() {
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("Entity editor")) {
-
 			if (m_display_directional_light_editor)
 				RenderDirectionalLightEditor();
 			if (m_display_global_fog_editor)
@@ -1222,7 +1188,6 @@ namespace ORNG {
 						RenderMeshComponentEditor(meshc);
 					}
 				}
-
 			}
 
 
@@ -1292,7 +1257,6 @@ namespace ORNG {
 			ImGui::Dummy(ImVec2(padding_size.x, padding_size.y));
 
 			RenderCreationWidget(entity, ImGui::Button("Add component", ImVec2(button_size.x, button_size.y)));
-
 		}
 		ImGui::End(); // end entity editor window
 	}
@@ -1332,7 +1296,6 @@ namespace ORNG {
 					ScriptSymbols* p_symbols = &AssetManager::GetAsset<ScriptAsset>(*static_cast<std::string*>(p_payload->Data))->symbols;
 					p_script->SetSymbols(p_symbols);
 				}
-
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -1344,17 +1307,35 @@ namespace ORNG {
 	void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		ImGui::PushID(p_audio);
 
-		/*if (ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, ImVec2(100, 100))) {
+		static float volume = 1.f;
+		if (ImGui::InputFloat("##volume", &volume)) {
+			p_audio->SetVolume(volume);
+		}
+
+		static float pitch = 1.f;
+		if (ImGui::InputFloat("##pitch", &pitch)) {
+			p_audio->SetPitch(pitch);
+		}
+
+		static float min_range = 1.f;
+		static float max_range = 1.f;
+		if (ImGui::InputFloat("##min_range", &min_range) || ImGui::InputFloat("##max_range", &max_range)) {
+			p_audio->SetMinMaxRange(min_range, max_range);
+		}
+
+		if (ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, ImVec2(100, 100))) {
 			p_audio->Play();
 		}
 
 		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("AUDIO")) {
-				if (p_payload->DataSize == sizeof(SoundAsset*)) {
-					p_audio->SetSound(*static_cast<SoundAsset**>(p_payload->Data));
-				}
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("AUDIO"); p_payload && p_payload->DataSize == sizeof(SoundAsset*)) {
+				p_audio->SetSoundAssetUUID((*static_cast<SoundAsset**>(p_payload->Data))->uuid());
 			}
-		}*/
+		}
+
+
+
+
 		ImGui::PopID(); // p_audio
 	}
 
@@ -1384,15 +1365,12 @@ namespace ORNG {
 		}
 
 		RenderPhysicsMaterial(p_comp->p_material);
-
 	}
 
 
 
 
 	void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms) {
-
-
 		static bool render_gizmos = true;
 
 		ImGui::Checkbox("Gizmos", &render_gizmos);
@@ -1421,7 +1399,7 @@ namespace ORNG {
 		if (!render_gizmos)
 			return;
 
-		// Gizmos 
+		// Gizmos
 		ImGuiIO& io = ImGui::GetIO();
 		ImGuizmo::BeginFrame();
 		if (m_fullscreen_scene_display)
@@ -1456,7 +1434,6 @@ namespace ORNG {
 
 		glm::mat4 delta_matrix;
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
-
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
 			auto base_abs_transforms = transforms[0]->GetAbsoluteTransforms();
@@ -1469,7 +1446,6 @@ namespace ORNG {
 			glm::vec3 delta_rotation = matrix_rotation;
 
 			for (auto* p_transform : transforms) {
-
 				auto current_transforms = p_transform->GetAbsoluteTransforms();
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
@@ -1481,7 +1457,7 @@ namespace ORNG {
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
 					glm::vec3 abs_rotation = current_transforms[2];
 					glm::vec3 inherited_rotation = abs_rotation - p_transform->GetOrientation();
-					glm::vec3 local_rot = glm::inverse(glm::quat(glm::radians(inherited_rotation))) * glm::vec4( glm::radians(delta_rotation), 0.0);
+					glm::vec3 local_rot = glm::inverse(glm::quat(glm::radians(inherited_rotation))) * glm::vec4(glm::radians(delta_rotation), 0.0);
 					glm::vec3 total = glm::eulerAngles(glm::quat(local_rot) * glm::quat(glm::radians(p_transform->m_orientation)));
 					total = glm::degrees(total);
 					p_transform->SetOrientation(total);
@@ -1492,12 +1468,8 @@ namespace ORNG {
 					p_transform->SetAbsolutePosition(base_abs_translation + rotation_offset);
 					break;
 				}
-
 			}
 		};
-
-
-
 	}
 
 
@@ -1528,7 +1500,6 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
-
 		ImGui::PushID(comp);
 
 		ImGui::SeparatorText("Mesh asset");
@@ -1561,7 +1532,6 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSpotlightEditor(SpotLightComponent* light) {
-
 		float aperture = glm::degrees(acosf(light->m_aperture));
 
 		ImGui::PushItemWidth(200.f);
@@ -1636,7 +1606,6 @@ namespace ORNG {
 
 			if (ImGui::Button("Reload"))
 				m_active_scene->terrain.ResetTerrainQuadtree();
-
 		}
 	}
 
@@ -1676,7 +1645,6 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderPointlightEditor(PointLightComponent* light) {
-
 		ImGui::PushItemWidth(200.f);
 		ImGui::SliderFloat("constant", &light->attenuation.constant, 0.0f, 1.0f);
 		ImGui::SliderFloat("linear", &light->attenuation.linear, 0.0f, 1.0f);
@@ -1702,13 +1670,4 @@ namespace ORNG {
 			p_cam->MakeActive();
 		}
 	}
-
-
-
-
-
-
-
-
-
 }

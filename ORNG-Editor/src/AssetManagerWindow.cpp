@@ -479,6 +479,7 @@ namespace ORNG {
 					std::string new_filepath{GenerateAudioFileClonePath(filepath)};
 					HandledFileSystemCopy(filepath, new_filepath);
 					auto* p_sound = new SoundAsset(new_filepath);
+					p_sound->source_filepath = new_filepath.substr(0, new_filepath.rfind(".osound"));
 					AssetManager::AddAsset(p_sound);
 					p_sound->CreateSound();
 				};

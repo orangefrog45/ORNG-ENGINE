@@ -2,7 +2,6 @@
 #define TRANSFORMCOMPONENT_H
 
 #include "Component.h"
-#include "glm/glm/gtc/quaternion.hpp"
 #include "util/ExtraMath.h"
 
 namespace ORNG {

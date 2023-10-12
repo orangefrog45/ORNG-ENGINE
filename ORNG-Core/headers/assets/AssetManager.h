@@ -88,10 +88,12 @@ namespace ORNG {
 		~SoundAsset();
 
 		FMOD::Sound* p_sound = nullptr;
+		std::string source_filepath;
 
 		template<typename S>
 		void serialize(S& s) {
 			s.object(uuid);
+			s.text1b(source_filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 
 		void CreateSound();

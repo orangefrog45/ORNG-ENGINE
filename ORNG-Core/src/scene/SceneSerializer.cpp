@@ -322,6 +322,10 @@ namespace ORNG {
 					ORNG_CORE_ERROR("Scene deserialization error: no script file with filepath '{0}' found", script_filepath);
 				}
 			}
+
+			if (tag == "AudioComp") {
+				entity.AddComponent<AudioComponent>();
+			}
 		}
 
 
