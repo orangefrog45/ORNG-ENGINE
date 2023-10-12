@@ -99,17 +99,14 @@ namespace ORNG {
 			auto transforms = p_parent->GetAbsoluteTransforms();
 			auto s = transforms[1];
 			auto t = transforms[0];
+			auto r = transforms[2];
 
 			// Apply parent scaling to the position and scale to make up for not using the scale transform below
 			glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x * s.x, m_scale.y * s.y, m_scale.z * s.z);
 			glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x * s.x, m_pos.y * s.y, m_pos.z * s.z);
 
-			// Seperate out rotation and translation transformations from scaling to prevent shearing (unwanted)
-			glm::mat4 unscaled = p_parent->GetMatrix();
-			unscaled[0][0] = unscaled[0][0] / s.x;
-			unscaled[1][1] = unscaled[1][1] / s.y;
-			unscaled[2][2] = unscaled[2][2] / s.z;
-			m_transform = (unscaled) * (trans_mat * rot_mat * scale_mat);
+			// Undo scaling to prevent shearing
+			m_transform = p_parent->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
 		}
 
 

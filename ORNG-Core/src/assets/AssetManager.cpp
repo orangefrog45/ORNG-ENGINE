@@ -382,7 +382,7 @@ namespace ORNG {
 			if (!p_material)
 				continue;
 
-			SerializeAssetBinary(".\\res\\materials\\" + p_material->name + ".omat", *p_material);
+			SerializeAssetBinary(".\\res\\materials\\" + std::format("{}{}", p_material->name, p_material->uuid()) + ".omat", *p_material);
 
 		}
 

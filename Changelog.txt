@@ -1,4 +1,6 @@
 12/10/23:
+-More bugfixes to transforms and gizmos
+-Material naming conflict during serialization fixed
 -Rotation error in transform hierarchies fixed, unoptimized
 
 10/10/23:

@@ -211,10 +211,5 @@ Bloom:
   Knee: 0.100000001
   Threshold: 1)"
 
-#define ORNG_BASE_ASSET_YAML R"(TextureAssets:
-  []
-Materials:
-  []
-)"
 }
 

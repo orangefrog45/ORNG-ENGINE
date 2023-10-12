@@ -601,9 +601,6 @@ namespace ORNG {
 		s << ORNG_BASE_SCENE_YAML;
 		s.close();
 
-		std::ofstream a{ project_path + "/assets.yml" };
-		a << ORNG_BASE_ASSET_YAML;
-		a.close();
 
 		std::filesystem::create_directory(project_path + "/res");
 		std::filesystem::create_directory(project_path + "/res/meshes");
@@ -679,7 +676,7 @@ namespace ORNG {
 			YAML::Node data = YAML::Load(str_stream.str());
 			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
 				std::filesystem::copy_file(dir_path + "/scene.yml", dir_path + "/sceneCORRUPTED.yml");
-				ORNG_CORE_WARN("scene.yml file is corrupted, replacing with default template");
+				ORNG_CORE_ERROR("scene.yml file is corrupted, replacing with default template");
 				std::ofstream s{ dir_path + "/scene.yml" };
 				s << ORNG_BASE_SCENE_YAML;
 				s.close();
@@ -1446,21 +1443,26 @@ namespace ORNG {
 			glm::vec3 delta_rotation = matrix_rotation;
 
 			for (auto* p_transform : transforms) {
-				auto current_transforms = p_transform->GetAbsoluteTransforms();
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
-					p_transform->SetAbsolutePosition(current_transforms[0] + delta_translation);
+					p_transform->SetPosition(p_transform->m_pos + delta_translation);
 					break;
 				case ImGuizmo::SCALE:
-					p_transform->SetAbsoluteScale(p_transform->GetScale() * delta_scale);
+					p_transform->SetScale(p_transform->m_scale * delta_scale);
 					break;
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
-					glm::vec3 abs_rotation = current_transforms[2];
-					glm::vec3 inherited_rotation = abs_rotation - p_transform->GetOrientation();
-					glm::vec3 local_rot = glm::inverse(glm::quat(glm::radians(inherited_rotation))) * glm::vec4(glm::radians(delta_rotation), 0.0);
-					glm::vec3 total = glm::eulerAngles(glm::quat(local_rot) * glm::quat(glm::radians(p_transform->m_orientation)));
-					total = glm::degrees(total);
-					p_transform->SetOrientation(total);
+					auto current_transforms = p_transform->GetAbsoluteTransforms();
+					if (auto* p_parent_transform = p_transform->GetParent()) {
+						glm::vec3 s = current_transforms[1];
+						glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z));
+						glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
+						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
+						p_transform->SetOrientation(glm::degrees(total));
+					}
+					else {
+						auto orientation = glm::degrees(glm::eulerAngles(glm::quat(glm::radians(delta_rotation)) * glm::quat(glm::radians(p_transform->m_orientation))));
+						p_transform->SetOrientation(orientation.x, orientation.y, orientation.z);
+					}
 
 					glm::vec3 abs_translation = current_transforms[0];
 					glm::vec3 transformed_pos = abs_translation - base_abs_translation;
