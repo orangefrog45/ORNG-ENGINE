@@ -16,6 +16,8 @@ namespace ORNG {
 
 	class AudioComponent : public Component {
 		friend class AudioSystem;
+		friend class EditorLayer;
+		friend class SceneSerializer;
 	public:
 		AudioComponent() = delete;
 		explicit AudioComponent(SceneEntity* p_entity) : Component(p_entity) { };
@@ -36,6 +38,7 @@ namespace ORNG {
 		}
 
 		void Play(uint64_t uuid = INVALID_SOUND_UUID) {
+			// Large event, pass off to audiosystem to handle
 			if (uuid == INVALID_SOUND_UUID) {
 				if (m_sound_asset_uuid == INVALID_SOUND_UUID) {
 					ORNG_CORE_ERROR("AudioComponent::Play failed, component does not have a valid sound uuid");
@@ -50,38 +53,39 @@ namespace ORNG {
 			}
 		}
 
-		void Pause() {
-			DispatchAudioEvent(0, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PAUSE);
-		}
-
-		void SetPitch(float p) {
-			DispatchAudioEvent(p, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::SET_PITCH);
-		}
-
-		void SetVolume(float v) {
-			DispatchAudioEvent(v, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::SET_VOLUME);
-		}
-
 		struct AudioRange {
 			AudioRange(float t_min, float t_max) : min(t_min), max(t_max) {};
-			float min = 0.f;
-			float max = 100.f;
+			float min;
+			float max;
 		};
 
-		void SetMinMaxRange(float min, float max) {
-			DispatchAudioEvent(AudioRange(min, max), Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::SET_RANGE);
-		}
+		void SetPaused(bool b);
+		void SetPitch(float p);
+		void SetMinMaxRange(float min, float max);
+		void SetVolume(float v);
+		void SetPlaybackPosition(float time_in_ms);
+
+		float GetVolume();
+		float GetPitch();
+		AudioRange GetMinMaxRange();
+		bool IsPlaying();
+		bool IsPaused();
+		// Returns playback position in ms
+		unsigned int GetPlaybackPosition();
+		uint64_t GetAudioAssetUUID() { return m_sound_asset_uuid; }
 
 		enum class AudioEventType {
 			PLAY,
-			PAUSE,
-			SET_PITCH,
-			SET_VOLUME,
-			SET_RANGE
 		};
 
 	private:
 		uint64_t m_sound_asset_uuid = INVALID_SOUND_UUID;
+
+		// Have to store a copy of this state here because it's not retrievable in the channel if the channel isn't actively playing
+		float m_volume = 1.f;
+		float m_pitch = 1.f;
+		AudioRange m_range{ 0.1f, 10000.f };
+
 
 		// Memory managed by AudioSystem
 		FMOD_VECTOR* mp_fmod_pos = nullptr;

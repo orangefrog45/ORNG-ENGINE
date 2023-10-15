@@ -33,11 +33,6 @@ namespace ORNG {
 
 
 
-	glm::vec3 TransformComponent::GetPosition() const {
-		return m_pos;
-	}
-
-
 	std::array<glm::vec3, 3> TransformComponent::GetAbsoluteTransforms() {
 		// Sum all parent transforms to get absolute position
 		TransformComponent* p_parent_transform = GetParent();
@@ -48,8 +43,6 @@ namespace ORNG {
 
 		if (!p_parent_transform || m_is_absolute)
 			return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
-
-
 
 		while (p_parent_transform) {
 			abs_rotation += p_parent_transform->m_orientation;

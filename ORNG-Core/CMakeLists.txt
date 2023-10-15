@@ -63,7 +63,7 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
- "src/scene/SceneManager.cpp" "src/util/util.cpp"  )
+ "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp")
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}

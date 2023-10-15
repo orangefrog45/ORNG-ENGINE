@@ -99,7 +99,7 @@ namespace ORNG {
 		const glm::mat4x4& GetMatrix() const { return m_transform; };
 
 
-		glm::vec3 GetPosition() const;
+		glm::vec3 GetPosition() const { return m_pos; };
 		glm::vec3 GetScale() const { return m_scale; };
 		glm::vec3 GetOrientation() const { return m_orientation; };
 

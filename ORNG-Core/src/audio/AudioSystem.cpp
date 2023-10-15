@@ -97,6 +97,14 @@ namespace ORNG {
 		auto pos = e_event.affected_components[0]->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 		e_event.affected_components[0]->mp_fmod_pos = new FMOD_VECTOR{ pos.x, pos.y, pos.z };
 		e_event.affected_components[0]->mp_fmod_vel = new FMOD_VECTOR{ 0, 0, 0 };
+
+		e_event.affected_components[0]->SetSoundAssetUUID(ORNG_BASE_SOUND_ID);
+
+		auto* p_asset = AssetManager::GetAsset<SoundAsset>(ORNG_BASE_SOUND_ID);
+
+		// Default initialize channel with the base sound
+		if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
+			ORNG_CORE_ERROR("Error initializing audio component with base sound '{0}', '{1}'", p_asset->source_filepath, FMOD_ErrorString(result));
 	}
 
 	void AudioSystem::OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event) {
@@ -105,7 +113,6 @@ namespace ORNG {
 			using enum AudioComponent::AudioEventType;
 		case (uint32_t)PLAY:
 		{
-			ORNG_CORE_CRITICAL("PLAY EVENT");
 			uint64_t uuid = std::any_cast<uint64_t>(e_event.data_payload);
 			auto* p_asset = AssetManager::GetAsset<SoundAsset>(uuid);
 
@@ -120,25 +127,13 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", p_asset->source_filepath, FMOD_ErrorString(result));
 
 			p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel);
+			p_sound_comp->mp_channel->setVolume(p_sound_comp->m_volume);
+			p_sound_comp->mp_channel->set3DMinMaxDistance(p_sound_comp->m_range.min, p_sound_comp->m_range.max);
+			p_sound_comp->mp_channel->setPitch(p_sound_comp->m_pitch);
 			p_sound_comp->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF);
 			p_sound_comp->mp_channel->setPaused(false);
 			break;
 		}
-		case (uint32_t)SET_PITCH:
-			p_sound_comp->mp_channel->setPitch(std::any_cast<float>(e_event.data_payload));
-			break;
-		case (uint32_t)SET_VOLUME:
-			p_sound_comp->mp_channel->setVolume(std::any_cast<float>(e_event.data_payload));
-			break;
-		case (uint32_t)SET_RANGE:
-		{
-			AudioComponent::AudioRange range = std::any_cast<AudioComponent::AudioRange>(e_event.data_payload);
-			p_sound_comp->mp_channel->set3DMinMaxDistance(range.min, range.max);
-			break;
-		}
-		case (uint32_t)PAUSE:
-			p_sound_comp->mp_channel->setPaused(true);
-			break;
 		}
 	}
 }

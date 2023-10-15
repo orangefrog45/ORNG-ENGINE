@@ -16,6 +16,7 @@
 #include "core/Input.h"
 #include "util/ExtraUI.h"
 #include <glm/glm/gtx/quaternion.hpp>
+#include <fmod.hpp>
 
 
 
@@ -400,13 +401,13 @@ namespace ORNG {
 		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight() - toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 
-		ImGui::Begin("##left window", (bool*)0, 0);
+		ImGui::Begin("##left window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus);
 		ImGui::End();
 
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - 450, toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(450, Window::GetHeight() - toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize)) {
+		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
 			DisplayEntityEditor();
 		}
 		ImGui::End();
@@ -449,7 +450,7 @@ namespace ORNG {
 
 		m_asset_manager_window.OnMainRender();
 
-		if (ImGui::IsMouseDoubleClicked(0)) {
+		if (ImGui::IsMouseDoubleClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
 			DoPickingPass();
 		}
 
@@ -1304,34 +1305,118 @@ namespace ORNG {
 	void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		ImGui::PushID(p_audio);
 
-		static float volume = 1.f;
+		ImGui::PushItemWidth(200.f);
+		static float volume = p_audio->GetVolume();
+		volume = p_audio->GetVolume();
+		ImGui::Text("Volume");
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 300.f);
 		if (ImGui::InputFloat("##volume", &volume)) {
 			p_audio->SetVolume(volume);
 		}
 
-		static float pitch = 1.f;
+		static float pitch = p_audio->GetPitch();
+		pitch = p_audio->GetPitch();
+		ImGui::Text("Pitch");
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 300.f);
 		if (ImGui::InputFloat("##pitch", &pitch)) {
 			p_audio->SetPitch(pitch);
 		}
 
-		static float min_range = 1.f;
-		static float max_range = 1.f;
-		if (ImGui::InputFloat("##min_range", &min_range) || ImGui::InputFloat("##max_range", &max_range)) {
+		auto range = p_audio->GetMinMaxRange();
+		static float min_range = range.min;
+		min_range = range.min;
+		static float max_range = range.max;
+		max_range = range.max;
+
+		ImGui::Text("Min range");
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 300.f);
+		if (ImGui::InputFloat("##min_range", &min_range)) {
 			p_audio->SetMinMaxRange(min_range, max_range);
 		}
+		ImGui::Text("Max range");
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 300.f);
+		if (ImGui::InputFloat("##max_range", &max_range)) {
+			p_audio->SetMinMaxRange(min_range, max_range);
+		}
+		ImGui::PopItemWidth();
 
-		if (ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, ImVec2(100, 100))) {
+
+		ImGui::Separator();
+		auto* p_sound = AssetManager::GetAsset<SoundAsset>(p_audio->m_sound_asset_uuid);
+		ImVec2 prev_curs_pos = ImGui::GetCursorPos();
+		constexpr unsigned playback_widget_width = 400;
+		constexpr unsigned playback_widget_height = 20;
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+		ExtraUI::ColoredButton("##playback bg", ImVec4{ 0.25, 0.25, 0.25, 1 }, ImVec2(playback_widget_width, playback_widget_height));
+
+		unsigned int position;
+		p_audio->mp_channel->getPosition(&position, FMOD_TIMEUNIT_MS);
+		unsigned int total_length;
+		p_sound->p_sound->getLength(&total_length, FMOD_TIMEUNIT_MS);
+
+		ImGui::SetCursorPos(prev_curs_pos);
+		ExtraUI::ColoredButton("##playback position", orange_color_dark, ImVec2(playback_widget_width * ((float)position / (float)total_length), playback_widget_height));
+		ImGui::PopStyleVar();
+		ImGui::SetCursorPos(prev_curs_pos);
+		ImGui::Text(std::format("{}:{}", position, total_length).c_str());
+
+		ImVec2 wp = ImGui::GetWindowPos();
+
+		static bool was_paused = true;
+		static bool first_mouse_down = false;
+		if (ImGui::IsMouseHoveringRect(ImVec2{ wp.x + prev_curs_pos.x, wp.y + prev_curs_pos.y }, ImVec2{ wp.x + prev_curs_pos.x + playback_widget_width, wp.y + prev_curs_pos.y + playback_widget_height })) {
+			if (ImGui::IsMouseDown(0)) {
+				// Channel needs to be playing to set playback position
+				if (!p_audio->IsPlaying()) {
+					p_audio->Play();
+					p_audio->SetPaused(true);
+				}
+
+				if (!first_mouse_down) {
+					was_paused = p_audio->IsPaused();
+					first_mouse_down = true;
+					p_audio->SetPaused(true);
+				}
+
+
+				ImVec2 mouse_pos = ImGui::GetMousePos();
+				ImVec2 local_mouse{ mouse_pos.x - (wp.x + prev_curs_pos.x), mouse_pos.y - (wp.y + prev_curs_pos.y) };
+
+				p_audio->mp_channel->setPosition(((float)local_mouse.x / playback_widget_width) * (float)total_length, FMOD_TIMEUNIT_MS);
+			}
+		}
+		if (first_mouse_down && ImGui::IsMouseReleased(0)) {
+			first_mouse_down = false;
+			p_audio->SetPaused(was_paused);
+		}
+
+		if (!p_audio->IsPlaying() && ImGui::SmallButton(ICON_FA_PLAY)) {
 			p_audio->Play();
 		}
 
+		if (p_audio->IsPlaying()) {
+			if (!p_audio->IsPaused() && ImGui::SmallButton(ICON_FA_PAUSE)) {
+				p_audio->SetPaused(true);
+			}
+
+			if (p_audio->IsPaused() && ImGui::SmallButton(ICON_FA_PLAY)) {
+				p_audio->SetPaused(false);
+			}
+		}
+
+
+		ImGui::Button(ICON_FA_MUSIC, ImVec2{ 100, 100 });
+		if (ImGui::BeginItemTooltip()) {
+			ImGui::Text("Drop a sound asset here");
+			ImGui::EndTooltip();
+		}
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("AUDIO"); p_payload && p_payload->DataSize == sizeof(SoundAsset*)) {
 				p_audio->SetSoundAssetUUID((*static_cast<SoundAsset**>(p_payload->Data))->uuid());
 			}
 		}
 
-
-
+		ImGui::Text(p_sound->source_filepath.substr(p_sound->source_filepath.rfind("\\") + 1).c_str());
 
 		ImGui::PopID(); // p_audio
 	}
@@ -1453,7 +1538,7 @@ namespace ORNG {
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
 					auto current_transforms = p_transform->GetAbsoluteTransforms();
 					if (auto* p_parent_transform = p_transform->GetParent()) {
-						glm::vec3 s = current_transforms[1];
+						glm::vec3 s = p_parent_transform->GetAbsoluteTransforms()[1];
 						glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z));
 						glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
 						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));

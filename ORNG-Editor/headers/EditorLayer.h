@@ -17,7 +17,6 @@ namespace ORNG {
 	public:
 		void Init();
 		enum EntityNodeEvent {
-
 			E_NONE = 0,
 			E_DELETE = 1,
 			E_DUPLICATE = 2
@@ -110,7 +109,6 @@ namespace ORNG {
 			else if (!m_selected_entity_ids.empty())
 				// Makes the selected entity the first ID, which some UI components will operate on more, e.g gizmos will render on this entity now over other selected ones
 				std::iter_swap(std::ranges::find(m_selected_entity_ids, id), m_selected_entity_ids.begin());
-
 		}
 
 
@@ -164,7 +162,7 @@ namespace ORNG {
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
 		std::unique_ptr<Scene> m_active_scene = nullptr;
 
-		std::unique_ptr<SceneEntity> mp_editor_camera{nullptr };
+		std::unique_ptr<SceneEntity> mp_editor_camera{ nullptr };
 
 		uint64_t m_mouse_selected_entity_id = 0;
 
@@ -187,6 +185,7 @@ namespace ORNG {
 		// STYLING
 		const float opacity = 1.f;
 		const ImVec4 orange_color = ImVec4(0.9f, 0.2f, 0.05f, opacity);
+		const ImVec4 orange_color_dark = ImVec4(0.5f, 0.1f, 0.025f, opacity);
 		const ImVec4 orange_color_bright = ImVec4(0.9f, 0.2f, 0.0f, opacity);
 		const ImVec4 orange_color_brightest = ImVec4(0.9f, 0.2f, 0.0f, opacity);
 		const ImVec4 dark_grey_color = ImVec4(0.1f, 0.1f, 0.1f, opacity);
@@ -210,6 +209,4 @@ Bloom:
   Intensity: 1
   Knee: 0.100000001
   Threshold: 1)"
-
 }
-

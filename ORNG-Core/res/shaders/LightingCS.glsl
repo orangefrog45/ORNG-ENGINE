@@ -103,7 +103,6 @@ layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 
 vec3 WorldPosFromDepth(float depth) {
-
 	vec2 normalized_tex_coords = tex_coords / vec2(imageSize(u_output_texture));
     vec4 clipSpacePosition = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
     vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
@@ -177,7 +176,6 @@ vec2 CalcBlockerDistanceDirectional(vec3 proj_coord, vec2 texel_size, int sample
 		int valid = int(z < proj_coord.z);
 		blockers += valid;
 		avg_blocker += z * valid;
-
 	}
 
 	avg_blocker /= float(blockers);
@@ -288,13 +286,10 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 
 		float pcf_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy + offset * texel_size), index)).r;
 		shadow += current_depth > pcf_depth ? 1.0f : 0.0f;
-
 	}
 
 	/*Take average of PCF*/
 	return shadow / 16.0;
-
-
 }
 
 
@@ -320,7 +315,6 @@ float DistributionGGX(vec3 h) {
 }
 
 float GeometrySchlickGGX(float n_dot_v) {
-
 	float r = (roughness + 1.0);
 	float k = (r * r) / 8.0;
 
@@ -369,21 +363,20 @@ vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0, int index) {
 	kd *= 1.0 - metallic;
 
 	float n_dot_l = max(dot(sampled_normal, l), 0.0);
-	
+
 
 	return (kd * sampled_albedo.xyz / PI + specular) * n_dot_l * (light.color.xyz / attenuation);
-
 }
 
 
 vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index) {
-
 	vec3 frag_to_light = light.pos.xyz - sampled_world_pos.xyz;
 	float spot_factor = dot(normalize(frag_to_light), -light.dir.xyz);
-	if (spot_factor >= 0.99)
-		return vec3(0.0);
 
 	vec3 color = vec3(0);
+
+	if (spot_factor < 0.0001)
+		return color;
 
 	float distance = length(frag_to_light);
 	float attenuation = light.constant +
@@ -413,7 +406,6 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index) {
 
 
 vec3 CalcDirectionalLight(vec3 v, vec3 f0) {
-
 	vec3 l = ubo_global_lighting.directional_light.direction.xyz;
 	vec3 h = normalize(v + l);
 	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
@@ -458,7 +450,7 @@ void main()
 	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz));
 	total_light += CalcDirectionalLight(v, f0) * (1.0 - shadow);
 
-	// Ambient 
+	// Ambient
 	vec3 ks = FresnelSchlickRoughness(n_dot_v, f0);
 	vec3 kd = 1.0 - ks;
 	kd *= 1.0 - metallic;;
@@ -479,7 +471,6 @@ void main()
 
 	for (int i = 0; i < ubo_point_lights_shadowless.lights.length(); i++) {
 		total_light += (CalcPointLight(ubo_point_lights_shadowless.lights[i], v, f0, i));
-
 	}
 
 	 //Spotlights

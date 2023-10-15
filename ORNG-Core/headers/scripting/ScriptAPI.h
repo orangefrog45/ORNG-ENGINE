@@ -45,7 +45,7 @@
 #undef ORNG_CORE_WARN
 #endif
 #ifdef ORNG_CORE_ERROR
-#undef ORNG_CORE_ERROR 
+#undef ORNG_CORE_ERROR
 #endif
 #ifdef ORNG_CORE_CRITICAL
 #undef ORNG_CORE_CRITICAL
@@ -58,7 +58,6 @@ extern "C" {
 	}
 
 	namespace ScriptInterface {
-
 		class Input {
 		public:
 			static bool IsKeyDown(char key) {
@@ -161,10 +160,12 @@ extern "C" {
 			ScriptInterface::Scene::InstantiatePrefab = func;
 		}
 
+		__declspec(dllexport) void SetGetEntityCallback(std::function<ORNG::SceneEntity& (uint64_t)> func) {
+			ScriptInterface::Scene::GetEntity = func;
+		}
+
 		__declspec(dllexport) void SetRaycastCallback(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)> func) {
 			ScriptInterface::Scene::Raycast = func;
 		}
-
 	}
-
 }

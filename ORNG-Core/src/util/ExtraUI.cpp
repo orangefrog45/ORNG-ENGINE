@@ -3,8 +3,6 @@
 #include "util/util.h"
 
 namespace ORNG {
-
-
 	void ExtraUI::NameWithTooltip(const std::string& name) {
 		ImGui::SeparatorText(name.c_str());
 		// Tooltip to reveal full name in case it overflows
@@ -51,7 +49,7 @@ namespace ORNG {
 		ofn.Flags = OFN_EXPLORER | OFN_ALLOWMULTISELECT | OFN_PATHMUSTEXIST;
 
 		// This needs to be stored to keep relative filepaths working, otherwise the working directory will be changed
-		std::filesystem::path prev_path{std::filesystem::current_path().generic_string()};
+		std::filesystem::path prev_path{ std::filesystem::current_path().generic_string() };
 		// Display the File Open dialog
 		if (GetOpenFileNameW(&ofn))
 		{
@@ -88,11 +86,7 @@ namespace ORNG {
 				currentFileName += wcslen(currentFileName) + 1;
 				single_file = false;
 			}
-
-
-
 		}
-
 	}
 
 
@@ -215,9 +209,9 @@ namespace ORNG {
 		return (ImGui::BeginPopup(id));
 	}
 
-	bool ExtraUI::ColoredButton(const char* content, ImVec4 col) {
+	bool ExtraUI::ColoredButton(const char* content, ImVec4 col, ImVec2 size) {
 		ImGui::PushStyleColor(ImGuiCol_Button, col);
-		bool ret = ImGui::Button(content);
+		bool ret = ImGui::Button(content, size);
 		ImGui::PopStyleColor();
 		return ret;
 	}
@@ -251,7 +245,4 @@ namespace ORNG {
 
 		return ret;
 	}
-
-
-
 }

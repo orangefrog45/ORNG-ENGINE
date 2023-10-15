@@ -18,15 +18,19 @@
 
 
 namespace ORNG {
-
 	void AssetManager::I_Init() {
 		glfwWindowHint(GLFW_VISIBLE, 0);
 		mp_loading_context = glfwCreateWindow(100, 100, "ASSET_LOADING_CONTEXT", nullptr, Window::GetGLFWwindow());
+		m_replacement_material.uuid = UUID(ORNG_BASE_MATERIAL_UUID);
+		AddAsset(&m_replacement_material);
+		m_base_sound.uuid = UUID(ORNG_BASE_SOUND_ID);
+		AddAsset(&m_base_sound);
+		m_base_sound.source_filepath = m_base_sound.filepath;
+		m_base_sound.CreateSound();
 
 		// Each frame, check if any meshes have finished loading vertex data and load them into GPU if they have
 		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
 			if (t_event.event_type == Events::EngineCoreEvent::EventType::ENGINE_UPDATE) {
-
 				for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
 					[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
 						auto* p_mesh = m_mesh_loading_queue[i].get();
@@ -41,13 +45,11 @@ namespace ORNG {
 						e_event.data_payload = reinterpret_cast<uint8_t*>(p_mesh);
 						Events::EventManager::DispatchEvent(e_event);
 					}
-
 				}
 			}
-		};
+			};
 
 		Events::EventManager::RegisterListener(m_update_listener);
-
 	}
 
 	void AssetManager::IStallUntilMeshesLoaded() {
@@ -66,10 +68,8 @@ namespace ORNG {
 					m_texture_futures.clear();
 					DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_mesh_asset));
 				}
-
 			}
 		}
-
 	}
 
 	void AssetManager::DispatchAssetEvent(Events::AssetEventType type, uint8_t* data_payload) {
@@ -80,18 +80,20 @@ namespace ORNG {
 	}
 
 	void AssetManager::IClearAll() {
-
 		auto it = m_assets.begin();
 		while (it != m_assets.end()) {
+			if (it->first == ORNG_REPLACEMENT_MATERIAL_ID || it->first == ORNG_BASE_SOUND_ID) {
+				it++;
+				continue;
+			}
+
 			HandleAssetDeletion(it->second);
 			delete it->second;
 			it = m_assets.erase(it);
 		}
-		m_assets.clear();
 	}
 
 	void AssetManager::LoadTexture2D(Texture2D* p_tex) {
-
 		static std::mutex m;
 		Get().m_texture_futures.push_back(std::async(std::launch::async, [p_tex] {
 			m.lock();
@@ -101,16 +103,13 @@ namespace ORNG {
 			glfwMakeContextCurrent(nullptr);
 			m.unlock();
 			}));
-
 	}
 
 
 
 	void AssetManager::OnTextureDelete(Texture2D* p_tex) {
-
 		// If any materials use this texture, remove it from them
 		for (auto& [key, p_asset] : Get().m_assets) {
-
 			auto* p_material = dynamic_cast<Material*>(p_asset);
 			if (!p_material)
 				continue;
@@ -122,7 +121,6 @@ namespace ORNG {
 			p_material->metallic_texture = p_material->metallic_texture == p_tex ? nullptr : p_material->metallic_texture;
 			p_material->roughness_texture = p_material->roughness_texture == p_tex ? nullptr : p_material->roughness_texture;
 		}
-
 	}
 
 
@@ -130,7 +128,6 @@ namespace ORNG {
 
 
 	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset) {
-
 		if (asset->m_is_loaded) {
 			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->filepath);
 			return;
@@ -166,7 +163,7 @@ namespace ORNG {
 				p_new_material->metallic_texture = CreateMeshAssetTexture(dir, aiTextureType_METALNESS, p_material);
 				p_new_material->ao_texture = CreateMeshAssetTexture(dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
 
-				// Load material properties 
+				// Load material properties
 				aiColor3D base_color(0.0f, 0.0f, 0.0f);
 				if (p_material->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
 					p_new_material->base_color.r = base_color.r;
@@ -188,15 +185,12 @@ namespace ORNG {
 					&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
 					DeleteAsset(p_new_material);
 				}
-
-
 			}
 		}
 
 		asset->PopulateBuffers();
 		asset->m_is_loaded = true;
 		DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(asset));
-
 	}
 
 	void AssetManager::LoadMeshAsset(MeshAsset* p_asset) {
@@ -238,7 +232,6 @@ namespace ORNG {
 				p_tex = AddAsset(p_tex);
 				Get().LoadTexture2D(p_tex);
 			}
-
 		}
 
 		return p_tex;
@@ -265,7 +258,6 @@ namespace ORNG {
 		else if (auto* p_script = dynamic_cast<ScriptAsset*>(p_asset)) {
 			ScriptingEngine::UnloadScriptDLL(p_script->symbols.script_path);
 		}
-
 	}
 
 
@@ -286,7 +278,6 @@ namespace ORNG {
 
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
-
 			if (entry.is_directory() || entry.path().extension() != ".bin")
 				continue;
 
@@ -360,15 +351,10 @@ namespace ORNG {
 				AddAsset(new ScriptAsset(symbols));
 			}
 		}
-
-
-
 	}
 
 
 	void AssetManager::SerializeAssets() {
-
-
 		for (const auto& [uuid, p_asset] : Get().m_assets) {
 			auto* p_tex_asset = dynamic_cast<Texture2D*>(p_asset);
 			if (!p_tex_asset)
@@ -379,19 +365,20 @@ namespace ORNG {
 
 		for (const auto& [uuid, p_asset] : Get().m_assets) {
 			auto* p_material = dynamic_cast<Material*>(p_asset);
-			if (!p_material)
+			if (!p_material || p_material->uuid() == ORNG_BASE_MATERIAL_UUID)
 				continue;
 
-			SerializeAssetBinary(".\\res\\materials\\" + std::format("{}{}", p_material->name, p_material->uuid()) + ".omat", *p_material);
-
+			SerializeAssetBinary(".\\res\\materials\\" + std::format("{}", p_material->uuid()) + ".omat", *p_material);
 		}
 
 		for (auto* p_sound : Get().GetView<SoundAsset>()) {
+			if (p_sound->uuid() == ORNG_BASE_SOUND_ID)
+				continue;
+
 			std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
 			fn = fn.substr(0, fn.rfind(".osound"));
 			SerializeAssetBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
 		}
-
 	}
 
 

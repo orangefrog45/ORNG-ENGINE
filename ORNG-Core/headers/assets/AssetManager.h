@@ -9,6 +9,7 @@
 #include "bitsery/traits/string.h"
 
 #define ORNG_REPLACEMENT_MATERIAL_ID 0
+#define ORNG_BASE_SOUND_ID 1
 
 class GLFWwindow;
 enum aiTextureType;
@@ -88,6 +89,7 @@ namespace ORNG {
 		~SoundAsset();
 
 		FMOD::Sound* p_sound = nullptr;
+		// Filepath of audio data, separate from the filepath of this asset (.osound file)
 		std::string source_filepath;
 
 		template<typename S>
@@ -306,7 +308,11 @@ namespace ORNG {
 
 		void IClearAll();
 
+		// If a material fails to load etc, use this one instead
 		Material m_replacement_material{ (uint64_t)ORNG_REPLACEMENT_MATERIAL_ID };
+
+		// Default-initialize audio components with this sound asset
+		SoundAsset m_base_sound{ORNG_CORE_MAIN_DIR "\\res\\audio\\mouse-click.mp3"};
 
 		std::unordered_map<uint64_t, Asset*> m_assets;
 

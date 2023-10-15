@@ -134,8 +134,6 @@ float ShadowCalculationSpotlight(SpotLight light, float light_index, vec3 sample
 
 
 float ShadowCalculationDirectional(vec3 light_dir, vec3 world_pos) {
-
-
 	vec3 proj_coords = vec3(0);
 	float frag_distance_from_cam = length(world_pos.xyz - ubo_common.camera_pos.xyz);
 
@@ -165,13 +163,11 @@ float ShadowCalculationDirectional(vec3 light_dir, vec3 world_pos) {
 	float sampled_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy), index)).r;
 	shadow = current_depth > sampled_depth ? 1.0f : 0.0f;
 	return shadow;
-
 }
 
 
 
 vec3 CalcPointLight(PointLight light, vec3 world_pos) {
-
 	float distance = length(light.pos.xyz - world_pos);
 
 	if (distance > light.max_distance)
@@ -189,7 +185,6 @@ vec3 CalcPointLight(PointLight light, vec3 world_pos) {
 
 
 vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
-
 	vec3 frag_to_light = light.pos.xyz - world_pos.xyz;
 	float distance = length(frag_to_light);
 
@@ -226,7 +221,6 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 
 
 vec3 GetWorldSpacePos(vec2 tex_coords, float depth) {
-
 	vec2 normalized_tex_coords = tex_coords / (vec2(imageSize(fog_texture)));
     vec4 clipSpacePosition = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
     vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
@@ -269,15 +263,15 @@ float fbm(vec3 p)
 {
     vec3 q = p;
     //q.xy = rotate(p.xy, ubo_common.time_elapsed);
-    
+
     p += (noise(p * 3.0) - 0.5) * 0.3;
-    
+
     //float v = nse3d(p) * 0.5 + nse3d(p * 2.0) * 0.25 + nse3d(p * 4.0) * 0.125 + nse3d(p * 8.0) * 0.0625;
-    
+
     //p.y += ubo_common.time_elapsed * 0.2;
-    
+
     float mtn = ubo_common.time_elapsed * 0.0001;
-    
+
     float v = 0.0;
     float fq = 1.0, am = 0.5;
     for(int i = 0; i < 6; i++)
@@ -292,10 +286,10 @@ float fbm(vec3 p)
 
 
 void main() {
-	// Tex coords in range (0, 0), (screen width, screen height)
+	// Tex coords in range (0, 0), (screen width, screen height) / 2
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy) ;
 
-	float noise_offset = texelFetch(blue_noise_sampler, ivec2(tex_coords.xy % textureSize(blue_noise_sampler, 0).xy), 0).r;
+	float noise_offset = texelFetch(blue_noise_sampler, ivec2((tex_coords.xy) % textureSize(blue_noise_sampler, 0).xy), 0).r;
 
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
 	vec3 frag_world_pos = GetWorldSpacePos(tex_coords, fragment_depth);
@@ -314,9 +308,10 @@ void main() {
 
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) ;
+		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
 		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = noise(fog_sampling_coords) * u_density_coef;
+		fog_density += u_density_coef * 0.5f;
 
 		vec3 slice_light = vec3(0);
 
@@ -333,10 +328,8 @@ void main() {
 
 		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, extinction_coef);
 		step_pos += ray_dir * step_distance;
-
 	}
 
-	vec4 fog_color = vec4(u_fog_color * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 5).rgb * u_emissive, 1.0 - accum.a );
+	vec4 fog_color = vec4(u_fog_color * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 4).rgb * u_emissive, 1.0 - accum.a );
 	imageStore(fog_texture, tex_coords, fog_color);
-
 })""

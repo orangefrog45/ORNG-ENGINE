@@ -21,6 +21,7 @@ namespace ORNG {
 	typedef void(__cdecl* FrameTimingSetter)(FrameTiming*);
 	typedef void(__cdecl* CreateEntitySetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* DeleteEntitySetter)(std::function<void(SceneEntity* p_entity)>);
+	typedef void(__cdecl* GetEntitySetter)(std::function<SceneEntity& (uint64_t entity_uuid)>);
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
 	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* RaycastSetter)(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>);
@@ -45,6 +46,7 @@ namespace ORNG {
 		DuplicateEntitySetter SceneEntityDuplicationSetter = [](std::function<SceneEntity& (SceneEntity& p_entity)>) {};
 		InstantiatePrefabSetter ScenePrefabInstantSetter = [](std::function<SceneEntity& (const std::string&)>) {};
 		RaycastSetter SceneRaycastSetter = [](std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>) {};
+		GetEntitySetter SceneGetEntitySetter = [](std::function<SceneEntity& (uint64_t)>) {};
 	};
 
 

@@ -70,9 +70,6 @@ namespace YAML {
 
 
 namespace ORNG {
-
-
-
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
 		out << YAML::Flow;
 		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
@@ -96,7 +93,7 @@ namespace ORNG {
 		YAML::Emitter out;
 
 		SerializeEntity(entity, out);
-		return std::string{out.c_str()};
+		return std::string{ out.c_str() };
 	}
 
 	void SceneSerializer::DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity) {
@@ -189,7 +186,6 @@ namespace ORNG {
 			out << YAML::Key << "Exposure" << YAML::Value << p_cam->exposure;
 
 			out << YAML::EndMap;
-
 		}
 
 		PhysicsComponent* p_physics_comp = entity.GetComponent<PhysicsComponent>();
@@ -204,7 +200,6 @@ namespace ORNG {
 			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->m_geometry_type;
 
 			out << YAML::EndMap;
-
 		}
 
 		ScriptComponent* p_script_comp = entity.GetComponent<ScriptComponent>();
@@ -217,8 +212,12 @@ namespace ORNG {
 		AudioComponent* p_audio_comp = entity.GetComponent<AudioComponent>();
 		if (p_audio_comp) {
 			out << YAML::Key << "AudioComp" << YAML::BeginMap;
+			out << YAML::Key << "Volume" << YAML::Value << p_audio_comp->m_volume;
+			out << YAML::Key << "Pitch" << YAML::Value << p_audio_comp->m_pitch;
+			out << YAML::Key << "AudioUUID" << YAML::Value << p_audio_comp->m_sound_asset_uuid;
+			out << YAML::Key << "MinRange" << YAML::Value << p_audio_comp->m_range.min;
+			out << YAML::Key << "MaxRange" << YAML::Value << p_audio_comp->m_range.max;
 			out << YAML::EndMap;
-
 		}
 
 
@@ -260,7 +259,6 @@ namespace ORNG {
 					p_mesh_comp->m_materials[i] = ids[i] == 0 ? AssetManager::GetEmptyMaterial() : AssetManager::GetAsset<Material>(ids[i]);
 				}
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
-
 			}
 
 
@@ -324,18 +322,21 @@ namespace ORNG {
 			}
 
 			if (tag == "AudioComp") {
-				entity.AddComponent<AudioComponent>();
+				auto audio_node = entity_node["AudioComp"];
+				auto* p_comp = entity.AddComponent<AudioComponent>();
+				p_comp->SetMinMaxRange(audio_node["MinRange"].as<float>(), audio_node["MaxRange"].as<float>());
+				p_comp->SetPitch(audio_node["Pitch"].as<float>());
+				p_comp->SetVolume(audio_node["Volume"].as<float>());
+				p_comp->SetSoundAssetUUID(audio_node["AudioUUID"].as<uint64_t>());
 			}
 		}
-
-
 	}
 
 
 	void SceneSerializer::SerializeSceneUUIDs(const Scene& scene, std::string& output) {
 		std::unordered_set<std::string> names_taken;
 
-		std::ofstream fout{output};
+		std::ofstream fout{ output };
 		fout << "#pragma once" << "\n";
 		fout << "namespace ScriptInterface {\n";
 		fout << "namespace Scene {\n";
@@ -379,8 +380,6 @@ namespace ORNG {
 
 		fout << "};"; // namespace Scene
 		fout << "};"; // namespace ScriptInterface
-
-
 	}
 
 	void SceneSerializer::SerializeScene(const Scene& scene, std::string& output, bool write_to_string) {
@@ -423,7 +422,7 @@ namespace ORNG {
 			output = out.c_str();
 		}
 		else {
-			std::ofstream fout{output};
+			std::ofstream fout{ output };
 			fout << out.c_str();
 		}
 	}
@@ -432,10 +431,9 @@ namespace ORNG {
 
 
 	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool load_env_map, bool input_is_filepath) {
-
 		YAML::Node data;
 
-		// Load yaml from either file or string itself 
+		// Load yaml from either file or string itself
 		if (input_is_filepath) {
 			std::stringstream str_stream;
 			std::ifstream stream(input);
@@ -482,12 +480,5 @@ namespace ORNG {
 		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
 		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
 		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
-
-
 	}
-
-
-
-
-
 }

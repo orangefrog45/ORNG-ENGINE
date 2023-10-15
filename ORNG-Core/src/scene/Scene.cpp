@@ -11,15 +11,12 @@
 
 
 namespace ORNG {
-
-
 	Scene::~Scene() {
 		if (m_is_loaded)
 			UnloadScene();
 	}
 
 	void Scene::Update(float ts) {
-
 		ORNG_PROFILE_FUNC();
 
 		m_camera_system.OnUpdate();
@@ -54,7 +51,6 @@ namespace ORNG {
 
 
 	void Scene::DeleteEntity(SceneEntity* p_entity) {
-
 		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 
 		auto current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
@@ -71,7 +67,6 @@ namespace ORNG {
 		ASSERT(it != m_entities.end());
 		delete p_entity;
 		m_entities.erase(it);
-
 	}
 
 
@@ -200,6 +195,15 @@ namespace ORNG {
 			p_script_asset->symbols.SceneRaycastSetter([this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
 				return m_physics_system.Raycast(origin, unit_dir, max_distance);
 				});
+
+			p_script_asset->symbols.SceneGetEntitySetter([this](uint64_t id) -> SceneEntity& {
+				auto* p_ent = GetEntity(id);
+
+				if (!p_ent)
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with uuid {} not found", id)); // Caught in Scene::Update
+
+				return *GetEntity(id);
+				});
 		}
 	}
 
@@ -237,9 +241,5 @@ namespace ORNG {
 		m_entities.push_back(ent);
 
 		return *ent;
-
 	}
-
-
-
 }
