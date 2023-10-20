@@ -20,6 +20,8 @@
 
 
 
+constexpr unsigned LEFT_WINDOW_WIDTH = 400;
+constexpr unsigned RIGHT_WINDOW_WIDTH = 450;
 
 
 namespace ORNG {
@@ -109,33 +111,11 @@ namespace ORNG {
 			GenerateProject("base-project");
 		}
 
-		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
-		mp_editor_camera->AddComponent<TransformComponent>()->SetPosition(0, 20, 0);
-		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
-		mp_editor_camera->AddComponent<CharacterControllerComponent>();
-
-		// Make sure some project is active
-		std::filesystem::current_path(base_proj_dir);
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", "./res/scripts/includes/Component.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", "./res/scripts/includes/MeshComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", "./res/scripts/includes/ScriptComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", "./res/scripts/includes/Lights.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", "./res/scripts/includes/glm/", true);
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", "./res/scripts/includes/TransformComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
-
-
 		MakeProjectActive(base_proj_dir);
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
+
 
 
 
@@ -209,9 +189,15 @@ namespace ORNG {
 
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
-		if (Window::IsKeyDown('K'))
-			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
+		if (m_fullscreen_scene_display)
+			m_scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - toolbar_height) };
+		else
+			m_scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
+
+
+		if (Input::IsKeyDown(Key::K))
+			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
 
 		float ts = FrameTiming::GetTimeStep();
@@ -230,21 +216,19 @@ namespace ORNG {
 			m_active_scene->terrain.UpdateTerrainQuadtree(m_active_scene->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
 
-
+		// Show/hide ui in simulation mode
+		if (Input::IsKeyPressed(Key::Escape)) {
+			m_render_ui = !m_render_ui;
+		}
 
 		static float cooldown = 0;
 		cooldown -= glm::min(cooldown, ts);
 		if (cooldown > 1)
 			return;
 
-		// Show/hide ui in simulation mode
-		if (Window::IsKeyDown(GLFW_KEY_ESCAPE) && m_fullscreen_scene_display) {
-			cooldown += 1000;
-			m_render_ui = !m_render_ui;
-		}
 
 		// Duplicate entity keybind
-		if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && Window::IsKeyDown('D')) {
+		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyDown(Key::D)) {
 			cooldown += 1000;
 
 			std::vector<uint64_t> duplicate_ids;
@@ -261,7 +245,6 @@ namespace ORNG {
 
 	void EditorLayer::UpdateEditorCam() {
 		static float cam_speed = 0.01f;
-
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
 		auto abs_transforms = p_transform->GetAbsoluteTransforms();
@@ -271,23 +254,23 @@ namespace ORNG {
 			glm::vec3 pos = abs_transforms[0];
 			glm::vec3 movement_vec{ 0.0, 0.0, 0.0 };
 			float time_elapsed = FrameTiming::GetTimeStep();
-			movement_vec += p_transform->right * (float)Window::IsKeyDown(GLFW_KEY_D) * time_elapsed * cam_speed;
-			movement_vec -= p_transform->right * (float)Window::IsKeyDown(GLFW_KEY_A) * time_elapsed * cam_speed;
-			movement_vec += p_transform->forward * (float)Window::IsKeyDown(GLFW_KEY_W) * time_elapsed * cam_speed;
-			movement_vec -= p_transform->forward * (float)Window::IsKeyDown(GLFW_KEY_S) * time_elapsed * cam_speed;
-			movement_vec += glm::vec3(0, 1, 0) * (float)Window::IsKeyDown(GLFW_KEY_E) * time_elapsed * cam_speed;
-			movement_vec -= glm::vec3(0, 1, 0) * (float)Window::IsKeyDown(GLFW_KEY_Q) * time_elapsed * cam_speed;
+			movement_vec += p_transform->right * (float)Input::IsKeyDown(GLFW_KEY_D) * time_elapsed * cam_speed;
+			movement_vec -= p_transform->right * (float)Input::IsKeyDown(GLFW_KEY_A) * time_elapsed * cam_speed;
+			movement_vec += p_transform->forward * (float)Input::IsKeyDown(GLFW_KEY_W) * time_elapsed * cam_speed;
+			movement_vec -= p_transform->forward * (float)Input::IsKeyDown(GLFW_KEY_S) * time_elapsed * cam_speed;
+			movement_vec += glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(GLFW_KEY_E) * time_elapsed * cam_speed;
+			movement_vec -= glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(GLFW_KEY_Q) * time_elapsed * cam_speed;
 			p_transform->SetAbsolutePosition(pos + movement_vec);
 		}
 
 		// Camera rotation
 		static glm::vec2 last_mouse_pos;
 		if (ImGui::IsMouseClicked(1))
-			last_mouse_pos = Window::GetMousePos();
+			last_mouse_pos = Input::GetMousePos();
 
 		if (ImGui::IsMouseDown(1)) {
 			float rotation_speed = 0.005f;
-			glm::vec2 mouse_coords = Window::GetMousePos();
+			glm::vec2 mouse_coords = Input::GetMousePos();
 			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
 
 			glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
@@ -327,11 +310,10 @@ namespace ORNG {
 	void EditorLayer::RenderSceneDisplayPanel() {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, toolbar_height)));
-		m_scene_display_rect = { ImVec2(Window::GetWidth() - 850, Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(LEFT_WINDOW_WIDTH, toolbar_height)));
 		ImGui::SetNextWindowSize(m_scene_display_rect);
 
-		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing)) {
+		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)mp_scene_display_texture->GetTextureHandle(), ImVec2(m_scene_display_rect.x, m_scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
@@ -398,14 +380,14 @@ namespace ORNG {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(15, 5));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, toolbar_height)));
-		ImGui::SetNextWindowSize(ImVec2(400, Window::GetHeight() - toolbar_height));
+		ImGui::SetNextWindowSize(ImVec2(LEFT_WINDOW_WIDTH, Window::GetHeight() - toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 
 		ImGui::Begin("##left window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus);
 		ImGui::End();
 
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - 450, toolbar_height)));
-		ImGui::SetNextWindowSize(ImVec2(450, Window::GetHeight() - toolbar_height));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, toolbar_height)));
+		ImGui::SetNextWindowSize(ImVec2(RIGHT_WINDOW_WIDTH, Window::GetHeight() - toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
 			DisplayEntityEditor();
@@ -692,6 +674,36 @@ namespace ORNG {
 	}
 
 
+	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
+	void RefreshScriptIncludes() {
+		HandledFileDelete("./res/scripts/includes/SceneEntity.h");
+		HandledFileDelete("./res/scripts/includes/Scene.h");
+		HandledFileDelete("./res/scripts/includes/ScriptAPI.h");
+		HandledFileDelete("./res/scripts/includes/Component.h");
+		HandledFileDelete("./res/scripts/includes/MeshComponent.h");
+		HandledFileDelete("./res/scripts/includes/ScriptComponent.h");
+		HandledFileDelete("./res/scripts/includes/Lights.h");
+		HandledFileDelete("./res/scripts/includes/TransformComponent.h");
+		HandledFileDelete("./res/scripts/includes/PhysicsComponent.h");
+		HandledFileDelete("./res/scripts/includes/CameraComponent.h");
+		HandledFileDelete("./res/scripts/includes/EnttSingleInclude.h");
+		HandledFileDelete("./res/scripts/includes/SceneScriptInterface.h");
+		HandledFileDelete("./res/scripts/includes/AudioComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", "./res/scripts/includes/Component.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", "./res/scripts/includes/MeshComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", "./res/scripts/includes/ScriptComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", "./res/scripts/includes/Lights.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", "./res/scripts/includes/glm/", true);
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", "./res/scripts/includes/TransformComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
+		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
+	}
 
 
 	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
@@ -701,13 +713,15 @@ namespace ORNG {
 
 			std::filesystem::current_path(folder_path);
 			m_current_project_directory = folder_path;
+			RefreshScriptIncludes();
 
 			// Deselect material and texture that's about to be deleted
 			m_asset_manager_window.SelectMaterial(nullptr);
 			m_asset_manager_window.SelectTexture(nullptr);
 
 			m_selected_entity_ids.clear();
-			glm::vec3 cam_pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+
+			glm::vec3 cam_pos = mp_editor_camera ? mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0] : glm::vec3{ 0, 0, 0 };
 			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
 
 
@@ -811,12 +825,12 @@ namespace ORNG {
 			Renderer::DrawMeshInstanced(mesh.GetMeshData(), 1);
 		}
 
-		glm::vec2 mouse_coords = glm::min(glm::max(Window::GetMousePos(), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
+		glm::vec2 mouse_coords = glm::min(glm::max(glm::vec2(Input::GetMousePos()), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
 
 		if (!m_fullscreen_scene_display) {
 			// Transform mouse coordinates to full window space for the proper texture coordinates
-			mouse_coords.x -= 400;
-			mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - 850));
+			mouse_coords.x -= LEFT_WINDOW_WIDTH;
+			mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - RIGHT_WINDOW_WIDTH));
 			mouse_coords.y -= toolbar_height;
 			mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
 		}
@@ -828,7 +842,7 @@ namespace ORNG {
 
 
 
-		if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+		if (!Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 			m_selected_entity_ids.clear();
 
 		SelectEntity(current_entity_id);
@@ -935,10 +949,8 @@ namespace ORNG {
 
 
 		auto flags = p_entity_relationship_comp->first == entt::null ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Framed : ImGuiTreeNodeFlags_Framed;
-		flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
 		flags |= p_entity_relationship_comp->num_children > 0 ? ImGuiTreeNodeFlags_OpenOnArrow : 0;
 		bool is_tree_node_open = ImGui::TreeNodeEx(formatted_name.c_str(), flags);
-
 
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
@@ -979,65 +991,34 @@ namespace ORNG {
 			}
 
 			// Right click to open popup
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+			if (ImGui::IsMouseClicked(1))
 				ImGui::OpenPopup(popup_id.c_str());
-		}
 
+			if (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1)) {
+				if (!Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
+					m_selected_entity_ids.clear();
 
-
-		// If clicked, select current entity
-		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) { // Doing this instead of IsActive() because IsActive wont trigger if ctrl is held down
-			if (!Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
-				m_selected_entity_ids.clear();
-
-
-			if (Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_selected_entity_ids, p_entity->GetUUID()) && ImGui::IsMouseReleased(0)) // Deselect entity from group of entities currently selected
-				m_selected_entity_ids.erase(std::ranges::find(m_selected_entity_ids, p_entity->GetUUID()));
-			else {
-				SelectEntity(p_entity->GetUUID());
+				if (Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_selected_entity_ids, p_entity->GetUUID()) && ImGui::IsMouseClicked(0)) // Deselect entity from group of entities currently selected
+					m_selected_entity_ids.erase(std::ranges::find(m_selected_entity_ids, p_entity->GetUUID()));
+				else
+					SelectEntity(p_entity->GetUUID());
 			}
-		}
-
-
-
-		if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
-			// Drag entities into another entity node to make them children of it
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
-				DeselectEntity(p_entity->GetUUID());
-				for (auto id : m_selected_entity_ids) {
-					m_active_scene->GetEntity(id)->SetParent(*p_entity);
-				}
-
-				m_selected_entities_are_dragged = false;
-			}
-
-			// Right click to open popup
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-				ImGui::OpenPopup(popup_id.c_str());
 		}
 
 		// Popup opened above if node is right clicked
 		if (ImGui::BeginPopup(popup_id.c_str()))
 		{
 			ImGui::SeparatorText("Options");
-			if (ImGui::Selectable("Delete")) {
+			if (ImGui::Selectable("Delete"))
 				ret = EntityNodeEvent::E_DELETE;
-				ImGui::EndPopup();
-				goto exit;
-			}
-
 
 			// Creates clone of entity, puts it in scene
-			if (ImGui::Selectable("Duplicate")) {
+			if (ImGui::Selectable("Duplicate"))
 				ret = EntityNodeEvent::E_DUPLICATE;
-				ImGui::EndPopup();
-				goto exit;
-			}
 
 			ImGui::EndPopup();
 		}
 
-	exit:
 		if (is_tree_node_open) {
 			ImGui::TreePop(); // Pop tree node opened earlier
 		}
@@ -1062,12 +1043,11 @@ namespace ORNG {
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("Scene graph")) {
 			// Click anywhere on window to deselect entity nodes
-			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_selected_entity_ids.clear();
 
-
 			// Right click to bring up "new entity" popup
-			RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && Window::IsMouseButtonDown(GLFW_MOUSE_BUTTON_2));
+			RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1));
 
 			ImGui::Text("Editor cam exposure");
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
@@ -1487,17 +1467,17 @@ namespace ORNG {
 		if (m_fullscreen_scene_display)
 			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y + toolbar_height, m_scene_display_rect.x, m_scene_display_rect.y);
 		else
-			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x + 400, ImGui::GetMainViewport()->Pos.y + toolbar_height, m_scene_display_rect.x, m_scene_display_rect.y);
+			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x + LEFT_WINDOW_WIDTH, ImGui::GetMainViewport()->Pos.y + toolbar_height, m_scene_display_rect.x, m_scene_display_rect.y);
 
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
 
 
-		if (Window::IsKeyDown(GLFW_KEY_1))
+		if (Input::IsKeyDown(GLFW_KEY_1))
 			current_operation = ImGuizmo::TRANSLATE;
-		else if (Window::IsKeyDown(GLFW_KEY_2))
+		else if (Input::IsKeyDown(GLFW_KEY_2))
 			current_operation = ImGuizmo::SCALE;
-		else if (Window::IsKeyDown(GLFW_KEY_3))
+		else if (Input::IsKeyDown(GLFW_KEY_3))
 			current_operation = ImGuizmo::ROTATE;
 
 		ImGui::Text("Gizmo rendering");

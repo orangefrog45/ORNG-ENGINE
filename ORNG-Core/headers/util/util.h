@@ -22,6 +22,7 @@ namespace ORNG {
 	}
 
 	void HandledFileSystemCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false);
+	void HandledFileDelete(const std::string& filepath);
 	bool PathEqualTo(const std::string& path1, const std::string& path2);
 
 }

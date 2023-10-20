@@ -1,6 +1,13 @@
+20/10/23:
+-Overhauled input system, better state tracking
+-Improved entity node UI selecting controls
+-UI improvements, more stable scene display panel
+-Audio components pre-allocated on correct side of boundary
+
 15/10/23:
 -Fog improvements
 -GetComponent added to scripts
+-Audio component improvements (editor ui and functionality)
 -Bugfixes
 
 12/10/23:

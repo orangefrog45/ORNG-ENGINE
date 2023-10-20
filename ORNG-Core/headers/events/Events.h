@@ -20,8 +20,9 @@ namespace ORNG {
 	};
 
 	enum InputType {
-		PRESS,
-		RELEASE
+		RELEASE=0, // GLFW_RELEASE
+		PRESS=1, // GLFW_PRESS
+		HELD=2 // GLFW_REPEAT
 	};
 
 }
@@ -66,7 +67,7 @@ namespace ORNG::Events {
 
 
 	struct KeyEvent : public Event {
-		char key;
+		unsigned int key;
 		uint8_t event_type; // will be InputType enum, can't declare as such due to circular include
 
 	};

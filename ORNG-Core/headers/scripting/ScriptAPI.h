@@ -60,16 +60,38 @@ extern "C" {
 	namespace ScriptInterface {
 		class Input {
 		public:
-			static bool IsKeyDown(char key) {
-				return mp_input->m_key_states[std::toupper(key)];
+			static bool IsKeyDown(ORNG::Key key) {
+				ORNG::InputType state = mp_input->m_key_states[key];
+				return state != ORNG::InputType::RELEASE;
+			}
+
+			static bool IsKeyDown(unsigned key) {
+				ORNG::InputType state = mp_input->m_key_states[static_cast<ORNG::Key>(std::toupper(key))];
+				return state != ORNG::InputType::RELEASE;
+			}
+
+			static bool IsKeyPressed(ORNG::Key key) {
+				return mp_input->m_key_states[key] == ORNG::InputType::PRESS;
+			}
+
+			static bool IsKeyPressed(unsigned key) {
+				return mp_input->m_key_states[static_cast<ORNG::Key>(std::toupper(key))] == ORNG::InputType::PRESS;
 			}
 
 			static bool IsMouseDown(ORNG::MouseButton btn) {
-				return mp_input->m_mouse_states[btn];
+				return mp_input->m_mouse_states[btn] != ORNG::InputType::RELEASE;
 			}
 
-			static bool IsMouseDown(int btn) {
-				return mp_input->m_mouse_states[static_cast<ORNG::MouseButton>(btn)];
+			static bool IsMouseClicked(ORNG::MouseButton btn) {
+				return mp_input->m_mouse_states[btn] == ORNG::InputType::PRESS;
+			}
+
+			static bool IsMouseDown(unsigned btn) {
+				return mp_input->m_mouse_states[static_cast<ORNG::MouseButton>(btn)] != ORNG::InputType::RELEASE;
+			}
+
+			static bool IsMouseClicked(unsigned btn) {
+				return mp_input->m_mouse_states[static_cast<ORNG::MouseButton>(btn)] == ORNG::InputType::PRESS;
 			}
 
 			static glm::ivec2 GetMousePos() {

@@ -154,6 +154,7 @@ namespace ORNG {
 		ent.AddComponent<PhysicsComponent>();
 		ent.AddComponent<CharacterControllerComponent>();
 		ent.AddComponent<CameraComponent>();
+		ent.AddComponent<AudioComponent>();
 		DeleteEntity(&ent);
 
 		m_is_loaded = true;

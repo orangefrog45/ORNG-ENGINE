@@ -98,7 +98,7 @@ namespace ORNG {
 			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(point.color));
 		}
 		m_physx_data_vao.FillBuffers();
-		Renderer::DrawVAOArrays(m_physx_data_vao, p_position_buf, buf.getNbPoints(), GL_POINTS);
+		Renderer::DrawVAOArrays(m_physx_data_vao, buf.getNbPoints(), GL_POINTS);
 
 
 		p_position_buf->data.clear();
@@ -111,7 +111,7 @@ namespace ORNG {
 			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(phys_line.color1));
 		}
 		m_physx_data_vao.FillBuffers();
-		Renderer::DrawVAOArrays(m_physx_data_vao, p_position_buf, buf.getNbLines(), GL_LINES);
+		Renderer::DrawVAOArrays(m_physx_data_vao, buf.getNbLines(), GL_LINES);
 
 
 		p_position_buf->data.clear();
@@ -126,7 +126,7 @@ namespace ORNG {
 			VEC_PUSH_VEC3(p_col_buf->data, GetPhysxDebugCol(phys_tri.color2));
 		}
 		m_physx_data_vao.FillBuffers();
-		Renderer::DrawVAOArrays(m_physx_data_vao, p_position_buf, buf.getNbTriangles(), GL_TRIANGLES);
+		Renderer::DrawVAOArrays(m_physx_data_vao, buf.getNbTriangles(), GL_TRIANGLES);
 	}
 
 	void Physics::InitDebugRenderPass() {

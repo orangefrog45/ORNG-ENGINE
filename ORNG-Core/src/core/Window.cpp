@@ -21,8 +21,6 @@ namespace ORNG {
 		m_window_height = height;
 
 		Events::EventManager::DispatchEvent(window_event);
-
-
 	}
 
 
@@ -37,9 +35,6 @@ namespace ORNG {
 		case GLFW_PRESS:
 			e_event.event_type = InputType::PRESS;
 			break;
-		case GLFW_REPEAT:
-			e_event.event_type = InputType::PRESS;
-			break;
 		}
 		Events::EventManager::DispatchEvent(e_event);
 	}
@@ -49,7 +44,7 @@ namespace ORNG {
 	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 		Events::MouseEvent e_event;
 		e_event.event_type = Events::MouseEventType::RECEIVE;
-		e_event.mouse_action = static_cast<MouseAction>(glm::min(action, 1));
+		e_event.mouse_action = static_cast<MouseAction>(action);
 		e_event.mouse_button = static_cast<MouseButton>(button);
 		double posx, posy;
 		glfwGetCursorPos(window, &posx, &posy);
@@ -76,23 +71,6 @@ namespace ORNG {
 
 	void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); gs_mouse_coords = { x, y }; }
 
-	bool Window::I_IsKeyDown(int key) { return (glfwGetKey(p_window, std::toupper(key)) == GLFW_PRESS); }
-
-	bool Window::I_IsMouseButtonInState(int key, unsigned int state) { return glfwGetMouseButton(p_window, key) == state; }
-
-	glm::vec2 Window::IGetMousePos() {
-		double mouse_x, mouse_y;
-		glfwGetCursorPos(Get().p_window, &mouse_x, &mouse_y);
-		return glm::vec2(mouse_x, mouse_y);
-	};
-
-	bool Window::IsMouseButtonDown(int button) {
-		return Get().I_IsMouseButtonInState(button, GLFW_PRESS);
-	}
-
-	bool Window::IsMouseButtonUp(int button) {
-		return Get().I_IsMouseButtonInState(button, GLFW_RELEASE);
-	}
 
 	void Window::IUpdate() {
 		m_scroll_data.active = false;

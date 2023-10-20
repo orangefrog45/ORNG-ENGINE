@@ -35,12 +35,14 @@ namespace ORNG {
 	}
 
 
-	void Renderer::IDrawVAOArrays(const VAO& vao,  VertexBufferBase* line_buffer, unsigned int nb_lines,  GLenum primitive_type){
+	void Renderer::IDrawVAOArrays(const VAO& vao, unsigned int num_indices,  GLenum primitive_type){
 		GL_StateManager::BindVAO(vao.GetHandle());
+
 		glDrawArrays(primitive_type,
 			0,
-			nb_lines
+			num_indices
 		);
+
 		m_draw_call_amount++;
 	}
 

@@ -28,18 +28,7 @@ namespace ORNG {
 			return Get().m_window_height;
 		}
 
-		static bool IsKeyDown(int key) {
-			return Get().I_IsKeyDown(key);
-		}
 
-		static bool IsMouseButtonDown(int button);
-
-		static bool IsMouseButtonUp(int button);
-
-
-		static glm::vec2 GetMousePos() {
-			return Get().IGetMousePos();
-		}
 
 		static void SetCursorPos(int x, int y) {
 			Get().ISetCursorPos(x, y);
@@ -66,15 +55,9 @@ namespace ORNG {
 	private:
 		void I_Init();
 
-		glm::vec2 IGetMousePos();
-
 		void ISetWindowDimensions(int width, int height);
 
 		void ISetCursorPos(int x, int y);
-
-		bool I_IsKeyDown(int key);
-
-		bool I_IsMouseButtonInState(int key, unsigned int state);
 
 		void IUpdate();
 

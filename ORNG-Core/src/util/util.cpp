@@ -13,6 +13,15 @@ namespace ORNG {
 		}
 	}
 
+	void HandledFileDelete(const std::string& filepath) {
+		try {
+			std::filesystem::remove(filepath);
+		}
+		catch (std::exception& e) {
+			ORNG_CORE_ERROR("std::filesystem::remove error, '{0}'", e.what());
+		}
+	}
+
 	bool PathEqualTo(const std::string& path1, const std::string& path2) {
 		if (path1.empty() || path2.empty())
 			return false;
