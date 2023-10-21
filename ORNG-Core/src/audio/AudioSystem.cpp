@@ -7,7 +7,6 @@
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
-
 	static void OnAudioComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<AudioComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
@@ -30,12 +29,12 @@ namespace ORNG {
 				OnAudioDeleteEvent(e_event);
 			else if (e_event.event_type == COMP_ADDED)
 				OnAudioAddEvent(e_event);
-		};
+			};
 
 		m_transform_listener.scene_id = GetSceneUUID();
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& e_event) {
 			OnTransformEvent(e_event);
-		};
+			};
 
 
 		Events::EventManager::RegisterListener(m_audio_listener);
@@ -43,7 +42,6 @@ namespace ORNG {
 
 		mp_registry->on_construct<AudioComponent>().connect<&OnAudioComponentAdd>();
 		mp_registry->on_destroy<AudioComponent>().connect<&OnAudioComponentDestroy>();
-
 	}
 
 
@@ -54,7 +52,6 @@ namespace ORNG {
 
 		delete e_event.affected_components[0]->mp_fmod_pos;
 		delete e_event.affected_components[0]->mp_fmod_vel;
-
 	}
 
 	void AudioSystem::OnUnload() {
@@ -65,7 +62,6 @@ namespace ORNG {
 
 
 	void AudioSystem::OnUpdate() {
-
 		if (auto* p_active_cam = mp_registry->try_get<CameraComponent>(*mp_active_cam_id)) {
 			auto& transform = mp_registry->get<TransformComponent>(*mp_active_cam_id);
 			auto pos = transform.GetAbsoluteTransforms()[0];
@@ -88,7 +84,6 @@ namespace ORNG {
 			auto pos = e_event.affected_components[0]->GetAbsoluteTransforms()[0];
 			*p_sound_comp->mp_fmod_pos = { pos.x, pos.y, pos.z };
 			p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel);
-
 		}
 	}
 
@@ -116,11 +111,7 @@ namespace ORNG {
 			uint64_t uuid = std::any_cast<uint64_t>(e_event.data_payload);
 			auto* p_asset = AssetManager::GetAsset<SoundAsset>(uuid);
 
-			bool playing = false;
-			if (p_sound_comp->mp_channel)
-				p_sound_comp->mp_channel->isPlaying(&playing);
-
-			if (!p_asset || playing)
+			if (!p_asset)
 				return;
 
 			if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)

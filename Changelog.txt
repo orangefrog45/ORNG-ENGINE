@@ -2,6 +2,7 @@
 -Moved all base assets into AssetManager
 -Fixed bug where textures would not bind properly after scene reload
 -Fixed input state bug caused by not disregarding GLFW_REPEAT events
+-Fixed audio not playing
 
 20/10/23:
 -Overhauled input system, better state tracking

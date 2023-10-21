@@ -2,7 +2,7 @@
 #define AUDIOCOMP_H
 #include "Component.h"
 #include "events/EventManager.h"
-
+#include <iostream>
 
 namespace FMOD {
 	class Channel;
@@ -44,10 +44,10 @@ namespace ORNG {
 					ORNG_CORE_ERROR("AudioComponent::Play failed, component does not have a valid sound uuid");
 					return;
 				}
-
 				DispatchAudioEvent(m_sound_asset_uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
 			}
 			else {
+				std::cout << uuid;
 				DispatchAudioEvent(uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
 				m_sound_asset_uuid = uuid;
 			}
