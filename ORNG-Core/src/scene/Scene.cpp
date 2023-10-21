@@ -135,7 +135,7 @@ namespace ORNG {
 
 
 		post_processing.global_fog.SetNoise(noise);
-		terrain.Init(AssetManager::GetEmptyMaterial());
+		terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
 		m_physics_system.OnLoad();
 		m_mesh_component_manager.OnLoad();
 		m_camera_system.OnLoad();

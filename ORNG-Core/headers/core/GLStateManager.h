@@ -23,6 +23,19 @@ namespace ORNG {
 			Get().IBindTexture(target, texture, tex_unit, force_mode);
 		};
 
+		// Returns the texture unit the texture is bound to if it is bound e.g GL_TEXTURE0, otherwise returns -1
+		inline static int IsTextureBound(unsigned tex_obj_handle) {
+			int ret = -1;
+			for (auto [unit, data] : Get().m_current_texture_bindings) {
+				if ((data.tex_obj) == tex_obj_handle) {
+					ret = unit;
+					break;
+				}
+			}
+
+			return ret;
+		}
+
 		inline static void ActivateShaderProgram(unsigned int shader_handle) {
 			Get().IActivateShaderProgram(shader_handle);
 		}

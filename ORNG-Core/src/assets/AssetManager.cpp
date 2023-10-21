@@ -9,6 +9,7 @@
 #include "audio/AudioEngine.h"
 #include <fmod.hpp>
 #include <fmod_errors.h>
+#include "core/GLStateManager.h"
 
 
 // For glfwmakecontextcurrent
@@ -21,12 +22,7 @@ namespace ORNG {
 	void AssetManager::I_Init() {
 		glfwWindowHint(GLFW_VISIBLE, 0);
 		mp_loading_context = glfwCreateWindow(100, 100, "ASSET_LOADING_CONTEXT", nullptr, Window::GetGLFWwindow());
-		m_replacement_material.uuid = UUID(ORNG_BASE_MATERIAL_UUID);
-		AddAsset(&m_replacement_material);
-		m_base_sound.uuid = UUID(ORNG_BASE_SOUND_ID);
-		AddAsset(&m_base_sound);
-		m_base_sound.source_filepath = m_base_sound.filepath;
-		m_base_sound.CreateSound();
+		InitBaseAssets();
 
 		// Each frame, check if any meshes have finished loading vertex data and load them into GPU if they have
 		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
@@ -51,6 +47,8 @@ namespace ORNG {
 
 		Events::EventManager::RegisterListener(m_update_listener);
 	}
+
+
 
 	void AssetManager::IStallUntilMeshesLoaded() {
 		while (!m_mesh_loading_queue.empty()) {
@@ -82,7 +80,7 @@ namespace ORNG {
 	void AssetManager::IClearAll() {
 		auto it = m_assets.begin();
 		while (it != m_assets.end()) {
-			if (it->first == ORNG_REPLACEMENT_MATERIAL_ID || it->first == ORNG_BASE_SOUND_ID) {
+			if (it->first == ORNG_BASE_MATERIAL_ID || it->first == ORNG_BASE_SOUND_ID || it->first == ORNG_BASE_MESH_ID || it->first == ORNG_BASE_TEX_ID) {
 				it++;
 				continue;
 			}
@@ -343,7 +341,7 @@ namespace ORNG {
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(script_folder)) {
 			auto path = entry.path();
-			if (entry.is_directory() || path.extension() != ".cpp")
+			if (entry.is_directory() || path.extension() != ".cpp" || path.string().find("scripts\\includes") != std::string::npos)
 				continue;
 			else {
 				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\scripts"));
@@ -365,7 +363,7 @@ namespace ORNG {
 
 		for (const auto& [uuid, p_asset] : Get().m_assets) {
 			auto* p_material = dynamic_cast<Material*>(p_asset);
-			if (!p_material || p_material->uuid() == ORNG_BASE_MATERIAL_UUID)
+			if (!p_material || p_material->uuid() == ORNG_BASE_MATERIAL_ID)
 				continue;
 
 			SerializeAssetBinary(".\\res\\materials\\" + std::format("{}", p_material->uuid()) + ".omat", *p_material);
@@ -379,6 +377,179 @@ namespace ORNG {
 			fn = fn.substr(0, fn.rfind(".osound"));
 			SerializeAssetBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
 		}
+	}
+
+
+	void AssetManager::InitBaseAssets() {
+		InitBaseCube();
+		InitBaseTexture();
+		mp_replacement_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
+		mp_base_sound = std::make_unique<SoundAsset>(ORNG_CORE_MAIN_DIR "\\res\\audio\\mouse-click.mp3");
+		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
+		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
+		mp_replacement_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
+		mp_base_sound->uuid = UUID(ORNG_BASE_SOUND_ID);
+		AddAsset(&*mp_base_cube);
+		AddAsset(&*mp_base_tex);
+		AddAsset(&*mp_replacement_material);
+		AddAsset(&*mp_base_sound);
+		mp_base_sound->source_filepath = mp_base_sound->filepath;
+		mp_base_sound->CreateSound();
+	}
+
+	void AssetManager::InitBaseCube() {
+		mp_base_cube = std::make_unique<MeshAsset>("");
+		mp_base_cube->m_vao.vertex_data.positions = {
+			0.5, 0.5, -0.5,
+			-0.5, 0.5, -0.5,
+			-0.5, 0.5, 0.5,
+			0.5, 0.5, 0.5,
+			0.5, -0.5, 0.5,
+			0.5, 0.5, 0.5,
+			-0.5, 0.5, 0.5,
+			-0.5, -0.5, 0.5,
+			-0.5, -0.5, 0.5,
+			-0.5, 0.5, 0.5,
+			-0.5, 0.5, -0.5,
+			-0.5, -0.5, -0.5,
+			-0.5, -0.5, -0.5,
+			0.5, -0.5, -0.5,
+			0.5, -0.5, 0.5,
+			-0.5, -0.5, 0.5,
+			0.5, -0.5, -0.5,
+			0.5, 0.5, -0.5,
+			0.5, 0.5, 0.5,
+			0.5, -0.5, 0.5,
+			-0.5, -0.5, -0.5,
+			-0.5, 0.5, -0.5,
+			0.5, 0.5, -0.5,
+			0.5, -0.5, -0.5,
+		};
+
+
+		mp_base_cube->m_vao.vertex_data.normals = {
+			-0, 1, -0,
+			-0, 1, -0,
+			-0, 1, -0,
+			-0, 1, -0,
+			-0, -0, 1,
+			-0, -0, 1,
+			-0, -0, 1,
+			-0, -0, 1,
+			-1, -0, -0,
+			-1, -0, -0,
+			-1, -0, -0,
+			-1, -0, -0,
+			-0, -1, -0,
+			-0, -1, -0,
+			-0, -1, -0,
+			-0, -1, -0,
+			1, -0, -0,
+			1, -0, -0,
+			1, -0, -0,
+			1, -0, -0,
+			-0, -0, -1,
+			-0, -0, -1,
+			-0, -0, -1,
+			-0, -0, -1,
+		};
+
+		mp_base_cube->m_vao.vertex_data.tangents = {
+			-1, 0, 0,
+			-1, 0, 0,
+			-1, 0, 0,
+			-1, 0, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			1, 0, 0,
+			1, 0, 0,
+			1, 0, 0,
+			1, 0, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+			0, 1, 0,
+		};
+
+		mp_base_cube->m_vao.vertex_data.tex_coords = {
+			1.0, 0.0, // Vertex 0
+			1.0, 1.0, // Vertex 1
+			0.0, 1.0, // Vertex 2
+			0.0, 0.0, // Vertex 3
+
+			1.0, 0.0, // Vertex 4
+			1.0, 1.0, // Vertex 5
+			0.0, 1.0, // Vertex 6
+			0.0, 0.0, // Vertex 7
+
+			1.0, 0.0, // Vertex 8
+			1.0, 1.0, // Vertex 9
+			0.0, 1.0, // Vertex 10
+			0.0, 0.0, // Vertex 11
+
+			1.0, 0.0, // Vertex 12
+			1.0, 1.0, // Vertex 13
+			0.0, 1.0, // Vertex 14
+			0.0, 0.0, // Vertex 15
+
+			1.0, 0.0, // Vertex 16
+			1.0, 1.0, // Vertex 17
+			0.0, 1.0, // Vertex 18
+			0.0, 0.0, // Vertex 19
+
+			1.0, 0.0, // Vertex 20
+			1.0, 1.0, // Vertex 21
+			0.0, 1.0, // Vertex 22
+			0.0, 0.0  // Vertex 23
+		};
+
+
+		mp_base_cube->m_vao.vertex_data.indices = {
+			// Indices for each face (two triangles per face)
+			0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23
+		};
+
+		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
+		mp_base_cube->m_vao.FillBuffers();
+		mp_base_cube->m_aabb.max = { 0.5, 0.5, 0.5 };
+		mp_base_cube->m_aabb.min = { -0.5, -0.5, -0.5 };
+		MeshAsset::MeshEntry entry;
+		entry.base_index = 0;
+		entry.base_vertex = 0;
+		entry.material_index = 0;
+		entry.num_indices = mp_base_cube->m_vao.vertex_data.indices.size();
+		mp_base_cube->m_submeshes.push_back(entry);
+		mp_base_cube->num_materials = 1;
+		mp_base_cube->m_is_loaded = true;
+	}
+
+
+	void AssetManager::InitBaseTexture() {
+		mp_base_tex = std::make_unique<Texture2D>("Base coded texture", 0);
+		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
+		Texture2DSpec spec;
+		spec.format = GL_RGB;
+		spec.internal_format = GL_RGB8;
+		spec.srgb_space = true;
+		spec.width = 1;
+		spec.height = 1;
+		spec.wrap_params = GL_CLAMP_TO_EDGE;
+		spec.min_filter = GL_NEAREST;
+		spec.mag_filter = GL_NEAREST;
+		mp_base_tex->SetSpec(spec);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_base_tex->GetTextureHandle(), GL_TEXTURE0);
+		unsigned char white_pixel[] = { 255, 255, 255, 255 };
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, white_pixel);
 	}
 
 

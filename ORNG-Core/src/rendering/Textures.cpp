@@ -18,7 +18,14 @@ namespace ORNG {
 
 	TextureBase::TextureBase(unsigned int texture_target, const std::string& name) : Asset(name), m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
 	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : Asset(name), m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
-	void TextureBase::Unload() { glDeleteTextures(1, &m_texture_obj); };
+
+	void TextureBase::Unload() { 
+		if (int unit = GL_StateManager::IsTextureBound(m_texture_obj); unit != -1)
+			GL_StateManager::BindTexture(m_texture_target, 0, unit, true); 
+
+		glDeleteTextures(1, &m_texture_obj); 
+	};
+
 	Texture2D::Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
 	Texture2D::Texture2D(const std::string& name, uint64_t t_uuid) : TextureBase(GL_TEXTURE_2D, name, t_uuid) {};
 	Texture3D::Texture3D(const std::string& name) : TextureBase(GL_TEXTURE_3D, name) {};

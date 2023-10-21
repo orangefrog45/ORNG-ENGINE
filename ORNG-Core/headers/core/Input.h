@@ -101,7 +101,7 @@ namespace ORNG {
 		// Returns true if key has been pressed this frame or is being held down
 		static bool IsKeyDown(unsigned key) {
 			InputType state = Get().m_key_states[static_cast<Key>(std::toupper(key))];
-			return state != InputType::RELEASE;
+			return (state != InputType::RELEASE);
 		}
 
 		// Not case-sensitive

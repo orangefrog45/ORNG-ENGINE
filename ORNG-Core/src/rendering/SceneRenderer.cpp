@@ -14,6 +14,8 @@
 #include "core/CodedAssets.h"
 #include "terrain/TerrainChunk.h"
 #include "core/FrameTiming.h"
+#include "rendering/Material.h"
+#include "assets/AssetManager.h"
 
 #include "scene/MeshInstanceGroup.h"
 
@@ -356,7 +358,7 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 		else { // Replace with 1x1 white pixel texture
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, CodedAssets::GetBaseTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 
 		if (p_material->roughness_texture == nullptr) {

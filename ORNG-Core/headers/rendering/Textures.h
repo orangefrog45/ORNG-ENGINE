@@ -47,7 +47,7 @@ namespace ORNG {
 
 
 	class TextureBase : public Asset {
-
+		friend class GL_StateManager;
 	public:
 		friend class Framebuffer;
 		TextureBase() = delete;
@@ -56,6 +56,7 @@ namespace ORNG {
 		void Unload();
 
 		unsigned int GetTextureHandle() const { return m_texture_obj; }
+		unsigned int GetTarget() const { return m_texture_target; }
 
 		void GenerateMips();
 
@@ -80,6 +81,10 @@ namespace ORNG {
 		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid);
 		uint32_t m_texture_target = 0;
 		uint32_t m_texture_obj = 0;
+
+		// When texture is bound, texture unit e.g GL_TEXTURE0 stored here
+		uint32_t m_binding_point = 0;
+
 		std::string m_name = "Unnamed texture";
 
 	};

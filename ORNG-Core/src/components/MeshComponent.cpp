@@ -2,12 +2,9 @@
 
 #include "components/MeshComponent.h"
 #include "events/EventManager.h"
-#include "core/CodedAssets.h"
 
 namespace ORNG {
-
 	MeshComponent::MeshComponent(SceneEntity* p_entity) : Component(p_entity) {
-		mp_mesh_asset = &CodedAssets::GetCubeAsset();
 	};
 
 
@@ -15,7 +12,6 @@ namespace ORNG {
 		if (!p_asset)
 			return;
 		mp_mesh_asset = p_asset;
-
 	};
 
 
@@ -45,6 +41,4 @@ namespace ORNG {
 
 		Events::EventManager::DispatchEvent(e_event);
 	}
-
-
 }

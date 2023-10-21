@@ -6,8 +6,6 @@
 #include "scene/MeshInstanceGroup.h"
 
 namespace ORNG {
-
-
 	static void OnMeshComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<MeshComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
@@ -17,7 +15,6 @@ namespace ORNG {
 	}
 
 	void MeshInstancingSystem::SortMeshIntoInstanceGroup(MeshComponent* comp) {
-
 		if (!comp->mp_mesh_asset)
 			return;
 
@@ -46,7 +43,7 @@ namespace ORNG {
 			std::vector<const Material*> material_vec;
 			if (comp->m_materials.empty()) {
 				for (int i = 0; i < comp->mp_mesh_asset->num_materials; i++) {
-					material_vec.push_back(AssetManager::GetEmptyMaterial());
+					material_vec.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
 				}
 			}
 			else {
@@ -57,7 +54,6 @@ namespace ORNG {
 			m_instance_groups.push_back(group);
 			group->AddMeshPtr(comp);
 		}
-
 	}
 
 
@@ -68,13 +64,13 @@ namespace ORNG {
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
 			if (mp_registry->valid(entt::entity(t_event.affected_components[0]->GetEntity()->GetEnttHandle())))
 				OnTransformEvent(t_event);
-		};
+			};
 
 		// Instance group handling
 		m_mesh_listener.scene_id = scene_uuid;
 		m_mesh_listener.OnEvent = [this](const Events::ECS_Event<MeshComponent>& t_event) {
 			OnMeshEvent(t_event);
-		};
+			};
 
 		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
 			if (t_event.event_type == Events::AssetEventType::MATERIAL_DELETED) {
@@ -83,13 +79,11 @@ namespace ORNG {
 			else if (t_event.event_type == Events::AssetEventType::MESH_DELETED) {
 				OnMeshAssetDeletion(reinterpret_cast<MeshAsset*>(t_event.data_payload));
 			}
-		};
+			};
 
 		Events::EventManager::RegisterListener(m_mesh_listener);
 		Events::EventManager::RegisterListener(m_asset_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
-
-
 	};
 
 
@@ -97,6 +91,11 @@ namespace ORNG {
 	void MeshInstancingSystem::OnMeshEvent(const Events::ECS_Event<MeshComponent>& t_event) {
 		switch (t_event.event_type) {
 		case Events::ECS_EventType::COMP_ADDED:
+			if (!t_event.affected_components[0]->mp_mesh_asset) {
+				t_event.affected_components[0]->mp_mesh_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+				t_event.affected_components[0]->m_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+			}
+
 			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
 			break;
 		case Events::ECS_EventType::COMP_UPDATED:
@@ -132,7 +131,7 @@ namespace ORNG {
 		for (auto& group : m_instance_groups) {
 			//Set materials
 			for (int i = 0; i < group->m_mesh_asset->num_materials; i++) {
-				group->m_materials.push_back(AssetManager::GetEmptyMaterial());
+				group->m_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
 			}
 
 			for (auto* p_mesh : group->m_instances) {
@@ -158,7 +157,7 @@ namespace ORNG {
 		// Remove asset from all components using it
 		for (auto [entity, mesh] : mp_registry->view<MeshComponent>().each()) {
 			if (mesh.GetMeshData() == p_asset)
-				mesh.SetMeshAsset(&CodedAssets::GetCubeAsset());
+				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 		}
 
 		for (int i = 0; i < m_instance_groups.size(); i++) {
@@ -187,7 +186,7 @@ namespace ORNG {
 			for (int y = 0; y < group->m_materials.size(); y++) {
 				const Material*& p_group_mat = group->m_materials[y];
 				if (p_group_mat == p_material) {
-					p_group_mat = AssetManager::GetEmptyMaterial();
+					p_group_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 					material_indices.push_back(y);
 				}
 			}
@@ -198,11 +197,9 @@ namespace ORNG {
 			// Replace material in mesh if it contains it
 			for (auto* p_mesh_comp : group->m_instances) {
 				for (auto valid_replacement_index : material_indices) {
-					p_mesh_comp->m_materials[valid_replacement_index] = AssetManager::GetEmptyMaterial();
+					p_mesh_comp->m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 				}
-
 			}
-
 		}
 	}
 

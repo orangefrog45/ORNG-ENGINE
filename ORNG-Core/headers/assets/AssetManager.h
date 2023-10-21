@@ -8,8 +8,10 @@
 #include <bitsery/adapter/stream.h>
 #include "bitsery/traits/string.h"
 
-#define ORNG_REPLACEMENT_MATERIAL_ID 0
+#define ORNG_BASE_MATERIAL_ID 0
 #define ORNG_BASE_SOUND_ID 1
+#define ORNG_BASE_TEX_ID 2
+#define ORNG_BASE_MESH_ID 3
 
 class GLFWwindow;
 enum aiTextureType;
@@ -72,7 +74,6 @@ namespace ORNG {
 	class Texture2DSpec;
 
 	struct Prefab : public Asset {
-
 		Prefab(const std::string& filepath) : Asset(filepath) {};
 		// Yaml string that can be deserialized into entity
 		std::string serialized_content;
@@ -122,7 +123,6 @@ namespace ORNG {
 			Get().m_assets[uuid] = static_cast<Asset*>(p_asset);
 			HandleAssetAddition(p_asset);
 			return p_asset;
-
 		}
 
 		template<std::derived_from<Asset> T>
@@ -200,7 +200,15 @@ namespace ORNG {
 			return found;
 		}
 
-		static Material* GetEmptyMaterial() { return &Get().m_replacement_material; }
+		// Clears all assets including base replacement ones
+		static void OnShutdown() {
+			ClearAll();
+			Get().mp_replacement_material.release();
+			Get().mp_base_sound.release();
+			Get().mp_base_tex.release();
+			Get().mp_base_cube.release();
+		};
+
 
 		static void HandleAssetDeletion(Asset* p_asset);
 		static void HandleAssetAddition(Asset* p_asset);
@@ -299,7 +307,7 @@ namespace ORNG {
 
 		static void OnTextureDelete(Texture2D* p_tex);
 
-		static const Material* IGetEmptyMaterial() { return &Get().m_replacement_material; }
+		static const Material* IGetEmptyMaterial() { return &*Get().mp_replacement_material; }
 		static void LoadMeshAssetIntoGL(MeshAsset* asset);
 		static Texture2D* CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 		void IStallUntilMeshesLoaded();
@@ -308,11 +316,17 @@ namespace ORNG {
 
 		void IClearAll();
 
+		void InitBaseAssets();
+		void InitBaseCube();
+		void InitBaseTexture();
+
+		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
+		std::unique_ptr<Texture2D> mp_base_tex = nullptr;
 		// If a material fails to load etc, use this one instead
-		Material m_replacement_material{ (uint64_t)ORNG_REPLACEMENT_MATERIAL_ID };
+		std::unique_ptr<Material> mp_replacement_material = nullptr;
 
 		// Default-initialize audio components with this sound asset
-		SoundAsset m_base_sound{ORNG_CORE_MAIN_DIR "\\res\\audio\\mouse-click.mp3"};
+		std::unique_ptr<SoundAsset> mp_base_sound = nullptr;
 
 		std::unordered_map<uint64_t, Asset*> m_assets;
 
@@ -324,6 +338,4 @@ namespace ORNG {
 		// Used for texture loading
 		GLFWwindow* mp_loading_context = nullptr;
 	};
-
-
 }

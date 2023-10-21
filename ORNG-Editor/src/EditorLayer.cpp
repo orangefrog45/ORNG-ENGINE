@@ -256,7 +256,7 @@ namespace ORNG {
 			float time_elapsed = FrameTiming::GetTimeStep();
 			movement_vec += p_transform->right * (float)Input::IsKeyDown(GLFW_KEY_D) * time_elapsed * cam_speed;
 			movement_vec -= p_transform->right * (float)Input::IsKeyDown(GLFW_KEY_A) * time_elapsed * cam_speed;
-			movement_vec += p_transform->forward * (float)Input::IsKeyDown(GLFW_KEY_W) * time_elapsed * cam_speed;
+			movement_vec += p_transform->forward * (float)Input::IsKeyDown(Key::W) * time_elapsed * cam_speed;
 			movement_vec -= p_transform->forward * (float)Input::IsKeyDown(GLFW_KEY_S) * time_elapsed * cam_speed;
 			movement_vec += glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(GLFW_KEY_E) * time_elapsed * cam_speed;
 			movement_vec -= glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(GLFW_KEY_Q) * time_elapsed * cam_speed;
@@ -782,7 +782,7 @@ namespace ORNG {
 			entity->AddComponent<SpotLightComponent>();
 			break;
 		case 2:
-			entity->AddComponent<MeshComponent>(&CodedAssets::GetCubeAsset());
+			entity->AddComponent<MeshComponent>();
 			break;
 		case 3:
 			entity->AddComponent<CameraComponent>();
@@ -830,7 +830,7 @@ namespace ORNG {
 		if (!m_fullscreen_scene_display) {
 			// Transform mouse coordinates to full window space for the proper texture coordinates
 			mouse_coords.x -= LEFT_WINDOW_WIDTH;
-			mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - RIGHT_WINDOW_WIDTH));
+			mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - (RIGHT_WINDOW_WIDTH + LEFT_WINDOW_WIDTH)));
 			mouse_coords.y -= toolbar_height;
 			mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
 		}

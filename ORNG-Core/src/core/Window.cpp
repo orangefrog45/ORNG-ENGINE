@@ -35,6 +35,9 @@ namespace ORNG {
 		case GLFW_PRESS:
 			e_event.event_type = InputType::PRESS;
 			break;
+		case GLFW_REPEAT:
+			// "Hold" state tracked in input, not here
+			return;
 		}
 		Events::EventManager::DispatchEvent(e_event);
 	}

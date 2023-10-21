@@ -6,11 +6,10 @@
 #include "core/Window.h"
 #include "stb/stb_image_write.h"
 #include "core/CodedAssets.h"
+#include "assets/AssetManager.h"
 
 namespace ORNG {
-
 	void EnvMapLoader::Init() {
-
 		mp_output_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("env_hdr_converter", false);
 		mp_output_fb->AddRenderbuffer(4096, 4096);
 
@@ -41,8 +40,6 @@ namespace ORNG {
 		mp_brdf_convolution_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
 		mp_brdf_convolution_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::BRDFConvolutionFS);
 		mp_brdf_convolution_shader->Init();
-
-
 	}
 
 	void EnvMapLoader::ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
@@ -81,7 +78,6 @@ namespace ORNG {
 		stbi_flip_vertically_on_write(1);
 
 		for (unsigned int i = 0; i < 6; i++) { // Check if diffuse prefilter has already been created and load it, or create it and save it, then load it.
-
 			if (std::filesystem::exists(tex_spec.filepaths[i])) // If this filepath exists it will be loaded in from the LoadFromFile call below this loop
 				continue;
 
@@ -96,10 +92,8 @@ namespace ORNG {
 				ORNG_CORE_CRITICAL("Error writing environment map diffuse prefilter texture");
 
 			delete[] pixels;
-
 		}
 		skybox.m_diffuse_prefilter_map.LoadFromFile();
-
 	}
 
 
@@ -127,7 +121,6 @@ namespace ORNG {
 				mp_output_fb->BindTexture2D(skybox.m_specular_prefilter_map.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mip);
 				GL_StateManager::DefaultClearBits();
 				Renderer::DrawCube();
-
 			}
 		}
 
@@ -167,7 +160,7 @@ namespace ORNG {
 		hdr_texture.SetSpec(hdr_spec);
 
 		if (!hdr_texture.LoadFromFile())
-			hdr_texture = CodedAssets::GetBaseTexture();
+			hdr_texture = *AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 
 		TextureCubemapSpec hdr_cubemap_spec;
 		hdr_cubemap_spec.generate_mipmaps = false;
@@ -244,5 +237,4 @@ namespace ORNG {
 
 		return true;
 	}
-
 }

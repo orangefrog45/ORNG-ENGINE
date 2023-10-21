@@ -32,7 +32,7 @@ namespace ORNG {
 		mp_preview_scene->LoadScene("");
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
 		auto& cube_entity = mp_preview_scene->CreateEntity("Cube");
-		cube_entity.AddComponent<MeshComponent>(&CodedAssets::GetCubeAsset());
+		cube_entity.AddComponent<MeshComponent>();
 
 		auto& cam_entity = mp_preview_scene->CreateEntity("Cam");
 		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
@@ -59,9 +59,8 @@ namespace ORNG {
 		m_current_2d_tex_spec = m_asset_preview_spec;
 		m_current_2d_tex_spec.storage_type = GL_UNSIGNED_BYTE;
 
-		CreateMaterialPreview(&CodedAssets::GetBaseMaterial());
-		CreateMaterialPreview(&AssetManager::Get().m_replacement_material);
-		CreateMeshPreview(&CodedAssets::GetCubeAsset());
+		CreateMaterialPreview(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+		CreateMeshPreview(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 
 
 		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
@@ -303,7 +302,7 @@ namespace ORNG {
 					ImGui::TableNextColumn();
 					ImGui::PushID(p_material);
 
-					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : CodedAssets::GetBaseTexture().GetTextureHandle();
+					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle();
 
 					ExtraUI::NameWithTooltip(p_material->name.c_str());
 					static Material* p_dragged_material = nullptr;
@@ -329,7 +328,7 @@ namespace ORNG {
 
 					if (ImGui::BeginPopup("my_select_popup"))
 					{
-						if (p_material->uuid() != ORNG_REPLACEMENT_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
+						if (p_material->uuid() != ORNG_BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
 							// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
 							m_asset_deletion_queue.push_back(p_material->uuid());
 						}
@@ -649,8 +648,9 @@ namespace ORNG {
 
 
 		auto* p_mesh = mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>();
-		if (p_mesh->GetMeshData() != &CodedAssets::GetCubeAsset())
-			p_mesh->SetMeshAsset(&CodedAssets::GetCubeAsset());
+		if (auto* p_replacement_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID); p_mesh->GetMeshData() != p_replacement_mesh)
+			p_mesh->SetMeshAsset(p_replacement_mesh);
+
 		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
 
 		mp_preview_scene->Update(0);

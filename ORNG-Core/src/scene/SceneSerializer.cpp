@@ -251,12 +251,12 @@ namespace ORNG {
 			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(mesh_asset_id == ORNG_CUBE_MESH_UUID ? &CodedAssets::GetCubeAsset() : AssetManager::GetAsset<MeshAsset>(mesh_asset_id));
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(AssetManager::GetAsset<MeshAsset>(mesh_asset_id));
 
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
 				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
-					p_mesh_comp->m_materials[i] = ids[i] == 0 ? AssetManager::GetEmptyMaterial() : AssetManager::GetAsset<Material>(ids[i]);
+					p_mesh_comp->m_materials[i] = AssetManager::GetAsset<Material>(ids[i]);
 				}
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 			}

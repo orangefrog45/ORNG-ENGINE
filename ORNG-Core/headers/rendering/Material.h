@@ -9,7 +9,7 @@ namespace ORNG {
 		explicit Material(Texture2D* p_base_color_tex) : Asset(""), base_color_texture(p_base_color_tex) {};
 
 		// New material wont have a path until saved
-		Material() : Asset("UNSAVED_PATH") {};
+		Material() : Asset("") {};
 
 		// If being deserialized, provide filepath
 		explicit Material(const std::string& filepath) : Asset(filepath) {};
@@ -68,5 +68,4 @@ namespace ORNG {
 
 		uint64_t shader_id = 1; // 1 = default shader (pbr lighting)
 	};
-
 }

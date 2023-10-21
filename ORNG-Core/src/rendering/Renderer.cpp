@@ -6,9 +6,9 @@
 #include "rendering/Quad.h"
 #include "core/GLStateManager.h"
 #include "core/CodedAssets.h"
+#include "assets/AssetManager.h"
 
 namespace ORNG {
-
 	void Renderer::I_Init() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 
@@ -25,7 +25,7 @@ namespace ORNG {
 
 	void Renderer::IDrawUnitCube() const
 	{
-		Get().IDrawMeshInstanced(&CodedAssets::GetCubeAsset(), 1);
+		Get().IDrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 1);
 	};
 
 	void Renderer::IDrawQuad() const
@@ -35,7 +35,7 @@ namespace ORNG {
 	}
 
 
-	void Renderer::IDrawVAOArrays(const VAO& vao, unsigned int num_indices,  GLenum primitive_type){
+	void Renderer::IDrawVAOArrays(const VAO& vao, unsigned int num_indices, GLenum primitive_type) {
 		GL_StateManager::BindVAO(vao.GetHandle());
 
 		glDrawArrays(primitive_type,
