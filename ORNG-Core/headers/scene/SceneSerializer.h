@@ -1,5 +1,10 @@
 #pragma once
 #include "util/UUID.h"
+#include <bitsery/bitsery.h>
+#include <bitsery/traits/vector.h>
+#include <bitsery/adapter/stream.h>
+#include "bitsery/traits/string.h"
+#include "util/Log.h"
 
 namespace YAML {
 	class Emitter;
@@ -38,6 +43,35 @@ namespace ORNG {
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);
 
+		template <typename T>
+		static void SerializeBinary(const std::string& filepath, T& data) {
+			std::ofstream s{ filepath, s.binary | s.trunc | s.out };
+			if (!s.is_open()) {
+				ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
+				return;
+			}
+			bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
+
+			ser.object(data);
+			// flush to writer
+			ser.adapter().flush();
+			s.close();
+		}
+
+		template <typename T>
+		static void DeserializeBinary(const std::string& filepath, T& data) {
+			std::ifstream s{ filepath, std::ios::binary };
+			if (!s.is_open()) {
+				ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
+				return;
+			}
+
+			// Use buffered stream adapter
+			bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
+			des.object(data);
+		}
+
+
 
 		template <typename S>
 		void serialize(S& s, UUID& o) {
@@ -45,6 +79,5 @@ namespace ORNG {
 		}
 
 	private:
-
 	};
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include "Log.h"
 namespace ORNG {
-
 #define BREAKPOINT __debugbreak()
 #define ASSERT(x) if (!(x)) __debugbreak()
 #define VEC_PUSH_VEC3(vector, vec3) vector.push_back(vec3.x); vector.push_back(vec3.y); vector.push_back(vec3.z)
@@ -24,6 +23,5 @@ namespace ORNG {
 	void HandledFileSystemCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false);
 	void HandledFileDelete(const std::string& filepath);
 	bool PathEqualTo(const std::string& path1, const std::string& path2);
-
+	std::string GetFileLastWriteTime(const std::string& filepath);
 }
-

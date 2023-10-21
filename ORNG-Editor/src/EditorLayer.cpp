@@ -591,6 +591,8 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/scripts");
 		std::filesystem::create_directory(project_path + "/res/scripts/includes");
 		std::filesystem::create_directory(project_path + "/res/scripts/bin");
+		std::filesystem::create_directory(project_path + "/res/scripts/bin/release");
+		std::filesystem::create_directory(project_path + "/res/scripts/bin/debug");
 		std::filesystem::create_directory(project_path + "/res/shaders");
 		std::filesystem::create_directory(project_path + "/res/audio");
 		std::filesystem::create_directory(project_path + "/res/prefabs");

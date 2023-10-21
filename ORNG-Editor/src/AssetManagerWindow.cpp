@@ -132,7 +132,7 @@ namespace ORNG {
 		if (auto* p_entity = (*mp_scene_context)->GetEntity(entt_id)) {
 			Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
 			prefab->serialized_content = SceneSerializer::SerializeEntityIntoString(*p_entity);
-			AssetManager::SerializeAssetBinary(fp, *prefab);
+			SceneSerializer::SerializeBinary(fp, *prefab);
 		}
 	}
 
@@ -580,7 +580,7 @@ namespace ORNG {
 			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
 			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
-				AssetManager::SerializeAssetBinary(filepath, *p_mesh);
+				SceneSerializer::SerializeBinary(filepath, *p_mesh);
 			}
 
 			break;

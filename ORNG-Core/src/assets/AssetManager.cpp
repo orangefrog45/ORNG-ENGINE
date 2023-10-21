@@ -10,6 +10,7 @@
 #include <fmod.hpp>
 #include <fmod_errors.h>
 #include "core/GLStateManager.h"
+#include "scene/SceneSerializer.h"
 
 
 // For glfwmakecontextcurrent
@@ -357,7 +358,7 @@ namespace ORNG {
 			auto* p_tex_asset = dynamic_cast<Texture2D*>(p_asset);
 			if (!p_tex_asset)
 				continue;
-			SerializeAssetBinary(".\\res\\textures\\" + p_tex_asset->filepath.substr(p_tex_asset->filepath.rfind("\\") + 1) + ".otex", *p_tex_asset);
+			SceneSerializer::SerializeBinary(".\\res\\textures\\" + p_tex_asset->filepath.substr(p_tex_asset->filepath.rfind("\\") + 1) + ".otex", *p_tex_asset);
 		}
 
 
@@ -366,7 +367,7 @@ namespace ORNG {
 			if (!p_material || p_material->uuid() == ORNG_BASE_MATERIAL_ID)
 				continue;
 
-			SerializeAssetBinary(".\\res\\materials\\" + std::format("{}", p_material->uuid()) + ".omat", *p_material);
+			SceneSerializer::SerializeBinary(".\\res\\materials\\" + std::format("{}", p_material->uuid()) + ".omat", *p_material);
 		}
 
 		for (auto* p_sound : Get().GetView<SoundAsset>()) {
@@ -375,7 +376,7 @@ namespace ORNG {
 
 			std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
 			fn = fn.substr(0, fn.rfind(".osound"));
-			SerializeAssetBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
+			SceneSerializer::SerializeBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
 		}
 	}
 

@@ -3,12 +3,63 @@
 #include "core/Input.h"
 #include "core/FrameTiming.h"
 #include "util/UUID.h"
+#include "scene/SceneSerializer.h"
 
 
 namespace ORNG {
+	struct ScriptMetadata {
+		enum class BuildMode : std::uint8_t {
+			RELEASE,
+			DEBUG
+		};
+
+		template <typename S>
+		void serialize(S& o) {
+			o.text1b(last_write_time, 1000);
+			o.text1b(orng_library_last_write_time, 1000);
+			o.value1b(build_mode);
+		}
+
+		std::string last_write_time;
+		std::string orng_library_last_write_time;
+		BuildMode build_mode;
+	};
+
+
 #ifndef _MSC_VER
 #error Scripting engine only supports MSVC compilation with VS 2019+ currently
 #endif // !_MSC_VER
+
+	bool DoesScriptNeedRecompilation(const std::string& script_path, const std::string& metadata_path) {
+		if (std::filesystem::exists(metadata_path)) {
+			ScriptMetadata data;
+			SceneSerializer::DeserializeBinary(metadata_path, data);
+
+			if (GetFileLastWriteTime(script_path) != data.last_write_time)
+				return true; // Script CPP file has changed so needs recompiling
+
+			// Check if the build type matches
+#ifdef NDEBUG
+			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
+			if (data.build_mode == ScriptMetadata::BuildMode::DEBUG)
+				return true;
+#else
+			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
+			if (data.build_mode == ScriptMetadata::BuildMode::RELEASE)
+				return true;
+#endif
+			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time)
+				return true; // Core engine library has changed so recompilation needed
+		}
+		else {
+			return true;
+		}
+
+		return false; // Everything matches, no need for recompilation
+	}
+
+
+
 
 #ifdef _MSC_VER
 	std::string GetVS_InstallDir(const std::string& vswhere_path) {
@@ -34,49 +85,59 @@ namespace ORNG {
 	}
 #endif
 
-	void GenBatFile(std::ofstream& bat_stream, const std::string& filepath, const std::string& filename, const std::string& filename_no_ext) {
+
+
+
+	void GenBatFile(std::ofstream& bat_stream, const std::string& filepath, const std::string& filename, const std::string& filename_no_ext, const std::string& dll_path) {
 		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\lib";
 
 
 #ifdef _MSC_VER
 		bat_stream << "call " + ("\"" + GetVS_InstallDir(ORNG_CORE_MAIN_DIR "\\extern\\vswhere.exe") + "\\VC\\Auxiliary\\Build\\vcvars64.bat" + "\"\n");
-		std::string pdb_name = ".\\res\\scripts\\bin\\" + std::to_string(UUID()()) + ".pdb";
+
 #ifdef NDEBUG
+		std::string pdb_name = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + std::to_string(UUID()()) + ".pdb";
+		std::string obj_path = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + ".obj";
+
 		bat_stream << "cl" << " /Fd:" << pdb_name <<
 			" /WX- /Zc:forScope /GR /Gm- /Zc:wchar_t /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise  /D\"_MBCS\" /D\"NDEBUG\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\" /I\"" << ORNG_CORE_LIB_DIR << "\\..\\vcpkg_installed\\x64-windows\\include\""
-			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
+			<< " /c .\\res\\scripts\\" << filename << " /Fo:" << obj_path << "\n";
 
-		bat_stream << "link /DLL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
-			<< ORNG_CORE_LIB_DIR << "\\ORNG_CORE.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmod_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cpp.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
+		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /OUT:" << dll_path << " " << obj_path << " " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+			<< ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmod_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cpp.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
 			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
 			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib ";
 #else
-
+		std::string obj_path = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".obj";
+		std::string pdb_name = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + std::to_string(UUID()()) + ".pdb";
 
 		bat_stream << "cl" << " /Fd:" << pdb_name << // Random pdb filename so I can reload during runtime
-			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t-  /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
+			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /DEBUG /Z7 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t-  /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\" /I\"" << ORNG_CORE_LIB_DIR << "\\..\\vcpkg_installed\\x64-windows\\include\""
-			<< " /c .\\res\\scripts\\" << filename << " /Fo:.\\res\\scripts\\bin\\" << filename_no_ext << ".obj\n";
+			<< " /c .\\res\\scripts\\" << filename << " /Fo:" << obj_path << "\n";
 
-		bat_stream << "link /DLL /INCREMENTAL /pdb:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << ".\\res\\scripts\\bin\\" << filename_no_ext << ".dll .\\res\\scripts\\bin\\" << filename_no_ext << ".obj " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+		bat_stream << "link /DLL /INCREMENTAL /PDB:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << dll_path << " " << obj_path << " " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmodL_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cppd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
 			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
 			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib ";
 #endif // ifdef NDEBUG
-#endif // ifdef _MSC_VER
 	}
 
 	std::string ScriptingEngine::GetDllPathFromScriptCpp(const std::string& script_filepath) {
 		std::string filename = script_filepath.substr(script_filepath.find_last_of("\\") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
-		return ".\\res\\scripts\\bin\\" + filename_no_ext + ".dll";
+#ifdef NDEBUG
+		return ".\\res\\scripts\\bin\\release\\" + filename_no_ext + ".dll";
+#else
+		return ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".dll";
+#endif
 	}
 
 
@@ -91,22 +152,61 @@ namespace ORNG {
 		std::string file_dir = filepath.substr(0, filepath.find_last_of("\\") + 1);
 		std::string dll_path = GetDllPathFromScriptCpp(filepath);
 		std::string relative_path = ".\\" + filepath.substr(filepath.rfind("res\\scripts"));
+#ifdef NDEBUG
+		std::string metadata_path = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + ".metadata";
+#else
+		std::string metadata_path = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".metadata";
+#endif
 
 		if (!std::filesystem::exists("res\\scripts\\" + filename)) {
 			ORNG_CORE_ERROR("Script file not found, ensure it is in the res/scripts path of your project");
 			return ScriptSymbols(relative_path);
 		}
 
-		std::ofstream bat_stream("res/scripts/gen_scripts.bat");
-		GenBatFile(bat_stream, filepath, filename, filename_no_ext);
-		bat_stream.close();
+		if (DoesScriptNeedRecompilation(filepath, metadata_path)) {
+			// Write out metadata that can be checked for validity when recompiling (compilation can be skipped if valid)
+			ScriptMetadata md;
+#ifdef NDEBUG
+			std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
+			std::string bin_path = ".\\res\\scripts\\bin\\release\\";
+			md.build_mode = ScriptMetadata::BuildMode::RELEASE;
+#else
+			std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
+			std::string bin_path = ".\\res\\scripts\\bin\\debug\\";
+			md.build_mode = ScriptMetadata::BuildMode::DEBUG;
+#endif
 
-		// Run bat file
-		int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
-		if (dev_env_result != 0) {
-			ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
-			return ScriptSymbols(relative_path);
+			// Cleanup old pdb files
+			std::vector<std::filesystem::directory_entry> entries_to_remove;
+			for (auto& entry : std::filesystem::directory_iterator(bin_path)) {
+				if (entry.path().string().find(filename_no_ext) != std::string::npos && entry.path().extension() == ".pdb")
+					entries_to_remove.push_back(entry);
+			}
+			for (auto& entry : entries_to_remove) {
+				std::filesystem::remove(entry);
+			}
+
+			std::ofstream bat_stream("res/scripts/gen_scripts.bat");
+			GenBatFile(bat_stream, filepath, filename, filename_no_ext, dll_path);
+			bat_stream.close();
+
+			// Run bat file
+			int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
+			if (dev_env_result != 0) {
+				ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
+				return ScriptSymbols(relative_path);
+			}
+
+
+			md.orng_library_last_write_time = GetFileLastWriteTime(core_lib_path);
+			md.last_write_time = GetFileLastWriteTime(filepath);
+
+
+#endif // ifdef _MSC_VER
+
+			SceneSerializer::SerializeBinary(metadata_path, md);
 		}
+
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
 		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
@@ -154,6 +254,7 @@ namespace ORNG {
 		if (!symbols.OnCollision) {
 			ORNG_CORE_ERROR("Failed loading OnCollision symbol from script file '{0}'", filepath);
 		}
+
 
 		return symbols;
 	}

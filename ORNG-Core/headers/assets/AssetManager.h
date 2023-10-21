@@ -224,21 +224,6 @@ namespace ORNG {
 		inline static void StallUntilMeshesLoaded() { Get().IStallUntilMeshesLoaded(); }
 
 		template <std::derived_from<Asset> T>
-		static void SerializeAssetBinary(const std::string& filepath, T& asset) {
-			std::ofstream s{ filepath, s.binary | s.trunc | s.out };
-			if (!s.is_open()) {
-				ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
-				return;
-			}
-			bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
-
-			ser.object(asset);
-			// flush to writer
-			ser.adapter().flush();
-			s.close();
-		}
-
-		template <std::derived_from<Asset> T>
 		static void DeserializeAssetBinary(const std::string& filepath, T& data) {
 			std::ifstream s{ filepath, std::ios::binary };
 			if (!s.is_open()) {
