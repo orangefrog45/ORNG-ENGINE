@@ -47,7 +47,7 @@ namespace ORNG {
 		static void SerializeBinary(const std::string& filepath, T& data) {
 			std::ofstream s{ filepath, s.binary | s.trunc | s.out };
 			if (!s.is_open()) {
-				ORNG_CORE_ERROR("Vertex serialization error: Cannot open {0} for writing", filepath);
+				ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", filepath);
 				return;
 			}
 			bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };

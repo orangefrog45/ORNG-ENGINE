@@ -155,8 +155,8 @@ namespace ORNG {
 
 
 		Texture2DSpec low_pres_spec;
-		low_pres_spec.format = GL_RGB;
-		low_pres_spec.internal_format = GL_RGB16F;
+		low_pres_spec.format = GL_RGBA;
+		low_pres_spec.internal_format = GL_RGBA16F;
 		low_pres_spec.storage_type = GL_FLOAT;
 		low_pres_spec.width = Window::GetWidth();
 		low_pres_spec.height = Window::GetHeight();

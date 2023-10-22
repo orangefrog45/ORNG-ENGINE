@@ -25,7 +25,8 @@ namespace ORNG {
 	private:
 		void OnInit() override { Init(); };
 		void Update() override;
-		void OnRender() override { RenderDisplayWindow(); RenderUI(); };
+		void OnImGuiRender() override { RenderUI(); };
+		void OnRender() override { RenderDisplayWindow(); };
 		void OnShutdown() override {
 			if (m_simulate_mode_active)
 				EndPlayScene();

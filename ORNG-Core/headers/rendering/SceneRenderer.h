@@ -54,23 +54,23 @@ namespace ORNG {
 
 
 
-
-	private:
-
 		static SceneRenderer& Get() {
 			static SceneRenderer s_instance;
 			return s_instance;
 		}
 
-
-		void I_Init();
-		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
 		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoGBufferPass(CameraComponent* p_cam);
 		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoFogPass(unsigned int width, unsigned int height);
 		void DoLightingPass(Texture2D* output_tex);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
+
+	private:
+
+
+		void I_Init();
+		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
 		void DrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
 		void DoBloomPass(unsigned int width, unsigned int height);
@@ -117,6 +117,5 @@ namespace ORNG {
 		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };
 		unsigned int m_num_shadow_cascades = 3;
 		unsigned int m_shadow_map_resolution = 4096;
-
 	};
 }
