@@ -12,6 +12,7 @@ namespace ORNG {
 	struct CameraComponent;
 
 	class SceneRenderer {
+		friend class EditorLayer;
 	public:
 		SceneRenderer() = default;
 		~SceneRenderer() {

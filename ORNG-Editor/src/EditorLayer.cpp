@@ -43,7 +43,8 @@ namespace ORNG {
 		mp_grid_shader->Init();
 
 		Shader& mb_shader = Renderer::GetShaderLibrary().CreateShader("mandelbulb");
-		mb_shader.AddStage(GL_COMPUTE_SHADER, ORNG_CORE_MAIN_DIR "/../ORNG-Editor/res/shaders/MandelbulbCS.glsl");
+		mb_shader.AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
+		mb_shader.AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_MAIN_DIR "/../ORNG-Editor/res/shaders/MandelbulbFS.glsl");
 		mb_shader.Init();
 
 
@@ -431,21 +432,14 @@ namespace ORNG {
 
 		auto spec = mp_scene_display_texture->m_spec;
 		glViewport(0, 0, spec.width, spec.height);
-		CameraComponent* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
+		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
 		SceneRenderer::Get().PrepRenderPasses(p_cam, settings.p_output_tex);
 		SceneRenderer::Get().DoGBufferPass(p_cam);
+		
 
-		auto& gbuffer_fb = Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer");
 		Shader& mb_shader = Renderer::GetShaderLibrary().GetShader("mandelbulb");
 		mb_shader.ActivateProgram();
-		//glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, mp_scene_display_texture->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glBindImageTexture(2, gbuffer_fb.GetTexture<Texture2D>("normals").GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glBindImageTexture(3, gbuffer_fb.GetTexture<Texture2D>("albedo").GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glBindImageTexture(4, gbuffer_fb.GetTexture<Texture2D>("roughness_metallic_ao").GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glBindImageTexture(5, gbuffer_fb.GetTexture<Texture2D>("shader_ids").GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16UI);
-		glBindImageTexture(6, gbuffer_fb.GetTexture<Texture2D>("shared_depth").GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
-		glDispatchCompute(Window::GetWidth() / 8.f, Window::GetHeight() / 8.f, 1);
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		Renderer::DrawQuad();
 
 		SceneRenderer::Get().DoDepthPass(p_cam, settings.p_output_tex);
 		SceneRenderer::Get().DoLightingPass(settings.p_output_tex);

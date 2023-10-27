@@ -254,7 +254,6 @@ float ShadowCalculationDirectional(vec3 light_dir) {
 	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[2]);
 	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[1]);
 	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[0]);
-
 	vec4 frag_pos_light_space = u_dir_light_matrices[index] * vec4(sampled_world_pos.xyz, 1);
 
 	proj_coords = (frag_pos_light_space / frag_pos_light_space.w).xyz;

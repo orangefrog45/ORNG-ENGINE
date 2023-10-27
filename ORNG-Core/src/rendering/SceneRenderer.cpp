@@ -155,8 +155,8 @@ namespace ORNG {
 
 
 		Texture2DSpec low_pres_spec;
-		low_pres_spec.format = GL_RGBA;
-		low_pres_spec.internal_format = GL_RGBA16F;
+		low_pres_spec.format = GL_RGB;
+		low_pres_spec.internal_format = GL_RGB16F;
 		low_pres_spec.storage_type = GL_FLOAT;
 		low_pres_spec.width = Window::GetWidth();
 		low_pres_spec.height = Window::GetHeight();
@@ -297,6 +297,25 @@ namespace ORNG {
 
 
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
+		auto& spec = p_output_tex->GetSpec();
+		Texture2DSpec fog_spec = m_fog_output_tex.GetSpec();
+
+		if (fog_spec.width != spec.width || fog_spec.height != fog_spec.height) {
+			fog_spec.width = spec.width / 2;
+			fog_spec.height = spec.height / 2;
+			m_fog_output_tex.SetSpec(fog_spec);
+
+			fog_spec.width = spec.width;
+			fog_spec.height = spec.height;
+			m_fog_blur_tex_1.SetSpec(fog_spec);
+			m_fog_blur_tex_2.SetSpec(fog_spec);
+
+			Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
+			resized_bloom_spec.width = spec.width / 2;
+			resized_bloom_spec.height = spec.height / 2;
+			m_bloom_tex.SetSpec(resized_bloom_spec);
+		}
+
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
@@ -320,26 +339,7 @@ namespace ORNG {
 			return output;
 		}
 
-
 		auto& spec = settings.p_output_tex->GetSpec();
-		Texture2DSpec fog_spec = m_fog_output_tex.GetSpec();
-
-		if (fog_spec.width != spec.width || fog_spec.height != fog_spec.height) {
-			fog_spec.width = spec.width / 2;
-			fog_spec.height = spec.height / 2;
-			m_fog_output_tex.SetSpec(fog_spec);
-
-			fog_spec.width = spec.width;
-			fog_spec.height = spec.height;
-			m_fog_blur_tex_1.SetSpec(fog_spec);
-			m_fog_blur_tex_2.SetSpec(fog_spec);
-
-			Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
-			resized_bloom_spec.width = spec.width / 2;
-			resized_bloom_spec.height = spec.height / 2;
-			m_bloom_tex.SetSpec(resized_bloom_spec);
-		}
-
 		glViewport(0, 0, spec.width, spec.height);
 		PrepRenderPasses(p_cam, settings.p_output_tex);
 		DoGBufferPass(p_cam);
