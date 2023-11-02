@@ -2,7 +2,6 @@
 #define COMPONENT_H
 #include "entt/EnttSingleInclude.h"
 namespace ORNG {
-
 	class SceneEntity;
 
 	class Component {
@@ -35,7 +34,6 @@ namespace ORNG {
 
 		template<typename T>
 		T Get(const std::string& s) {
-
 			if (!data.contains(s)) {
 				throw std::runtime_error(std::format("DataComponent::Get failed, string key '{}' not found", s));
 			}
@@ -46,17 +44,15 @@ namespace ORNG {
 			catch (std::exception& e) {
 				throw std::runtime_error(std::format("DataComponent::Get failed at string key '{}', type is invalid", s));
 			}
-		}; 
+		};
 
 		template<typename T>
-		void Push(const std::string& s,  T& val) {
+		void Push(const std::string& s, T val) {
 			data[s] = static_cast<T>(val);
 		}
 
 		std::unordered_map<std::string, std::any> data;
 	};
-
-
 }
 
 #endif

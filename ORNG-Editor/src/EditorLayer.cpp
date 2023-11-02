@@ -42,11 +42,12 @@ namespace ORNG {
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
+#ifdef GAME_LAYER
 		Shader& mb_shader = Renderer::GetShaderLibrary().CreateShader("mandelbulb");
 		mb_shader.AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
 		mb_shader.AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_MAIN_DIR "/../ORNG-Editor/res/shaders/MandelbulbFS.glsl");
 		mb_shader.Init();
-
+#endif
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
 		mp_quad_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
@@ -193,7 +194,6 @@ namespace ORNG {
 
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
-
 		if (m_fullscreen_scene_display)
 			m_scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - toolbar_height) };
 		else
@@ -436,10 +436,11 @@ namespace ORNG {
 		SceneRenderer::Get().PrepRenderPasses(p_cam, settings.p_output_tex);
 		SceneRenderer::Get().DoGBufferPass(p_cam);
 		
-
+#ifdef GAME_LAYER
 		Shader& mb_shader = Renderer::GetShaderLibrary().GetShader("mandelbulb");
 		mb_shader.ActivateProgram();
 		Renderer::DrawQuad();
+#endif
 
 		SceneRenderer::Get().DoDepthPass(p_cam, settings.p_output_tex);
 		SceneRenderer::Get().DoLightingPass(settings.p_output_tex);

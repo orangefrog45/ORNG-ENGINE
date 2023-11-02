@@ -138,7 +138,7 @@ vec3 Colour(vec3 p)
 		p *= k;
 		scale *= k;
 	}
-	return  mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0));
+	return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
 float map(vec3 p) {

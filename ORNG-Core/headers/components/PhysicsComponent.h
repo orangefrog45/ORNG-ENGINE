@@ -33,7 +33,9 @@ namespace ORNG {
 		PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
 		void SetVelocity(glm::vec3 v);
+		void SetAngularVelocity(glm::vec3 v);
 		glm::vec3 GetVelocity() const;
+		glm::vec3 GetAngularVelocity() const;
 
 		void AddForce(glm::vec3 force);
 		void ToggleGravity(bool on);
