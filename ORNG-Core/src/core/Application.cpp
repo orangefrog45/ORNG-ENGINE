@@ -1,6 +1,5 @@
 #include "pch/pch.h"
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
+
 #include "rendering/Renderer.h"
 #include "core/Application.h"
 #include "util/Log.h"
@@ -21,23 +20,6 @@
 
 namespace ORNG {
 
-	void InitImGui() {
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-
-		ImGuiStyle& style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			style.WindowRounding = 0.0f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-		}
-
-		ImGui_ImplGlfw_InitForOpenGL(Window::GetGLFWwindow(), true);
-		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
-	}
 
 	void Application::Shutdown() {
 		layer_stack.Shutdown();
@@ -64,9 +46,8 @@ namespace ORNG {
 			exit(EXIT_FAILURE);
 		}
 
-		//IMGUI INIT
-		IMGUI_CHECKVERSION();
-		InitImGui();
+		// Have to do up here for now to prevent a crash
+		layer_stack.m_imgui_layer.OnInit();
 		AudioEngine::Init();
 		Input::Init();
 		GL_StateManager::InitGL();
@@ -104,9 +85,7 @@ namespace ORNG {
 
 		// Cleanup
 		Shutdown();
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
+
 
 		glfwDestroyWindow(window);
 		glfwTerminate();

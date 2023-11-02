@@ -1,6 +1,7 @@
 #include "pch/pch.h"
 #include "layers/LayerStack.h"
 #include "util/Log.h"
+#include "layers/ImGuiLayer.h"
 
 namespace ORNG {
 	void LayerStack::PopLayer(Layer* p_layer) {
@@ -25,6 +26,13 @@ namespace ORNG {
 		for (auto* p_layer : m_layers) {
 			p_layer->OnRender();
 		}
+
+
+		m_imgui_layer.BeginFrame();
+		for (auto* p_layer : m_layers) {
+			p_layer->OnImGuiRender();
+		}
+		m_imgui_layer.OnImGuiRender();
 	}
 
 	void LayerStack::Init() {

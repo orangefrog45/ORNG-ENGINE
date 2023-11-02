@@ -122,12 +122,12 @@ namespace ORNG {
 			static const int DISPLACEMENT = 9;
 			static const int NORMAL_ARRAY = 10;
 			static const int BLUE_NOISE = 11;
-			static const int SHADER_MATERIAL_IDS = 12;
+			static const int SHADER_IDS = 12;
 			static const int COLOR_CUBEMAP = 13;
 			static const int COLOUR_2 = 14;
 			static const int DATA_3D = 15;
+			static const int ROUGHNESS_METALLIC_AO = 19;
 			static const int COLOUR_3 = 23;
-
 		};
 
 	private:
@@ -167,6 +167,5 @@ namespace ORNG {
 
 		int m_current_active_shader_handle = -1;
 		int m_current_bound_vao = -1;
-
 	};
 }

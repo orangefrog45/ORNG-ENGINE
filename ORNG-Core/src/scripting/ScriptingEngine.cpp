@@ -8,21 +8,14 @@
 
 namespace ORNG {
 	struct ScriptMetadata {
-		enum class BuildMode : std::uint8_t {
-			RELEASE,
-			DEBUG
-		};
-
 		template <typename S>
 		void serialize(S& o) {
 			o.text1b(last_write_time, 1000);
 			o.text1b(orng_library_last_write_time, 1000);
-			o.value1b(build_mode);
 		}
 
 		std::string last_write_time;
 		std::string orng_library_last_write_time;
-		BuildMode build_mode;
 	};
 
 
@@ -41,12 +34,8 @@ namespace ORNG {
 			// Check if the build type matches
 #ifdef NDEBUG
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
-			if (data.build_mode == ScriptMetadata::BuildMode::DEBUG)
-				return true;
 #else
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
-			if (data.build_mode == ScriptMetadata::BuildMode::RELEASE)
-				return true;
 #endif
 			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time)
 				return true; // Core engine library has changed so recompilation needed
@@ -169,11 +158,9 @@ namespace ORNG {
 #ifdef NDEBUG
 			std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
 			std::string bin_path = ".\\res\\scripts\\bin\\release\\";
-			md.build_mode = ScriptMetadata::BuildMode::RELEASE;
 #else
 			std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 			std::string bin_path = ".\\res\\scripts\\bin\\debug\\";
-			md.build_mode = ScriptMetadata::BuildMode::DEBUG;
 #endif
 
 			// Cleanup old pdb files

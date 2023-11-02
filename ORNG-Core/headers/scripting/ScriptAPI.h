@@ -113,7 +113,7 @@ extern "C" {
 			friend void ORNG_Connectors::SetFrameTimingPtr(ORNG::FrameTiming* p_instance);
 		public:
 			static float GetDeltaTime() { return mp_instance->IGetTimeStep(); }
-			static float GetElapsedTime() { return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - mp_instance->m_application_start_time).count() / 1000.0; }
+			static float GetElapsedTime() { return mp_instance->total_elapsed_time; }
 		private:
 			inline static ORNG::FrameTiming* mp_instance = nullptr;
 		};

@@ -42,7 +42,12 @@ namespace ORNG {
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
-
+#ifdef GAME_LAYER
+		Shader& mb_shader = Renderer::GetShaderLibrary().CreateShader("mandelbulb");
+		mb_shader.AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
+		mb_shader.AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_MAIN_DIR "/../ORNG-Editor/res/shaders/MandelbulbFS.glsl");
+		mb_shader.Init();
+#endif
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
 		mp_quad_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
@@ -189,7 +194,6 @@ namespace ORNG {
 
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
-
 		if (m_fullscreen_scene_display)
 			m_scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - toolbar_height) };
 		else
@@ -362,13 +366,9 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderUI() {
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
 		if (m_simulate_mode_active && !m_render_ui) {
 			RenderToolbar();
-			goto exit;
+			return;
 		}
 
 		RenderToolbar();
@@ -409,18 +409,6 @@ namespace ORNG {
 
 		ImGui::PopStyleVar(); // window border size
 		ImGui::PopStyleVar(); // window padding
-	exit:
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		ORNG_PROFILE_FUNC();
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		}
 	}
 
 
@@ -440,7 +428,24 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 		settings.p_output_tex = &*mp_scene_display_texture;
-		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+		//SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+
+		auto spec = mp_scene_display_texture->m_spec;
+		glViewport(0, 0, spec.width, spec.height);
+		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
+		SceneRenderer::Get().PrepRenderPasses(p_cam, settings.p_output_tex);
+		SceneRenderer::Get().DoGBufferPass(p_cam);
+		
+#ifdef GAME_LAYER
+		Shader& mb_shader = Renderer::GetShaderLibrary().GetShader("mandelbulb");
+		mb_shader.ActivateProgram();
+		Renderer::DrawQuad();
+#endif
+
+		SceneRenderer::Get().DoDepthPass(p_cam, settings.p_output_tex);
+		SceneRenderer::Get().DoLightingPass(settings.p_output_tex);
+		SceneRenderer::Get().DoFogPass(spec.width, spec.height);
+		SceneRenderer::Get().DoPostProcessingPass(p_cam, settings.p_output_tex);
 
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();
@@ -449,6 +454,7 @@ namespace ORNG {
 
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+
 		if (m_simulate_mode_active) {
 			mp_quad_shader->ActivateProgram();
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);

@@ -40,6 +40,15 @@ namespace ORNG {
 			((PxRigidDynamic*)p_rigid_actor)->setLinearVelocity(PxVec3(v.x, v.y, v.z));
 	}
 
+	void PhysicsComponent::SetAngularVelocity(glm::vec3 v) {
+		if (m_body_type == DYNAMIC)
+			((PxRigidDynamic*)p_rigid_actor)->setAngularVelocity(PxVec3(v.x, v.y, v.z));
+	}
+
+	glm::vec3 PhysicsComponent::GetAngularVelocity() const {
+		auto vec = ((PxRigidDynamic*)p_rigid_actor)->getAngularVelocity();
+		return glm::vec3(vec.x, vec.y, vec.z);
+	}
 
 	glm::vec3 PhysicsComponent::GetVelocity() const {
 		auto vec = ((PxRigidDynamic*)p_rigid_actor)->getLinearVelocity();
