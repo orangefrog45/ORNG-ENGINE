@@ -340,17 +340,41 @@ namespace ORNG {
 		}
 
 		auto& spec = settings.p_output_tex->GetSpec();
+		RenderResources res;
+		res.p_gbuffer_fb = m_gbuffer_fb;
+
 		glViewport(0, 0, spec.width, spec.height);
 		PrepRenderPasses(p_cam, settings.p_output_tex);
-		DoGBufferPass(p_cam);
-		DoDepthPass(p_cam, settings.p_output_tex);
-		DoLightingPass(settings.p_output_tex);
-		DoFogPass(spec.width, spec.height);
-		DoPostProcessingPass(p_cam, settings.p_output_tex);
+
+		if (settings.do_intercept_renderpasses) {
+			DoGBufferPass(p_cam);
+			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
+
+			DoDepthPass(p_cam, settings.p_output_tex);
+			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
+
+			DoLightingPass(settings.p_output_tex);
+			RunRenderpassIntercepts(RenderpassStage::POST_LIGHTING, res);
+
+			DoFogPass(spec.width, spec.height);
+			DoPostProcessingPass(p_cam, settings.p_output_tex);
+			RunRenderpassIntercepts(RenderpassStage::POST_POST_PROCESS, res);
+		}
+		else {
+			DoGBufferPass(p_cam);
+			DoDepthPass(p_cam, settings.p_output_tex);
+			DoLightingPass(settings.p_output_tex);
+			DoFogPass(spec.width, spec.height);
+			DoPostProcessingPass(p_cam, settings.p_output_tex);
+		}
+
 
 		return output;
 	}
 
+	void SceneRenderer::RunRenderpassIntercepts(RenderpassStage stage, const RenderResources& res) {
+		std::ranges::for_each(m_render_intercepts, [&](const auto rp) {if (rp.stage == stage) { rp.func(res); }; });
+	}
 
 
 	void SceneRenderer::SetGBufferMaterial(const Material* p_material, Shader* p_gbuffer_shader) {

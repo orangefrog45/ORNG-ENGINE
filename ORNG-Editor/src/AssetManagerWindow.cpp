@@ -633,6 +633,8 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
 		settings.p_output_tex = &*p_tex;
+		// Disable additional user renderpasses as this is just a preview of a mesh
+		settings.do_intercept_renderpasses = false;
 
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
 
@@ -662,7 +664,10 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
 		settings.p_output_tex = &*p_tex;
+		// Disable additional user renderpasses as this is just a preview of a mesh
+		settings.do_intercept_renderpasses = false;
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0, true);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);

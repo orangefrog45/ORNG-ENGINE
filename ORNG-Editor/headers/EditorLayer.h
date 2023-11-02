@@ -4,8 +4,6 @@
 #include "AssetManagerWindow.h"
 #include "scene/GridMesh.h"
 
-#define GAME_LAYER // Some additions like a renderpass for the fractal and stuff specifically for the game - 
-// want this here so I can develop the editor layer/engine alongside the game quickly instead of having seperate versions, clean up later
 
 namespace physx {
 	class PxMaterial;

@@ -42,12 +42,6 @@ namespace ORNG {
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
-#ifdef GAME_LAYER
-		Shader& mb_shader = Renderer::GetShaderLibrary().CreateShader("mandelbulb");
-		mb_shader.AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
-		mb_shader.AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_MAIN_DIR "/../ORNG-Editor/res/shaders/MandelbulbFS.glsl");
-		mb_shader.Init();
-#endif
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
 		mp_quad_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
@@ -428,24 +422,7 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*m_active_scene);
 		settings.p_output_tex = &*mp_scene_display_texture;
-		//SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
-
-		auto spec = mp_scene_display_texture->m_spec;
-		glViewport(0, 0, spec.width, spec.height);
-		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
-		SceneRenderer::Get().PrepRenderPasses(p_cam, settings.p_output_tex);
-		SceneRenderer::Get().DoGBufferPass(p_cam);
-		
-#ifdef GAME_LAYER
-		Shader& mb_shader = Renderer::GetShaderLibrary().GetShader("mandelbulb");
-		mb_shader.ActivateProgram();
-		Renderer::DrawQuad();
-#endif
-
-		SceneRenderer::Get().DoDepthPass(p_cam, settings.p_output_tex);
-		SceneRenderer::Get().DoLightingPass(settings.p_output_tex);
-		SceneRenderer::Get().DoFogPass(spec.width, spec.height);
-		SceneRenderer::Get().DoPostProcessingPass(p_cam, settings.p_output_tex);
+		SceneRenderer::RenderScene(settings);
 
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();

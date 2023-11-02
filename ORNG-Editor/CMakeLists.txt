@@ -22,6 +22,8 @@ target_include_directories(ORNG_EDITOR PUBLIC
 "../ORNG-Core/extern/fastnoise2/include"
 "../ORNG-Core/extern/yaml/include"
 "../ORNG-Core/extern/plog/include"
+
+
 headers
 )
 

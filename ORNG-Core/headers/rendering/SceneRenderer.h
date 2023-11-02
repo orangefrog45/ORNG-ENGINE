@@ -11,6 +11,27 @@ namespace ORNG {
 	class FramebufferLibrary;
 	struct CameraComponent;
 
+	enum RenderpassStage {
+		POST_GBUFFER,
+		POST_DEPTH,
+		POST_LIGHTING,
+		POST_POST_PROCESS
+	};
+
+	struct RenderResources {
+		Framebuffer* p_gbuffer_fb;
+
+	};
+
+	typedef void(__cdecl* RenderpassFunc)(RenderResources);
+
+	struct Renderpass {
+		RenderpassStage stage;
+		RenderpassFunc func;
+		std::string name;
+	};
+
+
 	class SceneRenderer {
 		friend class EditorLayer;
 	public:
@@ -26,6 +47,9 @@ namespace ORNG {
 
 
 		struct SceneRenderingSettings {
+			// Will custom user renderpasses be executed
+			bool do_intercept_renderpasses = true;
+
 			bool display_depth_map = false;
 			CameraComponent* p_cam_override = nullptr;
 
@@ -53,6 +77,14 @@ namespace ORNG {
 			return Get().mp_scene;
 		}
 
+		// Insert a custom renderpass during RenderScene 
+		static void AttachRenderpassIntercept(Renderpass renderpass) {
+			Get().IAttachRenderpassIntercept(renderpass);
+		}
+
+		static void DetachRenderpassIntercept(const std::string& name) {
+			Get().IDetachRenderpassIntercept(name);
+		}
 
 
 		static SceneRenderer& Get() {
@@ -63,13 +95,24 @@ namespace ORNG {
 		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoGBufferPass(CameraComponent* p_cam);
 		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
-		void DoFogPass(unsigned int width, unsigned int height);
 		void DoLightingPass(Texture2D* output_tex);
+		void DoFogPass(unsigned int width, unsigned int height);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
 
 	private:
 
+		void IAttachRenderpassIntercept(Renderpass renderpass) {
+			ASSERT(std::ranges::find_if(m_render_intercepts, [&](const auto& pass) {return pass.name == renderpass.name; }) == m_render_intercepts.end());
+			m_render_intercepts.push_back(renderpass);
+		}
 
+		void IDetachRenderpassIntercept(const std::string& name) {
+			auto it = std::ranges::find_if(m_render_intercepts, [&](const auto& pass) {return pass.name == name; });
+			ASSERT(it != m_render_intercepts.end());
+			m_render_intercepts.erase(it);
+		}
+
+		void RunRenderpassIntercepts(RenderpassStage stage, const RenderResources& res);
 		void I_Init();
 		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
 		void DrawTerrain(CameraComponent* p_cam);
@@ -82,6 +125,8 @@ namespace ORNG {
 
 		std::vector<glm::mat4> m_light_space_matrices = { glm::mat4(1), glm::mat4(1), glm::mat4(1) };
 
+		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
+		std::vector<Renderpass> m_render_intercepts;
 
 		Shader* mp_gbuffer_shader_terrain = nullptr;
 		Shader* mp_gbuffer_shader_skybox = nullptr;

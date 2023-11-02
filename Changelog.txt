@@ -1,3 +1,7 @@
+2/11/23:
+-Made a proper GameLayer and exe (currently editor with fractal renderpass) for the fractal game and moved the code out of the base editor
+-"Renderpass intercept" system where additional rendering code can be executed between different stages of the core RenderScene pipeline, required if multiple layers need to render parts of the scene
+
 21/10/23:
 -Scripts debuggable in debug mode
 -Script recompilation no longer unnecessarily happens on editor restart
