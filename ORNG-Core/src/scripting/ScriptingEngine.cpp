@@ -242,6 +242,9 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Failed loading OnCollision symbol from script file '{0}'", filepath);
 		}
 
+		// Clear bat file
+		std::ofstream bat_stream("res/scripts/gen_scripts.bat");
+		bat_stream.close();
 
 		return symbols;
 	}
