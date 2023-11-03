@@ -1,6 +1,6 @@
 #include "util/util.h"
 namespace ORNG {
-	void HandledFileSystemCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive) {
+	void FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive) {
 		try {
 			if (recursive)
 				std::filesystem::copy(file_to_copy, copy_location, std::filesystem::copy_options::recursive);
@@ -12,13 +12,46 @@ namespace ORNG {
 		}
 	}
 
-	void HandledFileDelete(const std::string& filepath) {
+	void FileDelete(const std::string& filepath) {
 		try {
 			std::filesystem::remove(filepath);
 		}
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::remove error, '{0}'", e.what());
 		}
+	}
+
+	bool FileExists(const std::string& filepath) {
+		try {
+			return std::filesystem::exists(filepath);
+		}
+		catch (std::exception& e) {
+			ORNG_CORE_ERROR("std::filesystem::remove error, '{0}'", e.what());
+			return false;
+		}
+	}
+
+
+	std::string GetFileDirectory(const std::string& filepath) {
+		size_t forward_pos = filepath.rfind("/");
+		size_t back_pos = filepath.rfind("\\");
+
+		if (back_pos == std::string::npos) {
+			if (forward_pos == std::string::npos) {
+				ORNG_CORE_ERROR("GetFileDirectory with filepath '{0}' failed, no directory found", filepath);
+				return filepath;
+			}
+			return filepath.substr(0, forward_pos);
+		}
+		else if (forward_pos == std::string::npos) {
+			return filepath.substr(0, back_pos);
+		}
+
+
+		if (forward_pos > back_pos)
+			return filepath.substr(0, forward_pos);
+		else
+			return filepath.substr(0, back_pos);
 	}
 
 	bool PathEqualTo(const std::string& path1, const std::string& path2) {

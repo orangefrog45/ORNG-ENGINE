@@ -583,21 +583,21 @@ namespace ORNG {
 
 
 		// Include header files for API so intellisense works
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", project_path + "/res/scripts/includes/SceneScriptInterface.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", project_path + "/res/scripts/includes/SceneScriptInterface.h");
 		// Components
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", project_path + "/res/scripts/includes/Component.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", project_path + "/res/scripts/includes/MeshComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", project_path + "/res/scripts/includes/ScriptComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", project_path + "/res/scripts/includes/Lights.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", project_path + "/res/scripts/includes/TransformComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", project_path + "/res/scripts/includes/PhysicsComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", project_path + "/res/scripts/includes/CameraComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", project_path + "/res/scripts/includes/AudioComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", project_path + "/res/scripts/includes/Component.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", project_path + "/res/scripts/includes/MeshComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", project_path + "/res/scripts/includes/ScriptComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", project_path + "/res/scripts/includes/Lights.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", project_path + "/res/scripts/includes/TransformComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", project_path + "/res/scripts/includes/PhysicsComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", project_path + "/res/scripts/includes/CameraComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", project_path + "/res/scripts/includes/AudioComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");
 
 		return true;
 	}
@@ -661,33 +661,33 @@ namespace ORNG {
 
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
 	void RefreshScriptIncludes() {
-		HandledFileDelete("./res/scripts/includes/SceneEntity.h");
-		HandledFileDelete("./res/scripts/includes/Scene.h");
-		HandledFileDelete("./res/scripts/includes/ScriptAPI.h");
-		HandledFileDelete("./res/scripts/includes/Component.h");
-		HandledFileDelete("./res/scripts/includes/MeshComponent.h");
-		HandledFileDelete("./res/scripts/includes/ScriptComponent.h");
-		HandledFileDelete("./res/scripts/includes/Lights.h");
-		HandledFileDelete("./res/scripts/includes/TransformComponent.h");
-		HandledFileDelete("./res/scripts/includes/PhysicsComponent.h");
-		HandledFileDelete("./res/scripts/includes/CameraComponent.h");
-		HandledFileDelete("./res/scripts/includes/EnttSingleInclude.h");
-		HandledFileDelete("./res/scripts/includes/SceneScriptInterface.h");
-		HandledFileDelete("./res/scripts/includes/AudioComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", "./res/scripts/includes/Component.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", "./res/scripts/includes/MeshComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", "./res/scripts/includes/ScriptComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", "./res/scripts/includes/Lights.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", "./res/scripts/includes/glm/", true);
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", "./res/scripts/includes/TransformComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
-		HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
+		FileDelete("./res/scripts/includes/SceneEntity.h");
+		FileDelete("./res/scripts/includes/Scene.h");
+		FileDelete("./res/scripts/includes/ScriptAPI.h");
+		FileDelete("./res/scripts/includes/Component.h");
+		FileDelete("./res/scripts/includes/MeshComponent.h");
+		FileDelete("./res/scripts/includes/ScriptComponent.h");
+		FileDelete("./res/scripts/includes/Lights.h");
+		FileDelete("./res/scripts/includes/TransformComponent.h");
+		FileDelete("./res/scripts/includes/PhysicsComponent.h");
+		FileDelete("./res/scripts/includes/CameraComponent.h");
+		FileDelete("./res/scripts/includes/EnttSingleInclude.h");
+		FileDelete("./res/scripts/includes/SceneScriptInterface.h");
+		FileDelete("./res/scripts/includes/AudioComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", "./res/scripts/includes/Component.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", "./res/scripts/includes/MeshComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", "./res/scripts/includes/ScriptComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", "./res/scripts/includes/Lights.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", "./res/scripts/includes/glm/", true);
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", "./res/scripts/includes/TransformComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
 	}
 
 
@@ -878,7 +878,7 @@ namespace ORNG {
 				// Check if texture is an asset or not, if not, add it
 				std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("\\") + 1);
 				if (!std::filesystem::exists(new_filepath)) {
-					HandledFileSystemCopy(filepath, new_filepath);
+					FileCopy(filepath, new_filepath);
 				}
 				m_active_scene->skybox.LoadEnvironmentMap(new_filepath);
 				};

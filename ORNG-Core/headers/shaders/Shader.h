@@ -4,7 +4,6 @@
 #include "core/GLStateManager.h"
 
 namespace ORNG {
-
 	struct Material;
 
 	class Shader {
@@ -24,10 +23,10 @@ namespace ORNG {
 		void Init();
 
 		// Compiles a shader program with preprocessor definitions in "defines"
-		void AddStage(GLenum shader_type, const std::string& filepath, const std::vector<std::string>& defines = {});
+		void AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines = {});
 
 		// Compiles a shader program from "shader_code" string with preprocessor definitions in "defines"
-		void AddStageFromString(GLenum shader_type, const std::string& shader_code, const std::vector<std::string>& defines = {});
+		void AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines = {});
 
 		inline void ActivateProgram() {
 			GL_StateManager::ActivateShaderProgram(m_program_id);
@@ -47,7 +46,6 @@ namespace ORNG {
 
 		template<typename T>
 		void SetUniform(const std::string& name, T value) {
-
 			if (!m_uniforms.contains(name)) {
 				ORNG_CORE_ERROR("Uniform '{0}' not found in shader '{1}'", name, m_name);
 			}
@@ -97,7 +95,11 @@ namespace ORNG {
 
 		void UseShader(unsigned int& id, unsigned int program);
 
-		std::string ParseShader(const std::string& filepath, const std::vector<std::string>& defines);
+		std::string ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree);
+
+		void ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree);
+
+		void ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& str, size_t directive_pos, std::vector<const std::string*>& include_tree);
 
 		unsigned int m_id;
 
@@ -106,6 +108,5 @@ namespace ORNG {
 		std::unordered_map<std::string, unsigned int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;
 		const char* m_name = "Unnamed shader";
-
 	};
 }

@@ -217,7 +217,7 @@ namespace ORNG {
 					// Copy file so asset can be saved with project and accessed relatively
 					std::string new_filepath = ".\\res\\textures\\" + filepath.substr(filepath.find_last_of("\\") + 1);
 					if (!std::filesystem::exists(new_filepath)) {
-						HandledFileSystemCopy(filepath, new_filepath);
+						FileCopy(filepath, new_filepath);
 						m_current_2d_tex_spec.filepath = new_filepath;
 						m_current_2d_tex_spec.generate_mipmaps = true;
 						Texture2D* p_new_tex = new Texture2D(filepath);
@@ -358,7 +358,7 @@ namespace ORNG {
 			if (ImGui::Button("Create script")) {
 				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx\0*.obj;*.fbx\0";
 				std::string script_path = *mp_active_project_dir + "/res/scripts/" + std::to_string(UUID()()) + ".cpp";
-				HandledFileSystemCopy(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.cpp", script_path);
+				FileCopy(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.cpp", script_path);
 				std::string open_file_command = "start " + script_path;
 				std::system(open_file_command.c_str());
 			}
@@ -458,7 +458,7 @@ namespace ORNG {
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					// Give relative path to current project directory
 					std::string new_filepath{ GenerateAudioFileClonePath(filepath) };
-					HandledFileSystemCopy(filepath, new_filepath);
+					FileCopy(filepath, new_filepath);
 					auto* p_sound = new SoundAsset(new_filepath);
 					p_sound->source_filepath = new_filepath.substr(0, new_filepath.rfind(".osound"));
 					AssetManager::AddAsset(p_sound);

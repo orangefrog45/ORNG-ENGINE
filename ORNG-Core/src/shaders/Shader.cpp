@@ -6,47 +6,190 @@
 
 
 namespace ORNG {
-
 	Shader::~Shader() {
 		glDeleteProgram(m_program_id);
 	}
+	void CheckIncludeTreeCircularIncludes(const std::string& filepath, std::vector<const std::string*>& include_tree) {
+		for (const auto* s : include_tree) {
+			if (*s == filepath) {
+				ORNG_CORE_ERROR("Circular include detected between shader files, include tree:");
+				for (auto* s1 : include_tree) {
+					ORNG_CORE_ERROR(*s1);
+				}
+				BREAKPOINT;
+			}
+		}
+	}
 
+	bool HeaderGuardTriggered(std::vector<std::string>& defines, const std::string& filepath) {
+		std::string define = filepath;
+		define.erase(std::remove_if(define.begin(), define.end(), [](char c) { return !std::isalnum(c); }), define.end());
+		// Macro can't start with digits
+		while (std::isdigit(define[0])) {
+			define.erase(0);
+		}
 
+		if (std::ranges::find(defines, define) != defines.end()) {
+			return true;
+		}
 
-	std::string Shader::ParseShader(const std::string& filepath, const std::vector<std::string>& defines) {
-		std::ifstream stream(filepath);
+		// Add "header guard"
+		defines.push_back(define);
 
-		std::stringstream ss;
+		return false;
+	}
+
+	void Shader::ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree) {
+		CheckIncludeTreeCircularIncludes(filepath, include_tree);
+		include_tree.push_back(&filepath);
+
+		std::ifstream ifstream(filepath);
 		std::string line;
+
+		// Automatic header guard
+		if (HeaderGuardTriggered(defines, filepath)) {
+			include_tree.pop_back();
+			return;
+		}
+
+
+		std::string include_search_directory = GetFileDirectory(filepath) + "\\";
+		while (getline(ifstream, line))
+		{
+			if (line.find("ORNG_INCLUDE") != std::string::npos) {
+				size_t first = line.find("\"") + 1;
+				size_t last = line.rfind("\"");
+				std::string include_fp = include_search_directory + line.substr(first, last - first);
+				if (FileExists(include_fp))
+					ParseShaderInclude(include_fp, defines, stream, include_tree);
+				else
+					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
+			}
+			else {
+				stream << line << "\n";
+			}
+		}
+
+		include_tree.pop_back();
+	}
+
+	void Shader::ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& str, size_t directive_pos, std::vector<const std::string*>& include_tree) {
+		std::string s = ParseShader(filepath, defines, include_tree);
+		str.insert(directive_pos, s);
+		s += "\n";
+	}
+
+
+	std::string Shader::ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree) {
+		CheckIncludeTreeCircularIncludes(filepath, include_tree);
+		include_tree.push_back(&filepath);
+
+		// Automatic header guard
+		if (HeaderGuardTriggered(defines, filepath)) {
+			include_tree.pop_back();
+			return "";
+		}
+
+
+
+
+		std::ifstream stream(filepath);
+		std::string line;
+		std::stringstream ss;
+
 		// Output version statement first
 		getline(stream, line);
-		ss << line << "\n";
-		for (auto& define : defines) { // insert definitions 
+
+		if (line.starts_with("#version"))
+			ss << line << "\n";
+
+		for (int i = 0; i < defines.size(); i++) { // insert definitions
+			const std::string& define = defines[i];
+			if (std::ranges::count(defines, define) > 1)
+				continue;
+
 			ss << "#define" << " " << define << "\n";
+			// Make a copy that I can track, if there is a copy of a define I don't need to include it, automatic header guard
+			defines.push_back(define);
 		}
+
+		if (!line.starts_with("#version"))
+			goto loop;
+
+
 		while (getline(stream, line))
 		{
-			ss << line << "\n";
+		loop:
+			if (line.find("ORNG_INCLUDE") != std::string::npos) {
+				size_t first = line.find("\"") + 1;
+				size_t last = line.rfind("\"");
+
+				std::string include_fp = line.substr(first, last - first);
+				std::string shader_dir = GetFileDirectory(filepath) + "\\";
+				if (FileExists(shader_dir + include_fp))
+					ParseShaderInclude(shader_dir + include_fp, defines, ss, include_tree);
+				else
+					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
+			}
+			else {
+				ss << line << "\n";
+			}
 		}
+		include_tree.pop_back();
 		return ss.str();
 	}
 
-	void Shader::AddStage(GLenum shader_type, const std::string& filepath, const std::vector<std::string>& defines) {
-		ASSERT(std::filesystem::exists(filepath));
+	void Shader::AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines) {
+		ASSERT(FileExists(filepath));
 		unsigned int shader_handle = 0;
-		CompileShader(shader_type, ParseShader(filepath, defines), shader_handle);
+		std::vector<const std::string*> include_tree;
+		CompileShader(shader_type, ParseShader(filepath, defines, include_tree), shader_handle);
 		m_shader_handles.push_back(shader_handle);
 	}
 
-	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, const std::vector<std::string>& defines) {
+	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines) {
 		unsigned int shader_handle = 0;
 		std::string shader_code_copy = shader_code;
 
-		for (auto& define : defines) { // insert definitions 
-			shader_code_copy.insert(shader_code_copy.find("core") + 4, "\n" "#define " + define + "\n");
+		auto define_insert_pos = shader_code_copy.find("core") + 4;
+
+		if (define_insert_pos == std::string::npos)
+			define_insert_pos = 0;
+
+		for (int i = 0; i < defines.size(); i++) { // insert definitions
+			const std::string& define = defines[i];
+
+			if (std::ranges::count(defines, define) > 1)
+				continue;
+
+
+			shader_code_copy.insert(define_insert_pos, "\n" "#define " + define + "\n");
+			defines.push_back(define);
+		}
+
+		// Handle include directives
+		size_t pos = shader_code_copy.find("ORNG_INCLUDE");
+		// Copy needs to be made so the includes can be written to it
+		while (pos != std::string::npos) {
+			size_t first = shader_code_copy.find("\"", pos) + 1;
+			size_t last = shader_code_copy.find("\"", first) + 1;
+			std::string include_fp = shader_code_copy.substr(first, last - first - 1);
+			// All string shaders are located in here so searches will be relative to this
+			std::string shader_include_dir = ORNG_CORE_MAIN_DIR "\\res\\shaders\\";
+
+			shader_code_copy.erase(pos, last - pos);
+			std::vector<const std::string*> include_tree;
+			if (FileExists(shader_include_dir + include_fp)) {
+				ParseShaderIncludeString(shader_include_dir + include_fp, defines, shader_code_copy, pos, include_tree);
+			}
+			else
+				ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
+
+			pos = shader_code_copy.find("ORNG_INCLUDE", pos - (last - pos));
 		}
 
 		CompileShader(shader_type, shader_code_copy, shader_handle);
+
 		m_shader_handles.push_back(shader_handle);
 	}
 

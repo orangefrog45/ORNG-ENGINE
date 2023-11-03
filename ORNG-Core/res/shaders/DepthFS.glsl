@@ -1,5 +1,6 @@
 R""(#version 430 core
 
+ORNG_INCLUDE "TestInclude.glsl"
 in vec3 vs_normal;
 in vec3 world_pos;
 
@@ -39,6 +40,6 @@ distance += bias;
 	distance /= u_light_zfar;
 	gl_FragDepth = distance;
 #else
-	gl_FragDepth = gl_FragCoord.z + bias;
+	gl_FragDepth = gl_FragCoord.z + bias + TestInclude2();
 #endif
 })""
