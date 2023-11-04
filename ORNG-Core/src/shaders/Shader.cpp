@@ -148,7 +148,7 @@ namespace ORNG {
 	}
 
 	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines) {
-		unsigned int shader_handle = 0;
+		// Copy needs to be made so the includes can be written to it
 		std::string shader_code_copy = shader_code;
 
 		auto define_insert_pos = shader_code_copy.find("core") + 4;
@@ -162,34 +162,32 @@ namespace ORNG {
 			if (std::ranges::count(defines, define) > 1)
 				continue;
 
-
 			shader_code_copy.insert(define_insert_pos, "\n" "#define " + define + "\n");
 			defines.push_back(define);
 		}
 
+		// All string shaders are located in here so searches will be relative to this
+		const char* shader_include_dir = ORNG_CORE_MAIN_DIR "\\res\\shaders\\";
+
 		// Handle include directives
 		size_t pos = shader_code_copy.find("ORNG_INCLUDE");
-		// Copy needs to be made so the includes can be written to it
 		while (pos != std::string::npos) {
 			size_t first = shader_code_copy.find("\"", pos) + 1;
 			size_t last = shader_code_copy.find("\"", first) + 1;
-			std::string include_fp = shader_code_copy.substr(first, last - first - 1);
-			// All string shaders are located in here so searches will be relative to this
-			std::string shader_include_dir = ORNG_CORE_MAIN_DIR "\\res\\shaders\\";
-
 			shader_code_copy.erase(pos, last - pos);
+			std::string include_fp = shader_code_copy.substr(first, last - first - 1);
+
 			std::vector<const std::string*> include_tree;
-			if (FileExists(shader_include_dir + include_fp)) {
-				ParseShaderIncludeString(shader_include_dir + include_fp, defines, shader_code_copy, pos, include_tree);
-			}
+			if (std::string full_include_fp = shader_include_dir + include_fp; FileExists(full_include_fp))
+				ParseShaderIncludeString(full_include_fp, defines, shader_code_copy, pos, include_tree);
 			else
 				ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
 
 			pos = shader_code_copy.find("ORNG_INCLUDE", pos - (last - pos));
 		}
 
+		unsigned int shader_handle = 0;
 		CompileShader(shader_type, shader_code_copy, shader_handle);
-
 		m_shader_handles.push_back(shader_handle);
 	}
 

@@ -1,4 +1,4 @@
-R""(#version 460 core
+#version 460 core
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in; // invocations
 
@@ -37,4 +37,4 @@ void main() {
 	result += imageLoad(i_output, tex_coords).rgb;
 	imageStore(i_output, tex_coords, vec4(result, 1.0));
 
-})""
+}

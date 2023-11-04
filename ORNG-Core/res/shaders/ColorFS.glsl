@@ -1,4 +1,4 @@
-R"(#version 430 core
+#version 430 core
 
 out vec4 o_col;
 
@@ -7,4 +7,4 @@ in vec3 col;
 
 void main() {
 	o_col = vec4(col, 1.0);
-})"
+}

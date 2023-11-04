@@ -1,4 +1,4 @@
-R""(#version 430 core
+#version 430 core
 
 in layout(location = 0) vec3 pos;
 
@@ -21,4 +21,4 @@ void main() {
 col = icol;
 #endif
 	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1.f);
-})""
+}

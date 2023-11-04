@@ -1,4 +1,4 @@
-R""(#version 430 core
+#version 430 core
 
 #define PI 3.1415926538
 #define MAX_REFLECTION_LOD 4.0
@@ -488,4 +488,4 @@ for (int i = 0; i < ubo_spot_lights_shadow.lights.length(); i++) {
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
 	imageStore(u_output_texture, tex_coords, vec4(light_color , 1.0));
-};)""
+};

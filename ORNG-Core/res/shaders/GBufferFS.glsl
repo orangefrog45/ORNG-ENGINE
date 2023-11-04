@@ -1,4 +1,4 @@
-R""(#version 430 core
+#version 430 core
 
 out layout(location = 0) vec4 normal;
 out layout(location = 1) vec4 albedo;
@@ -196,4 +196,4 @@ void main() {
 	albedo.w = 1.0;
 #endif
 
-})""
+}

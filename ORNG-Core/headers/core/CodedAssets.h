@@ -10,7 +10,7 @@ namespace ORNG {
 		static void Init() {
 		}
 
-		inline static const char* GBufferVS = {
+		/*inline static const char* GBufferVS = {
 			#include "../res/shaders/GBufferVS.glsl"
 		};
 
@@ -112,6 +112,6 @@ namespace ORNG {
 
 		inline static const char* TransformVS = {
 		#include "../res/shaders/TransformVS.glsl"
-		};
+		};*/
 	};
 }

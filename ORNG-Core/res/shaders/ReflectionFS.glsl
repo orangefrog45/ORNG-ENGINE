@@ -1,4 +1,4 @@
-R""(
+
 #version 430 core
 out vec4 FragColor;
 
@@ -12,4 +12,4 @@ void main() {
 	vec3 I = normalize(vs_position - camera_pos);
 	vec3 R = reflect(I, normalize(vs_normal));
 	FragColor = vec4(texture(skybox, R).rgb, 1.0);
-})""
+}

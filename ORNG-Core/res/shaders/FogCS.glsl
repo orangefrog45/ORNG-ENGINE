@@ -1,4 +1,4 @@
-R""(#version 460 core
+#version 460 core
 
 #define PI 3.1415926538
 
@@ -332,4 +332,4 @@ void main() {
 
 	vec4 fog_color = vec4(u_fog_color * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 4).rgb * u_emissive, 1.0 - accum.a );
 	imageStore(fog_texture, tex_coords, fog_color);
-})""
+}

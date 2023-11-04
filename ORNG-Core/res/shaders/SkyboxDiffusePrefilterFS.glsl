@@ -1,4 +1,4 @@
-R""(#version 460 core
+#version 460 core
 
 #define PI 3.1415926538
 out vec4 frag_color;
@@ -45,4 +45,4 @@ vec3 DiffusePrefilter(vec3 normal) {
 void main() {
 	vec3 n = normalize(vs_local_pos);
 	frag_color = vec4(DiffusePrefilter(n), 1.0);
-})""
+}

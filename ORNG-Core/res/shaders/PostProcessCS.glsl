@@ -1,4 +1,4 @@
-R""(#version 430 core
+#version 430 core
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -26,4 +26,4 @@ void main() {
 	vec3 gamma_adjusted = pow(mapped, vec3(1.0 / gamma));
 	imageStore(u_output_texture, tex_coords, vec4(gamma_adjusted, 1.0));
 
-})""
+}

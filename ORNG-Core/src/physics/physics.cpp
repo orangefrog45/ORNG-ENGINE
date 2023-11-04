@@ -132,8 +132,8 @@ namespace ORNG {
 	void Physics::InitDebugRenderPass() {
 		p_debug_shader = &Renderer::GetShaderLibrary().CreateShader("physx-debug");
 
-		p_debug_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::TransformVS, {"COLOR"});
-		p_debug_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::ColorFS);
+		p_debug_shader->AddStage(GL_VERTEX_SHADER,ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl", {"COLOR"});
+		p_debug_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/ColorFS.glsl");
 		p_debug_shader->Init();
 		p_debug_shader->AddUniform("transform");
 		p_debug_render_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("physx-debug", false);

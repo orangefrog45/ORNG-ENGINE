@@ -44,19 +44,19 @@ namespace ORNG {
 
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
-		mp_quad_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
-		mp_quad_shader->AddStageFromString(GL_FRAGMENT_SHADER, CodedAssets::QuadFS);
+		mp_quad_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadVS.glsl");
+		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadFS.glsl");
 		mp_quad_shader->Init();
 
 		mp_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		mp_picking_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::TransformVS);
+		mp_picking_shader->AddStage(GL_VERTEX_SHADER,ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
 		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PickingFS.glsl");
 		mp_picking_shader->Init();
 		mp_picking_shader->AddUniform("comp_id");
 		mp_picking_shader->AddUniform("transform");
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		mp_highlight_shader->AddStageFromString(GL_VERTEX_SHADER, CodedAssets::TransformVS);
+		mp_highlight_shader->AddStage(GL_VERTEX_SHADER,ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
 		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HighlightFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");

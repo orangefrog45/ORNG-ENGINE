@@ -6,7 +6,7 @@ namespace ORNG {
 	void GameLayer::OnInit() {
 		// Initialize fractal renderpass
 		Shader& mb_shader = Renderer::GetShaderLibrary().CreateShader("mandelbulb");
-		mb_shader.AddStageFromString(GL_VERTEX_SHADER, CodedAssets::QuadVS);
+		mb_shader.AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadVS.glsl");
 		mb_shader.AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_MAIN_DIR "/../ORNG-Editor/res/shaders/MandelbulbFS.glsl");
 		mb_shader.Init();
 

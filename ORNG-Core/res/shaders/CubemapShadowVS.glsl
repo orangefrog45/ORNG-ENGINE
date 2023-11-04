@@ -1,4 +1,4 @@
-R""(#version 430 core
+#version 430 core
 
 layout(location = 0) in vec3 pos;
 in layout(location = 3) mat4 world_transform;
@@ -22,4 +22,3 @@ void main() {
 	gl_Position = PVMatrices.proj_view * world_pos;
 	vs_world_pos = world_pos.xyz;
 }
-)""
