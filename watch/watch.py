@@ -1,0 +1,49 @@
+# Quick thing just for ease of development, automatically updates shaders in build dirs without having to rebuild the whole thing
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import shutil
+
+debug_dir_core = "..\\out\\build\\x64-Debug\\ORNG-Core\\res\\shaders\\"
+release_dir_core = "..\\out\\build\\x64-Release\\ORNG-Core\\res\\shaders\\"
+debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
+release_dir_editor = "..\\out\\build\\x64-Release\\ORNG-Editor\\res\\shaders\\"
+
+
+class Handler(FileSystemEventHandler):
+    def on_modified(self, event):
+        # Function to execute when a file is modified
+        filename : str = event.src_path;
+
+        if filename.find("res\\shaders") == -1 or filename.find("out\\") != -1:
+            return;
+
+        debug_path = ""
+        release_path = ""
+
+        if filename.find("ORNG-Core") != -1:
+            debug_path = debug_dir_core
+            release_path= release_dir_core
+
+            
+        if filename.find("ORNG-Editor") != -1:
+            debug_path = debug_dir_editor
+            release_path= release_dir_editor
+
+        print(f'File {event.src_path} has been modified.')
+        filename = filename.split("\\").pop()
+        shutil.copy(event.src_path, debug_path + filename);
+        shutil.copy(event.src_path, release_path + filename);
+
+if __name__ == "__main__":
+    path = "..\\" 
+    event_handler = Handler()
+    observer = Observer()
+    observer.schedule(event_handler, path, recursive=True)
+    observer.start()
+
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()

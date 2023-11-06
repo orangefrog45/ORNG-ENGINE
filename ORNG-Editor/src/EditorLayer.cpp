@@ -210,7 +210,7 @@ namespace ORNG {
 			m_active_scene->Update(ts);
 		else {
 			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
-			m_active_scene->m_audio_system.OnUpdate(); // For audio samples
+			m_active_scene->m_audio_system.OnUpdate(); // For accurate audio playback
 			m_active_scene->terrain.UpdateTerrainQuadtree(m_active_scene->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
 

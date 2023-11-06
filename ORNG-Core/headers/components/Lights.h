@@ -3,7 +3,6 @@
 #include "Component.h"
 
 namespace ORNG {
-
 	struct BaseLight : public Component {
 		virtual ~BaseLight() = default;
 		BaseLight(SceneEntity* p_entity) : Component(p_entity) {};
@@ -25,7 +24,6 @@ namespace ORNG {
 		void SetShadowsEnabled(bool v);
 		float shadow_distance = 48.0f;
 		LightAttenuation attenuation;
-
 	};
 
 
@@ -49,6 +47,8 @@ namespace ORNG {
 	class DirectionalLight : public BaseLight {
 	public:
 		friend class EditorLayer;
+		friend class SceneRenderer;
+		friend class ShaderLibrary;
 		DirectionalLight();
 		auto GetLightDirection() const { return m_light_direction; };
 		void SetLightDirection(const glm::vec3& dir) { m_light_direction = glm::normalize(dir); };
@@ -61,6 +61,7 @@ namespace ORNG {
 		float light_size = 10.f;
 
 	private:
+		std::array<glm::mat4, 3> m_light_space_matrices = { glm::identity<glm::mat4>() };
 		glm::vec3 m_light_direction = normalize(glm::vec3(0.0f, 0.5f, 0.5f));
 	};
 }

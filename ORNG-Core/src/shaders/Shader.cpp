@@ -3,6 +3,7 @@
 #include "util/util.h"
 #include "shaders/Shader.h"
 #include "util/Log.h"
+#include <regex>
 
 
 namespace ORNG {
@@ -39,7 +40,25 @@ namespace ORNG {
 		return false;
 	}
 
-	void Shader::ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree) {
+
+	std::string FindShaderIncludePath(const std::string& filepath) {
+		std::string include_dir = GetFileDirectory(filepath) + "\\";
+		std::string filename = filepath.substr(include_dir.size());
+
+		if (!FileExists(include_dir + filename)) {
+			include_dir = ORNG_CORE_LIB_DIR "\\res\\shaders\\";
+			if (!FileExists(include_dir + filename)) {
+				include_dir = ORNG_CORE_LIB_DIR "..\\ORNG-Editor\\res\\shaders\\";
+				if (!FileExists(include_dir + filename))
+					return "";
+			}
+		}
+
+		return include_dir + filename;
+	}
+
+	void Shader::ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree, unsigned& line_count,
+		GLenum shader_type) {
 		CheckIncludeTreeCircularIncludes(filepath, include_tree);
 		include_tree.push_back(&filepath);
 
@@ -60,37 +79,42 @@ namespace ORNG {
 				size_t first = line.find("\"") + 1;
 				size_t last = line.rfind("\"");
 				std::string include_fp = include_search_directory + line.substr(first, last - first);
-				if (FileExists(include_fp))
-					ParseShaderInclude(include_fp, defines, stream, include_tree);
+
+				if (std::string inc_fp = FindShaderIncludePath(include_fp); !inc_fp.empty()) {
+					unsigned before_include_line_count = line_count;
+					ParseShaderInclude(inc_fp, defines, stream, include_tree, line_count, shader_type);
+				}
 				else
 					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
 			}
 			else {
 				stream << line << "\n";
+				line_count++;
 			}
 		}
+
 
 		include_tree.pop_back();
 	}
 
-	void Shader::ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& str, size_t directive_pos, std::vector<const std::string*>& include_tree) {
-		std::string s = ParseShader(filepath, defines, include_tree);
-		str.insert(directive_pos, s);
-		s += "\n";
+	void Shader::ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& shader_str, size_t directive_pos, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type) {
+		auto result = ParseShader(filepath, defines, include_tree, line_count, shader_type);
+
+		line_count += result.line_count;
+
+		shader_str.insert(directive_pos, result.shader_code);
 	}
 
 
-	std::string Shader::ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree) {
+	Shader::ParsedShaderData Shader::ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree, unsigned line_count, GLenum shader_type) {
 		CheckIncludeTreeCircularIncludes(filepath, include_tree);
 		include_tree.push_back(&filepath);
 
 		// Automatic header guard
 		if (HeaderGuardTriggered(defines, filepath)) {
 			include_tree.pop_back();
-			return "";
+			return { "", 0 };
 		}
-
-
 
 
 		std::ifstream stream(filepath);
@@ -102,6 +126,9 @@ namespace ORNG {
 
 		if (line.starts_with("#version"))
 			ss << line << "\n";
+
+		if (line_count == 0)
+			ss << "#line 1" << "\n";
 
 		for (int i = 0; i < defines.size(); i++) { // insert definitions
 			const std::string& define = defines[i];
@@ -116,7 +143,6 @@ namespace ORNG {
 		if (!line.starts_with("#version"))
 			goto loop;
 
-
 		while (getline(stream, line))
 		{
 		loop:
@@ -124,26 +150,31 @@ namespace ORNG {
 				size_t first = line.find("\"") + 1;
 				size_t last = line.rfind("\"");
 
-				std::string include_fp = line.substr(first, last - first);
+				std::string include_filename = line.substr(first, last - first);
 				std::string shader_dir = GetFileDirectory(filepath) + "\\";
-				if (FileExists(shader_dir + include_fp))
-					ParseShaderInclude(shader_dir + include_fp, defines, ss, include_tree);
+
+				if (std::string inc_fp = FindShaderIncludePath(shader_dir + include_filename); !inc_fp.empty())
+					ParseShaderInclude(inc_fp, defines, ss, include_tree, line_count, shader_type);
 				else
-					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
+					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_filename);
 			}
 			else {
 				ss << line << "\n";
+				line_count++;
 			}
 		}
 		include_tree.pop_back();
-		return ss.str();
+		return ParsedShaderData{ std::move(ss.str()), line_count };
 	}
 
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines) {
 		ASSERT(FileExists(filepath));
 		unsigned int shader_handle = 0;
 		std::vector<const std::string*> include_tree;
-		CompileShader(shader_type, ParseShader(filepath, defines, include_tree), shader_handle);
+
+		auto result = ParseShader(filepath, defines, include_tree, 0, shader_type);
+		CompileShader(shader_type, result.shader_code, shader_handle);
+
 		m_shader_handles.push_back(shader_handle);
 	}
 
@@ -169,6 +200,7 @@ namespace ORNG {
 		// All string shaders are located in here so searches will be relative to this
 		const char* shader_include_dir = ORNG_CORE_MAIN_DIR "\\res\\shaders\\";
 
+		unsigned line_number = 0;
 		// Handle include directives
 		size_t pos = shader_code_copy.find("ORNG_INCLUDE");
 		while (pos != std::string::npos) {
@@ -179,7 +211,7 @@ namespace ORNG {
 
 			std::vector<const std::string*> include_tree;
 			if (std::string full_include_fp = shader_include_dir + include_fp; FileExists(full_include_fp))
-				ParseShaderIncludeString(full_include_fp, defines, shader_code_copy, pos, include_tree);
+				ParseShaderIncludeString(full_include_fp, defines, shader_code_copy, pos, include_tree, line_number, shader_type);
 			else
 				ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
 
@@ -231,8 +263,8 @@ namespace ORNG {
 	}
 
 
-	void Shader::CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID) {
-		shaderID = glCreateShader(type);
+	void Shader::CompileShader(unsigned int shader_type, const std::string& source, unsigned int& shaderID) {
+		shaderID = glCreateShader(shader_type);
 		const char* src = source.c_str();
 		glShaderSource(shaderID, 1, &src, nullptr);
 		glCompileShader(shaderID);
@@ -248,7 +280,7 @@ namespace ORNG {
 
 			std::string shader_type_name;
 
-			switch (type) {
+			switch (shader_type) {
 			case GL_VERTEX_SHADER:
 				shader_type_name = "vertex";
 				break;
@@ -260,7 +292,35 @@ namespace ORNG {
 				break;
 			}
 
+			std::string msg_copy = message;
+			std::regex error_code_pattern(R"(\((\d+)\))");
+			std::sregex_iterator err_code_it(msg_copy.begin(), msg_copy.end(), error_code_pattern);
+			std::sregex_iterator err_code_end;
+
+			std::vector<unsigned> err_codes;
+			while (err_code_it != err_code_end) {
+				err_codes.push_back(std::stoi((*err_code_it)[1]));
+				err_code_it++;
+			}
+
 			ORNG_CORE_CRITICAL("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
+			std::string formatted_src;
+			size_t pos = 0;
+			unsigned line_num = 0;
+			while (pos != std::string::npos) {
+				auto next = source.find("\n", pos + 1);
+				if (next == std::string::npos)
+					break;
+				if (VectorContains(err_codes, line_num))
+					formatted_src += std::to_string(line_num) + ": " + source.substr(pos + 1, next - pos - 1) + "     |---------------------ERROR NEAR LINE---------------------|" + "\n";
+				else
+					formatted_src += std::to_string(line_num) + ": " + source.substr(pos + 1, next - pos - 1) + "\n";
+
+				line_num++;
+				pos = source.find("\n", pos + 1);
+			}
+
+			ORNG_CORE_ERROR(formatted_src);
 		}
 	}
 

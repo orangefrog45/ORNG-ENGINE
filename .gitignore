@@ -7,6 +7,7 @@
 ORNG Editor/res/meshes
 ORNG Editor/res/textures
 
+venv/
 x64/
 PhysXGpu_64.dll
 *.yml

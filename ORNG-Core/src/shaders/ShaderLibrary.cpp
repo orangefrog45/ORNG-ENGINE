@@ -9,9 +9,7 @@
 
 
 namespace ORNG {
-
 	void ShaderLibrary::Init() {
-
 		m_matrix_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_matrix_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, m_matrix_ubo_size, nullptr, GL_DYNAMIC_DRAW);
@@ -19,14 +17,13 @@ namespace ORNG {
 
 		m_global_lighting_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 22 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 64 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBAL_LIGHTING, m_global_lighting_ubo);
 
 		m_common_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, m_common_ubo_size, nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo);
-
 	}
 
 	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear) {
@@ -50,33 +47,59 @@ namespace ORNG {
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
 	}
 
+	void PushMatrixIntoArray(const glm::mat4& m, float* array_ptr) {
+		*array_ptr++ = m[0][0];
+		*array_ptr++ = m[0][1];
+		*array_ptr++ = m[0][2];
+		*array_ptr++ = m[0][3];
+
+		*array_ptr++ = m[1][0];
+		*array_ptr++ = m[1][1];
+		*array_ptr++ = m[1][2];
+		*array_ptr++ = m[1][3];
+
+		*array_ptr++ = m[2][0];
+		*array_ptr++ = m[2][1];
+		*array_ptr++ = m[2][2];
+		*array_ptr++ = m[2][3];
+
+		*array_ptr++ = m[3][0];
+		*array_ptr++ = m[3][1];
+		*array_ptr++ = m[3][2];
+		*array_ptr++ = m[3][3];
+	}
+
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light) {
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
 
-		constexpr int num_floats_in_buffer = 16;
+		constexpr int num_floats_in_buffer = 64;
 		std::array<float, num_floats_in_buffer> light_data = { 0 };
-
+		int i = 0;
 		glm::vec3 light_dir = dir_light.GetLightDirection();
-		light_data[0] = light_dir.x;
-		light_data[1] = light_dir.y;
-		light_data[2] = light_dir.z;
-		light_data[3] = 0; //padding
-		light_data[4] = dir_light.color.x;
-		light_data[5] = dir_light.color.y;
-		light_data[6] = dir_light.color.z;
-		light_data[7] = 0; //padding
-		light_data[8] = dir_light.cascade_ranges[0];
-		light_data[9] = dir_light.cascade_ranges[1];
-		light_data[10] = dir_light.cascade_ranges[2];
-		light_data[11] = 0; //padding
-		light_data[12] = dir_light.light_size;
-		light_data[13] = dir_light.blocker_search_size;
+		light_data[i++] = light_dir.x;
+		light_data[i++] = light_dir.y;
+		light_data[i++] = light_dir.z;
+		light_data[i++] = 0; //padding
+		light_data[i++] = dir_light.color.x;
+		light_data[i++] = dir_light.color.y;
+		light_data[i++] = dir_light.color.z;
+		light_data[i++] = 0; //padding
+		light_data[i++] = dir_light.cascade_ranges[0];
+		light_data[i++] = dir_light.cascade_ranges[1];
+		light_data[i++] = dir_light.cascade_ranges[2];
+		light_data[i++] = 0; //padding
+		light_data[i++] = dir_light.light_size;
+		light_data[i++] = dir_light.blocker_search_size;
+		light_data[i++] = 0; //padding
+		light_data[i++] = 0; //padding
+		PushMatrixIntoArray(dir_light.m_light_space_matrices[0], &light_data[i]); i += 16;
+		PushMatrixIntoArray(dir_light.m_light_space_matrices[1], &light_data[i]); i += 16;
+		PushMatrixIntoArray(dir_light.m_light_space_matrices[2], &light_data[i]); i += 16;
 
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, num_floats_in_buffer * sizeof(float), &light_data[0]);
 	};
 
 	Shader& ShaderLibrary::CreateShader(const char* name, unsigned int id) {
-
 		if (m_shaders.contains(name)) {
 			ORNG_CORE_ERROR("Shader name '{0}' already exists! Pick another name.", name);
 			BREAKPOINT;
@@ -109,7 +132,4 @@ namespace ORNG {
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 4, sizeof(glm::mat4), &glm::inverse(view)[0][0]);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
-
-
-
 }

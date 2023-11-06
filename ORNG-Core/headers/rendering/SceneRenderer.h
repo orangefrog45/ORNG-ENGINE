@@ -20,7 +20,6 @@ namespace ORNG {
 
 	struct RenderResources {
 		Framebuffer* p_gbuffer_fb;
-
 	};
 
 	typedef void(__cdecl* RenderpassFunc)(RenderResources);
@@ -77,7 +76,7 @@ namespace ORNG {
 			return Get().mp_scene;
 		}
 
-		// Insert a custom renderpass during RenderScene 
+		// Insert a custom renderpass during RenderScene
 		static void AttachRenderpassIntercept(Renderpass renderpass) {
 			Get().IAttachRenderpassIntercept(renderpass);
 		}
@@ -112,6 +111,8 @@ namespace ORNG {
 			m_render_intercepts.erase(it);
 		}
 
+		void UpdateLightSpaceMatrices(CameraComponent* p_cam);
+
 		void RunRenderpassIntercepts(RenderpassStage stage, const RenderResources& res);
 		void I_Init();
 		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
@@ -119,11 +120,9 @@ namespace ORNG {
 		void DrawSkybox();
 		void DoBloomPass(unsigned int width, unsigned int height);
 		void DrawAllMeshes() const;
-
+		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);
 
-
-		std::vector<glm::mat4> m_light_space_matrices = { glm::mat4(1), glm::mat4(1), glm::mat4(1) };
 
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
 		std::vector<Renderpass> m_render_intercepts;

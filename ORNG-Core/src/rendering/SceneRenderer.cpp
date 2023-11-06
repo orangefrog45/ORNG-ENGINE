@@ -47,7 +47,7 @@ namespace ORNG {
 				"u_shader_id",
 		};
 		mp_gbuffer_shader_terrain = &mp_shader_library->CreateShader("gbuffer_terrain");
-		mp_gbuffer_shader_terrain->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/GBufferVS.glsl", {"TERRAIN_MODE"});
+		mp_gbuffer_shader_terrain->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/GBufferVS.glsl", { "TERRAIN_MODE" });
 		mp_gbuffer_shader_terrain->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/GBufferFS.glsl", { "TERRAIN_MODE" });
 		mp_gbuffer_shader_terrain->Init();
 		mp_gbuffer_shader_terrain->AddUniforms(gbuffer_uniforms);
@@ -73,10 +73,6 @@ namespace ORNG {
 
 			"u_num_point_lights",
 			"u_num_spot_lights",
-
-			"u_dir_light_matrices[0]",
-			"u_dir_light_matrices[1]",
-			"u_dir_light_matrices[2]",
 			});
 
 
@@ -294,9 +290,8 @@ namespace ORNG {
 	}
 
 
-
-
-	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
+	void SceneRenderer::CheckResizeScreenSizeTextures(Texture2D* p_output_tex) {
+		// Resize fog texture if it needs resizing
 		auto& spec = p_output_tex->GetSpec();
 		Texture2DSpec fog_spec = m_fog_output_tex.GetSpec();
 
@@ -315,7 +310,11 @@ namespace ORNG {
 			resized_bloom_spec.height = spec.height / 2;
 			m_bloom_tex.SetSpec(resized_bloom_spec);
 		}
+	}
 
+
+	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
+		UpdateLightSpaceMatrices(p_cam);
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
@@ -325,9 +324,25 @@ namespace ORNG {
 		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->directional_light);
+
+		CheckResizeScreenSizeTextures(p_output_tex);
 	}
 
+	void SceneRenderer::UpdateLightSpaceMatrices(CameraComponent* p_cam) {
+		DirectionalLight& light = mp_scene->directional_light;
 
+		// Calculate light space matrices
+		const float aspect_ratio = p_cam->aspect_ratio;
+		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
+		glm::mat4 cam_view_matrix = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
+		const float fov = glm::radians(p_cam->fov / 2.f);
+
+		glm::vec3 light_dir = light.GetLightDirection();
+		light.m_light_space_matrices[0] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light_dir, light.z_mults[0], m_shadow_map_resolution);;
+		light.m_light_space_matrices[1] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light_dir, light.z_mults[1], m_shadow_map_resolution);;
+		light.m_light_space_matrices[2] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light_dir, light.z_mults[2], m_shadow_map_resolution);;
+	}
 
 
 
@@ -490,22 +505,6 @@ namespace ORNG {
 	void SceneRenderer::DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
 		ORNG_PROFILE_FUNC_GPU();
 
-		const DirectionalLight& light = mp_scene->directional_light;
-
-		// Calculate light space matrices
-		const float aspect_ratio = p_cam->aspect_ratio;
-		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
-		glm::mat4 cam_view_matrix = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
-		const float fov = glm::radians(p_cam->fov / 2.f);
-
-		glm::vec3 light_dir = light.GetLightDirection();
-		const glm::mat4 dir_light_space_matrix = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light_dir, light.z_mults[0], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_2 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light_dir, light.z_mults[1], m_shadow_map_resolution);
-		const glm::mat4 dir_light_space_matrix_3 = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light_dir, light.z_mults[2], m_shadow_map_resolution);
-		m_light_space_matrices[0] = dir_light_space_matrix;
-		m_light_space_matrices[1] = dir_light_space_matrix_2;
-		m_light_space_matrices[2] = dir_light_space_matrix_3;
 
 		// Render cascades
 		m_depth_fb->Bind();
@@ -515,7 +514,7 @@ namespace ORNG {
 			m_depth_fb->BindTextureLayerToFBAttachment(m_directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
 			GL_StateManager::ClearDepthBits();
 
-			mp_orth_depth_shader->SetUniform("u_light_pv_matrix", m_light_space_matrices[i]);
+			mp_orth_depth_shader->SetUniform("u_light_pv_matrix", mp_scene->directional_light.m_light_space_matrices[i]);
 			DrawAllMeshes();
 		}
 
@@ -603,9 +602,6 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_fog_color", mp_scene->post_processing.global_fog.color);
 		m_fog_shader->SetUniform("u_step_count", mp_scene->post_processing.global_fog.step_count);
 		m_fog_shader->SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));
-		m_fog_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
-		m_fog_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
-		m_fog_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
 		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
 
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise->GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
@@ -662,9 +658,6 @@ namespace ORNG {
 
 		m_lighting_shader->ActivateProgram();
 
-		m_lighting_shader->SetUniform("u_dir_light_matrices[0]", m_light_space_matrices[0]);
-		m_lighting_shader->SetUniform("u_dir_light_matrices[1]", m_light_space_matrices[1]);
-		m_lighting_shader->SetUniform("u_dir_light_matrices[2]", m_light_space_matrices[2]);
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);

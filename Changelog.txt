@@ -1,3 +1,7 @@
+6/11/23:
+-Converted engine shaders to use the include system, smaller size and more readable
+-Slightly better error messages for shaders
+
 3/11/23:
 -C++ style include system for shaders
 

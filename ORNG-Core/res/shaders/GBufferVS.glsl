@@ -5,31 +5,12 @@ in layout(location = 1) vec2 tex_coord;
 in layout(location = 2) vec3 vertex_normal;
 in layout(location = 3) vec3 in_tangent;
 
-
-
-const unsigned int NUM_SHADOW_CASCADES = 3;
-
-layout(std140, binding = 0) uniform Matrices{
-	mat4 projection; //base=16, aligned=0-64
-	mat4 view; //base=16, aligned=64-128
-	mat4 proj_view;
-	mat4 inv_projection;
-	mat4 inv_view;
-} PVMatrices;
+ORNG_INCLUDE "BuffersINCL.glsl"
 
 layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];
 } transform_ssbo;
 
-layout(std140, binding = 2) uniform commons{
-	vec4 camera_pos;
-	vec4 camera_target;
-	float time_elapsed;
-	float render_resolution_x;
-	float render_resolution_y;
-float cam_zfar;
-float cam_znear;
-} ubo_common;
 
 
 

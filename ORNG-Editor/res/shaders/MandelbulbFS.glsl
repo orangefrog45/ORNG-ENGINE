@@ -10,35 +10,8 @@ out layout(location = 3) uint shader_id;
 in vec2 tex_coords;
 
 
-layout(std140, binding = 2) uniform commons{
-	vec4 camera_pos;
-	vec4 camera_target;
-	float time_elapsed;
-	float render_resolution_x;
-	float render_resolution_y;
-	float cam_zfar;
-	float cam_znear;
-} ubo_common;
-
-layout(std140, binding = 0) uniform Matrices{
-	mat4 projection; //base=16, aligned=0-64
-	mat4 view; //base=16, aligned=64-128
-	mat4 proj_view;
-	mat4 inv_projection;
-	mat4 inv_view;
-} PVMatrices;
-
-
-vec3 GetWorldSpacePos(vec2 tex_coords, float depth) {
-	vec2 normalized_tex_coords = tex_coords;
-	vec4 clipSpacePosition = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
-	vec4 viewSpacePosition = PVMatrices.inv_projection * clipSpacePosition;
-	vec4 worldSpacePosition = PVMatrices.inv_view * viewSpacePosition;
-	// Perspective division
-	worldSpacePosition.xyz /= worldSpacePosition.w;
-	return worldSpacePosition.xyz;
-}
-
+ORNG_INCLUDE "BuffersINCL.glsl"
+ORNG_INCLUDE "UtilINCL.glsl"
 
 
 
@@ -188,7 +161,7 @@ float MapVein(vec3 pos, float cyl_dist, float t) {
 
 void main() {
 	float depth = texture(depth_sampler, tex_coords).r;
-	vec3 world_pos = GetWorldSpacePos(tex_coords, depth);
+	vec3 world_pos = WorldPosFromDepth(depth, tex_coords);
 	vec3 march_dir = normalize(world_pos - ubo_common.camera_pos.xyz);
 	vec3 step_pos = ubo_common.camera_pos.xyz;
 

@@ -4,17 +4,8 @@ in vec3 vs_position;
 
 out layout(location = 0) vec4 FragColor;
 
+ORNG_INCLUDE "BuffersINCL.glsl"
 
-
-layout(std140, binding = 2) uniform commons{
-	vec4 camera_pos;
-	vec4 camera_target;
-	float time_elapsed;
-	float render_resolution_x;
-	float render_resolution_y;
-	float cam_zfar;
-	float cam_znear;
-} ubo_common;
 
 void main()
 {

@@ -6,6 +6,8 @@
 namespace ORNG {
 	struct Material;
 
+
+
 	class Shader {
 	public:
 		friend class ShaderLibrary;
@@ -86,7 +88,9 @@ namespace ORNG {
 		unsigned int GetID() const {
 			return m_id;
 		}
-	protected:
+
+
+	private:
 
 
 		unsigned int CreateUniform(const std::string& name);
@@ -95,11 +99,17 @@ namespace ORNG {
 
 		void UseShader(unsigned int& id, unsigned int program);
 
-		std::string ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree);
+		struct ParsedShaderData {
+			ParsedShaderData(std::string t_code, unsigned t_line_count) : shader_code(std::move(t_code)), line_count(t_line_count) {};
+			std::string shader_code;
+			unsigned line_count;
+		};
 
-		void ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree);
+		ParsedShaderData ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree, GLenum shader_type, unsigned line_count = 0);
 
-		void ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& str, size_t directive_pos, std::vector<const std::string*>& include_tree);
+		void ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
+
+		void ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& shader_str, size_t directive_pos, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
 
 		unsigned int m_id;
 
