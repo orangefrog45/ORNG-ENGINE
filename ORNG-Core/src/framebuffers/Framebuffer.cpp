@@ -10,24 +10,18 @@
 
 
 namespace ORNG {
-
 	Framebuffer::Framebuffer(unsigned int id, const char* name, bool scale_with_window) : m_name(name), m_framebuffer_id(id), m_scales_with_window(scale_with_window) {
-		if (!m_scales_with_window)
-			return;
-
 	}
 
 
 
 	void Framebuffer::Resize() {
 		for (auto& texture_entry : m_textures) {
-
 			if (texture_entry.second.is_shared)
 				return;
 
 
 			if (texture_entry.second.p_texture->m_texture_target == GL_TEXTURE_2D) {
-
 				Texture2D* p_texture = static_cast<Texture2D*>(texture_entry.second.p_texture);
 				Texture2DSpec new_spec = p_texture->GetSpec();
 				new_spec.width = Window::GetWidth() * texture_entry.second.screen_size_ratio.x;
@@ -49,7 +43,6 @@ namespace ORNG {
 	Framebuffer::~Framebuffer() {
 		glDeleteFramebuffers(1, &m_fbo);
 		for (auto& tex : m_textures) {
-
 			if (tex.second.is_shared)
 				continue;
 
@@ -120,7 +113,6 @@ namespace ORNG {
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
 
 		m_renderbuffer_screen_size_ratio = glm::vec2(width / Window::GetWidth(), height / Window::GetHeight());
-
 	}
 
 	void Framebuffer::SetRenderBufferDimensions(unsigned int width, unsigned int height) {
@@ -144,14 +136,14 @@ namespace ORNG {
 
 	void Framebuffer::Init() {
 		glGenFramebuffers(1, &m_fbo);
-
+		/*Bind();
 		if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
 			ORNG_CORE_ERROR("Framebuffer '{0}' initialization failed", m_name);
 			BREAKPOINT;
 		}
 		else {
 			ORNG_CORE_INFO("Framebuffer '{0}' initialized", m_name);
-		}
+		}*/
 	}
 
 
@@ -160,8 +152,4 @@ namespace ORNG {
 	void Framebuffer::Bind() const {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	}
-
-
-
-
 }

@@ -256,7 +256,8 @@ namespace ORNG {
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
 				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
-					p_mesh_comp->m_materials[i] = AssetManager::GetAsset<Material>(ids[i]);
+					auto* p_mat = AssetManager::GetAsset<Material>(ids[i]);
+					p_mesh_comp->m_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 				}
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 			}

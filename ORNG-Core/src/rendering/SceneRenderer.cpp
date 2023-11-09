@@ -37,7 +37,8 @@ namespace ORNG {
 				"u_displacement_sampler_active",
 				"u_num_parallax_layers",
 				"u_parallax_height_scale",
-				"u_material.base_color_and_metallic",
+				"u_material.base_color",
+				"u_material.metallic",
 				"u_material.roughness",
 				"u_material.ao",
 				"u_material.tile_scale",
@@ -64,6 +65,17 @@ namespace ORNG {
 		mp_gbuffer_shader_mesh->Init();
 		mp_gbuffer_shader_mesh->AddUniforms(gbuffer_uniforms);
 
+
+		mp_transparency_shader = &mp_shader_library->CreateShader("transparency");
+		mp_transparency_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/GBufferVS.glsl");
+		mp_transparency_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/WeightedBlendedFS.glsl");
+		mp_transparency_shader->Init();
+		mp_transparency_shader->AddUniforms(gbuffer_uniforms);
+
+		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
+		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/TransparentCompositeFS.glsl");
+		mp_transparency_composite_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadVS.glsl");
+		mp_transparency_composite_shader->Init();
 
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting", ShaderLibrary::LIGHTING_SHADER_ID);
 		m_lighting_shader->AddStage(GL_COMPUTE_SHADER, ORNG_CORE_LIB_DIR "res/shaders/LightingCS.glsl");
@@ -141,7 +153,6 @@ namespace ORNG {
 		/* GBUFFER FB */
 		m_gbuffer_fb = &mp_framebuffer_library->CreateFramebuffer("gbuffer", true);
 
-
 		Texture2DSpec gbuffer_spec_2;
 		gbuffer_spec_2.format = GL_RED_INTEGER;
 		gbuffer_spec_2.internal_format = GL_R16UI;
@@ -173,6 +184,22 @@ namespace ORNG {
 		m_gbuffer_fb->Add2DTexture("shared_depth", GL_DEPTH_ATTACHMENT, gbuffer_depth_spec);
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 		m_gbuffer_fb->EnableDrawBuffers(4, buffers);
+
+		/* TRANSPARENCY FB */
+		mp_transparency_fb = &mp_framebuffer_library->CreateFramebuffer("transparency", true);
+		auto lp4_spec = low_pres_spec;
+		lp4_spec.internal_format = GL_RGBA16F;
+		lp4_spec.format = GL_RGBA;
+		mp_transparency_fb->Add2DTexture("accum", GL_COLOR_ATTACHMENT0, lp4_spec);
+		Texture2DSpec r8_spec = low_pres_spec;
+		r8_spec.format = GL_RED;
+		r8_spec.internal_format = GL_R8;
+		mp_transparency_fb->Add2DTexture("revealage", GL_COLOR_ATTACHMENT1, r8_spec);
+		GLenum buffers2[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+		mp_transparency_fb->EnableDrawBuffers(2, buffers2);
+
+		mp_composition_fb = &mp_framebuffer_library->CreateFramebuffer("transparent_composition", true);
+
 
 
 		/* DIRECTIONAL LIGHT DEPTH FB */
@@ -270,6 +297,8 @@ namespace ORNG {
 				m_bloom_tex.SetSpec(resized_bloom_spec);
 			}
 			};
+
+
 		Events::EventManager::RegisterListener(resize_listener);
 
 		mp_bloom_downsample_shader = &mp_shader_library->CreateShader("bloom downsample");
@@ -450,14 +479,66 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->emissive_texture->GetTextureHandle(), GL_StateManager::TextureUnits::EMISSIVE);
 		}
 
-		p_gbuffer_shader->SetUniform("u_material.base_color_and_metallic", glm::vec4(p_material->base_color, p_material->metallic));
+		p_gbuffer_shader->SetUniform("u_material.base_color", p_material->base_color);
 		p_gbuffer_shader->SetUniform("u_material.roughness", p_material->roughness);
 		p_gbuffer_shader->SetUniform("u_material.ao", p_material->ao);
+		p_gbuffer_shader->SetUniform("u_material.metallic", p_material->metallic);
 		p_gbuffer_shader->SetUniform("u_material.tile_scale", p_material->tile_scale);
 		p_gbuffer_shader->SetUniform("u_material.emissive", (int)p_material->emissive);
 		p_gbuffer_shader->SetUniform("u_material.emissive_strength", p_material->emissive_strength);
 	}
 
+
+
+
+	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex) {
+		mp_transparency_fb->Bind();
+		mp_transparency_fb->BindTexture2D(m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH);
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
+		glBlendFunci(0, GL_ONE, GL_ONE); // accumulation blend target
+		glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR); // revealge blend target#
+		glBlendEquation(GL_FUNC_ADD);
+
+		static auto filler_0 = glm::vec4(0); static auto filler_1 = glm::vec4(1);
+		glClearBufferfv(GL_COLOR, 0, &filler_0[0]);
+		glClearBufferfv(GL_COLOR, 1, &filler_1[0]);
+
+		mp_transparency_shader->ActivateProgram();
+		mp_transparency_shader->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
+
+		//Draw all meshes in scene (instanced)
+		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+			GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, 0);
+
+			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
+				const Material* p_material = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index];
+				if (p_material->render_group != RenderGroup::ALPHA_TESTED)
+					continue;
+				mp_transparency_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+
+				SetGBufferMaterial(p_material, mp_transparency_shader);
+
+				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
+			}
+		}
+		glEnable(GL_CULL_FACE);
+
+
+		mp_composition_fb->Bind();
+		mp_composition_fb->BindTexture2D(p_output_tex->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+		mp_transparency_composite_shader->ActivateProgram();
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_transparency_fb->GetTexture<Texture2D>("accum").GetTextureHandle(), GL_TEXTURE0);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_transparency_fb->GetTexture<Texture2D>("revealage").GetTextureHandle(), GL_TEXTURE1);
+		Renderer::DrawQuad();
+		mp_composition_fb->BindTexture2D(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+	}
 
 
 
@@ -477,11 +558,13 @@ namespace ORNG {
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
 				const Material* p_material = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index];
+				if (p_material->render_group != RenderGroup::SOLID)
+					continue;
 				mp_gbuffer_shader_mesh->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
 				SetGBufferMaterial(p_material, mp_gbuffer_shader_mesh);
 
-				Renderer::DrawMeshInstanced(group->m_mesh_asset, group->GetInstanceCount());
+				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
 			}
 		}
 
@@ -505,19 +588,19 @@ namespace ORNG {
 	void SceneRenderer::DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
 		ORNG_PROFILE_FUNC_GPU();
 
+		if (mp_scene->directional_light.shadows_enabled) {
+			// Render cascades
+			m_depth_fb->Bind();
+			mp_orth_depth_shader->ActivateProgram();
+			for (int i = 0; i < 3; i++) {
+				glViewport(0, 0, m_shadow_map_resolution, m_shadow_map_resolution);
+				m_depth_fb->BindTextureLayerToFBAttachment(m_directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
+				GL_StateManager::ClearDepthBits();
 
-		// Render cascades
-		m_depth_fb->Bind();
-		mp_orth_depth_shader->ActivateProgram();
-		for (int i = 0; i < 3; i++) {
-			glViewport(0, 0, m_shadow_map_resolution, m_shadow_map_resolution);
-			m_depth_fb->BindTextureLayerToFBAttachment(m_directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
-			GL_StateManager::ClearDepthBits();
-
-			mp_orth_depth_shader->SetUniform("u_light_pv_matrix", mp_scene->directional_light.m_light_space_matrices[i]);
-			DrawAllMeshes();
+				mp_orth_depth_shader->SetUniform("u_light_pv_matrix", mp_scene->directional_light.m_light_space_matrices[i]);
+				DrawAllMeshes(SOLID);
+			}
 		}
-
 
 		// Spotlights
 		glViewport(0, 0, 2048, 2048);
@@ -533,7 +616,7 @@ namespace ORNG {
 			GL_StateManager::ClearDepthBits();
 
 			mp_persp_depth_shader->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
-			DrawAllMeshes();
+			DrawAllMeshes(SOLID);
 		}
 
 		// Pointlights
@@ -567,7 +650,7 @@ namespace ORNG {
 				GL_StateManager::ClearDepthBits();
 
 				mp_pointlight_depth_shader->SetUniform("u_light_pv_matrix", captureProjection * captureViews[i]);
-				DrawAllMeshes();
+				DrawAllMeshes(SOLID);
 			}
 
 			index++;
@@ -587,6 +670,7 @@ namespace ORNG {
 		glDepthFunc(GL_LESS);
 		glEnable(GL_CULL_FACE);
 	}
+
 
 
 
@@ -711,6 +795,7 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::DoPostProcessingPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
+		DoTransparencyPass(p_output_tex);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		auto& spec = p_output_tex->GetSpec();
 		DoBloomPass(spec.width, spec.height);
@@ -726,11 +811,18 @@ namespace ORNG {
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
-	void SceneRenderer::DrawAllMeshes() const {
+	void SceneRenderer::DrawAllMeshes(RenderGroup render_group) const {
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			const MeshAsset* mesh_data = group->GetMeshData();
 			GL_StateManager::BindSSBO(group->m_transform_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
-			Renderer::DrawMeshInstanced(mesh_data, group->m_instances.size());
+
+			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
+				const Material* p_material = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index];
+				if (p_material->render_group != render_group)
+					continue;
+
+				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
+			}
 		}
 	}
 }

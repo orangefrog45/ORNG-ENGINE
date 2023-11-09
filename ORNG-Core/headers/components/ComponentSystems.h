@@ -93,7 +93,7 @@ namespace ORNG {
 				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
 					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
 				}
-			};
+				};
 
 			m_event_listener.scene_id = GetSceneUUID();
 			Events::EventManager::RegisterListener(m_event_listener);
@@ -108,7 +108,6 @@ namespace ORNG {
 			auto* p_active_cam = GetActiveCamera();
 			if (p_active_cam)
 				p_active_cam->Update();
-
 		}
 
 		void SetActiveCamera(entt::entity entity_handle) {
@@ -120,7 +119,6 @@ namespace ORNG {
 				if (entity != entity_handle)
 					camera.is_active = false;
 			}
-
 		}
 
 		// Returns ptr to active camera or nullptr if no camera is active.
@@ -230,7 +228,6 @@ namespace ORNG {
 		};
 
 		PhysCollisionCallback m_collision_callback{ this };
-
 	};
 
 
@@ -270,7 +267,6 @@ namespace ORNG {
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
 		unsigned int m_shadowless_pointlight_ssbo_handle;
 		unsigned int m_shadow_pointlight_ssbo_handle;
-
 	};
 
 
@@ -296,6 +292,9 @@ namespace ORNG {
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<MeshComponent> m_mesh_listener;
 		std::vector<MeshInstanceGroup*> m_instance_groups;
+
+		unsigned m_default_group_end_index = 0;
+
 		entt::registry* mp_registry = nullptr;
 	};
 }

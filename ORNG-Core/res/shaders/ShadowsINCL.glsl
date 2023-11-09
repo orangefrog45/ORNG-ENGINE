@@ -1,4 +1,5 @@
 ORNG_INCLUDE "BuffersINCL.glsl"
+ORNG_INCLUDE "UtilINCL.glsl"
 
 #ifndef DIR_DEPTH_SAMPLER
 #error "No directional depth sampler defined for shadow calculations"

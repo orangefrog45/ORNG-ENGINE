@@ -7,6 +7,8 @@ debug_dir_core = "..\\out\\build\\x64-Debug\\ORNG-Core\\res\\shaders\\"
 release_dir_core = "..\\out\\build\\x64-Release\\ORNG-Core\\res\\shaders\\"
 debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
 release_dir_editor = "..\\out\\build\\x64-Release\\ORNG-Editor\\res\\shaders\\"
+debug_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
+release_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
 
 
 class Handler(FileSystemEventHandler):
@@ -14,7 +16,7 @@ class Handler(FileSystemEventHandler):
         # Function to execute when a file is modified
         filename : str = event.src_path;
 
-        if filename.find("res\\shaders") == -1 or filename.find("out\\") != -1:
+        if filename.find("res\\shaders") == -1 or filename.find("out\\") != -1 or filename.find("build\\") != -1 or filename.find(".glsl") == -1:
             return;
 
         debug_path = ""
@@ -28,6 +30,10 @@ class Handler(FileSystemEventHandler):
         if filename.find("ORNG-Editor") != -1:
             debug_path = debug_dir_editor
             release_path= release_dir_editor
+
+        if filename.find("Game") != -1:
+            debug_path = debug_dir_game
+            release_path= release_dir_game
 
         print(f'File {event.src_path} has been modified.')
         filename = filename.split("\\").pop()

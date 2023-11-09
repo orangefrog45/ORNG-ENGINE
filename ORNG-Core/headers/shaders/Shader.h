@@ -27,6 +27,8 @@ namespace ORNG {
 		// Compiles a shader program with preprocessor definitions in "defines"
 		void AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines = {});
 
+		void Reload();
+
 		// Compiles a shader program from "shader_code" string with preprocessor definitions in "defines"
 		void AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines = {});
 
@@ -91,6 +93,15 @@ namespace ORNG {
 
 
 	private:
+
+		struct StageData {
+			StageData() = default;
+			StageData(const std::string& fp, const std::vector<std::string>& dfn) : filepath(fp), defines(dfn) { }
+			std::string filepath;
+			std::vector<std::string> defines;
+		};
+
+		std::unordered_map<GLenum, StageData> m_stages;
 
 
 		unsigned int CreateUniform(const std::string& name);

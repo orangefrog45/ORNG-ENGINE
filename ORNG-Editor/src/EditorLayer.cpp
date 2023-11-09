@@ -38,8 +38,8 @@ namespace ORNG {
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
 		mp_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
-		mp_grid_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GridVS.glsl");
-		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GridFS.glsl");
+		mp_grid_shader->AddStage(GL_VERTEX_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/GridVS.glsl");
+		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
 
@@ -49,15 +49,15 @@ namespace ORNG {
 		mp_quad_shader->Init();
 
 		mp_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		mp_picking_shader->AddStage(GL_VERTEX_SHADER,ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
-		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/PickingFS.glsl");
+		mp_picking_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
+		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/PickingFS.glsl");
 		mp_picking_shader->Init();
 		mp_picking_shader->AddUniform("comp_id");
 		mp_picking_shader->AddUniform("transform");
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		mp_highlight_shader->AddStage(GL_VERTEX_SHADER,ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
-		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HighlightFS.glsl");
+		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
+		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/HighlightFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
 
@@ -443,7 +443,6 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderToolbar() {
-		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
 
 		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
@@ -504,6 +503,12 @@ namespace ORNG {
 
 
 			ImGui::SameLine();
+
+			if (ImGui::Button("Reload shaders")) {
+				Renderer::GetShaderLibrary().ReloadShaders();
+			}
+			ImGui::SameLine();
+
 			std::string sep_text = "Project: " + m_current_project_directory.substr(m_current_project_directory.find_last_of("\\") + 1);
 			ImGui::SeparatorText(sep_text.c_str());
 		}
@@ -1687,6 +1692,8 @@ namespace ORNG {
 
 			ImGui::SliderFloat("Size", &m_active_scene->directional_light.light_size, 0.f, 150.f);
 			ImGui::SliderFloat("Blocker search size", &m_active_scene->directional_light.blocker_search_size, 0.f, 50.f);
+
+			ImGui::Checkbox("Shadows", &m_active_scene->directional_light.shadows_enabled);
 
 			m_active_scene->directional_light.color = glm::vec3(light_color.x, light_color.y, light_color.z);
 			m_active_scene->directional_light.SetLightDirection(light_dir);

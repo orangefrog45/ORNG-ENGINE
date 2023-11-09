@@ -44,9 +44,11 @@ imguizmo
 imgui
 )
 
+target_compile_definitions(ORNG_EDITOR PUBLIC ORNG_EDITOR_BIN_DIR="${CMAKE_BINARY_DIR}/ORNG-Editor")
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 #Get res folder with shaders etc
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
+
 
 
 add_custom_command(TARGET ORNG_EDITOR POST_BUILD

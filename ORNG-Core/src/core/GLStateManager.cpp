@@ -4,9 +4,7 @@
 #include "util/Log.h"
 
 namespace ORNG {
-
 	void GL_StateManager::IBindTexture(int target, int texture, int tex_unit, bool force_mode) {
-
 		auto& tex_data = m_current_texture_bindings[tex_unit];
 
 		if (!force_mode && tex_data.tex_obj == texture && tex_data.tex_target == target)
@@ -25,7 +23,6 @@ namespace ORNG {
 
 		glUseProgram(shader_handle);
 		m_current_active_shader_handle = shader_handle;
-
 	}
 
 
@@ -61,7 +58,4 @@ namespace ORNG {
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	}
-
-
-
 }

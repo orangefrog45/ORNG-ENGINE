@@ -10,6 +10,10 @@ src/main.cpp
 )
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Editor/res DESTINATION "${CMAKE_BINARY_DIR}/Game/")
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/Fractal-game/res/shaders DESTINATION "${CMAKE_BINARY_DIR}/Game/res")
+
+target_compile_definitions(FRACTAL_GAME PUBLIC ORNG_EDITOR_BIN_DIR="${CMAKE_BINARY_DIR}/ORNG-Editor")
+target_compile_definitions(FRACTAL_GAME PUBLIC GAME_BIN_DIR="${CMAKE_BINARY_DIR}/Game")
 
 
 

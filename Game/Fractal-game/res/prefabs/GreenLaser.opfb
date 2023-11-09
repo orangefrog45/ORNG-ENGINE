@@ -1,16 +1,20 @@
-ÅdEntity: 13658198146195192145
+ÅÔEntity: 15679566850311602695
 Name: GreenLaser
 ParentID: 0
 TransformComp:
-  Pos: [0, 0, 0]
-  Scale: [0.156127512, 0.183673441, 1.85257745]
+  Pos: [-36.1095924, 37.5692902, -46.1266747]
+  Scale: [0.100000001, 0.100000001, 1]
   Orientation: [0, 0, 0]
   Absolute: false
 MeshComp:
-  MeshAssetID: 0
+  MeshAssetID: 9612328284024345474
   Materials: [10857381234196093435]
-PhysicsComp:
-  RigidBodyType: 1
-  GeometryType: 0
+PointlightComp:
+  Colour: [30, 100, 30]
+  AttenConstant: 1
+  AttenLinear: 0.0500000007
+  AttenExp: 0.061999999
+  Shadows: false
+  ShadowDistance: 48
 ScriptComp:
-  ScriptPath: res\scripts\14766806766574730398.cpp='ª$<6¢÷vC:\Users\carol\Documents\vscode\ORNG\out\build\x64-Debug\ORNG-Editor\projects\base-project\res\prefabs\GreenLaser.opfb
+  ScriptPath: .\res\scripts\14766806766574730398.cppzÑpOÉ›á

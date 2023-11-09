@@ -33,10 +33,30 @@ uniform vec3 u_fog_color;
 
 
 
+float CheapShadowCalculationDirectional(vec3 light_dir, vec3 world_pos) {
+	float shadow = 0;
 
+	vec3 proj_coords = vec3(0);
+	float frag_distance_from_cam = length(world_pos.xyz - ubo_common.camera_pos.xyz);
 
+	// branchless checks for range
+	int index = 3;
+	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[2]);
+	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[1]);
+	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[0]);
+	vec4 frag_pos_light_space = ubo_global_lighting.directional_light.light_space_transforms[index] * vec4(world_pos, 1);
+	proj_coords = (frag_pos_light_space / frag_pos_light_space.w).xyz;
+	//depth map in range 0,1 proj in -1,1 (NDC), so convert
+	proj_coords = proj_coords * 0.5f + 0.5f;
+	if (proj_coords.z > 1.0f || index == 3) {
+		return 0.0f; // early return, fragment out of range
+	}
+	float current_depth = proj_coords.z;
+	float sampled_depth = texture(dir_depth_sampler, vec3(vec2(proj_coords.xy), index)).r;
+	shadow = current_depth > sampled_depth ? 1.0f : 0.0f;
+	return shadow;
 
-
+}
 
 
 vec3 CalcPointLight(PointLight light, vec3 world_pos) {
@@ -68,11 +88,11 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 	float spot_factor = dot(frag_to_light_dir, -light.dir.xyz);
 
 	if (spot_factor > light.aperture) {
-		//float shadow = ShadowCalculationSpotlight(light, index, world_pos);
+		float shadow = ShadowCalculationSpotlight(light, index, world_pos);
 
-		//if (shadow >= 0.99) {
-			//return vec3(0); // early return as no light will reach this spot
-		//}
+		if (shadow >= 0.99) {
+			return vec3(0); // early return as no light will reach this spot
+		}
 
 		vec3 diffuse_color = light.color.xyz;
 
@@ -144,6 +164,44 @@ float fbm(vec3 p)
 }
 
 
+vec2 grad(ivec2 z)  // replace this anything that returns a random vector
+{
+	// 2D to 1D  (feel free to replace by some other)
+	int n = z.x + z.y * 11111;
+
+	// Hugo Elias hash (feel free to replace by another one)
+	n = (n << 13) ^ n;
+	n = (n * (n * n * 15731 + 789221) + 1376312589) >> 16;
+
+#if 0
+
+	// simple random vectors
+	return vec2(cos(float(n)), sin(float(n)));
+
+#else
+
+	// Perlin style vectors
+	n &= 7;
+	vec2 gr = vec2(n & 1, n >> 1) * 2.0 - 1.0;
+	return (n >= 6) ? vec2(0.0, gr.x) :
+		(n >= 4) ? vec2(gr.x, 0.0) :
+		gr;
+#endif
+}
+
+float PerlinNoise(vec2 p)
+{
+	ivec2 i = ivec2(floor(p));
+	vec2 f = fract(p);
+
+	vec2 u = f * f * (3.0 - 2.0 * f); // feel free to replace by a quintic smoothstep instead
+
+	return mix(mix(dot(grad(i + ivec2(0, 0)), f - vec2(0.0, 0.0)),
+		dot(grad(i + ivec2(1, 0)), f - vec2(1.0, 0.0)), u.x),
+		mix(dot(grad(i + ivec2(0, 1)), f - vec2(0.0, 1.0)),
+			dot(grad(i + ivec2(1, 1)), f - vec2(1.0, 1.0)), u.x), u.y);
+}
+
 
 void main() {
 	// Tex coords in range (0, 0), (screen width, screen height) / 2
@@ -172,6 +230,7 @@ void main() {
 		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
 		fog_density += u_density_coef * 0.5f;
+		fog_density *= exp(-step_pos.y * 0.1);
 
 		vec3 slice_light = vec3(0);
 
@@ -179,13 +238,13 @@ void main() {
 			slice_light += CalcPointLight(ubo_point_lights_shadowless.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights_shadowless.lights[i].pos.xyz - step_pos));
 		}
 
-		//for (unsigned int i = 0; i < spot_lights.lights.length(); i++) {
-			//slice_light += CalcSpotLight(spot_lights.lights[i], step_pos, i) * phase(ray_dir, -spot_lights.lights[i].dir.xyz);
-		//}
+		for (unsigned int i = 0; i < ubo_spot_lights_shadow.lights.length(); i++) {
+			slice_light += CalcSpotLight(ubo_spot_lights_shadow.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights_shadow.lights[i].dir.xyz);
+		}
 
-		float dir_shadow = ShadowCalculationDirectional(ubo_global_lighting.directional_light.direction.xyz, step_pos);
+		float dir_shadow = CheapShadowCalculationDirectional(ubo_global_lighting.directional_light.direction.xyz, step_pos);
 		slice_light += ubo_global_lighting.directional_light.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
-
+		slice_light += abs(vec3(sin(PerlinNoise(step_pos.xz * 0.01) * 2.0 * 3.14), i * 0.05, cos(PerlinNoise(step_pos.xz * 0.01) * 2.0 * 3.14))) / u_step_count;
 		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, extinction_coef);
 		step_pos += ray_dir * step_distance;
 	}

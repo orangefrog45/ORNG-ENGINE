@@ -23,14 +23,7 @@ in mat4 vs_transform;
 in vec3 vs_original_normal;
 in vec3 vs_view_dir_tangent_space;
 
-struct Material {
-	vec4 base_color_and_metallic;
-	float roughness;
-	float ao;
-	vec2 tile_scale;
-	bool emissive;
-	float emissive_strength;
-};
+ORNG_INCLUDE "CommonINCL.glsl"
 
 
 #ifndef SKYBOX_MODE
@@ -103,7 +96,7 @@ mat3 CalculateTbnMatrixTransform() {
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
-	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color_and_metallic.rgb, sampled_albedo.a);
+	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 
 	if (u_emissive_sampler_active) {
@@ -122,7 +115,7 @@ void main() {
 #ifndef SKYBOX_MODE
 	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap()  : vs_tex_coord.xy * u_material.tile_scale;
 	roughness_metallic_ao.r = texture(roughness_sampler, adj_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
-	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.base_color_and_metallic.a * float(!u_metallic_sampler_active);
+	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
 	roughness_metallic_ao.b = texture(ao_sampler, adj_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
 	roughness_metallic_ao.a = 1.f;
 #endif

@@ -4,9 +4,7 @@
 #include "events/EventManager.h"
 
 namespace ORNG {
-
 	void Window::ISetWindowDimensions(int width, int height) {
-
 		if (width <= 750 || height <= 750) {
 			// too small
 			glfwSetWindowSize(p_window, m_window_width, m_window_height);
@@ -87,8 +85,8 @@ namespace ORNG {
 			exit(1);
 		}
 
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_SAMPLES, 4);
 		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
@@ -121,9 +119,8 @@ namespace ORNG {
 
 			if (t_event.mouse_action == MOVE)
 				SetCursorPos(t_event.mouse_pos_new.x, t_event.mouse_pos_new.y);
-		};
+			};
 
 		Events::EventManager::RegisterListener(m_mouse_listener);
-
 	}
 }

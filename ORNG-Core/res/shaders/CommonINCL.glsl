@@ -1,3 +1,5 @@
+#define PI 3.1415926538
+
 struct DirectionalLight {
 	vec4 direction;
 	vec4 color;
@@ -5,6 +7,7 @@ struct DirectionalLight {
 	float size;
 	float blocker_search_size;
 	mat4 light_space_transforms[3];
+	int shadows_enabled;
 };
 
 struct PointLight {
@@ -29,4 +32,14 @@ struct SpotLight { //140 BYTES
 	float exp;
 	//ap
 	float aperture;
+};
+
+struct Material {
+	vec4 base_color;
+	float metallic;
+	float roughness;
+	float ao;
+	vec2 tile_scale;
+	bool emissive;
+	float emissive_strength;
 };

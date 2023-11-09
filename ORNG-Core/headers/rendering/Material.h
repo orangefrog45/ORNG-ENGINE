@@ -4,6 +4,12 @@
 
 namespace ORNG {
 	class Texture2D;
+
+	enum RenderGroup : uint8_t {
+		SOLID,
+		ALPHA_TESTED
+	};
+
 	struct Material : public Asset {
 		friend class Scene;
 		explicit Material(Texture2D* p_base_color_tex) : Asset(""), base_color_texture(p_base_color_tex) {};
@@ -23,6 +29,7 @@ namespace ORNG {
 		template<typename S>
 		void serialize(S& s) {
 			s.object(base_color);
+			s.value1b(render_group);
 			s.value4b(roughness);
 			s.value4b(metallic);
 			s.value4b(ao);
@@ -42,14 +49,17 @@ namespace ORNG {
 			s.object(uuid);
 		}
 
+		RenderGroup render_group = SOLID;
 
-		glm::vec3 base_color = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec4 base_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		float roughness = 0.2f;
 		float metallic = 0.0f;
 		float ao = 0.1f;
 		bool emissive = false;
 		float emissive_strength = 1.f;
+		bool opaque = true;
+		float opacity = 1.0;
 
 		Texture2D* base_color_texture = nullptr;
 		Texture2D* normal_map_texture = nullptr;
@@ -65,6 +75,7 @@ namespace ORNG {
 		glm::vec2 tile_scale{ 1.f, 1.f };
 
 		std::string name = "Unnamed material";
+
 
 		uint64_t shader_id = 1; // 1 = default shader (pbr lighting)
 	};

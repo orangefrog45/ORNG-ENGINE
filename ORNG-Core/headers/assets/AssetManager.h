@@ -31,6 +31,15 @@ namespace bitsery {
 		s.value4b(o.z);
 	}
 
+	template <typename S>
+	void serialize(S& s, glm::vec4& o) {
+		s.value4b(o.x);
+		s.value4b(o.y);
+		s.value4b(o.z);
+		s.value4b(o.w);
+	}
+
+
 	template<typename S>
 	void serialize(S& s, glm::vec2& v) {
 		s.value4b(v.x);
@@ -80,7 +89,7 @@ namespace ORNG {
 
 		template<typename S>
 		void serialize(S& s) {
-			s.text1b(serialized_content, ORNG_MAX_FILEPATH_SIZE);
+			s.text1b(serialized_content, 10000);
 			s.object(uuid);
 		}
 	};

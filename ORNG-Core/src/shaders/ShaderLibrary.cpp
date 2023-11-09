@@ -17,7 +17,7 @@ namespace ORNG {
 
 		m_global_lighting_ubo = GL_StateManager::GenBuffer();
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 64 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 68 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBAL_LIGHTING, m_global_lighting_ubo);
 
 		m_common_ubo = GL_StateManager::GenBuffer();
@@ -72,7 +72,7 @@ namespace ORNG {
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light) {
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
 
-		constexpr int num_floats_in_buffer = 64;
+		constexpr int num_floats_in_buffer = 68;
 		std::array<float, num_floats_in_buffer> light_data = { 0 };
 		int i = 0;
 		glm::vec3 light_dir = dir_light.GetLightDirection();
@@ -95,6 +95,10 @@ namespace ORNG {
 		PushMatrixIntoArray(dir_light.m_light_space_matrices[0], &light_data[i]); i += 16;
 		PushMatrixIntoArray(dir_light.m_light_space_matrices[1], &light_data[i]); i += 16;
 		PushMatrixIntoArray(dir_light.m_light_space_matrices[2], &light_data[i]); i += 16;
+		light_data[i++] = dir_light.shadows_enabled;
+		light_data[i++] = 0; //padding
+		light_data[i++] = 0; //padding
+		light_data[i++] = 0; //padding
 
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, num_floats_in_buffer * sizeof(float), &light_data[0]);
 	};
@@ -120,6 +124,12 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 		return m_shaders[name];
+	}
+
+	void ShaderLibrary::ReloadShaders() {
+		for (auto& [name, shader] : m_shaders) {
+			shader.Reload();
+		}
 	}
 
 	void ShaderLibrary::SetMatrixUBOs(glm::mat4& proj, glm::mat4& view) {

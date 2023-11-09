@@ -2,11 +2,8 @@
 
 layout(location = 0) in vec3 position;
 
-layout(std140, binding = 0) uniform Matrices{
-	mat4 projection;
-	mat4 view;
-	mat4 proj_view;
-} PVMatrices;
+ORNG_INCLUDE "BuffersINCL.glsl"
+
 
 layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];

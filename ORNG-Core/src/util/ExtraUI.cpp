@@ -201,6 +201,55 @@ namespace ORNG {
 		return ret;
 	}
 
+	bool ExtraUI::ShowVec4Editor(const char* name, glm::vec4& vec, float min, float max) {
+		bool ret = false;
+		glm::vec4 vec_copy = vec;
+		ImGui::PushID(&vec);
+		ImGui::Text(name);
+		ImGui::PushItemWidth(100.f);
+		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##x", &vec_copy.x) && vec_copy.x > min && vec_copy.x < max) {
+			vec.x = vec_copy.x;
+			ret = true;
+		}
+
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Y");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##y", &vec_copy.y) && vec_copy.y > min && vec_copy.y < max) {
+			vec.y = vec_copy.y;
+			ret = true;
+		}
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 0, 1, 1), "Z");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##z", &vec_copy.z) && vec_copy.z > min && vec_copy.z < max) {
+			vec.z = vec_copy.z;
+			ret = true;
+		}
+
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(1, 1, 1, 1), "A");
+		ImGui::SameLine();
+
+		if (ImGui::InputFloat("##w", &vec_copy.w) && vec_copy.w > min && vec_copy.w < max) {
+			vec.w = vec_copy.w;
+			ret = true;
+		}
+
+
+		ImGui::PopItemWidth();
+		ImGui::PopID();
+
+		return ret;
+	}
+
 	bool ExtraUI::RightClickPopup(const char* id) {
 		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
 			ImGui::OpenPopup(id);

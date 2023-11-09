@@ -3,6 +3,7 @@
 #include "framebuffers/Framebuffer.h"
 #include "rendering/Textures.h"
 #include "scene/Scene.h"
+#include "rendering/Material.h"
 
 
 namespace ORNG {
@@ -97,6 +98,7 @@ namespace ORNG {
 		void DoLightingPass(Texture2D* output_tex);
 		void DoFogPass(unsigned int width, unsigned int height);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
+		void DoTransparencyPass(Texture2D* p_output_tex);
 
 	private:
 
@@ -119,7 +121,7 @@ namespace ORNG {
 		void DrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
 		void DoBloomPass(unsigned int width, unsigned int height);
-		void DrawAllMeshes() const;
+		void DrawAllMeshes(RenderGroup render_group) const;
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);
 
@@ -141,9 +143,13 @@ namespace ORNG {
 		Shader* mp_bloom_upsample_shader = nullptr;
 		Shader* mp_bloom_threshold_shader = nullptr;
 		Shader* mp_portal_shader = nullptr;
+		Shader* mp_transparency_shader = nullptr;
+		Shader* mp_transparency_composite_shader = nullptr;
 
 		Framebuffer* m_gbuffer_fb = nullptr;
 		Framebuffer* m_depth_fb = nullptr;
+		Framebuffer* mp_transparency_fb = nullptr;
+		Framebuffer* mp_composition_fb = nullptr;
 		//none of the objects the pointers below reference managed by scene renderer, just inputs
 		Scene* mp_scene = nullptr;
 		ShaderLibrary* mp_shader_library = nullptr;

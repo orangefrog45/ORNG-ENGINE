@@ -22,6 +22,8 @@ namespace ORNG {
 		Shader& GetShader(const char* name);
 		void DeleteShader(const char* name);
 
+		void ReloadShaders();
+
 		[[nodiscard]] inline unsigned int CreateIncrementalShaderID() const { // This can be incremental as these id's don't need to stay the same between
 			static unsigned int last_id = 2;								  // different invocations of this program except the hard-coded ones
 			return last_id++;
@@ -42,8 +44,5 @@ namespace ORNG {
 
 		unsigned int m_common_ubo;
 		inline const static unsigned int m_common_ubo_size = sizeof(glm::vec4) * 2 + sizeof(float) * 5;
-
-
 	};
-
 }

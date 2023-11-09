@@ -42,8 +42,8 @@ ORNG_INCLUDE "UtilINCL.glsl"
 	return 0.25 * log(length2) * sqrt(length2) / dz;
 }*/
 
-vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-//vec3 CSize = vec3(1.0, 1.0, 1.3);
+//vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
+vec3 CSize = vec3(1.0, 1.0, 1.3);
 
 vec2 grad(ivec2 z)  // replace this anything that returns a random vector
 {
@@ -114,12 +114,32 @@ vec3 Colour(vec3 p)
 	return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
+vec3 rma(vec3 p)
+{
+	p = p.xzy;
+	float scale = 1.;
+	for (int i = 0; i < 12; i++)
+	{
+		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		float r2 = dot(p, p);
+		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
+		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
+		float k = max((2.) / (r2), .027);
+		p *= k;
+		scale *= k;
+	}
+	return  vec3(0.5, clamp(1.0 - p.z, 0, 1), 0.01);
+}
+
+
+// Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
 	p = p.xzy;
 	float scale = 1.;
 	// Move point towards limit set
 	for (int i = 0; i < 12; i++)
 	{
+		// box fold
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
@@ -180,14 +200,15 @@ void main() {
 			float rad = int(ubo_common.time_elapsed) % 10000 * 0.1;
 			float cyl_dist = tube(step_pos + step_pos * abs(noise(step_pos.xz / 15.0)), rad, rad + 1.0, 10000, 50.0);
 			float perlin = MapVein(step_pos, cyl_dist, t);
-			step_pos -= perlin * march_dir * float(perlin <= 0.01);
 
-			albedo = vec4(Colour(step_pos) * (i / 256.0) * 35.0 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0) - vec4(0.03, 0.03, 0.03, 0) * i;
+			albedo = vec4(Colour(step_pos) * 0.1, 1.0);
+			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 
-			roughness_metallic_ao = vec4(0.8 - float(perlin <= 0.01) * 0.7, 0.0 + float(perlin <= 0.01) * 0.8, 0.2, 1.0);
+			roughness_metallic_ao =vec4(rma(step_pos), 1.0);
+			//roughness_metallic_ao = vec4(0.5, 0.0 + float(perlin <= 0.01) * 0.8, 0.02, 1.0);
 
 			vec4 proj = PVMatrices.proj_view * vec4(step_pos, 1.0);
-			gl_FragDepth = proj.z / proj.w;
+			gl_FragDepth =(( proj.z / proj.w) + 1.0) / 2.0;
 			return;
 		}
 

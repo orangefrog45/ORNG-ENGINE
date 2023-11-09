@@ -172,6 +172,7 @@ namespace ORNG {
 		unsigned int shader_handle = 0;
 		std::vector<const std::string*> include_tree;
 
+		m_stages[shader_type] = { std::filesystem::absolute(filepath).string(), defines }; // Store absolute path as the working directory will change to fit the project
 		auto result = ParseShader(filepath, defines, include_tree, 0, shader_type);
 		CompileShader(shader_type, result.shader_code, shader_handle);
 
@@ -223,12 +224,28 @@ namespace ORNG {
 		m_shader_handles.push_back(shader_handle);
 	}
 
+	void Shader::Reload() {
+		glDeleteProgram(m_program_id);
+
+		for (auto& [type, stage] : m_stages) {
+			AddStage(type, stage.filepath, stage.defines);
+		}
+
+		Init();
+
+		ActivateProgram();
+		for (auto& [name, id] : m_uniforms) {
+			id = CreateUniform(name);
+		}
+	}
+
 	void Shader::Init() {
 		unsigned int tprogramID = glCreateProgram();
 
 		for (unsigned int handle : m_shader_handles) {
 			UseShader(handle, tprogramID);
 		}
+		m_shader_handles.clear();
 
 		m_program_id = tprogramID;
 

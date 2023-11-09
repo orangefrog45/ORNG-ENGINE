@@ -700,7 +700,9 @@ namespace ORNG {
 
 			ImGui::Text("Colors");
 			ImGui::Spacing();
-			ret |= ExtraUI::ShowVec3Editor("Base color", mp_selected_material->base_color);
+			ret |= ExtraUI::ShowVec4Editor("Base color", mp_selected_material->base_color);
+			if (mp_selected_material->base_color.w < 0.0 || mp_selected_material->base_color.w > 1.0)
+				mp_selected_material->base_color.w = 1.0;
 
 			if (!mp_selected_material->roughness_texture)
 				ret |= ImGui::SliderFloat("Roughness", &mp_selected_material->roughness, 0.f, 1.f);
@@ -712,6 +714,7 @@ namespace ORNG {
 				ret |= ImGui::SliderFloat("AO", &mp_selected_material->ao, 0.f, 1.f);
 
 			ImGui::Checkbox("Emissive", &mp_selected_material->emissive);
+
 
 			if (mp_selected_material->emissive || mp_selected_material->emissive_texture)
 				ret |= ImGui::SliderFloat("Emissive strength", &mp_selected_material->emissive_strength, -10.f, 10.f);
@@ -727,6 +730,21 @@ namespace ORNG {
 			}
 
 			ret |= ExtraUI::ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
+
+			ImGui::Text("Render group");
+			const char* render_groups[2] = { "Solid", "Alpha Tested" };
+			static const char* current_item = nullptr;
+			current_item = mp_selected_material->render_group == SOLID ? render_groups[0] : render_groups[1];
+			if (ImGui::BeginCombo("##rg", current_item)) {
+				for (int i = 0; i < 2; i++) {
+					bool is_selected = current_item == render_groups[i];
+					if (ImGui::Selectable(render_groups[i], is_selected)) {
+						mp_selected_material->render_group = i == 0 ? SOLID : ALPHA_TESTED;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
 		}
 	window_end:
 		ImGui::End();

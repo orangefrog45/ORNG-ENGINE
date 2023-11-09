@@ -19,7 +19,6 @@ const std::array<glm::vec3, 6> vecs = {
 glm::vec3 CSize = glm::vec3(1.0, 1.0, 1.3);
 
 float map(glm::vec3 p1) {
-
 	auto p2 = glm::vec3(p1.x, p1.z, p1.y);
 	float scale = 1.f;
 
@@ -115,7 +114,6 @@ void HandleGun(ORNG::SceneEntity* p_entity, TransformComponent* p_transform, Phy
 
 
 extern "C" {
-
 	__declspec(dllexport) void OnCreate(ORNG::SceneEntity* p_entity) {
 		//p_data->data["lookDir"] = glm::vec3(0, 0, -1.0);
 		//p_data->data["angularVel"] = glm::vec3(0, 0, 0);
@@ -141,9 +139,7 @@ extern "C" {
 		auto* p_transform = p_entity->GetComponent<TransformComponent>();
 		auto* p_data = p_entity->GetComponent<DataComponent>();
 
-		float dt = ScriptInterface::FrameTiming::GetElapsedTime();
-		std::cout << dt << "\n";
-		CSize = glm::vec3(0.9 + sinf(dt * 0.0001) * 0.1, 0.9 + cosf(dt * 0.0001) * 0.1, 1.3);
+		//CSize = glm::vec3(0.9 + sinf(dt * 0.0001) * 0.1, 0.9 + cosf(dt * 0.0001) * 0.1, 1.3);
 
 		CalcMovement(p_entity, p_transform, p_phys_comp, p_data);
 
@@ -154,7 +150,6 @@ extern "C" {
 
 
 		HandleGun(p_entity, p_transform, p_phys_comp, p_data);
-		
 	}
 
 	__declspec(dllexport) void OnDestroy(ORNG::SceneEntity* p_entity) {
