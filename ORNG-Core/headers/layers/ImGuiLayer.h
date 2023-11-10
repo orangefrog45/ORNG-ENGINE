@@ -9,6 +9,10 @@ namespace ORNG {
 		void Update() override;
 		void OnRender() override;
 		void OnImGuiRender() override;
-		void BeginFrame(); 
+		void BeginFrame();
+	private:
+		void RenderProfilingTimers();
+		void RenderDebug();
+		bool m_render_debug = false;
 	};
 }

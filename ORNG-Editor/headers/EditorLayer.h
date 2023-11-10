@@ -28,14 +28,7 @@ namespace ORNG {
 		void Update() override;
 		void OnImGuiRender() override { RenderUI(); };
 		void OnRender() override { RenderDisplayWindow(); };
-		void OnShutdown() override {
-			if (m_simulate_mode_active)
-				EndPlayScene();
-
-			mp_editor_camera = nullptr;
-			m_active_scene->UnloadScene();
-			m_asset_manager_window.OnShutdown();
-		}
+		void OnShutdown() override;
 
 		// Sets up directory structure for a new project
 		bool GenerateProject(const std::string& project_name);
@@ -84,7 +77,6 @@ namespace ORNG {
 		Material* RenderMaterialComponent(const Material* p_material);
 
 		void RenderSceneGraph();
-		void RenderProfilingTimers();
 		void RenderSkyboxEditor();
 
 

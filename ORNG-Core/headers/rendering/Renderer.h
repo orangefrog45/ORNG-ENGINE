@@ -5,7 +5,6 @@
 
 
 namespace ORNG {
-
 	class Quad;
 	class Skybox;
 	class MeshAsset;
@@ -65,6 +64,10 @@ namespace ORNG {
 			Get().IDrawVAOArrays(vao, num_indices, primitive_type);
 		}
 
+		static unsigned GetDrawCalls() {
+			return Get().m_draw_call_amount;
+		}
+
 
 		inline static ShaderLibrary& GetShaderLibrary() {
 			return Get().m_shader_library;
@@ -86,7 +89,7 @@ namespace ORNG {
 		unsigned int m_draw_call_amount = 0;
 
 		Renderer() = default;
-		void IDrawVAOArrays(const VAO& vao, unsigned int indices_count,  GLenum primitive_type);
+		void IDrawVAOArrays(const VAO& vao, unsigned int indices_count, GLenum primitive_type);
 		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
 		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);
 		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);

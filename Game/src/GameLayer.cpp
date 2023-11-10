@@ -19,7 +19,7 @@ namespace ORNG {
 
 		rp.stage = RenderpassStage::POST_GBUFFER;
 		rp.name = "fractal";
-		SceneRenderer::AttachRenderpassIntercept(rp);
+		//SceneRenderer::AttachRenderpassIntercept(rp);
 	}
 
 

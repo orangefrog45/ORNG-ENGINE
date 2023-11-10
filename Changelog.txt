@@ -1,5 +1,11 @@
+10/11/23:
+-Debug menu improvements with ImPlot
+-Made debug menu available in core engine
+
 9/11/23:
 -Transparent material support, still need to support opacity maps
+-Core assets no longer shown in editor
+-Fixed material deletion
 
 7/11/23:
 -Shader hot reloading

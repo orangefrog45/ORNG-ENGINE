@@ -61,6 +61,9 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_neon.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
 extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
+extern/implot/implot.cpp
+extern/implot/implot_items.cpp
+
 
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
  "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp")
@@ -107,6 +110,7 @@ extern/fastnoise2/include
 extern/yaml/include
 extern/plog/include
 extern/bitsery/include
+extern/implot
 )
 
 

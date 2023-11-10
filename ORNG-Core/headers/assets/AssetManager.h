@@ -138,7 +138,9 @@ namespace ORNG {
 		static std::vector<T*> GetView() {
 			std::vector<T*> vec;
 			for (auto [uuid, p_asset] : Get().m_assets) {
-				if (T* p_typed_asset = dynamic_cast<T*>(p_asset))
+				if (T* p_typed_asset = dynamic_cast<T*>(p_asset); p_typed_asset &&
+					uuid != ORNG_BASE_MATERIAL_ID && uuid != ORNG_BASE_MESH_ID && uuid != ORNG_BASE_SOUND_ID && uuid != ORNG_BASE_TEX_ID
+					)
 					vec.push_back(p_typed_asset);
 			}
 
@@ -257,6 +259,7 @@ namespace ORNG {
 			}
 			else if constexpr (std::is_same_v<T, Material>) {
 				des.object(data.base_color);
+				des.value1b(data.render_group);
 				des.value4b(data.roughness);
 				des.value4b(data.metallic);
 				des.value4b(data.ao);

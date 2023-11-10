@@ -136,16 +136,118 @@ namespace ORNG {
 		}
 	}
 
-	void AssetManagerWindow::RenderMainAssetWindow() {
-		int window_width = Window::GetWidth() - 850;
-		ImVec2 image_button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
-		int column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
-		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, Window::GetHeight() - window_height)));
+	void AssetManagerWindow::ReloadScript(const std::string& relative_path) {
+		// Store all components that have this script as their symbols will need to be updated after the script reloads
+		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
+		std::vector<ScriptComponent*> components_to_reconnect;
+		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+			if (p_curr_asset->PathEqualTo(script_comp.p_symbols->script_path))
+				components_to_reconnect.push_back(&script_comp);
+		}
 
-		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
-		ImGui::BeginTabBar("Selection");
+		// Reload script and reconnect it to script components previously using it
+		if (AssetManager::DeleteAsset(p_curr_asset)) {
+			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
+			std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
 
+			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
+			ScriptAsset* p_asset = nullptr;
+			if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
+				GenerateErrorMessage("Failed to reload script");
+			}
+
+			p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
+
+			// Reconnect script components that were using this script
+			for (auto p_script : components_to_reconnect) {
+				p_script->SetSymbols(&p_asset->symbols);
+			}
+		}
+	}
+
+
+
+
+	void AssetManagerWindow::RenderScriptAsset(const std::filesystem::directory_entry& entry) {
+		std::string entry_path = entry.path().string();
+		std::string relative_path = entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
+		ImGui::PushID(entry_path.c_str());
+		ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
+
+		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
+		bool is_loaded = p_asset ? p_asset->symbols.loaded : false;
+		if (p_asset && p_asset->symbols.loaded)
+			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
+		else if (p_asset && !p_asset->symbols.loaded)
+			ImGui::TextColored(ImVec4(1, 0.2, 0, 1), "Loading failed");
+		else
+			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not loaded");
+
+		ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
+		static std::string dragged_script_filepath;
+		if (is_loaded && ImGui::BeginDragDropSource()) {
+			dragged_script_filepath = relative_path;
+			ImGui::SetDragDropPayload("SCRIPT", &dragged_script_filepath, sizeof(std::string));
+			ImGui::EndDragDropSource();
+		}
+
+		// Deletion popup
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
+			ImGui::OpenPopup("script_option_popup");
+		}
+
+		if (ImGui::BeginPopup("script_option_popup"))
+		{
+			if ((!is_loaded && ImGui::Selectable("Load"))) {
+				if (!AssetManager::AddAsset(new ScriptAsset(relative_path)))
+					GenerateErrorMessage("AssetManager::AddScriptAsset failed");
+			}
+			else if (is_loaded && ImGui::Selectable("Reload")) {
+				ReloadScript(relative_path);
+			}
+			if (ImGui::Selectable("Delete")) {
+				OnRequestDeleteAsset(p_asset);
+			}
+			if (ImGui::Selectable("Edit")) {
+				std::string open_file_command = "start " + relative_path;
+				std::system(open_file_command.c_str());
+			}
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopID(); // entry_path.c_str()
+	}
+
+
+
+
+	void AssetManagerWindow::RenderScriptTab() {
+		if (ImGui::BeginTabItem("Scripts")) {
+			if (ImGui::Button("Create script")) {
+				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx\0*.obj;*.fbx\0";
+				std::string script_path = *mp_active_project_dir + "/res/scripts/" + std::to_string(UUID()()) + ".cpp";
+				FileCopy(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.cpp", script_path);
+				std::string open_file_command = "start " + script_path;
+				std::system(open_file_command.c_str());
+			}
+
+			if (ImGui::BeginTable("##script table", column_count)) {
+				for (const auto& entry : std::filesystem::directory_iterator(*mp_active_project_dir + "\\res\\scripts")) {
+					if (std::filesystem::is_regular_file(entry) && entry.path().extension().string() == ".cpp") {
+						ImGui::TableNextColumn();
+						RenderScriptAsset(entry);
+					}
+				}
+				ImGui::EndTable();
+			}
+
+			ImGui::EndTabItem();
+		}
+	}
+
+
+
+	void AssetManagerWindow::RenderMeshAssetTab() {
 		if (ImGui::BeginTabItem("Meshes")) // MESH TAB
 		{
 			if (ImGui::Button("Add mesh")) // MESH FILE EXPLORER
@@ -162,51 +264,56 @@ namespace ORNG {
 				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
 			} // END MESH FILE EXPLORER
 
-			static MeshAsset* p_dragged_mesh = nullptr;
 			if (ImGui::BeginTable("Meshes", column_count)) // MESH VIEWING TABLE
 			{
 				for (auto* p_mesh_asset : AssetManager::GetView<MeshAsset>())
 				{
-					ImGui::PushID(p_mesh_asset);
-					ImGui::TableNextColumn();
-
-					std::string name = p_mesh_asset->filepath.substr(p_mesh_asset->filepath.find_last_of('\\') + 1);
-					ExtraUI::NameWithTooltip(name);
-					if (p_mesh_asset->GetLoadStatus())
-					{
-						ExtraUI::CenteredImageButton(ImTextureID(m_mesh_preview_textures[p_mesh_asset]->GetTextureHandle()), image_button_size);
-						if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-							p_dragged_mesh = p_mesh_asset;
-							ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
-							ImGui::EndDragDropSource();
-						}
-					}
-					else
-						ImGui::TextColored(ImVec4(1, 0, 0, 1), "Loading...");
-
-					if (ExtraUI::RightClickPopup("mesh_popup"))
-					{
-						if (ImGui::Selectable("Delete")) {
-							PushConfirmationWindow("Delete Mesh?", [this, p_mesh_asset] {
-								// Cleanup binary file
-								if (std::filesystem::exists(p_mesh_asset->filepath)) {
-									std::filesystem::remove(p_mesh_asset->filepath);
-								}
-								m_asset_deletion_queue.push_back(p_mesh_asset->uuid());
-								});
-						}
-						ImGui::EndPopup();
-					}
-
-					ImGui::PopID();
+					RenderMeshAsset(p_mesh_asset);
 				}
 
 				ImGui::EndTable();
 				ImGui::EndTabItem();
 			} // END MESH VIEWING TABLE
 		} //	 END MESH TAB
+	}
 
 
+
+
+	void AssetManagerWindow::RenderMeshAsset(MeshAsset* p_mesh_asset) {
+		ImGui::PushID(p_mesh_asset);
+		ImGui::TableNextColumn();
+
+		std::string name = p_mesh_asset->filepath.substr(p_mesh_asset->filepath.find_last_of('\\') + 1);
+		ExtraUI::NameWithTooltip(name);
+		if (p_mesh_asset->GetLoadStatus())
+		{
+			ExtraUI::CenteredImageButton(ImTextureID(m_mesh_preview_textures[p_mesh_asset]->GetTextureHandle()), image_button_size);
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+				static MeshAsset* p_dragged_mesh = nullptr;
+				p_dragged_mesh = p_mesh_asset;
+				ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
+				ImGui::EndDragDropSource();
+			}
+		}
+		else
+			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Loading...");
+
+		if (ExtraUI::RightClickPopup("mesh_popup"))
+		{
+			if (ImGui::Selectable("Delete")) {
+				OnRequestDeleteAsset(p_mesh_asset);
+			}
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopID();
+	}
+
+
+
+
+	void AssetManagerWindow::RenderTextureTab() {
 		if (ImGui::BeginTabItem("Textures")) // TEXTURE TAB
 		{
 			if (ImGui::Button("Add texture")) {
@@ -233,51 +340,59 @@ namespace ORNG {
 			}
 
 
-			static Texture2D* p_dragged_texture = nullptr;
 			// Create table for textures
 			if (ImGui::BeginTable("Textures", column_count)); // TEXTURE VIEWING TABLE
 			{
 				// Push textures into table
 				for (auto* p_texture : AssetManager::GetView<Texture2D>())
 				{
-					ImGui::PushID(p_texture);
 					ImGui::TableNextColumn();
-
-					ExtraUI::NameWithTooltip(p_texture->GetSpec().filepath.substr(p_texture->GetSpec().filepath.find_last_of('\\') + 1).c_str());
-
-					if (ExtraUI::CenteredImageButton(ImTextureID(p_texture->GetTextureHandle()), image_button_size)) {
-						mp_selected_texture = p_texture;
-						m_current_2d_tex_spec = mp_selected_texture->GetSpec();
-					};
-
-					if (ImGui::BeginDragDropSource()) {
-						p_dragged_texture = p_texture;
-						ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
-						ImGui::EndDragDropSource();
-					}
-
-					if (ExtraUI::RightClickPopup("tex_popup"))
-					{
-						if (ImGui::Selectable("Delete")) { // Base material not deletable
-							PushConfirmationWindow("Delete texture?", [p_texture] {
-								if (std::filesystem::exists(p_texture->GetSpec().filepath)) {
-									std::filesystem::remove(p_texture->GetSpec().filepath);
-								}
-								AssetManager::DeleteAsset(p_texture);
-								});
-						}
-						ImGui::EndPopup();
-					}
-
-					ImGui::PopID();
+					RenderTexture(p_texture);
 				}
 
 				ImGui::EndTable();
 			} // END TEXTURE VIEWING TABLE
 			ImGui::EndTabItem();
 		} // END TEXTURE TAB
+	}
 
 
+
+
+
+
+	void AssetManagerWindow::RenderTexture(Texture2D* p_texture) {
+		ImGui::PushID(p_texture);
+
+		ExtraUI::NameWithTooltip(p_texture->GetSpec().filepath.substr(p_texture->GetSpec().filepath.find_last_of('\\') + 1).c_str());
+
+		if (ExtraUI::CenteredImageButton(ImTextureID(p_texture->GetTextureHandle()), image_button_size)) {
+			mp_selected_texture = p_texture;
+			m_current_2d_tex_spec = mp_selected_texture->GetSpec();
+		};
+
+		if (ImGui::BeginDragDropSource()) {
+			static Texture2D* p_dragged_texture = nullptr;
+			p_dragged_texture = p_texture;
+			ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
+			ImGui::EndDragDropSource();
+		}
+
+		if (ExtraUI::RightClickPopup("tex_popup"))
+		{
+			if (ImGui::Selectable("Delete")) { // Base material not deletable
+				OnRequestDeleteAsset(p_texture);
+			}
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopID();
+	}
+
+
+
+
+	void AssetManagerWindow::RenderMaterialTab() {
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
 			if (ImGui::IsItemClicked()) {
 				// Refresh previews (they update automatically mostly but this fixes some bugs)
@@ -298,53 +413,8 @@ namespace ORNG {
 					if (!m_material_preview_textures.contains(p_material))
 						// No material preview so proceeding will lead to a crash
 						continue;
-
 					ImGui::TableNextColumn();
-					ImGui::PushID(p_material);
-
-					unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle();
-
-					ExtraUI::NameWithTooltip(p_material->name.c_str());
-					static Material* p_dragged_material = nullptr;
-
-					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-						p_dragged_material = p_material;
-						ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
-						ImGui::EndDragDropSource();
-					}
-					if (ExtraUI::CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
-						mp_selected_material = p_material;
-
-					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-						p_dragged_material = p_material;
-						ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
-						ImGui::EndDragDropSource();
-					}
-
-					// Deletion popup
-					if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
-						ImGui::OpenPopup("my_select_popup");
-					}
-
-					if (ImGui::BeginPopup("my_select_popup"))
-					{
-						if (p_material->uuid() != ORNG_BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
-							// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
-							m_asset_deletion_queue.push_back(p_material->uuid());
-						}
-						if (ImGui::Selectable("Duplicate")) {
-							auto* p_new_material = new Material();
-							*p_new_material = *p_material;
-							// Give clone a unique UUID
-							p_new_material->uuid = UUID();
-							AssetManager::AddAsset(p_new_material);
-							// Render a preview for material
-							m_materials_to_gen_previews.push_back(p_new_material);
-						}
-						ImGui::EndPopup();
-					}
-
-					ImGui::PopID();
+					RenderMaterial(p_material);
 				}
 
 
@@ -352,104 +422,63 @@ namespace ORNG {
 			} //END MATERIAL VIEWING TABLE
 			ImGui::EndTabItem();
 		} //END MATERIAL TAB
+	}
 
 
-		if (ImGui::BeginTabItem("Scripts")) {
-			if (ImGui::Button("Create script")) {
-				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx\0*.obj;*.fbx\0";
-				std::string script_path = *mp_active_project_dir + "/res/scripts/" + std::to_string(UUID()()) + ".cpp";
-				FileCopy(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.cpp", script_path);
-				std::string open_file_command = "start " + script_path;
-				std::system(open_file_command.c_str());
+
+	void AssetManagerWindow::RenderMaterial(Material* p_material) {
+		ImGui::PushID(p_material);
+
+		unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle();
+
+		ExtraUI::NameWithTooltip(p_material->name.c_str());
+		static Material* p_dragged_material = nullptr;
+
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+			p_dragged_material = p_material;
+			ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
+			ImGui::EndDragDropSource();
+		}
+		if (ExtraUI::CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
+			mp_selected_material = p_material;
+
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+			p_dragged_material = p_material;
+			ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
+			ImGui::EndDragDropSource();
+		}
+
+		// Deletion popup
+		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
+			ImGui::OpenPopup("my_select_popup");
+		}
+		if (ImGui::BeginPopup("my_select_popup"))
+		{
+
+			if (p_material->uuid() != ORNG_BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
+				// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
+				OnRequestDeleteAsset(p_material);
 			}
 
-			if (ImGui::BeginTable("##script table", column_count)) {
-				for (const auto& entry : std::filesystem::directory_iterator(*mp_active_project_dir + "\\res\\scripts")) {
-					if (std::filesystem::is_regular_file(entry) && entry.path().extension().string() == ".cpp") {
-						ImGui::TableNextColumn();
-
-						std::string entry_path = entry.path().string();
-						std::string relative_path = entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
-						ImGui::PushID(entry_path.c_str());
-						ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
-
-						auto* p_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
-						bool is_loaded = p_asset ? p_asset->symbols.loaded : false;
-						if (p_asset && p_asset->symbols.loaded)
-							ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
-						else if (p_asset && !p_asset->symbols.loaded)
-							ImGui::TextColored(ImVec4(1, 0.2, 0, 1), "Loading failed");
-						else
-							ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not loaded");
-
-						ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
-						static std::string dragged_script_filepath;
-						if (is_loaded && ImGui::BeginDragDropSource()) {
-							dragged_script_filepath = relative_path;
-							ImGui::SetDragDropPayload("SCRIPT", &dragged_script_filepath, sizeof(std::string));
-							ImGui::EndDragDropSource();
-						}
-
-						// Deletion popup
-						if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
-							ImGui::OpenPopup("script_option_popup");
-						}
-
-						if (ImGui::BeginPopup("script_option_popup"))
-						{
-							if ((!is_loaded && ImGui::Selectable("Load"))) {
-								if (!AssetManager::AddAsset(new ScriptAsset(relative_path)))
-									GenerateErrorMessage("AssetManager::AddScriptAsset failed");
-							}
-							else if (is_loaded && ImGui::Selectable("Reload")) {
-								// Store all components that have this script as their symbols will need to be updated after the script reloads
-								auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
-								std::vector<ScriptComponent*> components_to_reconnect;
-								for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-									if (p_curr_asset->PathEqualTo(script_comp.p_symbols->script_path))
-										components_to_reconnect.push_back(&script_comp);
-								}
-
-								// Reload script and reconnect it to script components previously using it
-								if (AssetManager::DeleteAsset(p_curr_asset)) {
-									std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
-									std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
-
-									ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
-									ScriptAsset* p_asset = nullptr;
-									if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
-										GenerateErrorMessage("Failed to reload script");
-									}
-
-									p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
-
-									// Reconnect script components that were using this script
-									for (auto p_script : components_to_reconnect) {
-										p_script->SetSymbols(&p_asset->symbols);
-									}
-								}
-							}
-							if (ImGui::Selectable("Delete")) {
-								PushConfirmationWindow("Delete script asset?", [entry] {std::filesystem::remove(entry); });
-							}
-							if (ImGui::Selectable("Edit")) {
-								std::string open_file_command = "start " + relative_path;
-								std::system(open_file_command.c_str());
-							}
-							ImGui::EndPopup();
-						}
-
-						ImGui::PopID(); // entry_path.c_str()
-					}
-				}
-
-				ImGui::EndTable();
+			if (ImGui::Selectable("Duplicate")) {
+				auto* p_new_material = new Material();
+				*p_new_material = *p_material;
+				// Give clone a unique UUID
+				p_new_material->uuid = UUID();
+				AssetManager::AddAsset(p_new_material);
+				// Render a preview for material
+				m_materials_to_gen_previews.push_back(p_new_material);
 			}
-
-			ImGui::EndTabItem();
+			ImGui::EndPopup();
 		}
 
 
+
+		ImGui::PopID();
+	}
+
+
+	void AssetManagerWindow::RenderAudioTab() {
 		if (ImGui::BeginTabItem("Audio")) {
 			if (ImGui::Button("Add audio")) {
 				wchar_t valid_extensions[MAX_PATH] = L"Audio Files: *.mp3;*.wav\0*.mp3;*.wav\0";
@@ -489,12 +518,7 @@ namespace ORNG {
 
 					if (ExtraUI::RightClickPopup("audio popup")) {
 						if (ImGui::Selectable("Delete")) {
-							std::string path = p_sound->filepath;
-							PushConfirmationWindow("Delete audio asset?", [p_sound, path] {
-								AssetManager::DeleteAsset(p_sound);
-								if (std::filesystem::exists(path))
-									std::filesystem::remove(path);
-								});
+							OnRequestDeleteAsset(p_sound);
 						}
 						ImGui::EndPopup();
 					}
@@ -503,7 +527,10 @@ namespace ORNG {
 			}
 			ImGui::EndTabItem();
 		}
+	}
 
+
+	void AssetManagerWindow::RenderPrefabTab() {
 
 		if (ImGui::BeginTabItem("Prefabs")) {
 			ImVec2 start_cursor_pos = ImGui::GetCursorPos();
@@ -524,15 +551,7 @@ namespace ORNG {
 
 					if (ExtraUI::RightClickPopup("prefab-poup")) {
 						if (ImGui::Selectable("Delete")) {
-							uint64_t key = p_prefab->uuid();
-							m_confirmation_window_stack.emplace_back("Delete prefab?", [=] {
-								if (auto* p_curr_asset = AssetManager::GetAsset<Prefab>(key)) {
-									if (std::filesystem::exists(p_curr_asset->filepath))
-										std::filesystem::remove(p_curr_asset->filepath);
-
-									AssetManager::DeleteAsset(p_curr_asset);
-								}
-								});
+							OnRequestDeleteAsset(p_prefab);
 						}
 						ImGui::EndPopup();
 					}
@@ -564,6 +583,25 @@ namespace ORNG {
 			}
 			ImGui::EndTabItem();
 		}
+	}
+
+
+
+	void AssetManagerWindow::RenderMainAssetWindow() {
+		int window_width = Window::GetWidth() - 850;
+		image_button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
+		column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
+		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, Window::GetHeight() - window_height)));
+
+		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+		ImGui::BeginTabBar("Selection");
+
+		RenderMeshAssetTab();
+		RenderTextureTab();
+		RenderMaterialTab();
+		RenderScriptTab();
+		RenderAudioTab();
 
 		ImGui::EndTabBar();
 		ImGui::End();

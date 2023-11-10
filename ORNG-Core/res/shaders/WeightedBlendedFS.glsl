@@ -93,11 +93,6 @@ void main() {
     float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 
                          pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
 
-	// Clamp here as otherwise colour can blow up to infinity, adjust as needed
-	
-
-    //accum = vec4(total_light, 1.0) * weight;
-	//vec4 a = clamp(vec4(color.rgb * color.a, color.a) * weight, vec4(1e-5,1e-5,1e-5, 0.0), vec4(100.0, 100.0, 100.0, 1.0));
     accum = vec4(color.rgb * color.a, color.a) * weight;
 
     reveal = color.a;

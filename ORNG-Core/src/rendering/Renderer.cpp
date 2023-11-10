@@ -19,6 +19,12 @@ namespace ORNG {
 		mp_quad->Load();
 
 		ORNG_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
+
+		static Events::EventListener<Events::EngineCoreEvent> listener;
+		listener.OnEvent = [](const Events::EngineCoreEvent& e_event) {
+			ResetDrawCallCounter();
+			};
+		Events::EventManager::RegisterListener(listener);
 	}
 
 

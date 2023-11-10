@@ -29,7 +29,7 @@ namespace ORNG {
 		template<typename S>
 		void serialize(S& s) {
 			s.object(base_color);
-			s.value1b(render_group);
+			s.value1b((uint8_t)render_group);
 			s.value4b(roughness);
 			s.value4b(metallic);
 			s.value4b(ao);

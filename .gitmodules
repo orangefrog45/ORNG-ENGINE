@@ -34,3 +34,6 @@
 [submodule "extern/vcpkg"]
 	path = extern/vcpkg
 	url = https://github.com/Microsoft/vcpkg.git
+[submodule "ORNG-Core/extern/implot"]
+	path = ORNG-Core/extern/implot
+	url = https://github.com/epezent/implot

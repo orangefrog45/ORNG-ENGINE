@@ -401,6 +401,7 @@ namespace ORNG {
 			RunRenderpassIntercepts(RenderpassStage::POST_LIGHTING, res);
 
 			DoFogPass(spec.width, spec.height);
+			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
 			DoPostProcessingPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_POST_PROCESS, res);
 		}
@@ -409,6 +410,7 @@ namespace ORNG {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			DoLightingPass(settings.p_output_tex);
 			DoFogPass(spec.width, spec.height);
+			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
 			DoPostProcessingPass(p_cam, settings.p_output_tex);
 		}
 
@@ -491,7 +493,7 @@ namespace ORNG {
 
 
 
-	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex) {
+	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height) {
 		mp_transparency_fb->Bind();
 		mp_transparency_fb->BindTexture2D(m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH);
@@ -674,6 +676,8 @@ namespace ORNG {
 
 
 
+
+
 	void SceneRenderer::DoFogPass(unsigned int width, unsigned int height) {
 		ORNG_PROFILE_FUNC_GPU();
 		//draw fog texture
@@ -726,6 +730,8 @@ namespace ORNG {
 
 
 
+
+
 	void SceneRenderer::DoLightingPass(Texture2D* p_output_tex) {
 		ORNG_PROFILE_FUNC_GPU();
 
@@ -750,6 +756,8 @@ namespace ORNG {
 
 
 
+
+
 	void SceneRenderer::DrawTerrain(CameraComponent* p_cam) {
 		std::vector<TerrainQuadtree*> node_array;
 
@@ -761,6 +769,8 @@ namespace ORNG {
 			}
 		}
 	}
+
+
 
 
 	void SceneRenderer::DoBloomPass(unsigned int width, unsigned int height) {
@@ -794,8 +804,9 @@ namespace ORNG {
 		}
 	}
 
+
+
 	void SceneRenderer::DoPostProcessingPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
-		DoTransparencyPass(p_output_tex);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		auto& spec = p_output_tex->GetSpec();
 		DoBloomPass(spec.width, spec.height);
@@ -810,6 +821,8 @@ namespace ORNG {
 		glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
+
+
 
 	void SceneRenderer::DrawAllMeshes(RenderGroup render_group) const {
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {

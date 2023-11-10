@@ -60,6 +60,39 @@ namespace ORNG {
 		bool RenderMaterialEditorSection();
 		bool RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		void RenderTextureEditorSection();
+
+		void ReloadScript(const std::string& relative_path);
+		void RenderScriptAsset(const std::filesystem::directory_entry& entry);
+		void RenderScriptTab();
+
+		void RenderMeshAssetTab();
+		void RenderMeshAsset(MeshAsset* p_mesh_asset);
+
+		void RenderTextureTab();
+		void RenderTexture(Texture2D* p_tex);
+
+		void RenderMaterialTab();
+		void RenderMaterial(Material* p_material);
+
+		void RenderAudioTab();
+
+		void RenderPrefabTab();
+
+		template<typename T>
+		void OnRequestDeleteAsset(T* p_asset) {
+			PushConfirmationWindow("Delete asset?", [&] {
+				// Cleanup binary file
+				if (FileExists(p_asset->filepath)) {
+					std::filesystem::remove(p_asset->filepath);
+				}
+
+				if constexpr (std::is_same_v<T, MeshAsset> || std::is_same_v<T, Material>)
+					m_asset_deletion_queue.push_back(p_asset->uuid());
+				});
+		}
+		ImVec2 image_button_size{ 0, 0 };
+		unsigned column_count=1;
+
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
 		Material* mp_selected_material = nullptr;

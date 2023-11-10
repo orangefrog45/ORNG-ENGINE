@@ -6,6 +6,7 @@
 #include "../extern/imgui/backends/imgui_impl_glfw.h"
 #include "../extern/imgui/backends/imgui_impl_opengl3.h"
 #include "../extern/imgui/misc/cpp/imgui_stdlib.h"
+#include "implot.h"
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
@@ -144,8 +145,18 @@ namespace ORNG {
 	}
 
 
+	void EditorLayer::OnShutdown() {
+		ImPlot::DestroyContext();
+		if (m_simulate_mode_active)
+			EndPlayScene();
+
+		mp_editor_camera = nullptr;
+		m_active_scene->UnloadScene();
+		m_asset_manager_window.OnShutdown();
+	}
 
 	void EditorLayer::InitImGui() {
+		ImPlot::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 		io.Fonts->AddFontDefault();
@@ -289,21 +300,7 @@ namespace ORNG {
 
 
 
-	void EditorLayer::RenderProfilingTimers() {
-		static bool display_profiling_timers = ProfilingTimers::AreTimersEnabled();
 
-		if (ImGui::Checkbox("Timers", &display_profiling_timers)) {
-			ProfilingTimers::SetTimersEnabled(display_profiling_timers);
-		}
-		if (ProfilingTimers::AreTimersEnabled()) {
-			for (auto& string : ProfilingTimers::GetTimerData()) {
-				ImGui::PushID(&string);
-				ImGui::Text(string.c_str());
-				ImGui::PopID();
-			}
-			ProfilingTimers::UpdateTimers(FrameTiming::GetTimeStep());
-		}
-	}
 
 	void EditorLayer::RenderSceneDisplayPanel() {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
@@ -389,15 +386,6 @@ namespace ORNG {
 		ImGui::End();
 
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("Debug")) {
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::Text(std::format("Draw calls: {}", Renderer::Get().m_draw_call_amount).c_str());
-			RenderProfilingTimers();
-			Renderer::ResetDrawCallCounter();
-		}
-
-		ImGui::End();
 
 		RenderSceneGraph();
 
@@ -444,6 +432,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderToolbar() {
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
+		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
 
 		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
 			if (ImGui::Button("Files")) {

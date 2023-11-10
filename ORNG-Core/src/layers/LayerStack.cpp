@@ -20,6 +20,7 @@ namespace ORNG {
 		for (auto* p_layer : m_layers) {
 			p_layer->Update();
 		}
+		m_imgui_layer.Update();
 	}
 
 	void LayerStack::OnRenderEvent() {
@@ -41,7 +42,7 @@ namespace ORNG {
 				UpdateLayers();
 			else if (t_event.event_type == Events::Event::ENGINE_RENDER)
 				OnRenderEvent();
-		};
+			};
 
 		std::ranges::for_each(m_layers, [](Layer* p_layer) {p_layer->OnInit(); });
 

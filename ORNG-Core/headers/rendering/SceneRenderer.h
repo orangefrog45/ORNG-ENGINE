@@ -98,7 +98,7 @@ namespace ORNG {
 		void DoLightingPass(Texture2D* output_tex);
 		void DoFogPass(unsigned int width, unsigned int height);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
-		void DoTransparencyPass(Texture2D* p_output_tex);
+		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
 
 	private:
 
