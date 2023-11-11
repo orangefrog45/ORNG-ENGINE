@@ -6,7 +6,6 @@
 #include "../extern/imgui/backends/imgui_impl_glfw.h"
 #include "../extern/imgui/backends/imgui_impl_opengl3.h"
 #include "../extern/imgui/misc/cpp/imgui_stdlib.h"
-#include "implot.h"
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
@@ -146,7 +145,6 @@ namespace ORNG {
 
 
 	void EditorLayer::OnShutdown() {
-		ImPlot::DestroyContext();
 		if (m_simulate_mode_active)
 			EndPlayScene();
 
@@ -156,7 +154,6 @@ namespace ORNG {
 	}
 
 	void EditorLayer::InitImGui() {
-		ImPlot::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 		io.Fonts->AddFontDefault();
@@ -230,16 +227,9 @@ namespace ORNG {
 			m_render_ui = !m_render_ui;
 		}
 
-		static float cooldown = 0;
-		cooldown -= glm::min(cooldown, ts);
-		if (cooldown > 1)
-			return;
-
 
 		// Duplicate entity keybind
-		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyDown(Key::D)) {
-			cooldown += 1000;
-
+		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
 			std::vector<uint64_t> duplicate_ids;
 			for (auto id : m_selected_entity_ids) {
 				SceneEntity* p_entity = m_active_scene->GetEntity(id);
@@ -254,6 +244,14 @@ namespace ORNG {
 
 	void EditorLayer::UpdateEditorCam() {
 		static float cam_speed = 0.01f;
+
+		if (Input::IsKeyDown(Key::Space))
+			cam_speed += 1.1 * FrameTiming::GetTimeStep() * 0.001;
+
+		if (Input::IsKeyDown(Key::LeftControl))
+			cam_speed -= 0.9 * FrameTiming::GetTimeStep() * 0.001;
+
+
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
 		auto abs_transforms = p_transform->GetAbsoluteTransforms();

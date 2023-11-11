@@ -201,7 +201,7 @@ void main() {
 			float cyl_dist = tube(step_pos + step_pos * abs(noise(step_pos.xz / 15.0)), rad, rad + 1.0, 10000, 50.0);
 			float perlin = MapVein(step_pos, cyl_dist, t);
 
-			albedo = vec4(Colour(step_pos) * 0.1, 1.0);
+			albedo = vec4(Colour(step_pos), 1.0);
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 
 			roughness_metallic_ao =vec4(rma(step_pos), 1.0);

@@ -45,7 +45,7 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		bool m_timers_enabled = true;
+		bool m_timers_enabled = false;
 		bool m_timers_should_update = true;
 		std::vector<std::string> m_timer_data;
 	};
@@ -58,7 +58,6 @@ namespace ORNG {
 				double time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - first_time).count();
 				ProfilingTimers::StoreTimerData(std::format("{} - {}ms", func_name, time_elapsed / 1000.0));
 			}
-
 		}
 
 		std::chrono::steady_clock::time_point first_time = std::chrono::steady_clock::now();

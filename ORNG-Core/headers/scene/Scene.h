@@ -32,6 +32,9 @@ namespace ORNG {
 
 		void OnStart();
 
+		CameraComponent* GetActiveCamera() {
+			return m_camera_system.GetActiveCamera();
+		}
 
 		// Instantiates prefab without calling OnCreate, used for instantiation while the scene is paused e.g in the editor
 		SceneEntity& InstantiatePrefab(const std::string& serialized_data);
@@ -98,5 +101,4 @@ namespace ORNG {
 
 		std::string m_name = "Untitled scene";
 	};
-
 }

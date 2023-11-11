@@ -27,7 +27,7 @@ namespace ORNG {
 
 	struct Renderpass {
 		RenderpassStage stage;
-		RenderpassFunc func;
+		std::function<void(RenderResources)> func;
 		std::string name;
 	};
 
