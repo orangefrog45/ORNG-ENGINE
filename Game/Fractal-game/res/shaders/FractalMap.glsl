@@ -46,7 +46,8 @@ vec3 Colour(vec3 p)
 	float n = l * p.z;
 	rxy = max(rxy, -(n) / 4.);
 	float dist =  (rxy) / abs(scale);
-	return  vec3(1) * float(dist < 0.5 * u_scale * 3.0 && dist > 0.25 * u_scale * 3.0);
+    //return clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
+	return  vec3(1) * float(dist < 0.5 * log(u_scale * 3.0) * 3.0  && dist > 0.25 * log(u_scale * 3.0) * 3.0 );
 }
 
 void main() {
@@ -55,7 +56,9 @@ void main() {
     vec3 col = Colour(pos) - max(length((tex_coords - 0.5) * 2.0) - 0.9, 0.0);
     vec2 sample_pos = (tex_coords - 0.5) * 2.0;
 
-    sample_pos = mat2(ubo_common.camera_target.x, -ubo_common.camera_target.z, ubo_common.camera_target.z, ubo_common.camera_target.x) * sample_pos;
+    vec2 normalized = normalize(ubo_common.camera_target.xz);
+
+    sample_pos = mat2(normalized.x, -normalized.y, normalized.y, normalized.x) * sample_pos;
     sample_pos = mat2(0, 1, -1, 0) * sample_pos;
     sample_pos = -sample_pos;
 

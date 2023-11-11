@@ -13,8 +13,8 @@ extern "C" {
 		p_data->data["startPos"] = glm::vec3{ 0, 0, 0 }; // Default, should be set externally
 		auto* p_audio = p_entity->AddComponent<AudioComponent>();
 		p_audio->SetVolume(1.0);
-		p_audio->SetMinMaxRange(0.1, 10000);
-		//p_audio->Play(ScriptInterface::Scene::Sounds::blaster_2_81267_mp3);
+		p_audio->SetMinMaxRange(0.1, 10000); 
+			//p_audio->Play(ScriptInterface::Scene::Sounds::blaster_2_81267_mp3);
 	}
 
 	__declspec(dllexport) void OnUpdate(ORNG::SceneEntity* p_entity) {

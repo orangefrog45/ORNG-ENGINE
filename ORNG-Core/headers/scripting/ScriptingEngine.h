@@ -52,7 +52,7 @@ namespace ORNG {
 
 	class ScriptingEngine {
 	public:
-		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath);
+		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled);
 		// Produces a path that a scripts dll will be stored in
 		static std::string GetDllPathFromScriptCpp(const std::string& script_filepath);
 		static bool UnloadScriptDLL(const std::string& filepath);
@@ -63,7 +63,7 @@ namespace ORNG {
 
 	struct ScriptAsset : public Asset {
 		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { };
-		ScriptAsset(const std::string& filepath) : Asset(filepath), symbols(ScriptingEngine::GetSymbolsFromScriptCpp(filepath)) {  };
+		ScriptAsset(const std::string& filepath) : Asset(filepath), symbols(ScriptingEngine::GetSymbolsFromScriptCpp(filepath, true)) {  };
 
 		ScriptSymbols symbols;
 	};

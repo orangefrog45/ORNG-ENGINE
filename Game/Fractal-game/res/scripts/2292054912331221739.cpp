@@ -103,6 +103,7 @@ void HandleGun(ORNG::SceneEntity* p_entity, TransformComponent* p_transform, Phy
 	if (ScriptInterface::Input::IsKeyDown('f') && p_data->Get<float>("gunCooldown") < 1) {
 		p_data->data["gunCooldown"] = p_data->Get<float>("gunCooldown") + 100.f;
 		auto& ent = ScriptInterface::Scene::InstantiatePrefab(ScriptInterface::Scene::Prefabs::GreenLaser);
+		ent.GetComponent<DataComponent>()->data["startPos"] = p_transform->GetAbsoluteTransforms()[0];
 		glm::vec3 new_pos = p_transform->GetAbsoluteTransforms()[0] + p_transform->forward * 5.f;
 		p_entity->GetComponent<AudioComponent>()->Play();
 		ent.GetComponent<TransformComponent>()->SetPosition(new_pos);

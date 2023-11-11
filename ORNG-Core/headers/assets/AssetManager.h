@@ -225,7 +225,7 @@ namespace ORNG {
 		static void HandleAssetAddition(Asset* p_asset);
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		static void LoadTexture2D(Texture2D* p_tex);
-		static void LoadAssetsFromProjectPath(const std::string& project_dir);
+		static void LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts);
 		static void SerializeAssets();
 
 		// Deletes all assets

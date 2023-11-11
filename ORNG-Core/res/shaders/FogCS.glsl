@@ -230,7 +230,7 @@ void main() {
 		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
 		fog_density += u_density_coef * 0.5f;
-		fog_density *= exp(-step_pos.y * 0.1);
+		fog_density *= exp(-abs(step_pos.y) * 0.1);
 
 		vec3 slice_light = vec3(0);
 

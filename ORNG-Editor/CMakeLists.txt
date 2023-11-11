@@ -22,6 +22,7 @@ target_include_directories(ORNG_EDITOR PUBLIC
 "../ORNG-Core/extern/fastnoise2/include"
 "../ORNG-Core/extern/yaml/include"
 "../ORNG-Core/extern/plog/include"
+"../ORNG-Core/extern/bitsery/include"
 headers
 )
 
@@ -42,10 +43,11 @@ imguizmo
 imgui
 )
 
-target_compile_definitions(ORNG_EDITOR PUBLIC ORNG_EDITOR_BIN_DIR="${CMAKE_BINARY_DIR}/ORNG-Editor")
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 #Get res folder with shaders etc
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
+
 
 
 

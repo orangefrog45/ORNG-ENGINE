@@ -130,7 +130,7 @@ namespace ORNG {
 	}
 
 
-	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath) {
+	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled) {
 		if (sm_loaded_script_dll_handles.contains(filepath)) {
 			ORNG_CORE_CRITICAL("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
 			BREAKPOINT;
@@ -146,52 +146,57 @@ namespace ORNG {
 #else
 		std::string metadata_path = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".metadata";
 #endif
-
-		if (!std::filesystem::exists("res\\scripts\\" + filename)) {
-			ORNG_CORE_ERROR("Script file not found, ensure it is in the res/scripts path of your project");
-			return ScriptSymbols(relative_path);
-		}
-
-		if (DoesScriptNeedRecompilation(filepath, metadata_path)) {
-			// Write out metadata that can be checked for validity when recompiling (compilation can be skipped if valid)
-			ScriptMetadata md;
-#ifdef NDEBUG
-			std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
-			std::string bin_path = ".\\res\\scripts\\bin\\release\\";
-#else
-			std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
-			std::string bin_path = ".\\res\\scripts\\bin\\debug\\";
-#endif
-
-			// Cleanup old pdb files
-			std::vector<std::filesystem::directory_entry> entries_to_remove;
-			for (auto& entry : std::filesystem::directory_iterator(bin_path)) {
-				if (entry.path().string().find(filename_no_ext) != std::string::npos && entry.path().extension() == ".pdb")
-					entries_to_remove.push_back(entry);
-			}
-			for (auto& entry : entries_to_remove) {
-				std::filesystem::remove(entry);
-			}
-
-			std::ofstream bat_stream("res/scripts/gen_scripts.bat");
-			GenBatFile(bat_stream, filepath, filename, filename_no_ext, dll_path);
-			bat_stream.close();
-
-			// Run bat file
-			int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
-			if (dev_env_result != 0) {
-				ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
+		if (!precompiled) {
+			if (!std::filesystem::exists("res\\scripts\\" + filename)) {
+				ORNG_CORE_ERROR("Script file not found, ensure it is in the res/scripts path of your project");
 				return ScriptSymbols(relative_path);
 			}
 
+			if (DoesScriptNeedRecompilation(filepath, metadata_path)) {
+				// Write out metadata that can be checked for validity when recompiling (compilation can be skipped if valid)
+				ScriptMetadata md;
+#ifdef NDEBUG
+				std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
+				std::string bin_path = ".\\res\\scripts\\bin\\release\\";
+#else
+				std::string core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
+				if (!FileExists(core_lib_path)) {
+					core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
+					ASSERT(FileExists(core_lib_path));
+				}
+				std::string bin_path = ".\\res\\scripts\\bin\\debug\\";
+#endif
 
-			md.orng_library_last_write_time = GetFileLastWriteTime(core_lib_path);
-			md.last_write_time = GetFileLastWriteTime(filepath);
+				// Cleanup old pdb files
+				std::vector<std::filesystem::directory_entry> entries_to_remove;
+				for (auto& entry : std::filesystem::directory_iterator(bin_path)) {
+					if (entry.path().string().find(filename_no_ext) != std::string::npos && entry.path().extension() == ".pdb")
+						entries_to_remove.push_back(entry);
+				}
+				for (auto& entry : entries_to_remove) {
+					std::filesystem::remove(entry);
+				}
+
+				std::ofstream bat_stream("res/scripts/gen_scripts.bat");
+				GenBatFile(bat_stream, filepath, filename, filename_no_ext, dll_path);
+				bat_stream.close();
+
+				// Run bat file
+				int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
+				if (dev_env_result != 0) {
+					ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
+					return ScriptSymbols(relative_path);
+				}
+
+
+				md.orng_library_last_write_time = GetFileLastWriteTime(core_lib_path);
+				md.last_write_time = GetFileLastWriteTime(filepath);
 
 
 #endif // ifdef _MSC_VER
 
-			SceneSerializer::SerializeBinary(metadata_path, md);
+				SceneSerializer::SerializeBinary(metadata_path, md);
+			}
 		}
 
 		// Load the generated dll
@@ -217,7 +222,7 @@ namespace ORNG {
 		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
 		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
 		symbols.SceneGetEntitySetter = (GetEntitySetter)(GetProcAddress(script_dll, "SetGetEntityCallback"));
-
+		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
 
 		symbols.loaded = true;
 

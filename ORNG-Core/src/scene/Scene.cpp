@@ -23,6 +23,10 @@ namespace ORNG {
 		m_audio_system.OnUpdate();
 
 		// Script state updates need to be set far less frequently, use events for this soon
+
+		m_physics_system.OnUpdate(ts);
+		m_mesh_component_manager.OnUpdate();
+
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
@@ -32,9 +36,6 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.p_symbols->script_path, e.what());
 			}
 		}
-
-		m_physics_system.OnUpdate(ts);
-		m_mesh_component_manager.OnUpdate();
 
 		if (m_camera_system.GetActiveCamera())
 			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());

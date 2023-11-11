@@ -260,7 +260,7 @@ namespace ORNG {
 	}
 
 
-	void AssetManager::LoadAssetsFromProjectPath(const std::string& project_dir) {
+	void AssetManager::LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts) {
 		std::string texture_folder = project_dir + "\\res\\textures\\";
 		std::string mesh_folder = project_dir + "\\res\\meshes\\";
 		std::string audio_folder = project_dir + "\\res\\audio\\";
@@ -346,7 +346,7 @@ namespace ORNG {
 				continue;
 			else {
 				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\scripts"));
-				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
+				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path, precompiled_scripts);
 				AddAsset(new ScriptAsset(symbols));
 			}
 		}

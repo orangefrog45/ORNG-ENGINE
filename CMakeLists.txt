@@ -9,6 +9,7 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/extern/vcpkg/scripts/buildsy
 project(ORNG_CORE)
 project(ORNG_EDITOR)
 project(FRACTAL_GAME)
+project(ORNG_RUNTIME)
 
 
 
@@ -28,6 +29,7 @@ endif()
 add_subdirectory("ORNG-Core")
 add_subdirectory("ORNG-Editor")
 add_subdirectory("Game")
+add_subdirectory("ORNG-Runtime")
 
 
 

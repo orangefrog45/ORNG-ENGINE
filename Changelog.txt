@@ -1,3 +1,7 @@
+11/11/23:
+-Added runtime exe
+-Physics system now updates before scripts
+
 10/11/23:
 -Debug menu improvements with ImPlot
 -Made debug menu available in core engine

@@ -150,7 +150,7 @@ namespace ORNG {
 			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
 			std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
 
-			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
+			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false);
 			ScriptAsset* p_asset = nullptr;
 			if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
 				GenerateErrorMessage("Failed to reload script");
@@ -454,7 +454,6 @@ namespace ORNG {
 		}
 		if (ImGui::BeginPopup("my_select_popup"))
 		{
-
 			if (p_material->uuid() != ORNG_BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
 				// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
 				OnRequestDeleteAsset(p_material);
@@ -531,7 +530,6 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderPrefabTab() {
-
 		if (ImGui::BeginTabItem("Prefabs")) {
 			ImVec2 start_cursor_pos = ImGui::GetCursorPos();
 

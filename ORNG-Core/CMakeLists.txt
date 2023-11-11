@@ -93,6 +93,10 @@ extern/glfw/include
 )
 
 find_package(OpenGL REQUIRED)
+
+
+
+
 target_include_directories(ORNG_CORE PUBLIC
 extern/spdlog/include
 extern/assimp/include
@@ -147,6 +151,7 @@ headers/pch/pch.h
 
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
+
 
 get_target_property(GPU_DEVICE_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-device-library LOCATION)
 get_target_property(GPU_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-library LOCATION)

@@ -3,7 +3,7 @@
 #include "imgui.h"
 #include "core/Input.h"
 
-constexpr unsigned MAP_RESOLUTION = 512;
+constexpr unsigned MAP_RESOLUTION = 4096;
 
 namespace ORNG {
 	static float map_scale = 1.0;
@@ -24,8 +24,8 @@ namespace ORNG {
 		p_map_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("fractal-map", false);
 		p_map_tex = std::make_unique<Texture2D>("map");
 		Texture2DSpec spec;
-		spec.width = 1024;
-		spec.height = 1024;
+		spec.width = MAP_RESOLUTION;
+		spec.height = MAP_RESOLUTION;
 		spec.storage_type = GL_FLOAT;
 		spec.internal_format = GL_RGB16F;
 		spec.format = GL_RGB;
@@ -51,12 +51,15 @@ namespace ORNG {
 
 		if (Input::IsKeyDown('g'))
 			map_scale *= 0.99;
+
+		if (Input::IsKeyPressed('j'))
+			map_scale = 1.0;
 	}
 
 
 	void GameLayer::OnRender() {
 		glDepthFunc(GL_ALWAYS);
-		glViewport(0, 0, 1024, 1024);
+		glViewport(0, 0, MAP_RESOLUTION, MAP_RESOLUTION);
 		p_map_fb->Bind();
 		GL_StateManager::DefaultClearBits();
 		p_map_shader->ActivateProgram();
@@ -74,8 +77,11 @@ namespace ORNG {
 	void GameLayer::OnImGuiRender() {
 		auto pos = SceneRenderer::GetScene()->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
 		std::string coords = std::format("{}, {}, {}", pos.x, pos.y, pos.z);
+		std::string scale = std::format("Scale: {}", map_scale);
+
 		if (ImGui::Begin("map", (bool*)0, ImGuiWindowFlags_NoDecoration)) {
 			ImGui::Text(coords.c_str());
+			ImGui::Text(scale.c_str());
 			ImGui::Image(ImTextureID(p_map_tex->GetTextureHandle()), ImVec2(1024, 1024));
 		}
 

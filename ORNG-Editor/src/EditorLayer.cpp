@@ -38,26 +38,26 @@ namespace ORNG {
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
 		mp_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
-		mp_grid_shader->AddStage(GL_VERTEX_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/GridVS.glsl");
-		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/GridFS.glsl");
+		mp_grid_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/res/shaders/GridVS.glsl");
+		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
 
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadVS.glsl");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadFS.glsl");
+		mp_quad_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl");
+		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadFS.glsl");
 		mp_quad_shader->Init();
 
 		mp_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		mp_picking_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
-		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/PickingFS.glsl");
+		mp_picking_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl");
+		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/PickingFS.glsl");
 		mp_picking_shader->Init();
 		mp_picking_shader->AddUniform("comp_id");
 		mp_picking_shader->AddUniform("transform");
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl");
-		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_EDITOR_BIN_DIR "/res/shaders/HighlightFS.glsl");
+		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl");
+		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/HighlightFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
 
@@ -205,12 +205,23 @@ namespace ORNG {
 		if (Input::IsKeyDown(Key::K))
 			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
+		if (Input::IsKeyDown(Key::F) && !m_selected_entity_ids.empty()) {
+			auto* p_entity_transform = m_active_scene->GetEntity(m_selected_entity_ids[0])->GetComponent<TransformComponent>();
+			auto* p_editor_transform = mp_editor_camera->GetComponent<TransformComponent>();
+			auto pos = p_entity_transform->GetAbsoluteTransforms()[0];
+			p_editor_transform->SetAbsolutePosition(pos - glm::vec3(5.0, 3.0, 5.0));
+			p_editor_transform->LookAt(pos);
+		}
 
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
 
-		if (m_simulate_mode_active)
+		if (m_simulate_mode_active) {
 			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = (float)Window::GetWidth() / (float)Window::GetHeight();
+			if (Input::IsKeyDown(Key::Escape))
+				EndPlayScene();
+		}
+
 		else
 			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_scene_display_rect.x / m_scene_display_rect.y;
 
@@ -223,7 +234,7 @@ namespace ORNG {
 		}
 
 		// Show/hide ui in simulation mode
-		if (Input::IsKeyPressed(Key::Escape)) {
+		if (Input::IsKeyPressed(Key::Tab)) {
 			m_render_ui = !m_render_ui;
 		}
 
@@ -244,13 +255,6 @@ namespace ORNG {
 
 	void EditorLayer::UpdateEditorCam() {
 		static float cam_speed = 0.01f;
-
-		if (Input::IsKeyDown(Key::Space))
-			cam_speed += 1.1 * FrameTiming::GetTimeStep() * 0.001;
-
-		if (Input::IsKeyDown(Key::LeftControl))
-			cam_speed -= 0.9 * FrameTiming::GetTimeStep() * 0.001;
-
 
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
@@ -706,11 +710,7 @@ namespace ORNG {
 				m_active_scene->UnloadScene();
 
 			AssetManager::ClearAll();
-			//for (const auto& entry : std::filesystem::directory_iterator(".\\res\\scripts")) {
-				//if (entry.path().extension().string() == ".cpp")
-					//AssetManager::AddScriptAsset(entry.path().string());
-			//}
-			AssetManager::LoadAssetsFromProjectPath(m_current_project_directory);
+			AssetManager::LoadAssetsFromProjectPath(m_current_project_directory, false);
 			m_active_scene->LoadScene(m_current_project_directory + "\\scene.yml");
 			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml", true);
 
