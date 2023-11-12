@@ -14,31 +14,31 @@ namespace ORNG {
 		mp_output_fb->AddRenderbuffer(4096, 4096);
 
 		mp_hdr_converter_shader = &Renderer::GetShaderLibrary().CreateShader("hdr_to_cubemap");
-		mp_hdr_converter_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/CubemapVS.glsl");
-		mp_hdr_converter_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/HDR_ToCubemapFS.glsl");
+		mp_hdr_converter_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/CubemapVS.glsl");
+		mp_hdr_converter_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/HDR_ToCubemapFS.glsl");
 		mp_hdr_converter_shader->Init();
 		mp_hdr_converter_shader->AddUniform("projection");
 		mp_hdr_converter_shader->AddUniform("view");
 
 
 		mp_specular_prefilter_shader = &Renderer::GetShaderLibrary().CreateShader("env_specular_prefilter");
-		mp_specular_prefilter_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/CubemapVS.glsl");
-		mp_specular_prefilter_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/SkyboxSpecularPrefilterFS.glsl");
+		mp_specular_prefilter_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/CubemapVS.glsl");
+		mp_specular_prefilter_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/SkyboxSpecularPrefilterFS.glsl");
 		mp_specular_prefilter_shader->Init();
 		mp_specular_prefilter_shader->AddUniform("projection");
 		mp_specular_prefilter_shader->AddUniform("view");
 		mp_specular_prefilter_shader->AddUniform("u_roughness");
 
 		mp_diffuse_prefilter_shader = &Renderer::GetShaderLibrary().CreateShader("env_diffuse_prefilter");
-		mp_diffuse_prefilter_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/CubemapVS.glsl");
-		mp_diffuse_prefilter_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/SkyboxDiffusePrefilterFS.glsl");
+		mp_diffuse_prefilter_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/CubemapVS.glsl");
+		mp_diffuse_prefilter_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/SkyboxDiffusePrefilterFS.glsl");
 		mp_diffuse_prefilter_shader->Init();
 		mp_diffuse_prefilter_shader->AddUniform("projection");
 		mp_diffuse_prefilter_shader->AddUniform("view");
 
 		mp_brdf_convolution_shader = &Renderer::GetShaderLibrary().CreateShader("env_brdf_convolution");
-		mp_brdf_convolution_shader->AddStage(GL_VERTEX_SHADER, ORNG_CORE_LIB_DIR "res/shaders/QuadVS.glsl");
-		mp_brdf_convolution_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/BRDFConvolutionFS.glsl");
+		mp_brdf_convolution_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
+		mp_brdf_convolution_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/BRDFConvolutionFS.glsl");
 		mp_brdf_convolution_shader->Init();
 	}
 

@@ -54,6 +54,8 @@ namespace ORNG {
 		void UpdateGeometry(GeometryType type);
 		void SetBodyType(RigidBodyType type);
 
+		void SetTrigger(bool is_trigger);
+
 	protected:
 		void SendUpdateEvent();
 

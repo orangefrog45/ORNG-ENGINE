@@ -46,11 +46,9 @@ namespace ORNG {
 		std::string filename = filepath.substr(include_dir.size());
 
 		if (!FileExists(include_dir + filename)) {
-			include_dir = ORNG_CORE_LIB_DIR "\\res\\shaders\\";
+			include_dir = "\\res\\shaders\\";
 			if (!FileExists(include_dir + filename)) {
-				include_dir = ORNG_CORE_LIB_DIR "..\\ORNG-Editor\\res\\shaders\\";
-				if (!FileExists(include_dir + filename))
-					return "";
+				return "";
 			}
 		}
 

@@ -4,6 +4,14 @@ namespace ORNG {
 	class PhysicsComponent;
 	class SceneEntity;
 
+	class ScriptBase {
+	public:
+		virtual void OnUpdate() {};
+		virtual void OnCreate() {};
+		virtual void OnDestroy() {};
+		virtual void OnCollide() {};
+	};
+
 	struct RaycastResults {
 		bool hit = false;
 		glm::vec3 hit_pos{0, 0, 0};

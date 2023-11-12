@@ -3,6 +3,7 @@
 
 #include "components/Component.h"
 #include "scripting/ScriptingEngine.h" // For ScriptSymbols
+#include "scripting/ScriptShared.h"
 
 namespace ORNG {
 
@@ -18,9 +19,10 @@ namespace ORNG {
 			script_filepath = t_symbols->script_path;
 		}
 
-		const ScriptSymbols* p_symbols = nullptr;
 
 	private:
+		const ScriptSymbols* p_symbols = nullptr;
+		ScriptBase* p_instance = nullptr;
 		std::string script_filepath = "";
 	};
 }

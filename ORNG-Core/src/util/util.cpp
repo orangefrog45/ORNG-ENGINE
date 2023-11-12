@@ -57,15 +57,13 @@ namespace ORNG {
 	bool PathEqualTo(const std::string& path1, const std::string& path2) {
 		if (path1.empty() || path2.empty())
 			return false;
+		std::string c1 = path1;
+		std::string c2 = path2;
 
-		bool ret = false;
-		try {
-			ret = std::filesystem::equivalent(path1, path2);
-		}
-		catch (std::exception e) {
-			ORNG_CORE_ERROR("PathEqualTo err: '{0}' with '{1}' : '{2}'", e.what(), path1, path2);
-		}
-		return ret;
+		std::ranges::remove_if(c1, [](char c) {return c == '\\' || c == '/'; });
+		std::ranges::remove_if(c2, [](char c) {return c == '\\' || c == '/'; });
+
+		return c1 == c2;
 	}
 
 	std::string GetFileLastWriteTime(const std::string& filepath) {

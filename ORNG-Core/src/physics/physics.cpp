@@ -7,14 +7,14 @@
 namespace ORNG {
 	using namespace physx;
 	void Physics::IShutdown() {
-/*#ifndef NDEBUG
-		mp_pvd->disconnect();
-		mp_pvd->release();
-#endif
-		mp_cuda_context_manager->release();
-		PxCloseExtensions();
-		mp_physics->release();
-		mp_foundation->release();*/
+		/*#ifndef NDEBUG
+				mp_pvd->disconnect();
+				mp_pvd->release();
+		#endif
+				mp_cuda_context_manager->release();
+				PxCloseExtensions();
+				mp_physics->release();
+				mp_foundation->release();*/
 	}
 
 	void Physics::I_Init() {
@@ -73,8 +73,6 @@ namespace ORNG {
 		m_phys_debug_cols[eARGB_DARKRED] = { 0.5, 0, 0 };
 		m_phys_debug_cols[eARGB_DARKGREEN] = { 0, 0.5, 0 };
 		m_phys_debug_cols[eARGB_DARKBLUE] = { 0, 0, 0.5 };
-
-
 	}
 
 
@@ -132,8 +130,8 @@ namespace ORNG {
 	void Physics::InitDebugRenderPass() {
 		p_debug_shader = &Renderer::GetShaderLibrary().CreateShader("physx-debug");
 
-		p_debug_shader->AddStage(GL_VERTEX_SHADER,ORNG_CORE_LIB_DIR "res/shaders/TransformVS.glsl", {"COLOR"});
-		p_debug_shader->AddStage(GL_FRAGMENT_SHADER, ORNG_CORE_LIB_DIR "res/shaders/ColorFS.glsl");
+		p_debug_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/TransformVS.glsl", { "COLOR" });
+		p_debug_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/ColorFS.glsl");
 		p_debug_shader->Init();
 		p_debug_shader->AddUniform("transform");
 		p_debug_render_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("physx-debug", false);

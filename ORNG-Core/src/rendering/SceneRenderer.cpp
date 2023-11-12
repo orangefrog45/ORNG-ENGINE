@@ -48,33 +48,33 @@ namespace ORNG {
 				"u_shader_id",
 		};
 		mp_gbuffer_shader_terrain = &mp_shader_library->CreateShader("gbuffer_terrain");
-		mp_gbuffer_shader_terrain->AddStage(GL_VERTEX_SHADER,  "res/shaders/GBufferVS.glsl", { "TERRAIN_MODE" });
-		mp_gbuffer_shader_terrain->AddStage(GL_FRAGMENT_SHADER,  "res/shaders/GBufferFS.glsl", { "TERRAIN_MODE" });
+		mp_gbuffer_shader_terrain->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", { "TERRAIN_MODE" });
+		mp_gbuffer_shader_terrain->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl", { "TERRAIN_MODE" });
 		mp_gbuffer_shader_terrain->Init();
 		mp_gbuffer_shader_terrain->AddUniforms(gbuffer_uniforms);
 
 		mp_gbuffer_shader_skybox = &mp_shader_library->CreateShader("gbuffer_skybox");
-		mp_gbuffer_shader_skybox->AddStage(GL_VERTEX_SHADER,  "res/shaders/GBufferVS.glsl", { "SKYBOX_MODE" });
-		mp_gbuffer_shader_skybox->AddStage(GL_FRAGMENT_SHADER,  "res/shaders/GBufferFS.glsl", { "SKYBOX_MODE" });
+		mp_gbuffer_shader_skybox->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", { "SKYBOX_MODE" });
+		mp_gbuffer_shader_skybox->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl", { "SKYBOX_MODE" });
 		mp_gbuffer_shader_skybox->Init();
 		// No uniforms needed for skybox
 
 		mp_gbuffer_shader_mesh = &mp_shader_library->CreateShader("gbuffer_mesh");
-		mp_gbuffer_shader_mesh->AddStage(GL_VERTEX_SHADER,  "res/shaders/GBufferVS.glsl");
-		mp_gbuffer_shader_mesh->AddStage(GL_FRAGMENT_SHADER,  "res/shaders/GBufferFS.glsl");
+		mp_gbuffer_shader_mesh->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
+		mp_gbuffer_shader_mesh->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
 		mp_gbuffer_shader_mesh->Init();
 		mp_gbuffer_shader_mesh->AddUniforms(gbuffer_uniforms);
 
 
 		mp_transparency_shader = &mp_shader_library->CreateShader("transparency");
-		mp_transparency_shader->AddStage(GL_VERTEX_SHADER,  "res/shaders/GBufferVS.glsl");
-		mp_transparency_shader->AddStage(GL_FRAGMENT_SHADER,  "res/shaders/WeightedBlendedFS.glsl");
+		mp_transparency_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
+		mp_transparency_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
 		mp_transparency_shader->Init();
 		mp_transparency_shader->AddUniforms(gbuffer_uniforms);
 
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
-		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER,  "res/shaders/TransparentCompositeFS.glsl");
-		mp_transparency_composite_shader->AddStage(GL_VERTEX_SHADER,  "res/shaders/QuadVS.glsl");
+		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/TransparentCompositeFS.glsl");
+		mp_transparency_composite_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
 		mp_transparency_composite_shader->Init();
 
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting", ShaderLibrary::LIGHTING_SHADER_ID);
@@ -91,7 +91,7 @@ namespace ORNG {
 
 		// Render quad
 		m_post_process_shader = &mp_shader_library->CreateShader("post_process");
-		m_post_process_shader->AddStage(GL_COMPUTE_SHADER, ORNG_CORE_LIB_DIR "res/shaders/PostProcessCS.glsl");
+		m_post_process_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/PostProcessCS.glsl");
 		m_post_process_shader->Init();
 		m_post_process_shader->AddUniform("exposure");
 		m_post_process_shader->AddUniform("u_bloom_intensity");
@@ -250,7 +250,7 @@ namespace ORNG {
 
 		// Fog
 		m_fog_shader = &mp_shader_library->CreateShader("fog");
-		m_fog_shader->AddStage(GL_COMPUTE_SHADER, ORNG_CORE_LIB_DIR "res/shaders/FogCS.glsl");
+		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/FogCS.glsl");
 		m_fog_shader->Init();
 		m_fog_shader->AddUniforms({
 			"u_fog_color",
@@ -298,17 +298,17 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(resize_listener);
 
 		mp_bloom_downsample_shader = &mp_shader_library->CreateShader("bloom downsample");
-		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, ORNG_CORE_LIB_DIR "res/shaders/BloomDownsampleCS.glsl");
+		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BloomDownsampleCS.glsl");
 		mp_bloom_downsample_shader->Init();
 		mp_bloom_downsample_shader->AddUniform("u_mip_level");
 
 		mp_bloom_upsample_shader = &mp_shader_library->CreateShader("bloom upsample");
-		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, ORNG_CORE_LIB_DIR "res/shaders/BloomUpsampleCS.glsl");
+		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BloomUpsampleCS.glsl");
 		mp_bloom_upsample_shader->Init();
 		mp_bloom_upsample_shader->AddUniform("u_mip_level");
 
 		mp_bloom_threshold_shader = &mp_shader_library->CreateShader("bloom threshold");
-		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, ORNG_CORE_LIB_DIR "res/shaders/BloomThresholdCS.glsl");
+		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BloomThresholdCS.glsl");
 		mp_bloom_threshold_shader->Init();
 		mp_bloom_threshold_shader->AddUniform("u_threshold");
 		mp_bloom_threshold_shader->AddUniform("u_knee");

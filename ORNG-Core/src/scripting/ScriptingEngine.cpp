@@ -19,6 +19,8 @@ namespace ORNG {
 	};
 
 
+	
+
 #ifndef _MSC_VER
 #error Scripting engine only supports MSVC compilation with VS 2019+ currently
 #endif // !_MSC_VER
@@ -130,6 +132,57 @@ namespace ORNG {
 	}
 
 
+	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& relative_path) {
+		// Load the generated dll
+		HMODULE script_dll = LoadLibrary(dll_path.c_str());
+		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
+			ORNG_CORE_ERROR("Script DLL failed to load or not found at res/scripts/bin/'{0}'", dll_path);
+			return ScriptSymbols(relative_path);
+		}
+
+		// Keep record of loaded DLL's
+		sm_loaded_script_dll_handles[relative_path] = script_dll;
+
+		ScriptSymbols symbols{ relative_path };
+
+
+		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
+		symbols.OnUpdate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnUpdate"));
+		symbols.OnDestroy = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnDestroy"));
+		symbols.OnCollision = (PhysicsEventCallback)(GetProcAddress(script_dll, "OnCollision"));
+		symbols.SceneEntityCreationSetter = (CreateEntitySetter)(GetProcAddress(script_dll, "SetCreateEntityCallback"));
+		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
+		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
+		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
+		symbols.SceneGetEntitySetter = (GetEntitySetter)(GetProcAddress(script_dll, "SetGetEntityCallback"));
+		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
+
+		symbols.loaded = true;
+
+		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
+		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));
+		FrameTimingSetter frame_timing_setter = (FrameTimingSetter)(GetProcAddress(script_dll, "SetFrameTimingPtr"));
+		// Set input class ptr in dll for shared state - used to get key/mouse inputs
+		setter(&Input::Get());
+		event_setter(&Events::EventManager::Get());
+		frame_timing_setter(&FrameTiming::Get());
+
+		if (!symbols.OnCreate) {
+			ORNG_CORE_ERROR("Failed loading OnCreate symbol from script file '{0}'", dll_path);
+		}
+		if (!symbols.OnUpdate) {
+			ORNG_CORE_ERROR("Failed loading OnUpdate symbol from script file '{0}'", dll_path);
+		}
+		if (!symbols.OnDestroy) {
+			ORNG_CORE_ERROR("Failed loading OnDestroy symbol from script file '{0}'", dll_path);
+		}
+		if (!symbols.OnCollision) {
+			ORNG_CORE_ERROR("Failed loading OnCollision symbol from script file '{0}'", dll_path);
+		}
+
+		return symbols;
+	}
+
 	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled) {
 		if (sm_loaded_script_dll_handles.contains(filepath)) {
 			ORNG_CORE_CRITICAL("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
@@ -163,7 +216,7 @@ namespace ORNG {
 				if (!FileExists(core_lib_path)) {
 					core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
 					ASSERT(FileExists(core_lib_path));
-				}
+			}
 				std::string bin_path = ".\\res\\scripts\\bin\\debug\\";
 #endif
 
@@ -196,8 +249,8 @@ namespace ORNG {
 #endif // ifdef _MSC_VER
 
 				SceneSerializer::SerializeBinary(metadata_path, md);
-			}
 		}
+	}
 
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
@@ -207,52 +260,15 @@ namespace ORNG {
 		}
 
 
-		// Keep record of loaded DLL's
-		sm_loaded_script_dll_handles[relative_path] = script_dll;
+		ScriptSymbols symbols{ LoadScriptDll(dll_path, relative_path) };
 
-		ScriptSymbols symbols{ relative_path };
-
-
-		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
-		symbols.OnUpdate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnUpdate"));
-		symbols.OnDestroy = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnDestroy"));
-		symbols.OnCollision = (PhysicsEventCallback)(GetProcAddress(script_dll, "OnCollision"));
-		symbols.SceneEntityCreationSetter = (CreateEntitySetter)(GetProcAddress(script_dll, "SetCreateEntityCallback"));
-		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
-		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
-		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
-		symbols.SceneGetEntitySetter = (GetEntitySetter)(GetProcAddress(script_dll, "SetGetEntityCallback"));
-		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
-
-		symbols.loaded = true;
-
-		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
-		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));
-		FrameTimingSetter frame_timing_setter = (FrameTimingSetter)(GetProcAddress(script_dll, "SetFrameTimingPtr"));
-		// Set input class ptr in dll for shared state - used to get key/mouse inputs
-		setter(&Input::Get());
-		event_setter(&Events::EventManager::Get());
-		frame_timing_setter(&FrameTiming::Get());
-
-		if (!symbols.OnCreate) {
-			ORNG_CORE_ERROR("Failed loading OnCreate symbol from script file '{0}'", filepath);
-		}
-		if (!symbols.OnUpdate) {
-			ORNG_CORE_ERROR("Failed loading OnUpdate symbol from script file '{0}'", filepath);
-		}
-		if (!symbols.OnDestroy) {
-			ORNG_CORE_ERROR("Failed loading OnDestroy symbol from script file '{0}'", filepath);
-		}
-		if (!symbols.OnCollision) {
-			ORNG_CORE_ERROR("Failed loading OnCollision symbol from script file '{0}'", filepath);
-		}
 
 		// Clear bat file
 		std::ofstream bat_stream("res/scripts/gen_scripts.bat");
 		bat_stream.close();
 
 		return symbols;
-	}
+}
 
 
 	bool ScriptingEngine::UnloadScriptDLL(const std::string& filepath) {

@@ -342,12 +342,23 @@ namespace ORNG {
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(script_folder)) {
 			auto path = entry.path();
-			if (entry.is_directory() || path.extension() != ".cpp" || path.string().find("scripts\\includes") != std::string::npos)
+			if (entry.is_directory() || (!precompiled_scripts && path.extension() != ".cpp") || (precompiled_scripts && path.extension() != ".dll") || path.string().find("scripts\\includes") != std::string::npos)
 				continue;
 			else {
-				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\scripts"));
-				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path, precompiled_scripts);
-				AddAsset(new ScriptAsset(symbols));
+				std::string path_string = path.string();
+				if (precompiled_scripts) {
+					std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
+					auto first = dll_path.rfind("\\");
+					std::string rel_path = ".\\res\\scripts" + dll_path.substr(first, dll_path.rfind(".") - first) + ".cpp";
+					ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path);
+
+					AddAsset(new ScriptAsset(symbols));
+				}
+				else {
+					std::string rel_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
+					ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path, precompiled_scripts);
+					AddAsset(new ScriptAsset(symbols));
+				}
 			}
 		}
 	}
