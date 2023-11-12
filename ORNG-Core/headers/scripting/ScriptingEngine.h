@@ -25,6 +25,9 @@ namespace ORNG {
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
 	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* RaycastSetter)(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>);
+	typedef ScriptBase* (__cdecl* InstanceCreator)();
+	typedef void(__cdecl* InstanceDestroyer)(ScriptBase*);
+
 
 
 
@@ -34,10 +37,8 @@ namespace ORNG {
 
 		bool loaded = false;
 		std::string script_path;
-		ScriptFuncPtr OnCreate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnCreate symbol not loaded"); };
-		ScriptFuncPtr OnUpdate = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnUpdate symbol not loaded"); };
-		ScriptFuncPtr OnDestroy = [](SceneEntity* p_entity) { ORNG_CORE_ERROR("OnDestroy symbol not loaded"); };
-		PhysicsEventCallback OnCollision = [](SceneEntity* p_this, SceneEntity* p_other) {};
+		InstanceCreator CreateInstance;
+		InstanceDestroyer DestroyInstance;
 
 		// These set the appropiate callback functions in the scripts DLL so they can modify the scene, the scene class will call these methods during Update
 		// Would like to expose the entire scene class but due to the amount of dependencies I would need to include doing this for now

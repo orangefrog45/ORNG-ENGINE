@@ -1,4 +1,5 @@
 12/11/23:
+-Scripting overhaul, system now more similar to unity/unreal, state management far easier
 -Runtime fixes
 
 11/11/23:

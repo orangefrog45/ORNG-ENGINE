@@ -141,8 +141,12 @@ namespace ORNG {
 		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
 		std::vector<ScriptComponent*> components_to_reconnect;
 		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-			if (p_curr_asset->PathEqualTo(script_comp.p_symbols->script_path))
+			if (p_curr_asset->PathEqualTo(script_comp.GetSymbols()->script_path)) {
 				components_to_reconnect.push_back(&script_comp);
+				// Free memory for instances that were allocated by the DLL
+				script_comp.GetSymbols()->DestroyInstance(script_comp.p_instance);
+				script_comp.p_instance = nullptr;
+			}
 		}
 
 		// Reload script and reconnect it to script components previously using it
@@ -163,6 +167,9 @@ namespace ORNG {
 				p_script->SetSymbols(&p_asset->symbols);
 			}
 		}
+		else {
+			ORNG_CORE_ERROR("Error deleting script '{0}'", p_curr_asset->filepath);
+		}
 	}
 
 
@@ -170,7 +177,7 @@ namespace ORNG {
 
 	void AssetManagerWindow::RenderScriptAsset(const std::filesystem::directory_entry& entry) {
 		std::string entry_path = entry.path().string();
-		std::string relative_path = entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
+		std::string relative_path = ".\\" + entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
 		ImGui::PushID(entry_path.c_str());
 		ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
 
@@ -199,7 +206,8 @@ namespace ORNG {
 		if (ImGui::BeginPopup("script_option_popup"))
 		{
 			if ((!is_loaded && ImGui::Selectable("Load"))) {
-				if (!AssetManager::AddAsset(new ScriptAsset(relative_path)))
+				auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false);
+				if (!AssetManager::AddAsset(new ScriptAsset(symbols)))
 					GenerateErrorMessage("AssetManager::AddScriptAsset failed");
 			}
 			else if (is_loaded && ImGui::Selectable("Reload")) {

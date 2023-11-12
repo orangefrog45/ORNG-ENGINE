@@ -30,10 +30,10 @@ namespace ORNG {
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
-				script.p_symbols->OnUpdate(script.GetEntity());
+				script.p_instance->OnUpdate();
 			}
 			catch (std::exception e) {
-				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.p_symbols->script_path, e.what());
+				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.GetSymbols()->script_path, e.what());
 			}
 		}
 
@@ -89,7 +89,7 @@ namespace ORNG {
 	SceneEntity& Scene::InstantiatePrefabCallScript(const std::string& serialized_data) {
 		auto& ent = InstantiatePrefab(serialized_data);
 		if (auto* p_script = ent.GetComponent<ScriptComponent>())
-			p_script->p_symbols->OnCreate(&ent);
+			p_script->p_instance->OnCreate();
 
 		return ent;
 	}
@@ -121,7 +121,7 @@ namespace ORNG {
 	SceneEntity& Scene::DuplicateEntityCallScript(SceneEntity& original) {
 		auto& ent = DuplicateEntity(original);
 		if (auto* p_script = ent.GetComponent<ScriptComponent>())
-			p_script->p_symbols->OnCreate(&ent);
+			p_script->p_instance->OnCreate();
 
 		return ent;
 	}
@@ -167,7 +167,7 @@ namespace ORNG {
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
-				script.p_symbols->OnCreate(GetEntity(entity));
+				script.p_instance->OnCreate();
 			}
 			catch (std::exception e) {
 				ORNG_CORE_ERROR("Script execution error for entity '{0}' : '{1}'", GetEntity(entity)->name, e.what());

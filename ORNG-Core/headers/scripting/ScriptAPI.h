@@ -31,8 +31,12 @@
 #include "AudioComponent.h"
 #include "SceneEntity.h"
 #include "./SceneScriptInterface.h"
+#include "ScriptShared.h"
 #include "./uuids.h" // Generated through editor on save
 //
+
+#define O_PROPERTY
+#define O_CONSTRUCTOR
 
 /* TODO: Provide interface override for logging macros */
 #ifdef ORNG_CORE_TRACE
@@ -117,35 +121,6 @@ extern "C" {
 		private:
 			inline static ORNG::FrameTiming* mp_instance = nullptr;
 		};
-
-
-		/*constexpr unsigned int CompileTimeRandom() {
-			return 1103515245u * static_cast<unsigned int>(__TIME__[7]) +
-				12345u * static_cast<unsigned int>(__TIME__[5]) +
-				1234567u * static_cast<unsigned int>(__TIME__[3]);
-		}
-
-		inline static std::unordered_map<ORNG::SceneEntity*, std::unordered_map<const char*, std::any>> data_bank;
-
-		template<typename T>
-		class StateVal {
-		public:
-			StateVal(const T& init, const char* t_key) : key(t_key) {
-				if (data_bank.contains(t_key))
-					data = data_bank[t_key];
-				else
-					data = init;
-			}
-
-			~StateVal() {
-				data_bank[key] = data;
-			}
-
-			T data;
-		private:
-			const char* key = nullptr;
-		};
-		*/
 	};
 
 

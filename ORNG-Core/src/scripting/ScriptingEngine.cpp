@@ -19,7 +19,7 @@ namespace ORNG {
 	};
 
 
-	
+
 
 #ifndef _MSC_VER
 #error Scripting engine only supports MSVC compilation with VS 2019+ currently
@@ -79,7 +79,7 @@ namespace ORNG {
 
 
 
-	void GenBatFile(std::ofstream& bat_stream, const std::string& filepath, const std::string& filename, const std::string& filename_no_ext, const std::string& dll_path) {
+	void GenBatFile(std::ofstream& bat_stream, const std::string& filename, const std::string& filename_no_ext, const std::string& dll_path, const std::string& temp_fp) {
 		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\lib";
 
 
@@ -94,7 +94,7 @@ namespace ORNG {
 			" /WX- /Zc:forScope /GR /Gm- /Zc:wchar_t /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise  /D\"_MBCS\" /D\"NDEBUG\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\" /I\"" << ORNG_CORE_LIB_DIR << "\\..\\vcpkg_installed\\x64-windows\\include\""
-			<< " /c .\\res\\scripts\\" << filename << " /Fo:" << obj_path << "\n";
+			<< " /c " << temp_fp << " /Fo:" << obj_path << "\n";
 
 		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /OUT:" << dll_path << " " << obj_path << " " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmod_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cpp.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
@@ -110,7 +110,7 @@ namespace ORNG {
 			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /DEBUG /Z7 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t-  /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\" /I\"" << ORNG_CORE_LIB_DIR << "\\..\\vcpkg_installed\\x64-windows\\include\""
-			<< " /c .\\res\\scripts\\" << filename << " /Fo:" << obj_path << "\n";
+			<< " /c " << temp_fp << " /Fo:" << obj_path << "\n";
 
 		bat_stream << "link /DLL /INCREMENTAL /PDB:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << dll_path << " " << obj_path << " " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmodL_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cppd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
@@ -131,6 +131,63 @@ namespace ORNG {
 #endif
 	}
 
+	std::string PreParseScript(const std::string& cpp_path) {
+		std::ifstream ifstream{ cpp_path };
+		std::stringstream ss;
+		std::string line;
+		std::string constructor_code;
+
+		unsigned line_num = 0;
+		while (getline(ifstream, line)) {
+			line_num++;
+			if (line.find("O_PROPERTY") != std::string::npos) {
+				std::string name;
+				auto equals_pos = line.find("=");
+				// Between name and = e.g nameSPACE_1_POS=
+				int space_1_pos = -1;
+				// Between type and name e.g intSPACE_2_POSname
+				int space_2_pos = -1;
+
+				for (int i = equals_pos; i >= 0; i--) {
+					if (line[i] == ' ') {
+						if (space_1_pos != -1) {
+							space_2_pos = i;
+							break;
+						}
+						else
+							space_1_pos = i;
+					}
+				}
+
+				if (space_1_pos != -1 && space_2_pos != -1) {
+					name = line.substr(space_2_pos + 1, space_1_pos - space_2_pos - 1);
+					constructor_code += "m_member_addresses[\"" + name + "\"] = &" + name + ";\n";
+				}
+				else {
+					ORNG_CORE_ERROR("Parsing error for script '{0}', property at line '{1}' declared improperly", cpp_path, line_num);
+				}
+			}
+			ss << line << "\n";
+		}
+
+
+		std::string output = ss.str();
+		auto constructor_pos = output.find("O_CONSTRUCTOR");
+
+		if (constructor_pos == std::string::npos) {
+			ORNG_CORE_ERROR("Parsing error for script '{0}', constructor declaration not found", cpp_path);
+		}
+		else {
+			output.insert(constructor_pos, constructor_code);
+		}
+
+		std::string output_path = cpp_path;
+		output_path.insert(output_path.rfind('.'), "TEMP");
+		std::ofstream ofstream{ output_path };
+		ofstream << output;
+
+		return output_path;
+	}
 
 	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& relative_path) {
 		// Load the generated dll
@@ -145,18 +202,15 @@ namespace ORNG {
 
 		ScriptSymbols symbols{ relative_path };
 
-
-		symbols.OnCreate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnCreate"));
-		symbols.OnUpdate = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnUpdate"));
-		symbols.OnDestroy = (ScriptFuncPtr)(GetProcAddress(script_dll, "OnDestroy"));
-		symbols.OnCollision = (PhysicsEventCallback)(GetProcAddress(script_dll, "OnCollision"));
 		symbols.SceneEntityCreationSetter = (CreateEntitySetter)(GetProcAddress(script_dll, "SetCreateEntityCallback"));
 		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
 		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
 		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
 		symbols.SceneGetEntitySetter = (GetEntitySetter)(GetProcAddress(script_dll, "SetGetEntityCallback"));
 		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
-
+		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
+		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
+		symbols.DestroyInstance(symbols.CreateInstance());
 		symbols.loaded = true;
 
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
@@ -167,18 +221,6 @@ namespace ORNG {
 		event_setter(&Events::EventManager::Get());
 		frame_timing_setter(&FrameTiming::Get());
 
-		if (!symbols.OnCreate) {
-			ORNG_CORE_ERROR("Failed loading OnCreate symbol from script file '{0}'", dll_path);
-		}
-		if (!symbols.OnUpdate) {
-			ORNG_CORE_ERROR("Failed loading OnUpdate symbol from script file '{0}'", dll_path);
-		}
-		if (!symbols.OnDestroy) {
-			ORNG_CORE_ERROR("Failed loading OnDestroy symbol from script file '{0}'", dll_path);
-		}
-		if (!symbols.OnCollision) {
-			ORNG_CORE_ERROR("Failed loading OnCollision symbol from script file '{0}'", dll_path);
-		}
 
 		return symbols;
 	}
@@ -188,7 +230,6 @@ namespace ORNG {
 			ORNG_CORE_CRITICAL("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
 			BREAKPOINT;
 		}
-
 		std::string filename = filepath.substr(filepath.find_last_of("\\") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
 		std::string file_dir = filepath.substr(0, filepath.find_last_of("\\") + 1);
@@ -216,7 +257,7 @@ namespace ORNG {
 				if (!FileExists(core_lib_path)) {
 					core_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
 					ASSERT(FileExists(core_lib_path));
-			}
+				}
 				std::string bin_path = ".\\res\\scripts\\bin\\debug\\";
 #endif
 
@@ -230,12 +271,14 @@ namespace ORNG {
 					std::filesystem::remove(entry);
 				}
 
+				std::string temp_fp = PreParseScript(filepath);
 				std::ofstream bat_stream("res/scripts/gen_scripts.bat");
-				GenBatFile(bat_stream, filepath, filename, filename_no_ext, dll_path);
+				GenBatFile(bat_stream, filename, filename_no_ext, dll_path, temp_fp);
 				bat_stream.close();
 
 				// Run bat file
 				int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
+				FileDelete(temp_fp);
 				if (dev_env_result != 0) {
 					ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
 					return ScriptSymbols(relative_path);
@@ -245,18 +288,10 @@ namespace ORNG {
 				md.orng_library_last_write_time = GetFileLastWriteTime(core_lib_path);
 				md.last_write_time = GetFileLastWriteTime(filepath);
 
-
 #endif // ifdef _MSC_VER
 
 				SceneSerializer::SerializeBinary(metadata_path, md);
-		}
-	}
-
-		// Load the generated dll
-		HMODULE script_dll = LoadLibrary(dll_path.c_str());
-		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
-			ORNG_CORE_ERROR("Script DLL failed to load or not found at res/scripts/bin/'{0}'", filename_no_ext + ".dll");
-			return ScriptSymbols(relative_path);
+			}
 		}
 
 
@@ -268,13 +303,13 @@ namespace ORNG {
 		bat_stream.close();
 
 		return symbols;
-}
+	}
 
 
 	bool ScriptingEngine::UnloadScriptDLL(const std::string& filepath) {
 		if (sm_loaded_script_dll_handles.contains(filepath)) {
 			FreeLibrary(sm_loaded_script_dll_handles[filepath]);
-			CoFreeUnusedLibraries();
+
 			sm_loaded_script_dll_handles.erase(filepath);
 			return true;
 		}

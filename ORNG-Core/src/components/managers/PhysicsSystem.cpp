@@ -470,18 +470,18 @@ namespace ORNG {
 			auto* p_second_script = pair.second->GetComponent<ScriptComponent>();
 			try {
 				if (p_first_script)
-					p_first_script->p_symbols->OnCollision(pair.first, pair.second);
+					p_first_script->p_instance->OnCollide(pair.second);
 
 				if (p_second_script)
-					p_second_script->p_symbols->OnCollision(pair.second, pair.first);
+					p_second_script->p_instance->OnCollide(pair.first);
 			}
 			catch (std::exception e) {
 				ORNG_CORE_ERROR("Script OnCollision err for collision pair '{0}', '{1}' : '{2}'", pair.first->name, pair.second->name, e.what());
 			}
 		}
-
+		unsigned size = m_entity_collision_queue.size();
 		m_entity_collision_queue.clear();
-		m_entity_collision_queue.reserve(500);
+		m_entity_collision_queue.reserve(size);
 	}
 
 

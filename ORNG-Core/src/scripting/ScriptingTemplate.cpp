@@ -8,20 +8,25 @@
 extern "C" {
 	using namespace ORNG;
 
-	__declspec(dllexport) void OnCreate(ORNG::SceneEntity* p_entity) {
+	class ScriptClassExample : public ScriptBase {
+	public:
+		// Constructor must contain O_CONSTRUCTOR macro
+		ScriptClassExample() { O_CONSTRUCTOR; }
 
-	}
+		void OnUpdate() override {
+			m_experience += 1;
+		}
 
-	__declspec(dllexport) void OnUpdate(ORNG::SceneEntity* p_entity) {
+	private:
+		// Not accessible through other scripts
+		unsigned m_experience = 0;
 
-	}
-
-	__declspec(dllexport) void OnDestroy(ORNG::SceneEntity* p_entity) {
-
-	}
-
-	__declspec(dllexport) void OnCollision(ORNG::SceneEntity* p_this, ORNG::SceneEntity* p_other) {
-
-	}
-
+		// Accessible through other scripts with Get<unsigned>("m_level")
+		O_PROPERTY unsigned m_level = 0;
+	};
 }
+
+// ORNG_CLASS must be defined as exported class
+#define ORNG_CLASS ScriptClassExample
+
+#include "includes/ScriptInstancer.h"
