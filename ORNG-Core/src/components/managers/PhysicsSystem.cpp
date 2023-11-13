@@ -76,7 +76,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::OnLoad() {
-
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
 
 		mp_broadphase = PxCreateBroadPhase(bpDesc);
@@ -90,6 +89,7 @@ namespace ORNG {
 		scene_desc.cudaContextManager = Physics::GetCudaContextManager();
 		scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
+		scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
 		scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
 		scene_desc.simulationEventCallback = &m_collision_callback;
 
@@ -117,7 +117,7 @@ namespace ORNG {
 
 	void PhysicsSystem::InitListeners() {
 		// Initialize event listeners
-		// 
+		//
 	// Physics listener
 		m_phys_listener.scene_id = GetSceneUUID();
 		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsComponent>& t_event) {
@@ -133,8 +133,7 @@ namespace ORNG {
 				RemoveComponent(t_event.affected_components[0]);
 				break;
 			};
-
-		};
+			};
 
 		// Joint listener
 		m_joint_listener.scene_id = GetSceneUUID();
@@ -151,7 +150,7 @@ namespace ORNG {
 				RemoveComponent(t_event.affected_components[0]);
 				break;
 			}
-		};
+			};
 
 
 		// Character controller listener
@@ -166,14 +165,14 @@ namespace ORNG {
 				RemoveComponent(t_event.affected_components[0]);
 				break;
 			}
-		};
+			};
 
 
 		// Transform update listener
 		m_transform_listener.scene_id = GetSceneUUID();
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
 			OnTransformEvent(t_event);
-		};
+			};
 
 		Events::EventManager::RegisterListener(m_phys_listener);
 		Events::EventManager::RegisterListener(m_joint_listener);
@@ -182,7 +181,6 @@ namespace ORNG {
 	}
 
 	void PhysicsSystem::InitComponent(FixedJointComponent* p_comp) {
-
 	}
 
 	void PhysicsSystem::RemoveComponent(FixedJointComponent* p_comp) {
@@ -210,7 +208,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::RemoveComponent(PhysicsComponent* p_comp) {
-
 		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_rigid_actor));
 
 		mp_phys_scene->removeActor(*p_comp->p_rigid_actor);
@@ -263,7 +260,6 @@ namespace ORNG {
 			}
 
 			if (p_phys_comp) {
-
 				if (t_event.sub_event_type == TransformComponent::UpdateType::SCALE || t_event.sub_event_type == TransformComponent::UpdateType::ALL) { // Whole shape needs to be rebuilt
 					UpdateComponentState(p_phys_comp);
 					return;
@@ -271,7 +267,7 @@ namespace ORNG {
 
 				auto n_transforms = p_transform->GetAbsoluteTransforms();
 				glm::vec3 abs_pos = n_transforms[0];
-				glm::quat n_quat{glm::radians(n_transforms[2])};
+				glm::quat n_quat{ glm::radians(n_transforms[2]) };
 
 				PxVec3 px_pos{ abs_pos.x, abs_pos.y, abs_pos.z };
 				PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
@@ -279,7 +275,6 @@ namespace ORNG {
 
 				p_phys_comp->p_rigid_actor->setGlobalPose(px_transform);
 			}
-
 		}
 	}
 
@@ -343,11 +338,11 @@ namespace ORNG {
 		switch (p_comp->m_geometry_type) {
 		case PhysicsComponent::SPHERE:
 			p_comp->p_shape->release();
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material);
+			p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material, p_comp->IsTrigger());
 			break;
 		case PhysicsComponent::BOX:
 			p_comp->p_shape->release();
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material);
+			p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material, p_comp->IsTrigger());
 			break;
 		case PhysicsComponent::TRIANGLE_MESH:
 			if (!p_mesh_comp)
@@ -355,9 +350,20 @@ namespace ORNG {
 
 			p_comp->p_shape->release();
 			PxTriangleMesh* aTriangleMesh = GetOrCreateTriangleMesh(p_mesh_comp->GetMeshData());
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_comp->p_material);
+			p_comp->p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_comp->p_material, p_comp->IsTrigger());
 			break;
 		}
+
+
+		if (p_comp->IsTrigger()) {
+			p_comp->p_shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, false);
+			p_comp->p_shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+
+			p_comp->p_shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, true);
+			p_comp->p_shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+		}
+
+
 		p_comp->p_shape->acquireReference();
 
 		// Update rigid body type
@@ -377,7 +383,6 @@ namespace ORNG {
 
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
-		p_comp->p_rigid_actor->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 	}
 
 
@@ -385,7 +390,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::InitComponent(PhysicsComponent* p_comp) {
-
 		auto* p_meshc = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
 		auto transforms = p_transform->GetAbsoluteTransforms();
@@ -415,9 +419,8 @@ namespace ORNG {
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 		p_comp->p_rigid_actor->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 
-		// Store in entity lookup map for fast retrieval 
+		// Store in entity lookup map for fast retrieval
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
-
 	}
 
 
@@ -439,7 +442,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::OnUpdate(float ts) {
-
 		m_accumulator += ts;
 
 		if (m_accumulator < m_step_size)
@@ -449,20 +451,18 @@ namespace ORNG {
 		mp_phys_scene->simulate(m_step_size);
 		mp_phys_scene->fetchResults(true);
 
+		PxU32 num_active_actors;
+		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
 
-		// Update transforms of entities
-		for (auto [entity, phys, transform] : mp_registry->view<PhysicsComponent, TransformComponent>().each()) {
-			mp_currently_updating_transform = &transform;
-			UpdateTransformCompFromGlobalPose(phys.p_rigid_actor->getGlobalPose(), transform);
-			mp_currently_updating_transform = nullptr;
+		for (int i = 0; i < num_active_actors; i++) {
+			if (auto* p_ent = TryGetEntityFromPxActor(active_actors[i])) {
+				auto* p_transform = p_ent->GetComponent<TransformComponent>();
+				mp_currently_updating_transform = p_transform;
+				UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform);
+				mp_currently_updating_transform = nullptr;
+			}
 		}
 
-		for (auto [entity, controller, transform] : mp_registry->view<CharacterControllerComponent, TransformComponent>().each()) {
-			mp_currently_updating_transform = &transform;
-			PxExtendedVec3 pos = controller.mp_controller->getPosition();
-			transform.SetAbsolutePosition({ pos.x, pos.y, pos.z });
-			mp_currently_updating_transform = nullptr;
-		}
 
 		// Process OnCollision callbacks
 		for (auto& pair : m_entity_collision_queue) {
@@ -479,9 +479,30 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Script OnCollision err for collision pair '{0}', '{1}' : '{2}'", pair.first->name, pair.second->name, e.what());
 			}
 		}
+#
+		for (auto& tuple : m_trigger_event_queue) {
+			auto [event_type, p_ent, p_trigger] = tuple;
+			auto* p_script = p_trigger->GetComponent<ScriptComponent>();
+			if (!p_script)
+				continue;
+
+			try {
+				if (event_type == ENTERED)
+					p_script->p_instance->OnTriggerEnter(p_ent);
+				else
+					p_script->p_instance->OnTriggerLeave(p_ent);
+			}
+			catch (std::exception e) {
+				ORNG_CORE_ERROR("Script trigger event err for pair '{0}', trigger: '{1}' : '{2}'", p_ent->name, p_trigger->name, e.what());
+			}
+		}
 		unsigned size = m_entity_collision_queue.size();
+		unsigned size_trigger = m_entity_collision_queue.size();
+
 		m_entity_collision_queue.clear();
+		m_trigger_event_queue.clear();
 		m_entity_collision_queue.reserve(size);
+		m_trigger_event_queue.reserve(size_trigger);
 	}
 
 
@@ -508,7 +529,6 @@ namespace ORNG {
 
 	void PhysicsSystem::PhysCollisionCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs)
 	{
-
 		SceneEntity* p_first_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[0]);
 		SceneEntity* p_second_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[1]);
 
@@ -518,8 +538,30 @@ namespace ORNG {
 		}
 
 		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent, p_second_ent));
-
 	}
+
+	void PhysicsSystem::PhysCollisionCallback::onTrigger(PxTriggerPair* pairs, PxU32 count) {
+		for (int i = 0; i < count; i++) {
+			// ignore pairs when shapes have been deleted
+			if (pairs[i].flags & (PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER | PxTriggerPairFlag::eREMOVED_SHAPE_OTHER))
+				continue;
+
+			auto* p_ent = mp_system->TryGetEntityFromPxActor(pairs[i].otherActor);
+			if (auto* p_trigger = mp_system->TryGetEntityFromPxActor(pairs[i].triggerActor); p_trigger && p_ent) {
+				if (auto* p_script = p_trigger->GetComponent<ScriptComponent>()) {
+					if (pairs[i].status == PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+						// Object entered the trigger
+						mp_system->m_trigger_event_queue.push_back(std::make_tuple(ENTERED, p_ent, p_trigger));
+					}
+					else if (pairs[i].status == PxPairFlag::eNOTIFY_TOUCH_LOST) {
+						// Object left the trigger
+						mp_system->m_trigger_event_queue.push_back(std::make_tuple(EXITED, p_ent, p_trigger));
+					}
+				}
+			}
+		}
+	};
+
 
 
 	RaycastResults PhysicsSystem::Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance) {
@@ -545,6 +587,4 @@ namespace ORNG {
 
 		return ret;
 	}
-
-
 }

@@ -18,6 +18,8 @@ namespace ORNG {
 		virtual void OnCreate() {};
 		virtual void OnDestroy() {};
 		virtual void OnCollide(SceneEntity* p_hit) {};
+		virtual void OnTriggerEnter(SceneEntity* p_entered) {};
+		virtual void OnTriggerLeave(SceneEntity* p_left) {};
 
 		template<typename T>
 		T& Get(const std::string& name) {
@@ -30,7 +32,7 @@ namespace ORNG {
 	protected:
 		// Used in pseudo-reflection system, PreParseScript in scriptingengine connects member variables with this
 		std::map<std::string, std::any> m_member_addresses;
-		SceneEntity* p_entity;
+		SceneEntity* p_entity = nullptr;
 	};
 
 	struct RaycastResults {

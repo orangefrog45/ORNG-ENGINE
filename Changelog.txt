@@ -1,3 +1,10 @@
+13/11/23:
+-Physx debug rendering fixes/changes
+-Fixed gizmo's not being rendered correctly due to being drawn in the background
+-Added base sphere asset
+-Fixed input considering pressed keys "held" before the next frame
+-Auto script replacement when a script asset is deleted and entities are using it
+
 12/11/23:
 -Scripting overhaul, system now more similar to unity/unreal, state management far easier
 -Runtime fixes

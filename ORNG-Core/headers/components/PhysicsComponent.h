@@ -55,10 +55,12 @@ namespace ORNG {
 		void SetBodyType(RigidBodyType type);
 
 		void SetTrigger(bool is_trigger);
+		bool IsTrigger() { return m_is_trigger; }
 
-	protected:
+	private:
 		void SendUpdateEvent();
-
+		
+		bool m_is_trigger = false;
 		physx::PxShape* p_shape = nullptr;
 		physx::PxMaterial* p_material = nullptr;
 		physx::PxRigidActor* p_rigid_actor = nullptr;

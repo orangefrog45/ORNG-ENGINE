@@ -39,6 +39,7 @@ namespace ORNG {
 			Get().IDrawUnitCube();
 		};
 
+		static void DrawSphere();
 
 		static void DrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao) {
 			Get().IDrawVAO_Elements(primitive_type, vao);

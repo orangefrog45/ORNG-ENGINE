@@ -81,7 +81,7 @@ namespace ORNG {
 	void AssetManager::IClearAll() {
 		auto it = m_assets.begin();
 		while (it != m_assets.end()) {
-			if (it->first == ORNG_BASE_MATERIAL_ID || it->first == ORNG_BASE_SOUND_ID || it->first == ORNG_BASE_MESH_ID || it->first == ORNG_BASE_TEX_ID) {
+			if (it->first <= ORNG_BASE_SPHERE_ID) {
 				it++;
 				continue;
 			}
@@ -255,6 +255,7 @@ namespace ORNG {
 			DispatchAssetEvent(Events::AssetEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(p_material));
 		}
 		else if (auto* p_script = dynamic_cast<ScriptAsset*>(p_asset)) {
+			DispatchAssetEvent(Events::AssetEventType::SCRIPT_DELETED, reinterpret_cast<uint8_t*>(p_script));
 			ScriptingEngine::UnloadScriptDLL(p_script->symbols.script_path);
 		}
 	}
@@ -395,19 +396,36 @@ namespace ORNG {
 	void AssetManager::InitBaseAssets() {
 		InitBaseCube();
 		InitBaseTexture();
+		InitBaseSphere();
 		mp_replacement_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
+		auto symbols = ScriptSymbols("");
+		mp_base_script = std::make_unique<ScriptAsset>(symbols);
 		mp_base_sound = std::make_unique<SoundAsset>(ORNG_CORE_MAIN_DIR "\\res\\audio\\mouse-click.mp3");
 		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
 		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
 		mp_replacement_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
 		mp_base_sound->uuid = UUID(ORNG_BASE_SOUND_ID);
+		mp_base_script->uuid = UUID(ORNG_BASE_SCRIPT_ID);
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
 		AddAsset(&*mp_replacement_material);
 		AddAsset(&*mp_base_sound);
+		AddAsset(&*mp_base_script);
+		AddAsset(&*mp_base_sphere);
 		mp_base_sound->source_filepath = mp_base_sound->filepath;
 		mp_base_sound->CreateSound();
 	}
+
+
+
+	void AssetManager::InitBaseSphere() {
+		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.obj");
+		DeserializeAssetBinary("res/meshes/Sphere.obj.bin", *mp_base_sphere);
+		mp_base_sphere->PopulateBuffers();
+		mp_base_sphere->m_is_loaded = true;
+		DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(&*mp_base_sphere));
+	}
+
 
 	void AssetManager::InitBaseCube() {
 		mp_base_cube = std::make_unique<MeshAsset>("");

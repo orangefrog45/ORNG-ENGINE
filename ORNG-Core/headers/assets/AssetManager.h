@@ -12,6 +12,9 @@
 #define ORNG_BASE_SOUND_ID 1
 #define ORNG_BASE_TEX_ID 2
 #define ORNG_BASE_MESH_ID 3
+#define ORNG_BASE_SCRIPT_ID	4
+#define ORNG_BASE_SPHERE_ID 5
+
 
 class GLFWwindow;
 enum aiTextureType;
@@ -139,7 +142,7 @@ namespace ORNG {
 			std::vector<T*> vec;
 			for (auto [uuid, p_asset] : Get().m_assets) {
 				if (T* p_typed_asset = dynamic_cast<T*>(p_asset); p_typed_asset &&
-					uuid != ORNG_BASE_MATERIAL_ID && uuid != ORNG_BASE_MESH_ID && uuid != ORNG_BASE_SOUND_ID && uuid != ORNG_BASE_TEX_ID
+					uuid != ORNG_BASE_MATERIAL_ID && uuid != ORNG_BASE_MESH_ID && uuid != ORNG_BASE_SOUND_ID && uuid != ORNG_BASE_TEX_ID && uuid != ORNG_BASE_SPHERE_ID
 					)
 					vec.push_back(p_typed_asset);
 			}
@@ -315,9 +318,12 @@ namespace ORNG {
 
 		void InitBaseAssets();
 		void InitBaseCube();
+		void InitBaseSphere();
 		void InitBaseTexture();
 
+		std::unique_ptr<ScriptAsset> mp_base_script = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
+		std::unique_ptr<MeshAsset> mp_base_sphere = nullptr;
 		std::unique_ptr<Texture2D> mp_base_tex = nullptr;
 		// If a material fails to load etc, use this one instead
 		std::unique_ptr<Material> mp_replacement_material = nullptr;

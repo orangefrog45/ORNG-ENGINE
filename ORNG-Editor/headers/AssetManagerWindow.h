@@ -3,7 +3,6 @@
 #include "events/EventManager.h"
 
 namespace ORNG {
-
 	class MeshAsset;
 	class Material;
 
@@ -78,20 +77,17 @@ namespace ORNG {
 
 		void RenderPrefabTab();
 
-		template<typename T>
-		void OnRequestDeleteAsset(T* p_asset) {
-			PushConfirmationWindow("Delete asset?", [&] {
+		void OnRequestDeleteAsset(Asset* p_asset) {
+			PushConfirmationWindow("Delete asset?", [=] {
 				// Cleanup binary file
-				if (FileExists(p_asset->filepath)) {
-					std::filesystem::remove(p_asset->filepath);
-				}
+				FileDelete(p_asset->filepath);
 
-				if constexpr (std::is_same_v<T, MeshAsset> || std::is_same_v<T, Material>)
-					m_asset_deletion_queue.push_back(p_asset->uuid());
+				m_asset_deletion_queue.push_back(p_asset->uuid());
 				});
-		}
+		};
+
 		ImVec2 image_button_size{ 0, 0 };
-		unsigned column_count=1;
+		unsigned column_count = 1;
 
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
@@ -116,7 +112,5 @@ namespace ORNG {
 		// Have to store these in a vector and process at a specific stage otherwise ImGui breaks, any material in this vector will have a preview rendered for use in its imgui imagebutton
 		std::vector<Material*> m_materials_to_gen_previews;
 		Texture2DSpec m_asset_preview_spec;
-
 	};
-
 }

@@ -47,9 +47,12 @@ namespace ORNG {
 		void DoPickingPass();
 		/* Highlight the selected entities in the editor */
 		void DoSelectedEntityHighlightPass();
+		void RenderPhysxDebug();
 
 		void BeginPlayScene();
 		void EndPlayScene();
+
+		void RenderGeneralSettingsMenu();
 
 
 		// Renders a popup with shortcuts to create a new entity with a component, e.g mesh
@@ -60,7 +63,6 @@ namespace ORNG {
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
-		void RenderTransformGizmos();
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
@@ -168,6 +170,8 @@ namespace ORNG {
 		bool m_display_global_fog_editor = false;
 		bool m_display_terrain_editor = false;
 		bool m_display_bloom_editor = false;
+		bool m_render_settings_window = false;
+		bool m_render_physx_debug = false;
 
 		struct DisplayWindowSettings {
 			bool depth_map_view = false;

@@ -32,7 +32,13 @@ namespace ORNG {
 	void Renderer::IDrawUnitCube() const
 	{
 		Get().IDrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 1);
+
 	};
+
+	 void Renderer::DrawSphere() {
+		Get().IDrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_SPHERE_ID), 1);
+	}
+
 
 	void Renderer::IDrawQuad() const
 	{

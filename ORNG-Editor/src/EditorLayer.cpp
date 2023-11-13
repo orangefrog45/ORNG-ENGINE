@@ -57,9 +57,10 @@ namespace ORNG {
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
 		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl");
-		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/HighlightFS.glsl");
+		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/ColorFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
+		mp_highlight_shader->AddUniform("u_color");
 
 		// Setting up the scene display texture
 		m_color_render_texture_spec.format = GL_RGBA;
@@ -310,7 +311,7 @@ namespace ORNG {
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(LEFT_WINDOW_WIDTH, toolbar_height)));
 		ImGui::SetNextWindowSize(m_scene_display_rect);
 
-		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
+		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)mp_scene_display_texture->GetTextureHandle(), ImVec2(m_scene_display_rect.x, m_scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
@@ -364,10 +365,11 @@ namespace ORNG {
 			return;
 		}
 
-		RenderToolbar();
-		m_asset_manager_window.OnRenderUI();
 		if (!m_simulate_mode_active)
 			RenderSceneDisplayPanel();
+
+		RenderToolbar();
+		m_asset_manager_window.OnRenderUI();
 
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
@@ -379,6 +381,10 @@ namespace ORNG {
 		ImGui::Begin("##left window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus);
 		ImGui::End();
 
+
+		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
+		RenderSceneGraph();
+
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(RIGHT_WINDOW_WIDTH, Window::GetHeight() - toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
@@ -387,9 +393,7 @@ namespace ORNG {
 		}
 		ImGui::End();
 
-		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-
-		RenderSceneGraph();
+		RenderGeneralSettingsMenu();
 
 		ImGui::PopStyleVar(); // window border size
 		ImGui::PopStyleVar(); // window padding
@@ -417,7 +421,8 @@ namespace ORNG {
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();
 		RenderGrid();
-		Physics::RenderDebug(m_active_scene->m_physics_system.mp_phys_scene->getRenderBuffer(), &*mp_scene_display_texture, &Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"));
+		if (m_render_physx_debug)
+			RenderPhysxDebug();
 
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
@@ -431,6 +436,20 @@ namespace ORNG {
 
 
 
+
+	void EditorLayer::RenderGeneralSettingsMenu() {
+		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('j')) {
+			m_render_settings_window = !m_render_settings_window;
+		}
+
+		if (!m_render_settings_window)
+			return;
+
+		if (ImGui::Begin("Settings")) {
+			ImGui::Checkbox("Render physx debug", &m_render_physx_debug);
+		}
+		ImGui::End();
+	}
 
 	void EditorLayer::RenderToolbar() {
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
@@ -834,6 +853,10 @@ namespace ORNG {
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
 		glDisable(GL_DEPTH_TEST);
+		mp_editor_pass_fb->Bind();
+		mp_highlight_shader->ActivateProgram();
+		mp_highlight_shader->SetUniform("u_color", glm::vec4(1.0, 0, 0, 0.1));
+
 		for (auto id : m_selected_entity_ids) {
 			auto* current_entity = m_active_scene->GetEntity(id);
 
@@ -842,8 +865,6 @@ namespace ORNG {
 
 			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
 
-			mp_editor_pass_fb->Bind();
-			mp_highlight_shader->ActivateProgram();
 
 			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
@@ -861,7 +882,62 @@ namespace ORNG {
 		Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_grid_mesh->m_vao, ceil(m_grid_mesh->grid_width / m_grid_mesh->grid_step) * 2);
 	}
 
+	void EditorLayer::RenderPhysxDebug() {
+		mp_highlight_shader->ActivateProgram();
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		mp_highlight_shader->SetUniform("u_color", glm::vec4(0.0, 1.0, 0, 0.1));
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		// Break into 3 sep. loops to reduce vao changes
+		for (auto [entity, phys, transform] : m_active_scene->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
+			if (phys.m_geometry_type == PhysicsComponent::BOX) {
+				mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
+				Renderer::DrawCube();
+			} 
+		}
 
+		for (auto [entity, phys, transform] : m_active_scene->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
+			if (phys.m_geometry_type == PhysicsComponent::SPHERE) {
+				auto at = transform.GetAbsoluteTransforms();
+				auto sf = ((PxSphereGeometry*)&phys.p_shape->getGeometry())->radius;
+
+				auto s = at[1];
+				auto t = at[0];
+				auto r = at[2];
+				glm::mat4 m;
+				glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(transform.m_orientation.x, transform.m_orientation.y, transform.m_orientation.z);
+
+				if (transform.m_is_absolute || !transform.GetParent()) {
+					glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(sf, sf, sf);
+					glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(transform.m_pos.x, transform.m_pos.y, transform.m_pos.z);
+					m = trans_mat * rot_mat * scale_mat;
+				}
+				else {
+					s /= transform.m_scale;
+					// Apply parent scaling to the position and scale to make up for not using the scale transform below
+					glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(sf, sf, sf);
+					glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(transform.m_pos.x * s.x, transform.m_pos.y * s.y, transform.m_pos.z * s.z);
+					m =  transform.GetParent()->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
+				}
+
+				// Undo scaling to prevent shearing
+				mp_highlight_shader->SetUniform("transform", m);
+				Renderer::DrawSphere();
+			}
+		}
+
+		for (auto [entity, mesh, phys, transform] : m_active_scene->m_registry.view<MeshComponent, PhysicsComponent, TransformComponent>().each()) {
+			if (phys.m_geometry_type == PhysicsComponent::TRIANGLE_MESH) {
+				mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
+				for (int i = 0; i < mesh.mp_mesh_asset->m_submeshes.size(); i++) {
+					Renderer::DrawSubMesh(mesh.mp_mesh_asset, i);
+				}
+			}
+		}
+		glEnable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	}
 
 
 
@@ -1407,6 +1483,13 @@ namespace ORNG {
 			p_comp->SetBodyType(PhysicsComponent::STATIC);
 		}
 
+		static bool is_trigger = false;
+		is_trigger = p_comp->IsTrigger();
+
+		if (ImGui::Checkbox("Trigger", &is_trigger)) {
+			p_comp->SetTrigger(is_trigger);
+		}
+
 		RenderPhysicsMaterial(p_comp->p_material);
 	}
 
@@ -1476,6 +1559,7 @@ namespace ORNG {
 		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 
 		glm::mat4 delta_matrix;
+		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 

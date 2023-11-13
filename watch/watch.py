@@ -37,8 +37,12 @@ class Handler(FileSystemEventHandler):
 
         print(f'File {event.src_path} has been modified.')
         filename = filename.split("\\").pop()
-        shutil.copy(event.src_path, debug_path + filename);
-        shutil.copy(event.src_path, release_path + filename);
+        shutil.copy(event.src_path, debug_dir_core + filename);
+        shutil.copy(event.src_path, release_dir_core+ filename);
+        shutil.copy(event.src_path, debug_dir_editor + filename);
+        shutil.copy(event.src_path, release_dir_editor + filename);
+        shutil.copy(event.src_path, debug_dir_game+ filename);
+        shutil.copy(event.src_path, release_dir_editor+ filename);
 
 if __name__ == "__main__":
     path = "..\\" 

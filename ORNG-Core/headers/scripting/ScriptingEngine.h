@@ -37,8 +37,8 @@ namespace ORNG {
 
 		bool loaded = false;
 		std::string script_path;
-		InstanceCreator CreateInstance;
-		InstanceDestroyer DestroyInstance;
+		InstanceCreator CreateInstance = [] {return new ScriptBase(); };
+		InstanceDestroyer DestroyInstance = [](ScriptBase* p_base) { delete p_base; };
 
 		// These set the appropiate callback functions in the scripts DLL so they can modify the scene, the scene class will call these methods during Update
 		// Would like to expose the entire scene class but due to the amount of dependencies I would need to include doing this for now

@@ -198,7 +198,7 @@ namespace ORNG {
 
 			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->m_body_type;
 			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->m_geometry_type;
-
+			out << YAML::Key << "IsTrigger" << YAML::Value << p_physics_comp->IsTrigger();
 			out << YAML::EndMap;
 		}
 
@@ -269,6 +269,7 @@ namespace ORNG {
 
 				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
 				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
+				p_physics_comp->SetTrigger(physics_node["IsTrigger"].as<bool>());
 			}
 
 
@@ -312,7 +313,7 @@ namespace ORNG {
 
 				auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_filepath);
 				if (!p_asset)
-					p_asset = AssetManager::AddAsset(new ScriptAsset(script_filepath));
+					p_asset = AssetManager::GetAsset< ScriptAsset>(ORNG_BASE_SCRIPT_ID);
 
 				if (p_asset) {
 					p_script_comp->SetSymbols(&p_asset->symbols);

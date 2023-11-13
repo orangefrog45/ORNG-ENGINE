@@ -20,15 +20,13 @@ namespace ORNG {
 	};
 
 	enum InputType {
-		RELEASE=0, // GLFW_RELEASE
-		PRESS=1, // GLFW_PRESS
-		HELD=2 // GLFW_REPEAT
+		RELEASE = 0, // GLFW_RELEASE
+		PRESS = 1, // GLFW_PRESS
+		HELD = 2 // GLFW_REPEAT
 	};
-
 }
 
 namespace ORNG::Events {
-
 	struct Event {
 		enum EventType {
 			INVALID_TYPE = 0,
@@ -42,18 +40,16 @@ namespace ORNG::Events {
 	};
 
 	struct EngineCoreEvent : public Event {
-
 	};
 
 	struct WindowEvent : public Event {
-
 		glm::ivec2 old_window_size;
 		glm::ivec2 new_window_size;
 	};
 
 
 	enum MouseEventType {
-		RECEIVE, // Input received 
+		RECEIVE, // Input received
 		SET // State/window should be updated, e.g change cursor pos, listened for and handled in Window class
 	};
 
@@ -69,7 +65,6 @@ namespace ORNG::Events {
 	struct KeyEvent : public Event {
 		unsigned int key;
 		uint8_t event_type; // will be InputType enum, can't declare as such due to circular include
-
 	};
 
 	enum class AssetEventType {
@@ -79,6 +74,7 @@ namespace ORNG::Events {
 		MATERIAL_LOADED,
 		TEXTURE_DELETED,
 		TEXTURE_LOADED,
+		SCRIPT_DELETED,
 	};
 
 	struct AssetEvent : public Event {
@@ -139,8 +135,6 @@ namespace ORNG::Events {
 	public:
 		uint64_t scene_id = 0;
 	};
-
-
 }
 
 #endif

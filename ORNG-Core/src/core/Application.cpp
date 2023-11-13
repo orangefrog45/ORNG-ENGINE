@@ -69,12 +69,10 @@ namespace ORNG {
 
 		while (!glfwWindowShouldClose(window))
 		{
-			// Update
+			Input::OnUpdate();
 			glfwPollEvents();
 			Events::EventManager::DispatchEvent(update_event);
 			Window::Update();
-			// Explicitly call here instead of a listener as this must happen last
-			Input::OnUpdate();
 
 			// Render
 			Events::EventManager::DispatchEvent(render_event);

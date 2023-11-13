@@ -199,6 +199,15 @@ namespace ORNG {
 		// Queue of entities that need OnCollision script events (if they have one) to fire, has to be done outside of simulation due to restrictions with rigidbody modification during simulation, processed each frame in OnUpdate
 		std::vector<std::pair<SceneEntity*, SceneEntity*>> m_entity_collision_queue;
 
+		enum TriggerEvent {
+			ENTERED,
+			EXITED
+		};
+
+		std::vector<std::tuple<TriggerEvent, SceneEntity*, SceneEntity*>> m_trigger_event_queue;
+
+
+
 
 
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
@@ -218,18 +227,7 @@ namespace ORNG {
 
 			virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
 
-			virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) override {
-				/*for (int i = 0; i < count; i++) {
-					// ignore pairs when shapes have been deleted
-					if (pairs[i].flags & (PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER | PxTriggerPairFlag::eREMOVED_SHAPE_OTHER))
-						continue;
-
-					if (auto* p_ent = mp_system->TryGetEntityFromPxActor(pairs[i].triggerActor)) {
-						if (auto* p_script = p_ent->GetComponent<ScriptComponent>())
-							mp_system->m_trigger_collision_queue
-					}
-				}*/
-			};
+			virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) override;
 
 			virtual void onAdvance(const PxRigidBody* const* bodyBuffer, const PxTransform* poseBuffer, const PxU32 count) override {};
 

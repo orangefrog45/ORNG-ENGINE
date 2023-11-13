@@ -14,20 +14,15 @@ namespace ORNG {
 	}
 
 	void PhysicsComponent::SetBodyType(RigidBodyType type) {
-		if (p_shape->getFlags() & PxShapeFlag::eTRIGGER_SHAPE) 
-			return; // Must remain static
-
 		m_body_type = type;
 		SendUpdateEvent();
 	}
 
 	void PhysicsComponent::SetTrigger(bool is_trigger) {
-		p_shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
-		p_shape->setFlag(PxShapeFlag::eTRIGGER_SHAPE, true);
-
-		if (m_body_type != STATIC)
-			SetBodyType(STATIC);
+		m_is_trigger = is_trigger;
+		SendUpdateEvent(); // Shape needs recreating
 	}
+
 
 
 	void PhysicsComponent::AddForce(glm::vec3 force) {
@@ -80,8 +75,4 @@ namespace ORNG {
 	void CharacterControllerComponent::Move(glm::vec3 disp, float minDist, float elapsedTime) {
 		mp_controller->move(PxVec3(disp.x, disp.y, disp.z), minDist, elapsedTime, 0);
 	}
-
-	
-
-
 }

@@ -102,7 +102,7 @@ namespace ORNG {
 	}
 
 	void AssetManagerWindow::OnRenderUI() {
-		for (auto uuid : m_asset_deletion_queue) {
+		for (uint64_t uuid : m_asset_deletion_queue) {
 			if (mp_selected_material && mp_selected_material->uuid() == uuid)
 				mp_selected_material = nullptr;
 
@@ -621,6 +621,9 @@ namespace ORNG {
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
 			CreateMeshPreview(p_mesh);
 
+			if (p_mesh->uuid() == ORNG_BASE_SPHERE_ID)
+				return;
+
 			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
 			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
@@ -652,10 +655,16 @@ namespace ORNG {
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
 			m_mesh_preview_textures.erase(p_mesh);
 
-
-
 			break;
 		}
+		case Events::AssetEventType::SCRIPT_DELETED:
+			auto* p_symbols = &reinterpret_cast<ScriptAsset*>(t_event.data_payload)->symbols;
+			for (auto [entity, script] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+				if (script.GetSymbols() == p_symbols) {
+					auto* p_asset = AssetManager::GetAsset<ScriptAsset>(ORNG_BASE_SCRIPT_ID);
+					script.SetSymbols(&p_asset->symbols);
+				}
+			}
 		}
 	}
 
