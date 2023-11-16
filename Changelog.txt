@@ -1,4 +1,13 @@
+16/11/23:
+-Multi-selection (selection by dragging a box over the screen) in editor
+-Ctrl-z (undo) and ctrl-shift-z (redo) support in editor
+-General settings menu in editor
+
+14/11/23:
+-Fixed terrain AABB generation causing improper culling
+
 13/11/23:
+-Physx trigger support and script callbacks
 -Physx debug rendering fixes/changes
 -Fixed gizmo's not being rendered correctly due to being drawn in the background
 -Added base sphere asset

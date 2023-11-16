@@ -5,7 +5,6 @@
 
 
 namespace ORNG {
-
 	glm::mat3 ExtraMath::Init2DScaleTransform(float x, float y) {
 		glm::mat3 scale_matrix(
 			x, 0.0f, 0.0f,
@@ -29,7 +28,6 @@ namespace ORNG {
 	}
 
 	glm::mat3 ExtraMath::Init2DTranslationTransform(float x, float y) {
-
 		glm::mat3 translation_matrix(
 			1.0f, 0.0f, x,
 			0.0f, 1.0f, y,
@@ -74,7 +72,7 @@ namespace ORNG {
 		glm::vec3 max = radius_vec;
 		glm::vec3 min = -radius_vec;
 
-		// Reposition z values to include shadows from geometry just outside of the frustum 
+		// Reposition z values to include shadows from geometry just outside of the frustum
 
 		min.z = min.z < 0 ? min.z * z_mult : min.z / z_mult;
 		max.z = max.z > 0 ? max.z * z_mult : max.z / z_mult;
@@ -87,7 +85,7 @@ namespace ORNG {
 		shadow_origin = (light_proj * light_view) * shadow_origin;
 		shadow_origin = shadow_origin * (shadow_map_size / 2.0f);
 
-		//find fractional component 
+		//find fractional component
 		glm::vec4 rounded_origin = glm::round(shadow_origin);
 		glm::vec4 round_offset = rounded_origin - shadow_origin;
 		round_offset = round_offset * (2.0f / shadow_map_size);
@@ -129,7 +127,6 @@ namespace ORNG {
 	}
 
 	glm::mat4x4 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
-
 		glm::quat quat(glm::radians(glm::vec3(rotX, rotY, rotZ)));
 		glm::mat4 rotation_matrix = glm::mat4_cast(quat);
 
@@ -137,7 +134,6 @@ namespace ORNG {
 	}
 
 	glm::mat4x4 ExtraMath::Init3DScaleTransform(float scaleX, float scaleY, float scaleZ) {
-
 		glm::mat4x4 scaleMatrix(
 			scaleX, 0.0f, 0.0f, 0.0f,
 			0.0f, scaleY, 0.0f, 0.0f,
@@ -146,11 +142,9 @@ namespace ORNG {
 		);
 
 		return scaleMatrix;
-
 	}
 
 	glm::mat4x4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, float tranZ) {
-
 		glm::mat4x4 translationMatrix(
 			1.f, 0.f, 0.f, 0.f,
 			0.0f, 1.0f, 0.0f, 0.f,
@@ -159,18 +153,15 @@ namespace ORNG {
 		);
 
 		return translationMatrix;
-
 	}
 
 
 
 	glm::vec3 ExtraMath::ScreenCoordsToRayDir(glm::mat4 proj_matrix, glm::vec2 coords, glm::vec3 cam_pos, glm::vec3 cam_forward, glm::vec3 cam_up, unsigned int window_width, unsigned int window_height) {
-
 		glm::vec2 norm = coords / glm::vec2(window_width, window_height);
 		glm::vec4 clipspace = glm::vec4(norm, 1.0, 1.0) * 2.f - 1.f;
 		glm::vec4 viewspace = glm::inverse(proj_matrix) * clipspace;
 		glm::vec4 worldspace = glm::inverse(glm::lookAt(cam_pos, cam_pos + cam_forward, cam_up)) * viewspace;
-		return glm::normalize(glm::vec3(worldspace) - cam_pos);
+		return glm::normalize(glm::vec3(worldspace) / worldspace.w - cam_pos);
 	}
-
 }

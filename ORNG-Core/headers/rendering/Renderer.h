@@ -35,6 +35,10 @@ namespace ORNG {
 			Get().IDrawQuad();
 		};
 
+		static void DrawScaledQuad(glm::vec2 min, glm::vec2 max) {
+			Get().IDrawScaledQuad(min, max);
+		}
+
 		static void DrawCube() {
 			Get().IDrawUnitCube();
 		};
@@ -86,6 +90,8 @@ namespace ORNG {
 
 	private:
 		void I_Init();
+
+		void IDrawScaledQuad(glm::vec2 min, glm::vec2 max);
 
 		unsigned int m_draw_call_amount = 0;
 

@@ -99,6 +99,7 @@ namespace ORNG {
 			glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(m_pos.x * s.x, m_pos.y * s.y, m_pos.z * s.z);
 
 			// Undo scaling to prevent shearing
+			// TODO: OPTIMIZE THIS
 			m_transform = p_parent->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
 		}
 

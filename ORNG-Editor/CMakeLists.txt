@@ -6,7 +6,7 @@ add_executable(ORNG_EDITOR
 src/EditorLayer.cpp
 src/AssetManagerWindow.cpp
 src/main.cpp
-)
+ "headers/Settings.h" "headers/EditorEventStack.h" "src/EditorEventStack.cpp")
 
 
 target_include_directories(ORNG_EDITOR PUBLIC

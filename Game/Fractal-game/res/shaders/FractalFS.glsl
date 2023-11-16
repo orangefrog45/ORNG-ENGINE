@@ -97,12 +97,26 @@ float fbm(vec3 p)
 	return f;
 }
 
+
+vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
+    // Calculate the vector from the sphere center to the current position
+    vec3 offset = position - sphereCenter;
+    
+    // Calculate the distance from the sphere center
+    float distance = length(offset);
+    
+    // Calculate the inverted position
+    vec3 invertedPosition = sphereCenter + ((sphereRadius * sphereRadius) / distance) * offset;
+    
+    return invertedPosition;
+}
 vec3 Colour(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
 	for (int i = 0; i < 12; i++)
 	{
+		p = invertSphere(p, p.yxz, 1.0 * max(abs(sin(ubo_common.time_elapsed * 0.000)), 0.7));
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
@@ -114,12 +128,14 @@ vec3 Colour(vec3 p)
 	return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
+
 vec3 rma(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
 	for (int i = 0; i < 12; i++)
 	{
+		
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
@@ -132,6 +148,8 @@ vec3 rma(vec3 p)
 }
 
 
+
+
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
 	p = p.xzy;
@@ -140,6 +158,7 @@ float map(vec3 p) {
 	for (int i = 0; i < 12; i++)
 	{
 		// box fold
+		p = invertSphere(p , p.yxz, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.0001)), 0.0, 0.9));
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
@@ -152,6 +171,7 @@ float map(vec3 p) {
 	float n = l * p.z;
 	rxy = max(rxy, -(n) / 4.);
 	return (rxy) / abs(scale);
+
 }
 
 
@@ -204,7 +224,7 @@ void main() {
 			albedo = vec4(Colour(step_pos), 1.0);
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 
-			roughness_metallic_ao =vec4(rma(step_pos), 1.0);
+			roughness_metallic_ao =vec4(0.3, 0.2, 0.2, 1.0);
 			//roughness_metallic_ao = vec4(0.5, 0.0 + float(perlin <= 0.01) * 0.8, 0.02, 1.0);
 
 			vec4 proj = PVMatrices.proj_view * vec4(step_pos, 1.0);

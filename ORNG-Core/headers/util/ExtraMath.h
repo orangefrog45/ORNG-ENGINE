@@ -1,6 +1,5 @@
 #pragma once
 namespace ORNG {
-
 	class DirectionalLight;
 
 	class ExtraMath
@@ -37,7 +36,6 @@ namespace ORNG {
 		static glm::mat3 Init2DTranslationTransform(float x, float y);
 
 
-		glm::vec3 ScreenCoordsToRayDir(glm::mat4 proj_matrix, glm::vec2 coords, glm::vec3 cam_pos, glm::vec3 cam_forward, glm::vec3 cam_up, unsigned int window_width, unsigned int window_height);
-
+		static glm::vec3 ScreenCoordsToRayDir(glm::mat4 proj_matrix, glm::vec2 coords, glm::vec3 cam_pos, glm::vec3 cam_forward, glm::vec3 cam_up, unsigned int window_width, unsigned int window_height);
 	};
 }

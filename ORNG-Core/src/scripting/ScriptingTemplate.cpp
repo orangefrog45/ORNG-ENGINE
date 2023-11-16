@@ -10,7 +10,6 @@ extern "C" {
 
 	class ScriptClassExample : public ScriptBase {
 	public:
-		// Constructor must contain O_CONSTRUCTOR macro
 		ScriptClassExample() { O_CONSTRUCTOR; }
 
 		void OnUpdate() override {

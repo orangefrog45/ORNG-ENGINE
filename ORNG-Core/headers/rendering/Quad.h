@@ -3,19 +3,14 @@
 #include "VAO.h"
 
 namespace ORNG {
-
 	class Quad {
 	public:
 		friend class Renderer;
 		void Load();
-		inline void SetScale(float x, float y) { m_world_transform.SetScale(x, y); };
-		inline void SetPosition(float x, float y) { m_world_transform.SetPosition(x, y); }
-		inline void SetRotation(float rot) { m_world_transform.SetOrientation(rot); }
-		const TransformComponent2D& GetTransform() const { return m_world_transform; }
-
+		// Vertices must be given in range -1, 1
+		void SetVertices(glm::vec2 min, glm::vec2 max);
 
 	private:
-		TransformComponent2D m_world_transform;
-		MeshVAO m_vao;
+		std::unique_ptr<VAO> m_vao;
 	};
 }

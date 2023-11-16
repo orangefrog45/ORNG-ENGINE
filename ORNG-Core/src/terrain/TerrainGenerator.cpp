@@ -8,11 +8,9 @@
 #include "../extern/glm/glm/gtc/quaternion.hpp"
 
 namespace ORNG {
-
 	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, unsigned int resolution,
 		float height_scale, glm::vec3 bot_left_coord, VertexData3D& output_data, AABB& bounding_box)
 	{
-
 		VertexData3D& terrain_data = output_data;
 
 		static FastNoiseLite noise;
@@ -80,7 +78,7 @@ namespace ORNG {
 				verts.tex_coord_1 = glm::vec2{ (float)lx / (float)side_length_steps, (float)lz / (float)side_length_steps };
 				verts.tex_coord_2 = glm::vec2{ (float)lx / (float)side_length_steps, (float)(lz + 1) / (float)side_length_steps };
 				verts.tex_coord_3 = glm::vec2{ (float)(lx + 1) / (float)side_length_steps, (float)lz / (float)side_length_steps };
-				verts.tex_coord_4 = glm::vec2{ (float)(lx+1) / (float)side_length_steps, (float)(lz+1) / (float)side_length_steps };
+				verts.tex_coord_4 = glm::vec2{ (float)(lx + 1) / (float)side_length_steps, (float)(lz + 1) / (float)side_length_steps };
 
 				const glm::vec3 edge1 = verts.vert_2 - verts.vert_1;
 				const glm::vec3 edge2 = verts.vert_3 - verts.vert_1;
@@ -125,11 +123,10 @@ namespace ORNG {
 				terrain_data.indices.push_back(bl_index + side_length_steps);
 				terrain_data.indices.push_back(bl_index);
 				terrain_data.indices.push_back(bl_index + side_length_steps + 1);
-
 			}
 		}
 
-		
+		bounding_box.center = (bounding_box.max + bounding_box.min) * 0.5f;
 	}
 
 

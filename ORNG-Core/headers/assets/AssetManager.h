@@ -221,6 +221,7 @@ namespace ORNG {
 			Get().mp_base_sound.release();
 			Get().mp_base_tex.release();
 			Get().mp_base_cube.release();
+			Get().mp_base_sphere.release();
 		};
 
 

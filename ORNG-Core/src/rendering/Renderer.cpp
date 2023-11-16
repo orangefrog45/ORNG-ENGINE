@@ -32,18 +32,26 @@ namespace ORNG {
 	void Renderer::IDrawUnitCube() const
 	{
 		Get().IDrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 1);
-
 	};
 
-	 void Renderer::DrawSphere() {
+	void Renderer::DrawSphere() {
 		Get().IDrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_SPHERE_ID), 1);
 	}
 
 
 	void Renderer::IDrawQuad() const
 	{
-		GL_StateManager::BindVAO(mp_quad->m_vao.GetHandle());
+		GL_StateManager::BindVAO(mp_quad->m_vao->GetHandle());
 		glDrawArrays(GL_TRIANGLES, 0, 6);
+	}
+
+	void Renderer::IDrawScaledQuad(glm::vec2 min, glm::vec2 max) {
+		glDisable(GL_CULL_FACE);
+		mp_quad->SetVertices(min, max);
+		GL_StateManager::BindVAO(mp_quad->m_vao->GetHandle());
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		mp_quad->SetVertices({ -1.0, -1.0 }, { 1.0, 1.0 });
+		glEnable(GL_CULL_FACE);
 	}
 
 

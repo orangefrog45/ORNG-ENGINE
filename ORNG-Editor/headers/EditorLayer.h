@@ -3,11 +3,19 @@
 #include "../extern/imgui/imgui.h"
 #include "AssetManagerWindow.h"
 #include "scene/GridMesh.h"
-
+#include "Settings.h"
+#include "EditorEventStack.h"
 
 namespace physx {
 	class PxMaterial;
 }
+struct DragData {
+	glm::ivec2 start;
+	glm::ivec2 end;
+};
+
+
+
 
 namespace ORNG {
 	class Shader;
@@ -43,8 +51,11 @@ namespace ORNG {
 		// Movement
 		void UpdateEditorCam();
 
+		void MultiSelectDisplay();
+
 		void RenderGrid();
 		void DoPickingPass();
+
 		/* Highlight the selected entities in the editor */
 		void DoSelectedEntityHighlightPass();
 		void RenderPhysxDebug();
@@ -81,21 +92,19 @@ namespace ORNG {
 		void RenderSceneGraph();
 		void RenderSkyboxEditor();
 
-
-
 		EntityNodeEvent RenderEntityNode(SceneEntity* p_entity, unsigned int layer);
 		void RenderDirectionalLightEditor();
 		void RenderGlobalFogEditor();
 		void RenderBloomEditor();
 		void RenderTerrainEditor();
 
+		void DeleteEntitiesTracked(std::vector<uint64_t> entities); // Copy vector as this will usually be m_selected_entity_id's and deselecting entities will modify it, throwing off the range-based for loop
+		std::vector<SceneEntity*> DuplicateEntitiesTracked(std::vector<uint64_t> entities); // Copy vector for same reason as above
+
 		// Duplicates entity and conditionally calls OnCreate on it depending on if simulate mode is active
-		inline SceneEntity& DuplicateEntity(SceneEntity& entity) {
-			if (m_simulate_mode_active)
-				return m_active_scene->DuplicateEntityCallScript(entity);
-			else
-				return entity.Duplicate();
-		}
+		SceneEntity& CreateEntityTracked(const std::string& name);
+
+		glm::vec2 ConvertFullscreenMouseToDisplayMouse(glm::vec2 mouse_coords);
 
 #define INVALID_ENTITY_ID 0
 
@@ -113,6 +122,11 @@ namespace ORNG {
 			if (it != m_selected_entity_ids.end())
 				m_selected_entity_ids.erase(it);
 		}
+
+		DragData m_mouse_drag_data;
+
+		GeneralSettings m_general_settings;
+		EditorEventStack m_event_stack;
 
 		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory, m_active_scene };
 
@@ -144,6 +158,10 @@ namespace ORNG {
 		Shader* mp_picking_shader = nullptr;
 		Shader* mp_grid_shader = nullptr;
 		Shader* mp_highlight_shader = nullptr;
+		Shader* mp_quad_col_shader = nullptr;
+
+		// Currently used for debug
+		Shader* mp_plane_shader = nullptr;
 
 
 		Framebuffer* mp_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
@@ -165,18 +183,7 @@ namespace ORNG {
 		std::vector<uint64_t> m_selected_entity_ids;
 		bool m_selected_entities_are_dragged = false;
 
-		bool m_display_directional_light_editor = false;
-		bool m_display_skybox_editor = false;
-		bool m_display_global_fog_editor = false;
-		bool m_display_terrain_editor = false;
-		bool m_display_bloom_editor = false;
 		bool m_render_settings_window = false;
-		bool m_render_physx_debug = false;
-
-		struct DisplayWindowSettings {
-			bool depth_map_view = false;
-		};
-
 
 
 

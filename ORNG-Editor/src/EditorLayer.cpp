@@ -48,6 +48,22 @@ namespace ORNG {
 		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadFS.glsl");
 		mp_quad_shader->Init();
 
+		mp_plane_shader = &Renderer::GetShaderLibrary().CreateShader("plane");
+		mp_plane_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl");
+		mp_plane_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/PlaneFS.glsl");
+		mp_plane_shader->Init();
+		mp_plane_shader->AddUniform("u_plane");
+		mp_plane_shader->AddUniform("u_col");
+
+
+		mp_quad_col_shader = &Renderer::GetShaderLibrary().CreateShader("quad_col");
+		mp_quad_col_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl", { "TRANSFORM" });
+		mp_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/ColorFS.glsl");
+		mp_quad_col_shader->Init();
+		mp_quad_col_shader->AddUniform("u_scale");
+		mp_quad_col_shader->AddUniform("u_translation");
+		mp_quad_col_shader->AddUniform("u_color");
+
 		mp_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
 		mp_picking_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl");
 		mp_picking_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/PickingFS.glsl");
@@ -100,6 +116,8 @@ namespace ORNG {
 		mp_picking_fb->Add2DTexture("component_ids_split", GL_COLOR_ATTACHMENT0, picking_spec);
 
 		SceneRenderer::SetActiveScene(&*m_active_scene);
+		static auto  s = &*m_active_scene;
+		m_event_stack.SetContext(s);
 
 		mp_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
 		mp_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
@@ -202,6 +220,28 @@ namespace ORNG {
 		else
 			m_scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
 
+		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('z') && !m_simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
+			if (Input::IsKeyDown(Key::Shift))
+				m_event_stack.Redo();
+			else
+				m_event_stack.Undo();
+		}
+
+
+		static bool dragging = false;
+		if (Input::IsMouseClicked(0)) {
+			m_mouse_drag_data.start = Input::GetMousePos();
+			if (!m_fullscreen_scene_display) m_mouse_drag_data.start = ConvertFullscreenMouseToDisplayMouse(m_mouse_drag_data.start);
+		}
+
+
+		if (dragging) {
+			m_mouse_drag_data.end = Input::GetMousePos();
+			if (!m_fullscreen_scene_display) m_mouse_drag_data.end = ConvertFullscreenMouseToDisplayMouse(m_mouse_drag_data.end);
+			MultiSelectDisplay();
+		}
+
+		dragging = ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse;
 
 		if (Input::IsKeyDown(Key::K))
 			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
@@ -242,16 +282,88 @@ namespace ORNG {
 
 		// Duplicate entity keybind
 		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
+			auto vec = DuplicateEntitiesTracked(m_selected_entity_ids);
 			std::vector<uint64_t> duplicate_ids;
-			for (auto id : m_selected_entity_ids) {
-				SceneEntity* p_entity = m_active_scene->GetEntity(id);
-				DuplicateEntity(*p_entity);
-				duplicate_ids.push_back(p_entity->GetUUID());
+			for (auto* p_ent : vec) {
+				duplicate_ids.push_back(p_ent->m_uuid());
 			}
-
 			m_selected_entity_ids = duplicate_ids;
 		}
 	}
+
+	void EditorLayer::MultiSelectDisplay() {
+		m_selected_entity_ids.clear();
+
+		glm::vec2 min = { glm::min(m_mouse_drag_data.start.x,  m_mouse_drag_data.end.x), glm::min(Window::GetHeight() - m_mouse_drag_data.start.y,  Window::GetHeight() - m_mouse_drag_data.end.y) };
+		glm::vec2 max = { glm::max(m_mouse_drag_data.start.x,  m_mouse_drag_data.end.x), glm::max(Window::GetHeight() - m_mouse_drag_data.start.y, Window::GetHeight() - m_mouse_drag_data.end.y) };
+		glm::vec2 n = glm::vec2(m_scene_display_rect.x, m_scene_display_rect.y);
+
+
+		auto* p_cam = m_active_scene->GetActiveCamera();
+		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		auto pos = p_transform->GetAbsoluteTransforms()[0];
+
+		glm::vec3 min_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
+		glm::vec3 max_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), max, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
+
+		glm::vec3 near_min = pos + min_dir * p_cam->zNear;
+
+		glm::vec3 far_min = pos + min_dir * p_cam->zFar;
+
+		glm::vec3 near_max = pos + max_dir * p_cam->zNear;
+
+		glm::vec3 far_max = pos + max_dir * p_cam->zFar;
+
+
+		float ratio = (float)glm::abs(m_mouse_drag_data.start.x - m_mouse_drag_data.end.x) / glm::abs(m_mouse_drag_data.start.y - m_mouse_drag_data.end.y);
+		glm::vec3 far_middle = (glm::vec3(far_max) + glm::vec3(far_min)) * 0.5f;
+		glm::vec3 near_middle = (glm::vec3(near_max) + glm::vec3(near_min)) * 0.5f;
+		glm::vec3 target = glm::normalize(far_middle - near_middle);
+		glm::vec3 right = p_transform->right;
+
+		glm::vec3 up = glm::normalize(glm::cross(right, target));
+
+
+		ExtraMath::Plane t = { glm::cross(right, pos - far_max), pos };
+
+		ExtraMath::Plane b = { glm::cross(right, far_min - pos), pos };
+
+		ExtraMath::Plane l = { glm::cross(up, pos - far_min), pos };
+
+		ExtraMath::Plane r = { glm::cross(up, far_max - pos), pos };
+
+		ExtraMath::Plane ne = { target, pos + target * p_cam->zNear };
+
+		ExtraMath::Plane f{ -target, far_middle };
+
+		for (auto [entity, transform] : m_active_scene->m_registry.view<TransformComponent>().each()) {
+			auto pos1 = transform.GetAbsoluteTransforms()[0];
+			if (ne.GetSignedDistanceToPlane(pos1) >= 0 &&
+				f.GetSignedDistanceToPlane(pos1) >= 0 &&
+				r.GetSignedDistanceToPlane(pos1) >= 0 &&
+				l.GetSignedDistanceToPlane(pos1) >= 0 &&
+				t.GetSignedDistanceToPlane(pos1) >= 0 &&
+				b.GetSignedDistanceToPlane(pos1) >= 0
+				) {
+				auto* p_entity = m_active_scene->GetEntity(entity);
+				if (m_general_settings.selection_settings.select_only_parents && p_entity->GetParent() != entt::null)
+					continue;
+
+				if (!m_general_settings.selection_settings.select_all) {
+					if (m_general_settings.selection_settings.select_light_objects && (p_entity->HasComponent<PointLightComponent>() || p_entity->HasComponent<SpotLightComponent>()))
+						SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+					else if (m_general_settings.selection_settings.select_mesh_objects && p_entity->HasComponent<MeshComponent>())
+						SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+					else if (m_general_settings.selection_settings.select_physics_objects && p_entity->HasComponent<PhysicsComponent>())
+						SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+				}
+				else {
+					SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+				}
+			}
+		}
+	}
+
 
 
 	void EditorLayer::UpdateEditorCam() {
@@ -311,6 +423,7 @@ namespace ORNG {
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(LEFT_WINDOW_WIDTH, toolbar_height)));
 		ImGui::SetNextWindowSize(m_scene_display_rect);
 
+
 		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)mp_scene_display_texture->GetTextureHandle(), ImVec2(m_scene_display_rect.x, m_scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
@@ -326,7 +439,7 @@ namespace ORNG {
 				}
 				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
 					if (p_payload->DataSize == sizeof(MeshAsset*)) {
-						auto& ent = m_active_scene->CreateEntity("Mesh");
+						auto& ent = CreateEntityTracked("Mesh");
 						ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_payload->Data));
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 						auto& mesh_aabb = ent.GetComponent<MeshComponent>()->GetMeshData()->m_aabb;
@@ -368,6 +481,7 @@ namespace ORNG {
 		if (!m_simulate_mode_active)
 			RenderSceneDisplayPanel();
 
+
 		RenderToolbar();
 		m_asset_manager_window.OnRenderUI();
 
@@ -408,7 +522,7 @@ namespace ORNG {
 
 		m_asset_manager_window.OnMainRender();
 
-		if (ImGui::IsMouseDoubleClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
+		if (ImGui::IsMouseClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
 			DoPickingPass();
 		}
 
@@ -421,8 +535,16 @@ namespace ORNG {
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();
 		RenderGrid();
-		if (m_render_physx_debug)
+		if (m_general_settings.debug_render_settings.render_physx_debug)
 			RenderPhysxDebug();
+
+		if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
+			mp_quad_col_shader->ActivateProgram();
+			mp_quad_col_shader->SetUniform("u_color", glm::vec4(0, 0, 1, 0.1));
+			glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
+			Renderer::DrawScaledQuad((glm::vec2(m_mouse_drag_data.start.x, Window::GetHeight() - m_mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_mouse_drag_data.end.x, Window::GetHeight() - m_mouse_drag_data.end.y) / w) * 2.f - 1.f);
+		}
+
 
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
@@ -446,7 +568,15 @@ namespace ORNG {
 			return;
 
 		if (ImGui::Begin("Settings")) {
-			ImGui::Checkbox("Render physx debug", &m_render_physx_debug);
+			ImGui::SeparatorText("Debug rendering");
+			ImGui::Checkbox("Render physx debug", &m_general_settings.debug_render_settings.render_physx_debug);
+
+			ImGui::SeparatorText("Selection");
+			ImGui::Checkbox("Select physics objects", &m_general_settings.selection_settings.select_physics_objects);
+			ImGui::Checkbox("Select mesh objects", &m_general_settings.selection_settings.select_mesh_objects);
+			ImGui::Checkbox("Select lights", &m_general_settings.selection_settings.select_light_objects);
+			ImGui::Checkbox("Select all", &m_general_settings.selection_settings.select_all);
+			ImGui::Checkbox("Select only parents", &m_general_settings.selection_settings.select_only_parents);
 		}
 		ImGui::End();
 	}
@@ -771,7 +901,7 @@ namespace ORNG {
 		if (selected_component == -1)
 			return;
 
-		auto* entity = p_entity ? p_entity : &m_active_scene->CreateEntity("New entity");
+		auto* entity = p_entity ? p_entity : &CreateEntityTracked("New entity");
 		SelectEntity(entity->GetUUID());
 
 		switch (selected_component) {
@@ -801,7 +931,14 @@ namespace ORNG {
 
 
 
-
+	glm::vec2 EditorLayer::ConvertFullscreenMouseToDisplayMouse(glm::vec2 mouse_coords) {
+		// Transform mouse coordinates to full window space for the proper texture coordinates
+		mouse_coords.x -= LEFT_WINDOW_WIDTH;
+		mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - (RIGHT_WINDOW_WIDTH + LEFT_WINDOW_WIDTH)));
+		mouse_coords.y -= toolbar_height;
+		mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
+		return mouse_coords;
+	}
 
 
 	void EditorLayer::DoPickingPass() {
@@ -828,11 +965,7 @@ namespace ORNG {
 		glm::vec2 mouse_coords = glm::min(glm::max(glm::vec2(Input::GetMousePos()), glm::vec2(1, 1)), glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1));
 
 		if (!m_fullscreen_scene_display) {
-			// Transform mouse coordinates to full window space for the proper texture coordinates
-			mouse_coords.x -= LEFT_WINDOW_WIDTH;
-			mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - (RIGHT_WINDOW_WIDTH + LEFT_WINDOW_WIDTH)));
-			mouse_coords.y -= toolbar_height;
-			mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height);
+			mouse_coords = ConvertFullscreenMouseToDisplayMouse(mouse_coords);
 		}
 
 		uint32_t* pixels = new uint32_t[2];
@@ -893,7 +1026,7 @@ namespace ORNG {
 			if (phys.m_geometry_type == PhysicsComponent::BOX) {
 				mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
 				Renderer::DrawCube();
-			} 
+			}
 		}
 
 		for (auto [entity, phys, transform] : m_active_scene->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
@@ -917,7 +1050,7 @@ namespace ORNG {
 					// Apply parent scaling to the position and scale to make up for not using the scale transform below
 					glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(sf, sf, sf);
 					glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(transform.m_pos.x * s.x, transform.m_pos.y * s.y, transform.m_pos.z * s.z);
-					m =  transform.GetParent()->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
+					m = transform.GetParent()->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
 				}
 
 				// Undo scaling to prevent shearing
@@ -936,7 +1069,6 @@ namespace ORNG {
 		}
 		glEnable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
 	}
 
 
@@ -1036,7 +1168,7 @@ namespace ORNG {
 		ImGui::PopStyleColor();
 
 		std::string popup_id = std::format("{}", p_entity->GetUUID()); // unique popup id
-		if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
+		if (ImGui::IsItemHovered()) {
 			// Drag entities into another entity node to make them children of it
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
 				DeselectEntity(p_entity->GetUUID());
@@ -1113,11 +1245,11 @@ namespace ORNG {
 
 
 			if (ExtraUI::H2TreeNode("Entities")) {
-				m_display_skybox_editor = ExtraUI::EmptyTreeNode("Skybox");
-				m_display_directional_light_editor = ExtraUI::EmptyTreeNode("Directional Light");
-				m_display_global_fog_editor = ExtraUI::EmptyTreeNode("Global fog");
-				m_display_terrain_editor = ExtraUI::EmptyTreeNode("Terrain");
-				m_display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
+				m_general_settings.editor_window_settings.display_skybox_editor = ExtraUI::EmptyTreeNode("Skybox");
+				m_general_settings.editor_window_settings.display_directional_light_editor = ExtraUI::EmptyTreeNode("Directional Light");
+				m_general_settings.editor_window_settings.display_global_fog_editor = ExtraUI::EmptyTreeNode("Global fog");
+				m_general_settings.editor_window_settings.display_terrain_editor = ExtraUI::EmptyTreeNode("Terrain");
+				m_general_settings.editor_window_settings.display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
 
 				for (auto* p_entity : m_active_scene->m_entities) {
 					ASSERT(p_entity->HasComponent<RelationshipComponent>());
@@ -1131,14 +1263,12 @@ namespace ORNG {
 
 			// Process node events
 			if (active_event & EntityNodeEvent::E_DUPLICATE) {
-				for (auto id : m_selected_entity_ids) {
-					DuplicateEntity(*m_active_scene->GetEntity(id));
-				}
+				DuplicateEntitiesTracked(m_selected_entity_ids);
 			}
 			else if (active_event & EntityNodeEvent::E_DELETE) {
 				for (auto id : m_selected_entity_ids) {
 					if (auto* p_entity = m_active_scene->GetEntity(id))
-						m_active_scene->DeleteEntity(p_entity);
+						DeleteEntitiesTracked(m_selected_entity_ids);
 				}
 			}
 
@@ -1170,15 +1300,15 @@ namespace ORNG {
 	void EditorLayer::DisplayEntityEditor() {
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("Entity editor")) {
-			if (m_display_directional_light_editor)
+			if (m_general_settings.editor_window_settings.display_directional_light_editor)
 				RenderDirectionalLightEditor();
-			if (m_display_global_fog_editor)
+			if (m_general_settings.editor_window_settings.display_global_fog_editor)
 				RenderGlobalFogEditor();
-			if (m_display_skybox_editor)
+			if (m_general_settings.editor_window_settings.display_skybox_editor)
 				RenderSkyboxEditor();
-			if (m_display_terrain_editor)
+			if (m_general_settings.editor_window_settings.display_terrain_editor)
 				RenderTerrainEditor();
-			if (m_display_bloom_editor)
+			if (m_general_settings.editor_window_settings.display_bloom_editor)
 				RenderBloomEditor();
 
 			auto entity = m_active_scene->GetEntity(m_selected_entity_ids.empty() ? 0 : m_selected_entity_ids[0]);
@@ -1560,7 +1690,35 @@ namespace ORNG {
 
 		glm::mat4 delta_matrix;
 		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], nullptr) && ImGuizmo::IsUsing()) {
+		static glm::vec3 snap = glm::vec3(1.f);
+		static bool is_using = false;
+
+		static bool mouse_down = false;
+
+		/*if (is_using && ImGui::IsMouseReleased(0)) {
+			mouse_down = false;
+			EditorEvent e;
+			e.event_type = TRANSFORM_UPDATE;
+			e.affected_entities = m_selected_entity_ids;
+			for (auto id : m_selected_entity_ids) {
+				e.serialized_entities_after.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
+			}
+			m_event_stack.PushEvent(e);
+		}*/
+
+		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], &snap[0]) && ImGuizmo::IsUsing()) {
+			if (!is_using && !mouse_down) {
+				EditorEvent e;
+				e.event_type = TRANSFORM_UPDATE;
+				e.affected_entities = m_selected_entity_ids;
+				for (auto id : m_selected_entity_ids) {
+					e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
+				}
+				m_event_stack.PushEvent(e);
+			}
+			is_using = true;
+			mouse_down = Input::IsMouseDown(0);
+
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
 			auto base_abs_transforms = transforms[0]->GetAbsoluteTransforms();
@@ -1575,11 +1733,14 @@ namespace ORNG {
 			for (auto* p_transform : transforms) {
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
-					p_transform->SetPosition(p_transform->m_pos + delta_translation);
+					p_transform->SetAbsolutePosition(p_transform->GetAbsoluteTransforms()[0] + delta_translation);
 					break;
 				case ImGuizmo::SCALE:
+				{
+					float scale = delta_scale.x < 0 || delta_scale.y < 0 || delta_scale.z < 0 ? -1.f : 1.f;
 					p_transform->SetScale(p_transform->m_scale * delta_scale);
 					break;
+				}
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
 					auto current_transforms = p_transform->GetAbsoluteTransforms();
 					if (auto* p_parent_transform = p_transform->GetParent()) {
@@ -1601,7 +1762,12 @@ namespace ORNG {
 					break;
 				}
 			}
-		};
+		}
+		else {
+			if (ImGui::IsMouseReleased(0))
+				mouse_down = false;
+			is_using = false;
+		}
 	}
 
 
@@ -1803,5 +1969,54 @@ namespace ORNG {
 		if (ImGui::Button("Make active")) {
 			p_cam->MakeActive();
 		}
+	}
+
+	std::vector<SceneEntity*> EditorLayer::DuplicateEntitiesTracked(std::vector<uint64_t> entities) {
+		SceneEntity* p_dup_ent = nullptr;
+		EditorEvent e;
+
+		std::vector<SceneEntity*> ret;
+
+		for (auto id : entities) {
+			auto* p_original_ent = m_active_scene->GetEntity(id);
+			if (m_simulate_mode_active)
+				p_dup_ent = &m_active_scene->DuplicateEntityCallScript(*p_original_ent);
+			else
+				p_dup_ent = &p_original_ent->Duplicate();
+
+			e.affected_entities.push_back(p_dup_ent->m_uuid());
+			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_dup_ent));
+
+			ret.push_back(p_dup_ent);
+		}
+
+		e.event_type = ENTITY_CREATE;
+		m_event_stack.PushEvent(e);
+
+		return ret;
+	}
+
+	void EditorLayer::DeleteEntitiesTracked(std::vector<uint64_t> entities) {
+		EditorEvent e;
+		e.event_type = ENTITY_DELETE;
+		e.affected_entities = entities;
+		for (auto id : entities) {
+			DeselectEntity(id);
+
+			auto* p_entity = m_active_scene->GetEntity(id);
+			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_entity));
+			m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
+		}
+
+		m_event_stack.PushEvent(e);
+	}
+
+	SceneEntity& EditorLayer::CreateEntityTracked(const std::string& name) {
+		auto& ent = m_active_scene->CreateEntity(name);
+		EditorEvent e;
+		e.event_type = ENTITY_CREATE;
+		e.affected_entities.push_back(ent.GetUUID());
+		m_event_stack.PushEvent(e);
+		return ent;
 	}
 }

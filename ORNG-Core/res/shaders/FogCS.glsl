@@ -230,7 +230,6 @@ void main() {
 		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
 		fog_density += u_density_coef * 0.5f;
-		fog_density *= exp(-abs(step_pos.y) * 0.1);
 
 		vec3 slice_light = vec3(0);
 
@@ -244,7 +243,6 @@ void main() {
 
 		float dir_shadow = CheapShadowCalculationDirectional(ubo_global_lighting.directional_light.direction.xyz, step_pos);
 		slice_light += ubo_global_lighting.directional_light.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
-		slice_light += abs(vec3(sin(PerlinNoise(step_pos.xz * 0.01) * 2.0 * 3.14), i * 0.05, cos(PerlinNoise(step_pos.xz * 0.01) * 2.0 * 3.14))) / u_step_count;
 		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, extinction_coef);
 		step_pos += ray_dir * step_distance;
 	}

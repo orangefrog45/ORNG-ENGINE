@@ -23,6 +23,7 @@ namespace ORNG {
 			return -radius <= p.GetSignedDistanceToPlane(box.center);
 		}
 
+
 		static bool AABBPointIntersectionTest(const AABB& box, glm::vec3 point) {
 			return (
 				point.x >= box.min.x &&
@@ -46,7 +47,6 @@ namespace ORNG {
 		}
 
 		bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) const {
-
 			return (TestAABBPlane(*this, cam_frustum.top_plane) &&
 				TestAABBPlane(*this, cam_frustum.bottom_plane) &&
 				TestAABBPlane(*this, cam_frustum.left_plane) &&
@@ -55,5 +55,4 @@ namespace ORNG {
 				TestAABBPlane(*this, cam_frustum.far_plane));
 		};
 	};
-
 }
