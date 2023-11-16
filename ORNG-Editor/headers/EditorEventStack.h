@@ -31,10 +31,6 @@ namespace ORNG {
 			m_active_index = m_events.size() - 1;
 		};
 
-		// Newest = last in vector
-		// Oldest = [0] in vector
-		// When new event added, events at index higher than m_active_index get wiped, then event is pushed back
-		//
 		void Undo();
 		void Redo();
 
