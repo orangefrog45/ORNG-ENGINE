@@ -5,6 +5,7 @@ project(FRACTAL_GAME)
 add_executable(FRACTAL_GAME 
 ../ORNG-Editor/src/EditorLayer.cpp
 ../ORNG-Editor/src/AssetManagerWindow.cpp
+../ORNG-Editor/src/EditorEventStack.cpp
 src/GameLayer.cpp
 src/main.cpp
 )

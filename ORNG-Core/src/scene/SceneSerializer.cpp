@@ -69,6 +69,7 @@ namespace YAML {
 }
 
 
+
 namespace ORNG {
 	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
 		out << YAML::Flow;
@@ -88,6 +89,10 @@ namespace ORNG {
 		return out;
 	}
 
+	template<typename T>
+	void Out(YAML::Emitter& out, const std::string& key, const T& v) {
+		out << YAML::Key << key << YAML::Value << v;
+	}
 
 	std::string SceneSerializer::SerializeEntityIntoString(SceneEntity& entity) {
 		YAML::Emitter out;
@@ -114,7 +119,6 @@ namespace ORNG {
 
 		out << YAML::Key << "TransformComp";
 		out << YAML::BeginMap;
-
 		out << YAML::Key << "Pos" << YAML::Value << p_transform->GetPosition();
 		out << YAML::Key << "Scale" << YAML::Value << p_transform->GetScale();
 		out << YAML::Key << "Orientation" << YAML::Value << p_transform->GetOrientation();
@@ -220,6 +224,38 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
+		if (auto* p_vehicle = entity.GetComponent<VehicleComponent>()) {
+			Out(out, "VehicleComp", YAML::BeginMap);
+			Out(out, "BodyMesh", p_vehicle->p_body_mesh->uuid());
+			Out(out, "WheelMesh", p_vehicle->p_wheel_mesh->uuid());
+
+			Out(out, "WheelScale", p_vehicle->wheel_scale);
+			Out(out, "BodyScale", p_vehicle->body_scale);
+
+
+			Out(out, "BodyMaterials", YAML::Flow);
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_vehicle->m_body_materials) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+
+			Out(out, "WheelMaterials", YAML::Flow);
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_vehicle->m_wheel_materials) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+
+			for (int i = 0; i < 4; i++) {
+				Out(out, std::format("Wheel{}", i), YAML::BeginMap);
+				Out(out, "SuspensionAttachment", ToGlmVec3(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
+				out << YAML::EndMap;
+			}
+
+
+			out << YAML::EndMap;
+		}
 
 		out << YAML::EndMap;
 	}
@@ -330,6 +366,39 @@ namespace ORNG {
 				p_comp->SetPitch(audio_node["Pitch"].as<float>());
 				p_comp->SetVolume(audio_node["Volume"].as<float>());
 				p_comp->SetSoundAssetUUID(audio_node["AudioUUID"].as<uint64_t>());
+			}
+
+
+			if (tag == "VehicleComp") {
+				auto vehicle_node = entity_node["VehicleComp"];
+				auto* p_comp = entity.AddComponent<VehicleComponent>();
+				p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(vehicle_node["BodyMesh"].as<uint64_t>());
+				p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(vehicle_node["WheelMesh"].as<uint64_t>());
+
+				p_comp->body_scale = vehicle_node["BodyScale"].as<glm::vec3>();
+				p_comp->wheel_scale = vehicle_node["WheelScale"].as<glm::vec3>();
+
+				auto body_materials = vehicle_node["BodyMaterials"];
+				std::vector<uint64_t> body_ids = body_materials.as<std::vector<uint64_t>>();
+				p_comp->m_body_materials.resize(p_comp->p_body_mesh->num_materials);
+				for (int i = 0; i < p_comp->p_body_mesh->num_materials; i++) {
+					auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
+					p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				}
+
+				auto wheel_materials = vehicle_node["WheelMaterials"];
+				std::vector<uint64_t> wheel_ids = wheel_materials.as<std::vector<uint64_t>>();
+				p_comp->m_wheel_materials.resize(p_comp->p_wheel_mesh->num_materials);
+				for (int i = 0; i < p_comp->p_wheel_mesh->num_materials; i++) {
+					auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
+					p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				}
+				for (int i = 0; i < 4; i++) {
+					auto wheel = vehicle_node[std::format("Wheel{}", i)];
+					p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ToPxVec3(wheel["SuspensionAttachment"].as<glm::vec3>());
+				}
+
+				scene.m_physics_system.InitVehicle(p_comp);
 			}
 		}
 	}

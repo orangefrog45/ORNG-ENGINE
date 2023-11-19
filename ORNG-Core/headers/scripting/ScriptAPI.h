@@ -30,6 +30,7 @@
 #include "PhysicsComponent.h"
 #include "AudioComponent.h"
 #include "SceneEntity.h"
+#include "VehicleComponent.h"
 #include "./SceneScriptInterface.h"
 #include "ScriptShared.h"
 #include "./uuids.h" // Generated through editor on save

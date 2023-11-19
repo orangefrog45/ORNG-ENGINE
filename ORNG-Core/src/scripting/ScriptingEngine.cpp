@@ -39,8 +39,9 @@ namespace ORNG {
 #else
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 #endif
-			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time)
+			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
 				return true; // Core engine library has changed so recompilation needed
+			}
 		}
 		else {
 			return true;
@@ -80,13 +81,12 @@ namespace ORNG {
 
 
 	void GenBatFile(std::ofstream& bat_stream, const std::string& filename, const std::string& filename_no_ext, const std::string& dll_path, const std::string& temp_fp) {
-		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\lib";
-
-
 #ifdef _MSC_VER
 		bat_stream << "call " + ("\"" + GetVS_InstallDir(ORNG_CORE_MAIN_DIR "\\extern\\vswhere.exe") + "\\VC\\Auxiliary\\Build\\vcvars64.bat" + "\"\n");
 
 #ifdef NDEBUG
+		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\lib";
+
 		std::string pdb_name = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + std::to_string(UUID()()) + ".pdb";
 		std::string obj_path = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + ".obj";
 
@@ -101,8 +101,10 @@ namespace ORNG {
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
 			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
-			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib ";
+			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib " << physx_lib_dir + "\\PhysXVehicle2_static_64.lib";
 #else
+		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\debug\\lib";
+
 		std::string obj_path = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".obj";
 		std::string pdb_name = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + std::to_string(UUID()()) + ".pdb";
 
@@ -117,7 +119,7 @@ namespace ORNG {
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
 			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
-			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib ";
+			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib " << physx_lib_dir + "\\PhysXVehicle2_static_64.lib";
 #endif // ifdef NDEBUG
 	}
 
@@ -144,23 +146,40 @@ namespace ORNG {
 				std::string name;
 				auto equals_pos = line.find("=");
 				// Between name and = e.g nameSPACE_1_POS=
-				int space_1_pos = -1;
+				int name_end_pos = -1;
 				// Between type and name e.g intSPACE_2_POSname
-				int space_2_pos = -1;
+				int name_start_pos = -1;
 
-				for (int i = equals_pos; i >= 0; i--) {
-					if (line[i] == ' ') {
-						if (space_1_pos != -1) {
-							space_2_pos = i;
-							break;
+				if (equals_pos != std::string::npos) {
+					for (int i = equals_pos; i >= 0; i--) {
+						if (line[i] == ' ') {
+							if (name_end_pos != -1) {
+								name_start_pos = i;
+								break;
+							}
+							else
+								name_end_pos = i - 1;
 						}
-						else
-							space_1_pos = i;
 					}
 				}
+				else if (auto semicolon_pos = line.find(";"); semicolon_pos != std::string::npos) {
+					auto search_pos = line.find('{');
+					if (search_pos == std::string::npos)
+						search_pos = semicolon_pos;
 
-				if (space_1_pos != -1 && space_2_pos != -1) {
-					name = line.substr(space_2_pos + 1, space_1_pos - space_2_pos - 1);
+
+					for (int i = search_pos; i >= 0; i--) {
+						if ((std::isalnum(line[i]) || line[i] == '_') && name_end_pos == -1) {
+							name_end_pos = i;
+						}
+						else if (line[i] == ' ' && name_end_pos != -1) {
+							name_start_pos = i;
+							break;
+						}
+					}
+				}
+				if (name_end_pos != -1 && name_start_pos != -1) {
+					name = line.substr(name_start_pos + 1, name_end_pos - name_start_pos);
 					constructor_code += "m_member_addresses[\"" + name + "\"] = &" + name + ";\n";
 				}
 				else {
@@ -210,7 +229,6 @@ namespace ORNG {
 		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
-		symbols.DestroyInstance(symbols.CreateInstance());
 		symbols.loaded = true;
 
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));

@@ -78,11 +78,12 @@ namespace ORNG {
 		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
 		void RenderAudioComponentEditor(AudioComponent* p_audio);
+		void RenderVehicleComponentEditor(VehicleComponent* p_comp);
 
 		void RenderProjectGenerator(int& selected_component_from_popup);
 
-
-
+		// TEMP
+		void InitVehicle();
 		// Ensures a project directory is in the correct state to be used in the editor, attempts repairs if not
 		bool ValidateProjectDir(const std::string& dir_path);
 

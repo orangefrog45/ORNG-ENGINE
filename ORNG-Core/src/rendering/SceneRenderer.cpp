@@ -59,6 +59,13 @@ namespace ORNG {
 		mp_gbuffer_shader_skybox->Init();
 		// No uniforms needed for skybox
 
+		mp_gbuffer_shader_mesh_bufferless = &mp_shader_library->CreateShader("gbuffer_mesh_bufferless");
+		mp_gbuffer_shader_mesh_bufferless->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", { "NO_TRANSFORM_BUFFERS" });
+		mp_gbuffer_shader_mesh_bufferless->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
+		mp_gbuffer_shader_mesh_bufferless->Init();
+		mp_gbuffer_shader_mesh_bufferless->AddUniforms(gbuffer_uniforms);
+		mp_gbuffer_shader_mesh_bufferless->AddUniform("u_transform");
+
 		mp_gbuffer_shader_mesh = &mp_shader_library->CreateShader("gbuffer_mesh");
 		mp_gbuffer_shader_mesh->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
 		mp_gbuffer_shader_mesh->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
@@ -71,6 +78,14 @@ namespace ORNG {
 		mp_transparency_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
 		mp_transparency_shader->Init();
 		mp_transparency_shader->AddUniforms(gbuffer_uniforms);
+
+		mp_transparency_shader_bufferless = &mp_shader_library->CreateShader("transparency_bufferless");
+		mp_transparency_shader_bufferless->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", { "NO_TRANSFORM_BUFFERS" });
+		mp_transparency_shader_bufferless->AddStage(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
+		mp_transparency_shader_bufferless->Init();
+		mp_transparency_shader_bufferless->AddUniforms(gbuffer_uniforms);
+		mp_transparency_shader_bufferless->AddUniform("u_transform");
+
 
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
 		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/TransparentCompositeFS.glsl");
@@ -337,6 +352,10 @@ namespace ORNG {
 		}
 	}
 
+	glm::mat4 PxTransformToGlmMat4(PxTransform t) {
+		auto euler = glm::degrees(glm::eulerAngles(glm::quat(t.q.w, t.q.x, t.q.y, t.q.z)));
+		return ExtraMath::Init3DTranslationTransform(t.p.x, t.p.y, t.p.z) * ExtraMath::Init3DRotateTransform(euler.x, euler.y, euler.z);
+	}
 
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
 		UpdateLightSpaceMatrices(p_cam);
@@ -487,6 +506,47 @@ namespace ORNG {
 	}
 
 
+	void SceneRenderer::RenderVehicles(Shader* p_shader, RenderGroup render_group) {
+		p_shader->ActivateProgram();
+		p_shader->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
+
+		for (auto [entity, vehicle] : mp_scene->m_registry.view<VehicleComponent>().each()) {
+			PxShape* shapes[5];
+			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shapes[0], 5);
+			auto pose = vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose();
+
+			glm::mat4 b_scale = ExtraMath::Init3DScaleTransform(vehicle.body_scale.x, vehicle.body_scale.y, vehicle.body_scale.z);
+			for (unsigned int i = 0; i < vehicle.p_body_mesh->m_submeshes.size(); i++) {
+				const Material* p_material = vehicle.m_body_materials[vehicle.p_body_mesh->m_submeshes[i].material_index];
+
+				if (p_material->render_group != render_group)
+					continue;
+				p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[0]->getLocalPose()) * b_scale);
+				p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+
+				SetGBufferMaterial(p_material, p_shader);
+
+				Renderer::DrawSubMesh(vehicle.p_body_mesh, i);
+			}
+
+			glm::mat4 w_scale = ExtraMath::Init3DScaleTransform(vehicle.wheel_scale.x, vehicle.wheel_scale.y, vehicle.wheel_scale.z);
+			for (unsigned int wheel = 0; wheel < 4; wheel++) {
+				for (unsigned int i = 0; i < vehicle.p_wheel_mesh->m_submeshes.size(); i++) {
+					const Material* p_material = vehicle.m_wheel_materials[vehicle.p_wheel_mesh->m_submeshes[i].material_index];
+
+					if (p_material->render_group != render_group)
+						continue;
+
+					p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[wheel + 1]->getLocalPose()) * w_scale);
+					p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+
+					SetGBufferMaterial(p_material, p_shader);
+
+					Renderer::DrawSubMesh(vehicle.p_wheel_mesh, i);
+				}
+			}
+		}
+	}
 
 
 	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height) {
@@ -522,6 +582,9 @@ namespace ORNG {
 				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
 			}
 		}
+
+		RenderVehicles(mp_transparency_shader_bufferless, RenderGroup::ALPHA_TESTED);
+
 		glEnable(GL_CULL_FACE);
 
 
@@ -566,6 +629,7 @@ namespace ORNG {
 			}
 		}
 
+		RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
 
 
 		/* uniforms */

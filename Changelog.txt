@@ -1,7 +1,11 @@
+19/11/23:
+-Rough implementation of physx 5.1+ vehicles (currently 4-wheeled car support), will rewrite once engine supports skeletal animation
+
 16/11/23:
 -Multi-selection (selection by dragging a box over the screen) in editor
 -Ctrl-z (undo) and ctrl-shift-z (redo) support in editor
 -General settings menu in editor
+-Fixed script member parsing when members are initialized with curly braces or not initialized
 
 14/11/23:
 -Fixed terrain AABB generation causing improper culling

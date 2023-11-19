@@ -4,19 +4,20 @@
 #include "rendering/Renderer.h"
 #include "core/CodedAssets.h"
 
+
 #define PHYSX_DEBUG
 
 namespace ORNG {
 	using namespace physx;
 	void Physics::IShutdown() {
-/*#ifdef PHYSX_DEBUG
-		mp_pvd->disconnect();
-		mp_pvd->release();
-#endif
-		mp_cuda_context_manager->release();
-		mp_physics->release();
-		PxCloseExtensions();
-		mp_foundation->release();*/
+		/*#ifdef PHYSX_DEBUG
+				mp_pvd->disconnect();
+				mp_pvd->release();
+		#endif
+				mp_cuda_context_manager->release();
+				mp_physics->release();
+				PxCloseExtensions();
+				mp_foundation->release();*/
 	}
 
 	void Physics::I_Init() {
@@ -37,7 +38,7 @@ namespace ORNG {
 #endif
 		mp_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *mp_foundation, PxTolerancesScale(), record_memory_allocations, mp_pvd);
 
-
+		ASSERT(vehicle2::PxInitVehicleExtension(*mp_foundation));
 
 		if (!mp_physics) {
 			ORNG_CORE_CRITICAL("PxCreatePhysics failed");

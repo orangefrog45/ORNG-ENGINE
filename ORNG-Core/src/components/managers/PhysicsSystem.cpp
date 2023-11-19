@@ -6,10 +6,13 @@
 #include "events/EventManager.h"
 #include "rendering/MeshAsset.h"
 #include "util/Timers.h"
-
+#include "physx/vehicle2/PxVehicleAPI.h"
+#include "physics/vehicles/DirectDrive.h"
+#include "assets/AssetManager.h"
 
 namespace ORNG {
 	using namespace physx;
+	using namespace physx::vehicle2;
 	// Conversion from glm::vec3 to PxVec3
 
 
@@ -39,6 +42,13 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<FixedJointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
+	inline static void OnVehicleComponentAdd(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+	}
+
+	inline static void OnVehicleComponentDestroy(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+	}
 
 
 
@@ -75,6 +85,25 @@ namespace ORNG {
 	}
 
 
+	void setPhysXIntegrationParams(const PxVehicleAxleDescription& axleDescription,
+		PxVehiclePhysXMaterialFriction* physXMaterialFrictions, PxU32 nbPhysXMaterialFrictions,
+		PxReal physXDefaultMaterialFriction, PhysXIntegrationParams& physXParams)
+	{
+		//The physx integration params are hardcoded rather than loaded from file.
+		const PxQueryFilterData queryFilterData(PxFilterData(0, 0, 0, 0), PxQueryFlag::eSTATIC);
+		PxQueryFilterCallback* queryFilterCallback = NULL;
+		const PxTransform physxActorCMassLocalPose(PxVec3(0.0f, 0.55f, 1.594f), PxQuat(PxIdentity));
+		const PxVec3 physxActorBoxShapeHalfExtents(0.74097f, 0.35458f, 2.26971f);
+		const PxTransform physxActorBoxShapeLocalPose(PxVec3(0.0f, 0.830066f, 1.37003f), PxQuat(PxIdentity));
+
+		physXParams.create(
+			axleDescription,
+			queryFilterData, queryFilterCallback,
+			physXMaterialFrictions, nbPhysXMaterialFrictions, physXDefaultMaterialFriction,
+			physxActorCMassLocalPose,
+			physxActorBoxShapeHalfExtents, physxActorBoxShapeLocalPose);
+	}
+
 	void PhysicsSystem::OnLoad() {
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
 
@@ -90,6 +119,7 @@ namespace ORNG {
 		scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
 		scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+
 		scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
 		scene_desc.simulationEventCallback = &m_collision_callback;
 
@@ -99,11 +129,12 @@ namespace ORNG {
 		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
 		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 		mp_controller_manager = PxCreateControllerManager(*mp_phys_scene);
-		m_physics_materials.push_back(Physics::GetPhysics()->createMaterial(0.25f, 0.1f, 0.1f));
+		m_physics_materials.push_back(Physics::GetPhysics()->createMaterial(0.75f, 0.8f, 0.6f));
 		m_physics_materials[0]->acquireReference();
 
-
 		InitListeners();
+
+
 		mp_registry->on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
 		mp_registry->on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
 
@@ -112,8 +143,30 @@ namespace ORNG {
 
 		mp_registry->on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
 		mp_registry->on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
+
+		mp_registry->on_destroy<VehicleComponent>().connect<&OnVehicleComponentDestroy>();
+		mp_registry->on_construct<VehicleComponent>().connect<&OnVehicleComponentAdd>();
+
+		InitVehicleSimulationContext();
 	}
 
+	void PhysicsSystem::InitVehicleSimulationContext() {
+		m_vehicle_context.setToDefault();
+		m_vehicle_context.gravity = mp_phys_scene->getGravity();
+		PxVehicleFrame f;
+		f.setToDefault();
+		f.lngAxis = PxVehicleAxes::eNegZ;
+		f.latAxis = PxVehicleAxes::ePosX;
+		f.vrtAxis = PxVehicleAxes::ePosY;
+		m_vehicle_context.frame = f;
+		m_vehicle_context.scale.scale = 1.0;
+		m_vehicle_context.physxScene = mp_phys_scene;
+		m_vehicle_context.tireStickyParams.stickyParams[PxVehicleTireDirectionModes::eLONGITUDINAL].thresholdSpeed = 0.0f;
+		m_vehicle_context.tireStickyParams.stickyParams[PxVehicleTireDirectionModes::eLATERAL].thresholdSpeed = 0.0f;
+		m_vehicle_context.physxActorUpdateMode = PxVehiclePhysXActorUpdateMode::eAPPLY_ACCELERATION;
+		mp_sweep_mesh = PxVehicleUnitCylinderSweepMeshCreate(m_vehicle_context.frame, *Physics::GetPhysics(), PxCookingParams(PxTolerancesScale(Physics::GetToleranceScale())));
+		m_vehicle_context.physxUnitCylinderSweepMesh = mp_sweep_mesh;
+	}
 
 	void PhysicsSystem::InitListeners() {
 		// Initialize event listeners
@@ -136,7 +189,7 @@ namespace ORNG {
 			};
 
 		// Joint listener
-		m_joint_listener.scene_id = GetSceneUUID();
+		/*m_joint_listener.scene_id = GetSceneUUID();
 		m_joint_listener.OnEvent = [this](const Events::ECS_Event<FixedJointComponent>& t_event) {
 			switch (t_event.event_type) {
 				using enum Events::ECS_EventType;
@@ -150,8 +203,23 @@ namespace ORNG {
 				RemoveComponent(t_event.affected_components[0]);
 				break;
 			}
-			};
+			};*/
 
+		m_vehicle_listener.scene_id = GetSceneUUID();
+		m_vehicle_listener.OnEvent = [this](const Events::ECS_Event<VehicleComponent>& t_event) {
+			switch (t_event.event_type) {
+				using enum Events::ECS_EventType;
+			case COMP_ADDED:
+				InitComponent(t_event.affected_components[0]);
+				break;
+			case COMP_UPDATED:
+				//HandleComponentUpdate(t_event);
+				break;
+			case COMP_DELETED:
+				RemoveComponent(t_event.affected_components[0]);
+				break;
+			}
+			};
 
 		// Character controller listener
 		m_character_controller_listener.scene_id = GetSceneUUID();
@@ -175,17 +243,187 @@ namespace ORNG {
 			};
 
 		Events::EventManager::RegisterListener(m_phys_listener);
-		Events::EventManager::RegisterListener(m_joint_listener);
+		//Events::EventManager::RegisterListener(m_joint_listener);
 		Events::EventManager::RegisterListener(m_character_controller_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
+		Events::EventManager::RegisterListener(m_vehicle_listener);
 	}
 
-	void PhysicsSystem::InitComponent(FixedJointComponent* p_comp) {
+	bool PhysicsSystem::InitVehicle(VehicleComponent* p_comp) {
+		auto& vehicle = p_comp->m_vehicle;
+
+
+		if (vehicle.mPhysXState.physxActor.rigidBody)
+			vehicle.destroy();
+
+		static PxVehiclePhysXMaterialFriction f1;
+		f1.friction = 0.8;
+		f1.material = m_physics_materials[0];
+		PxVec3 half_extents({ 0.5, 0.5, 1.0 });
+		PxCookingParams params{ PxTolerancesScale(Physics::GetToleranceScale()) };
+		//setPhysXIntegrationParams(vehicle.mBaseParams.axleDescription, &f1, 1, 0.5, vehicle.mPhysXParams);
+		vehicle.mPhysXParams.create(vehicle.mBaseParams.axleDescription, PxQueryFilterData(), nullptr, &f1, 1, 0.5, PxTransform({ 0.0, 0.0, 0.5 }), half_extents, PxTransform(PxIdentity));
+
+		bool result = vehicle.initialize(*Physics::GetPhysics(), params, *m_physics_materials[0], true);
+		vehicle.setUpActor(*mp_phys_scene, PxTransform(PxIdentity), "Test vehicle");
+		PxShape* shapes[5];
+		vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shapes[0], 5);
+
+		for (int i = 0; i < 1; i++) {
+			// TODO: Have actual parameters for changing shapes and debug visuals for it
+			shapes[i]->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+		}
+		vehicle.step(FLT_MIN, m_vehicle_context);
+
+		return result;
 	}
+
+
+	void PhysicsSystem::InitComponent(VehicleComponent* p_comp) {
+		auto& vehicle = p_comp->m_vehicle;
+
+		auto* p_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+		p_comp->p_body_mesh = p_asset;
+		p_comp->p_wheel_mesh = p_asset;
+		p_comp->m_wheel_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+		p_comp->m_body_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+
+		vehicle.mBaseParams.rigidBodyParams.mass = 2000.0;
+		vehicle.mBaseParams.rigidBodyParams.moi = PxVec3(3200.0,
+			3414.0,
+			750.0);
+
+		PxU32 ids[4] = { 0, 1, 2, 3 };
+
+		vehicle.mBaseParams.axleDescription.setToDefault();
+		vehicle.mBaseParams.axleDescription.addAxle(2, &ids[0]);
+		vehicle.mBaseParams.axleDescription.addAxle(2, &ids[2]);
+		vehicle.mBaseParams.axleDescription.nbWheels = 4;
+
+
+		vehicle.mBaseParams.ackermannParams[0].strength = 1.0;
+		vehicle.mBaseParams.ackermannParams[0].trackWidth = 1.55;
+		vehicle.mBaseParams.ackermannParams[0].wheelBase = 2.86;
+		vehicle.mBaseParams.frame.setToDefault();
+		vehicle.mBaseParams.frame.lngAxis = PxVehicleAxes::eNegZ;
+		vehicle.mBaseParams.frame.latAxis = PxVehicleAxes::ePosX;
+		vehicle.mBaseParams.frame.vrtAxis = PxVehicleAxes::ePosY;
+
+		vehicle.mBaseParams.scale.scale = 1.0;
+
+		vehicle.mBaseParams.brakeResponseParams->maxResponse = 2875.0;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[0] = 1.0;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[1] = 1.0;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[2] = 1.0;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[3] = 1.0;
+
+		vehicle.mBaseParams.steerResponseParams.maxResponse = 0.83;
+
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[0] = 0.75;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[1] = 0.75;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[2] = 0.0;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[3] = 0.0;
+
+		vehicle.mBaseParams.suspensionParams[0].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
+		vehicle.mBaseParams.suspensionParams[1].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
+		vehicle.mBaseParams.suspensionParams[2].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
+		vehicle.mBaseParams.suspensionParams[3].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
+
+		vehicle.mBaseParams.suspensionForceParams[0].damping = 8528;
+		vehicle.mBaseParams.suspensionForceParams[0].stiffness = 32833;
+		vehicle.mBaseParams.suspensionForceParams[0].sprungMass = 553;
+
+		vehicle.mBaseParams.suspensionForceParams[1].damping = 8742;
+		vehicle.mBaseParams.suspensionForceParams[1].stiffness = 33657;
+		vehicle.mBaseParams.suspensionForceParams[1].sprungMass = 567;
+
+		vehicle.mBaseParams.suspensionForceParams[2].damping = 6765;
+		vehicle.mBaseParams.suspensionForceParams[2].stiffness = 26049;
+		vehicle.mBaseParams.suspensionForceParams[2].sprungMass = 439;
+
+		vehicle.mBaseParams.suspensionForceParams[3].damping = 6985;
+		vehicle.mBaseParams.suspensionForceParams[3].stiffness = 26894;
+		vehicle.mBaseParams.suspensionForceParams[3].sprungMass = 453;
+
+
+		vehicle.mBaseParams.suspensionStateCalculationParams.suspensionJounceCalculationType = PxVehicleSuspensionJounceCalculationType::eSWEEP;
+		for (int i = 0; i < 4; i++) {
+			vehicle.mBaseParams.suspensionComplianceParams[i].suspForceAppPoint.addPair(0, { 0, 0, -0.11204999685287476 });
+			vehicle.mBaseParams.suspensionComplianceParams[i].wheelCamberAngle.addPair(0, 0);
+			vehicle.mBaseParams.suspensionComplianceParams[i].wheelToeAngle.addPair(0, 0);
+			vehicle.mBaseParams.suspensionComplianceParams[i].tireForceAppPoint.addPair(0, { 0, 0, -0.11204999685287476 });
+
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[0][0] = 0;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[0][1] = 1;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[1][0] = 0.10000000149011612;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[1][1] = 1;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[2][0] = 1;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[2][1] = 1;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[0][0] = 0;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[0][1] = 0.23080000281333924;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[1][0] = 3.0;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[1][1] = 3.0;
+			vehicle.mBaseParams.tireForceParams[i].camberStiff = 0;
+			vehicle.mBaseParams.tireForceParams[i].longStiff = 24525.0;
+			vehicle.mBaseParams.tireForceParams[i].latStiffX = 0.009999999776482582;
+			vehicle.mBaseParams.wheelParams[i].halfWidth = 0.15768450498580934;
+			vehicle.mBaseParams.wheelParams[i].radius = 0.532520031929016;
+			vehicle.mBaseParams.wheelParams[i].mass = 20;
+			vehicle.mBaseParams.wheelParams[i].moi = 1.1716899871826172;
+			vehicle.mBaseParams.wheelParams[i].dampingRate = 0.25;
+
+			vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.q = { 0, 0, 0, 1 };
+			vehicle.mBaseParams.suspensionParams[i].suspensionTravelDir = { 0, -1, 0 };
+			vehicle.mBaseParams.suspensionParams[i].suspensionTravelDist = 0.221110999584198;
+			vehicle.mBaseParams.suspensionParams[i].wheelAttachment.p = { 0, 0, 0 };
+			vehicle.mBaseParams.suspensionParams[i].wheelAttachment.q = { 0, 0, 0, 1 };
+		}
+
+		for (int i = 0; i < 2; i++) {
+			vehicle.mBaseParams.tireForceParams[i].latStiffY = 118699.637252138;
+			vehicle.mBaseParams.tireForceParams[i].restLoad = 5628.72314453125;
+		}
+
+		for (int i = 2; i < 4; i++) {
+			vehicle.mBaseParams.tireForceParams[i].latStiffY = 143930.84033118;
+			vehicle.mBaseParams.tireForceParams[i].restLoad = 4604.3134765625;
+		}
+
+		/*
+		void create
+		(const PxVehicleAxleDescription& axleDescription,
+			const PxQueryFilterData& queryFilterData, PxQueryFilterCallback* queryFilterCallback,
+			PxVehiclePhysXMaterialFriction* materialFrictions, const PxU32 nbMaterialFrictions, const PxReal defaultFriction,
+			const PxTransform& physXActorCMassLocalPose,
+			const PxVec3& physXActorBoxShapeHalfExtents, const PxTransform& physxActorBoxShapeLocalPose);*/
+
+
+		vehicle.mBaseParams.suspensionParams[0].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
+		vehicle.mBaseParams.suspensionParams[1].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
+		vehicle.mBaseParams.suspensionParams[2].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
+		vehicle.mBaseParams.suspensionParams[3].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
+		vehicle.mTransmissionCommandState.gear = vehicle.mTransmissionCommandState.eFORWARD;
+
+
+
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.maxResponse = 2000.0;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[0] = -1.0;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[1] = -1.0;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[2] = 0.0;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[3] = 0.0;
+
+		InitVehicle(p_comp);
+	}
+
+
 
 	void PhysicsSystem::RemoveComponent(FixedJointComponent* p_comp) {
 		if (p_comp->mp_joint)
 			p_comp->mp_joint->release();
+	}
+
+	void PhysicsSystem::RemoveComponent(VehicleComponent* p_comp) {
+		p_comp->m_vehicle.destroy();
 	}
 
 	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event) {
@@ -220,6 +458,7 @@ namespace ORNG {
 
 
 	void PhysicsSystem::OnUnload() {
+		PxVehicleUnitCylinderSweepMeshDestroy(mp_sweep_mesh);
 		DeinitListeners();
 
 		for (auto* p_material : m_physics_materials) {
@@ -238,7 +477,8 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_phys_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_character_controller_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
-		Events::EventManager::DeregisterListener(m_joint_listener.GetRegisterID());
+		//Events::EventManager::DeregisterListener(m_joint_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_vehicle_listener.GetRegisterID());
 	}
 
 
@@ -380,7 +620,7 @@ namespace ORNG {
 			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
 		}
 
-
+		p_comp->p_shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 	}
@@ -417,7 +657,6 @@ namespace ORNG {
 		}
 
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
-		p_comp->p_rigid_actor->setActorFlag(PxActorFlag::eVISUALIZATION, true);
 
 		// Store in entity lookup map for fast retrieval
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
@@ -440,12 +679,22 @@ namespace ORNG {
 
 
 
-
 	void PhysicsSystem::OnUpdate(float ts) {
 		m_accumulator += ts;
 
 		if (m_accumulator < m_step_size)
 			return;
+
+
+		for (auto [entity, vehicle, transform] : mp_registry->view<VehicleComponent, TransformComponent>().each()) {
+			vehicle.m_vehicle.step(m_step_size, m_vehicle_context);
+			PxShape* shape[1];
+			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shape[0], 1);
+
+			UpdateTransformCompFromGlobalPose(vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose() * shape[0]->getLocalPose(), transform);
+		}
+
+
 
 		m_accumulator -= m_step_size * 1000.f;
 		mp_phys_scene->simulate(m_step_size);
@@ -527,6 +776,7 @@ namespace ORNG {
 
 
 
+
 	void PhysicsSystem::PhysCollisionCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs)
 	{
 		SceneEntity* p_first_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[0]);
@@ -539,7 +789,6 @@ namespace ORNG {
 
 		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent, p_second_ent));
 	}
-
 	void PhysicsSystem::PhysCollisionCallback::onTrigger(PxTriggerPair* pairs, PxU32 count) {
 		for (int i = 0; i < count; i++) {
 			// ignore pairs when shapes have been deleted
@@ -586,5 +835,5 @@ namespace ORNG {
 		}
 
 		return ret;
-	}
+	};
 }

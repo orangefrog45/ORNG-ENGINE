@@ -125,6 +125,8 @@ namespace ORNG {
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);
 
+		void RenderVehicles(Shader* p_shader, RenderGroup render_group);
+
 
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
 		std::vector<Renderpass> m_render_intercepts;
@@ -132,10 +134,21 @@ namespace ORNG {
 		Shader* mp_gbuffer_shader_terrain = nullptr;
 		Shader* mp_gbuffer_shader_skybox = nullptr;
 		Shader* mp_gbuffer_shader_mesh = nullptr;
+
+		// Bufferless = no transform SSBO, transform passed as uniform, instancing not possible.
+		Shader* mp_gbuffer_shader_mesh_bufferless = nullptr;
+
 		Shader* m_post_process_shader = nullptr;
+
 		Shader* mp_orth_depth_shader = nullptr; //dir light
 		Shader* mp_persp_depth_shader = nullptr; //spotlights
 		Shader* mp_pointlight_depth_shader = nullptr;
+
+		Shader* mp_orth_depth_shader_bufferless = nullptr; //dir light
+		Shader* mp_persp_depth_shader_bufferless = nullptr; //spotlights
+		Shader* mp_pointlight_depth_shader_bufferless = nullptr;
+
+
 		Shader* m_blur_shader = nullptr;
 		Shader* m_fog_shader = nullptr;
 		Shader* m_lighting_shader = nullptr;
@@ -143,6 +156,8 @@ namespace ORNG {
 		Shader* mp_bloom_upsample_shader = nullptr;
 		Shader* mp_bloom_threshold_shader = nullptr;
 		Shader* mp_transparency_shader = nullptr;
+		Shader* mp_transparency_shader_bufferless = nullptr;
+
 		Shader* mp_transparency_composite_shader = nullptr;
 
 		Framebuffer* m_gbuffer_fb = nullptr;

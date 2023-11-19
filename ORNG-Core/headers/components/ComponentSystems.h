@@ -3,6 +3,7 @@
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
 #include "physx/PxPhysicsAPI.h"
+#include "physx/vehicle2/PxVehicleAPI.h"
 #include "scripting/ScriptShared.h"
 
 namespace physx {
@@ -149,6 +150,7 @@ namespace ORNG {
 		void OnUpdate(float ts);
 		void OnUnload();
 		void OnLoad();
+		const auto& GetMaterials() { return m_physics_materials; }
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
@@ -162,15 +164,25 @@ namespace ORNG {
 				return nullptr;
 		}
 
+		bool InitVehicle(VehicleComponent* p_comp);
+
+
 	private:
 		void InitComponent(PhysicsComponent* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
-		void InitComponent(FixedJointComponent* p_comp);
+		void InitComponent(VehicleComponent* p_comp);
 		void HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event);
 		void UpdateComponentState(PhysicsComponent* p_comp);
 		void RemoveComponent(PhysicsComponent* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
 		void RemoveComponent(FixedJointComponent* p_comp);
+		void RemoveComponent(VehicleComponent* p_comp);
+
+
+		void InitVehicleSimulationContext();
+
+		physx::vehicle2::PxVehiclePhysXSimulationContext m_vehicle_context;
+		PxConvexMesh* mp_sweep_mesh = nullptr;
 
 		void InitListeners();
 		void DeinitListeners();
@@ -185,6 +197,7 @@ namespace ORNG {
 		Events::ECS_EventListener<FixedJointComponent> m_joint_listener;
 		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
+		Events::ECS_EventListener<VehicleComponent> m_vehicle_listener;
 
 		physx::PxBroadPhase* mp_broadphase = nullptr;
 		physx::PxAABBManager* mp_aabb_manager = nullptr;
@@ -213,7 +226,7 @@ namespace ORNG {
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		float m_step_size = (1.f / 120.f);
+		float m_step_size = (1.f / 60.f);
 		float m_accumulator = 0.f;
 
 		class PhysCollisionCallback : public physx::PxSimulationEventCallback {

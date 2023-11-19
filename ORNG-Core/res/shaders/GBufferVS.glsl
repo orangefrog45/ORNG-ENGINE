@@ -22,6 +22,9 @@ out mat4 vs_transform;
 out vec3 vs_original_normal;
 out vec3 vs_view_dir_tangent_space;
 
+#ifdef NO_TRANSFORM_BUFFERS
+uniform mat4 u_transform;
+#endif
 
 
 mat3 CalculateTbnMatrixTransform() {
@@ -73,7 +76,11 @@ void main() {
 		gl_Position = proj_pos.xyww;
 #else
 		vs_tex_coord = vec3(tex_coord, 0.f);
+		#ifdef NO_TRANSFORM_BUFFERS
+		vs_transform = u_transform;
+		#else
 		vs_transform = transform_ssbo.transforms[gl_InstanceID];
+		#endif
 		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
 		vs_position = vs_transform * (vec4(position, 1.0f));
 

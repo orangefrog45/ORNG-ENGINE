@@ -19,6 +19,8 @@ namespace ORNG {
 		EditorEventType event_type;
 	};
 
+	constexpr unsigned MAX_EVENT_HISTORY = 50;
+
 	class EditorEventStack {
 	public:
 		EditorEventStack() = default;
@@ -28,6 +30,10 @@ namespace ORNG {
 				m_events.erase(m_events.begin() + glm::max(m_active_index, 0), m_events.end());
 
 			m_events.push_back(e);
+
+			if (m_events.size() > MAX_EVENT_HISTORY)
+				m_events.erase(m_events.begin());
+
 			m_active_index = m_events.size() - 1;
 		};
 

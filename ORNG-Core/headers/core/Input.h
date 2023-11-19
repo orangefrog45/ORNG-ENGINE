@@ -160,7 +160,6 @@ namespace ORNG {
 			e_event.mouse_action = MOVE;
 			e_event.mouse_button = MouseButton::NONE;
 			e_event.mouse_pos_new = glm::ivec2(x, y);
-
 			Events::EventManager::DispatchEvent(e_event);
 		}
 

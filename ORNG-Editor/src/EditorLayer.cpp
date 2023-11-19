@@ -16,6 +16,7 @@
 #include "core/Input.h"
 #include "util/ExtraUI.h"
 #include <glm/glm/gtx/quaternion.hpp>
+#include "physics/vehicles/DirectDrive.h"
 #include <fmod.hpp>
 
 
@@ -131,11 +132,13 @@ namespace ORNG {
 
 		MakeProjectActive(base_proj_dir);
 
+		InitVehicle();
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
 
 
-
+	void EditorLayer::InitVehicle() {
+	}
 
 	void EditorLayer::BeginPlayScene() {
 		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
@@ -538,14 +541,13 @@ namespace ORNG {
 		if (m_general_settings.debug_render_settings.render_physx_debug)
 			RenderPhysxDebug();
 
+		// Mouse drag selection quad
 		if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
 			mp_quad_col_shader->ActivateProgram();
 			mp_quad_col_shader->SetUniform("u_color", glm::vec4(0, 0, 1, 0.1));
 			glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
 			Renderer::DrawScaledQuad((glm::vec2(m_mouse_drag_data.start.x, Window::GetHeight() - m_mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_mouse_drag_data.end.x, Window::GetHeight() - m_mouse_drag_data.end.y) / w) * 2.f - 1.f);
 		}
-
-
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 
@@ -821,6 +823,8 @@ namespace ORNG {
 		FileDelete("./res/scripts/includes/AudioComponent.h");
 		FileDelete("./res/scripts/includes/ScriptShared.h");
 		FileDelete("./res/scripts/includes/ScriptInstancer.h");
+		FileDelete("./res/scripts/includes/VehicleComponent.h");
+
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
@@ -837,6 +841,7 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/VehicleComponent.h", "./res/scripts/includes/VehicleComponent.h");
 	}
 
 
@@ -883,7 +888,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-		const char* names[7] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio" };
+		const char* names[8] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle" };
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -925,6 +930,9 @@ namespace ORNG {
 			break;
 		case 6:
 			entity->AddComponent<AudioComponent>();
+			break;
+		case 7:
+			entity->AddComponent<VehicleComponent>();
 			break;
 		}
 	}
@@ -1141,19 +1149,19 @@ namespace ORNG {
 		flags |= p_entity_relationship_comp->num_children > 0 ? ImGuiTreeNodeFlags_OpenOnArrow : 0;
 		bool is_tree_node_open = ImGui::TreeNodeEx(formatted_name.c_str(), flags);
 
-		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
-				/* Functionality handled externally */
-			}
-			ImGui::EndDragDropTarget();
-		}
-
 		if (ImGui::IsItemToggledOpen()) {
 			auto it = std::ranges::find(open_tree_nodes, p_entity->GetUUID());
 			if (it == open_tree_nodes.end())
 				open_tree_nodes.push_back(p_entity->GetUUID());
 			else
 				open_tree_nodes.erase(it);
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
+				/* Functionality handled externally */
+			}
+			ImGui::EndDragDropTarget();
 		}
 
 		m_selected_entities_are_dragged |= ImGui::IsItemHovered() && ImGui::IsMouseDragging(0);
@@ -1164,21 +1172,22 @@ namespace ORNG {
 				ImGui::EndDragDropSource();
 			}
 		}
+
+		// Drag entities into another entity node to make them children of it
+		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged && ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
+			DeselectEntity(p_entity->GetUUID());
+			for (auto id : m_selected_entity_ids) {
+				m_active_scene->GetEntity(id)->SetParent(*p_entity);
+			}
+
+			m_selected_entities_are_dragged = false;
+		}
+
 		ImGui::PopStyleVar();
 		ImGui::PopStyleColor();
 
 		std::string popup_id = std::format("{}", p_entity->GetUUID()); // unique popup id
 		if (ImGui::IsItemHovered()) {
-			// Drag entities into another entity node to make them children of it
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged) {
-				DeselectEntity(p_entity->GetUUID());
-				for (auto id : m_selected_entity_ids) {
-					m_active_scene->GetEntity(id)->SetParent(*p_entity);
-				}
-
-				m_selected_entities_are_dragged = false;
-			}
-
 			// Right click to open popup
 			if (ImGui::IsMouseClicked(1))
 				ImGui::OpenPopup(popup_id.c_str());
@@ -1324,6 +1333,7 @@ namespace ORNG {
 			PhysicsComponent* p_physics_comp = entity->GetComponent<PhysicsComponent>();
 			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
 			auto* p_audio_comp = entity->GetComponent<AudioComponent>();
+			auto* p_vehicle_comp = entity->GetComponent<VehicleComponent>();
 
 			static std::vector<TransformComponent*> transforms;
 			transforms.clear();
@@ -1416,6 +1426,15 @@ namespace ORNG {
 				}
 			}
 
+			if (p_vehicle_comp && ExtraUI::H2TreeNode("Vehicle component")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+					entity->DeleteComponent<VehicleComponent>();
+				}
+				else {
+					RenderVehicleComponentEditor(p_vehicle_comp);
+				}
+			}
+
 			glm::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
 			glm::vec2 button_size = { 200, 50 };
 			glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
@@ -1449,9 +1468,61 @@ namespace ORNG {
 	}
 
 
+	template<typename T>
+	T* AnyCast(std::any& a) {
+		try {
+			return std::any_cast<T*>(a);
+		}
+		catch (std::exception e) {
+			return nullptr;
+		}
+	}
 
 	void EditorLayer::RenderScriptComponentEditor(ScriptComponent* p_script) {
 		ImGui::PushID(p_script);
+		if (p_script->p_instance) {
+			ImGui::PushItemWidth(275.f);
+
+			for (auto& [name, mem] : p_script->p_instance->m_member_addresses) {
+				ImGui::PushID(&mem);
+
+				if (auto* p_val = AnyCast<unsigned>(mem)) {
+					static int i = *p_val;
+					i = *p_val;
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					if (ImGui::InputInt("##sv", &i))
+						*p_val = i;
+				}
+				else if (auto* p_val = AnyCast<int>(mem)) {
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					ImGui::InputInt("##sv", p_val);
+				}
+				else if (auto* p_val = AnyCast<float>(mem)) {
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					ImGui::InputFloat("##sv", p_val);
+				}
+				else if (auto* p_val = AnyCast<bool>(mem)) {
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					ImGui::Checkbox("##sv", p_val);
+				}
+				else if (auto* p_val = AnyCast<glm::vec2>(mem)) {
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					ImGui::InputFloat2("##sv", &(*p_val)[0]);
+				}
+				else if (auto* p_val = AnyCast<glm::vec3>(mem)) {
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					ImGui::InputFloat3("##sv", &(*p_val)[0]);
+				}
+				else if (auto* p_val = AnyCast<glm::vec4>(mem)) {
+					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
+					ImGui::InputFloat4("##sv", &(*p_val)[0]);
+				}
+				ImGui::PopID();
+			}
+			ImGui::PopItemWidth();
+		}
+
+
 
 		ExtraUI::NameWithTooltip(p_script->script_filepath.substr(p_script->script_filepath.find_last_of("\\") + 1).c_str());
 		ImGui::Button(ICON_FA_FILE, ImVec2(100, 100));
@@ -1468,6 +1539,68 @@ namespace ORNG {
 		ImGui::PopID(); // p_script
 	}
 
+	void EditorLayer::RenderVehicleComponentEditor(VehicleComponent* p_comp) {
+		ImGui::SeparatorText("Body mesh");
+		ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMeshPreviewTex(p_comp->p_body_mesh)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
+				if (p_payload->DataSize == sizeof(MeshAsset*)) {
+					p_comp->p_body_mesh = *static_cast<MeshAsset**>(p_payload->Data);
+					p_comp->m_body_materials = { p_comp->p_body_mesh->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+		ImGui::Text("Scale"); ImGui::SameLine();
+		ImGui::DragFloat3("##s1", &p_comp->body_scale[0]);
+
+		ImGui::SeparatorText("Wheel mesh");
+		ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMeshPreviewTex(p_comp->p_wheel_mesh)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
+				if (p_payload->DataSize == sizeof(MeshAsset*)) {
+					p_comp->p_wheel_mesh = *static_cast<MeshAsset**>(p_payload->Data);
+					p_comp->m_wheel_materials = { p_comp->p_wheel_mesh->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+		ImGui::Text("Scale"); ImGui::SameLine();
+		ImGui::DragFloat3("##s2", &p_comp->wheel_scale[0]);
+
+		ImGui::SeparatorText("Body materials");
+		for (int i = 0; i < p_comp->m_body_materials.size(); i++) {
+			auto p_material = p_comp->m_body_materials[i];
+			ImGui::PushID(&i);
+
+			if (auto* p_new_material = RenderMaterialComponent(p_material)) {
+				p_comp->m_body_materials[i] = p_new_material;
+			}
+
+			ImGui::PopID();
+		}
+
+
+		ImGui::SeparatorText("Wheel materials");
+		for (int i = 0; i < p_comp->m_wheel_materials.size(); i++) {
+			auto p_material = p_comp->m_wheel_materials[i];
+			ImGui::PushID(&i);
+
+			if (auto* p_new_material = RenderMaterialComponent(p_material)) {
+				p_comp->m_wheel_materials[i] = p_new_material;
+			}
+
+			ImGui::PopID();
+		}
+
+		for (int i = 0; i < 4; i++) {
+			ImGui::PushID(i);
+			if (ImGui::DragFloat3("##pos", &p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p[0])) {
+				m_active_scene->m_physics_system.InitVehicle(p_comp);
+			}
+			ImGui::PopID();
+		}
+	}
 
 	void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		ImGui::PushID(p_audio);
@@ -1507,8 +1640,8 @@ namespace ORNG {
 		}
 		ImGui::PopItemWidth();
 
-
 		ImGui::Separator();
+
 		auto* p_sound = AssetManager::GetAsset<SoundAsset>(p_audio->m_sound_asset_uuid);
 		ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 		constexpr unsigned playback_widget_width = 400;
@@ -1690,24 +1823,15 @@ namespace ORNG {
 
 		glm::mat4 delta_matrix;
 		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-		static glm::vec3 snap = glm::vec3(1.f);
-		static bool is_using = false;
+		static glm::vec3 snap = glm::vec3(0.01f);
 
+		static bool is_using = false;
 		static bool mouse_down = false;
 
-		/*if (is_using && ImGui::IsMouseReleased(0)) {
-			mouse_down = false;
-			EditorEvent e;
-			e.event_type = TRANSFORM_UPDATE;
-			e.affected_entities = m_selected_entity_ids;
-			for (auto id : m_selected_entity_ids) {
-				e.serialized_entities_after.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
-			}
-			m_event_stack.PushEvent(e);
-		}*/
+
 
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], &snap[0]) && ImGuizmo::IsUsing()) {
-			if (!is_using && !mouse_down) {
+			if (!is_using && !mouse_down && !m_simulate_mode_active) {
 				EditorEvent e;
 				e.event_type = TRANSFORM_UPDATE;
 				e.affected_entities = m_selected_entity_ids;
@@ -1716,8 +1840,8 @@ namespace ORNG {
 				}
 				m_event_stack.PushEvent(e);
 			}
-			is_using = true;
-			mouse_down = Input::IsMouseDown(0);
+
+
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
@@ -1730,6 +1854,10 @@ namespace ORNG {
 			glm::vec3 delta_scale = matrix_scale;
 			glm::vec3 delta_rotation = matrix_rotation;
 
+			static std::vector<glm::vec3> scale_dividers;
+
+
+			int i = 0;
 			for (auto* p_transform : transforms) {
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
@@ -1737,7 +1865,6 @@ namespace ORNG {
 					break;
 				case ImGuizmo::SCALE:
 				{
-					float scale = delta_scale.x < 0 || delta_scale.y < 0 || delta_scale.z < 0 ? -1.f : 1.f;
 					p_transform->SetScale(p_transform->m_scale * delta_scale);
 					break;
 				}
@@ -1761,12 +1888,17 @@ namespace ORNG {
 					p_transform->SetAbsolutePosition(base_abs_translation + rotation_offset);
 					break;
 				}
+				i++;
 			}
+
+			is_using = true;
+			mouse_down = Input::IsMouseDown(0);
 		}
 		else {
-			if (ImGui::IsMouseReleased(0))
+			if (ImGui::IsMouseReleased(0)) {
 				mouse_down = false;
-			is_using = false;
+				is_using = false;
+			}
 		}
 	}
 

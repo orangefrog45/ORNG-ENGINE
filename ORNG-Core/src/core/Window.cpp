@@ -112,7 +112,6 @@ namespace ORNG {
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
-
 		m_mouse_listener.OnEvent = [this](const Events::MouseEvent& t_event) {
 			if (t_event.event_type != Events::MouseEventType::SET)
 				return;

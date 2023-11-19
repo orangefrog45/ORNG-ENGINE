@@ -116,7 +116,8 @@ vec3 Colour(vec3 p)
 	float scale = 1.;
 	for (int i = 0; i < 12; i++)
 	{
-		p = invertSphere(p, p.yxz, 1.0 * max(abs(sin(ubo_common.time_elapsed * 0.000)), 0.7));
+						p = invertSphere(p , p.yxz, 0.6);
+
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
@@ -152,13 +153,16 @@ vec3 rma(vec3 p)
 
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
+	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
+	p = vec3(0);
 	p = p.xzy;
 	float scale = 1.;
 	// Move point towards limit set
 	for (int i = 0; i < 12; i++)
 	{
 		// box fold
-		p = invertSphere(p , p.yxz, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.0001)), 0.0, 0.9));
+		//p = invertSphere(p , p.yxz, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.00001)), 0.0, 0.9));
+		//p = invertSphere(p , p.yxz,1.2 );
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
@@ -208,9 +212,9 @@ void main() {
 	float max_dist = length(world_pos - ubo_common.camera_pos.xyz);
 	float t = 0.01;
 	float d = 0.01;
-	for (int i = 0; i < 256; i++) {
+	for (int i = 0; i < 196; i++) {
 		d = map(step_pos);
-		step_pos += d * march_dir;
+		 step_pos += d * march_dir;
 		t += d;
 		if (d < 0.001 * t) {
 			vec3 norm = calcNormal(step_pos, t);
@@ -219,12 +223,11 @@ void main() {
 
 			float rad = int(ubo_common.time_elapsed) % 10000 * 0.1;
 			float cyl_dist = tube(step_pos + step_pos * abs(noise(step_pos.xz / 15.0)), rad, rad + 1.0, 10000, 50.0);
-			float perlin = MapVein(step_pos, cyl_dist, t);
 
 			albedo = vec4(Colour(step_pos), 1.0);
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 
-			roughness_metallic_ao =vec4(0.3, 0.2, 0.2, 1.0);
+			roughness_metallic_ao =vec4(rma(step_pos), 1.0);
 			//roughness_metallic_ao = vec4(0.5, 0.0 + float(perlin <= 0.01) * 0.8, 0.02, 1.0);
 
 			vec4 proj = PVMatrices.proj_view * vec4(step_pos, 1.0);

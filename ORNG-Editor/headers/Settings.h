@@ -2,11 +2,11 @@
 
 namespace ORNG {
 	struct SelectionSettings {
-		bool select_all;
+		bool select_all = true;
 		bool select_physics_objects;
 		bool select_mesh_objects;
 		bool select_light_objects;
-		bool select_only_parents;
+		bool select_only_parents = true;
 	};
 
 	struct EditorWindowSettings {

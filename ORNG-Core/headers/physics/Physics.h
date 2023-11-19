@@ -1,10 +1,9 @@
 #pragma once
-#include <PxPhysicsAPI.h>
+#include <physx/PxPhysicsAPI.h>
 
 
 #include "util/Log.h"
 #include "util/util.h"
-#include "rendering/VAO.h"
 
 
 
@@ -85,7 +84,6 @@ namespace ORNG {
 		physx::PxPvd* mp_pvd = nullptr;
 		physx::PxPhysics* mp_physics = nullptr;
 		physx::PxPvdTransport* mp_transport = nullptr;
-		//physx::PxCooking* mp_cooking = nullptr;
 		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
 		physx::PxCudaContextManager* mp_cuda_context_manager = nullptr;
 

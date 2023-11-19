@@ -7,3 +7,4 @@
 #include "components/TransformComponent.h"
 #include "components/PhysicsComponent.h"
 #include "components/AudioComponent.h"
+#include "components/VehicleComponent.h"

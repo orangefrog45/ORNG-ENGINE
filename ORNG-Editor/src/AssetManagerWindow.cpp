@@ -34,6 +34,7 @@ namespace ORNG {
 		auto& cube_entity = mp_preview_scene->CreateEntity("Cube");
 		cube_entity.AddComponent<MeshComponent>();
 
+
 		auto& cam_entity = mp_preview_scene->CreateEntity("Cam");
 		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
 		p_cam->fov = 60.f;

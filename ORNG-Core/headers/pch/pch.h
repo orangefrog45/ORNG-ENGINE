@@ -15,6 +15,7 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
 #include <glm/glm/gtx/matrix_major_storage.hpp>
+#include <glm/glm/gtc/quaternion.hpp>
 #include <stb/stb_image.h>
 
 #include <any>

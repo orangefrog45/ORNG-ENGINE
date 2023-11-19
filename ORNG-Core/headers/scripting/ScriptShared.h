@@ -10,6 +10,7 @@ namespace ORNG {
 
 	class ScriptBase {
 		friend class ScriptComponent;
+		friend class EditorLayer;
 		friend class ::Instancer;
 	public:
 		virtual ~ScriptBase() {};

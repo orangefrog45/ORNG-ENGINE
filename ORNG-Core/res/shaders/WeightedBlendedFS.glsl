@@ -78,8 +78,7 @@ void main() {
 	float n_dot_v = max(dot(n, v), 0.0);
 
 	//reflection amount
-	vec3 f0 = vec3(0.04); // TODO: Support different values for more metallic objects
-	f0 = mix(f0, u_material.base_color.rgb, u_material.metallic);
+	vec3 f0 = mix( vec3(0.03), u_material.base_color.rgb, u_material.metallic);
 
 	float roughness = texture(roughness_sampler, vs_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
 	float metallic = texture(metallic_sampler, vs_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
