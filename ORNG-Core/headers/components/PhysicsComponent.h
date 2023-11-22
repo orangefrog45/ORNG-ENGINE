@@ -20,7 +20,7 @@ namespace physx {
 namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
-
+	class PhysXMaterialAsset;
 
 
 
@@ -36,6 +36,8 @@ namespace ORNG {
 		void SetAngularVelocity(glm::vec3 v);
 		glm::vec3 GetVelocity() const;
 		glm::vec3 GetAngularVelocity() const;
+
+		void SetMaterial(PhysXMaterialAsset& material);
 
 		void AddForce(glm::vec3 force);
 		void ToggleGravity(bool on);
@@ -62,7 +64,7 @@ namespace ORNG {
 		
 		bool m_is_trigger = false;
 		physx::PxShape* p_shape = nullptr;
-		physx::PxMaterial* p_material = nullptr;
+		PhysXMaterialAsset* p_material = nullptr;
 		physx::PxRigidActor* p_rigid_actor = nullptr;
 		GeometryType m_geometry_type = BOX;
 		RigidBodyType m_body_type = STATIC;

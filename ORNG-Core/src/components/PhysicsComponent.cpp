@@ -4,6 +4,7 @@
 #include <characterkinematic/PxCapsuleController.h>
 #include <PxPhysicsAPI.h>
 #include "physics/Physics.h"
+#include "assets/PhysXMaterialAsset.h"
 
 namespace ORNG {
 	using namespace physx;
@@ -61,6 +62,14 @@ namespace ORNG {
 		{
 			return { 0, 0, 0 };
 		}
+	}
+
+
+	void PhysicsComponent::SetMaterial(PhysXMaterialAsset& material) {
+		p_material->p_material->release();
+		p_material = &material;
+		material.p_material->acquireReference();
+		SendUpdateEvent();
 	}
 
 	glm::vec3 PhysicsComponent::GetVelocity() const {

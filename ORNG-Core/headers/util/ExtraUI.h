@@ -20,6 +20,8 @@ namespace ORNG {
 		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ColoredButton(const char* content, ImVec4 col, ImVec2 size = { 0, 0 });
 		static bool RightClickPopup(const char* id);
+
+		static bool AlphaNumTextInput(std::string& input);
 	};
 
 	inline static ImVec2 AddImVec2(ImVec2 v1, ImVec2 v2) {

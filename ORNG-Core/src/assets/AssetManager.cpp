@@ -11,7 +11,7 @@
 #include <fmod_errors.h>
 #include "core/GLStateManager.h"
 #include "scene/SceneSerializer.h"
-
+#include "physics/Physics.h" // for material initialization
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -81,7 +81,7 @@ namespace ORNG {
 	void AssetManager::IClearAll() {
 		auto it = m_assets.begin();
 		while (it != m_assets.end()) {
-			if (it->first <= ORNG_BASE_SPHERE_ID) {
+			if (it->first <= ORNG_BASE_PHYSX_MATERIAL_ID) {
 				it++;
 				continue;
 			}
@@ -268,6 +268,8 @@ namespace ORNG {
 		std::string material_folder = project_dir + "\\res\\materials\\";
 		std::string prefab_folder = project_dir + "\\res\\prefabs\\";
 		std::string script_folder = project_dir + "\\res\\scripts\\";
+		std::string physx_mat_folder = project_dir + "\\res\\physx-materials\\";
+
 
 		Texture2DSpec default_spec;
 		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -348,6 +350,13 @@ namespace ORNG {
 			else {
 				std::string path_string = path.string();
 				if (precompiled_scripts) {
+#ifdef NDEBUG
+					if (path_string.find("debug") != std::string::npos)
+						continue;
+#else
+					if (path_string.find("release") != std::string::npos)
+						continue;
+#endif
 					std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
 					auto first = dll_path.rfind("\\");
 					std::string rel_path = ".\\res\\scripts" + dll_path.substr(first, dll_path.rfind(".") - first) + ".cpp";
@@ -362,34 +371,47 @@ namespace ORNG {
 				}
 			}
 		}
+
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(physx_mat_folder)) {
+			auto path = entry.path();
+			if (entry.is_directory() || path.extension() != ".opmat")
+				continue;
+			else {
+				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\physx-materials"));
+				auto* p_mat = new PhysXMaterialAsset(rel_path);
+				DeserializeAssetBinary(rel_path, *p_mat);
+				AddAsset(p_mat);
+			}
+		}
 	}
 
 
-	void AssetManager::SerializeAssets() {
-		for (const auto& [uuid, p_asset] : Get().m_assets) {
-			auto* p_tex_asset = dynamic_cast<Texture2D*>(p_asset);
-			if (!p_tex_asset)
-				continue;
-			SceneSerializer::SerializeBinary(".\\res\\textures\\" + p_tex_asset->filepath.substr(p_tex_asset->filepath.rfind("\\") + 1) + ".otex", *p_tex_asset);
+	void AssetManager::ISerializeAssets() {
+		// Serialize all assets currently loaded into asset manager
+		// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
+
+		for (auto* p_texture : GetView<Texture2D>()) {
+			SceneSerializer::SerializeBinary(".\\res\\textures\\" + p_texture->filepath.substr(p_texture->filepath.rfind("\\") + 1) + ".otex", *p_texture);
 		}
 
-
-		for (const auto& [uuid, p_asset] : Get().m_assets) {
-			auto* p_material = dynamic_cast<Material*>(p_asset);
-			if (!p_material || p_material->uuid() == ORNG_BASE_MATERIAL_ID)
-				continue;
-
-			SceneSerializer::SerializeBinary(".\\res\\materials\\" + std::format("{}", p_material->uuid()) + ".omat", *p_material);
+		for (auto* p_mat : GetView<Material>()) {
+			SceneSerializer::SerializeBinary(".\\res\\materials\\" + std::format("{}", p_mat->uuid()) + ".omat", *p_mat);
 		}
 
-		for (auto* p_sound : Get().GetView<SoundAsset>()) {
-			if (p_sound->uuid() == ORNG_BASE_SOUND_ID)
-				continue;
-
+		for (auto* p_sound : GetView<SoundAsset>()) {
 			std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
 			fn = fn.substr(0, fn.rfind(".osound"));
 			SceneSerializer::SerializeBinary(".\\res\\audio\\" + fn + ".osound", *p_sound);
 		}
+
+		for (auto* p_mat : GetView<PhysXMaterialAsset>()) {
+			SceneSerializer::SerializeBinary(".\\res\\physx-materials\\" + std::format("{}", p_mat->uuid()) + ".opmat", *p_mat);
+		}
+	}
+
+	void AssetManager::InitPhysXMaterialAsset(PhysXMaterialAsset& asset) {
+		asset.p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
 	}
 
 
@@ -414,9 +436,24 @@ namespace ORNG {
 		AddAsset(&*mp_base_sphere);
 		mp_base_sound->source_filepath = mp_base_sound->filepath;
 		mp_base_sound->CreateSound();
+
+		mp_base_physx_material = std::make_unique<PhysXMaterialAsset>("BASE");
+		mp_base_physx_material->uuid = UUID(ORNG_BASE_PHYSX_MATERIAL_ID);
+		mp_base_physx_material->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
+		AddAsset(&*mp_base_physx_material);
 	}
 
 
+	void AssetManager::IOnShutdown() {
+		ClearAll();
+		Get().mp_replacement_material.release();
+		Get().mp_base_sound.release();
+		Get().mp_base_tex.release();
+		Get().mp_base_cube.release();
+		Get().mp_base_sphere.release();
+		Get().mp_base_physx_material->p_material->release();
+		Get().mp_base_physx_material.release();
+	};
 
 	void AssetManager::InitBaseSphere() {
 		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.obj");
@@ -583,16 +620,4 @@ namespace ORNG {
 	}
 
 
-	void SoundAsset::CreateSound() {
-		if (auto result = AudioEngine::GetSystem()->createSound(source_filepath.c_str(), FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF, nullptr, &p_sound); result != FMOD_OK) {
-			ORNG_CORE_ERROR("Error loading sound: '{0}', '{1}'", source_filepath, FMOD_ErrorString(result));
-		}
-	}
-
-
-
-	SoundAsset::~SoundAsset() {
-		if (p_sound)
-			p_sound->release();
-	}
 }

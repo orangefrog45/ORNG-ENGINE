@@ -2,7 +2,6 @@
 #include "TerrainGenerator.h"
 
 namespace ORNG {
-
 	class ChunkLoader;
 	class TerrainChunk;
 
@@ -55,7 +54,7 @@ namespace ORNG {
 		bool m_is_subdivided = false;
 		int m_subdivision_layer = 0;
 		int m_max_subdivision_layer;
-		int m_min_grid_width = 50;
+		int m_min_grid_width = 128;
 
 		/*Data for building terrain*/
 		glm::vec3 m_center_pos = glm::vec3(0, 0, 0);
@@ -63,6 +62,5 @@ namespace ORNG {
 		unsigned int m_seed;
 		float m_height_scale;
 		unsigned int m_resolution;
-
 	};
 }

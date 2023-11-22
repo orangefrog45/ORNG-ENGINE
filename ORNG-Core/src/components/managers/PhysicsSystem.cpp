@@ -9,6 +9,8 @@
 #include "physx/vehicle2/PxVehicleAPI.h"
 #include "physics/vehicles/DirectDrive.h"
 #include "assets/AssetManager.h"
+#include "physx/extensions/PxParticleExt.h"
+
 
 namespace ORNG {
 	using namespace physx;
@@ -129,8 +131,6 @@ namespace ORNG {
 		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eJOINT_LOCAL_FRAMES, 1.0f);
 		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eJOINT_LIMITS, 1.0f);
 		mp_controller_manager = PxCreateControllerManager(*mp_phys_scene);
-		m_physics_materials.push_back(Physics::GetPhysics()->createMaterial(0.75f, 0.8f, 0.6f));
-		m_physics_materials[0]->acquireReference();
 
 		InitListeners();
 
@@ -256,15 +256,17 @@ namespace ORNG {
 		if (vehicle.mPhysXState.physxActor.rigidBody)
 			vehicle.destroy();
 
+		auto* p_base_material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
+
 		static PxVehiclePhysXMaterialFriction f1;
 		f1.friction = 0.8;
-		f1.material = m_physics_materials[0];
+		f1.material = p_base_material;
 		PxVec3 half_extents({ 0.5, 0.5, 1.0 });
 		PxCookingParams params{ PxTolerancesScale(Physics::GetToleranceScale()) };
 		//setPhysXIntegrationParams(vehicle.mBaseParams.axleDescription, &f1, 1, 0.5, vehicle.mPhysXParams);
 		vehicle.mPhysXParams.create(vehicle.mBaseParams.axleDescription, PxQueryFilterData(), nullptr, &f1, 1, 0.5, PxTransform({ 0.0, 0.0, 0.5 }), half_extents, PxTransform(PxIdentity));
 
-		bool result = vehicle.initialize(*Physics::GetPhysics(), params, *m_physics_materials[0], true);
+		bool result = vehicle.initialize(*Physics::GetPhysics(), params, *p_base_material, true);
 		vehicle.setUpActor(*mp_phys_scene, PxTransform(PxIdentity), "Test vehicle");
 		PxShape* shapes[5];
 		vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shapes[0], 5);
@@ -452,7 +454,7 @@ namespace ORNG {
 		p_comp->p_rigid_actor->release();
 
 		p_comp->p_shape->release();
-		p_comp->p_material->release();
+		p_comp->p_material->p_material->release();
 	}
 
 
@@ -460,12 +462,6 @@ namespace ORNG {
 	void PhysicsSystem::OnUnload() {
 		PxVehicleUnitCylinderSweepMeshDestroy(mp_sweep_mesh);
 		DeinitListeners();
-
-		for (auto* p_material : m_physics_materials) {
-			p_material->release();
-		}
-
-		m_physics_materials.clear();
 
 		mp_controller_manager->release();
 		mp_aabb_manager->release();
@@ -578,11 +574,11 @@ namespace ORNG {
 		switch (p_comp->m_geometry_type) {
 		case PhysicsComponent::SPHERE:
 			p_comp->p_shape->release();
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material, p_comp->IsTrigger());
+			p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material->p_material, p_comp->IsTrigger());
 			break;
 		case PhysicsComponent::BOX:
 			p_comp->p_shape->release();
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material, p_comp->IsTrigger());
+			p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material->p_material, p_comp->IsTrigger());
 			break;
 		case PhysicsComponent::TRIANGLE_MESH:
 			if (!p_mesh_comp)
@@ -590,7 +586,7 @@ namespace ORNG {
 
 			p_comp->p_shape->release();
 			PxTriangleMesh* aTriangleMesh = GetOrCreateTriangleMesh(p_mesh_comp->GetMeshData());
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_comp->p_material, p_comp->IsTrigger());
+			p_comp->p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_comp->p_material->p_material, p_comp->IsTrigger());
 			break;
 		}
 
@@ -620,7 +616,6 @@ namespace ORNG {
 			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
 		}
 
-		p_comp->p_shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 	}
@@ -641,12 +636,11 @@ namespace ORNG {
 		glm::quat quat = glm::quat(glm::radians(rot));
 		PxQuat px_quat{ quat.x, quat.y, quat.z, quat.w };
 
-		// Create default material
-		p_comp->p_material = m_physics_materials[0];
-		p_comp->p_material->acquireReference();
+		p_comp->p_material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID);
+		p_comp->p_material->p_material->acquireReference();
 
 		// Setup shape based on mesh AABB if available
-		p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(extents.x, extents.y, extents.z), *p_comp->p_material);
+		p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(extents.x, extents.y, extents.z), *p_comp->p_material->p_material);
 		p_comp->p_shape->acquireReference();
 
 		if (p_comp->m_body_type == PhysicsComponent::STATIC) {
@@ -765,7 +759,7 @@ namespace ORNG {
 		PxCapsuleControllerDesc desc;
 		desc.height = 2.0;
 		desc.radius = 0.5;
-		desc.material = m_physics_materials[0];
+		desc.material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
 		desc.stepOffset = 1.8f;
 		p_comp->mp_controller = mp_controller_manager->createController(desc);
 

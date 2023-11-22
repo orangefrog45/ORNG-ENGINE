@@ -166,7 +166,7 @@ namespace ORNG {
 
 		Texture2DSpec gbuffer_spec_2;
 		gbuffer_spec_2.format = GL_RED_INTEGER;
-		gbuffer_spec_2.internal_format = GL_R16UI;
+		gbuffer_spec_2.internal_format = GL_R8UI;
 		gbuffer_spec_2.storage_type = GL_UNSIGNED_INT;
 		gbuffer_spec_2.width = Window::GetWidth();
 		gbuffer_spec_2.height = Window::GetHeight();
@@ -178,6 +178,7 @@ namespace ORNG {
 		low_pres_spec.storage_type = GL_FLOAT;
 		low_pres_spec.width = Window::GetWidth();
 		low_pres_spec.height = Window::GetHeight();
+
 
 		Texture2DSpec gbuffer_depth_spec;
 		gbuffer_depth_spec.format = GL_DEPTH_COMPONENT;

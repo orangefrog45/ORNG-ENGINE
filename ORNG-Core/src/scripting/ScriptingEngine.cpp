@@ -230,6 +230,7 @@ namespace ORNG {
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
 		symbols.loaded = true;
+		symbols.DestroyInstance(symbols.CreateInstance());
 
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
 		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));

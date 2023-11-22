@@ -14,6 +14,16 @@ uniform float exposure;
 uniform float u_bloom_intensity;
 
 
+vec3 ACESFilm(vec3 x)
+{
+	float a = 2.51;
+	float b = 0.03;
+	float c = 2.43;
+	float d = 0.59;
+	float e = 0.14;
+	return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0, 1);
+}
+
 void main() {
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 	float gamma = 2.2;
@@ -22,8 +32,8 @@ void main() {
 	vec3 fog_mix_color = mix(imageLoad(u_output_texture, tex_coords).rgb, sampled_fog_color.rgb, clamp(sampled_fog_color.w, 0.f, 1.f));
 	fog_mix_color += texelFetch(bloom_sampler, tex_coords / 2, 0).rgb * u_bloom_intensity;
 	vec3 mapped = vec3(1.0) - exp(-fog_mix_color * exposure);
-	
-	vec3 gamma_adjusted = pow(mapped, vec3(1.0 / gamma));
+	vec3 tone_mapped = ACESFilm(mapped);
+	vec3 gamma_adjusted = pow(tone_mapped, vec3(1.0 / gamma));
 	imageStore(u_output_texture, tex_coords, vec4(gamma_adjusted, 1.0));
 
 }

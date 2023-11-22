@@ -47,8 +47,9 @@ namespace ORNG {
 		}
 		inline static const int window_height = 300;
 	private:
-		void CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp);
 		void RenderMainAssetWindow();
+
+		void CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp);
 		void RenderConfirmationWindow(ConfirmationWindowData& data, int index);
 		void PushConfirmationWindow(const std::string& str, std::function<void()> func) {
 			m_confirmation_window_stack.emplace_back(str, func);
@@ -67,11 +68,15 @@ namespace ORNG {
 		void RenderMeshAssetTab();
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
 
+		void RenderPhysxMaterialTab();
+
 		void RenderTextureTab();
 		void RenderTexture(Texture2D* p_tex);
 
 		void RenderMaterialTab();
 		void RenderMaterial(Material* p_material);
+
+		void RenderPhysXMaterialEditor();
 
 		void RenderAudioTab();
 
@@ -86,12 +91,14 @@ namespace ORNG {
 				});
 		};
 
-		ImVec2 image_button_size{ 0, 0 };
+		ImVec2 image_button_size{ 125, 125};
 		unsigned column_count = 1;
 
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
 		Material* mp_selected_material = nullptr;
+		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
+
 		std::unique_ptr<Scene>* mp_scene_context = nullptr;
 
 		// UUID's of assets flagged for deletion

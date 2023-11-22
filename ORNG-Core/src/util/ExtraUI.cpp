@@ -1,6 +1,7 @@
 #include "pch/pch.h"
 #include "util/ExtraUI.h"
 #include "util/util.h"
+#include "../extern/imgui/misc/cpp/imgui_stdlib.h"
 
 namespace ORNG {
 	void ExtraUI::NameWithTooltip(const std::string& name) {
@@ -167,6 +168,8 @@ namespace ORNG {
 		glm::vec3 vec_copy = vec;
 		ImGui::PushID(&vec);
 		ImGui::Text(name);
+		ImGui::SameLine();
+
 		ImGui::PushItemWidth(100.f);
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
 		ImGui::SameLine();
@@ -249,6 +252,21 @@ namespace ORNG {
 
 		return ret;
 	}
+
+	int InputTextCallback(ImGuiInputTextCallbackData* data)
+	{
+		int iters = 0;
+		if (std::isalnum(data->EventChar) == 0 && data->EventChar != '_' && data->EventChar != ' ') return 1;
+
+		return 0;
+	}
+
+	bool ExtraUI::AlphaNumTextInput(std::string& input) {
+		ImGui::PushID(&input);
+		bool r = ImGui::InputText("##input", &input, ImGuiInputTextFlags_CallbackCharFilter, InputTextCallback);
+		ImGui::PopID();
+		return r;
+	 }
 
 	bool ExtraUI::RightClickPopup(const char* id) {
 		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {

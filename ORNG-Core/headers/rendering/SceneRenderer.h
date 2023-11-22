@@ -144,10 +144,6 @@ namespace ORNG {
 		Shader* mp_persp_depth_shader = nullptr; //spotlights
 		Shader* mp_pointlight_depth_shader = nullptr;
 
-		Shader* mp_orth_depth_shader_bufferless = nullptr; //dir light
-		Shader* mp_persp_depth_shader_bufferless = nullptr; //spotlights
-		Shader* mp_pointlight_depth_shader_bufferless = nullptr;
-
 
 		Shader* m_blur_shader = nullptr;
 		Shader* m_fog_shader = nullptr;

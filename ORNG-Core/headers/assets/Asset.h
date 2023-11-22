@@ -3,6 +3,9 @@
 #include "../util/Log.h"
 #include "util/util.h"
 
+namespace physx {
+	class PxMaterial;
+}
 
 namespace ORNG {
 	struct Asset {
@@ -28,4 +31,6 @@ namespace ORNG {
 			s.container1b(filepath, filepath.size());
 		}
 	};
+
+
 }

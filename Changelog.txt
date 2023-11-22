@@ -1,3 +1,13 @@
+22/11/23:
+-Physx material assets, component implementation
+-Editor UI changes
+-Terrain quadtree fixes to improve chunk seams
+
+
+20/11/23:
+-ACES tonemapping
+-Fixed asset manager attempting to load both release and debug precompiled scripts
+
 19/11/23:
 -Rough implementation of physx 5.1+ vehicles (currently 4-wheeled car support), will rewrite once engine supports skeletal animation
 

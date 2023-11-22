@@ -3,6 +3,8 @@
 #include "scripting/ScriptingEngine.h"
 #include "rendering/Textures.h"
 #include "rendering/MeshAsset.h"
+#include "assets/SoundAsset.h"
+#include "PhysXMaterialAsset.h"
 #include <bitsery/bitsery.h>
 #include <bitsery/traits/vector.h>
 #include <bitsery/adapter/stream.h>
@@ -14,15 +16,14 @@
 #define ORNG_BASE_MESH_ID 3
 #define ORNG_BASE_SCRIPT_ID	4
 #define ORNG_BASE_SPHERE_ID 5
+#define ORNG_BASE_PHYSX_MATERIAL_ID 6
 
 
 class GLFWwindow;
 enum aiTextureType;
 class aiMaterial;
 
-namespace FMOD {
-	class Sound;
-}
+
 
 
 namespace bitsery {
@@ -97,22 +98,7 @@ namespace ORNG {
 		}
 	};
 
-	struct SoundAsset : public Asset {
-		SoundAsset(const std::string& t_filepath) : Asset(t_filepath) {};
-		~SoundAsset();
 
-		FMOD::Sound* p_sound = nullptr;
-		// Filepath of audio data, separate from the filepath of this asset (.osound file)
-		std::string source_filepath;
-
-		template<typename S>
-		void serialize(S& s) {
-			s.object(uuid);
-			s.text1b(source_filepath, ORNG_MAX_FILEPATH_SIZE);
-		}
-
-		void CreateSound();
-	};
 
 	class AssetManager {
 	public:
@@ -142,7 +128,7 @@ namespace ORNG {
 			std::vector<T*> vec;
 			for (auto [uuid, p_asset] : Get().m_assets) {
 				if (T* p_typed_asset = dynamic_cast<T*>(p_asset); p_typed_asset &&
-					uuid != ORNG_BASE_MATERIAL_ID && uuid != ORNG_BASE_MESH_ID && uuid != ORNG_BASE_SOUND_ID && uuid != ORNG_BASE_TEX_ID && uuid != ORNG_BASE_SPHERE_ID
+					uuid > ORNG_BASE_PHYSX_MATERIAL_ID
 					)
 					vec.push_back(p_typed_asset);
 			}
@@ -216,12 +202,7 @@ namespace ORNG {
 
 		// Clears all assets including base replacement ones
 		static void OnShutdown() {
-			ClearAll();
-			Get().mp_replacement_material.release();
-			Get().mp_base_sound.release();
-			Get().mp_base_tex.release();
-			Get().mp_base_cube.release();
-			Get().mp_base_sphere.release();
+			Get().IOnShutdown();
 		};
 
 
@@ -230,7 +211,9 @@ namespace ORNG {
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		static void LoadTexture2D(Texture2D* p_tex);
 		static void LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts);
-		static void SerializeAssets();
+		static void SerializeAssets() {
+			Get().ISerializeAssets();
+		}
 
 		// Deletes all assets
 		inline static void ClearAll() { Get().IClearAll(); };
@@ -291,6 +274,25 @@ namespace ORNG {
 				des.text1b(data.name, ORNG_MAX_NAME_SIZE);
 				des.object(data.uuid);
 			}
+			else if constexpr (std::is_same_v<T, PhysXMaterialAsset>) {
+				des.object(data.uuid);
+				des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
+
+				data.filepath = filepath;
+
+				float sf;
+				float df;
+				float r;
+
+				des.value4b(sf);
+				des.value4b(df);
+				des.value4b(r);
+
+				InitPhysXMaterialAsset(data);
+				data.p_material->setDynamicFriction(df);
+				data.p_material->setStaticFriction(sf);
+				data.p_material->setRestitution(r);
+			}
 			else {
 				des.object(data);
 			}
@@ -306,7 +308,13 @@ namespace ORNG {
 	private:
 		void I_Init();
 
+		 void IOnShutdown();
+		 void ISerializeAssets();
+
 		static void OnTextureDelete(Texture2D* p_tex);
+
+		// Intialize PxMaterial
+		static void InitPhysXMaterialAsset(PhysXMaterialAsset& asset);
 
 		static const Material* IGetEmptyMaterial() { return &*Get().mp_replacement_material; }
 		static void LoadMeshAssetIntoGL(MeshAsset* asset);
@@ -326,6 +334,8 @@ namespace ORNG {
 		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_sphere = nullptr;
 		std::unique_ptr<Texture2D> mp_base_tex = nullptr;
+		std::unique_ptr<PhysXMaterialAsset> mp_base_physx_material = nullptr;
+
 		// If a material fails to load etc, use this one instead
 		std::unique_ptr<Material> mp_replacement_material = nullptr;
 

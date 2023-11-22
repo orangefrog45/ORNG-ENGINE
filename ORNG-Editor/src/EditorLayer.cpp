@@ -2,10 +2,10 @@
 
 #include "EditorLayer.h"
 #include <glfw/glfw3.h>
+#include <fmod.hpp>
 #include "../extern/Icons.h"
 #include "../extern/imgui/backends/imgui_impl_glfw.h"
 #include "../extern/imgui/backends/imgui_impl_opengl3.h"
-#include "../extern/imgui/misc/cpp/imgui_stdlib.h"
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
@@ -15,13 +15,10 @@
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
 #include "util/ExtraUI.h"
-#include <glm/glm/gtx/quaternion.hpp>
-#include "physics/vehicles/DirectDrive.h"
-#include <fmod.hpp>
 
 
 
-constexpr unsigned LEFT_WINDOW_WIDTH = 400;
+constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 450;
 
 
@@ -179,7 +176,7 @@ namespace ORNG {
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 
 		io.Fonts->AddFontDefault();
-		io.FontDefault = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 18.0f);
+		io.FontDefault = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 16.0f);
 
 		ImFontConfig config;
 		config.MergeMode = true;
@@ -492,10 +489,10 @@ namespace ORNG {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(15, 5));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, toolbar_height)));
-		ImGui::SetNextWindowSize(ImVec2(LEFT_WINDOW_WIDTH, Window::GetHeight() - toolbar_height));
+		ImGui::SetNextWindowSize(ImVec2(LEFT_WINDOW_WIDTH, Window::GetHeight() - toolbar_height - m_asset_manager_window.window_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 
-		ImGui::Begin("##left window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus);
+		ImGui::Begin("##left window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar);
 		ImGui::End();
 
 
@@ -672,7 +669,7 @@ namespace ORNG {
 			ImGui::SeparatorText("Generate project");
 			ImGui::PopFont();
 			ImGui::Text("Name");
-			ImGui::InputText("##e", &project_name);
+			ExtraUI::AlphaNumTextInput(project_name);
 
 			static std::string err_msg = "";
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
@@ -694,116 +691,6 @@ namespace ORNG {
 	}
 
 
-
-
-
-
-	bool EditorLayer::GenerateProject(const std::string& project_name) {
-		if (std::filesystem::exists(m_executable_directory + "/projects/" + project_name)) {
-			ORNG_CORE_ERROR("Project with name '{0}' already exists", project_name);
-			return false;
-		}
-
-		if (!std::filesystem::exists(m_executable_directory + "/projects"))
-			std::filesystem::create_directory(m_executable_directory + "/projects");
-
-		std::string project_path = m_executable_directory + "/projects/" + project_name;
-		std::filesystem::create_directory(project_path);
-		// Create base scene for project to use
-		std::ofstream s{ project_path + "/scene.yml" };
-		s << ORNG_BASE_SCENE_YAML;
-		s.close();
-
-
-		std::filesystem::create_directory(project_path + "/res");
-		std::filesystem::create_directory(project_path + "/res/meshes");
-		std::filesystem::create_directory(project_path + "/res/textures");
-		std::filesystem::create_directory(project_path + "/res/scripts");
-		std::filesystem::create_directory(project_path + "/res/scripts/includes");
-		std::filesystem::create_directory(project_path + "/res/scripts/bin");
-		std::filesystem::create_directory(project_path + "/res/scripts/bin/release");
-		std::filesystem::create_directory(project_path + "/res/scripts/bin/debug");
-		std::filesystem::create_directory(project_path + "/res/shaders");
-		std::filesystem::create_directory(project_path + "/res/audio");
-		std::filesystem::create_directory(project_path + "/res/prefabs");
-		std::filesystem::create_directory(project_path + "/res/materials");
-
-
-		// Include header files for API so intellisense works
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", project_path + "/res/scripts/includes/SceneScriptInterface.h");
-		// Components
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", project_path + "/res/scripts/includes/Component.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", project_path + "/res/scripts/includes/MeshComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", project_path + "/res/scripts/includes/ScriptComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", project_path + "/res/scripts/includes/Lights.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", project_path + "/res/scripts/includes/TransformComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", project_path + "/res/scripts/includes/PhysicsComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", project_path + "/res/scripts/includes/CameraComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", project_path + "/res/scripts/includes/AudioComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");
-
-		return true;
-	}
-
-
-
-
-	bool EditorLayer::ValidateProjectDir(const std::string& dir_path) {
-		try {
-			if (!std::filesystem::exists(dir_path + "/scene.yml")) {
-				std::ofstream s{ dir_path + "/scene.yml" };
-				s << ORNG_BASE_SCENE_YAML;
-				s.close();
-			}
-
-			if (!std::filesystem::exists(dir_path + "/res/"))
-				std::filesystem::create_directory(dir_path + "/res");
-
-			if (!std::filesystem::exists(dir_path + "/res/meshes"))
-				std::filesystem::create_directory(dir_path + "/res/meshes");
-
-			if (!std::filesystem::exists(dir_path + "/res/textures"))
-				std::filesystem::create_directory(dir_path + "/res/textures");
-
-			if (!std::filesystem::exists(dir_path + "/res/shaders"))
-				std::filesystem::create_directory(dir_path + "/res/shaders");
-
-			if (!std::filesystem::exists(dir_path + "/res/scripts"))
-				std::filesystem::create_directory(dir_path + "/res/scripts");
-
-			if (!std::filesystem::exists(dir_path + "/res/prefabs"))
-				std::filesystem::create_directory(dir_path + "/res/prefabs");
-
-			if (!std::filesystem::exists(dir_path + "/res/materials"))
-				std::filesystem::create_directory(dir_path + "/res/materials");
-
-
-
-			std::ifstream stream(dir_path + "/scene.yml");
-			std::stringstream str_stream;
-			str_stream << stream.rdbuf();
-			stream.close();
-
-			YAML::Node data = YAML::Load(str_stream.str());
-			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
-				std::filesystem::copy_file(dir_path + "/scene.yml", dir_path + "/sceneCORRUPTED.yml");
-				ORNG_CORE_ERROR("scene.yml file is corrupted, replacing with default template");
-				std::ofstream s{ dir_path + "/scene.yml" };
-				s << ORNG_BASE_SCENE_YAML;
-				s.close();
-			}
-		}
-		catch (const std::exception& e) {
-			ORNG_CORE_ERROR("Error validating project '{0}', : '{1}'", dir_path, e.what());
-			return false;
-		}
-
-		return true;
-	}
 
 
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
@@ -843,6 +730,121 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/VehicleComponent.h", "./res/scripts/includes/VehicleComponent.h");
 	}
+
+
+	bool EditorLayer::GenerateProject(const std::string& project_name) {
+		if (std::filesystem::exists(m_executable_directory + "/projects/" + project_name)) {
+			ORNG_CORE_ERROR("Project with name '{0}' already exists", project_name);
+			return false;
+		}
+
+		if (!std::filesystem::exists(m_executable_directory + "/projects"))
+			std::filesystem::create_directory(m_executable_directory + "/projects");
+
+		std::string project_path = m_executable_directory + "/projects/" + project_name;
+		std::filesystem::create_directory(project_path);
+		// Create base scene for project to use
+		std::ofstream s{ project_path + "/scene.yml" };
+		s << ORNG_BASE_SCENE_YAML;
+		s.close();
+
+
+		std::filesystem::create_directory(project_path + "/res");
+		std::filesystem::create_directory(project_path + "/res/meshes");
+		std::filesystem::create_directory(project_path + "/res/textures");
+		std::filesystem::create_directory(project_path + "/res/scripts");
+		std::filesystem::create_directory(project_path + "/res/scripts/includes");
+		std::filesystem::create_directory(project_path + "/res/scripts/bin");
+		std::filesystem::create_directory(project_path + "/res/scripts/bin/release");
+		std::filesystem::create_directory(project_path + "/res/scripts/bin/debug");
+		std::filesystem::create_directory(project_path + "/res/shaders");
+		std::filesystem::create_directory(project_path + "/res/audio");
+		std::filesystem::create_directory(project_path + "/res/prefabs");
+		std::filesystem::create_directory(project_path + "/res/materials");
+		std::filesystem::create_directory(project_path + "/res/physx-materials");
+
+		RefreshScriptIncludes();
+
+		/*// Include header files for API so intellisense works
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", project_path + "/res/scripts/includes/SceneScriptInterface.h");
+		// Components
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", project_path + "/res/scripts/includes/Component.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", project_path + "/res/scripts/includes/MeshComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", project_path + "/res/scripts/includes/ScriptComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", project_path + "/res/scripts/includes/Lights.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", project_path + "/res/scripts/includes/TransformComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", project_path + "/res/scripts/includes/PhysicsComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", project_path + "/res/scripts/includes/CameraComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", project_path + "/res/scripts/includes/AudioComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");*/
+
+		return true;
+	}
+
+
+
+
+	bool EditorLayer::ValidateProjectDir(const std::string& dir_path) {
+		try {
+			if (!std::filesystem::exists(dir_path + "/scene.yml")) {
+				std::ofstream s{ dir_path + "/scene.yml" };
+				s << ORNG_BASE_SCENE_YAML;
+				s.close();
+			}
+
+			if (!std::filesystem::exists(dir_path + "/res/"))
+				std::filesystem::create_directory(dir_path + "/res");
+
+			if (!std::filesystem::exists(dir_path + "/res/meshes"))
+				std::filesystem::create_directory(dir_path + "/res/meshes");
+
+			if (!std::filesystem::exists(dir_path + "/res/textures"))
+				std::filesystem::create_directory(dir_path + "/res/textures");
+
+			if (!std::filesystem::exists(dir_path + "/res/shaders"))
+				std::filesystem::create_directory(dir_path + "/res/shaders");
+
+			if (!std::filesystem::exists(dir_path + "/res/scripts"))
+				std::filesystem::create_directory(dir_path + "/res/scripts");
+
+			if (!std::filesystem::exists(dir_path + "/res/prefabs"))
+				std::filesystem::create_directory(dir_path + "/res/prefabs");
+
+			if (!std::filesystem::exists(dir_path + "/res/materials"))
+				std::filesystem::create_directory(dir_path + "/res/materials");
+
+			if (!std::filesystem::exists(dir_path + "/res/physx-materials"))
+				std::filesystem::create_directory(dir_path + "/res/physx-materials");
+
+
+
+			std::ifstream stream(dir_path + "/scene.yml");
+			std::stringstream str_stream;
+			str_stream << stream.rdbuf();
+			stream.close();
+
+			YAML::Node data = YAML::Load(str_stream.str());
+			if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
+				std::filesystem::copy_file(dir_path + "/scene.yml", dir_path + "/sceneCORRUPTED.yml");
+				ORNG_CORE_ERROR("scene.yml file is corrupted, replacing with default template");
+				std::ofstream s{ dir_path + "/scene.yml" };
+				s << ORNG_BASE_SCENE_YAML;
+				s.close();
+			}
+		}
+		catch (const std::exception& e) {
+			ORNG_CORE_ERROR("Error validating project '{0}', : '{1}'", dir_path, e.what());
+			return false;
+		}
+
+		return true;
+	}
+
+
 
 
 	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
@@ -1297,18 +1299,11 @@ namespace ORNG {
 	}
 
 
-	int InputTextCallback(ImGuiInputTextCallbackData* data)
-	{
-		int iters = 0;
-		if (std::isalnum(data->EventChar) == 0 && data->EventChar != '_') return 1;
 
-
-		return 0;
-	}
 
 	void EditorLayer::DisplayEntityEditor() {
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("Entity editor")) {
+		if (ImGui::Begin("Properties")) {
 			if (m_general_settings.editor_window_settings.display_directional_light_editor)
 				RenderDirectionalLightEditor();
 			if (m_general_settings.editor_window_settings.display_global_fog_editor)
@@ -1340,11 +1335,9 @@ namespace ORNG {
 			for (auto id : m_selected_entity_ids) {
 				transforms.push_back(m_active_scene->GetEntity(id)->GetComponent<TransformComponent>());
 			}
-			std::string ent_text = std::format("Entity '{}'", entity->name);
 			ImGui::Text("Name: ");
 			ImGui::SameLine();
-			ImGui::InputText("##entname", &entity->name, ImGuiInputTextFlags_CallbackCharFilter, InputTextCallback);
-			ImGui::Text(ent_text.c_str());
+			ExtraUI::AlphaNumTextInput(entity->name);
 
 
 			//TRANSFORM
@@ -1447,25 +1440,6 @@ namespace ORNG {
 
 
 
-
-	// EDITORS ------------------------------------------------------------------------
-
-	void EditorLayer::RenderPhysicsMaterial(physx::PxMaterial* p_material) {
-		float restitution = p_material->getRestitution();
-		if (ExtraUI::ClampedFloatInput("Restitution", &restitution, 0.f, 1.f)) {
-			p_material->setRestitution(restitution);
-		}
-
-		float dynamic_friction = p_material->getDynamicFriction();
-		if (ExtraUI::ClampedFloatInput("Dynamic friction", &dynamic_friction, 0.f, 1.f)) {
-			p_material->setDynamicFriction(dynamic_friction);
-		}
-
-		float static_friction = p_material->getStaticFriction();
-		if (ExtraUI::ClampedFloatInput("Static friction", &static_friction, 0.f, 1.f)) {
-			p_material->setStaticFriction(static_friction);
-		}
-	}
 
 
 	template<typename T>
@@ -1723,39 +1697,57 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {
-		ImGui::SeparatorText("Collider geometry");
+		if (ImGui::BeginTable("##layout", 2, ImGuiTableFlags_Borders)) {
+			ImGui::TableNextColumn();
 
-		if (ImGui::RadioButton("Box", p_comp->m_geometry_type == PhysicsComponent::BOX)) {
-			p_comp->UpdateGeometry(PhysicsComponent::BOX);
-		}
-		ImGui::SameLine();
-		if (ImGui::RadioButton("Sphere", p_comp->m_geometry_type == PhysicsComponent::SPHERE)) {
-			p_comp->UpdateGeometry(PhysicsComponent::SPHERE);
-		}
-		ImGui::SameLine();
-		if (ImGui::RadioButton("Mesh", p_comp->m_geometry_type == PhysicsComponent::TRIANGLE_MESH)) {
-			p_comp->UpdateGeometry(PhysicsComponent::TRIANGLE_MESH);
-		}
+			ImGui::SeparatorText("Collider geometry");
 
-		ImGui::SeparatorText("Body type");
-		if (ImGui::RadioButton("Dynamic", p_comp->m_body_type == PhysicsComponent::DYNAMIC)) {
-			p_comp->SetBodyType(PhysicsComponent::DYNAMIC);
-		}
-		ImGui::SameLine();
-		if (ImGui::RadioButton("Static", p_comp->m_body_type == PhysicsComponent::STATIC)) {
-			p_comp->SetBodyType(PhysicsComponent::STATIC);
-		}
+			if (ImGui::RadioButton("Box", p_comp->m_geometry_type == PhysicsComponent::BOX)) {
+				p_comp->UpdateGeometry(PhysicsComponent::BOX);
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Sphere", p_comp->m_geometry_type == PhysicsComponent::SPHERE)) {
+				p_comp->UpdateGeometry(PhysicsComponent::SPHERE);
+			}
 
-		static bool is_trigger = false;
-		is_trigger = p_comp->IsTrigger();
+			/*ImGui::SameLine(); // TODO Add back when shape assets added
+			if (ImGui::RadioButton("Mesh", p_comp->m_geometry_type == PhysicsComponent::TRIANGLE_MESH)) {
+				p_comp->UpdateGeometry(PhysicsComponent::TRIANGLE_MESH);
+			}*/
 
-		if (ImGui::Checkbox("Trigger", &is_trigger)) {
-			p_comp->SetTrigger(is_trigger);
+			ImGui::SeparatorText("Body type");
+			if (ImGui::RadioButton("Dynamic", p_comp->m_body_type == PhysicsComponent::DYNAMIC)) {
+				p_comp->SetBodyType(PhysicsComponent::DYNAMIC);
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Static", p_comp->m_body_type == PhysicsComponent::STATIC)) {
+				p_comp->SetBodyType(PhysicsComponent::STATIC);
+			}
+
+			ImGui::Spacing();
+
+			static bool is_trigger = false;
+			is_trigger = p_comp->IsTrigger();
+			if (ImGui::Checkbox("Trigger", &is_trigger)) {
+				p_comp->SetTrigger(is_trigger);
+			}
+
+
+			ImGui::TableNextColumn();
+			ImGui::SeparatorText("Material");
+			ImGui::Text(p_comp->p_material->name.c_str());
+			ImGui::Button(ICON_FA_FILE, { 125, 125 });
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PHYSX-MATERIAL"); p_payload && p_payload->DataSize == sizeof(PhysXMaterialAsset*)) {
+					p_comp->SetMaterial(**static_cast<PhysXMaterialAsset**>(p_payload->Data));
+				}
+			}
+
+
+			ImGui::EndTable();
 		}
-
-		RenderPhysicsMaterial(p_comp->p_material);
 	}
-
 
 
 
@@ -1763,7 +1755,7 @@ namespace ORNG {
 		static bool render_gizmos = true;
 
 		ImGui::Checkbox("Gizmos", &render_gizmos);
-
+		ImGui::SameLine();
 		static bool absolute_mode = false;
 
 		if (ImGui::Checkbox("Absolute", &absolute_mode)) {
@@ -1775,13 +1767,13 @@ namespace ORNG {
 		glm::vec3 matrix_scale = transforms[0]->m_scale;
 
 		// UI section
-		if (ExtraUI::ShowVec3Editor("Tr", matrix_translation))
+		if (ExtraUI::ShowVec3Editor("T", matrix_translation))
 			std::ranges::for_each(transforms, [matrix_translation](TransformComponent* p_transform) {p_transform->SetPosition(matrix_translation); });
 
-		if (ExtraUI::ShowVec3Editor("Rt", matrix_rotation))
+		if (ExtraUI::ShowVec3Editor("R", matrix_rotation))
 			std::ranges::for_each(transforms, [matrix_rotation](TransformComponent* p_transform) {p_transform->SetOrientation(matrix_rotation); });
 
-		if (ExtraUI::ShowVec3Editor("Sc", matrix_scale))
+		if (ExtraUI::ShowVec3Editor("S", matrix_scale))
 			std::ranges::for_each(transforms, [matrix_scale](TransformComponent* p_transform) {p_transform->SetScale(matrix_scale); });
 
 
@@ -1856,8 +1848,6 @@ namespace ORNG {
 
 			static std::vector<glm::vec3> scale_dividers;
 
-
-			int i = 0;
 			for (auto* p_transform : transforms) {
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
@@ -1888,7 +1878,6 @@ namespace ORNG {
 					p_transform->SetAbsolutePosition(base_abs_translation + rotation_offset);
 					break;
 				}
-				i++;
 			}
 
 			is_using = true;

@@ -11,6 +11,7 @@
 #include "scene/SceneEntity.h"
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
+#include "core/Input.h"
 
 
 namespace ORNG {
@@ -122,6 +123,9 @@ namespace ORNG {
 
 		if (mp_selected_texture)
 			RenderTextureEditorSection();
+
+		if (mp_selected_physx_material)
+			RenderPhysXMaterialEditor();
 
 		for (int i = m_confirmation_window_stack.size() - 1; i >= 0; i--) {
 			RenderConfirmationWindow(m_confirmation_window_stack[i], i);
@@ -287,6 +291,47 @@ namespace ORNG {
 	}
 
 
+
+
+
+	void AssetManagerWindow::RenderPhysxMaterialTab() {
+		if (ImGui::BeginTabItem("Physx materials")) // PHYSX MATERIAL TAB
+		{
+			if (ImGui::Button("+")) // MESH FILE EXPLORER
+			{
+				auto* p_new = new PhysXMaterialAsset("new");
+				p_new->p_material = Physics::GetPhysics()->createMaterial(0.75, 0.75, 0.6);
+				AssetManager::AddAsset(p_new);
+			} // END PHYSX MATSH FILE EXPLORER
+
+			if (ImGui::BeginTable("Materials", column_count))
+			{
+
+				for (auto* p_mat : AssetManager::GetView<PhysXMaterialAsset>())
+				{
+					ImGui::TableNextColumn();
+					ImGui::PushID(p_mat);
+
+					ImGui::SeparatorText(p_mat->name.c_str());
+					ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
+
+					if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(0)) // Select
+						mp_selected_physx_material = p_mat;
+
+					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+						static PhysXMaterialAsset* p_dragged_material = nullptr;
+						p_dragged_material = p_mat;
+						ImGui::SetDragDropPayload("PHYSX-MATERIAL", &p_dragged_material, sizeof(PhysXMaterialAsset*));
+						ImGui::EndDragDropSource();
+					}
+
+					ImGui::PopID(); // p_mat
+				}
+				ImGui::EndTable();
+				ImGui::EndTabItem();
+			} // END PHYSX MAT VIEWING TABLE
+		} // END PHYSX MAT TAB
+	}
 
 
 	void AssetManagerWindow::RenderMeshAsset(MeshAsset* p_mesh_asset) {
@@ -595,11 +640,10 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderMainAssetWindow() {
-		int window_width = Window::GetWidth() - 850;
-		image_button_size = { glm::clamp(window_width / 8.f, 75.f, 150.f) , 150 };
+		int window_width = Window::GetWidth() - 450;
 		column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
 		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(400, Window::GetHeight() - window_height)));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, Window::GetHeight() - window_height)));
 
 		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::BeginTabBar("Selection");
@@ -609,6 +653,8 @@ namespace ORNG {
 		RenderMaterialTab();
 		RenderScriptTab();
 		RenderAudioTab();
+		RenderPrefabTab();
+		RenderPhysxMaterialTab();
 
 		ImGui::EndTabBar();
 		ImGui::End();
@@ -727,6 +773,59 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
 	}
 
+
+
+	void AssetManagerWindow::RenderPhysXMaterialEditor() {
+		if (!mp_selected_physx_material)
+			return;
+
+		static float df = 1.f;
+		static float sf = 1.f;
+		static float r = 1.f;
+
+		df = mp_selected_physx_material->p_material->getDynamicFriction();
+		sf = mp_selected_physx_material->p_material->getStaticFriction();
+		r = mp_selected_physx_material->p_material->getRestitution();
+
+		ImGui::SetNextWindowSize({ 600, 300 });
+
+		if (ImGui::Begin("PhysX material editor")) {
+
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+				// Deselect, close window
+				mp_selected_physx_material = nullptr;
+				ImGui::End();
+				return;
+			}
+
+			ImGui::PushItemWidth(300.0);
+			float avail = ImGui::GetContentRegionAvail().x;
+
+			ImGui::Text("Name: "); ImGui::SameLine(avail - 300.0);
+			ExtraUI::AlphaNumTextInput(mp_selected_physx_material->name);
+
+
+
+			ImGui::Text("Dynamic friction"); ImGui::SameLine(avail - 300.0);
+			if (ImGui::DragFloat("##df", &df)) {
+				mp_selected_physx_material->p_material->setDynamicFriction(df);
+			}
+
+			ImGui::Text("Static friction"); ImGui::SameLine(avail - 300.0);
+			if (ImGui::DragFloat("##sf", &sf)) {
+				mp_selected_physx_material->p_material->setStaticFriction(sf);
+			}
+
+			ImGui::Text("Restitution"); ImGui::SameLine(avail - 300.0);
+			if (ImGui::SliderFloat("##r", &r, 0.f, 1.f)) {
+				mp_selected_physx_material->p_material->setRestitution(r);
+			}
+
+			ImGui::PopItemWidth();
+
+		}
+		ImGui::End();
+	}
 
 	bool AssetManagerWindow::RenderMaterialEditorSection() {
 		bool ret = false;

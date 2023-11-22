@@ -203,6 +203,7 @@ namespace ORNG {
 			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->m_body_type;
 			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->m_geometry_type;
 			out << YAML::Key << "IsTrigger" << YAML::Value << p_physics_comp->IsTrigger();
+			Out(out, "MaterialUUID", p_physics_comp->p_material->uuid());
 			out << YAML::EndMap;
 		}
 
@@ -306,6 +307,9 @@ namespace ORNG {
 				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
 				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
 				p_physics_comp->SetTrigger(physics_node["IsTrigger"].as<bool>());
+
+				auto* p_material = AssetManager::GetAsset<PhysXMaterialAsset>(physics_node["MaterialUUID"].as<uint64_t>());
+				p_physics_comp->SetMaterial(p_material ? *p_material : *AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID));
 			}
 
 

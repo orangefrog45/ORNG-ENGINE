@@ -12,7 +12,21 @@ uniform float u_scale;
 
 
 //vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-vec3 CSize = vec3(1.0, 1.0, 1.3);
+vec3 CSize = vec3(1.0, 1.3, 1.3);
+
+
+vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
+    // Calculate the vector from the sphere center to the current position
+    vec3 offset = position - sphereCenter;
+    
+    // Calculate the distance from the sphere center
+    float distance = length(offset);
+    
+    // Calculate the inverted position
+    vec3 invertedPosition = sphereCenter + ((sphereRadius * sphereRadius) / distance) * offset;
+    
+    return invertedPosition;
+}
 
 
 float sdTriangleIsosceles(  vec2 p,  vec2 q )
@@ -29,12 +43,15 @@ float sdTriangleIsosceles(  vec2 p,  vec2 q )
 
 vec3 Colour(vec3 p)
 {
+	p.y += 40.0;
 		p = p.xzy;
 
 	float scale = 1.;
 	for (int i = 0; i < 64; i++)
 	{
+
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
+						//p = invertSphere(p , p.yxz,1.5);
 		float r2 = dot(p, p);
 		float k = max((2.) / (r2), .027);
 		p *= k;

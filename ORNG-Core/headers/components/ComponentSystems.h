@@ -150,7 +150,6 @@ namespace ORNG {
 		void OnUpdate(float ts);
 		void OnUnload();
 		void OnLoad();
-		const auto& GetMaterials() { return m_physics_materials; }
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
@@ -204,7 +203,6 @@ namespace ORNG {
 		physx::PxScene* mp_phys_scene = nullptr;
 		physx::PxControllerManager* mp_controller_manager = nullptr;
 
-		std::vector<physx::PxMaterial*> m_physics_materials;
 		std::unordered_map<const MeshAsset*, physx::PxTriangleMesh*> m_triangle_meshes;
 
 		// Quick way to find an entity from its corresponding phys comps PxRigidActor

@@ -75,7 +75,6 @@ namespace ORNG {
 		void RenderCameraEditor(CameraComponent* p_cam);
 		void RenderTransformComponentEditor(std::vector<TransformComponent*>& transforms);
 		void RenderPhysicsComponentEditor(PhysicsComponent* p_comp);
-		void RenderPhysicsMaterial(physx::PxMaterial* p_material);
 		void RenderScriptComponentEditor(ScriptComponent* p_script);
 		void RenderAudioComponentEditor(AudioComponent* p_audio);
 		void RenderVehicleComponentEditor(VehicleComponent* p_comp);

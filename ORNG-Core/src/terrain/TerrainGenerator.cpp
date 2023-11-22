@@ -31,13 +31,12 @@ namespace ORNG {
 		noise.SetFractalOctaves(5.0);
 
 
-		int ceiled_resolution = glm::ceil(resolution);
 
-		terrain_data.positions.reserve(terrain_data.positions.size() + ((width)) * ((width) / ceiled_resolution) * 4);
-		terrain_data.normals.reserve(terrain_data.normals.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
-		terrain_data.tangents.reserve(terrain_data.tangents.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
-		terrain_data.tex_coords.reserve(terrain_data.tex_coords.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
-		terrain_data.indices.reserve(terrain_data.indices.size() + ((width) / ceiled_resolution) * ((width) / ceiled_resolution) * 4);
+		terrain_data.positions.reserve(terrain_data.positions.size() + ((width)) * ((width) / resolution) * 4);
+		terrain_data.normals.reserve(terrain_data.normals.size() + ((width) / resolution) * ((width) / resolution) * 4);
+		terrain_data.tangents.reserve(terrain_data.tangents.size() + ((width) / resolution) * ((width) / resolution) * 4);
+		terrain_data.tex_coords.reserve(terrain_data.tex_coords.size() + ((width) / resolution) * ((width) / resolution) * 4);
+		terrain_data.indices.reserve(terrain_data.indices.size() + ((width) / resolution) * ((width) / resolution) * 4);
 
 		bounding_box.max = bot_left_coord;
 		bounding_box.min = bot_left_coord;
@@ -65,8 +64,9 @@ namespace ORNG {
 			}
 		}
 
+		ASSERT(width % resolution == 0);
 
-		const int side_length_steps = glm::ceil((float)width / (float)resolution);
+		const int side_length_steps = width / resolution;
 		for (int lx = 0; lx < side_length_steps - 1; lx++) {
 			int x_offset = lx * side_length_steps;
 			for (int lz = 0; lz < side_length_steps - 1; lz++) {
@@ -79,6 +79,7 @@ namespace ORNG {
 				verts.tex_coord_2 = glm::vec2{ (float)lx / (float)side_length_steps, (float)(lz + 1) / (float)side_length_steps };
 				verts.tex_coord_3 = glm::vec2{ (float)(lx + 1) / (float)side_length_steps, (float)lz / (float)side_length_steps };
 				verts.tex_coord_4 = glm::vec2{ (float)(lx + 1) / (float)side_length_steps, (float)(lz + 1) / (float)side_length_steps };
+
 
 				const glm::vec3 edge1 = verts.vert_2 - verts.vert_1;
 				const glm::vec3 edge2 = verts.vert_3 - verts.vert_1;
