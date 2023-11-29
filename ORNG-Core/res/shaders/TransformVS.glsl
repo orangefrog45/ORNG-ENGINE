@@ -15,10 +15,11 @@ layout(std140, binding = 0) uniform Matrices{
 	mat4 inv_view;
 } PVMatrices;
 
+
 uniform mat4 transform;
 void main() {
 #ifdef COLOR
-col = icol;
+	col = icol;
 #endif
 	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1.f);
 }

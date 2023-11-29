@@ -116,8 +116,11 @@ vec3 Colour(vec3 p)
 	float scale = 1.;
 	for (int i = 0; i < 12; i++)
 	{
-		p = invertSphere(p , p.yxz,2.5);
+		//p = invertSphere(p , p.zyx, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.00001)), 0.0, 1.0));
 
+
+		//p = invertSphere(p , p.yxz,2.5);
+				p = invertSphere(p , p.zyx * 0.9, 0.8);
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
@@ -154,15 +157,15 @@ vec3 rma(vec3 p)
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
 	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
-	p.y += 40.0;
 	p = p.xzy;
 	float scale = 1.;
 	// Move point towards limit set
 	for (int i = 0; i < 12; i++)
 	{
+		//p = invertSphere(p , p.zyx, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.00001)), 0.0, 1.0));
 		// box fold
-		//p = invertSphere(p , p.yxz, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.00001)), 0.0, 0.9));
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		p = invertSphere(p , p.zyx * 0.9, 0.8);
 		//p = invertSphere(p , p.yxz,1.0 + sin(ubo_common.time_elapsed * 0.0001) * 0.5 );
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
@@ -212,7 +215,7 @@ void main() {
 	float max_dist = length(world_pos - ubo_common.camera_pos.xyz);
 	float t = 0.01;
 	float d = 0.01;
-	for (int i = 0; i < 196; i++) {
+	for (int i = 0; i < 256; i++) {
 		d = map(step_pos);
 		 step_pos += d * march_dir;
 		t += d;

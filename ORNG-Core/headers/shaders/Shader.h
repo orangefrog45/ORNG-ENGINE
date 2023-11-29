@@ -2,6 +2,7 @@
 #include "util/Log.h"
 #include "util/util.h"
 #include "core/GLStateManager.h"
+#include "util/UUID.h"
 
 namespace ORNG {
 	struct Material;
@@ -14,7 +15,7 @@ namespace ORNG {
 		friend class Renderer;
 		friend class SceneRenderer;
 		Shader() = default;
-		Shader(const char* name, unsigned int id) : m_id(id), m_name(name) {};
+		Shader(const std::string& name, unsigned int id) : m_id(id), m_name(name) {};
 		~Shader();
 
 		enum class ShaderType {
@@ -128,6 +129,42 @@ namespace ORNG {
 
 		std::unordered_map<std::string, unsigned int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;
-		const char* m_name = "Unnamed shader";
+		std::string m_name = "Unnamed shader";
+	};
+
+
+	// This class can contain multiple of the same shader with different defines, cleaner than having to create and store a shader externally for every potential variation needed
+	class ShaderVariants {
+		friend class ShaderLibrary;
+	public:
+		ShaderVariants() = default;
+		ShaderVariants(const std::string& name) : m_name(name) { };
+
+		void Activate(unsigned id) {
+			ASSERT(m_shaders.contains(id));
+			m_shaders[id].ActivateProgram();
+			m_active_shader_id = id;
+		}
+
+		template<typename T>
+		void SetUniform(const std::string& name, T value) {
+			m_shaders[m_active_shader_id].SetUniform(name, value);
+		}
+
+		void SetPath(GLenum shader_stage, const std::string& path) {
+			ASSERT(!m_shader_paths.contains(shader_stage));
+			m_shader_paths[shader_stage] = path;
+		}
+
+		// Adds a shader variant at id 'id' with the defines specified
+		Shader* AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms);
+
+	private:
+		// Not guaranteed to be accurate, individual "Shader" objects being activated will override, just used for shortcut
+		inline static unsigned m_active_shader_id = 0;
+
+		std::string m_name;
+		std::map<GLenum, std::string> m_shader_paths;
+		std::map<unsigned, Shader> m_shaders;
 	};
 }

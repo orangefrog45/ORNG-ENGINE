@@ -81,8 +81,6 @@ namespace ORNG {
 
 		void RenderProjectGenerator(int& selected_component_from_popup);
 
-		// TEMP
-		void InitVehicle();
 		// Ensures a project directory is in the correct state to be used in the editor, attempts repairs if not
 		bool ValidateProjectDir(const std::string& dir_path);
 
@@ -159,6 +157,7 @@ namespace ORNG {
 		Shader* mp_grid_shader = nullptr;
 		Shader* mp_highlight_shader = nullptr;
 		Shader* mp_quad_col_shader = nullptr;
+		Shader* mp_colour_shader = nullptr;
 
 		// Currently used for debug
 		Shader* mp_plane_shader = nullptr;

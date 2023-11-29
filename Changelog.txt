@@ -1,3 +1,8 @@
+29/11/23:
+-A start on GPU particle system and particle emitter components
+-Some utilities like ShaderVariants
+-Refactoring and bugfixing
+
 22/11/23:
 -Physx material assets, component implementation
 -Editor UI changes

@@ -344,4 +344,18 @@ namespace ORNG {
 		glAttachShader(program, id);
 		glDeleteShader(id);
 	}
+
+	Shader* ShaderVariants::AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms) {
+		ASSERT(!m_shaders.contains(id));
+		//m_shaders.try_emplace(id, std::format("{} - {}", name, id), UUID()()) ;
+		m_shaders[id] = Shader(std::format("{} - {}", m_name, id), UUID()());
+		for (auto& [type, path] : m_shader_paths) {
+			m_shaders[id].AddStage(type, path, defines);
+		}
+
+		m_shaders[id].Init();
+		m_shaders[id].AddUniforms(uniforms);
+
+		return &m_shaders[id];
+	}
 }

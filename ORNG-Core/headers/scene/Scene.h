@@ -96,6 +96,7 @@ namespace ORNG {
 		CameraSystem m_camera_system{ &m_registry, uuid() };
 		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };
 		AudioSystem m_audio_system{ &m_registry, uuid(), &m_camera_system.m_active_cam_entity_handle };
+		ParticleSystem m_particle_system{ &m_registry, uuid() };
 
 		entt::registry m_registry;
 

@@ -30,6 +30,7 @@ layout(std140, binding = 2) uniform commons{
 	float render_resolution_y;
 	float cam_zfar;
 	float cam_znear;
+	float delta_time;
 } ubo_common;
 
 layout(std140, binding = 0) uniform Matrices{

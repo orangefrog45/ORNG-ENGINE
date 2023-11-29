@@ -5,6 +5,7 @@
 #include "physx/PxPhysicsAPI.h"
 #include "physx/vehicle2/PxVehicleAPI.h"
 #include "scripting/ScriptShared.h"
+#include "rendering/VAO.h"
 
 namespace physx {
 	class PxScene;
@@ -20,15 +21,14 @@ namespace FMOD {
 	class ChannelGroup;
 }
 
-using namespace physx;
-
 namespace ORNG {
 	class Scene;
 	class MeshInstanceGroup;
+	class ShaderVariants;
 
 	class ComponentSystem {
 	public:
-		explicit ComponentSystem(uint64_t scene_uuid) : m_scene_uuid(scene_uuid) {};
+		explicit ComponentSystem(entt::registry* p_registry, uint64_t scene_uuid) : mp_registry(p_registry), m_scene_uuid(scene_uuid) {};
 		// Dispatches event attached to single component, used for connections with entt::registry::on_construct etc
 		template<std::derived_from<Component> T>
 		static void DispatchComponentEvent(entt::registry& registry, entt::entity entity, Events::ECS_EventType type) {
@@ -40,7 +40,8 @@ namespace ORNG {
 		}
 
 		inline uint64_t GetSceneUUID() const { return m_scene_uuid; }
-	private:
+	protected:
+		entt::registry* mp_registry = nullptr;
 		uint64_t m_scene_uuid = 0;
 	};
 
@@ -48,7 +49,7 @@ namespace ORNG {
 
 	class AudioSystem : public ComponentSystem {
 	public:
-		AudioSystem(entt::registry* p_registry, uint64_t scene_uuid, entt::entity* p_active_cam_id) : ComponentSystem(scene_uuid), mp_registry(p_registry), mp_active_cam_id(p_active_cam_id) {};
+		AudioSystem(entt::registry* p_registry, uint64_t scene_uuid, entt::entity* p_active_cam_id) : ComponentSystem(p_registry, scene_uuid), mp_active_cam_id(p_active_cam_id) {};
 		void OnLoad();
 		void OnUnload();
 		void OnUpdate();
@@ -63,7 +64,6 @@ namespace ORNG {
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 
 		FMOD::ChannelGroup* mp_channel_group = nullptr;
-		entt::registry* mp_registry = nullptr;
 
 		// Points to memory in scene's "CameraSystem" to find active camera
 		entt::entity* mp_active_cam_id;
@@ -73,7 +73,7 @@ namespace ORNG {
 
 	class TransformHierarchySystem : public ComponentSystem {
 	public:
-		TransformHierarchySystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {};
+		TransformHierarchySystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {};
 		void OnLoad();
 
 		void OnUnload() {
@@ -82,14 +82,13 @@ namespace ORNG {
 	private:
 		void UpdateChildTransforms(const Events::ECS_Event<TransformComponent>&);
 		Events::ECS_EventListener<TransformComponent> m_transform_event_listener;
-		entt::registry* mp_registry = nullptr;
 	};
 
 
 	class CameraSystem : public ComponentSystem {
 		friend class Scene;
 	public:
-		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(scene_uuid), mp_registry(p_registry) {
+		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
 			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
 				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
 					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
@@ -133,7 +132,6 @@ namespace ORNG {
 	private:
 		entt::entity m_active_cam_entity_handle;
 		Events::ECS_EventListener<CameraComponent> m_event_listener;
-		entt::registry* mp_registry = nullptr;
 	};
 
 
@@ -170,8 +168,11 @@ namespace ORNG {
 		void InitComponent(PhysicsComponent* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
 		void InitComponent(VehicleComponent* p_comp);
+
 		void HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event);
 		void UpdateComponentState(PhysicsComponent* p_comp);
+		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
+
 		void RemoveComponent(PhysicsComponent* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
 		void RemoveComponent(FixedJointComponent* p_comp);
@@ -187,16 +188,14 @@ namespace ORNG {
 		void DeinitListeners();
 
 
-		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
-
-
 		Scene* mp_scene = nullptr;
-		entt::registry* mp_registry = nullptr;
+
 		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
 		Events::ECS_EventListener<FixedJointComponent> m_joint_listener;
 		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<VehicleComponent> m_vehicle_listener;
+
 
 		physx::PxBroadPhase* mp_broadphase = nullptr;
 		physx::PxAABBManager* mp_aabb_manager = nullptr;
@@ -216,9 +215,6 @@ namespace ORNG {
 		};
 
 		std::vector<std::tuple<TriggerEvent, SceneEntity*, SceneEntity*>> m_trigger_event_queue;
-
-
-
 
 
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
@@ -315,7 +311,37 @@ namespace ORNG {
 		std::vector<MeshInstanceGroup*> m_instance_groups;
 
 		unsigned m_default_group_end_index = 0;
+	};
 
-		entt::registry* mp_registry = nullptr;
+
+	class ParticleSystem : public ComponentSystem {
+		friend class EditorLayer;
+	public:
+		ParticleSystem(entt::registry* p_registry, uint64_t scene_uuid);
+		void OnLoad();
+		void OnUnload();
+		void OnUpdate();
+	private:
+		void InitEmitter(ParticleEmitterComponent* p_comp);
+		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
+		void OnEmitterDestroy(ParticleEmitterComponent* p_comp);
+
+		void UpdateEmitterBufferFull();
+		void UpdateEmitterBufferAtIndex(unsigned index);
+
+		Events::ECS_EventListener<ParticleEmitterComponent> m_particle_listener;
+		Events::ECS_EventListener<TransformComponent> m_transform_listener;
+
+		// Stored in order based on their m_particle_start_index
+		std::vector<entt::entity> m_emitter_entities;
+
+		unsigned total_particles = 0;
+
+		SSBO<glm::mat4> m_transform_ssbo;
+		SSBO<float> m_particle_ssbo;
+		SSBO<float> m_emitter_ssbo;
+
+		inline static Shader* mp_particle_cs;
+		inline static ShaderVariants* mp_particle_initializer_cs;
 	};
 }

@@ -1,8 +1,9 @@
 #include "pch/pch.h"
 
-#include "EditorLayer.h"
 #include <glfw/glfw3.h>
 #include <fmod.hpp>
+
+#include "EditorLayer.h"
 #include "../extern/Icons.h"
 #include "../extern/imgui/backends/imgui_impl_glfw.h"
 #include "../extern/imgui/backends/imgui_impl_opengl3.h"
@@ -14,8 +15,8 @@
 #include "yaml-cpp/yaml.h"
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
+#include "cudamanager/PxCudaContext.h"
 #include "util/ExtraUI.h"
-
 
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
@@ -41,14 +42,20 @@ namespace ORNG {
 		mp_grid_shader->Init();
 
 
+		mp_colour_shader = &Renderer::GetShaderLibrary().CreateShader("debug_colour");
+		mp_colour_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/ParticleVS.glsl");
+		mp_colour_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/ColorFS.glsl");
+		mp_colour_shader->Init();
+		mp_colour_shader->AddUniform("u_color");
+
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
 		mp_quad_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl");
 		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadFS.glsl");
 		mp_quad_shader->Init();
 
 		mp_plane_shader = &Renderer::GetShaderLibrary().CreateShader("plane");
-		mp_plane_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl");
-		mp_plane_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/PlaneFS.glsl");
+		mp_plane_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/res/shaders/QuadVS.glsl");
+		mp_plane_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/PlaneFS.glsl");
 		mp_plane_shader->Init();
 		mp_plane_shader->AddUniform("u_plane");
 		mp_plane_shader->AddUniform("u_col");
@@ -129,13 +136,10 @@ namespace ORNG {
 
 		MakeProjectActive(base_proj_dir);
 
-		InitVehicle();
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
 
 
-	void EditorLayer::InitVehicle() {
-	}
 
 	void EditorLayer::BeginPlayScene() {
 		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
@@ -215,10 +219,21 @@ namespace ORNG {
 
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
+
+		if (Input::IsKeyPressed('h')) {
+			for (auto* p_ent : m_active_scene->m_entities) {
+				if (p_ent->HasComponent<ParticleEmitterComponent>()) {
+					p_ent->DeleteComponent<ParticleEmitterComponent>();
+					break;
+				}
+			}
+		}
+
 		if (m_fullscreen_scene_display)
 			m_scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - toolbar_height) };
 		else
 			m_scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
+
 
 		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('z') && !m_simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
 			if (Input::IsKeyDown(Key::Shift))
@@ -817,6 +832,9 @@ namespace ORNG {
 			if (!std::filesystem::exists(dir_path + "/res/materials"))
 				std::filesystem::create_directory(dir_path + "/res/materials");
 
+			if (!std::filesystem::exists(dir_path + "/res/audio"))
+				std::filesystem::create_directory(dir_path + "/res/audio");
+
 			if (!std::filesystem::exists(dir_path + "/res/physx-materials"))
 				std::filesystem::create_directory(dir_path + "/res/physx-materials");
 
@@ -879,6 +897,14 @@ namespace ORNG {
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
+
+			for (int i = 0; i < 12; i++) {
+				auto& ent = m_active_scene->CreateEntity("e");
+				ent.GetComponent<TransformComponent>()->SetPosition(i * 5, 0, 0);
+				ent.AddComponent<ParticleEmitterComponent>();
+				if (i % 2 == 0)
+					ent.DeleteComponent<ParticleEmitterComponent>();
+			}
 		}
 		else {
 			ORNG_CORE_ERROR("Project folder path invalid");
@@ -1077,8 +1103,18 @@ namespace ORNG {
 				}
 			}
 		}
+
+
+
 		glEnable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		for (auto [entity, emitter] : m_active_scene->m_registry.view<ParticleEmitterComponent>().each()) {
+			mp_colour_shader->ActivateProgram();
+			mp_colour_shader->SetUniform("u_color", glm::vec4(1, 0, 0, 1));
+			GL_StateManager::BindSSBO(m_active_scene->m_particle_system.m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), m_active_scene->m_particle_system.total_particles);
+		}
 	}
 
 

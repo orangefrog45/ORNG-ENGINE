@@ -54,12 +54,17 @@ namespace ORNG {
 
 		const PxU32 num_threads = 8;
 		mp_dispatcher = PxDefaultCpuDispatcherCreate(num_threads);
+
 		if (!PxInitExtensions(*mp_physics, mp_pvd)) {
 			ORNG_CORE_CRITICAL("PxInitExtensions failed");
 			BREAKPOINT;
 		}
 
-		PxCudaContextManagerDesc cudaContextManagerDesc;
-		mp_cuda_context_manager = PxCreateCudaContextManager(*Physics::GetFoundation(), cudaContextManagerDesc, PxGetProfilerCallback());
+		if (PxGetSuggestedCudaDeviceOrdinal(mp_foundation->getErrorCallback()) >= 0)
+		{
+			PxCudaContextManagerDesc cudaContextManagerDesc;
+			mp_cuda_context_manager = PxCreateCudaContextManager(*Physics::GetFoundation(), cudaContextManagerDesc, PxGetProfilerCallback());
+			ASSERT(mp_cuda_context_manager && mp_cuda_context_manager->contextIsValid());
+		}
 	}
 }

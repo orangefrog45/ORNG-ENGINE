@@ -12,6 +12,7 @@
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "core/Input.h"
+#include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 
 
 namespace ORNG {
@@ -30,7 +31,18 @@ namespace ORNG {
 		mp_preview_scene = std::make_unique<Scene>();
 
 		// Setup preview scene used for viewing materials on meshes
-		mp_preview_scene->LoadScene("");
+		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
+		noise->SetFrequency(0.05f);
+		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
+		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
+
+		mp_preview_scene->post_processing.global_fog.SetNoise(noise);
+		mp_preview_scene->terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+		mp_preview_scene->m_mesh_component_manager.OnLoad();
+		mp_preview_scene->m_camera_system.OnLoad();
+		mp_preview_scene->m_transform_system.OnLoad();
+		//mp_preview_scene->LoadScene("");
+
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
 		auto& cube_entity = mp_preview_scene->CreateEntity("Cube");
 		cube_entity.AddComponent<MeshComponent>();
@@ -45,7 +57,8 @@ namespace ORNG {
 		cam_entity.GetComponent<TransformComponent>()->LookAt({ 0, 0, 0 });
 		p_cam->aspect_ratio = 1;
 		p_cam->MakeActive();
-		mp_preview_scene->Update(0);
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+
 		//mp_preview_scene->skybox.LoadEnvironmentMap(m_executable_directory + "/res/textures/AdobeStock_247957406.jpeg");
 
 		m_asset_preview_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -184,9 +197,50 @@ namespace ORNG {
 		std::string entry_path = entry.path().string();
 		std::string relative_path = ".\\" + entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
 		ImGui::PushID(entry_path.c_str());
-		ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
 
 		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
+		ASSERT(p_asset);
+		static ScriptAsset* p_currently_editing_asset = nullptr;
+
+		if (p_asset && p_asset == p_currently_editing_asset) {
+			static std::string current_name = "";
+			ExtraUI::AlphaNumTextInput(current_name);
+
+			if (Input::IsKeyPressed(Key::Enter)) {
+				std::vector<ScriptComponent*> scripts_to_reconnect;
+
+				for (auto [entity, script] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+					if (script.GetSymbols() == &p_asset->symbols)
+						scripts_to_reconnect.push_back(&script);
+				}
+
+				// Unload script with old path, load script with new path
+				ScriptingEngine::UnloadScriptDLL(relative_path);
+				std::string new_fp = relative_path.substr(0, relative_path.rfind("\\") + 1) + current_name + ".cpp";
+				if (FileCopy(relative_path, new_fp)) {
+					FileDelete(relative_path);
+					p_asset->symbols = ScriptingEngine::GetSymbolsFromScriptCpp(new_fp, false);
+					p_asset->filepath = new_fp;
+				}
+
+				for (auto* p_script : scripts_to_reconnect) {
+					p_script->SetSymbols(&p_asset->symbols);
+				}
+
+				current_name.clear();
+				p_currently_editing_asset = nullptr;
+
+				// Update save with new paths
+				std::string scene_path = ".\\scene.yml";
+				SceneSerializer::SerializeScene(**mp_scene_context, scene_path);
+			}
+		}
+		else {
+			ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
+			if (ImGui::IsItemClicked())
+				p_currently_editing_asset = p_asset;
+		}
+
 		bool is_loaded = p_asset ? p_asset->symbols.loaded : false;
 		if (p_asset && p_asset->symbols.loaded)
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
@@ -236,13 +290,16 @@ namespace ORNG {
 
 	void AssetManagerWindow::RenderScriptTab() {
 		if (ImGui::BeginTabItem("Scripts")) {
+			static std::string new_script_name = "";
+
 			if (ImGui::Button("Create script")) {
-				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx\0*.obj;*.fbx\0";
-				std::string script_path = *mp_active_project_dir + "/res/scripts/" + std::to_string(UUID()()) + ".cpp";
-				FileCopy(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.cpp", script_path);
-				std::string open_file_command = "start " + script_path;
+				std::string script_path = *mp_active_project_dir + "\\res\\scripts\\" + new_script_name + ".cpp";
+				FileCopy(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp", script_path);
+				std::string open_file_command = "start \"" + script_path + "\"";
 				std::system(open_file_command.c_str());
+				AssetManager::AddAsset(new ScriptAsset(script_path));
 			}
+			ExtraUI::AlphaNumTextInput(new_script_name);
 
 			if (ImGui::BeginTable("##script table", column_count)) {
 				for (const auto& entry : std::filesystem::directory_iterator(*mp_active_project_dir + "\\res\\scripts")) {
@@ -306,7 +363,6 @@ namespace ORNG {
 
 			if (ImGui::BeginTable("Materials", column_count))
 			{
-
 				for (auto* p_mat : AssetManager::GetView<PhysXMaterialAsset>())
 				{
 					ImGui::TableNextColumn();
@@ -381,6 +437,7 @@ namespace ORNG {
 						FileCopy(filepath, new_filepath);
 						m_current_2d_tex_spec.filepath = new_filepath;
 						m_current_2d_tex_spec.generate_mipmaps = true;
+						m_current_2d_tex_spec.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
 						Texture2D* p_new_tex = new Texture2D(filepath);
 						p_new_tex->SetSpec(m_current_2d_tex_spec);
 						AssetManager::LoadTexture2D(AssetManager::AddAsset(p_new_tex));
@@ -729,7 +786,8 @@ namespace ORNG {
 
 		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(scale_factor);
 		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
-		mp_preview_scene->Update(0);
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
 		settings.p_output_tex = &*p_tex;
@@ -755,11 +813,12 @@ namespace ORNG {
 
 		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
 
-		mp_preview_scene->Update(0);
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		for (int i = 0; i < p_mesh->GetMaterials().size(); i++) {
 			p_mesh->SetMaterialID(i, p_material);
 		}
-		mp_preview_scene->Update(0);
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
@@ -790,7 +849,6 @@ namespace ORNG {
 		ImGui::SetNextWindowSize({ 600, 300 });
 
 		if (ImGui::Begin("PhysX material editor")) {
-
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
 				// Deselect, close window
 				mp_selected_physx_material = nullptr;
@@ -822,7 +880,6 @@ namespace ORNG {
 			}
 
 			ImGui::PopItemWidth();
-
 		}
 		ImGui::End();
 	}

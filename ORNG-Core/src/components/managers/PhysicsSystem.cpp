@@ -54,57 +54,10 @@ namespace ORNG {
 
 
 
-
-
-	PhysicsSystem::PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene) : mp_registry(p_registry), ComponentSystem(scene_uuid), mp_scene(p_scene) {
+	PhysicsSystem::PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene) : ComponentSystem(p_registry, scene_uuid), mp_scene(p_scene) {
 	};
 
 
-	PxFilterFlags FilterShaderExample(
-		PxFilterObjectAttributes attributes0, PxFilterData filterData0,
-		PxFilterObjectAttributes attributes1, PxFilterData filterData1,
-		PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize)
-	{
-		// let triggers through
-		if (PxFilterObjectIsTrigger(attributes0) || PxFilterObjectIsTrigger(attributes1))
-		{
-			pairFlags = PxPairFlag::eTRIGGER_DEFAULT;
-			return PxFilterFlag::eDEFAULT;
-		}
-		// generate contacts for all that were not filtered above
-		pairFlags = PxPairFlag::eCONTACT_DEFAULT;
-
-		// trigger the contact callback for pairs (A,B) where
-		// the filtermask of A contains the ID of B and vice versa.
-		if ((filterData0.word0 & filterData1.word1) && (filterData1.word0 & filterData0.word1))
-			pairFlags |= PxPairFlag::eNOTIFY_TOUCH_FOUND;
-
-		// Flag stays active so events can be passed to the engine
-		pairFlags |= PxPairFlag::eNOTIFY_TOUCH_FOUND;
-
-
-		return PxFilterFlag::eDEFAULT;
-	}
-
-
-	void setPhysXIntegrationParams(const PxVehicleAxleDescription& axleDescription,
-		PxVehiclePhysXMaterialFriction* physXMaterialFrictions, PxU32 nbPhysXMaterialFrictions,
-		PxReal physXDefaultMaterialFriction, PhysXIntegrationParams& physXParams)
-	{
-		//The physx integration params are hardcoded rather than loaded from file.
-		const PxQueryFilterData queryFilterData(PxFilterData(0, 0, 0, 0), PxQueryFlag::eSTATIC);
-		PxQueryFilterCallback* queryFilterCallback = NULL;
-		const PxTransform physxActorCMassLocalPose(PxVec3(0.0f, 0.55f, 1.594f), PxQuat(PxIdentity));
-		const PxVec3 physxActorBoxShapeHalfExtents(0.74097f, 0.35458f, 2.26971f);
-		const PxTransform physxActorBoxShapeLocalPose(PxVec3(0.0f, 0.830066f, 1.37003f), PxQuat(PxIdentity));
-
-		physXParams.create(
-			axleDescription,
-			queryFilterData, queryFilterCallback,
-			physXMaterialFrictions, nbPhysXMaterialFrictions, physXDefaultMaterialFriction,
-			physxActorCMassLocalPose,
-			physxActorBoxShapeHalfExtents, physxActorBoxShapeLocalPose);
-	}
 
 	void PhysicsSystem::OnLoad() {
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
@@ -114,13 +67,14 @@ namespace ORNG {
 
 		PxTolerancesScale scale(1.f);
 		PxSceneDesc scene_desc{ scale };
-		scene_desc.filterShader = FilterShaderExample;
+		scene_desc.filterShader = PxDefaultSimulationFilterShader;
 		scene_desc.gravity = PxVec3(0, -9.81, 0);
 		scene_desc.cpuDispatcher = Physics::GetCPUDispatcher();
 		scene_desc.cudaContextManager = Physics::GetCudaContextManager();
 		scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
 		scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+		scene_desc.solverType = PxSolverType::eTGS;
 
 		scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
 		scene_desc.simulationEventCallback = &m_collision_callback;
@@ -147,6 +101,7 @@ namespace ORNG {
 		mp_registry->on_destroy<VehicleComponent>().connect<&OnVehicleComponentDestroy>();
 		mp_registry->on_construct<VehicleComponent>().connect<&OnVehicleComponentAdd>();
 
+
 		InitVehicleSimulationContext();
 	}
 
@@ -170,8 +125,8 @@ namespace ORNG {
 
 	void PhysicsSystem::InitListeners() {
 		// Initialize event listeners
-		//
-	// Physics listener
+
+		// Physics listener
 		m_phys_listener.scene_id = GetSceneUUID();
 		m_phys_listener.OnEvent = [this](const Events::ECS_Event<PhysicsComponent>& t_event) {
 			switch (t_event.event_type) {
@@ -187,6 +142,8 @@ namespace ORNG {
 				break;
 			};
 			};
+
+
 
 		// Joint listener
 		/*m_joint_listener.scene_id = GetSceneUUID();
@@ -236,6 +193,8 @@ namespace ORNG {
 			};
 
 
+
+
 		// Transform update listener
 		m_transform_listener.scene_id = GetSceneUUID();
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
@@ -251,7 +210,6 @@ namespace ORNG {
 
 	bool PhysicsSystem::InitVehicle(VehicleComponent* p_comp) {
 		auto& vehicle = p_comp->m_vehicle;
-
 
 		if (vehicle.mPhysXState.physxActor.rigidBody)
 			vehicle.destroy();
@@ -280,6 +238,7 @@ namespace ORNG {
 		return result;
 	}
 
+	
 
 	void PhysicsSystem::InitComponent(VehicleComponent* p_comp) {
 		auto& vehicle = p_comp->m_vehicle;
@@ -688,11 +647,10 @@ namespace ORNG {
 			UpdateTransformCompFromGlobalPose(vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose() * shape[0]->getLocalPose(), transform);
 		}
 
-
-
 		m_accumulator -= m_step_size * 1000.f;
 		mp_phys_scene->simulate(m_step_size);
 		mp_phys_scene->fetchResults(true);
+		mp_phys_scene->fetchResultsParticleSystem();
 
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
@@ -739,6 +697,8 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Script trigger event err for pair '{0}', trigger: '{1}' : '{2}'", p_ent->name, p_trigger->name, e.what());
 			}
 		}
+
+
 		unsigned size = m_entity_collision_queue.size();
 		unsigned size_trigger = m_entity_collision_queue.size();
 

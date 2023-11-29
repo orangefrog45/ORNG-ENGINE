@@ -8,3 +8,4 @@
 #include "components/PhysicsComponent.h"
 #include "components/AudioComponent.h"
 #include "components/VehicleComponent.h"
+#include "components/ParticleComponent.h"

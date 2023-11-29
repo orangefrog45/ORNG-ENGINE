@@ -42,6 +42,7 @@ namespace ORNG {
 		data[10] = render_resolution_y;
 		data[11] = cam_zfar;
 		data[12] = cam_znear;
+		data[13] = FrameTiming::GetTimeStep();
 
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
@@ -117,6 +118,16 @@ namespace ORNG {
 		return m_shaders[name];
 	}
 
+	ShaderVariants& ShaderLibrary::CreateShaderVariants(const char* name) {
+		if (m_shaders.contains(name)) {
+			ORNG_CORE_ERROR("Shader name '{0}' already exists! Pick another name.", name);
+			BREAKPOINT;
+		}
+		m_shader_variants.try_emplace(name, name);
+
+		ORNG_CORE_INFO("ShaderVariants '{0}' created", name);
+		return m_shader_variants[name];
+	}
 
 	Shader& ShaderLibrary::GetShader(const char* name) {
 		if (!m_shaders.contains(name)) {
@@ -129,6 +140,12 @@ namespace ORNG {
 	void ShaderLibrary::ReloadShaders() {
 		for (auto& [name, shader] : m_shaders) {
 			shader.Reload();
+		}
+
+		for (auto& [name, sv] : m_shader_variants) {
+			for (auto& [id, shader] : sv.m_shaders) {
+				shader.Reload();
+			}
 		}
 	}
 

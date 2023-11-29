@@ -8,8 +8,6 @@ static constexpr unsigned int NORMAL_LOCATION = 2;
 static constexpr unsigned int TANGENT_LOCATION = 3;
 
 namespace ORNG {
-
-
 	VAO_Base::~VAO_Base() {
 		glDeleteVertexArrays(1, &m_vao_handle);
 	}
@@ -25,13 +23,56 @@ namespace ORNG {
 		}
 	}
 
-	BufferBase::BufferBase(GLenum t_buffer_type) : buffer_type(t_buffer_type) {
-		glGenBuffers(1, &m_ogl_handle);
-	};
+	void VertexBufferBase::FillBuffer() {
+		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
+		glBufferData(buffer_type, GetSize(), GetDataPtr(), draw_type);
+		glEnableVertexAttribArray(index);
+		glVertexAttribPointer(index, comps_per_attribute, data_type, GL_FALSE, stride, 0);
+	}
+
+	void BufferBase::FillBuffer() {
+		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
+		glBufferData(buffer_type, GetSize(), GetDataPtr(), draw_type);
+	}
+
+	void BufferBase::Resize(size_t size_bytes) {
+		GLuint buf = GL_StateManager::GenBuffer();
+		glNamedBufferData(buf, size_bytes, nullptr, draw_type);
+
+		GLint buffer_size;
+		glGetNamedBufferParameteriv(m_ogl_handle, GL_BUFFER_SIZE, &buffer_size);
+
+		// if shrinking don't want to copy everything, only up to size_bytes
+		if (size_bytes < buffer_size) {
+			glCopyNamedBufferSubData(m_ogl_handle, buf, 0, 0, size_bytes);
+		}
+		else {
+			glCopyNamedBufferSubData(m_ogl_handle, buf, 0, 0, buffer_size);
+		}
+
+		glDeleteBuffers(1, &m_ogl_handle);
+		m_ogl_handle = buf;
+	}
+
+	void BufferBase::Erase(size_t start, size_t erase_size) {
+		GLint buffer_size;
+		glGetNamedBufferParameteriv(m_ogl_handle, GL_BUFFER_SIZE, &buffer_size);
+
+		GLuint buf = GL_StateManager::GenBuffer();
+		glNamedBufferData(buf, buffer_size - erase_size, nullptr, draw_type);
+
+		glCopyNamedBufferSubData(m_ogl_handle, buf, 0, 0, start);
+		glCopyNamedBufferSubData(m_ogl_handle, buf, start + erase_size, start, buffer_size - (start + erase_size));
+
+		glDeleteBuffers(1, &m_ogl_handle);
+		m_ogl_handle = buf;
+	}
+
+
 
 	MeshVAO::MeshVAO() {
 		Init();
-		glGenBuffers(m_buffers.size(), &m_buffers[0]);
+		glCreateBuffers(m_buffers.size(), &m_buffers[0]);
 	};
 
 	MeshVAO::~MeshVAO() {
@@ -74,7 +115,6 @@ namespace ORNG {
 			glEnableVertexAttribArray(TANGENT_LOCATION);
 			glVertexAttribPointer(TANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, 0, 0);
 		}
-
 	}
 
 	unsigned int MeshVAO::GenTransformSSBO() {
@@ -116,7 +156,6 @@ namespace ORNG {
 		else {
 			glDeleteBuffers(1, &ssbo_handle);
 		}
-
 	}
 
 	void MeshVAO::SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms) {
@@ -127,8 +166,5 @@ namespace ORNG {
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_handle);
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::mat4) * index_offset, sizeof(glm::mat4) * transforms.size(), transforms.data());
-
 	}
 }
-
-

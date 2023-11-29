@@ -40,6 +40,7 @@ namespace ORNG {
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 #endif
 			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
+				return false;
 				return true; // Core engine library has changed so recompilation needed
 			}
 		}
@@ -90,13 +91,13 @@ namespace ORNG {
 		std::string pdb_name = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + std::to_string(UUID()()) + ".pdb";
 		std::string obj_path = ".\\res\\scripts\\bin\\release\\" + filename_no_ext + ".obj";
 
-		bat_stream << "cl" << " /Fd:" << pdb_name <<
-			" /WX- /Zc:forScope /GR /Gm- /Zc:wchar_t /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise  /D\"_MBCS\" /D\"NDEBUG\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
+		bat_stream << "cl" << " /Fd:\"" << pdb_name <<
+			"\" /WX- /Zc:forScope /GR /Gm- /Zc:wchar_t /Gd /MD /O2 /Ob2 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise  /D\"_MBCS\" /D\"NDEBUG\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\" /I\"" << ORNG_CORE_LIB_DIR << "\\..\\vcpkg_installed\\x64-windows\\include\""
-			<< " /c " << temp_fp << " /Fo:" << obj_path << "\n";
+			<< " /c \"" << temp_fp << "\" /Fo:\"" << obj_path << "\"\n";
 
-		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /OUT:" << dll_path << " " << obj_path << " " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+		bat_stream << "link /DLL /MACHINE:X64 /NOLOGO /OUT:\"" << dll_path << "\" \"" << obj_path << "\" " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmod_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cpp.lib " << "vcruntime.lib ucrt.lib " << "msvcrt.lib " << "msvcprt.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
@@ -108,13 +109,13 @@ namespace ORNG {
 		std::string obj_path = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".obj";
 		std::string pdb_name = ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + std::to_string(UUID()()) + ".pdb";
 
-		bat_stream << "cl" << " /Fd:" << pdb_name << // Random pdb filename so I can reload during runtime
-			" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /DEBUG /Z7 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t-  /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
+		bat_stream << "cl" << " /Fd:\"" << pdb_name << // Random pdb filename so I can reload during runtime
+			"\" /WX- /Zc:forScope /RTC1 /GR /Gd /MDd /DEBUG /Z7 /Zc:forScope /std:c++20 /EHsc /Zc:inline /fp:precise /Zc:wchar_t-  /D\"_MBCS\" /D\"ORNG_SCRIPT_ENV\" /D\"WIN32\" /D\"_WINDOWS\" /nologo /D\"_CRT_SECURE_NO_WARNINGS\" /D\"WIN32_MEAN_AND_LEAN\" /D\"VC_EXTRALEAN\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\headers\" /I\"" << ORNG_CORE_MAIN_DIR << "\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\glm\\glm\" /I\""
 			<< ORNG_CORE_MAIN_DIR << "\\extern\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\spdlog\\include\" /I\"" << ORNG_CORE_MAIN_DIR << "\\extern\\bitsery\\include\" /I\"" << ORNG_CORE_LIB_DIR << "\\..\\vcpkg_installed\\x64-windows\\include\""
-			<< " /c " << temp_fp << " /Fo:" << obj_path << "\n";
+			<< " /c \"" << temp_fp << "\" /Fo:\"" << obj_path << "\"\n";
 
-		bat_stream << "link /DLL /INCREMENTAL /PDB:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:" << dll_path << " " << obj_path << " " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
+		bat_stream << "link /DLL /INCREMENTAL /PDB:\"" << pdb_name << "\" /MACHINE:X64 /NOLOGO /DEBUG /OUT:\"" << dll_path << "\" \"" << obj_path << "\" " << "kernel32.lib " << "user32.lib " << "ntdll.lib "
 			<< ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib " << ORNG_CORE_MAIN_DIR "\\extern\\fmod\\api\\core\\lib\\x64\\fmodL_vc.lib " << ORNG_CORE_LIB_DIR "\\extern\\yaml\\yaml-cppd.lib " << "vcruntimed.lib ucrtd.lib " << "msvcrtd.lib " << "msvcprtd.lib " << "shell32.lib gdi32.lib winspool.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib opengl32.lib "
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
@@ -212,7 +213,7 @@ namespace ORNG {
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
 		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
-			ORNG_CORE_ERROR("Script DLL failed to load or not found at res/scripts/bin/'{0}'", dll_path);
+			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", dll_path);
 			return ScriptSymbols(relative_path);
 		}
 

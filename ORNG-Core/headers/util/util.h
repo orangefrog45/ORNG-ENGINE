@@ -20,7 +20,7 @@ namespace ORNG {
 		return std::ranges::find(vec, value) != vec.end();
 	}
 
-	void FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false);
+	bool FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false);
 	void FileDelete(const std::string& filepath);
 	bool PathEqualTo(const std::string& path1, const std::string& path2);
 	bool FileExists(const std::string& filepath);

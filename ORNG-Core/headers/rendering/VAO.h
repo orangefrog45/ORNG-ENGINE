@@ -16,21 +16,55 @@ namespace ORNG {
 	class BufferBase {
 		friend class VAO;
 	public:
-		BufferBase(GLenum t_buffer_type);
+		BufferBase(GLenum t_buffer_type) : buffer_type(t_buffer_type) {};
+
+		void Init() {
+			glGenBuffers(1, &m_ogl_handle);
+			m_is_initalized = true;
+		}
+
+		bool IsInitialized() {
+			return m_is_initalized;
+		}
+
 		virtual ~BufferBase() { glDeleteBuffers(1, &m_ogl_handle); };
-		virtual uint32_t GetSize() = 0;
-		// Number of components per vertex attribute, e.g 3D position (x,y,z) = 3
+
+		virtual size_t GetSize() = 0;
+
 		uint32_t GetHandle() const {
 			return m_ogl_handle;
 		}
 
+		// Allocates buffer on GPU with data
+		virtual void FillBuffer();
+
+		// Allocates new buffer with size size_bytes, old data is copied
+		void Resize(size_t size_bytes);
+
+		// Allocates new buffer with elements from start to start + erase_size removed, old data is copied, start and erase_size should be in bytes
+		void Erase(size_t start, size_t erase_size);
+
 		GLenum draw_type = GL_STATIC_DRAW;
 		GLenum data_type = GL_NONE;
-	private:
-		uint32_t m_ogl_handle = 0;
+
 	protected:
+		uint32_t m_ogl_handle = 0;
 		GLenum buffer_type = GL_NONE;
 		virtual void* GetDataPtr() = 0;
+	private:
+		bool m_is_initalized = false;
+	};
+
+	template<typename DataType>
+	class SSBO : public BufferBase {
+	public:
+		SSBO() : BufferBase(GL_SHADER_STORAGE_BUFFER) { };
+
+		size_t GetSize() override { return data.size() * sizeof(DataType); }
+
+		void* GetDataPtr() override { return data.data(); }
+
+		std::vector<DataType> data;
 	};
 
 
@@ -39,8 +73,13 @@ namespace ORNG {
 		friend class VAO;
 	public:
 		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER) {};
-		uint32_t GetSize() override = 0;
+
+		size_t GetSize() override = 0;
+
 		void* GetDataPtr() override = 0;
+
+		void FillBuffer() override;
+
 		uint8_t comps_per_attribute = 0;
 		uint32_t stride = 0;
 		uint8_t index = 0;
@@ -51,10 +90,11 @@ namespace ORNG {
 	class VertexBufferGL : public VertexBufferBase {
 		friend class VAO;
 	public:
-		std::vector<T> data;
-		uint32_t GetSize() override {
+		size_t GetSize() override {
 			return sizeof(T) * data.size();
 		}
+
+		std::vector<T> data;
 	private:
 		virtual void* GetDataPtr() {
 			return static_cast<void*>(data.data());
@@ -69,12 +109,12 @@ namespace ORNG {
 	class ExternVertexBufferGL : public VertexBufferBase {
 		friend class VAO;
 	public:
-		uint32_t GetSize() override {
+		size_t GetSize() override {
 			return size;
 		}
 
 		void* p_data = nullptr;
-		uint32_t size = 0;
+		size_t size = 0;
 	private:
 		virtual void* GetDataPtr() {
 			return p_data;
@@ -122,6 +162,7 @@ namespace ORNG {
 		template<std::derived_from<VertexBufferBase> T>
 		T* AddBuffer(uint8_t index, GLenum data_type, uint8_t comps_per_attribute, GLenum draw_type) {
 			auto* p_buf = new T();
+			p_buf->Init();
 			p_buf->data_type = data_type;
 			p_buf->comps_per_attribute = comps_per_attribute;
 			p_buf->draw_type = draw_type;

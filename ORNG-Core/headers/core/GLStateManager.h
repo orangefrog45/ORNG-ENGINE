@@ -36,6 +36,10 @@ namespace ORNG {
 			return ret;
 		}
 
+		inline static unsigned GetActiveShaderProgram() {
+			Get().m_current_active_shader_handle;
+		}
+
 		inline static void ActivateShaderProgram(unsigned int shader_handle) {
 			Get().IActivateShaderProgram(shader_handle);
 		}
@@ -50,7 +54,7 @@ namespace ORNG {
 
 		[[nodiscard]] static unsigned int GenBuffer() {
 			unsigned int handle;
-			glGenBuffers(1, &handle);
+			glCreateBuffers(1, &handle);
 			return handle;
 		}
 
@@ -79,6 +83,9 @@ namespace ORNG {
 			static const int POINT_LIGHTS_SHADOW = 2;
 			static const int SPOT_LIGHTS_SHADOWLESS = 3;
 			static const int SPOT_LIGHTS_SHADOW = 4;
+			static const int PARTICLE_EMITTERS = 5;
+			static const int PARTICLE_TRANSFORMS = 6;
+			static const int PARTICLES = 7;
 		};
 
 		struct TextureUnits {

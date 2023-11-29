@@ -19,7 +19,7 @@ namespace ORNG {
 
 
 	struct DebugRenderSettings {
-		bool render_physx_debug = false;
+		bool render_physx_debug = true;
 	};
 
 	struct GeneralSettings {

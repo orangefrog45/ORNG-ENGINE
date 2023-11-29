@@ -22,8 +22,7 @@ namespace ORNG {
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
-		// Script state updates need to be set far less frequently, use events for this soon
-
+		m_particle_system.OnUpdate();
 		m_physics_system.OnUpdate(ts);
 		m_mesh_component_manager.OnUpdate();
 
@@ -64,7 +63,6 @@ namespace ORNG {
 
 
 		auto it = std::ranges::find(m_entities, p_entity);
-		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 		ASSERT(it != m_entities.end());
 		delete p_entity;
 		m_entities.erase(it);
@@ -142,10 +140,10 @@ namespace ORNG {
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
 		m_audio_system.OnLoad();
+		m_particle_system.OnLoad();
 
 		// Allocate storage for components on this side of the boundary
 		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
-		// TODO: Change when custom components need adding
 		auto& ent = CreateEntity("allocator");
 		ent.AddComponent<MeshComponent>();
 		ent.AddComponent<PointLightComponent>();
@@ -156,6 +154,7 @@ namespace ORNG {
 		ent.AddComponent<CharacterControllerComponent>();
 		ent.AddComponent<CameraComponent>();
 		ent.AddComponent<AudioComponent>();
+		ent.AddComponent<VehicleComponent>();
 		DeleteEntity(&ent);
 
 		m_is_loaded = true;

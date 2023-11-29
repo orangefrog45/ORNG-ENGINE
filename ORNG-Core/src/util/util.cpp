@@ -1,14 +1,17 @@
 #include "util/util.h"
 namespace ORNG {
-	void FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive) {
+	bool FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive) {
 		try {
 			if (recursive)
 				std::filesystem::copy(file_to_copy, copy_location, std::filesystem::copy_options::recursive);
 			else
 				std::filesystem::copy_file(file_to_copy, copy_location);
+
+			return true;
 		}
 		catch (const std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::copy_file failed : '{0}'", e.what());
+			return false;
 		}
 	}
 
@@ -63,7 +66,10 @@ namespace ORNG {
 		std::ranges::remove_if(c1, [](char c) {return c == '\\' || c == '/'; });
 		std::ranges::remove_if(c2, [](char c) {return c == '\\' || c == '/'; });
 
-		return c1 == c2;
+		auto cur = std::filesystem::current_path().string();
+		std::ranges::remove_if(cur, [](char c) {return c == '\\' || c == '/'; });
+
+		return c1 == c2 || cur + c1 == c2 || c1 == cur + c2;
 	}
 
 	std::string GetFileLastWriteTime(const std::string& filepath) {
