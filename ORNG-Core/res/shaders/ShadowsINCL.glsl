@@ -51,7 +51,7 @@ vec2 CalcBlockerDistanceDirectional(vec3 proj_coord, vec2 texel_size, int sample
 	int blockers = 0;
 
 	const int pcss_sample_count = 16;
-	float rnd = random(world_pos) * 2.0 * PI;
+	float rnd = rnd(world_pos.xy) * 2.0 * PI;
 
 	for (int i = 0; i < pcss_sample_count; i++) {
 		vec2 offset = vec2(
@@ -167,7 +167,7 @@ float ShadowCalculationDirectional(vec3 light_dir, vec3 world_pos) {
 
 	float penumbra_size = max(ubo_global_lighting.directional_light.size * (current_depth - avg_blocker_distance.x) / avg_blocker_distance.x, 1.0);
 
-	float rnd = random(world_pos) * 2.0 * PI;
+	float rnd = rnd(world_pos.yx) * 2.0 * PI;
 	for (int i = 0; i < 16; i++) {
 		vec2 offset = vec2(
 			cos(rnd) * poisson_disk_kernel[i].x - sin(rnd) * poisson_disk_kernel[i].y,

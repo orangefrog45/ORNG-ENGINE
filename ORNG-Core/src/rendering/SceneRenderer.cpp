@@ -160,6 +160,12 @@ namespace ORNG {
 		m_blur_shader->AddUniform("u_horizontal");
 		m_blur_shader->AddUniform("u_first_iter");
 
+		mp_particle_shader = &Renderer::GetShaderLibrary().CreateShader("particle_render");
+		mp_particle_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/ParticleVS.glsl");
+		mp_particle_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/ColorFS.glsl", {"PARTICLE"});
+		mp_particle_shader->Init();
+		mp_particle_shader->AddUniform("u_color");
+
 
 		/* GBUFFER FB */
 		m_gbuffer_fb = &mp_framebuffer_library->CreateFramebuffer("gbuffer", true);
@@ -632,6 +638,13 @@ namespace ORNG {
 
 		RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
 
+		mp_particle_shader->ActivateProgram();
+		mp_particle_shader->SetUniform("u_color", glm::vec4(10, 3, 0.5, 1));
+		GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
+
+		for (auto [entity, emitter] : mp_scene->m_registry.view<ParticleEmitterComponent>().each()) {
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), mp_scene->m_particle_system.total_particles);
+		}
 
 		/* uniforms */
 		mp_gbuffer_shader_terrain->ActivateProgram();

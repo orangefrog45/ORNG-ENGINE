@@ -11,6 +11,8 @@ layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];
 } transform_ssbo;
 
+out vec4 vs_world_pos;
+
 void main() {
     gl_Position = PVMatrices.proj_view * transform_ssbo.transforms[gl_InstanceID] * vec4(position, 1.0);
 }

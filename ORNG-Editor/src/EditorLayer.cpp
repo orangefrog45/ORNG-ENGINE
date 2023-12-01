@@ -42,12 +42,6 @@ namespace ORNG {
 		mp_grid_shader->Init();
 
 
-		mp_colour_shader = &Renderer::GetShaderLibrary().CreateShader("debug_colour");
-		mp_colour_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/ParticleVS.glsl");
-		mp_colour_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/ColorFS.glsl");
-		mp_colour_shader->Init();
-		mp_colour_shader->AddUniform("u_color");
-
 		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
 		mp_quad_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl");
 		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadFS.glsl");
@@ -220,13 +214,16 @@ namespace ORNG {
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
 
-		if (Input::IsKeyPressed('h')) {
+		if (Input::IsKeyDown('h')) {
 			for (auto* p_ent : m_active_scene->m_entities) {
 				if (p_ent->HasComponent<ParticleEmitterComponent>()) {
-					p_ent->DeleteComponent<ParticleEmitterComponent>();
-					break;
+					p_ent->GetComponent<TransformComponent>()->SetPosition(p_ent->GetComponent<TransformComponent>()->GetPosition() + glm::vec3(100, 0, 0) * FrameTiming::GetTimeStep() * 0.001f);
 				}
 			}
+		}
+
+		if (Input::IsKeyDown('h')) {
+			ORNG_CORE_TRACE("Key down");
 		}
 
 		if (m_fullscreen_scene_display)
@@ -898,12 +895,10 @@ namespace ORNG {
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 
-			for (int i = 0; i < 12; i++) {
+			for (int i = 0; i < 6; i++) {
 				auto& ent = m_active_scene->CreateEntity("e");
-				ent.GetComponent<TransformComponent>()->SetPosition(i * 5, 0, 0);
+				ent.GetComponent<TransformComponent>()->SetPosition(i * 20, 0, 750);
 				ent.AddComponent<ParticleEmitterComponent>();
-				if (i % 2 == 0)
-					ent.DeleteComponent<ParticleEmitterComponent>();
 			}
 		}
 		else {
@@ -1105,16 +1100,8 @@ namespace ORNG {
 		}
 
 
-
 		glEnable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		for (auto [entity, emitter] : m_active_scene->m_registry.view<ParticleEmitterComponent>().each()) {
-			mp_colour_shader->ActivateProgram();
-			mp_colour_shader->SetUniform("u_color", glm::vec4(1, 0, 0, 1));
-			GL_StateManager::BindSSBO(m_active_scene->m_particle_system.m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), m_active_scene->m_particle_system.total_particles);
-		}
 	}
 
 

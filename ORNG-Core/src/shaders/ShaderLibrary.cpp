@@ -48,27 +48,7 @@ namespace ORNG {
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
 	}
 
-	void PushMatrixIntoArray(const glm::mat4& m, float* array_ptr) {
-		*array_ptr++ = m[0][0];
-		*array_ptr++ = m[0][1];
-		*array_ptr++ = m[0][2];
-		*array_ptr++ = m[0][3];
 
-		*array_ptr++ = m[1][0];
-		*array_ptr++ = m[1][1];
-		*array_ptr++ = m[1][2];
-		*array_ptr++ = m[1][3];
-
-		*array_ptr++ = m[2][0];
-		*array_ptr++ = m[2][1];
-		*array_ptr++ = m[2][2];
-		*array_ptr++ = m[2][3];
-
-		*array_ptr++ = m[3][0];
-		*array_ptr++ = m[3][1];
-		*array_ptr++ = m[3][2];
-		*array_ptr++ = m[3][3];
-	}
 
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light) {
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);

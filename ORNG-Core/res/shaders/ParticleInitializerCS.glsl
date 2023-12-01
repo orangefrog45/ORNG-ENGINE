@@ -1,12 +1,16 @@
 #version 460 core
 
+#ifdef EMITTER_DELETION
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+#else
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+#endif
 
 #define FIRST_INITIALIZATION
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
 
-uniform uint u_start_index;
+uniform highp uint u_start_index;
 uniform uint u_emitter_index;
 
 

@@ -1,4 +1,3 @@
-#define PI 3.1415926538
 
 struct DirectionalLight {
 	vec4 direction;

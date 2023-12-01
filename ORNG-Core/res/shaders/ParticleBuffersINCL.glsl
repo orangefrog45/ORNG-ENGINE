@@ -1,17 +1,21 @@
 ORNG_INCLUDE "UtilINCL.glsl"
 ORNG_INCLUDE "CommonINCL.glsl"
-#define VELOCITY_SCALE 15.0
+#define VELOCITY_SCALE 35.0
 
 struct ParticleEmitter {
     vec4 pos;
     float start_index;
     float num_particles;
-    float spawn_cooldown;
+    float spread;
+    float vel_scale_min;
+    mat4 rotation_matrix;
+    vec4 spawn_extents_vel_scale_max;
 };
 
 struct Particle {
     vec4 velocity_life;
     float emitter_index;
+    vec2 seed; // seed for generating initial random position
 };
 
 // CHANGE NAMES TO SSBO
@@ -28,20 +32,24 @@ layout(std140, binding = 7) buffer Particles {
 } ubo_particles;
 
 
-void InitializeParticle(uint index) {
+void InitializeParticle(highp uint index) {
 
     vec3 emitter_pos = ubo_particle_emitters.emitters[uint(ubo_particles.particles[index].emitter_index)].pos.xyz;
-    vec2 rnd_seed = abs(vec2(ubo_particle_transforms.transforms[index][3][0], ubo_particle_transforms.transforms[index][3][1]));
+    vec3 pos = vec3(ubo_particle_transforms.transforms[index][3][0], ubo_particle_transforms.transforms[index][3][1], ubo_particle_transforms.transforms[index][3][2]);
     
-    vec3 vel = (vec3(gold_noise(rnd_seed.xy, index - ubo_common.delta_time), gold_noise(rnd_seed.yx, index + ubo_common.delta_time), gold_noise(rnd_seed.xx, ubo_common.delta_time + sin(index + 0.001))) - vec3(0.5)) * 2.0 * VELOCITY_SCALE;
+    float az = rnd(vec2(ubo_particle_transforms.transforms[index][3][2], ubo_particle_transforms.transforms[index][3][0])) * ubo_particle_emitters.emitters[uint(ubo_particles.particles[index].emitter_index)].spread;
+    float pol = rnd(vec2(ubo_particle_transforms.transforms[index][3][1], -ubo_particle_transforms.transforms[index][3][2])) * ubo_particle_emitters.emitters[uint(ubo_particles.particles[index].emitter_index)].spread;
 
+    float rnd_vel = rnd(vec2(index, pol)) * (ubo_particle_emitters.emitters[uint(ubo_particles.particles[index].emitter_index)].spawn_extents_vel_scale_max.w - ubo_particle_emitters.emitters[uint(ubo_particles.particles[index].emitter_index)].vel_scale_min);
+    vec3 vel = mat3(ubo_particle_emitters.emitters[uint(ubo_particles.particles[index].emitter_index)].rotation_matrix) * ((vec3( sin(pol) * cos(az), sin(pol) * sin(az), cos(pol)))) * abs(rnd_vel);
+    
     #ifdef FIRST_INITIALIZATION
         ubo_particles.particles[index].velocity_life = vec4(vel, (index % 64000) * 10000.0 / 64000.0);
         ubo_particle_transforms.transforms[index] =
         mat4(0, 0, 0, 0,
             0, 0, 0, 0,
             0, 0, 0, 0,
-            emitter_pos.x,  emitter_pos.y, emitter_pos.z, 1
+            emitter_pos.x, emitter_pos.y, emitter_pos.z, 1
         );
     #else
         ubo_particles.particles[index].velocity_life = vec4(vel, 10000.0);

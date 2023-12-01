@@ -157,8 +157,6 @@ namespace ORNG {
 		Shader* mp_grid_shader = nullptr;
 		Shader* mp_highlight_shader = nullptr;
 		Shader* mp_quad_col_shader = nullptr;
-		Shader* mp_colour_shader = nullptr;
-
 		// Currently used for debug
 		Shader* mp_plane_shader = nullptr;
 

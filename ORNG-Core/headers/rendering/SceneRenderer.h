@@ -153,6 +153,7 @@ namespace ORNG {
 		Shader* mp_bloom_threshold_shader = nullptr;
 		Shader* mp_transparency_shader = nullptr;
 		Shader* mp_transparency_shader_bufferless = nullptr;
+		Shader* mp_particle_shader = nullptr;
 
 		Shader* mp_transparency_composite_shader = nullptr;
 

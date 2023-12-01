@@ -2,13 +2,13 @@
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
-ORNG_INCLUDE "BuffersINCL.glsl"
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
+ORNG_INCLUDE "BuffersINCL.glsl"
 
 
 
 void main() {
-    for (uint i = gl_GlobalInvocationID.x * 4; i < gl_GlobalInvocationID.x * 4 + 4; i++) {
+    for (highp uint i = gl_GlobalInvocationID.x * 4; i < gl_GlobalInvocationID.x * 4 + 4; i++) {
         ubo_particles.particles[i].velocity_life.w -= ubo_common.delta_time;
 
         if (ubo_particles.particles[i].velocity_life.w <= 0.0) {

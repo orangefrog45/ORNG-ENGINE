@@ -70,7 +70,7 @@ namespace ORNG {
 				OnEmitterDestroy(e_event.affected_components[0]);
 				break;
 			}
-		};
+			};
 
 		m_transform_listener.scene_id = m_scene_uuid;
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& e_event) {
@@ -88,7 +88,7 @@ namespace ORNG {
 	}
 
 	constexpr unsigned particle_struct_size = sizeof(float) * 8;
-	constexpr unsigned emitter_struct_size = sizeof(float) * 8;
+	constexpr unsigned emitter_struct_size = sizeof(float) * 28;
 
 	void ParticleSystem::InitEmitter(ParticleEmitterComponent* p_comp) {
 		if (!m_emitter_entities.empty()) {
@@ -108,13 +108,34 @@ namespace ORNG {
 
 		// Allocate memory in the SSBO's for the new particles
 		m_transform_ssbo.Resize(total_particles * sizeof(glm::mat4));
+		std::vector<float> rnd_vec;
+		rnd_vec.resize(p_comp->m_num_particles * 16);
+
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0, 2.f * glm::pi<float>());
+
+		// Put random seed in transform, done here as the GPU RNG's aren't well-distributed enough
+		for (unsigned i = 0; i < p_comp->m_num_particles; i++) {
+			PushMatrixIntoArray(
+				{ 0, 0, 0, 0,
+				0, 0, 0, 0,
+				0, 0, 0, 0,
+				dis(gen), dis(gen), dis(gen), 1.0 },
+				&rnd_vec[i * 16]);
+		}
+		glNamedBufferSubData(m_transform_ssbo.GetHandle(), prev_total * sizeof(glm::mat4), p_comp->m_num_particles * sizeof(glm::mat4), rnd_vec.data());
 		m_emitter_ssbo.Resize(m_emitter_entities.size() * emitter_struct_size);
 		m_particle_ssbo.Resize(total_particles * particle_struct_size);
 
 		// Initialize emitter
-		auto pos = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
+		auto abs_transforms = p_transform->GetAbsoluteTransforms();
+		glm::vec3 pos = abs_transforms[0];
+		glm::vec3 rot = abs_transforms[2];
+		glm::vec3 forward = p_transform->forward;
 		std::vector<float> emitter_data;
-		emitter_data.resize(8);
+		emitter_data.resize(emitter_struct_size / sizeof(float));
 
 		emitter_data[0] = pos.x;
 		emitter_data[1] = pos.y;
@@ -122,8 +143,15 @@ namespace ORNG {
 		emitter_data[3] = 0.f; // padding
 		emitter_data[4] = p_comp->m_particle_start_index;
 		emitter_data[5] = p_comp->m_num_particles;
-		emitter_data[6] = 0.f; //padding
-		emitter_data[7] = 0.f; //padding
+		emitter_data[6] = p_comp->m_spread;
+		emitter_data[7] = p_comp->m_velocity_min_max_scalar.x;
+		PushMatrixIntoArray(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z), &emitter_data[8]);
+		emitter_data[24] = p_comp->m_spawn_extents.x;
+		emitter_data[25] = p_comp->m_spawn_extents.y;
+		emitter_data[26] = p_comp->m_spawn_extents.z;
+		emitter_data[27] = p_comp->m_velocity_min_max_scalar.y;
+
+
 		glNamedBufferSubData(m_emitter_ssbo.GetHandle(), (m_emitter_entities.size() - 1) * emitter_struct_size, emitter_struct_size, emitter_data.data());
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -143,21 +171,30 @@ namespace ORNG {
 	void ParticleSystem::UpdateEmitterBufferAtIndex(unsigned index) {
 		auto& comp = mp_registry->get<ParticleEmitterComponent>(m_emitter_entities[index]);
 		std::vector<float> emitter_data;
-		emitter_data.resize(emitter_struct_size);
+		emitter_data.resize(emitter_struct_size / sizeof(float));
 
 		unsigned i = 0;
-		auto pos = comp.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		auto* p_transform = comp.GetEntity()->GetComponent<TransformComponent>();
+		auto abs_transforms = p_transform->GetAbsoluteTransforms();
+		glm::vec3 pos = abs_transforms[0];
+		glm::vec3 rot = abs_transforms[2];
+		glm::vec3 forward = p_transform->forward;
+
 		emitter_data[i++] = pos.x;
 		emitter_data[i++] = pos.y;
 		emitter_data[i++] = pos.z;
 		emitter_data[i++] = 0.f; // padding
 		emitter_data[i++] = comp.m_particle_start_index;
 		emitter_data[i++] = comp.m_num_particles;
-		emitter_data[i++] = 0.f; //padding
-		emitter_data[i++] = 0.f; //padding
+		emitter_data[i++] = comp.m_spread;
+		emitter_data[i++] = comp.m_velocity_min_max_scalar.x;
+		PushMatrixIntoArray(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z), &emitter_data[8]); i += 16;
+		emitter_data[i++] = comp.m_spawn_extents.x;
+		emitter_data[i++] = comp.m_spawn_extents.y;
+		emitter_data[i++] = comp.m_spawn_extents.z;
+		emitter_data[i++] = comp.m_velocity_min_max_scalar.y;
 
 		glNamedBufferSubData(m_emitter_ssbo.GetHandle(), index * emitter_struct_size, emitter_struct_size, emitter_data.data());
-
 	}
 
 	void ParticleSystem::UpdateEmitterBufferFull() {
@@ -188,7 +225,6 @@ namespace ORNG {
 	}
 
 	void ParticleSystem::OnEmitterDestroy(ParticleEmitterComponent* p_comp) {
-
 		// Adjust emitter indices to account for deletion (handled in shader)
 		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE);
 		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);

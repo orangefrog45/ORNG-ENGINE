@@ -316,6 +316,7 @@ namespace ORNG {
 
 	class ParticleSystem : public ComponentSystem {
 		friend class EditorLayer;
+		friend class SceneRenderer;
 	public:
 		ParticleSystem(entt::registry* p_registry, uint64_t scene_uuid);
 		void OnLoad();
