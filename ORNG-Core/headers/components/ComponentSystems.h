@@ -324,10 +324,10 @@ namespace ORNG {
 		void OnUpdate();
 	private:
 		void InitEmitter(ParticleEmitterComponent* p_comp);
+		void OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event);
 		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
-		void OnEmitterDestroy(ParticleEmitterComponent* p_comp);
+		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif=0);
 
-		void UpdateEmitterBufferFull();
 		void UpdateEmitterBufferAtIndex(unsigned index);
 
 		Events::ECS_EventListener<ParticleEmitterComponent> m_particle_listener;

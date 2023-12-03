@@ -23,6 +23,12 @@ in mat4 vs_transform;
 in vec3 vs_original_normal;
 in vec3 vs_view_dir_tangent_space;
 
+ORNG_INCLUDE "ParticleBuffersINCL.glsl"
+
+#ifdef PARTICLE
+in ParticleTransform vs_particle_transform;
+#endif
+
 ORNG_INCLUDE "CommonINCL.glsl"
 
 
@@ -68,6 +74,23 @@ vec2 ParallaxMap()
 	return prev_tex_coords * weight + current_tex_coords * (1.0 - weight);
 
 }
+mat3 CalculateTbnMatrixTransform() {
+#ifdef PARTICLE
+	vec3 t = normalize(qtransform(vs_particle_transform.quat, vs_tangent));
+	vec3 n = normalize(qtransform(vs_particle_transform.quat, vs_original_normal));
+#else
+	vec3 t = normalize(vec3(mat3(vs_transform) * vs_tangent));
+	vec3 n = normalize(vec3(mat3(vs_transform) * vs_original_normal));
+#endif
+
+	t = normalize(t - dot(t, n) * n);
+	vec3 b = cross(n, t);
+
+	mat3 tbn = mat3(t, b, n);
+
+	return tbn;
+}
+
 
 mat3 CalculateTbnMatrix() {
 	vec3 t = normalize(vs_tangent);
@@ -81,18 +104,6 @@ mat3 CalculateTbnMatrix() {
 	return tbn;
 }
 
-
-mat3 CalculateTbnMatrixTransform() {
-	vec3 t = normalize(vec3(mat3(vs_transform) * vs_tangent));
-	vec3 n = normalize(vec3(mat3(vs_transform) * vs_original_normal));
-
-	t = normalize(t - dot(t, n) * n);
-	vec3 b = cross(n, t);
-
-	mat3 tbn = mat3(t, b, n);
-
-	return tbn;
-}
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);

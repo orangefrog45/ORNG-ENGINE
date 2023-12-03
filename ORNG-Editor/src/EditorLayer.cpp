@@ -911,7 +911,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-		const char* names[8] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle" };
+		const char* names[9] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter" };
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -956,6 +956,9 @@ namespace ORNG {
 			break;
 		case 7:
 			entity->AddComponent<VehicleComponent>();
+			break;
+		case 8:
+			entity->AddComponent<ParticleEmitterComponent>();
 			break;
 		}
 	}
@@ -1352,6 +1355,7 @@ namespace ORNG {
 			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
 			auto* p_audio_comp = entity->GetComponent<AudioComponent>();
 			auto* p_vehicle_comp = entity->GetComponent<VehicleComponent>();
+			auto* p_emitter_comp = entity->GetComponent<ParticleEmitterComponent>();
 
 			static std::vector<TransformComponent*> transforms;
 			transforms.clear();
@@ -1448,6 +1452,15 @@ namespace ORNG {
 				}
 				else {
 					RenderVehicleComponentEditor(p_vehicle_comp);
+				}
+			}
+
+			if (p_emitter_comp && ExtraUI::H2TreeNode("Particle emitter component")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+					entity->DeleteComponent<ParticleEmitterComponent>();
+				}
+				else {
+					RenderParticleEmitterComponentEditor(p_emitter_comp);
 				}
 			}
 
@@ -1598,6 +1611,55 @@ namespace ORNG {
 			ImGui::PopID();
 		}
 	}
+
+	void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp) {
+		ImGui::PushID(p_comp);
+
+
+		std::function<void(MeshAsset* p_new)> OnMeshDrop = [p_comp](MeshAsset* p_new) {
+			p_comp->p_particle_mesh = p_new;
+			p_comp->materials = { p_new->GetNbMaterials(), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID)};
+		};
+
+		std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [p_comp](unsigned index, Material* p_new) {
+			p_comp->materials[index] = p_new;
+		};
+
+		RenderMeshWithMaterials(p_comp->p_particle_mesh, p_comp->materials, OnMeshDrop, OnMaterialDrop);
+
+
+		ImGui::Text("Spread"); ImGui::SameLine();
+		if (ImGui::DragFloat("##spread", &p_comp->m_spread, 1.f, 0.f, 1.f, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+			p_comp->SetSpread(p_comp->m_spread);
+		}
+
+		ImGui::Text("Lifespan"); ImGui::SameLine();
+		if (ImGui::DragFloat("##ls", &p_comp->m_particle_lifespan_ms, 1.f, 0.f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+			p_comp->SetParticleLifespan(p_comp->m_particle_lifespan_ms);
+		}
+
+
+		ImGui::Text("Spawn delay"); ImGui::SameLine();
+		if (ImGui::DragFloat("##sd", &p_comp->m_particle_spawn_delay_ms, 1.f, 0.f, FLT_MAX, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {
+			p_comp->SetParticleSpawnDelay(p_comp->m_particle_spawn_delay_ms);
+		}
+
+		ImGui::Text("Nb. particles"); ImGui::SameLine();
+		static int n;
+		n = p_comp->m_num_particles;
+		if (ImGui::DragInt("##np", &n) && n >= 0 && n <= 100'000) {
+			p_comp->SetNbParticles(n);
+		}
+
+		if (ExtraUI::ShowVec3Editor("Spawn extents", p_comp->m_spawn_extents)) {
+			p_comp->SetSpawnExtents(p_comp->m_spawn_extents);
+		}
+
+		if (ExtraUI::ShowVec2Editor("Velocity scale range", p_comp->m_velocity_min_max_scalar)) {
+			p_comp->SetVelocityScale(p_comp->m_velocity_min_max_scalar);
+		}
+	}
+
 
 	void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		ImGui::PushID(p_audio);
@@ -1939,33 +2001,51 @@ namespace ORNG {
 
 
 
+	bool EditorLayer::RenderMeshWithMaterials(const MeshAsset* p_asset,  std::vector<const Material*>& materials, std::function<void(MeshAsset* p_new)> OnMeshDrop, std::function<void(unsigned index, Material* p_new)> OnMaterialDrop) {
+		ImGui::PushID(p_asset);
 
+		bool ret = false;
 
-	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
-		ImGui::PushID(comp);
-
-		ImGui::SeparatorText("Mesh asset");
-		ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMeshPreviewTex(comp->mp_mesh_asset)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::SeparatorText("Mesh");
+		ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMeshPreviewTex(p_asset)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
-				if (p_payload->DataSize == sizeof(MeshAsset*))
-					comp->SetMeshAsset(*static_cast<MeshAsset**>(p_payload->Data));
+				if (p_payload->DataSize == sizeof(MeshAsset*)) {
+					OnMeshDrop(*static_cast<MeshAsset**>(p_payload->Data));
+				}
 			}
 			ImGui::EndDragDropTarget();
 		}
 
 		ImGui::SeparatorText("Materials");
-		for (int i = 0; i < comp->m_materials.size(); i++) {
-			auto p_material = comp->m_materials[i];
+		for (int i = 0; i < materials.size(); i++) {
+			auto p_material = materials[i];
 			ImGui::PushID(i);
 
 			if (auto* p_new_material = RenderMaterialComponent(p_material)) {
-				comp->SetMaterialID(i, p_new_material);
+				OnMaterialDrop(i, p_new_material);
 			}
 
 			ImGui::PopID();
 		}
 
+
+		ImGui::PopID();
+
+	}
+
+	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
+		ImGui::PushID(comp);
+
+		std::function<void(MeshAsset* p_new)> OnMeshDrop = [comp](MeshAsset* p_new) {
+			comp->SetMeshAsset(p_new);
+		};
+
+		std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [comp](unsigned index, Material* p_new) {
+			comp->SetMaterialID(index, p_new);
+			};
+
+		RenderMeshWithMaterials(comp->mp_mesh_asset, comp->m_materials, OnMeshDrop, OnMaterialDrop);
 
 		ImGui::PopID();
 	};

@@ -11,14 +11,12 @@ void main() {
     for (highp uint i = gl_GlobalInvocationID.x * 4; i < gl_GlobalInvocationID.x * 4 + 4; i++) {
         ubo_particles.particles[i].velocity_life.w -= ubo_common.delta_time;
 
-        if (ubo_particles.particles[i].velocity_life.w <= 0.0) {
+        if (ubo_particles.particles[i].velocity_life.w <= 0.0 && ubo_particle_emitters.emitters[ubo_particles.particles[i].emitter_index].is_active) {
             InitializeParticle(i);
         }
 
         // Update positions with velocity
-        ubo_particle_transforms.transforms[i][3][0] += ubo_particles.particles[i].velocity_life.x * ubo_common.delta_time * 0.001;
-        ubo_particle_transforms.transforms[i][3][1] += ubo_particles.particles[i].velocity_life.y * ubo_common.delta_time * 0.001;
-        ubo_particle_transforms.transforms[i][3][2] += ubo_particles.particles[i].velocity_life.z * ubo_common.delta_time * 0.001;
+        ubo_particle_transforms.transforms[i].pos.xyz += ubo_particles.particles[i].velocity_life.xyz * ubo_common.delta_time * 0.001;
     }
 
 }

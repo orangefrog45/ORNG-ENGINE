@@ -7,10 +7,11 @@ in layout(location = 3) vec3 in_tangent;
 
 ORNG_INCLUDE "BuffersINCL.glsl"
 
+ORNG_INCLUDE "ParticleBuffersINCL.glsl"
+
 layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];
 } transform_ssbo;
-
 
 
 
@@ -26,10 +27,21 @@ out vec3 vs_view_dir_tangent_space;
 uniform mat4 u_transform;
 #endif
 
+#ifdef PARTICLE
+uniform uint u_transform_start_index;
+out ParticleTransform vs_particle_transform;
+#endif
+
 
 mat3 CalculateTbnMatrixTransform() {
+
+#ifdef PARTICLE
+	vec3 t = normalize(qtransform(ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID].quat, in_tangent));
+	vec3 n = normalize(qtransform(ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID].quat, vertex_normal));
+#else
 	vec3 t = normalize(vec3(mat3(transform_ssbo.transforms[gl_InstanceID]) * in_tangent));
 	vec3 n = normalize(vec3(mat3(transform_ssbo.transforms[gl_InstanceID]) * vertex_normal));
+	#endif
 
 	t = normalize(t - dot(t, n) * n);
 	vec3 b = cross(n, t);
@@ -76,13 +88,25 @@ void main() {
 		gl_Position = proj_pos.xyww;
 #else
 		vs_tex_coord = vec3(tex_coord, 0.f);
+
 		#ifdef NO_TRANSFORM_BUFFERS
 		vs_transform = u_transform;
 		#else
+		
+		#ifdef PARTICLE
+		ParticleTransform t = ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID];
+		vs_position = vec4(qtransform(t.quat, (position * t.scale.xyz)) + t.pos.xyz, 1.0);
+		vs_normal = qtransform(t.quat, vertex_normal);
+		vs_particle_transform = t;
+
+		#else
 		vs_transform = transform_ssbo.transforms[gl_InstanceID];
-		#endif
-		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
 		vs_position = vs_transform * (vec4(position, 1.0f));
+		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
+
+		#endif
+		#endif
+
 
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);

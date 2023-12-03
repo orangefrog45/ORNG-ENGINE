@@ -1,3 +1,9 @@
+3/12/23:
+-Particle emitter serialization
+-More parameters for particle emitters, custom mesh/material support
+-Particle transform memory optimizations (switched to quats for rotation)
+-Random rotations for particles
+
 1/12/23:
 -Better random velocity vector generation for particles using IQ's random function
 -Some parameters added to particle emitters

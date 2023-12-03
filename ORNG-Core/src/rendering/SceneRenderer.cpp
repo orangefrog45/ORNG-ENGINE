@@ -161,10 +161,10 @@ namespace ORNG {
 		m_blur_shader->AddUniform("u_first_iter");
 
 		mp_particle_shader = &Renderer::GetShaderLibrary().CreateShader("particle_render");
-		mp_particle_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/ParticleVS.glsl");
-		mp_particle_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/ColorFS.glsl", {"PARTICLE"});
+		mp_particle_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", {"PARTICLE"});
+		mp_particle_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl", {"PARTICLE"});
 		mp_particle_shader->Init();
-		mp_particle_shader->AddUniform("u_color");
+		mp_particle_shader->AddUniform("u_transform_start_index");
 
 
 		/* GBUFFER FB */
@@ -639,11 +639,22 @@ namespace ORNG {
 		RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
 
 		mp_particle_shader->ActivateProgram();
-		mp_particle_shader->SetUniform("u_color", glm::vec4(10, 3, 0.5, 1));
-		GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
+		//GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
 		for (auto [entity, emitter] : mp_scene->m_registry.view<ParticleEmitterComponent>().each()) {
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), mp_scene->m_particle_system.total_particles);
+			mp_particle_shader->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+			
+			for (unsigned int i = 0; i < emitter.p_particle_mesh->m_submeshes.size(); i++) {
+				const Material* p_material = emitter.materials[emitter.p_particle_mesh->m_submeshes[i].material_index];
+				if (p_material->render_group != RenderGroup::SOLID)
+					continue;
+				mp_gbuffer_shader_mesh->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+
+				SetGBufferMaterial(p_material, mp_gbuffer_shader_mesh);
+
+				Renderer::DrawSubMeshInstanced(emitter.p_particle_mesh, emitter.GetNbParticles(), i);
+			}
+
 		}
 
 		/* uniforms */

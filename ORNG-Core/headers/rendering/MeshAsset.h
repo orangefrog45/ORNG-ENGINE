@@ -47,6 +47,9 @@ namespace ORNG {
 
 		const MeshVAO& GetVAO() const { return m_vao; }
 
+		unsigned GetNbMaterials() {
+			return num_materials;
+		}
 
 		template<typename S>
 		void serialize(S& s) {

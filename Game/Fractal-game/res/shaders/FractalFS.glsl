@@ -116,11 +116,6 @@ vec3 Colour(vec3 p)
 	float scale = 1.;
 	for (int i = 0; i < 12; i++)
 	{
-		//p = invertSphere(p , p.zyx, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.00001)), 0.0, 1.0));
-
-
-		//p = invertSphere(p , p.yxz,2.5);
-				p = invertSphere(p , p.zyx * 0.9, 0.8);
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
@@ -162,10 +157,8 @@ float map(vec3 p) {
 	// Move point towards limit set
 	for (int i = 0; i < 12; i++)
 	{
-		//p = invertSphere(p , p.zyx, 1.0 * clamp(abs(sin(ubo_common.time_elapsed * 0.00001)), 0.0, 1.0));
 		// box fold
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
-		p = invertSphere(p , p.zyx * 0.9, 0.8);
 		//p = invertSphere(p , p.yxz,1.0 + sin(ubo_common.time_elapsed * 0.0001) * 0.5 );
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
@@ -173,6 +166,7 @@ float map(vec3 p) {
 		p *= k;
 		scale *= k;
 	}
+
 	float l = length(p.xy);
 	float rxy = l - 4.0;
 	float n = l * p.z;

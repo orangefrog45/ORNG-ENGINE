@@ -254,9 +254,29 @@ namespace ORNG {
 				out << YAML::EndMap;
 			}
 
+			out << YAML::EndMap;
+		}
+
+		if (auto* p_emitter = entity.GetComponent<ParticleEmitterComponent>()) {
+			Out(out, "ParticleEmitterComp", YAML::BeginMap);
+			Out(out, "Spread", p_emitter->GetSpread());
+			Out(out, "Spawn extents", p_emitter->GetSpawnExtents());
+			Out(out, "Velocity range", p_emitter->GetVelocityScale());
+			Out(out, "Nb. particles", p_emitter->GetNbParticles());
+			Out(out, "Lifespan", p_emitter->GetParticleLifespan());
+			Out(out, "Spawn delay", p_emitter->GetSpawnDelay());
+			Out(out, "MeshUUID", p_emitter->p_particle_mesh->uuid());
+
+			Out(out, "Materials", YAML::Flow);
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_emitter->materials) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
 
 			out << YAML::EndMap;
 		}
+
 
 		out << YAML::EndMap;
 	}
@@ -266,6 +286,8 @@ namespace ORNG {
 
 
 	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity) {
+		auto* p_replacement_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
 		if (parent_id != 0)
 			entity.SetParent(*scene.GetEntity(parent_id));
@@ -294,7 +316,7 @@ namespace ORNG {
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
 				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
 					auto* p_mat = AssetManager::GetAsset<Material>(ids[i]);
-					p_mesh_comp->m_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					p_mesh_comp->m_materials[i] = p_mat ? p_mat : p_replacement_material;
 				}
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 			}
@@ -387,7 +409,7 @@ namespace ORNG {
 				p_comp->m_body_materials.resize(p_comp->p_body_mesh->num_materials);
 				for (int i = 0; i < p_comp->p_body_mesh->num_materials; i++) {
 					auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
-					p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					p_comp->m_body_materials[i] = p_mat ? p_mat : p_replacement_material;
 				}
 
 				auto wheel_materials = vehicle_node["WheelMaterials"];
@@ -395,7 +417,7 @@ namespace ORNG {
 				p_comp->m_wheel_materials.resize(p_comp->p_wheel_mesh->num_materials);
 				for (int i = 0; i < p_comp->p_wheel_mesh->num_materials; i++) {
 					auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
-					p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					p_comp->m_wheel_materials[i] = p_mat ? p_mat : p_replacement_material;
 				}
 				for (int i = 0; i < 4; i++) {
 					auto wheel = vehicle_node[std::format("Wheel{}", i)];
@@ -403,6 +425,30 @@ namespace ORNG {
 				}
 
 				scene.m_physics_system.InitVehicle(p_comp);
+			}
+
+
+			if (tag == "ParticleEmitterComp") {
+				auto emitter_node = entity_node["ParticleEmitterComp"];
+				auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
+				p_emitter->SetSpread(emitter_node["Spread"].as<float>());
+				p_emitter->SetSpawnExtents(emitter_node["Spawn extents"].as<glm::vec3>());
+				p_emitter->SetVelocityScale(emitter_node["Velocity range"].as<glm::vec2>());
+				p_emitter->SetNbParticles(emitter_node["Nb. particles"].as<float>());
+				p_emitter->SetParticleLifespan(emitter_node["Lifespan"].as<float>());
+				p_emitter->SetParticleSpawnDelay(emitter_node["Spawn delay"].as<float>());
+
+				p_emitter->p_particle_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
+				p_emitter->p_particle_mesh = p_emitter->p_particle_mesh ? p_emitter->p_particle_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+
+				auto materials = emitter_node["Materials"];
+				std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
+				p_emitter->materials.resize(p_emitter->p_particle_mesh->num_materials);
+
+				for (int i = 0; i < p_emitter->materials.size(); i++) {
+					auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
+					p_emitter->materials[i] = p_mat ? p_mat : p_replacement_material;
+				}
 			}
 		}
 	}

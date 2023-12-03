@@ -28,4 +28,14 @@ namespace ORNG {
 	std::string GetFileLastWriteTime(const std::string& filepath);
 
 	void PushMatrixIntoArray(const glm::mat4& m, float* array_ptr);
+
+	// Copies raw bytes of matrix into array of std::byte, this will increment the ptr provided by sizeof(mat4)
+	void PushMatrixIntoArrayBytes(const glm::mat4& m, std::byte*& array_ptr);
+
+	template <typename T>
+	// Copies raw bytes of type into array of std::byte, this will increment the ptr provided by sizeof(T)
+	void ConvertToBytes(const T& value, std::byte*& bytes) {
+		std::memcpy(bytes, &value, sizeof(T));
+		bytes += sizeof(T);
+	}
 }
