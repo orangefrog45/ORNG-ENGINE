@@ -89,27 +89,42 @@ void main() {
 #else
 		vs_tex_coord = vec3(tex_coord, 0.f);
 
-		#ifdef NO_TRANSFORM_BUFFERS
-		vs_transform = u_transform;
-		#else
-		
-		#ifdef PARTICLE
-		ParticleTransform t = ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID];
-		vs_position = vec4(qtransform(t.quat, (position * t.scale.xyz)) + t.pos.xyz, 1.0);
-		vs_normal = qtransform(t.quat, vertex_normal);
-		vs_particle_transform = t;
+		#if defined PARTICLE && defined BILLBOARD
+			ParticleTransform t = ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID];
+			vec3 t_pos = t.pos.xyz;
+			vec3 cam_up = vec3(PVMatrices.view[0][1], PVMatrices.view[1][1], PVMatrices.view[2][1]);
+			vec3 cam_right = vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]);
+			vs_particle_transform = t;
 
+			vs_position = vec4(t_pos + position.x * cam_right * t.scale.x + position.y * cam_up * t.scale.y, 1.0);
+
+		#elif defined NO_TRANSFORM_BUFFERS
+			vs_transform = u_transform;
+		#elif defined PARTICLE
+			ParticleTransform t = ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID];
+			vs_position = vec4(qtransform(t.quat, (position * t.scale.xyz)) + t.pos.xyz, 1.0);
+			vs_normal = qtransform(t.quat, vertex_normal);
+			vs_particle_transform = t;
+
+		#elif defined BILLBOARD
+			vec3 t_pos = vec3(transform_ssbo.transforms[gl_InstanceID][3][0], transform_ssbo.transforms[gl_InstanceID][3][1], transform_ssbo.transforms[gl_InstanceID][3][2]);
+			vec3 cam_up = vec3(PVMatrices.view[0][1], PVMatrices.view[1][1], PVMatrices.view[2][1]);
+			vec3 cam_right = vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]);
+
+			vs_position = vec4(t_pos + position.x * cam_right * transform_ssbo.transforms[gl_InstanceID][0][0] + position.y * cam_up * transform_ssbo.transforms[gl_InstanceID][1][1], 1.0);
 		#else
-		vs_transform = transform_ssbo.transforms[gl_InstanceID];
-		vs_position = vs_transform * (vec4(position, 1.0f));
-		vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
+			vs_transform = transform_ssbo.transforms[gl_InstanceID];
+			vs_position = vs_transform * (vec4(position, 1.0f));
+			vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
 
 		#endif
-		#endif
 
 
+		#ifndef BILLBOARD
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
+		#endif
+
 		gl_Position = PVMatrices.proj_view * vs_position;
 #endif
 }

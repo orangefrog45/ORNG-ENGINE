@@ -66,7 +66,9 @@ extern/implot/implot_items.cpp
 
 
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
- "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp" "src/physics/vehicles/BaseVehicle.cpp" "src/physics/vehicles/PhysXVehicleActor.cpp" "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp")
+ "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp" "src/physics/vehicles/BaseVehicle.cpp" "src/physics/vehicles/PhysXVehicleActor.cpp" 
+ "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp" 
+)
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}

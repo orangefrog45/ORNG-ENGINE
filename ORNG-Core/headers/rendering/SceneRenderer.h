@@ -123,20 +123,17 @@ namespace ORNG {
 		void DoBloomPass(unsigned int width, unsigned int height);
 		void DrawAllMeshes(RenderGroup render_group) const;
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
-		void SetGBufferMaterial(const Material* p_mat, Shader* p_gbuffer_shader);
+		void SetGBufferMaterial(const Material* p_mat);
 
+		void DrawInstanceGroupGBuffer(const MeshInstanceGroup* p_group, RenderGroup render_group);
+		void DrawMeshGBuffer(const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials);
 		void RenderVehicles(Shader* p_shader, RenderGroup render_group);
 
 
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
 		std::vector<Renderpass> m_render_intercepts;
 
-		Shader* mp_gbuffer_shader_terrain = nullptr;
-		Shader* mp_gbuffer_shader_skybox = nullptr;
-		Shader* mp_gbuffer_shader_mesh = nullptr;
-
-		// Bufferless = no transform SSBO, transform passed as uniform, instancing not possible.
-		Shader* mp_gbuffer_shader_mesh_bufferless = nullptr;
+		ShaderVariants* mp_gbuffer_shader_variants = nullptr;
 
 		Shader* m_post_process_shader = nullptr;
 

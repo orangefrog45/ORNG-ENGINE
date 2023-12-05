@@ -3,7 +3,6 @@
 
 
 namespace ORNG {
-
 	struct VertexData3D {
 		std::vector<float> positions;
 		std::vector<float> normals;
@@ -18,10 +17,7 @@ namespace ORNG {
 	public:
 		BufferBase(GLenum t_buffer_type) : buffer_type(t_buffer_type) {};
 
-		void Init() {
-			glGenBuffers(1, &m_ogl_handle);
-			m_is_initalized = true;
-		}
+		void Init();
 
 		bool IsInitialized() {
 			return m_is_initalized;
@@ -29,7 +25,9 @@ namespace ORNG {
 
 		virtual ~BufferBase() { glDeleteBuffers(1, &m_ogl_handle); };
 
-		virtual size_t GetSize() = 0;
+		virtual size_t GetSizeCPU() = 0;
+
+		int GetGPU_BufferSize();
 
 		uint32_t GetHandle() const {
 			return m_ogl_handle;
@@ -43,6 +41,17 @@ namespace ORNG {
 
 		// Allocates new buffer with elements from start to start + erase_size removed, old data is copied, start and erase_size should be in bytes
 		void Erase(size_t start, size_t erase_size);
+
+		void PushBack(std::byte* bytes, size_t size);
+
+		// Only use on types that have no implicit padding, else manually convert to a byte array
+		template<typename T>
+		void PushBack(const T& data) {
+			std::vector<std::byte> bytes;
+			ConvertToBytes(data, &bytes[0]);
+
+			PushBack(&bytes[0], sizeof(T));
+		}
 
 		GLenum draw_type = GL_STATIC_DRAW;
 		GLenum data_type = GL_NONE;
@@ -60,7 +69,7 @@ namespace ORNG {
 	public:
 		SSBO() : BufferBase(GL_SHADER_STORAGE_BUFFER) { };
 
-		size_t GetSize() override { return data.size() * sizeof(DataType); }
+		size_t GetSizeCPU() override { return data.size() * sizeof(DataType); }
 
 		void* GetDataPtr() override { return data.data(); }
 
@@ -74,7 +83,7 @@ namespace ORNG {
 	public:
 		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER) {};
 
-		size_t GetSize() override = 0;
+		size_t GetSizeCPU() override = 0;
 
 		void* GetDataPtr() override = 0;
 
@@ -90,7 +99,7 @@ namespace ORNG {
 	class VertexBufferGL : public VertexBufferBase {
 		friend class VAO;
 	public:
-		size_t GetSize() override {
+		size_t GetSizeCPU() override {
 			return sizeof(T) * data.size();
 		}
 
@@ -109,7 +118,7 @@ namespace ORNG {
 	class ExternVertexBufferGL : public VertexBufferBase {
 		friend class VAO;
 	public:
-		size_t GetSize() override {
+		size_t GetSizeCPU() override {
 			return size;
 		}
 
@@ -203,22 +212,6 @@ namespace ORNG {
 		// Fill all buffers with data provided to vectors in class
 		void FillBuffers();
 
-
-
-		// Generate SSBO to hold world transforms, call each time a new MeshInstanceGroup is created as transforms between them need to be seperated
-		[[nodiscard]] unsigned int GenTransformSSBO();
-
-		/* Fully re - allocate all memory for the transform SSBO, only use when shrinking / growing the buffer
-		* Custom buffer size can be specified, if this is too small it will throw an error
-		* */
-		void FullUpdateTransformSSBO(unsigned int ssbo_handle, const std::vector<glm::mat4>* transforms, long long buffer_size = -1);
-
-		//Update section of transform buffer, prefer this for performance
-		void SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms);
-
-		void DeleteTransformSSBO(unsigned int ssbo_handle);
-
-
 		VertexData3D vertex_data;
 
 	private:
@@ -237,5 +230,4 @@ namespace ORNG {
 		std::array<unsigned int, NUM_BUFFERS> m_buffers;
 		std::vector<unsigned int> m_transform_ssbo_handles;
 	};
-
 }

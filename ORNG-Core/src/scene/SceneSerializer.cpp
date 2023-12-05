@@ -265,14 +265,23 @@ namespace ORNG {
 			Out(out, "Nb. particles", p_emitter->GetNbParticles());
 			Out(out, "Lifespan", p_emitter->GetParticleLifespan());
 			Out(out, "Spawn delay", p_emitter->GetSpawnDelay());
-			Out(out, "MeshUUID", p_emitter->p_particle_mesh->uuid());
+			Out(out, "Type", (unsigned)p_emitter->GetType());
 
-			Out(out, "Materials", YAML::Flow);
-			out << YAML::BeginSeq;
-			for (auto* p_material : p_emitter->materials) {
-				out << p_material->uuid();
+			if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
+				Out(out, "MaterialUUID", entity.GetComponent<ParticleBillboardResources>()->p_material->uuid());
 			}
-			out << YAML::EndSeq;
+			else {
+				auto* p_res = entity.GetComponent<ParticleMeshResources>();
+
+				Out(out, "MeshUUID", p_res->p_mesh->uuid());
+
+				Out(out, "Materials", YAML::Flow);
+				out << YAML::BeginSeq;
+				for (auto* p_material : p_res->materials) {
+					out << p_material->uuid();
+				}
+				out << YAML::EndSeq;
+			}
 
 			out << YAML::EndMap;
 		}
@@ -428,6 +437,24 @@ namespace ORNG {
 			}
 
 
+			/*
+			* 		if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
+				Out(out, "MaterialUUID", entity.GetComponent<ParticleBillboardResources>()->p_material->uuid());
+			}
+			else {
+				auto* p_res = entity.GetComponent<ParticleMeshResources>();
+
+				Out(out, "MeshUUID", p_res->p_mesh->uuid());
+
+				Out(out, "Materials", YAML::Flow);
+				out << YAML::BeginSeq;
+				for (auto* p_material : p_res->materials) {
+					out << p_material->uuid();
+				}
+				out << YAML::EndSeq;
+			}
+
+			*/
 			if (tag == "ParticleEmitterComp") {
 				auto emitter_node = entity_node["ParticleEmitterComp"];
 				auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
@@ -437,17 +464,25 @@ namespace ORNG {
 				p_emitter->SetNbParticles(emitter_node["Nb. particles"].as<float>());
 				p_emitter->SetParticleLifespan(emitter_node["Lifespan"].as<float>());
 				p_emitter->SetParticleSpawnDelay(emitter_node["Spawn delay"].as<float>());
+				p_emitter->SetType(static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>()));
 
-				p_emitter->p_particle_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
-				p_emitter->p_particle_mesh = p_emitter->p_particle_mesh ? p_emitter->p_particle_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+				if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
+					auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
+					entity.GetComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : p_replacement_material;
+				}
+				else {
+					auto* p_res = entity.GetComponent<ParticleMeshResources>();
+					p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
+					p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
 
-				auto materials = emitter_node["Materials"];
-				std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
-				p_emitter->materials.resize(p_emitter->p_particle_mesh->num_materials);
+					auto materials = emitter_node["Materials"];
+					std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
+					p_res->materials.resize(p_res->p_mesh->num_materials);
 
-				for (int i = 0; i < p_emitter->materials.size(); i++) {
-					auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
-					p_emitter->materials[i] = p_mat ? p_mat : p_replacement_material;
+					for (int i = 0; i < p_res->materials.size(); i++) {
+						auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
+						p_res->materials[i] = p_mat ? p_mat : p_replacement_material;
+					}
 				}
 			}
 		}

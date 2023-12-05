@@ -9,3 +9,4 @@
 #include "components/AudioComponent.h"
 #include "components/VehicleComponent.h"
 #include "components/ParticleComponent.h"
+#include "components/BillboardComponent.h"

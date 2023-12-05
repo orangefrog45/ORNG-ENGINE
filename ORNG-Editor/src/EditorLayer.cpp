@@ -214,18 +214,6 @@ namespace ORNG {
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
 
-		if (Input::IsKeyDown('h')) {
-			for (auto* p_ent : m_active_scene->m_entities) {
-				if (p_ent->HasComponent<ParticleEmitterComponent>()) {
-					p_ent->GetComponent<TransformComponent>()->SetPosition(p_ent->GetComponent<TransformComponent>()->GetPosition() + glm::vec3(100, 0, 0) * FrameTiming::GetTimeStep() * 0.001f);
-				}
-			}
-		}
-
-		if (Input::IsKeyDown('h')) {
-			ORNG_CORE_TRACE("Key down");
-		}
-
 		if (m_fullscreen_scene_display)
 			m_scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - toolbar_height) };
 		else
@@ -894,12 +882,6 @@ namespace ORNG {
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
-
-			for (int i = 0; i < 6; i++) {
-				auto& ent = m_active_scene->CreateEntity("e");
-				ent.GetComponent<TransformComponent>()->SetPosition(i * 20, 0, 750);
-				ent.AddComponent<ParticleEmitterComponent>();
-			}
 		}
 		else {
 			ORNG_CORE_ERROR("Project folder path invalid");
@@ -911,7 +893,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-		const char* names[9] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter" };
+		const char* names[10] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard" };
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -959,6 +941,9 @@ namespace ORNG {
 			break;
 		case 8:
 			entity->AddComponent<ParticleEmitterComponent>();
+			break;
+		case 9:
+			entity->AddComponent<BillboardComponent>();
 			break;
 		}
 	}
@@ -1043,8 +1028,9 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderGrid() {
-		GL_StateManager::BindSSBO(m_grid_mesh->m_ssbo_handle, GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 		m_grid_mesh->CheckBoundary(mp_editor_camera->GetComponent<TransformComponent>()->GetPosition());
+		GL_StateManager::BindSSBO(m_grid_mesh->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
+
 		mp_grid_shader->ActivateProgram();
 		Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_grid_mesh->m_vao, ceil(m_grid_mesh->grid_width / m_grid_mesh->grid_step) * 2);
 	}
@@ -1615,17 +1601,46 @@ namespace ORNG {
 	void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp) {
 		ImGui::PushID(p_comp);
 
+		const char* types[2] = { "BILLBOARD", "MESH" };
+		ParticleEmitterComponent::EmitterType emitter_types[2] = { ParticleEmitterComponent::EmitterType::BILLBOARD, ParticleEmitterComponent::EmitterType::MESH };
+		static int current_item = 0;
 
-		std::function<void(MeshAsset* p_new)> OnMeshDrop = [p_comp](MeshAsset* p_new) {
-			p_comp->p_particle_mesh = p_new;
-			p_comp->materials = { p_new->GetNbMaterials(), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID)};
-		};
+		if (ImGui::BeginCombo("##type selection", types[current_item])) {
+			for (int i = 0; i < 2; i++) {
+				bool selected = current_item == i;
 
-		std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [p_comp](unsigned index, Material* p_new) {
-			p_comp->materials[index] = p_new;
-		};
+				if (ImGui::Selectable(types[i], selected)) {
+					current_item = i;
+					p_comp->SetType(emitter_types[i]);
+				}
 
-		RenderMeshWithMaterials(p_comp->p_particle_mesh, p_comp->materials, OnMeshDrop, OnMaterialDrop);
+				if (selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+
+		if (p_comp->m_type == ParticleEmitterComponent::MESH) {
+			auto* p_res = p_comp->GetEntity()->GetComponent<ParticleMeshResources>();
+
+			std::function<void(MeshAsset* p_new)> OnMeshDrop = [p_res](MeshAsset* p_new) {
+				p_res->p_mesh = p_new;
+				p_res->materials = { p_new->GetNbMaterials(), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				};
+
+			std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [p_res](unsigned index, Material* p_new) {
+				p_res->materials[index] = p_new;
+			};
+
+			RenderMeshWithMaterials(p_res->p_mesh, p_res->materials, OnMeshDrop, OnMaterialDrop);
+		}
+		else {
+			auto* p_res = p_comp->GetEntity()->GetComponent<ParticleBillboardResources>();
+			if (auto* p_new = RenderMaterialComponent(p_res->p_material)) {
+				p_res->p_material = p_new;
+			}
+		}
+
 
 
 		ImGui::Text("Spread"); ImGui::SameLine();
@@ -1658,6 +1673,8 @@ namespace ORNG {
 		if (ExtraUI::ShowVec2Editor("Velocity scale range", p_comp->m_velocity_min_max_scalar)) {
 			p_comp->SetVelocityScale(p_comp->m_velocity_min_max_scalar);
 		}
+
+		ImGui::PopID();
 	}
 
 
@@ -2001,10 +2018,8 @@ namespace ORNG {
 
 
 
-	bool EditorLayer::RenderMeshWithMaterials(const MeshAsset* p_asset,  std::vector<const Material*>& materials, std::function<void(MeshAsset* p_new)> OnMeshDrop, std::function<void(unsigned index, Material* p_new)> OnMaterialDrop) {
+	void EditorLayer::RenderMeshWithMaterials(const MeshAsset* p_asset, std::vector<const Material*>& materials, std::function<void(MeshAsset* p_new)> OnMeshDrop, std::function<void(unsigned index, Material* p_new)> OnMaterialDrop) {
 		ImGui::PushID(p_asset);
-
-		bool ret = false;
 
 		ImGui::SeparatorText("Mesh");
 		ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMeshPreviewTex(p_asset)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
@@ -2031,7 +2046,6 @@ namespace ORNG {
 
 
 		ImGui::PopID();
-
 	}
 
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
@@ -2039,7 +2053,7 @@ namespace ORNG {
 
 		std::function<void(MeshAsset* p_new)> OnMeshDrop = [comp](MeshAsset* p_new) {
 			comp->SetMeshAsset(p_new);
-		};
+			};
 
 		std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [comp](unsigned index, Material* p_new) {
 			comp->SetMaterialID(index, p_new);

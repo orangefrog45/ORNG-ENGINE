@@ -93,11 +93,18 @@ namespace ORNG {
 	constexpr unsigned particle_transform_size = sizeof(float) * 12;
 
 	void ParticleSystem::InitEmitter(ParticleEmitterComponent* p_comp) {
+		auto* p_ent = p_comp->GetEntity();
+		auto* p_bb_res = p_ent->GetComponent<ParticleBillboardResources>();
+		auto* p_mesh_res = p_ent->GetComponent<ParticleMeshResources>();
 
-		if (!p_comp->p_particle_mesh) {
-			p_comp->p_particle_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
-			p_comp->materials.resize(1);
-			p_comp->materials[0] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		if (p_comp->m_type == ParticleEmitterComponent::BILLBOARD && !p_bb_res) {
+			p_bb_res = p_ent->AddComponent<ParticleBillboardResources>();
+			p_bb_res->p_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+		else if (p_comp->m_type == ParticleEmitterComponent::MESH && !p_mesh_res) {
+			p_mesh_res = p_ent->AddComponent<ParticleMeshResources>();
+			p_mesh_res->materials = { AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+			p_mesh_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
 		}
 
 		if (!m_emitter_entities.empty()) {
@@ -124,8 +131,6 @@ namespace ORNG {
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<float> dis(0, 2.f * glm::pi<float>());
 		std::uniform_real_distribution<float> dis2(-1.0, 1.0);
-
-
 
 		// Put random seed in transform, done here as the GPU RNG's aren't well-distributed enough
 		for (unsigned i = 0; i < p_comp->m_num_particles * 12; i) {
@@ -162,6 +167,7 @@ namespace ORNG {
 		mp_particle_initializer_cs->Activate(ParticleCSVariants::DEFAULT);
 		mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index);
 		mp_particle_initializer_cs->SetUniform<unsigned>("u_emitter_index", m_emitter_entities.size() - 1);
+
 
 		glDispatchCompute(glm::ceil((total_particles - prev_total) / 32.f), 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -205,6 +211,21 @@ namespace ORNG {
 		UpdateEmitterBufferAtIndex(p_comp->m_index);
 	}
 
+	void ParticleSystem::OnEmitterVisualTypeChange(ParticleEmitterComponent* p_comp) {
+		auto* p_ent = p_comp->GetEntity();
+
+		if (p_comp->m_type == ParticleEmitterComponent::BILLBOARD) {
+			p_ent->DeleteComponent<ParticleMeshResources>();
+			p_ent->AddComponent<ParticleBillboardResources>()->p_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+		else {
+			p_ent->DeleteComponent<ParticleBillboardResources>();
+			auto* p_res = p_ent->AddComponent<ParticleMeshResources>();
+			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+			p_res->materials = { AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+		}
+	}
+
 	void ParticleSystem::OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event) {
 		auto* p_comp = e_event.affected_components[0];
 
@@ -212,10 +233,15 @@ namespace ORNG {
 			OnEmitterDestroy(p_comp, std::any_cast<int>(e_event.data_payload));
 			InitEmitter(p_comp);
 		}
+		else if (e_event.sub_event_type == ParticleEmitterComponent::VISUAL_TYPE_CHANGED) {
+			OnEmitterVisualTypeChange(e_event.affected_components[0]);
+		}
 		else {
 			UpdateEmitterBufferAtIndex(e_event.affected_components[0]->m_index);
 		}
 	}
+
+
 
 	void ParticleSystem::OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif) {
 		unsigned old_nb_particles = p_comp->m_num_particles - dif;
@@ -247,6 +273,8 @@ namespace ORNG {
 	}
 
 	void ParticleSystem::OnUnload() {
+		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_particle_listener.GetRegisterID());
 	}
 
 	void ParticleSystem::OnUpdate() {

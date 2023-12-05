@@ -300,15 +300,24 @@ namespace ORNG {
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
 
 		const auto& GetInstanceGroups() const { return m_instance_groups; }
+		const auto& GetBillboardInstanceGroups() const { return m_billboard_instance_groups; }
 	private:
 		void OnMeshAssetDeletion(MeshAsset* p_asset);
 		void OnMaterialDeletion(Material* p_material);
+
+		void SortBillboardIntoInstanceGroup(BillboardComponent* p_comp);
+		void OnBillboardAdd(BillboardComponent* p_comp);
+		void OnBillboardRemove(BillboardComponent* p_comp);
+
 		// Listener for asset deletion
 		Events::EventListener<Events::AssetEvent> m_asset_listener;
 
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<MeshComponent> m_mesh_listener;
 		std::vector<MeshInstanceGroup*> m_instance_groups;
+
+		Events::ECS_EventListener<BillboardComponent> m_billboard_listener;
+		std::vector<MeshInstanceGroup*> m_billboard_instance_groups;
 
 		unsigned m_default_group_end_index = 0;
 	};
@@ -326,7 +335,9 @@ namespace ORNG {
 		void InitEmitter(ParticleEmitterComponent* p_comp);
 		void OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event);
 		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
-		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif=0);
+		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif = 0);
+
+		void OnEmitterVisualTypeChange(ParticleEmitterComponent* p_comp);
 
 		void UpdateEmitterBufferAtIndex(unsigned index);
 
@@ -344,5 +355,14 @@ namespace ORNG {
 
 		inline static Shader* mp_particle_cs;
 		inline static ShaderVariants* mp_particle_initializer_cs;
+	};
+
+
+	struct BillboardInstanceGroup {
+		unsigned num_instances = 0;
+		Material* p_material = nullptr;
+
+		// Transforms stored as two vec3's (pos, scale)
+		SSBO<float> transform_ssbo;
 	};
 }

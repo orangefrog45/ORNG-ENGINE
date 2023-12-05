@@ -2,11 +2,28 @@
 
 
 namespace ORNG {
+	struct ParticleMeshResources : public Component {
+		ParticleMeshResources(SceneEntity* p_entity) : Component(p_entity) {};
+
+		MeshAsset* p_mesh = nullptr;
+		std::vector<const Material*> materials;
+	};
+
+	struct ParticleBillboardResources : public Component {
+		ParticleBillboardResources(SceneEntity* p_entity) : Component(p_entity) {};
+		Material* p_material = nullptr;
+	};
+
+
 	class ParticleEmitterComponent : public Component {
 		friend class ParticleSystem;
 		friend class EditorLayer;
 		friend class SceneRenderer;
 	public:
+		enum EmitterType : uint8_t {
+			BILLBOARD,
+			MESH
+		};
 		ParticleEmitterComponent(SceneEntity* p_entity) : Component(p_entity) { };
 
 		// Maximum of 100,000 particles per emitter
@@ -78,16 +95,25 @@ namespace ORNG {
 			return m_active;
 		}
 
-		MeshAsset* p_particle_mesh = nullptr;
-		std::vector<const Material*> materials;
+		EmitterType GetType() {
+			return m_type;
+		}
+
+		void SetType(EmitterType type) {
+			m_type = type;
+			DispatchUpdateEvent(VISUAL_TYPE_CHANGED);
+		}
 
 	private:
+
+		EmitterType m_type = BILLBOARD;
 
 		enum EmitterSubEvent {
 			DEFAULT,
 			NB_PARTICLES_CHANGED,
 			LIFESPAN_CHANGED,
-			SPAWN_DELAY_CHANGED
+			SPAWN_DELAY_CHANGED,
+			VISUAL_TYPE_CHANGED,
 		};
 
 		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, std::any data_payload = 0.f) {

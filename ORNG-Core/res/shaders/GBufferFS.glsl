@@ -141,6 +141,7 @@ void main() {
 	shader_id = uint(0);
 	albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
 #else
+
 	if (u_normal_sampler_active) {
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;

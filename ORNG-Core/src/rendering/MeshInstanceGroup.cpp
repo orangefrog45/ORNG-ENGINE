@@ -9,97 +9,94 @@
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
+	void MeshInstanceGroup::RemoveInstance(SceneEntity* ptr) {
+		unsigned instance_index = m_instances[ptr];
+		m_instances.erase(ptr);
 
-	void MeshInstanceGroup::DeleteMeshPtr(MeshComponent* ptr) {
-		int index = FindMeshPtrIndex(ptr);
-		m_instances.erase(m_instances.begin() + index);
-		ptr->mp_instance_group = nullptr;
-		m_update_world_mat_buffer_flag = true;
+		// TODO: Batch deletes/adds too
+		m_transform_ssbo.Erase(instance_index * sizeof(glm::mat4), sizeof(glm::mat4));
+
+		for (auto& [p_ent, index] : m_instances) {
+			if (instance_index < index)
+				index--;
+		}
 	}
 
 	void MeshInstanceGroup::ClearMeshes() {
-		for (int i = 0; i < m_instances.size(); i++) {
-			m_instances[i]->mp_instance_group = nullptr;
-			m_instances.erase(m_instances.begin() + i);
+		while (!m_instances.empty()) {
+			m_instances.erase(m_instances.begin());
 		}
+	}
+
+
+	void MeshInstanceGroup::FlagInstanceTransformUpdate(SceneEntity* p_instance) {
+		m_instances_to_update.push_back(p_instance);
 	}
 
 
 	void MeshInstanceGroup::ProcessUpdates() {
-
-		// If the whole buffer needs to be updated, just do that, ignore sub updates as they'll happen anyway in the full buffer update 
-		if (m_update_world_mat_buffer_flag) {
-			m_update_world_mat_buffer_flag = false;
-			m_sub_update_world_mat_buffer_flag = false;
-			UpdateTransformSSBO();
-		}
-		else if (m_sub_update_world_mat_buffer_flag) {
-			m_sub_update_world_mat_buffer_flag = false;
-			std::vector<glm::mat4> transforms;
-			transforms.reserve(m_instances.size() * 0.1); // Rough guess on how many transforms will need to be updated, could be way off, ideally want proper way of estimating this
-
-			// Used for saving the first position of a "chunk" of transforms to be updated, so they can be more efficiently updated with fewer subbuffer calls 
-			int first_index_of_chunk = -1;
-
-			for (int i = 0; i < m_instances.size(); i++) {
-				if (m_instances[i]->m_transform_update_flag)
-				{
-					m_instances[i]->m_transform_update_flag = false;
-					if (first_index_of_chunk == -1)
-						first_index_of_chunk = i;
-
-					transforms.push_back(m_instances[i]->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
-				}
-				else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk 
-				{
-					m_mesh_asset->m_vao.SubUpdateTransformSSBO(m_transform_ssbo_handle, first_index_of_chunk, transforms);
-					transforms.clear();
-					transforms.reserve((m_instances.size() - i) * 0.1);
-					first_index_of_chunk = -1;
-				}
-			}
-
-			// Last check, if the chunk persisted until the end of the array 
-			if (first_index_of_chunk != -1) {
-				m_mesh_asset->m_vao.SubUpdateTransformSSBO(m_transform_ssbo_handle, first_index_of_chunk, transforms);
-			}
-
-		}
-	}
-
-	void MeshInstanceGroup::AddMeshPtr(MeshComponent* ptr) {
-		ptr->mp_instance_group = this;
-		ptr->mp_mesh_asset = m_mesh_asset;
-		ptr->m_materials = m_materials;
-		m_instances.push_back(ptr);
-
-		m_update_world_mat_buffer_flag = true;
-	}
-
-	void MeshInstanceGroup::UpdateTransformSSBO() {
-		if (m_instances.empty()) {
+		if (m_instances_to_update.empty())
 			return;
-		}
+
+		// Sort so neighbouring transforms can be found and updated all in one call to buffersubdata
+		std::ranges::sort(m_instances_to_update, [this](const auto& p_ent, const auto& p_ent2) {return m_instances[p_ent] < m_instances[p_ent2]; });
+
+		// Erase duplicate instances flagged for update
+		m_instances_to_update.erase(std::unique(m_instances_to_update.begin(), m_instances_to_update.end()), m_instances_to_update.end());
 
 		std::vector<glm::mat4> transforms;
-		transforms.reserve(m_instances.size());
+		transforms.reserve(m_instances.size() * 0.1); // Rough guess on how many transforms will need to be updated, could be way off, ideally want proper way of estimating this
 
-		for (auto& p_mesh : m_instances) {
-			transforms.emplace_back(p_mesh->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+		// Used for saving the first position of a "chunk" of transforms to be updated, so they can be more efficiently updated with fewer buffersubdata calls
+		int first_index_of_chunk = -1;
+
+		// Below loop can't cover index 0 (first check puts it out of range) so handle separately here
+		transforms.push_back(m_instances_to_update[0]->GetComponent<TransformComponent>()->GetMatrix());
+
+		if (m_transform_ssbo.GetGPU_BufferSize() == 0)
+			m_transform_ssbo.Resize(64);
+
+		glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances[m_instances_to_update[0]] * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
+		transforms.clear();
+
+		for (int i = 1; i < m_instances_to_update.size(); i++) {
+			if (m_instances[m_instances_to_update[i]] == m_instances[m_instances_to_update[i - 1]] + 1)
+			{
+				if (first_index_of_chunk == -1) {
+					transforms.push_back(m_instances_to_update[i - 1]->GetComponent<TransformComponent>()->GetMatrix());
+					transforms.push_back(m_instances_to_update[i]->GetComponent<TransformComponent>()->GetMatrix());
+					first_index_of_chunk = m_instances[m_instances_to_update[i - 1]];
+				}
+				else {
+					transforms.push_back(m_instances_to_update[i]->GetComponent<TransformComponent>()->GetMatrix());
+				}
+			}
+			else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk
+			{
+				glNamedBufferSubData(m_transform_ssbo.GetHandle(), first_index_of_chunk * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
+				transforms.clear();
+				transforms.reserve((m_instances.size() - i) * 0.1);
+				first_index_of_chunk = -1;
+			}
 		}
-		m_mesh_asset->m_vao.FullUpdateTransformSSBO(m_transform_ssbo_handle, &transforms);
 
+		// Last check, if the chunk persisted until the end of the array
+		if (first_index_of_chunk != -1) {
+			glNamedBufferSubData(m_transform_ssbo.GetHandle(), first_index_of_chunk * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
+		}
+
+		m_instances_to_update.clear();
 	}
 
-	int MeshInstanceGroup::FindMeshPtrIndex(const MeshComponent* ptr) {
-		auto it = std::find(m_instances.begin(), m_instances.end(), ptr);
+	void MeshInstanceGroup::AddInstance(SceneEntity* ptr) {
+		std::vector<std::byte> transform_bytes;
+		transform_bytes.resize(sizeof(glm::mat4));
+		std::byte* p_byte = &transform_bytes[0];
+		PushMatrixIntoArrayBytes(ptr->GetComponent<TransformComponent>()->GetMatrix(), p_byte);
 
-		if (it == m_instances.end()) {
-			ORNG_CORE_ERROR("Mesh component ptr not found in instance group with asset '{0}', material[0]= '{1}'", m_mesh_asset->filepath, m_materials[0]->uuid());
-			return -1;
-		}
+		// TODO: Batch add operations
+		m_transform_ssbo.PushBack(&transform_bytes[0], sizeof(glm::mat4));
 
-		return it - m_instances.begin();
+		m_instances[ptr] = m_instances.size();
 	}
-
 }

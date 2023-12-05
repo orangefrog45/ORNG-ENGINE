@@ -70,7 +70,7 @@ namespace ORNG {
 		void RenderCreationWidget(SceneEntity* p_entity, bool trigger);
 		void DisplayEntityEditor();
 		void RenderMeshComponentEditor(MeshComponent* comp);
-		bool RenderMeshWithMaterials(const MeshAsset* p_asset, std::vector<const Material*>& materials, std::function<void(MeshAsset* p_new)> OnMeshDrop, std::function<void(unsigned index, Material* p_new)> OnMaterialDrop);
+		void RenderMeshWithMaterials(const MeshAsset* p_asset, std::vector<const Material*>& materials, std::function<void(MeshAsset* p_new)> OnMeshDrop, std::function<void(unsigned index, Material* p_new)> OnMaterialDrop);
 		void RenderPointlightEditor(PointLightComponent* light);
 		void RenderSpotlightEditor(SpotLightComponent* light);
 		void RenderCameraEditor(CameraComponent* p_cam);

@@ -17,7 +17,7 @@ namespace ORNG {
 		GL_StateManager::BindVAO(GetHandle());
 		for (auto [index, p_buf] : m_buffers) {
 			GL_StateManager::BindBuffer(p_buf->buffer_type, p_buf->m_ogl_handle);
-			glBufferData(p_buf->buffer_type, p_buf->GetSize(), p_buf->GetDataPtr(), p_buf->draw_type);
+			glBufferData(p_buf->buffer_type, p_buf->GetSizeCPU(), p_buf->GetDataPtr(), p_buf->draw_type);
 			glEnableVertexAttribArray(index);
 			glVertexAttribPointer(index, p_buf->comps_per_attribute, p_buf->data_type, GL_FALSE, p_buf->stride, 0);
 		}
@@ -25,14 +25,25 @@ namespace ORNG {
 
 	void VertexBufferBase::FillBuffer() {
 		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
-		glBufferData(buffer_type, GetSize(), GetDataPtr(), draw_type);
+		glBufferData(buffer_type, GetSizeCPU(), GetDataPtr(), draw_type);
 		glEnableVertexAttribArray(index);
 		glVertexAttribPointer(index, comps_per_attribute, data_type, GL_FALSE, stride, 0);
 	}
 
 	void BufferBase::FillBuffer() {
-		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
-		glBufferData(buffer_type, GetSize(), GetDataPtr(), draw_type);
+		glNamedBufferData(m_ogl_handle, GetSizeCPU(), GetDataPtr(), draw_type);
+	}
+
+	void BufferBase::Init() {
+		m_ogl_handle = GL_StateManager::GenBuffer();
+		m_is_initalized = true;
+	}
+
+
+	int BufferBase::GetGPU_BufferSize() {
+		GLint buffer_size;
+		glGetNamedBufferParameteriv(m_ogl_handle, GL_BUFFER_SIZE, &buffer_size);
+		return buffer_size;
 	}
 
 	void BufferBase::Resize(size_t size_bytes) {
@@ -53,6 +64,13 @@ namespace ORNG {
 		glDeleteBuffers(1, &m_ogl_handle);
 		m_ogl_handle = buf;
 	}
+
+	void BufferBase::PushBack(std::byte* bytes, size_t size) {
+		int old_size = GetGPU_BufferSize();
+		Resize(old_size + size);
+		glNamedBufferSubData(m_ogl_handle, old_size, size, bytes);
+	}
+
 
 	void BufferBase::Erase(size_t start, size_t erase_size) {
 		GLint buffer_size;
@@ -117,54 +135,5 @@ namespace ORNG {
 		}
 	}
 
-	unsigned int MeshVAO::GenTransformSSBO() {
-		unsigned int ssbo_handle = GL_StateManager::GenBuffer();
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_handle);
-
-		m_transform_ssbo_handles.push_back(ssbo_handle);
-		return ssbo_handle;
-	}
-
-	void MeshVAO::FullUpdateTransformSSBO(unsigned int ssbo_handle, const std::vector<glm::mat4>* transforms, long long buffer_size) {
-		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
-			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in MeshVAO.");
-			BREAKPOINT;
-		}
-
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_handle);
-
-
-		if (buffer_size == -1 && transforms) // Size not specified, use automatically determined size
-		{
-			glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::mat4) * transforms->size(), transforms->data(), GL_DYNAMIC_DRAW);
-		}
-		else if (transforms == nullptr) // No transforms so just resize buffer
-		{
-			glBufferData(GL_SHADER_STORAGE_BUFFER, buffer_size, nullptr, GL_DYNAMIC_DRAW);
-		}
-		else // Resize buffer then update section with transforms
-		{
-			glBufferData(GL_SHADER_STORAGE_BUFFER, buffer_size, nullptr, GL_DYNAMIC_DRAW);
-			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::mat4) * transforms->size(), transforms->data());
-		}
-	}
-
-	void MeshVAO::DeleteTransformSSBO(unsigned int ssbo_handle) {
-		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
-			ORNG_CORE_ERROR("MeshVAO does not contain SSBO with handle '{0}', failed to delete!", ssbo_handle);
-		}
-		else {
-			glDeleteBuffers(1, &ssbo_handle);
-		}
-	}
-
-	void MeshVAO::SubUpdateTransformSSBO(unsigned int ssbo_handle, unsigned int index_offset, std::vector<glm::mat4>& transforms) {
-		if (!VectorContains(m_transform_ssbo_handles, ssbo_handle)) {
-			ORNG_CORE_CRITICAL("No transform ssbo with handle '{0}' located in MeshVAO.");
-			BREAKPOINT;
-		}
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_handle);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::mat4) * index_offset, sizeof(glm::mat4) * transforms.size(), transforms.data());
-	}
+	
 }

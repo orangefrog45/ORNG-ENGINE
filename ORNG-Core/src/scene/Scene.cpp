@@ -227,6 +227,7 @@ namespace ORNG {
 		m_mesh_component_manager.OnUnload();
 		m_camera_system.OnUnload();
 		m_audio_system.OnUnload();
+		m_particle_system.OnUnload();
 
 		m_entities.clear();
 		ORNG_CORE_INFO("Scene unloaded");

@@ -81,7 +81,7 @@ namespace ORNG {
 	void AssetManager::IClearAll() {
 		auto it = m_assets.begin();
 		while (it != m_assets.end()) {
-			if (it->first <= ORNG_BASE_PHYSX_MATERIAL_ID) {
+			if (it->first < ORNG_NUM_BASE_ASSETS) {
 				it++;
 				continue;
 			}
@@ -419,6 +419,8 @@ namespace ORNG {
 		InitBaseCube();
 		InitBaseTexture();
 		InitBaseSphere();
+		InitBase3DQuad();
+
 		mp_replacement_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
 		auto symbols = ScriptSymbols("");
 		mp_base_script = std::make_unique<ScriptAsset>(symbols);
@@ -428,12 +430,15 @@ namespace ORNG {
 		mp_replacement_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
 		mp_base_sound->uuid = UUID(ORNG_BASE_SOUND_ID);
 		mp_base_script->uuid = UUID(ORNG_BASE_SCRIPT_ID);
+
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
 		AddAsset(&*mp_replacement_material);
 		AddAsset(&*mp_base_sound);
 		AddAsset(&*mp_base_script);
 		AddAsset(&*mp_base_sphere);
+		AddAsset(&*mp_base_quad);
+
 		mp_base_sound->source_filepath = mp_base_sound->filepath;
 		mp_base_sound->CreateSound();
 
@@ -453,6 +458,7 @@ namespace ORNG {
 		Get().mp_base_sphere.release();
 		Get().mp_base_physx_material->p_material->release();
 		Get().mp_base_physx_material.release();
+		Get().mp_base_quad.release();
 	};
 
 	void AssetManager::InitBaseSphere() {
@@ -600,6 +606,53 @@ namespace ORNG {
 		mp_base_cube->m_is_loaded = true;
 	}
 
+	void AssetManager::InitBase3DQuad() {
+		mp_base_quad = std::make_unique<MeshAsset>("quad");
+
+		mp_base_quad->m_vao.vertex_data.positions = {
+			-0.5, -0.5, 0,
+			-0.5, 0.5, 0,
+			0.5, -0.5, 0,
+			0.5, 0.5, 0,
+		};
+
+		mp_base_quad->m_vao.vertex_data.normals = {
+			0, 0, 1,
+			0, 0, 1,
+			0, 0, 1,
+			0, 0, 1,
+		};
+
+		mp_base_quad->m_vao.vertex_data.tangents = {
+			1, 0, 0,
+			1, 0, 0,
+			1, 0, 0,
+			1, 0, 0,
+		};
+
+		mp_base_quad->m_vao.vertex_data.tex_coords = {
+			0, 1,
+			0, 0,
+			1, 1,
+			1, 1,
+		};
+		mp_base_quad->m_vao.vertex_data.indices = {
+			0, 2, 1, 3, 1, 2
+		};
+		mp_base_quad->num_materials = 1;
+
+		MeshAsset::MeshEntry entry;
+		entry.base_index = 0;
+		entry.base_vertex = 0;
+		entry.material_index = 0;
+		entry.num_indices = mp_base_quad->m_vao.vertex_data.indices.size();
+
+		mp_base_quad->m_submeshes.push_back(entry);
+		mp_base_quad->m_is_loaded = true;
+		mp_base_quad->uuid = UUID(ORNG_BASE_QUAD_ID);
+
+		mp_base_quad->m_vao.FillBuffers();
+	}
 
 	void AssetManager::InitBaseTexture() {
 		mp_base_tex = std::make_unique<Texture2D>("Base coded texture", 0);
@@ -618,6 +671,4 @@ namespace ORNG {
 		unsigned char white_pixel[] = { 255, 255, 255, 255 };
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, white_pixel);
 	}
-
-
 }

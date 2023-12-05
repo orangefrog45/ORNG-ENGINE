@@ -17,6 +17,8 @@
 #define ORNG_BASE_SCRIPT_ID	4
 #define ORNG_BASE_SPHERE_ID 5
 #define ORNG_BASE_PHYSX_MATERIAL_ID 6
+#define ORNG_BASE_QUAD_ID 7
+#define ORNG_NUM_BASE_ASSETS 8
 
 
 class GLFWwindow;
@@ -128,7 +130,7 @@ namespace ORNG {
 			std::vector<T*> vec;
 			for (auto [uuid, p_asset] : Get().m_assets) {
 				if (T* p_typed_asset = dynamic_cast<T*>(p_asset); p_typed_asset &&
-					uuid > ORNG_BASE_PHYSX_MATERIAL_ID
+					uuid >= ORNG_NUM_BASE_ASSETS
 					)
 					vec.push_back(p_typed_asset);
 			}
@@ -214,7 +216,7 @@ namespace ORNG {
 		static void SerializeAssets() {
 			Get().ISerializeAssets();
 		}
-
+#
 		// Deletes all assets
 		inline static void ClearAll() { Get().IClearAll(); };
 
@@ -308,8 +310,8 @@ namespace ORNG {
 	private:
 		void I_Init();
 
-		 void IOnShutdown();
-		 void ISerializeAssets();
+		void IOnShutdown();
+		void ISerializeAssets();
 
 		static void OnTextureDelete(Texture2D* p_tex);
 
@@ -329,10 +331,13 @@ namespace ORNG {
 		void InitBaseCube();
 		void InitBaseSphere();
 		void InitBaseTexture();
+		void InitBase3DQuad();
+
 
 		std::unique_ptr<ScriptAsset> mp_base_script = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_sphere = nullptr;
+		std::unique_ptr<MeshAsset> mp_base_quad = nullptr;
 		std::unique_ptr<Texture2D> mp_base_tex = nullptr;
 		std::unique_ptr<PhysXMaterialAsset> mp_base_physx_material = nullptr;
 

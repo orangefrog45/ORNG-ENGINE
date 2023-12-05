@@ -14,12 +14,21 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<MeshComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
+	static void OnBillboardComponentAdd(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<BillboardComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+	}
+
+	static void OnBillboardComponentDestroy(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<BillboardComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+	}
+
+
 	void MeshInstancingSystem::SortMeshIntoInstanceGroup(MeshComponent* comp) {
 		if (!comp->mp_mesh_asset)
 			return;
 
 		if (comp->mp_instance_group) { // Remove first if it has an instance group
-			comp->mp_instance_group->DeleteMeshPtr(comp);
+			comp->mp_instance_group->RemoveInstance(comp->GetEntity());
 		}
 
 		int group_index = -1;
@@ -37,7 +46,7 @@ namespace ORNG {
 		if (group_index != -1) { // if instance group exists, place into
 			// add mesh component's world transform into instance group for instanced rendering
 			MeshInstanceGroup* group = m_instance_groups[group_index];
-			group->AddMeshPtr(comp);
+			group->AddInstance(comp->GetEntity());
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
 			std::vector<const Material*> material_vec;
@@ -52,10 +61,50 @@ namespace ORNG {
 
 			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, material_vec);
 			m_instance_groups.push_back(group);
-			group->AddMeshPtr(comp);
+			group->AddInstance(comp->GetEntity());
+
+			group_index = m_instance_groups.size() - 1;
 		}
+
+		auto* p_group = m_instance_groups[group_index];
+		comp->mp_instance_group = p_group;
+		comp->mp_mesh_asset = p_group->m_mesh_asset;
 	}
 
+	void MeshInstancingSystem::OnBillboardAdd(BillboardComponent* p_comp) {
+		if (!p_comp->p_material) {
+			p_comp->p_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+
+		SortBillboardIntoInstanceGroup(p_comp);
+	}
+
+	void MeshInstancingSystem::OnBillboardRemove(BillboardComponent* p_comp) {
+		p_comp->mp_instance_group->RemoveInstance(p_comp->GetEntity());
+	}
+
+	void MeshInstancingSystem::SortBillboardIntoInstanceGroup(BillboardComponent* p_comp) {
+		int group_index = -1;
+
+		for (int i = 0; i < m_billboard_instance_groups.size(); i++) {
+			if (m_billboard_instance_groups[i]->m_materials[0] == p_comp->p_material) {
+				group_index = i;
+			}
+		}
+
+		if (group_index != -1) {
+			m_billboard_instance_groups[group_index]->AddInstance(p_comp->GetEntity());
+		}
+		else {
+			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID), this, p_comp->p_material);
+			p_group->m_materials.push_back(p_comp->p_material);
+			m_billboard_instance_groups.push_back(p_group);
+			p_group->AddInstance(p_comp->GetEntity());
+			group_index = m_billboard_instance_groups.size() - 1;
+		}
+
+		p_comp->mp_instance_group = m_billboard_instance_groups[group_index];
+	}
 
 
 	MeshInstancingSystem::MeshInstancingSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
@@ -81,9 +130,23 @@ namespace ORNG {
 			}
 			};
 
+		m_billboard_listener.scene_id = scene_uuid;
+		m_billboard_listener.OnEvent = [this](const Events::ECS_Event<BillboardComponent>& t_event) {
+			switch (t_event.event_type) {
+			case Events::ECS_EventType::COMP_ADDED:
+				OnBillboardAdd(t_event.affected_components[0]);
+				break;
+			case Events::ECS_EventType::COMP_DELETED:
+				OnBillboardRemove(t_event.affected_components[0]);
+				break;
+			}
+			};
+
+
 		Events::EventManager::RegisterListener(m_mesh_listener);
 		Events::EventManager::RegisterListener(m_asset_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
+		Events::EventManager::RegisterListener(m_billboard_listener);
 	};
 
 
@@ -102,7 +165,7 @@ namespace ORNG {
 			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
 			break;
 		case Events::ECS_EventType::COMP_DELETED:
-			t_event.affected_components[0]->mp_instance_group->DeleteMeshPtr(t_event.affected_components[0]);
+			t_event.affected_components[0]->mp_instance_group->RemoveInstance(t_event.affected_components[0]->GetEntity());
 			break;
 		}
 	}
@@ -114,12 +177,15 @@ namespace ORNG {
 		if (t_event.event_type != Events::ECS_EventType::COMP_UPDATED)
 			return;
 
-		if (auto* meshc = t_event.affected_components[0]->GetEntity()->GetComponent<MeshComponent>()) {
-			meshc->mp_instance_group->ActivateFlagSubUpdateWorldMatBuffer();
-			meshc->m_transform_update_flag = true;
+		auto* p_entity = t_event.affected_components[0]->GetEntity();
+		if (auto* meshc = p_entity->GetComponent<MeshComponent>()) {
+			meshc->mp_instance_group->FlagInstanceTransformUpdate(meshc->GetEntity());
+		}
+
+		if (auto* p_billboard = p_entity->GetComponent<BillboardComponent>()) {
+			p_billboard->mp_instance_group->FlagInstanceTransformUpdate(p_entity);
 		}
 	}
-
 
 
 
@@ -128,16 +194,14 @@ namespace ORNG {
 		mp_registry->on_construct<MeshComponent>().connect<&OnMeshComponentAdd>();
 		mp_registry->on_destroy<MeshComponent>().connect<&OnMeshComponentDestroy>();
 
+		mp_registry->on_construct<BillboardComponent>().connect<&OnBillboardComponentAdd>();
+		mp_registry->on_destroy<BillboardComponent>().connect<&OnBillboardComponentDestroy>();
+
 		for (auto& group : m_instance_groups) {
 			//Set materials
 			for (int i = 0; i < group->m_mesh_asset->num_materials; i++) {
 				group->m_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
 			}
-
-			for (auto* p_mesh : group->m_instances) {
-				p_mesh->m_materials = group->m_materials;
-			}
-			group->UpdateTransformSSBO();
 		}
 	}
 
@@ -160,18 +224,22 @@ namespace ORNG {
 				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 		}
 
-		for (int i = 0; i < m_instance_groups.size(); i++) {
-			MeshInstanceGroup* group = m_instance_groups[i];
+		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };
 
-			if (group->m_mesh_asset == p_asset) {
-				group->ClearMeshes();
-				for (auto& mesh : group->m_instances) {
-					mesh->mp_mesh_asset = nullptr;
+		for (int y = 0; y < 2; y++) {
+			for (int i = 0; i < groups[y]->size(); i++) {
+				MeshInstanceGroup* group = (*groups[y])[i];
+
+				if (group->m_mesh_asset == p_asset) {
+					group->ClearMeshes();
+					for (auto [p_ent, index] : group->m_instances) {
+						p_ent->GetComponent<MeshComponent>()->mp_mesh_asset = nullptr;
+					}
+
+					// Delete all mesh instance groups using the asset as they cannot function without it
+					m_instance_groups.erase(m_instance_groups.begin() + i);
+					delete group;
 				}
-
-				// Delete all mesh instance groups using the asset as they cannot function without it
-				m_instance_groups.erase(m_instance_groups.begin() + i);
-				delete group;
 			}
 		}
 	}
@@ -195,9 +263,9 @@ namespace ORNG {
 				continue;
 
 			// Replace material in mesh if it contains it
-			for (auto* p_mesh_comp : group->m_instances) {
+			for (auto [p_ent, index] : group->m_instances) {
 				for (auto valid_replacement_index : material_indices) {
-					p_mesh_comp->m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					p_ent->GetComponent<MeshComponent>()->m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 				}
 			}
 		}
@@ -205,17 +273,21 @@ namespace ORNG {
 
 
 	void MeshInstancingSystem::OnUpdate() {
-		for (int i = 0; i < m_instance_groups.size(); i++) {
-			auto* group = m_instance_groups[i];
+		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };
 
-			group->ProcessUpdates();
+		for (int y = 0; y < 2; y++) {
+			for (int i = 0; i < groups[y]->size(); i++) {
+				auto* group = (*groups[y])[i];
 
-			// Check if group should be deleted
-			if (group->m_instances.empty()) {
 				group->ProcessUpdates();
-				delete group;
-				m_instance_groups.erase(m_instance_groups.begin() + i);
-				i--;
+
+				// Check if group should be deleted
+				if (group->m_instances.empty()) {
+					group->ProcessUpdates();
+					delete group;
+					m_instance_groups.erase(m_instance_groups.begin() + i);
+					i--;
+				}
 			}
 		}
 	}
