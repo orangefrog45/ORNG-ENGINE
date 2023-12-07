@@ -30,6 +30,7 @@ in vec3 vs_original_normal;
 in vec3 vs_view_dir_tangent_space;
 
 ORNG_INCLUDE "CommonINCL.glsl"
+ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
 uniform uint u_shader_id;
 uniform bool u_normal_sampler_active;
@@ -53,11 +54,25 @@ uniform Material u_material;
 #define BRDF_LUT_SAMPLER brdf_lut_sampler
 ORNG_INCLUDE "LightingINCL.glsl"
 
+#ifdef PARTICLE
+uniform uint u_transform_start_index;
+
+flat in uint vs_particle_index;
+#endif
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
 	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
+
+#ifdef PARTICLE
+#define EMITTER ubo_particle_emitters.emitters[ubo_particles.particles[vs_particle_index].emitter_index]
+#define PTCL ubo_particles.particles[vs_particle_index]
+
+	float interpolation = 1.0 - (clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan);
+
+	albedo_col *= vec4(InterpolateV3(interpolation, EMITTER.colour_over_life), InterpolateV1(interpolation, EMITTER.alpha_over_life));
+#endif
 
 	if (u_emissive_sampler_active) {
 		vec4 sampled_col = texture(emissive_sampler, tex_coord);
@@ -68,6 +83,7 @@ vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
 }
 
 
+const float EPSILON = 0.00001f;
 
 void main() {
 
@@ -77,7 +93,6 @@ void main() {
 	vec3 r = reflect(-v, n);
 	float n_dot_v = max(dot(n, v), 0.0);
 
-	//reflection amount
 	vec3 f0 = mix( vec3(0.03), u_material.base_color.rgb, u_material.metallic);
 
 	float roughness = texture(roughness_sampler, vs_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
@@ -87,12 +102,13 @@ void main() {
 
 	total_light += CalculateDirectLightContribution(v, f0, vs_position.xyz, n, roughness, metallic, albedo.rgb);
 	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
-    vec4 color = vec4(total_light, u_material.base_color.a);
+    vec4 color = vec4(total_light, u_material.base_color.a * albedo.w);
 
     float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 
                          pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
 
     accum = vec4(color.rgb * color.a, color.a) * weight;
+        
 
     reveal = color.a;
 }

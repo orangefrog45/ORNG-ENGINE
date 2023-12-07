@@ -10,6 +10,13 @@ namespace ORNG {
 		ALPHA_TESTED
 	};
 
+	struct SpriteSheetData {
+		unsigned num_rows = 5;
+		unsigned num_cols = 5;
+
+		unsigned fps = 24;
+	};
+
 	struct Material : public Asset {
 		friend class Scene;
 		explicit Material(Texture2D* p_base_color_tex) : Asset(""), base_color_texture(p_base_color_tex) {};
@@ -68,6 +75,9 @@ namespace ORNG {
 		Texture2D* ao_texture = nullptr;
 		Texture2D* displacement_texture = nullptr;
 		Texture2D* emissive_texture = nullptr;
+
+		bool is_spritesheet = true;
+		SpriteSheetData spritesheet_data;
 
 		uint32_t parallax_layers = 24;
 		float parallax_height_scale = 0.05f;

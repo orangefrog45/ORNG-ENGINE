@@ -12,7 +12,7 @@
 #include "rendering/Textures.h"
 #include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
-
+#include "util/InterpolatorSerializer.h"
 /*
 	struct VertexData {
 			std::vector<glm::vec3> positions;
@@ -43,6 +43,30 @@ namespace YAML {
 			rhs.x = node[0].as<float>();
 			rhs.y = node[1].as<float>();
 			rhs.z = node[2].as<float>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<glm::vec4> {
+		static Node encode(const glm::vec4& rhs) {
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			node.push_back(rhs.w);
+			return node;
+		}
+
+		static bool decode(const Node& node, glm::vec4& rhs) {
+			if (!node.IsSequence() || node.size() != 4) {
+				return false;
+			}
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			rhs.z = node[2].as<float>();
+			rhs.w = node[3].as<float>();
 			return true;
 		}
 	};
@@ -266,6 +290,12 @@ namespace ORNG {
 			Out(out, "Lifespan", p_emitter->GetParticleLifespan());
 			Out(out, "Spawn delay", p_emitter->GetSpawnDelay());
 			Out(out, "Type", (unsigned)p_emitter->GetType());
+			Out(out, "Acceleration", p_emitter->GetAcceleration());
+
+			InterpolatorSerializer::SerializeInterpolator("Colour over time", out, p_emitter->m_life_colour_interpolator);
+			InterpolatorSerializer::SerializeInterpolator("Alpha over time", out, p_emitter->m_life_alpha_interpolator);
+			InterpolatorSerializer::SerializeInterpolator("Scale over time", out, p_emitter->m_life_scale_interpolator);
+
 
 			if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 				Out(out, "MaterialUUID", entity.GetComponent<ParticleBillboardResources>()->p_material->uuid());
@@ -437,24 +467,7 @@ namespace ORNG {
 			}
 
 
-			/*
-			* 		if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
-				Out(out, "MaterialUUID", entity.GetComponent<ParticleBillboardResources>()->p_material->uuid());
-			}
-			else {
-				auto* p_res = entity.GetComponent<ParticleMeshResources>();
-
-				Out(out, "MeshUUID", p_res->p_mesh->uuid());
-
-				Out(out, "Materials", YAML::Flow);
-				out << YAML::BeginSeq;
-				for (auto* p_material : p_res->materials) {
-					out << p_material->uuid();
-				}
-				out << YAML::EndSeq;
-			}
-
-			*/
+			
 			if (tag == "ParticleEmitterComp") {
 				auto emitter_node = entity_node["ParticleEmitterComp"];
 				auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
@@ -465,6 +478,11 @@ namespace ORNG {
 				p_emitter->SetParticleLifespan(emitter_node["Lifespan"].as<float>());
 				p_emitter->SetParticleSpawnDelay(emitter_node["Spawn delay"].as<float>());
 				p_emitter->SetType(static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>()));
+				p_emitter->SetAcceleration(emitter_node["Acceleration"].as<glm::vec3>());
+
+				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Alpha over time"], p_emitter->m_life_alpha_interpolator);
+				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Colour over time"], p_emitter->m_life_colour_interpolator);
+				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
 
 				if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 					auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
@@ -484,6 +502,8 @@ namespace ORNG {
 						p_res->materials[i] = p_mat ? p_mat : p_replacement_material;
 					}
 				}
+
+				p_emitter->DispatchUpdateEvent();
 			}
 		}
 	}
@@ -582,7 +602,6 @@ namespace ORNG {
 			fout << out.c_str();
 		}
 	}
-
 
 
 

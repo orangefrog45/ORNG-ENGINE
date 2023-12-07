@@ -89,7 +89,7 @@ namespace ORNG {
 	}
 
 	constexpr unsigned particle_struct_size = sizeof(float) * 8;
-	constexpr unsigned emitter_struct_size = sizeof(float) * 32;
+	constexpr unsigned emitter_struct_size = sizeof(float) * 36 + InterpolatorV3::GPU_STRUCT_SIZE_BYTES * 2 + sizeof(float) * 6 + InterpolatorV1::GPU_STRUCT_SIZE_BYTES + sizeof(float) * 3;
 	constexpr unsigned particle_transform_size = sizeof(float) * 12;
 
 	void ParticleSystem::InitEmitter(ParticleEmitterComponent* p_comp) {
@@ -200,8 +200,25 @@ namespace ORNG {
 		ConvertToBytes(comp.m_velocity_min_max_scalar.y, p_byte);
 		ConvertToBytes(comp.m_particle_lifespan_ms, p_byte);
 		ConvertToBytes(comp.m_particle_spawn_delay_ms, p_byte);
-		ConvertToBytes(comp.m_active, p_byte);
+		ConvertToBytes((int)comp.m_active, p_byte);
 		ConvertToBytes(0.0f, p_byte); // padding
+		comp.m_life_colour_interpolator.ConvertSelfToBytes(p_byte);
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(0.0f, p_byte); // padding
+		comp.m_life_scale_interpolator.ConvertSelfToBytes(p_byte);
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(0.0f, p_byte); // padding
+		comp.m_life_alpha_interpolator.ConvertSelfToBytes(p_byte);
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(comp.acceleration.x, p_byte); 
+		ConvertToBytes(comp.acceleration.y, p_byte); 
+		ConvertToBytes(comp.acceleration.z, p_byte); 
+		ConvertToBytes(0.0f, p_byte); // padding
+
 
 		glNamedBufferSubData(m_emitter_ssbo.GetHandle(), index * emitter_struct_size, emitter_struct_size, emitter_data.data());
 	}

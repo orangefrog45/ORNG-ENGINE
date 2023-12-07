@@ -3,6 +3,9 @@
 
 class GLFWwindow;
 namespace ORNG {
+	class InterpolatorV3;
+	class InterpolatorV1;
+
 	class ExtraUI {
 	public:
 		static void  NameWithTooltip(const std::string& name);
@@ -21,7 +24,23 @@ namespace ORNG {
 		static bool ColoredButton(const char* content, ImVec4 col, ImVec2 size = { 0, 0 });
 		static bool RightClickPopup(const char* id);
 
+		static bool InputUint(const char* name, unsigned& val);
+
+		static bool InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator);
+		static bool InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator);
+
 		static bool AlphaNumTextInput(std::string& input);
+
+		static void OnUpdate() {
+			int_storage.clear();
+			double_storage.clear();
+			bool_storage.clear();
+		}
+
+	private:
+		inline static std::vector<int> int_storage;
+		inline static std::map<float*, double> double_storage;
+		inline static std::map<float*, bool> bool_storage;
 	};
 
 	inline static ImVec2 AddImVec2(ImVec2 v1, ImVec2 v2) {

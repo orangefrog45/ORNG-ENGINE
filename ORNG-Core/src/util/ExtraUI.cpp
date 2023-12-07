@@ -2,6 +2,8 @@
 #include "util/ExtraUI.h"
 #include "util/util.h"
 #include "../extern/imgui/misc/cpp/imgui_stdlib.h"
+#include <implot.h>
+#include "util/Interpolators.h"
 
 namespace ORNG {
 	void ExtraUI::NameWithTooltip(const std::string& name) {
@@ -266,7 +268,7 @@ namespace ORNG {
 		bool r = ImGui::InputText("##input", &input, ImGuiInputTextFlags_CallbackCharFilter, InputTextCallback);
 		ImGui::PopID();
 		return r;
-	 }
+	}
 
 	bool ExtraUI::RightClickPopup(const char* id) {
 		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
@@ -275,6 +277,133 @@ namespace ORNG {
 
 		return (ImGui::BeginPopup(id));
 	}
+
+	bool ExtraUI::InputUint(const char* name, unsigned& val) {
+		int_storage.push_back(val);
+		if (ImGui::InputInt(name, &int_storage[int_storage.size() - 1]) && int_storage[int_storage.size() - 1] >= 0) {
+			val = int_storage[int_storage.size() - 1];
+			return true;
+		}
+	}
+
+	bool ExtraUI::InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator) {
+		ImGui::PushID(p_interpolator);
+
+		bool ret = false;
+
+		ImPlot::SetNextAxesLimits(p_interpolator->x_min_max.x, p_interpolator->x_min_max.y, p_interpolator->y_min_max.x, p_interpolator->y_min_max.y);
+		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
+
+			ORNG_CORE_TRACE("{0}", p_interpolator->GetValue(ImPlot::GetPlotMousePos().x));
+			if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(2) && !ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+				auto pos = ImPlot::GetPlotMousePos();
+				p_interpolator->AddPoint(pos.x, pos.y);
+				ret = true;
+			}
+
+			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1, 0, 0, 1));
+			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y, p_interpolator->points.size(), 0, 0, sizeof(glm::vec2));
+			ImPlot::PopStyleColor();
+
+
+			for (int i = 0; i < p_interpolator->points.size(); i++) {
+				double_storage[&p_interpolator->points[i].x] = p_interpolator->points[i].x;
+				double_storage[&p_interpolator->points[i].y] = p_interpolator->points[i].y;
+
+				glm::vec2 v = p_interpolator->GetPoint(i);
+				if (ImPlot::DragPoint(i * 4, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].y], { 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y])) {
+					v.y = double_storage[&p_interpolator->points[i].y];
+					v.x = double_storage[&p_interpolator->points[i].x];
+					ret = true;
+				}
+
+				p_interpolator->SetPoint(i, v);
+
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && (bool_storage[&p_interpolator->points[i].y])) {
+					p_interpolator->RemovePoint(i);
+					ret = true;
+				}
+			}
+
+
+			p_interpolator->SortPoints();
+			ImPlot::EndPlot();
+		}
+
+
+		ImGui::PopID();
+
+		return ret;
+	}
+
+	bool ExtraUI::InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator) {
+		ImGui::PushID(p_interpolator);
+
+		bool ret = false;
+
+		ImPlot::SetNextAxesLimits(p_interpolator->x_min_max.x, p_interpolator->x_min_max.y, p_interpolator->yzw_min_max.x, p_interpolator->yzw_min_max.y);
+		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
+
+			if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(2) && !ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+				auto pos = ImPlot::GetPlotMousePos();
+				p_interpolator->AddPoint(pos.x, glm::vec3(pos.y));
+				ret = true;
+			}
+
+			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1, 0, 0, 1));
+			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y, p_interpolator->points.size(), 0, 0, sizeof(glm::vec4));
+			ImPlot::PopStyleColor();
+
+			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0, 1, 0, 1));
+			ImPlot::PlotLine("Y", &p_interpolator->points[0].x, &p_interpolator->points[0].z, p_interpolator->points.size(), 0, 0, sizeof(glm::vec4));
+			ImPlot::PopStyleColor();
+
+			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0, 0, 1, 1));
+			ImPlot::PlotLine("Z", &p_interpolator->points[0].x, &p_interpolator->points[0].w, p_interpolator->points.size(), 0, 0, sizeof(glm::vec4));
+			ImPlot::PopStyleColor();
+
+			for (int i = 0; i < p_interpolator->points.size(); i++) {
+				double_storage[&p_interpolator->points[i].x] = p_interpolator->points[i].x;
+				double_storage[&p_interpolator->points[i].y] = p_interpolator->points[i].y;
+				double_storage[&p_interpolator->points[i].z] = p_interpolator->points[i].z;
+				double_storage[&p_interpolator->points[i].w] = p_interpolator->points[i].w;
+
+				glm::vec4 v = p_interpolator->GetPoint(i);
+				if (ImPlot::DragPoint(i * 4, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].y], { 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y])) {
+					v.y = double_storage[&p_interpolator->points[i].y];
+					v.x = double_storage[&p_interpolator->points[i].x];
+					ret = true;
+				}
+
+				if (ImPlot::DragPoint(i * 4 + 1, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].z], { 0, 1, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].z])) {
+					v.z = double_storage[&p_interpolator->points[i].z];
+					v.x = double_storage[&p_interpolator->points[i].x];
+					ret = true;
+				}
+
+				if (ImPlot::DragPoint(i * 4 + 2, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].w], { 0, 0, 1, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].w])) {
+					v.w = double_storage[&p_interpolator->points[i].w];
+					v.x = double_storage[&p_interpolator->points[i].x];
+					ret = true;
+				}
+				p_interpolator->SetPoint(i, v);
+				
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && (bool_storage[&p_interpolator->points[i].y] || bool_storage[&p_interpolator->points[i].z] || bool_storage[&p_interpolator->points[i].w])) {
+					p_interpolator->RemovePoint(i);
+					ret = true;
+				}
+			}
+
+
+			p_interpolator->SortPoints();
+			ImPlot::EndPlot();
+		}
+
+		ImGui::PopID();
+
+		return ret;
+	}
+
 
 	bool ExtraUI::ColoredButton(const char* content, ImVec4 col, ImVec2 size) {
 		ImGui::PushStyleColor(ImGuiCol_Button, col);

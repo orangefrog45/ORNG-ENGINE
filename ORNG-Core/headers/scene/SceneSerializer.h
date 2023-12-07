@@ -38,7 +38,6 @@ namespace ORNG {
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
 
-
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);

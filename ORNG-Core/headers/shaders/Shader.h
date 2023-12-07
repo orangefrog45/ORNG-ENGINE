@@ -59,7 +59,7 @@ namespace ORNG {
 			if constexpr (std::is_same<T, float>::value) {
 				glUniform1f(m_uniforms[name], value);
 			}
-			else if constexpr (std::is_same<T, int>::value) {
+			else if constexpr (std::is_same<T, int>::value || std::is_same<T, bool>::value) {
 				glUniform1i(m_uniforms[name], value);
 			}
 			else if constexpr (std::is_same<T, glm::vec3>::value) {

@@ -21,6 +21,24 @@ float rnd(vec2 x)
 }
 
 
+// calculate floating point numbers equality accurately
+bool isApproximatelyEqual(float a, float b)
+{
+	const float EPSILON = 0.00001f;
+    return abs(a - b) <= (abs(a) < abs(b) ? abs(b) : abs(a)) * EPSILON;
+}
+
+// get the max value between three values
+float max3(vec3 v)
+{
+    return max(max(v.x, v.y), v.z);
+}
+
+float max4(vec4 v)
+{
+    return max(max(max(v.x, v.y), v.z), v.w);
+}
+
 
 
 

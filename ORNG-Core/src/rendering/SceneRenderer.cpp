@@ -32,6 +32,13 @@ namespace ORNG {
 		PARTICLE_BILLBOARD
 	};
 
+	enum TransparencyShaderVariants {
+		DEFAULT,
+		T_PARTICLE,
+		T_PARTICLE_BILLBOARD,
+		BUFFERLESS,
+	};
+
 	void SceneRenderer::I_Init() {
 		mp_shader_library = &Renderer::GetShaderLibrary();
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
@@ -56,6 +63,10 @@ namespace ORNG {
 				"u_material.emissive_strength",
 				"u_bloom_threshold",
 				"u_shader_id",
+				"u_material.using_spritesheet",
+				"u_material.sprite_data.num_rows",
+				"u_material.sprite_data.num_cols",
+				"u_material.sprite_data.fps"
 		};
 
 		std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
@@ -75,24 +86,25 @@ namespace ORNG {
 			mp_gbuffer_shader_variants->AddVariant(SKYBOX, { "SKYBOX_MODE" }, {});
 			mp_gbuffer_shader_variants->AddVariant(NO_TRANSFORM_BUFFERS, { "NO_TRANSFORM_BUFFERS" }, bufferless_uniforms);
 			mp_gbuffer_shader_variants->AddVariant(BILLBOARD, { "BILLBOARD" }, gbuffer_uniforms);
-			mp_gbuffer_shader_variants->AddVariant(PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, gbuffer_uniforms);
+			bufferless_uniforms.push_back("u_transform_start_index");
+			mp_gbuffer_shader_variants->AddVariant(PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, bufferless_uniforms);
+			bufferless_uniforms.pop_back();
 		}
 
 
+		mp_transparency_shader_variants = &mp_shader_library->CreateShaderVariants("transparency");
+		mp_transparency_shader_variants->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
+		mp_transparency_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
+		{
+			using enum TransparencyShaderVariants;
+			mp_transparency_shader_variants->AddVariant(DEFAULT, { }, gbuffer_uniforms);
+			mp_transparency_shader_variants->AddVariant(T_PARTICLE, { "PARTICLE" }, ptcl_uniforms);
+			mp_transparency_shader_variants->AddVariant(BUFFERLESS, { "NO_TRANSFORM_BUFFERS" }, bufferless_uniforms);
+			bufferless_uniforms.push_back("u_transform_start_index");
+			mp_transparency_shader_variants->AddVariant(T_PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, bufferless_uniforms);
+			bufferless_uniforms.pop_back();
+		}
 
-
-		mp_transparency_shader = &mp_shader_library->CreateShader("transparency");
-		mp_transparency_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
-		mp_transparency_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
-		mp_transparency_shader->Init();
-		mp_transparency_shader->AddUniforms(gbuffer_uniforms);
-
-		mp_transparency_shader_bufferless = &mp_shader_library->CreateShader("transparency_bufferless");
-		mp_transparency_shader_bufferless->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", { "NO_TRANSFORM_BUFFERS" });
-		mp_transparency_shader_bufferless->AddStage(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
-		mp_transparency_shader_bufferless->Init();
-		mp_transparency_shader_bufferless->AddUniforms(gbuffer_uniforms);
-		mp_transparency_shader_bufferless->AddUniform("u_transform");
 
 
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
@@ -167,12 +179,6 @@ namespace ORNG {
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
 		m_blur_shader->AddUniform("u_first_iter");
-
-		mp_particle_shader = &Renderer::GetShaderLibrary().CreateShader("particle_render");
-		mp_particle_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl", { "PARTICLE" });
-		mp_particle_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl", { "PARTICLE" });
-		mp_particle_shader->Init();
-		mp_particle_shader->AddUniform("u_transform_start_index");
 
 
 		/* GBUFFER FB */
@@ -453,7 +459,7 @@ namespace ORNG {
 	}
 
 
-	void SceneRenderer::SetGBufferMaterial(const Material* p_material) {
+	void SceneRenderer::SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_material) {
 		if (p_material->base_color_texture) {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
@@ -462,62 +468,67 @@ namespace ORNG {
 		}
 
 		if (p_material->roughness_texture == nullptr) {
-			mp_gbuffer_shader_variants->SetUniform("u_roughness_sampler_active", 0);
+			p_shader->SetUniform("u_roughness_sampler_active", 0);
 		}
 		else {
-			mp_gbuffer_shader_variants->SetUniform("u_roughness_sampler_active", 1);
+			p_shader->SetUniform("u_roughness_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->roughness_texture->GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS);
 		}
 
 		if (p_material->metallic_texture == nullptr) {
-			mp_gbuffer_shader_variants->SetUniform("u_metallic_sampler_active", 0);
+			p_shader->SetUniform("u_metallic_sampler_active", 0);
 		}
 		else {
-			mp_gbuffer_shader_variants->SetUniform("u_metallic_sampler_active", 1);
+			p_shader->SetUniform("u_metallic_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->metallic_texture->GetTextureHandle(), GL_StateManager::TextureUnits::METALLIC);
 		}
 
 		if (p_material->ao_texture == nullptr) {
-			mp_gbuffer_shader_variants->SetUniform("u_ao_sampler_active", 0);
+			p_shader->SetUniform("u_ao_sampler_active", 0);
 		}
 		else {
-			mp_gbuffer_shader_variants->SetUniform("u_ao_sampler_active", 1);
+			p_shader->SetUniform("u_ao_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->ao_texture->GetTextureHandle(), GL_StateManager::TextureUnits::AO);
 		}
 
 		if (p_material->normal_map_texture == nullptr) {
-			mp_gbuffer_shader_variants->SetUniform("u_normal_sampler_active", 0);
+			p_shader->SetUniform("u_normal_sampler_active", 0);
 		}
 		else {
-			mp_gbuffer_shader_variants->SetUniform("u_normal_sampler_active", 1);
+			p_shader->SetUniform("u_normal_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->normal_map_texture->GetTextureHandle(), GL_StateManager::TextureUnits::NORMAL_MAP);
 		}
 
 		if (p_material->displacement_texture == nullptr) {
-			mp_gbuffer_shader_variants->SetUniform("u_displacement_sampler_active", 0);
+			p_shader->SetUniform("u_displacement_sampler_active", 0);
 		}
 		else {
-			mp_gbuffer_shader_variants->SetUniform("u_parallax_height_scale", p_material->parallax_height_scale);
-			mp_gbuffer_shader_variants->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
-			mp_gbuffer_shader_variants->SetUniform("u_displacement_sampler_active", 1);
+			p_shader->SetUniform("u_parallax_height_scale", p_material->parallax_height_scale);
+			p_shader->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
+			p_shader->SetUniform("u_displacement_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT);
 		}
 
 		if (p_material->emissive_texture == nullptr) {
-			mp_gbuffer_shader_variants->SetUniform("u_emissive_sampler_active", 0);
+			p_shader->SetUniform("u_emissive_sampler_active", 0);
 		}
 		else {
-			mp_gbuffer_shader_variants->SetUniform("u_emissive_sampler_active", 1);
+			p_shader->SetUniform("u_emissive_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->emissive_texture->GetTextureHandle(), GL_StateManager::TextureUnits::EMISSIVE);
 		}
 
-		mp_gbuffer_shader_variants->SetUniform("u_material.base_color", p_material->base_color);
-		mp_gbuffer_shader_variants->SetUniform("u_material.roughness", p_material->roughness);
-		mp_gbuffer_shader_variants->SetUniform("u_material.ao", p_material->ao);
-		mp_gbuffer_shader_variants->SetUniform("u_material.metallic", p_material->metallic);
-		mp_gbuffer_shader_variants->SetUniform("u_material.tile_scale", p_material->tile_scale);
-		mp_gbuffer_shader_variants->SetUniform("u_material.emissive", (int)p_material->emissive);
-		mp_gbuffer_shader_variants->SetUniform("u_material.emissive_strength", p_material->emissive_strength);
+		p_shader->SetUniform("u_material.base_color", p_material->base_color);
+		p_shader->SetUniform("u_material.roughness", p_material->roughness);
+		p_shader->SetUniform("u_material.ao", p_material->ao);
+		p_shader->SetUniform("u_material.metallic", p_material->metallic);
+		p_shader->SetUniform("u_material.tile_scale", p_material->tile_scale);
+		p_shader->SetUniform("u_material.emissive", (int)p_material->emissive);
+		p_shader->SetUniform("u_material.emissive_strength", p_material->emissive_strength);
+
+		p_shader->SetUniform("u_material.using_spritesheet", p_material->is_spritesheet);
+		p_shader->SetUniform("u_material.sprite_data.num_rows", p_material->spritesheet_data.num_rows);
+		p_shader->SetUniform("u_material.sprite_data.num_cols", p_material->spritesheet_data.num_cols);
+		p_shader->SetUniform("u_material.sprite_data.fps", p_material->spritesheet_data.fps);
 	}
 
 
@@ -539,7 +550,7 @@ namespace ORNG {
 				p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[0]->getLocalPose()) * b_scale);
 				p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
-				SetGBufferMaterial(p_material);
+				//SetGBufferMaterial(p_material);
 
 				Renderer::DrawSubMesh(vehicle.p_body_mesh, i);
 			}
@@ -555,7 +566,7 @@ namespace ORNG {
 					p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[wheel + 1]->getLocalPose()) * w_scale);
 					p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
-					SetGBufferMaterial(p_material);
+					//SetGBufferMaterial(p_material);
 
 					Renderer::DrawSubMesh(vehicle.p_wheel_mesh, i);
 				}
@@ -579,58 +590,62 @@ namespace ORNG {
 		glClearBufferfv(GL_COLOR, 0, &filler_0[0]);
 		glClearBufferfv(GL_COLOR, 1, &filler_1[0]);
 
-		mp_transparency_shader->ActivateProgram();
-		mp_transparency_shader->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
+		mp_transparency_shader_variants->Activate(DEFAULT);
+		mp_transparency_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-
-			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
-				const Material* p_material = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index];
-				if (p_material->render_group != RenderGroup::ALPHA_TESTED)
-					continue;
-				mp_transparency_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
-
-				SetGBufferMaterial(p_material);
-
-				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
-			}
+			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED);
 		}
 
-		RenderVehicles(mp_transparency_shader_bufferless, RenderGroup::ALPHA_TESTED);
+		mp_transparency_shader_variants->Activate(T_PARTICLE);
+		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
+			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+			DrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0]);
+		}
+
+		mp_transparency_shader_variants->Activate(T_PARTICLE_BILLBOARD);
+		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
+			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
+
+			DrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material);
+		}
+
+
+		//RenderVehicles(mp_transparency_shader_variants, RenderGroup::ALPHA_TESTED);
 
 		glEnable(GL_CULL_FACE);
 
 
 		mp_composition_fb->Bind();
 		mp_composition_fb->BindTexture2D(p_output_tex->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-		glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		mp_transparency_composite_shader->ActivateProgram();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_transparency_fb->GetTexture<Texture2D>("accum").GetTextureHandle(), GL_TEXTURE0);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_transparency_fb->GetTexture<Texture2D>("revealage").GetTextureHandle(), GL_TEXTURE1);
 		Renderer::DrawQuad();
 		mp_composition_fb->BindTexture2D(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthMask(GL_TRUE);
 	}
 
-	void SceneRenderer::DrawInstanceGroupGBuffer(const MeshInstanceGroup* group, RenderGroup render_group) {
+	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-		DrawMeshGBuffer(group->m_mesh_asset, render_group, group->GetInstanceCount(), &group->m_materials[0]);
+		DrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), &group->m_materials[0]);
 	}
 
-	void SceneRenderer::DrawMeshGBuffer(const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
+	void SceneRenderer::DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
 		for (unsigned int i = 0; i < p_mesh->m_submeshes.size(); i++) {
 			const Material* p_material = materials[p_mesh->m_submeshes[i].material_index];
 
 			if (p_material->render_group != render_group)
 				continue;
 
-			mp_gbuffer_shader_variants->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+			p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
-			SetGBufferMaterial(p_material);
+			SetGBufferMaterial(p_shader, p_material);
 
 			Renderer::DrawSubMeshInstanced(p_mesh, instances, i);
 		}
@@ -650,31 +665,32 @@ namespace ORNG {
 
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-			DrawInstanceGroupGBuffer(group, SOLID);
+			DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID);
 		}
 
 		mp_gbuffer_shader_variants->Activate(BILLBOARD);
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetBillboardInstanceGroups()) {
-			DrawInstanceGroupGBuffer(group, SOLID);
+			DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID);
 		}
 
 		//RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
-		mp_particle_shader->ActivateProgram();
+		mp_gbuffer_shader_variants->Activate(PARTICLE);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
-			DrawMeshGBuffer(res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0]);
+			mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+			DrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0]);
 		}
 
 		mp_gbuffer_shader_variants->Activate(PARTICLE_BILLBOARD);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
-			mp_particle_shader->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+			mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 
-			DrawMeshGBuffer(p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
+			DrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
 		}
 
 		/* uniforms */
 		mp_gbuffer_shader_variants->Activate(TERRAIN);
-		SetGBufferMaterial(mp_scene->terrain.mp_material);
+		SetGBufferMaterial(mp_gbuffer_shader_variants, mp_scene->terrain.mp_material);
 		mp_gbuffer_shader_variants->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->GetID());
 		DrawTerrain(p_cam);
 

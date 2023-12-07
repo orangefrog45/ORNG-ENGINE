@@ -631,10 +631,10 @@ namespace ORNG {
 		};
 
 		mp_base_quad->m_vao.vertex_data.tex_coords = {
-			0, 1,
-			0, 0,
-			1, 1,
-			1, 1,
+		  0.0, 0.0,
+			0.0, 1.0,
+			1.0, 0.0,
+			1.0, 1.0
 		};
 		mp_base_quad->m_vao.vertex_data.indices = {
 			0, 2, 1, 3, 1, 2

@@ -4,15 +4,28 @@ ORNG_INCLUDE "CommonINCL.glsl"
 
 struct ParticleEmitter {
     vec4 pos;
+
     uint start_index;
     uint num_particles;
     float spread;
     float vel_scale_min;
+
     mat4 rotation_matrix;
     vec4 spawn_extents_vel_scale_max;
+
     float lifespan;
     float spawn_cooldown;
-    bool is_active;
+    int is_active;
+    float pad1;
+
+    InterpolatorV3 colour_over_life;
+    InterpolatorV3 scale_over_life;
+
+    InterpolatorV1 alpha_over_life;
+
+    vec4 acceleration;
+
+
 };
 
 struct Particle {

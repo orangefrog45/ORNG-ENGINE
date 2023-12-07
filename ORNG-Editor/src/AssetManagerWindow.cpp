@@ -437,7 +437,8 @@ namespace ORNG {
 						FileCopy(filepath, new_filepath);
 						m_current_2d_tex_spec.filepath = new_filepath;
 						m_current_2d_tex_spec.generate_mipmaps = true;
-						m_current_2d_tex_spec.mag_filter = GL_LINEAR_MIPMAP_LINEAR;
+						m_current_2d_tex_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+
 						Texture2D* p_new_tex = new Texture2D(filepath);
 						p_new_tex->SetSpec(m_current_2d_tex_spec);
 						AssetManager::LoadTexture2D(AssetManager::AddAsset(p_new_tex));
@@ -940,6 +941,14 @@ namespace ORNG {
 			}
 
 			ret |= ExtraUI::ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
+
+			ret |= ImGui::Checkbox("Spritesheet", &mp_selected_material->is_spritesheet);
+
+			if (mp_selected_material->is_spritesheet) {
+				ret |= ExtraUI::InputUint("Rows", mp_selected_material->spritesheet_data.num_rows);
+				ret |= ExtraUI::InputUint("Cols", mp_selected_material->spritesheet_data.num_cols);
+			}
+
 
 			ImGui::Text("Render group");
 			const char* render_groups[2] = { "Solid", "Alpha Tested" };

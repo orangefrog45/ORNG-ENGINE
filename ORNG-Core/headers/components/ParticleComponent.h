@@ -1,5 +1,5 @@
 #include "Component.h"
-
+#include "util/Interpolators.h"
 
 namespace ORNG {
 	struct ParticleMeshResources : public Component {
@@ -19,6 +19,7 @@ namespace ORNG {
 		friend class ParticleSystem;
 		friend class EditorLayer;
 		friend class SceneRenderer;
+		friend class SceneSerializer;
 	public:
 		enum EmitterType : uint8_t {
 			BILLBOARD,
@@ -95,6 +96,15 @@ namespace ORNG {
 			return m_active;
 		}
 
+		void SetAcceleration(glm::vec3 a) {
+			acceleration = a;
+			DispatchUpdateEvent();
+		}
+
+		glm::vec3 GetAcceleration() {
+			return acceleration;
+		}
+
 		EmitterType GetType() {
 			return m_type;
 		}
@@ -114,6 +124,7 @@ namespace ORNG {
 			LIFESPAN_CHANGED,
 			SPAWN_DELAY_CHANGED,
 			VISUAL_TYPE_CHANGED,
+			MODIFIERS_CHANGED,
 		};
 
 		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, std::any data_payload = 0.f) {
@@ -127,13 +138,18 @@ namespace ORNG {
 		}
 		// User-configurable parameters
 
-
+		glm::vec3 acceleration = { 0, 0, 0 };
 		glm::vec3 m_spawn_extents = glm::vec3(50, 0, 50);
 		glm::vec2 m_velocity_min_max_scalar = { 0.1, 50.0 };
 		float m_particle_lifespan_ms = 1000.f;
 		float m_particle_spawn_delay_ms = 1000.f / 64'000;
 		float m_spread = 1.0; // 1 = 360 degree spread, 0 = no spread
 		bool m_active = true;
+
+		InterpolatorV3 m_life_colour_interpolator{ {0, 1}, {0, 10} };
+		InterpolatorV3 m_life_scale_interpolator{ {0, 1}, {0, 10} };
+
+		InterpolatorV1 m_life_alpha_interpolator{ {0, 1}, {0, 1} };
 
 
 		// State

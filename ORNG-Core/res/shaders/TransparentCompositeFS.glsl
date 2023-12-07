@@ -7,18 +7,7 @@ out vec4 color;
 
 const float EPSILON = 0.00001f;
 
-
-// calculate floating point numbers equality accurately
-bool isApproximatelyEqual(float a, float b)
-{
-    return abs(a - b) <= (abs(a) < abs(b) ? abs(b) : abs(a)) * EPSILON;
-}
-
-// get the max value between three values
-float max3(vec3 v)
-{
-    return max(max(v.x, v.y), v.z);
-}
+ORNG_INCLUDE "UtilINCL.glsl"
 
 
 void main() {
@@ -30,10 +19,12 @@ void main() {
 
     vec4 accum = texture(accum_sampler, tex_coords.xy);
 
-   if (isinf(max3(abs(accum.rgb))))
-        accum.rgb = vec3(accum.a);
+   if (isinf(max3(abs(accum.rgb))) )
+       {
+			accum.rgb = vec3(accum.a);
+        }
 
     vec3 average_colour = accum.rgb / max(accum.a, EPSILON);
-    // blend func: GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA
-    color = vec4(average_colour, reveal);
+
+    color = vec4(average_colour, 1.0 - reveal);
 }

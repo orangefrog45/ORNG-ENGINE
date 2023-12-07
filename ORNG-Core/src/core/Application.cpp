@@ -73,6 +73,7 @@ namespace ORNG {
 			glfwPollEvents();
 			Events::EventManager::DispatchEvent(update_event);
 			Window::Update();
+			ExtraUI::OnUpdate();
 
 			// Render
 			Events::EventManager::DispatchEvent(render_event);

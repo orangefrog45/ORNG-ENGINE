@@ -26,7 +26,8 @@ in vec3 vs_view_dir_tangent_space;
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
 #ifdef PARTICLE
-in ParticleTransform vs_particle_transform;
+flat in ParticleTransform vs_particle_transform;
+flat in uint vs_particle_index;
 #endif
 
 ORNG_INCLUDE "CommonINCL.glsl"
@@ -106,10 +107,18 @@ mat3 CalculateTbnMatrix() {
 
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
-vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
+	vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
 	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
+#ifdef PARTICLE
+#define EMITTER ubo_particle_emitters.emitters[ubo_particles.particles[vs_particle_index].emitter_index]
+#define PTCL ubo_particles.particles[vs_particle_index]
 
+	float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
+
+	albedo_col *= vec4(InterpolateV3(interpolation, EMITTER.colour_over_life), 1.0);
+
+#endif
 	if (u_emissive_sampler_active) {
 		vec4 sampled_col = texture(emissive_sampler, tex_coord);
 		albedo_col += vec4(sampled_col.rgb * u_material.emissive_strength * sampled_col.w, 0.0);
@@ -142,6 +151,10 @@ void main() {
 	albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
 #else
 
+	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
+	if (albedo.w < 0.99)
+		discard;
+
 	if (u_normal_sampler_active) {
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
@@ -150,10 +163,7 @@ void main() {
 	else {
 		normal = vec4(normalize(vs_normal), 1.0);
 	}
-
-	albedo = vec4(CalculateAlbedoAndEmissive(adj_tex_coord).rgb, 1.0);
 	shader_id = u_shader_id;
-	albedo.w = 1.0;
 #endif
 
 }

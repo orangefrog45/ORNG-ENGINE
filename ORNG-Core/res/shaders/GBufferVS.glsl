@@ -9,6 +9,8 @@ ORNG_INCLUDE "BuffersINCL.glsl"
 
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
+ORNG_INCLUDE "CommonINCL.glsl"
+
 layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];
 } transform_ssbo;
@@ -29,9 +31,11 @@ uniform mat4 u_transform;
 
 #ifdef PARTICLE
 uniform uint u_transform_start_index;
-out ParticleTransform vs_particle_transform;
+flat out ParticleTransform vs_particle_transform;
+flat out uint vs_particle_index;
 #endif
 
+uniform Material u_material;
 
 mat3 CalculateTbnMatrixTransform() {
 
@@ -89,19 +93,43 @@ void main() {
 #else
 		vs_tex_coord = vec3(tex_coord, 0.f);
 
+		if (u_material.using_spritesheet) {
+			vec2 step_size = vec2(1.0) / vec2(u_material.sprite_data.num_cols, u_material.sprite_data.num_rows);
+			vs_tex_coord.xy *= step_size;
+			
+			uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * (float(uint(ubo_common.time_elapsed) % 1000) / 1000.0)); 
+			uint row = (u_material.sprite_data.num_cols * u_material.sprite_data.num_rows - index - 1) / u_material.sprite_data.num_cols;
+			uint col = index - (index / u_material.sprite_data.num_cols) * u_material.sprite_data.num_cols;
+
+			vs_tex_coord.x += step_size.x * float(col);
+			vs_tex_coord.y += step_size.y * float(row);
+			}
+
+
 		#if defined PARTICLE && defined BILLBOARD
-			ParticleTransform t = ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID];
+
+			#define EMITTER ubo_particle_emitters.emitters[ubo_particles.particles[vs_particle_index].emitter_index]
+			#define PTCL ubo_particles.particles[vs_particle_index]
+			vs_particle_index = u_transform_start_index + gl_InstanceID;
+
+			float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
+			vec3 interpolated_scale = InterpolateV3(interpolation, EMITTER.scale_over_life);
+
+			ParticleTransform t = ubo_particle_transforms.transforms[vs_particle_index];
 			vec3 t_pos = t.pos.xyz;
 			vec3 cam_up = vec3(PVMatrices.view[0][1], PVMatrices.view[1][1], PVMatrices.view[2][1]);
 			vec3 cam_right = vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]);
 			vs_particle_transform = t;
+			
 
-			vs_position = vec4(t_pos + position.x * cam_right * t.scale.x + position.y * cam_up * t.scale.y, 1.0);
+			vs_position = vec4(t_pos + position.x * cam_right * t.scale.x * interpolated_scale.x + position.y * cam_up * t.scale.y * interpolated_scale.y, 1.0);
+			vs_normal = qtransform(t.quat, vertex_normal);
 
 		#elif defined NO_TRANSFORM_BUFFERS
 			vs_transform = u_transform;
 		#elif defined PARTICLE
-			ParticleTransform t = ubo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID];
+			vs_particle_index = u_transform_start_index + gl_InstanceID;
+			ParticleTransform t = ubo_particle_transforms.transforms[vs_particle_index];
 			vs_position = vec4(qtransform(t.quat, (position * t.scale.xyz)) + t.pos.xyz, 1.0);
 			vs_normal = qtransform(t.quat, vertex_normal);
 			vs_particle_transform = t;
@@ -119,7 +147,7 @@ void main() {
 
 		#endif
 
-
+		
 		#ifndef BILLBOARD
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);

@@ -20,7 +20,7 @@
 
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
-constexpr unsigned RIGHT_WINDOW_WIDTH = 450;
+constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 
 
 namespace ORNG {
@@ -250,7 +250,7 @@ namespace ORNG {
 			auto* p_entity_transform = m_active_scene->GetEntity(m_selected_entity_ids[0])->GetComponent<TransformComponent>();
 			auto* p_editor_transform = mp_editor_camera->GetComponent<TransformComponent>();
 			auto pos = p_entity_transform->GetAbsoluteTransforms()[0];
-			p_editor_transform->SetAbsolutePosition(pos - glm::vec3(5.0, 3.0, 5.0));
+			p_editor_transform->SetAbsolutePosition(pos + glm::vec3(5.0, 3.0, 5.0));
 			p_editor_transform->LookAt(pos);
 		}
 
@@ -270,6 +270,7 @@ namespace ORNG {
 			m_active_scene->Update(ts);
 		else {
 			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
+			m_active_scene->m_particle_system.OnUpdate(); // Continue simulating particles for visual feedback
 			m_active_scene->m_audio_system.OnUpdate(); // For accurate audio playback
 			m_active_scene->terrain.UpdateTerrainQuadtree(m_active_scene->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
@@ -1605,6 +1606,7 @@ namespace ORNG {
 		ParticleEmitterComponent::EmitterType emitter_types[2] = { ParticleEmitterComponent::EmitterType::BILLBOARD, ParticleEmitterComponent::EmitterType::MESH };
 		static int current_item = 0;
 
+		ImGui::Text("Render type"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##type selection", types[current_item])) {
 			for (int i = 0; i < 2; i++) {
 				bool selected = current_item == i;
@@ -1620,6 +1622,8 @@ namespace ORNG {
 			ImGui::EndCombo();
 		}
 
+		ImGui::SeparatorText("Resources");
+
 		if (p_comp->m_type == ParticleEmitterComponent::MESH) {
 			auto* p_res = p_comp->GetEntity()->GetComponent<ParticleMeshResources>();
 
@@ -1630,7 +1634,7 @@ namespace ORNG {
 
 			std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [p_res](unsigned index, Material* p_new) {
 				p_res->materials[index] = p_new;
-			};
+				};
 
 			RenderMeshWithMaterials(p_res->p_mesh, p_res->materials, OnMeshDrop, OnMaterialDrop);
 		}
@@ -1641,7 +1645,35 @@ namespace ORNG {
 			}
 		}
 
+		ImGui::SeparatorText("Modifiers");
 
+		if (ImGui::TreeNode("Colour over life")) {
+			if (ExtraUI::InterpolatorV3Graph("Colour over life", &p_comp->m_life_colour_interpolator))
+				p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Alpha over life")) {
+			if (ExtraUI::InterpolatorV1Graph("Alpha over life", &p_comp->m_life_alpha_interpolator))
+				p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Scale over life")) {
+			if (ExtraUI::InterpolatorV3Graph("Scale over life", &p_comp->m_life_scale_interpolator))
+				p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
+
+			ImGui::TreePop();
+		}
+
+		ImGui::Text("Acceleration"); ImGui::SameLine();
+		if (ImGui::DragFloat3("##ac", &p_comp->acceleration.x)) {
+			p_comp->SetAcceleration(p_comp->acceleration);
+		}
+
+		ImGui::SeparatorText("Parameters");
 
 		ImGui::Text("Spread"); ImGui::SameLine();
 		if (ImGui::DragFloat("##spread", &p_comp->m_spread, 1.f, 0.f, 1.f, "%.3f", ImGuiSliderFlags_AlwaysClamp)) {

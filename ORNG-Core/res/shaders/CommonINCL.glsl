@@ -1,4 +1,56 @@
 
+
+struct InterpolatorV3 {
+	vec4 points[8];
+	uint active_points;
+};
+
+struct InterpolatorV1 {
+	vec4 point_pairs[4];
+	uint active_points;
+};
+
+
+float InterpolateV1(float x, InterpolatorV1 interpolator) {
+	if (x < interpolator.point_pairs[0].x)
+		return interpolator.point_pairs[0].y;
+		
+	int num_pairs =  int(ceil(float(interpolator.active_points) / 2.f));
+
+	for (int i = 0; i < num_pairs; i++) {
+
+		if (interpolator.point_pairs[i].x > x) {
+			return mix(interpolator.point_pairs[max(i - 1, 0)].w, 
+			interpolator.point_pairs[i].y, 
+			(x - interpolator.point_pairs[max(i - 1, 0)].z) / (interpolator.point_pairs[i].x - interpolator.point_pairs[max(i - 1, 0)].z));
+		}
+
+		if (interpolator.point_pairs[i].z > x) {
+			return mix(interpolator.point_pairs[i].y, 
+			interpolator.point_pairs[i].w, 
+			(x - interpolator.point_pairs[i].x) / (interpolator.point_pairs[i].z - interpolator.point_pairs[i].x));
+		}
+	}
+
+
+	return interpolator.point_pairs[num_pairs - 1].w;
+}
+
+vec3 InterpolateV3(float x, InterpolatorV3 interpolator) {
+	if (x < interpolator.points[0].x)
+		return interpolator.points[0].yzx;
+		
+	for (int i = 0; i < interpolator.active_points; i++) {
+		if (interpolator.points[i].x > x) {
+			return mix(interpolator.points[max(i - 1, 0)].yzw, 
+			interpolator.points[i].yzw, 
+			(x - interpolator.points[max(i - 1, 0)].x) / (interpolator.points[i].x - interpolator.points[max(i - 1, 0)].x));
+		}
+	}
+
+	return interpolator.points[interpolator.active_points-1].yzw;
+}
+
 struct DirectionalLight {
 	vec4 direction;
 	vec4 color;
@@ -33,6 +85,12 @@ struct SpotLight { //140 BYTES
 	float aperture;
 };
 
+struct SpritesheetData {
+	uint num_rows;
+	uint num_cols;
+	uint fps;
+};
+
 struct Material {
 	vec4 base_color;
 	float metallic;
@@ -41,4 +99,7 @@ struct Material {
 	vec2 tile_scale;
 	bool emissive;
 	float emissive_strength;
+
+	bool using_spritesheet;
+	SpritesheetData sprite_data;
 };
