@@ -13,7 +13,8 @@
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "core/Input.h"
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
-
+#include "scene/MeshInstanceGroup.h"
+#include "scene/SceneEntity.h"
 
 namespace ORNG {
 	void GenerateErrorMessage(const std::string&) {
@@ -27,7 +28,7 @@ namespace ORNG {
 		return ".\\res\\audio\\" + og_path.substr(og_path.rfind("\\") + 1);
 	}
 
-	void AssetManagerWindow::Init() {
+	void AssetManagerWindow::InitPreviewScene() {
 		mp_preview_scene = std::make_unique<Scene>();
 
 		// Setup preview scene used for viewing materials on meshes
@@ -36,12 +37,11 @@ namespace ORNG {
 		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
 		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
 
-		mp_preview_scene->post_processing.global_fog.SetNoise(noise);
 		mp_preview_scene->terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+		mp_preview_scene->post_processing.global_fog.SetNoise(noise);
 		mp_preview_scene->m_mesh_component_manager.OnLoad();
 		mp_preview_scene->m_camera_system.OnLoad();
 		mp_preview_scene->m_transform_system.OnLoad();
-		//mp_preview_scene->LoadScene("");
 
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
 		auto& cube_entity = mp_preview_scene->CreateEntity("Cube");
@@ -51,15 +51,24 @@ namespace ORNG {
 		auto& cam_entity = mp_preview_scene->CreateEntity("Cam");
 		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
 		p_cam->fov = 60.f;
-		glm::vec3 cam_pos{ 3, 3, -3.0 };
-		cam_entity.GetComponent<TransformComponent>()->SetPosition(cam_pos);
+
 		mp_preview_scene->directional_light.SetLightDirection({ 0.1, 0.3, -1.0 });
+		cam_entity.GetComponent<TransformComponent>()->SetPosition({ 3, 3, -3.0 });
 		cam_entity.GetComponent<TransformComponent>()->LookAt({ 0, 0, 0 });
-		p_cam->aspect_ratio = 1;
+
+		p_cam->aspect_ratio = 1.f;
 		p_cam->MakeActive();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
-		//mp_preview_scene->skybox.LoadEnvironmentMap(m_executable_directory + "/res/textures/AdobeStock_247957406.jpeg");
+
+		//mp_preview_scene->skybox.LoadEnvironmentMap(di + "/res/textures/AdobeStock_247957406.jpeg");
+
+	}
+
+
+	void AssetManagerWindow::Init() {
+	
+		InitPreviewScene();
 
 		m_asset_preview_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 		m_asset_preview_spec.mag_filter = GL_LINEAR;
@@ -73,9 +82,6 @@ namespace ORNG {
 
 		m_current_2d_tex_spec = m_asset_preview_spec;
 		m_current_2d_tex_spec.storage_type = GL_UNSIGNED_BYTE;
-
-		CreateMaterialPreview(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
-		CreateMeshPreview(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 
 
 		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
@@ -91,7 +97,12 @@ namespace ORNG {
 			CreateMaterialPreview(p_material);
 		}
 
+		for (auto* p_mesh : m_meshes_to_gen_previews) {
+			CreateMeshPreview(p_mesh);
+		}
+
 		m_materials_to_gen_previews.clear();
+		m_meshes_to_gen_previews.clear();
 	}
 
 
@@ -698,7 +709,7 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderMainAssetWindow() {
-		int window_width = Window::GetWidth() - 450;
+		int window_width = Window::GetWidth() - 650;
 		column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
 		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, Window::GetHeight() - window_height)));
@@ -724,7 +735,7 @@ namespace ORNG {
 		switch (t_event.event_type) {
 		case Events::AssetEventType::MESH_LOADED: {
 			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
-			CreateMeshPreview(p_mesh);
+			m_meshes_to_gen_previews.push_back(p_mesh);
 
 			if (p_mesh->uuid() == ORNG_BASE_SPHERE_ID)
 				return;
@@ -788,6 +799,9 @@ namespace ORNG {
 		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(scale_factor);
 		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
@@ -800,6 +814,9 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0, true);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
+
+		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
+
 	}
 
 	void AssetManagerWindow::CreateMaterialPreview(const Material* p_material) {
@@ -809,15 +826,13 @@ namespace ORNG {
 
 
 		auto* p_mesh = mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>();
-		if (auto* p_replacement_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID); p_mesh->GetMeshData() != p_replacement_mesh)
-			p_mesh->SetMeshAsset(p_replacement_mesh);
-
-		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
+		if (auto* p_cube_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID); p_mesh->GetMeshData() != p_cube_mesh)
+			p_mesh->SetMeshAsset(p_cube_mesh);
 
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-		for (int i = 0; i < p_mesh->GetMaterials().size(); i++) {
-			p_mesh->SetMaterialID(i, p_material);
-		}
+		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
+		p_mesh->SetMaterialID(0, p_material);
+
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
 

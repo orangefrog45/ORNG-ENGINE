@@ -471,7 +471,7 @@ namespace ORNG {
 
 
 	void AssetManager::InitBaseCube() {
-		mp_base_cube = std::make_unique<MeshAsset>("");
+		mp_base_cube = std::make_unique<MeshAsset>("Base cube");
 		mp_base_cube->m_vao.vertex_data.positions = {
 			0.5, 0.5, -0.5,
 			-0.5, 0.5, -0.5,

@@ -27,7 +27,6 @@ namespace ORNG {
 		MESH,
 		PARTICLE,
 		SKYBOX,
-		NO_TRANSFORM_BUFFERS,
 		BILLBOARD,
 		PARTICLE_BILLBOARD
 	};
@@ -36,7 +35,6 @@ namespace ORNG {
 		DEFAULT,
 		T_PARTICLE,
 		T_PARTICLE_BILLBOARD,
-		BUFFERLESS,
 	};
 
 	void SceneRenderer::I_Init() {
@@ -72,8 +70,7 @@ namespace ORNG {
 		std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
 		ptcl_uniforms.push_back("u_transform_start_index");
 
-		std::vector<std::string> bufferless_uniforms = gbuffer_uniforms;
-		bufferless_uniforms.push_back("u_transform");
+	
 
 		mp_gbuffer_shader_variants = &mp_shader_library->CreateShaderVariants("gbuffer");
 		mp_gbuffer_shader_variants->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
@@ -84,11 +81,8 @@ namespace ORNG {
 			mp_gbuffer_shader_variants->AddVariant(MESH, {}, gbuffer_uniforms);
 			mp_gbuffer_shader_variants->AddVariant(PARTICLE, { "PARTICLE" }, ptcl_uniforms);
 			mp_gbuffer_shader_variants->AddVariant(SKYBOX, { "SKYBOX_MODE" }, {});
-			mp_gbuffer_shader_variants->AddVariant(NO_TRANSFORM_BUFFERS, { "NO_TRANSFORM_BUFFERS" }, bufferless_uniforms);
 			mp_gbuffer_shader_variants->AddVariant(BILLBOARD, { "BILLBOARD" }, gbuffer_uniforms);
-			bufferless_uniforms.push_back("u_transform_start_index");
-			mp_gbuffer_shader_variants->AddVariant(PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, bufferless_uniforms);
-			bufferless_uniforms.pop_back();
+			mp_gbuffer_shader_variants->AddVariant(PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
 		}
 
 
@@ -99,10 +93,7 @@ namespace ORNG {
 			using enum TransparencyShaderVariants;
 			mp_transparency_shader_variants->AddVariant(DEFAULT, { }, gbuffer_uniforms);
 			mp_transparency_shader_variants->AddVariant(T_PARTICLE, { "PARTICLE" }, ptcl_uniforms);
-			mp_transparency_shader_variants->AddVariant(BUFFERLESS, { "NO_TRANSFORM_BUFFERS" }, bufferless_uniforms);
-			bufferless_uniforms.push_back("u_transform_start_index");
-			mp_transparency_shader_variants->AddVariant(T_PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, bufferless_uniforms);
-			bufferless_uniforms.pop_back();
+			mp_transparency_shader_variants->AddVariant(T_PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
 		}
 
 
@@ -161,9 +152,11 @@ namespace ORNG {
 
 		mp_persp_depth_shader = &mp_shader_library->CreateShader("persp_depth");
 		mp_persp_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_persp_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE" });
+		mp_persp_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE", "SPOTLIGHT"});
 		mp_persp_depth_shader->Init();
 		mp_persp_depth_shader->AddUniform("u_light_pv_matrix");
+		mp_persp_depth_shader->AddUniform("u_light_pos");
+
 
 		mp_pointlight_depth_shader = &mp_shader_library->CreateShader("pointlight_depth");
 		mp_pointlight_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
@@ -230,9 +223,8 @@ namespace ORNG {
 		GLenum buffers2[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
 		mp_transparency_fb->EnableDrawBuffers(2, buffers2);
 
+		/* TRANSPARENCY COMPOSITION FB */
 		mp_composition_fb = &mp_framebuffer_library->CreateFramebuffer("transparent_composition", true);
-
-
 
 		/* DIRECTIONAL LIGHT DEPTH FB */
 		m_depth_fb = &mp_framebuffer_library->CreateFramebuffer("dir_depth", false);
@@ -595,7 +587,6 @@ namespace ORNG {
 
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-			GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
 			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED);
 		}
 
@@ -723,17 +714,18 @@ namespace ORNG {
 		// Spotlights
 		glViewport(0, 0, 2048, 2048);
 		mp_persp_depth_shader->ActivateProgram();
-		auto spotlights = mp_scene->m_registry.view<SpotLightComponent>();
+		auto spotlights = mp_scene->m_registry.view<SpotLightComponent, TransformComponent>();
 
 		int index = 0;
-		for (auto [entity, light] : spotlights.each()) {
+		for (auto [entity, light, transform] : spotlights.each()) {
 			if (!light.shadows_enabled)
 				continue;
-
+			
 			m_depth_fb->BindTextureLayerToFBAttachment(m_spotlight_system.m_spotlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
 			GL_StateManager::ClearDepthBits();
 
 			mp_persp_depth_shader->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
+			mp_persp_depth_shader->SetUniform("u_light_pos", transform.GetAbsoluteTransforms()[0]);
 			DrawAllMeshes(SOLID);
 		}
 
@@ -741,13 +733,13 @@ namespace ORNG {
 		index = 0;
 		glViewport(0, 0, 512, 512);
 		mp_pointlight_depth_shader->ActivateProgram();
-		auto pointlights = mp_scene->m_registry.view<PointLightComponent>();
+		auto pointlights = mp_scene->m_registry.view<PointLightComponent, TransformComponent>();
 
-		for (auto [entity, pointlight] : pointlights.each()) {
+		for (auto [entity, pointlight, transform] : pointlights.each()) {
 			if (!pointlight.shadows_enabled)
 				continue;
 			glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, pointlight.shadow_distance);
-			glm::vec3 light_pos = pointlight.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+			glm::vec3 light_pos = transform.GetAbsoluteTransforms()[0];
 
 			std::array<glm::mat4, 6> captureViews =
 			{

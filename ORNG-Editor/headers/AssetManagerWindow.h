@@ -49,6 +49,8 @@ namespace ORNG {
 	private:
 		void RenderMainAssetWindow();
 
+		void InitPreviewScene();
+
 		void CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp);
 		void RenderConfirmationWindow(ConfirmationWindowData& data, int index);
 		void PushConfirmationWindow(const std::string& str, std::function<void()> func) {
@@ -118,6 +120,7 @@ namespace ORNG {
 		std::unordered_map<const Material*, std::shared_ptr<Texture2D>> m_material_preview_textures;
 		// Have to store these in a vector and process at a specific stage otherwise ImGui breaks, any material in this vector will have a preview rendered for use in its imgui imagebutton
 		std::vector<Material*> m_materials_to_gen_previews;
+		std::vector<MeshAsset*> m_meshes_to_gen_previews;
 		Texture2DSpec m_asset_preview_spec;
 	};
 }

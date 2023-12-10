@@ -6,19 +6,28 @@ ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 ORNG_INCLUDE "BuffersINCL.glsl"
 
 
+#define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[i].emitter_index]
+#define PTCL ssbo_particles.particles[i]
 
+    
 void main() {
     for (uint i = gl_GlobalInvocationID.x * 4; i < gl_GlobalInvocationID.x * 4 + 4; i++) {
-        ubo_particles.particles[i].velocity_life.w -= ubo_common.delta_time;
+        ssbo_particles.particles[i].velocity_life.w -= ubo_common.delta_time;
 
-        if (ubo_particles.particles[i].velocity_life.w <= 0.0 && bool(ubo_particle_emitters.emitters[ubo_particles.particles[i].emitter_index].is_active)) {
+        if (ssbo_particles.particles[i].velocity_life.w <= 0.0 && bool(ssbo_particle_emitters.emitters[ssbo_particles.particles[i].emitter_index].is_active)) {
             InitializeParticle(i);
         }
 
-        ubo_particles.particles[i].velocity_life.xyz += ubo_particle_emitters.emitters[ubo_particles.particles[i].emitter_index].acceleration.xyz  * ubo_common.delta_time * 0.001; 
+	    float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
+
+
+        //ssbo_particles.particles[i].velocity_life.xyz = InterpolateV3(interpolation, EMITTER.velocity_over_life) ;
+
+        ssbo_particles.particles[i].velocity_life.xyz += ssbo_particle_emitters.emitters[ssbo_particles.particles[i].emitter_index].acceleration.xyz  * ubo_common.delta_time * 0.001; 
+        //ssbo_particles.particles[i].velocity_life.xyz += ssbo_particle_emitters.emitters[ssbo_particles.particles[i].emitter_index].acceleration.xyz  * (EMITTER.lifespan - PTCL.velocity_life.w) * 0.001; 
 
         // Update positions with velocity
-        ubo_particle_transforms.transforms[i].pos.xyz += ubo_particles.particles[i].velocity_life.xyz * ubo_common.delta_time * 0.001;
+        ssbo_particle_transforms.transforms[i].pos.xyz += ssbo_particles.particles[i].velocity_life.xyz * ubo_common.delta_time * 0.001;
 
     }
 

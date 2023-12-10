@@ -7,7 +7,7 @@ debug_dir_core = "..\\out\\build\\x64-Debug\\ORNG-Core\\res\\shaders\\"
 release_dir_core = "..\\out\\build\\x64-Release\\ORNG-Core\\res\\shaders\\"
 debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
 release_dir_editor = "..\\out\\build\\x64-Release\\ORNG-Editor\\res\\shaders\\"
-debug_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
+debug_dir_game = "..\\out\\build\\x64-Debug\\Game\\res\\shaders\\"
 release_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
 
 

@@ -66,8 +66,8 @@ vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 
 #ifdef PARTICLE
-#define EMITTER ubo_particle_emitters.emitters[ubo_particles.particles[vs_particle_index].emitter_index]
-#define PTCL ubo_particles.particles[vs_particle_index]
+#define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]
+#define PTCL ssbo_particles.particles[vs_particle_index]
 
 	float interpolation = 1.0 - (clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan);
 

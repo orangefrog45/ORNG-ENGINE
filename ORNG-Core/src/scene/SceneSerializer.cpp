@@ -349,14 +349,18 @@ namespace ORNG {
 			if (tag == "MeshComp") {
 				auto mesh_node = entity_node["MeshComp"];
 				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(AssetManager::GetAsset<MeshAsset>(mesh_asset_id));
+				auto* p_mesh_asset = AssetManager::GetAsset<MeshAsset>(mesh_asset_id);
+				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 
 				auto materials = mesh_node["Materials"];
 				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
-				for (int i = 0; i < p_mesh_comp->m_materials.size(); i++) { // Material slots automatically allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
+				p_mesh_comp->m_materials.resize(ids.size());
+
+;				for (int i = 0; i < ids.size(); i++) { // Material slots automatical;ly allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
 					auto* p_mat = AssetManager::GetAsset<Material>(ids[i]);
 					p_mesh_comp->m_materials[i] = p_mat ? p_mat : p_replacement_material;
 				}
+
 				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
 			}
 

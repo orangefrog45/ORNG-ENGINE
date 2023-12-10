@@ -114,7 +114,7 @@ vec3 Colour(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
-	for (int i = 0; i < 12; i++)
+	for (int i = 0; i < 24; i++)
 	{
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
@@ -132,7 +132,7 @@ vec3 rma(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
-	for (int i = 0; i < 12; i++)
+	for (int i = 0; i < 24; i++)
 	{
 		
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
@@ -150,8 +150,10 @@ vec3 rma(vec3 p)
 
 
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
-float map(vec3 p) {
+/*float map(vec3 p) {
 	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
+
+	vec3 o = p;
 	p = p.xzy;
 	float scale = 1.;
 	// Move point towards limit set
@@ -159,9 +161,8 @@ float map(vec3 p) {
 	{
 		// box fold
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
-		//p = invertSphere(p , p.yxz,1.0 + sin(ubo_common.time_elapsed * 0.0001) * 0.5 );
 		float r2 = dot(p, p);
-		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
+		//float r2 = dot(p, p + p); //Alternate fractal
 		float k = max((2.) / (r2), .027);
 		p *= k;
 		scale *= k;
@@ -172,6 +173,23 @@ float map(vec3 p) {
 	float n = l * p.z;
 	rxy = max(rxy, -(n) / 4.);
 	return (rxy) / abs(scale);
+
+}*/
+
+float map(vec3 p) {
+	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
+	p = p * 0.01;
+		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		p = invertSphere(p, p.xzy, 1.0);
+
+    vec4 q = vec4(p - 1.0, 1);
+    for(int i = 0; i < 12; i++) {
+        q.xyz = abs(q.xyz + 1.0) - 1.0;
+        q /= clamp(dot(q.xyz, q.xyz), 0.25, 1.00);
+        q *= 1.15;
+    }
+    return (length(q.zy) - 1.2)/q.w * 100.0;
 
 }
 
@@ -218,10 +236,7 @@ void main() {
 			normal = vec4(norm, 1.0);
 			shader_id = 1;
 
-			float rad = int(ubo_common.time_elapsed) % 10000 * 0.1;
-			float cyl_dist = tube(step_pos + step_pos * abs(noise(step_pos.xz / 15.0)), rad, rad + 1.0, 10000, 50.0);
-
-			albedo = vec4(Colour(step_pos), 1.0);
+			albedo = vec4(Colour(step_pos) + vec3(1.0, 0.2, 0.05) * exp((-i / 256.0 ) * 10.0), 1.0);
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 
 			roughness_metallic_ao =vec4(rma(step_pos), 1.0);

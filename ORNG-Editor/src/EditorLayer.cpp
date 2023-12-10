@@ -385,6 +385,13 @@ namespace ORNG {
 			movement_vec -= p_transform->forward * (float)Input::IsKeyDown(GLFW_KEY_S) * time_elapsed * cam_speed;
 			movement_vec += glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(GLFW_KEY_E) * time_elapsed * cam_speed;
 			movement_vec -= glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(GLFW_KEY_Q) * time_elapsed * cam_speed;
+
+			if (Input::IsKeyDown(Key::Space))
+				movement_vec *= 10.0;
+
+			if (Input::IsKeyDown(Key::Shift))
+				movement_vec *= 100.0;
+
 			p_transform->SetAbsolutePosition(pos + movement_vec);
 		}
 
@@ -1663,6 +1670,13 @@ namespace ORNG {
 
 		if (ImGui::TreeNode("Scale over life")) {
 			if (ExtraUI::InterpolatorV3Graph("Scale over life", &p_comp->m_life_scale_interpolator))
+				p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Velocity over life")) {
+			if (ExtraUI::InterpolatorV3Graph("Velocity over life", &p_comp->m_velocity_life_interpolator))
 				p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
 
 			ImGui::TreePop();

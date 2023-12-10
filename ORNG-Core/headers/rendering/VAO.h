@@ -139,9 +139,7 @@ namespace ORNG {
 	};
 
 
-
-
-	class VAO_Base {
+	class VAO_Base { 
 	public:
 		VAO_Base() = default;
 		virtual ~VAO_Base();

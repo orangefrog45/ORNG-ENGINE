@@ -26,7 +26,6 @@ in vec3 vs_view_dir_tangent_space;
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
 #ifdef PARTICLE
-flat in ParticleTransform vs_particle_transform;
 flat in uint vs_particle_index;
 #endif
 
@@ -77,8 +76,8 @@ vec2 ParallaxMap()
 }
 mat3 CalculateTbnMatrixTransform() {
 #ifdef PARTICLE
-	vec3 t = normalize(qtransform(vs_particle_transform.quat, vs_tangent));
-	vec3 n = normalize(qtransform(vs_particle_transform.quat, vs_original_normal));
+	vec3 t = normalize(-vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]));
+	vec3 n = normalize(vs_normal);
 #else
 	vec3 t = normalize(vec3(mat3(vs_transform) * vs_tangent));
 	vec3 n = normalize(vec3(mat3(vs_transform) * vs_original_normal));
@@ -111,8 +110,8 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 #ifdef PARTICLE
-#define EMITTER ubo_particle_emitters.emitters[ubo_particles.particles[vs_particle_index].emitter_index]
-#define PTCL ubo_particles.particles[vs_particle_index]
+#define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]
+#define PTCL ssbo_particles.particles[vs_particle_index]
 
 	float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
 

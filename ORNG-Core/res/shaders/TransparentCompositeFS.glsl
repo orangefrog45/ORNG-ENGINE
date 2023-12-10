@@ -11,13 +11,13 @@ ORNG_INCLUDE "UtilINCL.glsl"
 
 
 void main() {
-    float reveal = texture(reveal_sampler, tex_coords.xy).r;
+    float reveal = texelFetch(reveal_sampler, ivec2(ubo_common.render_resolution_x * tex_coords.x, ubo_common.render_resolution_y * tex_coords.y), 0).r;
 
     if (isApproximatelyEqual(reveal, 1.0f))
         discard;
 
 
-    vec4 accum = texture(accum_sampler, tex_coords.xy);
+    vec4 accum = texelFetch(accum_sampler,ivec2(ubo_common.render_resolution_x * tex_coords.x, ubo_common.render_resolution_y * tex_coords.y), 0);
 
    if (isinf(max3(abs(accum.rgb))) )
        {

@@ -65,12 +65,12 @@ namespace ORNG {
 
 
 	private:
+		std::map<SceneEntity*, unsigned> m_instances;
 
 		//ID's of materials associated with each submesh of the mesh asset
 		std::vector<const Material*> m_materials;
 		MeshAsset* m_mesh_asset;
 
-		std::map<SceneEntity*, unsigned> m_instances;
 
 		std::vector<SceneEntity*> m_instances_to_update;
 

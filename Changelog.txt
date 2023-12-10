@@ -1,3 +1,11 @@
+10/2/23:
+-Mesh transform buffer bug where transforms would get skipped fixed
+-Shadow acne fix on spotlights
+-Fixed billboard lighting/normal mapping
+-Fixed material previews
+-Fixed meshinstancegroup bug where instances would not be dequeued from updating after being removed
+-Fixed alpha-tested materials' previews not rendering correctly due to transparency composite shader not accounting for different texture sizes
+
 7/12//23:
 -More particle parameters - acceleration, scale/colour/opacity over time
 -Animated spritesheet/flipbook support on materials

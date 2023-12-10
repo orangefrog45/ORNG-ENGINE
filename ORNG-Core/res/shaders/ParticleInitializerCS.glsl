@@ -18,7 +18,7 @@ void main() {
     #ifdef EMITTER_DELETION
     OnEmitterDelete(u_emitter_index);
     #else
-    ubo_particles.particles[u_start_index + gl_GlobalInvocationID.x].emitter_index = u_emitter_index;
+    ssbo_particles.particles[u_start_index + gl_GlobalInvocationID.x].emitter_index = u_emitter_index;
     InitializeParticle(u_start_index + gl_GlobalInvocationID.x);
     #endif
 }

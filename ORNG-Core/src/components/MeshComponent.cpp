@@ -9,8 +9,6 @@ namespace ORNG {
 
 
 	MeshComponent::MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset) : Component(p_entity) {
-		if (!p_asset)
-			return;
 		mp_mesh_asset = p_asset;
 	};
 
@@ -30,8 +28,7 @@ namespace ORNG {
 		}
 
 		m_materials[index] = p_material;
-		if (mp_mesh_asset)
-			DispatchUpdateEvent();
+		DispatchUpdateEvent();
 	}
 
 	void MeshComponent::DispatchUpdateEvent() {
