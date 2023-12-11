@@ -172,17 +172,19 @@ namespace ORNG {
 
 	void MeshInstancingSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event) {
 		// Whenever a transform component changes, check if it has a mesh, if so then update the transform buffer of the instance group holding it.
-		if (t_event.event_type != Events::ECS_EventType::COMP_UPDATED)
-			return;
-
 		auto* p_entity = t_event.affected_components[0]->GetEntity();
-		if (auto* meshc = p_entity->GetComponent<MeshComponent>()) {
-			meshc->mp_instance_group->FlagInstanceTransformUpdate(meshc->GetEntity());
-		}
+		if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 
-		if (auto* p_billboard = p_entity->GetComponent<BillboardComponent>()) {
-			p_billboard->mp_instance_group->FlagInstanceTransformUpdate(p_entity);
-		}
+			if (auto* meshc = p_entity->GetComponent<MeshComponent>()) {
+				meshc->mp_instance_group->FlagInstanceTransformUpdate(meshc->GetEntity());
+			}
+
+			if (auto* p_billboard = p_entity->GetComponent<BillboardComponent>()) {
+				p_billboard->mp_instance_group->FlagInstanceTransformUpdate(p_entity);
+			}
+		} 
+
+	
 	}
 
 

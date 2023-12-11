@@ -1272,7 +1272,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
-		if (ImGui::Begin("Scene graph", (bool*)0, ImGuiWindowFlags_NoMove)) {
+		if (ImGui::Begin("Scene graph", (bool*)0, 0)) {
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_selected_entity_ids.clear();
@@ -1291,7 +1291,7 @@ namespace ORNG {
 
 				ImGui::SetNextWindowPos({ node_selection_box.min.x, node_selection_box.min.y });
 				ImGui::SetNextWindowSize({ node_selection_box.max.x - node_selection_box.min.x, node_selection_box.max.y - node_selection_box.min.y });
-				if (ImGui::Begin("##sel-box", (bool*)0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground)) {
+				if (ImGui::Begin("##sel-box", (bool*)0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs)) {
 					ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 1, 0.1 });
 					ImGui::Button("##blue", { node_selection_box.max.x - node_selection_box.min.x,  node_selection_box.max.y - node_selection_box.min.y });
 					ImGui::PopStyleColor();

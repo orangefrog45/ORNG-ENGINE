@@ -35,6 +35,7 @@ namespace ORNG {
 
 		static glm::mat4 CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, glm::vec3 light_dir, float z_mult, float shadow_map_size);
 
+		static glm::vec3 AngleAxisRotateAroundPoint(glm::vec3 rotation_center, glm::vec3 point_to_rotate, glm::vec3 axis, float angle);
 
 		static std::array<glm::vec4, 8> GetFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view);
 		static glm::mat4x4 Init3DRotateTransform(float rotX, float rotY, float rotZ);

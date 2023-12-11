@@ -16,10 +16,8 @@ namespace ORNG {
 		// TODO: Batch deletes/adds too
 		m_transform_ssbo.Erase(instance_index * sizeof(glm::mat4), sizeof(glm::mat4));
 
-		auto it = std::ranges::find(m_instances_to_update, ptr);
 
-		if (it != m_instances_to_update.end())
-			m_instances_to_update.erase(std::ranges::find(m_instances_to_update, ptr));
+		std::erase_if(m_instances_to_update, [ptr](SceneEntity* p_entity) {return ptr == p_entity; });
 
 		for (auto& [p_ent, index] : m_instances) {
 			if (instance_index < index)
@@ -40,6 +38,7 @@ namespace ORNG {
 
 
 	void MeshInstanceGroup::ProcessUpdates() {
+
 		if (m_instances_to_update.empty() || m_instances.empty())
 			return;
 

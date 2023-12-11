@@ -37,7 +37,11 @@ namespace ORNG {
 		return translation_matrix;
 	}
 
-
+	// Point should already be located on sphere with radius 'radius' centered at 'rotation_center' for accurate results
+	glm::vec3 ExtraMath::AngleAxisRotateAroundPoint(glm::vec3 rotation_center, glm::vec3 point_to_rotate, glm::vec3 axis, float angle) {
+		return rotation_center + glm::angleAxis(angle, axis) * (point_to_rotate - rotation_center);
+	}
+	
 
 
 	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, glm::vec3 light_dir, float z_mult, float shadow_map_size)
