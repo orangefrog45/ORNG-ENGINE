@@ -1,3 +1,7 @@
+1//12/23:
+-Scene graph entity node drag multi-selection with middle mouse
+-Fixed undo/redo not accounting for child entities
+
 10/2/23:
 -Mesh transform buffer bug where transforms would get skipped fixed
 -Shadow acne fix on spotlights

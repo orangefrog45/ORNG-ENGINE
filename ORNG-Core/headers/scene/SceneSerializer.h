@@ -30,7 +30,6 @@ namespace ORNG {
 		// Produces a .h file with UUID values for each named entity and asset, used in scripts
 		static void SerializeSceneUUIDs(const Scene& scene, std::string& output);
 
-
 		// Deserializes from filepath at "input" if input_is_filepath = true, else deserializes from the string itself assuming it contains valid yaml data
 		static bool DeserializeScene(Scene& scene, const std::string& input, bool load_env_map, bool input_is_filepath = true);
 
@@ -41,6 +40,9 @@ namespace ORNG {
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);
+
+		static SceneEntity& DeserializeEntityUUIDFromString(Scene& scene, const std::string& str);
+
 
 		template <typename T>
 		static void SerializeBinary(const std::string& filepath, T& data) {

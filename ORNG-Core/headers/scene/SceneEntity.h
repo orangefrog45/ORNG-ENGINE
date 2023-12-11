@@ -19,9 +19,9 @@ namespace ORNG {
 		friend class Scene;
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { ASSERT(mp_registry->valid(entt_handle));  AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
+		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
 		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
-			ASSERT(mp_registry->valid(entt_handle)); AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>();
+			AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>();
 		};
 
 
@@ -65,6 +65,10 @@ namespace ORNG {
 			mp_registry->erase<T>(m_entt_handle);
 		}
 
+		void ForEachChildRecursive(std::function<void(entt::entity)> func_ptr);
+
+		void ForEachLevelOneChild(std::function<void(entt::entity)> func_ptr);
+
 		entt::entity GetParent() {
 			return GetComponent<RelationshipComponent>()->parent;
 		}
@@ -79,6 +83,7 @@ namespace ORNG {
 
 		void SetParent(SceneEntity& parent_entity);
 		void RemoveParent();
+
 
 		// Returns a new duplicate entity in the scene
 		SceneEntity& Duplicate() {
@@ -96,6 +101,10 @@ namespace ORNG {
 
 		std::string name = "Entity";
 	private:
+
+		void ForEachChildRecursiveInternal(std::function<void(entt::entity)> func_ptr, entt::entity search_entity);
+
+		void RecursiveChildSearch();
 		entt::entity m_entt_handle;
 		UUID m_uuid;
 		Scene* mp_scene = nullptr;

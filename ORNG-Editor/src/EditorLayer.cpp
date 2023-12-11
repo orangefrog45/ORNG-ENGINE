@@ -1132,8 +1132,9 @@ namespace ORNG {
 
 
 
-	EditorLayer::EntityNodeEvent EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer) {
-		EntityNodeEvent ret = EntityNodeEvent::E_NONE;
+	EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer, bool node_selection_active, const Box2D& selection_box) {
+		EntityNodeData ret;
+		ret.e_event = EntityNodeEvent::E_NONE;
 
 		// Tree nodes that are open are stored here so their children are rendered with the logic below, independant of if the parent tree node is visible or not.
 		static std::vector<uint64_t> open_tree_nodes;
@@ -1170,6 +1171,16 @@ namespace ORNG {
 		auto flags = p_entity_relationship_comp->first == entt::null ? ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Framed : ImGuiTreeNodeFlags_Framed;
 		flags |= p_entity_relationship_comp->num_children > 0 ? ImGuiTreeNodeFlags_OpenOnArrow : 0;
 		bool is_tree_node_open = ImGui::TreeNodeEx(formatted_name.c_str(), flags);
+
+		ret.node_screen_min = ImGui::GetItemRectMin();
+		ret.node_screen_max = ImGui::GetItemRectMax();
+
+		if (node_selection_active) {
+			if (ExtraUI::DoBoxesIntersect(ret.node_screen_min, ret.node_screen_max, selection_box.min, selection_box.max))
+				SelectEntity(p_entity->m_uuid());
+			else if (!Input::IsKeyDown(Key::LeftControl))
+				DeselectEntity(p_entity->m_uuid());
+		}
 
 		if (ImGui::IsItemToggledOpen()) {
 			auto it = std::ranges::find(open_tree_nodes, p_entity->GetUUID());
@@ -1230,11 +1241,11 @@ namespace ORNG {
 		{
 			ImGui::SeparatorText("Options");
 			if (ImGui::Selectable("Delete"))
-				ret = EntityNodeEvent::E_DELETE;
+				ret.e_event = EntityNodeEvent::E_DELETE;
 
 			// Creates clone of entity, puts it in scene
 			if (ImGui::Selectable("Duplicate"))
-				ret = EntityNodeEvent::E_DUPLICATE;
+				ret.e_event = EntityNodeEvent::E_DUPLICATE;
 
 			ImGui::EndPopup();
 		}
@@ -1248,7 +1259,7 @@ namespace ORNG {
 			while (current_child_entity != entt::null) {
 				auto& child_rel_comp = m_active_scene->m_registry.get<RelationshipComponent>(current_child_entity);
 				// Render child entity node, propagate event up
-				ret = static_cast<EntityNodeEvent>((ret | RenderEntityNode(child_rel_comp.GetEntity(), layer + 1)));
+				ret.e_event = static_cast<EntityNodeEvent>((ret.e_event | RenderEntityNode(child_rel_comp.GetEntity(), layer + 1, node_selection_active, selection_box).e_event));
 				current_child_entity = child_rel_comp.next;
 			}
 		}
@@ -1256,12 +1267,12 @@ namespace ORNG {
 		ImGui::PopID();
 		return ret;
 	}
+	
 
 
 
 	void EditorLayer::RenderSceneGraph() {
-		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("Scene graph")) {
+		if (ImGui::Begin("Scene graph", (bool*)0, ImGuiWindowFlags_NoMove)) {
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_selected_entity_ids.clear();
@@ -1269,11 +1280,29 @@ namespace ORNG {
 			// Right click to bring up "new entity" popup
 			RenderCreationWidget(nullptr, ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1));
 
+			bool node_selection_active = ImGui::IsWindowHovered() && ImGui::IsMouseDragging(2);
+			Box2D node_selection_box{};
+
+			if (node_selection_active) {
+				auto start_pos = ImGui::GetIO().MouseClickedPos[2];
+				auto end_pos = ImGui::GetIO().MousePos;
+				node_selection_box.min = glm::vec2(glm::min(start_pos.x, end_pos.x), glm::min(start_pos.y, end_pos.y));
+				node_selection_box.max = glm::vec2(glm::max(start_pos.x, end_pos.x), glm::max(start_pos.y, end_pos.y));
+
+				ImGui::SetNextWindowPos({ node_selection_box.min.x, node_selection_box.min.y });
+				ImGui::SetNextWindowSize({ node_selection_box.max.x - node_selection_box.min.x, node_selection_box.max.y - node_selection_box.min.y });
+				if (ImGui::Begin("##sel-box", (bool*)0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground)) {
+					ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 1, 0.1 });
+					ImGui::Button("##blue", { node_selection_box.max.x - node_selection_box.min.x,  node_selection_box.max.y - node_selection_box.min.y });
+					ImGui::PopStyleColor();
+				}
+				ImGui::End();
+			}
+
 			ImGui::Text("Editor cam exposure");
 			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
 			EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
-
 
 			if (ExtraUI::H2TreeNode("Entities")) {
 				m_general_settings.editor_window_settings.display_skybox_editor = ExtraUI::EmptyTreeNode("Skybox");
@@ -1283,14 +1312,15 @@ namespace ORNG {
 				m_general_settings.editor_window_settings.display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
 
 				for (auto* p_entity : m_active_scene->m_entities) {
-					ASSERT(p_entity->HasComponent<RelationshipComponent>());
-					ASSERT(p_entity->HasComponent<TransformComponent>());
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
 
-					active_event = (EntityNodeEvent)(RenderEntityNode(p_entity, 0) | active_event);
+					auto node_data = RenderEntityNode(p_entity, 0, node_selection_active, node_selection_box);
+
+					active_event = (EntityNodeEvent)(node_data.e_event | active_event);
 				}
 			}
+
 
 			// Process node events
 			if (active_event & EntityNodeEvent::E_DUPLICATE) {
@@ -1302,7 +1332,7 @@ namespace ORNG {
 						DeleteEntitiesTracked(m_selected_entity_ids);
 				}
 			}
-
+		
 
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 				if (m_selected_entities_are_dragged && ImGui::IsWindowHovered()) {
@@ -2255,6 +2285,20 @@ namespace ORNG {
 		}
 	}
 
+	void SortEntitiesNumParentsDescending(Scene* p_scene, std::vector<uint64_t>& entity_uuids) {
+		std::ranges::sort(entity_uuids, [&](const uint64_t& id_left, const uint64_t& id_right) {
+			unsigned num_children_left = 0;
+			unsigned num_children_right = 0;
+
+			p_scene->GetEntity(id_left)->ForEachChildRecursive([&](entt::entity handle) {num_children_left++; });
+			p_scene->GetEntity(id_right)->ForEachChildRecursive([&](entt::entity handle) {num_children_right++; });
+
+			return num_children_left < num_children_right;
+
+			});
+	}
+
+
 	std::vector<SceneEntity*> EditorLayer::DuplicateEntitiesTracked(std::vector<uint64_t> entities) {
 		SceneEntity* p_dup_ent = nullptr;
 		EditorEvent e;
@@ -2263,16 +2307,33 @@ namespace ORNG {
 
 		for (auto id : entities) {
 			auto* p_original_ent = m_active_scene->GetEntity(id);
+
 			if (m_simulate_mode_active)
 				p_dup_ent = &m_active_scene->DuplicateEntityCallScript(*p_original_ent);
 			else
 				p_dup_ent = &p_original_ent->Duplicate();
 
 			e.affected_entities.push_back(p_dup_ent->m_uuid());
-			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_dup_ent));
+
+			p_dup_ent->ForEachChildRecursive([&](entt::entity ent) {
+				auto* p_current_ent = m_active_scene->GetEntity(ent);
+				e.affected_entities.push_back(p_current_ent->GetUUID());
+				});
 
 			ret.push_back(p_dup_ent);
 		}
+
+		// Remove any duplicate child entities that were added from the above child search
+		std::unordered_set<uint64_t> unique_entities{ e.affected_entities.begin(), e.affected_entities.end() };
+		e.affected_entities.assign(unique_entities.begin(), unique_entities.end());
+
+		// Sort entities so the most nested ones are processed first as if the parent is processed before then the child entity may not be valid
+		SortEntitiesNumParentsDescending(&*m_active_scene, e.affected_entities);
+
+		for (auto id : e.affected_entities) {
+			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
+		}
+
 
 		e.event_type = ENTITY_CREATE;
 		m_event_stack.PushEvent(e);
@@ -2280,16 +2341,34 @@ namespace ORNG {
 		return ret;
 	}
 
+
 	void EditorLayer::DeleteEntitiesTracked(std::vector<uint64_t> entities) {
 		EditorEvent e;
 		e.event_type = ENTITY_DELETE;
-		e.affected_entities = entities;
+
 		for (auto id : entities) {
 			DeselectEntity(id);
-
 			auto* p_entity = m_active_scene->GetEntity(id);
-			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_entity));
-			m_active_scene->DeleteEntity(m_active_scene->GetEntity(id));
+			e.affected_entities.push_back(id);
+
+			p_entity->ForEachChildRecursive([&](entt::entity ent) {
+				auto* p_current_ent = m_active_scene->GetEntity(ent);
+				e.affected_entities.push_back(p_current_ent->GetUUID());
+			});
+
+		}
+
+		// Remove any duplicate child entities that were added from the above child search
+		std::unordered_set<uint64_t> unique_entities{ e.affected_entities.begin(), e.affected_entities.end() };
+		e.affected_entities.assign(unique_entities.begin(), unique_entities.end());
+
+		// Sort entities so the most nested ones are processed first as if the parent is processed before then the child entity may not be valid
+		SortEntitiesNumParentsDescending(&*m_active_scene, e.affected_entities);
+
+		for (auto id : e.affected_entities) {
+			auto& ent = *m_active_scene->GetEntity(id);
+			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(ent));
+			m_active_scene->DeleteEntity(&ent);
 		}
 
 		m_event_stack.PushEvent(e);

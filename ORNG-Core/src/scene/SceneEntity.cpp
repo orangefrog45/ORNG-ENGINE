@@ -73,4 +73,40 @@ namespace ORNG {
 		GetComponent<TransformComponent>()->m_parent_handle = entt::null;
 	}
 
+
+
+	void SceneEntity::ForEachChildRecursive(std::function<void(entt::entity)> func_ptr) {
+		auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
+		entt::entity current_entity = rel_comp.first;
+
+		for (int i = 0; i < rel_comp.num_children; i++) {
+			func_ptr(current_entity);
+			ForEachChildRecursiveInternal(func_ptr, current_entity);
+			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+		}
+	}
+
+	void SceneEntity::ForEachLevelOneChild(std::function<void(entt::entity)> func_ptr) {
+		auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
+		entt::entity current_entity = rel_comp.first;
+
+		for (int i = 0; i < rel_comp.num_children; i++) {
+			func_ptr(current_entity);
+			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+		}
+	}
+
+
+	void SceneEntity::ForEachChildRecursiveInternal(std::function<void(entt::entity)> func_ptr, entt::entity search_entity) {
+		auto& rel_comp = mp_registry->get<RelationshipComponent>(search_entity);
+		entt::entity current_entity = rel_comp.first;
+
+		for (int i = 0; i < rel_comp.num_children; i++) {
+			func_ptr(current_entity);
+			ForEachChildRecursiveInternal(func_ptr, current_entity);
+			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+		}
+	}
+
+
 }

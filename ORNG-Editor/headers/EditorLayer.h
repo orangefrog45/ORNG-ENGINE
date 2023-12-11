@@ -18,6 +18,22 @@ struct DragData {
 
 
 namespace ORNG {
+
+
+	enum EntityNodeEvent {
+		E_NONE = 0,
+		E_DELETE = 1,
+		E_DUPLICATE = 2
+	};
+
+	struct EntityNodeData {
+		EntityNodeEvent e_event;
+
+		ImVec2 node_screen_max;
+		ImVec2 node_screen_min;
+	};
+
+
 	class Shader;
 	class Framebuffer;
 	class Renderer;
@@ -25,11 +41,7 @@ namespace ORNG {
 	class EditorLayer : public Layer {
 	public:
 		void Init();
-		enum EntityNodeEvent {
-			E_NONE = 0,
-			E_DELETE = 1,
-			E_DUPLICATE = 2
-		};
+
 
 	private:
 		void OnInit() override { Init(); };
@@ -92,7 +104,7 @@ namespace ORNG {
 		void RenderSceneGraph();
 		void RenderSkyboxEditor();
 
-		EntityNodeEvent RenderEntityNode(SceneEntity* p_entity, unsigned int layer);
+		EntityNodeData RenderEntityNode(SceneEntity* p_entity, unsigned int layer, bool node_selection_active, const Box2D& selection_box);
 		void RenderDirectionalLightEditor();
 		void RenderGlobalFogEditor();
 		void RenderBloomEditor();

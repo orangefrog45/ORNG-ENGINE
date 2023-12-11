@@ -43,7 +43,7 @@ ORNG_INCLUDE "UtilINCL.glsl"
 }*/
 
 //vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-vec3 CSize = vec3(1.0, 1.3, 1.3);
+vec3 CSize = vec3(0.5, 0.8, 0.9) * 1.35;
 
 vec2 grad(ivec2 z)  // replace this anything that returns a random vector
 {
@@ -110,6 +110,11 @@ vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
     
     return invertedPosition;
 }
+
+//#define K float k = max((abs(sin(ubo_common.time_elapsed * 0.0001)) * 50.0) / (r2), 0.58);
+
+#define K float k = max(2. / (r2 ), 0.68);
+
 vec3 Colour(vec3 p)
 {
 	p = p.xzy;
@@ -120,14 +125,15 @@ vec3 Colour(vec3 p)
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
-		float k = max((2.) / (r2), .027);
+			K
+
 		p *= k;
 		scale *= k;
 	}
 	return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
-
+	//	float k = max((2.) / (r2), .027);
 vec3 rma(vec3 p)
 {
 	p = p.xzy;
@@ -139,7 +145,8 @@ vec3 rma(vec3 p)
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
-		float k = max((2.) / (r2), .027);
+				K
+
 		p *= k;
 		scale *= k;
 	}
@@ -148,9 +155,8 @@ vec3 rma(vec3 p)
 
 
 
-
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
-/*float map(vec3 p) {
+float map(vec3 p) {
 	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
 
 	vec3 o = p;
@@ -160,10 +166,11 @@ vec3 rma(vec3 p)
 	for (int i = 0; i < 12; i++)
 	{
 		// box fold
-		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		p = -1.0 + 2.0 * clamp(p, -CSize, CSize) - p;
+		p -= sign(p)*0.04;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + p); //Alternate fractal
-		float k = max((2.) / (r2), .027);
+		K
 		p *= k;
 		scale *= k;
 	}
@@ -174,9 +181,9 @@ vec3 rma(vec3 p)
 	rxy = max(rxy, -(n) / 4.);
 	return (rxy) / abs(scale);
 
-}*/
+}
 
-float map(vec3 p) {
+/*float map(vec3 p) {
 	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
 	p = p * 0.01;
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
@@ -191,7 +198,7 @@ float map(vec3 p) {
     }
     return (length(q.zy) - 1.2)/q.w * 100.0;
 
-}
+}*/
 
 
 vec3 calcNormal(in vec3 pos, float t)

@@ -3,6 +3,9 @@
 
 class GLFWwindow;
 namespace ORNG {
+	template<typename T>
+	concept IsVec2 = std::is_same_v<T, ImVec2> || std::is_same_v<T, glm::vec2>;
+
 	class InterpolatorV3;
 	class InterpolatorV1;
 
@@ -28,6 +31,18 @@ namespace ORNG {
 
 		static bool InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator);
 		static bool InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator);
+
+		template<IsVec2 T1, IsVec2 T2>
+		static bool DoBoxesIntersect(T1 a_min, T1 a_max, T2 b_min, T2 b_max) {
+			float b_width = b_max.x - b_min.x;
+			float a_width = a_max.x - a_min.x;
+
+			float b_height = b_max.y - b_min.y;
+			float a_height = a_max.y - a_min.y;
+
+			return (abs((a_min.x + a_width / 2) - (b_min.x + b_width / 2)) * 2 < (a_width + b_width)) &&
+				(abs((a_min.y + a_height / 2) - (b_min.y + b_height / 2)) * 2 < (a_height + b_height));
+		}
 
 		static bool AlphaNumTextInput(std::string& input);
 

@@ -19,10 +19,9 @@ namespace ORNG {
 		m_transform_event_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
 			[[likely]] if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 				UpdateChildTransforms(t_event);
-
-
 			}
 		};
+
 		m_transform_event_listener.scene_id = GetSceneUUID();
 		Events::EventManager::RegisterListener(m_transform_event_listener);
 	}

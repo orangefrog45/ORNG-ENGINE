@@ -125,6 +125,13 @@ namespace ORNG {
 		return std::string{ out.c_str() };
 	}
 
+	SceneEntity& SceneSerializer::DeserializeEntityUUIDFromString(Scene& scene, const std::string& str) {
+		YAML::Node data = YAML::Load(str);
+		//Create entities in first pass so they can be linked as parent/children in 2nd pass
+		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
+	}
+
+
 	void SceneSerializer::DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity) {
 		YAML::Node data = YAML::Load(str);
 		DeserializeEntity(scene, data, entity);
