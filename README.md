@@ -19,6 +19,7 @@
 * Deferred PBR-based 3D renderer
 * C++ scripting (supports runtime editing/reloading)
 * 3D GPU Physics using Nvidia Physx
+* GPU-driven particle system
 * Procedural terrain generation with quad-tree based LOD and frustum culling
 * Volumetric fog
 * Stable cascaded shadow maps with PCSS

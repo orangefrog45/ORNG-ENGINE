@@ -145,7 +145,15 @@ namespace ORNG {
 	}
 
 	void EditorLayer::EndPlayScene() {
-		glm::vec3 cam_pos = mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		glm::vec3 cam_pos;
+		glm::vec3 look_at_pos;
+
+		{
+			auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
+			cam_pos = p_cam_transform->GetAbsoluteTransforms()[0];
+			look_at_pos = cam_pos + p_cam_transform->forward;
+		}
+
 		mp_editor_camera = nullptr;
 
 		m_active_scene->ClearAllEntities();
@@ -154,6 +162,7 @@ namespace ORNG {
 		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 		p_transform->SetAbsolutePosition(cam_pos);
+		p_transform->LookAt(look_at_pos);
 		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 
 		m_simulate_mode_active = false;
@@ -719,6 +728,8 @@ namespace ORNG {
 		FileDelete("./res/scripts/includes/ScriptShared.h");
 		FileDelete("./res/scripts/includes/ScriptInstancer.h");
 		FileDelete("./res/scripts/includes/VehicleComponent.h");
+		FileDelete("./res/scripts/includes/ParticleEmitterComponent.h");
+
 
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
@@ -737,6 +748,7 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/VehicleComponent.h", "./res/scripts/includes/VehicleComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ParticleEmitterComponent.h", "./res/scripts/includes/ParticleEmitterComponent.h");
 	}
 
 
@@ -2285,20 +2297,6 @@ namespace ORNG {
 		}
 	}
 
-	void SortEntitiesNumParentsDescending(Scene* p_scene, std::vector<uint64_t>& entity_uuids) {
-		std::ranges::sort(entity_uuids, [&](const uint64_t& id_left, const uint64_t& id_right) {
-			unsigned num_children_left = 0;
-			unsigned num_children_right = 0;
-
-			p_scene->GetEntity(id_left)->ForEachChildRecursive([&](entt::entity handle) {num_children_left++; });
-			p_scene->GetEntity(id_right)->ForEachChildRecursive([&](entt::entity handle) {num_children_right++; });
-
-			return num_children_left < num_children_right;
-
-			});
-	}
-
-
 	std::vector<SceneEntity*> EditorLayer::DuplicateEntitiesTracked(std::vector<uint64_t> entities) {
 		SceneEntity* p_dup_ent = nullptr;
 		EditorEvent e;
@@ -2328,7 +2326,7 @@ namespace ORNG {
 		e.affected_entities.assign(unique_entities.begin(), unique_entities.end());
 
 		// Sort entities so the most nested ones are processed first as if the parent is processed before then the child entity may not be valid
-		SortEntitiesNumParentsDescending(&*m_active_scene, e.affected_entities);
+		Scene::SortEntitiesNumParents(&*m_active_scene, e.affected_entities, true);
 
 		for (auto id : e.affected_entities) {
 			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
@@ -2363,7 +2361,7 @@ namespace ORNG {
 		e.affected_entities.assign(unique_entities.begin(), unique_entities.end());
 
 		// Sort entities so the most nested ones are processed first as if the parent is processed before then the child entity may not be valid
-		SortEntitiesNumParentsDescending(&*m_active_scene, e.affected_entities);
+		Scene::SortEntitiesNumParents(&*m_active_scene, e.affected_entities, true);
 
 		for (auto id : e.affected_entities) {
 			auto& ent = *m_active_scene->GetEntity(id);

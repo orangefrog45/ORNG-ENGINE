@@ -34,10 +34,10 @@ namespace ORNG {
 			BREAKPOINT;
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
-			ORNG_CORE_WARN("[OPENGL DEBUG MEDIUM] {0}", message);
+			//ORNG_CORE_WARN("[OPENGL DEBUG MEDIUM] {0}", message);
 			break;
 		case GL_DEBUG_SEVERITY_LOW:
-			ORNG_CORE_INFO("[OPENGL DEBUG MEDIUM] {0}", message);
+			ORNG_CORE_INFO("[OPENGL DEBUG LOW] {0}", message);
 			break;
 		}
 	}

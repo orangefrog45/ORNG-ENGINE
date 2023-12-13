@@ -1,7 +1,10 @@
-1//12/23:
+11/12/23:
+-Fixed prefabs not serializing children
+-Fixed collision callbacks
 -Scene graph entity node drag multi-selection with middle mouse
 -Fixed undo/redo not accounting for child entities
 -Fixed RemoveInstance not dequeueing duplicate instances flagged for update
+-Fixed PathEqualTo
 
 10/2/23:
 -Mesh transform buffer bug where transforms would get skipped fixed

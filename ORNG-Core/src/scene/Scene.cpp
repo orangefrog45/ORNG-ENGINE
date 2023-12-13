@@ -93,10 +93,10 @@ namespace ORNG {
 	}
 
 	SceneEntity& Scene::InstantiatePrefab(const std::string& serialized_data) {
-		auto& ent = CreateEntity("Prefab instantiation");
-		SceneSerializer::DeserializeEntityFromString(*this, serialized_data, ent);
-
-		return ent;
+		auto vec = SceneSerializer::DeserializePrefabFromString(*this, serialized_data);
+		
+		// Prefab entities are serialized so that the root/top-parent is first
+		return *vec[0];
 	}
 
 
@@ -113,6 +113,31 @@ namespace ORNG {
 			p_current_child = GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
 		}
 		return new_entity;
+	}
+
+	void Scene::SortEntitiesNumParents(Scene* p_scene, std::vector<uint64_t>& entity_uuids, bool descending) {
+		std::ranges::sort(entity_uuids, [&](const uint64_t& id_left, const uint64_t& id_right) {
+			unsigned num_children_left = 0;
+			unsigned num_children_right = 0;
+
+			p_scene->GetEntity(id_left)->ForEachChildRecursive([&](entt::entity handle) {num_children_left++; });
+			p_scene->GetEntity(id_right)->ForEachChildRecursive([&](entt::entity handle) {num_children_right++; });
+
+			return descending ? num_children_left < num_children_right : num_children_left > num_children_right;
+
+			});
+	}
+
+	void Scene::SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending) {
+		std::ranges::sort(entities, [&](SceneEntity*& p_ent_left, SceneEntity*& p_ent_right) {
+			unsigned num_children_left = 0;
+			unsigned num_children_right = 0;
+
+			p_ent_left->ForEachChildRecursive([&](entt::entity handle) {num_children_left++; });
+			p_ent_right->ForEachChildRecursive([&](entt::entity handle) {num_children_right++; });
+
+			return descending ? num_children_left < num_children_right : num_children_left > num_children_right;
+		});
 	}
 
 

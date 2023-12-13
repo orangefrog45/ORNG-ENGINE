@@ -349,6 +349,10 @@ namespace ORNG {
 
 		unsigned total_particles = 0;
 
+		unsigned m_allocated_particles = 0;
+		unsigned m_allocated_emitters = 0;
+
+
 		SSBO<glm::mat4> m_transform_ssbo;
 		SSBO<float> m_particle_ssbo;
 		SSBO<float> m_emitter_ssbo;

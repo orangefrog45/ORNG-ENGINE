@@ -125,10 +125,60 @@ namespace ORNG {
 		return std::string{ out.c_str() };
 	}
 
+	std::string SceneSerializer::SerializeEntityArrayIntoString(const std::vector<SceneEntity*>& entities) {
+		YAML::Emitter out;
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+		for (auto* p_ent : entities) {
+			SerializeEntity(*p_ent, out);
+		}
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+
+		return out.c_str();
+	}
+
+
 	SceneEntity& SceneSerializer::DeserializeEntityUUIDFromString(Scene& scene, const std::string& str) {
 		YAML::Node data = YAML::Load(str);
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
 		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
+	}
+
+	std::vector<SceneEntity*> SceneSerializer::DeserializePrefabFromString(Scene& scene, const std::string& str) {
+		YAML::Node data = YAML::Load(str);
+
+		std::vector<SceneEntity*> ents;
+
+		// key = serialized uuid, val = instantiation uuid
+		std::map<uint64_t, uint64_t> id_mappings;
+
+		auto entities = data["Entities"];
+
+		//Create entities in first pass so they can be linked as parent/children in 2nd pass
+		for (auto entity_node : entities) {
+			auto* p_ent = &scene.CreateEntity(entity_node["Name"].as<std::string>());
+			ents.push_back(p_ent);
+
+			// Store serialized : new uuid pairs to link parents/children properly
+			id_mappings[entity_node["Entity"].as<uint64_t>()] = p_ent->GetUUID();
+		}
+
+		for (auto entity_node : entities) {
+			auto* p_ent = scene.GetEntity(id_mappings[entity_node["Entity"].as<uint64_t>()]);
+			uint64_t serialized_parent_uuid = entity_node["ParentID"].as<uint64_t>();
+
+			if (serialized_parent_uuid != 0) {
+				auto* p_parent = scene.GetEntity(id_mappings[serialized_parent_uuid]);
+				ASSERT(p_parent);
+				p_ent->SetParent(*p_parent);
+			}
+
+			DeserializeEntity(scene, entity_node, *p_ent);
+		}
+
+		return ents;
 	}
 
 
@@ -335,7 +385,7 @@ namespace ORNG {
 		auto* p_replacement_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
-		if (parent_id != 0)
+		if (parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
 			entity.SetParent(*scene.GetEntity(parent_id));
 
 		auto transform_node = entity_node["TransformComp"];
@@ -482,19 +532,18 @@ namespace ORNG {
 			if (tag == "ParticleEmitterComp") {
 				auto emitter_node = entity_node["ParticleEmitterComp"];
 				auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
-				p_emitter->SetSpread(emitter_node["Spread"].as<float>());
-				p_emitter->SetSpawnExtents(emitter_node["Spawn extents"].as<glm::vec3>());
-				p_emitter->SetVelocityScale(emitter_node["Velocity range"].as<glm::vec2>());
-				p_emitter->SetNbParticles(emitter_node["Nb. particles"].as<float>());
-				p_emitter->SetParticleLifespan(emitter_node["Lifespan"].as<float>());
-				p_emitter->SetParticleSpawnDelay(emitter_node["Spawn delay"].as<float>());
-				p_emitter->SetType(static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>()));
-				p_emitter->SetAcceleration(emitter_node["Acceleration"].as<glm::vec3>());
+				p_emitter->m_spread = emitter_node["Spread"].as<float>();
+				p_emitter->m_spawn_extents = emitter_node["Spawn extents"].as<glm::vec3>();
+				p_emitter->m_velocity_min_max_scalar = emitter_node["Velocity range"].as<glm::vec2>();
+				p_emitter->m_num_particles = emitter_node["Nb. particles"].as<float>();
+				p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
+				p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
+				p_emitter->m_type = static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>());
+				p_emitter->acceleration = emitter_node["Acceleration"].as<glm::vec3>();
 
 				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Alpha over time"], p_emitter->m_life_alpha_interpolator);
 				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Colour over time"], p_emitter->m_life_colour_interpolator);
 				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
-
 				if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 					auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
 					entity.GetComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : p_replacement_material;
@@ -514,7 +563,7 @@ namespace ORNG {
 					}
 				}
 
-				p_emitter->DispatchUpdateEvent();
+				p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE,(int)p_emitter->m_num_particles);
 			}
 		}
 	}

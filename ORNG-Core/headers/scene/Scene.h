@@ -48,7 +48,8 @@ namespace ORNG {
 		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
 		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
 
-
+		static void SortEntitiesNumParents(Scene* p_scene, std::vector<uint64_t>& entity_uuids, bool descending);
+		static void SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending);
 
 		Skybox skybox;
 		Terrain terrain;

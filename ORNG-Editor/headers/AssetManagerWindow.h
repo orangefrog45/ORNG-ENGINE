@@ -51,7 +51,9 @@ namespace ORNG {
 
 		void InitPreviewScene();
 
-		void CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp);
+		// Prefabs can contain one entity with all its children, but not multiple unrelated entities
+		bool CreateAndSerializePrefab(SceneEntity& entity, const std::string& fp);
+
 		void RenderConfirmationWindow(ConfirmationWindowData& data, int index);
 		void PushConfirmationWindow(const std::string& str, std::function<void()> func) {
 			m_confirmation_window_stack.emplace_back(str, func);

@@ -157,12 +157,22 @@ namespace ORNG {
 	}
 
 
-	void AssetManagerWindow::CreateAndSerializePrefab(uint64_t entt_id, const std::string& fp) {
-		if (auto* p_entity = (*mp_scene_context)->GetEntity(entt_id)) {
-			Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
-			prefab->serialized_content = SceneSerializer::SerializeEntityIntoString(*p_entity);
-			SceneSerializer::SerializeBinary(fp, *prefab);
-		}
+	bool AssetManagerWindow::CreateAndSerializePrefab(SceneEntity& entity, const std::string& fp) {
+
+		std::vector<SceneEntity*> entities;
+		entities.push_back(&entity);
+
+		entity.ForEachChildRecursive([&](entt::entity child_handle) {
+			entities.push_back((*mp_scene_context)->GetEntity(child_handle));
+		});
+
+		Scene::SortEntitiesNumParents(entities, false);
+
+		Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
+		prefab->serialized_content = SceneSerializer::SerializeEntityArrayIntoString(entities);
+		SceneSerializer::SerializeBinary(fp, *prefab);
+
+		return true;
 	}
 
 	void AssetManagerWindow::ReloadScript(const std::string& relative_path) {
@@ -689,16 +699,18 @@ namespace ORNG {
 				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
 					if (p_payload->DataSize == sizeof(std::vector<uint64_t>)) {
 						std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
+
 						for (auto id : id_vec) {
-							SceneEntity* p_entity = (*mp_scene_context)->GetEntity(id);
-							std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_entity->name + ".opfb";
+							auto* p_ent = (*mp_scene_context)->GetEntity(id);
+							std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_ent->name + ".opfb";
 
 							if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
-								m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(p_entity->GetUUID(), fp); });
+								m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(*p_ent, fp); });
 							}
 							else
-								CreateAndSerializePrefab(p_entity->GetUUID(), fp);
+								CreateAndSerializePrefab(*p_ent, fp);
 						}
+
 					}
 				}
 			}

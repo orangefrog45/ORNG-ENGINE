@@ -8,5 +8,5 @@
 #include "components/PhysicsComponent.h"
 #include "components/AudioComponent.h"
 #include "components/VehicleComponent.h"
-#include "components/ParticleComponent.h"
+#include "components/ParticleEmitterComponent.h"
 #include "components/BillboardComponent.h"

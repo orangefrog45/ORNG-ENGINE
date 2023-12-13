@@ -62,12 +62,11 @@ namespace ORNG {
 			return false;
 		std::string c1 = path1;
 		std::string c2 = path2;
-
-		std::ranges::remove_if(c1, [](char c) {return c == '\\' || c == '/'; });
-		std::ranges::remove_if(c2, [](char c) {return c == '\\' || c == '/'; });
+		c1.erase(std::remove_if(c1.begin(), c1.end(), [](char c) { return c == '\\' || c == '/' || c == '.'; }), c1.end());
+		c2.erase(std::remove_if(c2.begin(), c2.end(), [](char c) { return c == '\\' || c == '/' || c == '.'; }), c2.end());
 
 		auto cur = std::filesystem::current_path().string();
-		std::ranges::remove_if(cur, [](char c) {return c == '\\' || c == '/'; });
+		cur.erase(std::remove_if(cur.begin(), cur.end(), [](char c) { return c == '\\' || c == '/' || c == '.'; }), cur.end());
 
 		return c1 == c2 || cur + c1 == c2 || c1 == cur + c2;
 	}

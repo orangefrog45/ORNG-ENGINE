@@ -119,12 +119,13 @@ namespace ORNG {
 		EmitterType m_type = BILLBOARD;
 
 		enum EmitterSubEvent {
-			DEFAULT,
-			NB_PARTICLES_CHANGED,
-			LIFESPAN_CHANGED,
-			SPAWN_DELAY_CHANGED,
-			VISUAL_TYPE_CHANGED,
-			MODIFIERS_CHANGED,
+			DEFAULT= 0,
+			NB_PARTICLES_CHANGED = 2,
+			LIFESPAN_CHANGED = 4,
+			SPAWN_DELAY_CHANGED = 8,
+			VISUAL_TYPE_CHANGED = 16,
+			MODIFIERS_CHANGED = 32,
+			FULL_UPDATE = 64,
 		};
 
 		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, std::any data_payload = 0.f) {
@@ -142,7 +143,7 @@ namespace ORNG {
 		glm::vec3 m_spawn_extents = glm::vec3(50, 0, 50);
 		glm::vec2 m_velocity_min_max_scalar = { 0.1, 50.0 };
 		float m_particle_lifespan_ms = 1000.f;
-		float m_particle_spawn_delay_ms = 1000.f / 64'000;
+		float m_particle_spawn_delay_ms = 1000.f / 64.f;
 		float m_spread = 1.0; // 1 = 360 degree spread, 0 = no spread
 		bool m_active = true;
 
@@ -159,6 +160,6 @@ namespace ORNG {
 		// Index into the SSBO's in ParticleSystem
 		unsigned m_particle_start_index = 0;
 		unsigned m_index = 0;
-		unsigned m_num_particles = 64'000;
+		unsigned m_num_particles = 1;
 	};
 }

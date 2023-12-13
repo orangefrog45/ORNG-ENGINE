@@ -113,7 +113,7 @@ vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
 
 //#define K float k = max((abs(sin(ubo_common.time_elapsed * 0.0001)) * 50.0) / (r2), 0.58);
 
-#define K float k = max(2. / (r2 ), 0.68);
+#define K float k = max(1.5 / (r2 ), 0.68);
 
 vec3 Colour(vec3 p)
 {
@@ -166,8 +166,7 @@ float map(vec3 p) {
 	for (int i = 0; i < 12; i++)
 	{
 		// box fold
-		p = -1.0 + 2.0 * clamp(p, -CSize, CSize) - p;
-		p -= sign(p)*0.04;
+		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + p); //Alternate fractal
 		K

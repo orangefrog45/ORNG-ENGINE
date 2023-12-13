@@ -57,6 +57,27 @@ namespace ORNG {
 	PhysicsSystem::PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene) : ComponentSystem(p_registry, scene_uuid), mp_scene(p_scene) {
 	};
 
+	PxFilterFlags FilterShader(
+		PxFilterObjectAttributes attributes0, PxFilterData filterData0,
+		PxFilterObjectAttributes attributes1, PxFilterData filterData1,
+		PxPairFlags& pairFlags, const void* constantBlock, PxU32 constantBlockSize)
+	{
+		// let triggers through
+		if (PxFilterObjectIsTrigger(attributes0) || PxFilterObjectIsTrigger(attributes1))
+		{
+			pairFlags = PxPairFlag::eTRIGGER_DEFAULT;
+			return PxFilterFlag::eDEFAULT;
+		}
+		// generate contacts for all that were not filtered above
+		pairFlags = PxPairFlag::eCONTACT_DEFAULT;
+
+		// trigger the contact callback for pairs (A,B) where
+		// the filtermask of A contains the ID of B and vice versa.
+			pairFlags |= PxPairFlag::eNOTIFY_TOUCH_FOUND;
+
+		return PxFilterFlag::eDEFAULT;
+	}
+
 
 
 	void PhysicsSystem::OnLoad() {
@@ -67,7 +88,7 @@ namespace ORNG {
 
 		PxTolerancesScale scale(1.f);
 		PxSceneDesc scene_desc{ scale };
-		scene_desc.filterShader = PxDefaultSimulationFilterShader;
+		scene_desc.filterShader = FilterShader;
 		scene_desc.gravity = PxVec3(0, -9.81, 0);
 		scene_desc.cpuDispatcher = Physics::GetCPUDispatcher();
 		scene_desc.cudaContextManager = Physics::GetCudaContextManager();

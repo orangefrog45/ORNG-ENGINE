@@ -29,6 +29,7 @@
 #include "TransformComponent.h"
 #include "PhysicsComponent.h"
 #include "AudioComponent.h"
+#include "ParticleEmitterComponent.h"
 #include "SceneEntity.h"
 #include "VehicleComponent.h"
 #include "./SceneScriptInterface.h"

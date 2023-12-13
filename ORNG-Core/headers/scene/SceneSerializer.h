@@ -38,8 +38,14 @@ namespace ORNG {
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
+
+		static std::string SerializeEntityArrayIntoString(const std::vector<SceneEntity*>& entities);
+
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);
+
+		// Entities created by this function
+		static std::vector<SceneEntity*> DeserializePrefabFromString(Scene& scene, const std::string& str);
 
 		static SceneEntity& DeserializeEntityUUIDFromString(Scene& scene, const std::string& str);
 

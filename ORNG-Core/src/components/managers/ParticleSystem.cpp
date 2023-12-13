@@ -4,6 +4,7 @@
 #include "rendering/Renderer.h"
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
+#include "util/TimeStep.h"
 
 namespace ORNG {
 	inline static void OnParticleEmitterAdd(entt::registry& registry, entt::entity entity) {
@@ -16,7 +17,9 @@ namespace ORNG {
 
 	enum ParticleCSVariants {
 		DEFAULT,
-		EMITTER_DELETE
+		EMITTER_DELETE_DECREMENT_EMITTERS,
+		EMITTER_DELETE_DECREMENT_PARTICLES,
+		INITIALIZE_AS_DEAD
 	};
 
 	ParticleSystem::ParticleSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
@@ -30,7 +33,9 @@ namespace ORNG {
 			mp_particle_initializer_cs = &Renderer::GetShaderLibrary().CreateShaderVariants("particle initializer");
 			mp_particle_initializer_cs->SetPath(GL_COMPUTE_SHADER, "res/shaders/ParticleInitializerCS.glsl");
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::DEFAULT, {}, { "u_start_index", "u_emitter_index" });
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE, { "EMITTER_DELETION" }, { "u_emitter_index" });
+			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index" });
+			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index" });
+			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
 		}
 	};
 
@@ -88,14 +93,22 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(m_transform_listener);
 	}
 
+
+
 	constexpr unsigned particle_struct_size = sizeof(float) * 8;
 	constexpr unsigned emitter_struct_size = sizeof(float) * 36 + InterpolatorV3::GPU_STRUCT_SIZE_BYTES * 3 + sizeof(float) * 9 + InterpolatorV1::GPU_STRUCT_SIZE_BYTES + sizeof(float) * 3;
 	constexpr unsigned particle_transform_size = sizeof(float) * 12;
 
+
+
+
 	void ParticleSystem::InitEmitter(ParticleEmitterComponent* p_comp) {
+		TimeStep t{ TimeStep::TimeUnits::NANOSECONDS };
 		auto* p_ent = p_comp->GetEntity();
 		auto* p_bb_res = p_ent->GetComponent<ParticleBillboardResources>();
 		auto* p_mesh_res = p_ent->GetComponent<ParticleMeshResources>();
+
+		ORNG_CORE_TRACE("CPU initialization time MARK PRE-RESOURCE-INITIALIZATION : {0}", t.GetTimeInterval());
 
 		if (p_comp->m_type == ParticleEmitterComponent::BILLBOARD && !p_bb_res) {
 			p_bb_res = p_ent->AddComponent<ParticleBillboardResources>();
@@ -115,15 +128,40 @@ namespace ORNG {
 			p_comp->m_particle_start_index = 0;
 		}
 
+		ORNG_CORE_TRACE("CPU initialization time MARK PRE-RESIZING : {0}", t.GetTimeInterval());
+
 		m_emitter_entities.push_back(p_comp->GetEnttHandle());
 		p_comp->m_index = m_emitter_entities.size() - 1;
+
+		if (m_allocated_emitters <= m_emitter_entities.size()) {
+			m_allocated_emitters = glm::ceil(m_emitter_entities.size() * 1.5f);
+			m_emitter_ssbo.Resize(m_allocated_emitters * emitter_struct_size);
+		}
+
+		ORNG_CORE_TRACE("CPU initialization time MARK  POST_EMITTER_SSBO : {0}", t.GetTimeInterval());
 
 		unsigned prev_total = total_particles;
 		total_particles += p_comp->m_num_particles;
 
+		ORNG_CORE_TRACE(m_transform_ssbo.GetGPU_BufferSize());
+		if (m_transform_ssbo.GetGPU_BufferSize() <= total_particles * particle_transform_size ) {
+			unsigned prev_allocated = m_allocated_particles;
+
+			m_allocated_particles = glm::ceil(total_particles * 1.5f);
+			m_particle_ssbo.Resize(m_allocated_particles * particle_struct_size);
+			m_transform_ssbo.Resize(m_allocated_particles * particle_transform_size);
+			ORNG_CORE_TRACE("RESIZE");
+
+			mp_particle_initializer_cs->Activate(ParticleCSVariants::INITIALIZE_AS_DEAD);
+			mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
+
+			glDispatchCompute(glm::ceil(m_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f, 1, 1);
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		}
+
 
 		// Allocate memory in the SSBO's for the new particles
-		m_transform_ssbo.Resize(total_particles * particle_transform_size);
 		std::vector<float> rnd_vec;
 		rnd_vec.resize(p_comp->m_num_particles * 12);
 
@@ -132,7 +170,7 @@ namespace ORNG {
 		std::uniform_real_distribution<float> dis(0, 2.f * glm::pi<float>());
 		std::uniform_real_distribution<float> dis2(-1.0, 1.0);
 
-		// Put random seed in transform, done here as the GPU RNG's aren't well-distributed enough
+		 //Put random seed in transform, done here as the GPU RNG's aren't well-distributed enough
 		for (unsigned i = 0; i < p_comp->m_num_particles * 12; i) {
 			rnd_vec[i++] = dis(gen);
 			rnd_vec[i++] = dis(gen);
@@ -152,12 +190,12 @@ namespace ORNG {
 		}
 
 		glNamedBufferSubData(m_transform_ssbo.GetHandle(), prev_total * particle_transform_size, p_comp->m_num_particles * particle_transform_size, rnd_vec.data());
-		m_emitter_ssbo.Resize(m_emitter_entities.size() * emitter_struct_size);
-		m_particle_ssbo.Resize(total_particles * particle_struct_size);
+
 
 		// Initialize emitter
 		UpdateEmitterBufferAtIndex(p_comp->m_index);
 
+		ORNG_CORE_TRACE("CPU initialization time MARK PRE-SSBO-BIND : {0}", t.GetTimeInterval());
 
 		// Initialize new particles in shader
 		GL_StateManager::BindSSBO(m_emitter_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_EMITTERS);
@@ -168,9 +206,10 @@ namespace ORNG {
 		mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index);
 		mp_particle_initializer_cs->SetUniform<unsigned>("u_emitter_index", m_emitter_entities.size() - 1);
 
-
+		// Initialize new particles
 		glDispatchCompute(glm::ceil((total_particles - prev_total) / 32.f), 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+		ORNG_CORE_TRACE("CPU initialization time MARK LAST : {0}", t.GetTimeInterval());
 	}
 
 	void ParticleSystem::UpdateEmitterBufferAtIndex(unsigned index) {
@@ -250,11 +289,11 @@ namespace ORNG {
 	void ParticleSystem::OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event) {
 		auto* p_comp = e_event.affected_components[0];
 
-		if (e_event.sub_event_type == ParticleEmitterComponent::NB_PARTICLES_CHANGED || e_event.sub_event_type == ParticleEmitterComponent::LIFESPAN_CHANGED || e_event.sub_event_type == ParticleEmitterComponent::SPAWN_DELAY_CHANGED) {
+		if (e_event.sub_event_type & ParticleEmitterComponent::FULL_UPDATE | ParticleEmitterComponent::NB_PARTICLES_CHANGED | ParticleEmitterComponent::LIFESPAN_CHANGED | ParticleEmitterComponent::SPAWN_DELAY_CHANGED) {
 			OnEmitterDestroy(p_comp, std::any_cast<int>(e_event.data_payload));
 			InitEmitter(p_comp);
 		}
-		else if (e_event.sub_event_type == ParticleEmitterComponent::VISUAL_TYPE_CHANGED) {
+		else if (e_event.sub_event_type & ParticleEmitterComponent::VISUAL_TYPE_CHANGED) {
 			OnEmitterVisualTypeChange(e_event.affected_components[0]);
 		}
 		else {
@@ -267,9 +306,14 @@ namespace ORNG {
 	void ParticleSystem::OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif) {
 		unsigned old_nb_particles = p_comp->m_num_particles - dif;
 		// Adjust emitter indices to account for deletion (handled in shader)
-		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE);
+		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES);
 		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
+		mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index);
 		// TODO: Parallelize
+		glDispatchCompute(glm::ceil((total_particles - (p_comp->m_index + p_comp->m_num_particles)) / 32.f), 1, 1);
+
+		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS);
+		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
 		glDispatchCompute(1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -286,6 +330,7 @@ namespace ORNG {
 
 		m_transform_ssbo.Erase(p_comp->m_particle_start_index * particle_transform_size, old_nb_particles * particle_transform_size);
 		m_emitter_ssbo.Erase(p_comp->m_index * emitter_struct_size, emitter_struct_size);
+		m_allocated_emitters--;
 		m_particle_ssbo.Erase(p_comp->m_particle_start_index * particle_struct_size, old_nb_particles * particle_struct_size);
 
 		GL_StateManager::BindSSBO(m_emitter_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_EMITTERS);

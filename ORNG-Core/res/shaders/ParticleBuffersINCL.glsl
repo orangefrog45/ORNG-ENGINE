@@ -29,9 +29,11 @@ struct ParticleEmitter {
 
 };
 
+
 struct Particle {
     vec4 velocity_life;
     uint emitter_index;
+    uint flags;
 };
 
 struct ParticleTransform {
@@ -93,12 +95,13 @@ void InitializeParticle(highp uint index) {
 #undef EMITTER
 
 // This function runs just before the memory for the emitter is deleted and the buffers are restructured
-void OnEmitterDelete(uint emitter_index) {
-    for (uint i = emitter_index + 1; i < ssbo_particle_emitters.emitters.length(); i++) {
-        ssbo_particle_emitters.emitters[i].start_index -= ssbo_particle_emitters.emitters[emitter_index].num_particles;
+void OnEmitterDelete(uint start_index) {
+    #ifdef EMITTER_DELETE_DECREMENT_EMITTERS
+    for (uint i = start_index + 1; i < ssbo_particle_emitters.emitters.length(); i++) {
+        ssbo_particle_emitters.emitters[i].start_index -= ssbo_particle_emitters.emitters[start_index].num_particles;
     }
 
-      for (uint i = ssbo_particle_emitters.emitters[emitter_index].start_index + ssbo_particle_emitters.emitters[emitter_index].num_particles; i < ssbo_particles.particles.length(); i++) {
-        ssbo_particles.particles[i].emitter_index--;
-    }
+    #else
+    ssbo_particles.particles[start_index + gl_GlobalInvocationID.x].emitter_index--;
+    #endif
 }

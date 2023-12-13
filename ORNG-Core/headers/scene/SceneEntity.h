@@ -17,6 +17,7 @@ namespace ORNG {
 	class SceneEntity {
 		friend class EditorLayer;
 		friend class Scene;
+		friend class SceneSerializer;
 	public:
 		SceneEntity() = delete;
 		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };

@@ -16,7 +16,6 @@ namespace ORNG {
 		static std::string GetLastLog();
 		static std::vector<std::string> GetLastLogs();
 		static std::shared_ptr<spdlog::logger>& GetCoreLogger();
-		static void GLLogMessage(unsigned int source, unsigned int type, unsigned int id, unsigned int severity, int length, const char* message, const void*);
 	private:
 		static std::shared_ptr<spdlog::logger> s_core_logger;
 	};
