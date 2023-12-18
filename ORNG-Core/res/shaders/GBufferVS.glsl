@@ -36,8 +36,8 @@ uniform Material u_material;
 mat3 CalculateTbnMatrixTransform() {
 
 #ifdef PARTICLE
-	vec3 t = normalize(qtransform(ssbo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID].quat, in_tangent));
-	vec3 n = normalize(qtransform(ssbo_particle_transforms.transforms[u_transform_start_index + gl_InstanceID].quat, vertex_normal));
+	vec3 t = normalize(qtransform(PARTICLE_SSBO.particles[u_transform_start_index + gl_InstanceID].quat, in_tangent));
+	vec3 n = normalize(qtransform(PARTICLE_SSBO.particles[u_transform_start_index + gl_InstanceID].quat, vertex_normal));
 #else
 	vec3 t = normalize(vec3(mat3(transform_ssbo.transforms[gl_InstanceID]) * in_tangent));
 	vec3 n = normalize(vec3(mat3(transform_ssbo.transforms[gl_InstanceID]) * vertex_normal));
@@ -103,7 +103,11 @@ void main() {
 		}
 
 		#if defined PARTICLE
-			vs_particle_index = u_transform_start_index + gl_InstanceID;
+			#ifndef PARTICLES_DETACHED
+				vs_particle_index = u_transform_start_index + gl_InstanceID;
+			#else
+				vs_particle_index = gl_InstanceID;
+			#endif
 		#endif
 
 
@@ -117,7 +121,7 @@ void main() {
 			float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
 			vec3 interpolated_scale = InterpolateV3(interpolation, EMITTER.scale_over_life);
 
-			#define TRANSFORM ssbo_particle_transforms.transforms[vs_particle_index]
+			#define TRANSFORM ssbo_particles.particles[vs_particle_index]
 
 			vec3 t_pos = TRANSFORM.pos.xyz;
 			vec3 cam_up = vec3(PVMatrices.view[0][1], PVMatrices.view[1][1], PVMatrices.view[2][1]);
@@ -128,12 +132,17 @@ void main() {
 			#undef TRANSFORM
 
 		#elif defined PARTICLE
-			vs_particle_index = u_transform_start_index + gl_InstanceID;
 
-			#define TRANSFORM ssbo_particle_transforms.transforms[vs_particle_index]
+			#ifdef PARTICLES_DETACHED
+				vs_particle_index = gl_InstanceID;
+				#define TRANSFORM ssbo_particles_detached.particles[vs_particle_index]
+			#else
+				vs_particle_index = u_transform_start_index + gl_InstanceID;
+				#define TRANSFORM ssbo_particles.particles[vs_particle_index]
+			#endif
 
 			vs_position = vec4(qtransform(TRANSFORM.quat, (position * TRANSFORM.scale.xyz)) + TRANSFORM.pos.xyz, 1.0);
-			vs_normal = qtransform(TRANSFORM.quat, vertex_normal);
+			vs_normal = qtransform(vec4(TRANSFORM.quat.xyz, 1.0), vertex_normal);
 
 			#undef TRANSFORM
 

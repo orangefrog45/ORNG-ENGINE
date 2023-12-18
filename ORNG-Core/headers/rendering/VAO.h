@@ -15,7 +15,7 @@ namespace ORNG {
 	class BufferBase {
 		friend class VAO;
 	public:
-		BufferBase(GLenum t_buffer_type) : buffer_type(t_buffer_type) {};
+		BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags=0) : buffer_type(t_buffer_type), m_is_mutable(is_mutable), m_flags(flags) {};
 
 		void Init();
 
@@ -29,8 +29,17 @@ namespace ORNG {
 
 		int GetGPU_BufferSize();
 
+		void SetFlags(GLbitfield flags) {
+			m_flags = flags;
+			Resize(GetGPU_BufferSize());
+		}
+
 		uint32_t GetHandle() const {
 			return m_ogl_handle;
+		}
+
+		GLbitfield GetFlags() {
+			return m_flags;
 		}
 
 		// Allocates buffer on GPU with data
@@ -38,6 +47,9 @@ namespace ORNG {
 
 		// Allocates new buffer with size size_bytes, old data is copied
 		void Resize(size_t size_bytes);
+
+		// Sets this buffer's data exactly equal to another, sets size of this buffer to size of other buffer + extra_allocated_size, extra memory is uninitialized
+		void CopyDataFromBuffer(BufferBase& other, unsigned extra_allocated_size=0);
 
 		// Allocates new buffer with elements from start to start + erase_size removed, old data is copied, start and erase_size should be in bytes
 		void Erase(size_t start, size_t erase_size);
@@ -57,17 +69,19 @@ namespace ORNG {
 		GLenum data_type = GL_NONE;
 
 	protected:
+		virtual void* GetDataPtr() = 0;
 		uint32_t m_ogl_handle = 0;
 		GLenum buffer_type = GL_NONE;
-		virtual void* GetDataPtr() = 0;
+		GLbitfield m_flags = 0;
 	private:
+		bool m_is_mutable = true;
 		bool m_is_initalized = false;
 	};
 
 	template<typename DataType>
 	class SSBO : public BufferBase {
 	public:
-		SSBO() : BufferBase(GL_SHADER_STORAGE_BUFFER) { };
+		SSBO(bool is_mutable, GLbitfield flags) : BufferBase(GL_SHADER_STORAGE_BUFFER, is_mutable, flags) { };
 
 		size_t GetSizeCPU() override { return data.size() * sizeof(DataType); }
 
@@ -81,7 +95,7 @@ namespace ORNG {
 	class VertexBufferBase : public BufferBase {
 		friend class VAO;
 	public:
-		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER) {};
+		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER, true, 0) {};
 
 		size_t GetSizeCPU() override = 0;
 
@@ -134,7 +148,7 @@ namespace ORNG {
 
 	class ElementBufferGL : public BufferBase {
 	public:
-		ElementBufferGL() : BufferBase(GL_ELEMENT_ARRAY_BUFFER) { };
+		ElementBufferGL() : BufferBase(GL_ELEMENT_ARRAY_BUFFER, false, GL_DYNAMIC_STORAGE_BIT) { };
 		std::vector<uint32_t> indices;
 	};
 
@@ -173,6 +187,7 @@ namespace ORNG {
 			p_buf->data_type = data_type;
 			p_buf->comps_per_attribute = comps_per_attribute;
 			p_buf->draw_type = draw_type;
+			p_buf->index = index;
 			m_buffers[index] = static_cast<VertexBufferBase*>(p_buf);
 			return p_buf;
 		}

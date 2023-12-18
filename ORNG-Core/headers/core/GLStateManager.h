@@ -44,6 +44,11 @@ namespace ORNG {
 			Get().IActivateShaderProgram(shader_handle);
 		}
 
+		inline static void DispatchCompute(int x, int y, int z) {
+			ASSERT(x < 48'000 && x > 0);
+			glDispatchCompute(x, y, z);
+		}
+
 		inline static void ClearDepthBits() {
 			glClear(GL_DEPTH_BUFFER_BIT);
 		}
@@ -84,8 +89,10 @@ namespace ORNG {
 			static const int SPOT_LIGHTS_SHADOWLESS = 3;
 			static const int SPOT_LIGHTS_SHADOW = 4;
 			static const int PARTICLE_EMITTERS = 5;
-			static const int PARTICLE_TRANSFORMS = 6;
-			static const int PARTICLES = 7;
+			static const int PARTICLES = 6;
+			static const int PARTICLE_APPEND = 7;
+			static const int SECONDARY_PARTICLES = 8;
+
 		};
 
 		struct TextureUnits {

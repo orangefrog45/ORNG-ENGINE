@@ -13,6 +13,9 @@ in vec2 tex_coords;
 ORNG_INCLUDE "BuffersINCL.glsl"
 ORNG_INCLUDE "UtilINCL.glsl"
 
+#define PARTICLES_DETACHED
+ORNG_INCLUDE "ParticleBuffersINCL.glsl"
+
 
 
 /*float map(vec3 pos) {
@@ -224,6 +227,7 @@ float MapVein(vec3 pos, float cyl_dist, float t) {
 	return perlin - perlin_thickness;
 }
 
+in vec4 gl_FragCoord;
 void main() {
 	float depth = texture(depth_sampler, tex_coords).r;
 	vec3 world_pos = WorldPosFromDepth(depth, tex_coords);
@@ -238,11 +242,37 @@ void main() {
 		 step_pos += d * march_dir;
 		t += d;
 		if (d < 0.001 * t) {
+			
+			uint x = uint(gl_FragCoord.x / 1.25);
+			uint y = uint(gl_FragCoord.y * ubo_common.render_resolution_x);
+
+			uint particle_index = uint((float(x + y) / float(ubo_common.render_resolution_x * ubo_common.render_resolution_y)) * 10000.0);
+
+
+			//ssbo_particles_detached.particles[particle_index].velocity_life -= ubo_common.delta_time;
+			//ssbo_particles_detached.particles[particle_index].pos.xyz += ssbo_particles_detached.particles[particle_index].velocity_life.xyz * ubo_common.delta_time;
+
+
 			vec3 norm = calcNormal(step_pos, t);
 			normal = vec4(norm, 1.0);
 			shader_id = 1;
 
 			albedo = vec4(Colour(step_pos) + vec3(1.0, 0.2, 0.05) * exp((-i / 256.0 ) * 10.0), 1.0);
+
+			if ( false && atomicAdd(ssbo_particles_detached.particles[particle_index].flags, 1) == 0 && ssbo_particles_detached.particles[particle_index].velocity_life.w < 0) {
+				ssbo_particles_detached.particles[particle_index].velocity_life.w = 0.1;
+				ssbo_particles_detached.particles[particle_index].velocity_life.xyz = normal.xyz;
+				ssbo_particles_detached.particles[particle_index].scale.xyz = vec3(0.025);
+
+				ssbo_particles_detached.particles[particle_index].scale.w = albedo.r * 10.0;
+				ssbo_particles_detached.particles[particle_index].pos.w = albedo.g * 10.0;
+				ssbo_particles_detached.particles[particle_index].quat.w = albedo.b * 10.0;
+
+
+
+
+				ssbo_particles_detached.particles[particle_index].pos.xyz = step_pos;
+			}
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 
 			roughness_metallic_ao =vec4(rma(step_pos), 1.0);

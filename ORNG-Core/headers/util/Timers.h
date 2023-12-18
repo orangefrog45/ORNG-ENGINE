@@ -71,9 +71,23 @@ namespace ORNG {
 				glBeginQuery(GL_TIME_ELAPSED, query);
 			}
 		};
+
+		void ForceStartQuery() {
+			glGenQueries(1, &query);
+			glBeginQuery(GL_TIME_ELAPSED, query);
+		}
+
+		unsigned GetTimeElapsed() {
+			unsigned int result;
+			glEndQuery(GL_TIME_ELAPSED);
+			glGetQueryObjectuiv(query, GL_QUERY_RESULT, &result);
+			query_finished = true;
+			return result / 1000000.0;
+		}
+
 		GPU_TimerObject(const GPU_TimerObject&) = delete;
 		~GPU_TimerObject() {
-			if (ProfilingTimers::AreTimersEnabled() && ProfilingTimers::AreTimersReadyToUpdate()) {
+			if (ProfilingTimers::AreTimersEnabled() && ProfilingTimers::AreTimersReadyToUpdate() && !query_finished) {
 				unsigned int result;
 				glEndQuery(GL_TIME_ELAPSED);
 				glGetQueryObjectuiv(query, GL_QUERY_RESULT, &result);
@@ -84,6 +98,7 @@ namespace ORNG {
 		GLuint query;
 		std::chrono::steady_clock::time_point first_time = std::chrono::steady_clock::now();
 		const char* func_name;
+		bool query_finished = false;
 	};
 
 #define ORNG_ENABLE_PROFILING

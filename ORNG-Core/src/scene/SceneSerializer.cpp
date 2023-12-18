@@ -374,6 +374,14 @@ namespace ORNG {
 		}
 
 
+		if (auto* p_buffer = entity.GetComponent<ParticleBufferComponent>()) {
+			Out(out, "ParticleBufferComp", YAML::BeginMap);
+			Out(out, "BufferID", p_buffer->GetBufferID());
+			Out(out, "Min allocated particles", p_buffer->GetMinAllocatedParticles());
+
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 	}
 
@@ -499,7 +507,11 @@ namespace ORNG {
 				auto vehicle_node = entity_node["VehicleComp"];
 				auto* p_comp = entity.AddComponent<VehicleComponent>();
 				p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(vehicle_node["BodyMesh"].as<uint64_t>());
+				p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+
 				p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(vehicle_node["WheelMesh"].as<uint64_t>());
+				p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+
 
 				p_comp->body_scale = vehicle_node["BodyScale"].as<glm::vec3>();
 				p_comp->wheel_scale = vehicle_node["WheelScale"].as<glm::vec3>();
@@ -563,7 +575,19 @@ namespace ORNG {
 					}
 				}
 
-				p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE,(int)p_emitter->m_num_particles);
+				p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE,(int)p_emitter->m_num_particles - ParticleEmitterComponent::BASE_NUM_PARTICLES);
+			}
+
+			if (tag == "ParticleBufferComp") {
+				auto buffer_node = entity_node["ParticleBufferComp"];
+				auto* p_buffer = entity.AddComponent<ParticleBufferComponent>();
+				p_buffer->m_buffer_id = buffer_node["BufferID"].as<uint32_t>();
+				p_buffer->m_min_allocated_particles = buffer_node["Min allocated particles"].as<uint32_t>();
+				
+				Events::ECS_Event<ParticleBufferComponent> e_event;
+				e_event.affected_components[0] = p_buffer;
+				e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
+				Events::EventManager::DispatchEvent(e_event);
 			}
 		}
 	}

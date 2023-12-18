@@ -39,9 +39,14 @@ namespace ORNG {
 	class Renderer;
 
 	class EditorLayer : public Layer {
+		friend class GameLayer;
 	public:
+		EditorLayer(Scene* p_scene, const std::string& start_filepath) : m_active_scene(p_scene), m_start_filepath(start_filepath) {};
 		void Init();
 
+		void SetScene(Scene* p_scene) {
+			m_active_scene = p_scene;
+		}
 
 	private:
 		void OnInit() override { Init(); };
@@ -92,6 +97,7 @@ namespace ORNG {
 		void RenderAudioComponentEditor(AudioComponent* p_audio);
 		void RenderVehicleComponentEditor(VehicleComponent* p_comp);
 		void RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp);
+		void RenderParticleBufferComponentEditor(ParticleBufferComponent* p_comp);
 
 		void RenderProjectGenerator(int& selected_component_from_popup);
 
@@ -185,7 +191,7 @@ namespace ORNG {
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
-		std::unique_ptr<Scene> m_active_scene = nullptr;
+		Scene* m_active_scene = nullptr;
 
 		std::unique_ptr<SceneEntity> mp_editor_camera{ nullptr };
 
@@ -196,7 +202,7 @@ namespace ORNG {
 
 		bool m_render_settings_window = false;
 
-
+		std::string m_start_filepath;
 
 		// STYLING
 		const float opacity = 1.f;

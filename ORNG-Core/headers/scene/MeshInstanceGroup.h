@@ -41,6 +41,7 @@ namespace ORNG {
 			m_materials.push_back(p_material);
 			// Setup a transform matrix ssbo for this instance group
 			m_transform_ssbo.Init();
+
 		};
 
 
@@ -74,6 +75,6 @@ namespace ORNG {
 
 		std::vector<SceneEntity*> m_instances_to_update;
 
-		SSBO<float> m_transform_ssbo;
+		SSBO<float> m_transform_ssbo{ true, 0};
 	};
 }

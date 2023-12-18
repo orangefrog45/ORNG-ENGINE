@@ -524,8 +524,7 @@ namespace ORNG {
 	}
 
 
-	void SceneRenderer::RenderVehicles(Shader* p_shader, RenderGroup render_group) {
-		p_shader->ActivateProgram();
+	void SceneRenderer::RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group) {
 		p_shader->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 
 		for (auto [entity, vehicle] : mp_scene->m_registry.view<VehicleComponent>().each()) {
@@ -542,7 +541,7 @@ namespace ORNG {
 				p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[0]->getLocalPose()) * b_scale);
 				p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
-				//SetGBufferMaterial(p_material);
+				SetGBufferMaterial(p_shader, p_material);
 
 				Renderer::DrawSubMesh(vehicle.p_body_mesh, i);
 			}
@@ -593,7 +592,7 @@ namespace ORNG {
 		mp_transparency_shader_variants->Activate(T_PARTICLE);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-			DrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0]);
+			IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0]);
 		}
 
 		mp_transparency_shader_variants->Activate(T_PARTICLE_BILLBOARD);
@@ -601,7 +600,7 @@ namespace ORNG {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 
-			DrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material);
+			IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material);
 		}
 
 
@@ -624,10 +623,10 @@ namespace ORNG {
 
 	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-		DrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), &group->m_materials[0]);
+		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), &group->m_materials[0]);
 	}
 
-	void SceneRenderer::DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
+	void SceneRenderer::IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
 		for (unsigned int i = 0; i < p_mesh->m_submeshes.size(); i++) {
 			const Material* p_material = materials[p_mesh->m_submeshes[i].material_index];
 
@@ -659,6 +658,7 @@ namespace ORNG {
 			DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID);
 		}
 
+
 		mp_gbuffer_shader_variants->Activate(BILLBOARD);
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetBillboardInstanceGroups()) {
 			DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID);
@@ -668,7 +668,7 @@ namespace ORNG {
 		mp_gbuffer_shader_variants->Activate(PARTICLE);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-			DrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0]);
+			IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0]);
 		}
 
 		mp_gbuffer_shader_variants->Activate(PARTICLE_BILLBOARD);
@@ -676,8 +676,11 @@ namespace ORNG {
 			mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 
-			DrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
+			IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
 		}
+
+		
+
 
 		/* uniforms */
 		mp_gbuffer_shader_variants->Activate(TERRAIN);

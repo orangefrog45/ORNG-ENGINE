@@ -72,7 +72,7 @@ extern/implot/implot_items.cpp
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES}
-)
+ "headers/components/ParticleBufferComponent.h")
 
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)

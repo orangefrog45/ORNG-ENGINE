@@ -6,6 +6,7 @@
 #include "physx/vehicle2/PxVehicleAPI.h"
 #include "scripting/ScriptShared.h"
 #include "rendering/VAO.h"
+#include "components/ParticleBufferComponent.h"
 
 namespace physx {
 	class PxScene;
@@ -322,6 +323,7 @@ namespace ORNG {
 		unsigned m_default_group_end_index = 0;
 	};
 
+	class ParticleBufferComponent;
 
 	class ParticleSystem : public ComponentSystem {
 		friend class EditorLayer;
@@ -337,28 +339,40 @@ namespace ORNG {
 		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
 		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif = 0);
 
+		void UpdateAppendBuffer();
+
+		void InitBuffer(ParticleBufferComponent* p_comp);
+		void OnBufferDestroy(ParticleBufferComponent* p_comp);
+		void OnBufferUpdate(ParticleBufferComponent* p_comp);
+
 		void OnEmitterVisualTypeChange(ParticleEmitterComponent* p_comp);
 
 		void UpdateEmitterBufferAtIndex(unsigned index);
 
 		Events::ECS_EventListener<ParticleEmitterComponent> m_particle_listener;
+		Events::ECS_EventListener<ParticleBufferComponent> m_particle_buffer_listener;
+
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 
 		// Stored in order based on their m_particle_start_index
 		std::vector<entt::entity> m_emitter_entities;
 
-		unsigned total_particles = 0;
+		// Total particles belonging to emitters, does not include those belonging to ParticleBufferComponents which are stored separately
+		unsigned total_emitter_particles = 0;
 
-		unsigned m_allocated_particles = 0;
-		unsigned m_allocated_emitters = 0;
+		unsigned* p_num_appended = nullptr;
+		std::byte* p_emitter_gpu_buffer = nullptr;
 
+		SSBO<float> m_particle_ssbo{ false, 0 };
+		SSBO<float> m_emitter_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };
+		SSBO<float> m_particle_append_ssbo{ false, GL_MAP_WRITE_BIT | GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT };
 
-		SSBO<glm::mat4> m_transform_ssbo;
-		SSBO<float> m_particle_ssbo;
-		SSBO<float> m_emitter_ssbo;
+		SSBO<float> m_particle_copy_buffer{ false, 0 };
+
 
 		inline static Shader* mp_particle_cs;
 		inline static ShaderVariants* mp_particle_initializer_cs;
+		inline static Shader* mp_append_buffer_transfer_cs;
 	};
 
 

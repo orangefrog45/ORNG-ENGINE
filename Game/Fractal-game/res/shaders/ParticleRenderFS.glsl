@@ -23,6 +23,8 @@ in mat4 vs_transform;
 in vec3 vs_original_normal;
 in vec3 vs_view_dir_tangent_space;
 
+#define PARTICLES_DETACHED
+
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
 #ifdef PARTICLE
@@ -47,33 +49,8 @@ ORNG_INCLUDE "CommonINCL.glsl"
 	uniform float u_bloom_threshold;
 	uniform Material u_material;
 
-vec2 ParallaxMap()
-{
-	float layer_depth = 1.0 / float(u_num_parallax_layers);
-	float current_layer_depth = 0.0f;
-	vec2 current_tex_coords = vs_tex_coord.xy * u_material.tile_scale;
-	float current_depth_map_value = 1.0 - texture(displacement_sampler, vs_tex_coord.xy).r;
-	vec2 p = normalize(vs_view_dir_tangent_space).xy * u_parallax_height_scale;
 
-	vec2 delta_tex_coords = p / u_num_parallax_layers;
-	float delta_depth = layer_depth / u_num_parallax_layers;
 
-	while (current_layer_depth < current_depth_map_value) {
-		current_tex_coords -= delta_tex_coords;
-		current_depth_map_value = 1.0 - texture(displacement_sampler, current_tex_coords).r;
-		current_layer_depth += layer_depth;
-	}
-
-	vec2 prev_tex_coords = current_tex_coords + delta_tex_coords;
-
-	float after_depth = current_depth_map_value - current_layer_depth;
-	float before_depth = texture(displacement_sampler, prev_tex_coords).r - current_layer_depth + layer_depth;
-
-	float weight = after_depth / (after_depth - before_depth);
-
-	return prev_tex_coords * weight + current_tex_coords * (1.0 - weight);
-
-}
 mat3 CalculateTbnMatrixTransform() {
 #ifdef PARTICLE
 	vec3 t = normalize(-vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]));
@@ -109,9 +86,10 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
 	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
 	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
-#ifdef PARTICLE
+
+#if defined PARTICLE && !defined(PARTICLES_DETACHED)
 #define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]
-#define PTCL ssbo_particles.particles[vs_particle_index]
+#define PTCL PARTICLE_SSBO.particles[vs_particle_index]
 
 	float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
 
@@ -131,37 +109,22 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 
 
 void main() {
-#ifndef SKYBOX_MODE
-	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap()  : vs_tex_coord.xy * u_material.tile_scale;
-	roughness_metallic_ao.r = texture(roughness_sampler, adj_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
-	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
-	roughness_metallic_ao.b = texture(ao_sampler, adj_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
-	roughness_metallic_ao.a = 1.f;
-#endif
-
-#ifdef TERRAIN_MODE
-	shader_id = u_shader_id;
-	normal = u_normal_sampler_active ? vec4(CalculateTbnMatrix() * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0) : vec4(normalize(vs_normal), 1.0);
-
-	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
-
-#elif defined SKYBOX_MODE
-	shader_id = uint(0);
-	albedo = vec4(texture(cube_color_sampler, vs_tex_coord).rgb, 1.f);
-#else
-	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
+	if (ssbo_particles_detached.particles[vs_particle_index].velocity_life.w < 0)
+	discard;
+	
+	albedo = vec4(ssbo_particles_detached.particles[vs_particle_index].scale.w, ssbo_particles_detached.particles[vs_particle_index].pos.w, ssbo_particles_detached.particles[vs_particle_index].quat.w, 1.0);
 	if (albedo.w < 0.99)
 		discard;
-
+roughness_metallic_ao = vec4(0.5, 0.5, 0.01, 1.0);
 	if (u_normal_sampler_active) {
 		mat3 tbn = CalculateTbnMatrixTransform();
-		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
+		vec3 sampled_normal = texture(normal_map_sampler, vs_tex_coord.xy).rgb * 2.0 - 1.0;
 		normal = vec4(normalize(tbn * sampled_normal).rgb, 1.0);
 	}
 	else {
 		normal = vec4(normalize(vs_normal), 1.0);
 	}
-	shader_id = u_shader_id;
-#endif
+	shader_id = 10;
+
 
 }

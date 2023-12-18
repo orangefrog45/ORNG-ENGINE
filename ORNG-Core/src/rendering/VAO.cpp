@@ -16,22 +16,29 @@ namespace ORNG {
 	void VAO::FillBuffers() {
 		GL_StateManager::BindVAO(GetHandle());
 		for (auto [index, p_buf] : m_buffers) {
-			GL_StateManager::BindBuffer(p_buf->buffer_type, p_buf->m_ogl_handle);
-			glBufferData(p_buf->buffer_type, p_buf->GetSizeCPU(), p_buf->GetDataPtr(), p_buf->draw_type);
-			glEnableVertexAttribArray(index);
-			glVertexAttribPointer(index, p_buf->comps_per_attribute, p_buf->data_type, GL_FALSE, p_buf->stride, 0);
+			p_buf->FillBuffer();
 		}
+
+
 	}
 
 	void VertexBufferBase::FillBuffer() {
-		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
-		glBufferData(buffer_type, GetSizeCPU(), GetDataPtr(), draw_type);
+		//glNamedBufferStorage(m_ogl_handle, GetSizeCPU(), GetDataPtr(), m_flags);
+		GL_StateManager::BindBuffer(GL_ARRAY_BUFFER, m_ogl_handle);
+		glBufferData(GL_ARRAY_BUFFER, GetSizeCPU(), GetDataPtr(), draw_type);
+
 		glEnableVertexAttribArray(index);
 		glVertexAttribPointer(index, comps_per_attribute, data_type, GL_FALSE, stride, 0);
 	}
 
 	void BufferBase::FillBuffer() {
-		glNamedBufferData(m_ogl_handle, GetSizeCPU(), GetDataPtr(), draw_type);
+		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
+
+		if (m_is_mutable)
+			glBufferData(buffer_type, GetSizeCPU(), GetDataPtr(), draw_type);
+		else
+			glBufferStorage(buffer_type, GetSizeCPU(), GetDataPtr(), m_flags);
+
 	}
 
 	void BufferBase::Init() {
@@ -46,9 +53,29 @@ namespace ORNG {
 		return buffer_size;
 	}
 
+	void BufferBase::CopyDataFromBuffer(BufferBase& other, unsigned extra_allocated_size) {
+		auto copy_size = other.GetGPU_BufferSize();
+		GLuint buf = GL_StateManager::GenBuffer();
+
+		if (m_is_mutable)
+			glNamedBufferData(buf, copy_size + extra_allocated_size, nullptr, draw_type);
+		else
+			glNamedBufferStorage(buf, copy_size + extra_allocated_size, nullptr, m_flags);
+
+		glCopyNamedBufferSubData(other.GetHandle(), buf, 0, 0, copy_size);
+
+		m_ogl_handle = buf;
+
+	}
+
+
 	void BufferBase::Resize(size_t size_bytes) {
 		GLuint buf = GL_StateManager::GenBuffer();
-		glNamedBufferData(buf, size_bytes, nullptr, draw_type);
+
+		if (m_is_mutable)
+			glNamedBufferData(buf, size_bytes, nullptr, draw_type);
+		else
+			glNamedBufferStorage(buf, size_bytes, nullptr, m_flags);
 
 		GLint buffer_size;
 		glGetNamedBufferParameteriv(m_ogl_handle, GL_BUFFER_SIZE, &buffer_size);
@@ -66,6 +93,8 @@ namespace ORNG {
 	}
 
 	void BufferBase::PushBack(std::byte* bytes, size_t size) {
+		ASSERT(m_is_mutable);
+
 		int old_size = GetGPU_BufferSize();
 		Resize(old_size + size);
 		glNamedBufferSubData(m_ogl_handle, old_size, size, bytes);
@@ -77,7 +106,11 @@ namespace ORNG {
 		glGetNamedBufferParameteriv(m_ogl_handle, GL_BUFFER_SIZE, &buffer_size);
 
 		GLuint buf = GL_StateManager::GenBuffer();
-		glNamedBufferData(buf, buffer_size - erase_size, nullptr, draw_type);
+		if (m_is_mutable)
+			glNamedBufferData(buf, buffer_size - erase_size, nullptr, draw_type);
+		else
+			glNamedBufferStorage(buf, glm::max((int)(buffer_size - erase_size), 64), nullptr, m_flags);
+
 
 		glCopyNamedBufferSubData(m_ogl_handle, buf, 0, 0, start);
 		glCopyNamedBufferSubData(m_ogl_handle, buf, start + erase_size, start, buffer_size - (start + erase_size));

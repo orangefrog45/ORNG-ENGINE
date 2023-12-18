@@ -42,7 +42,7 @@ class Handler(FileSystemEventHandler):
         shutil.copy(event.src_path, debug_dir_editor + filename);
         shutil.copy(event.src_path, release_dir_editor + filename);
         shutil.copy(event.src_path, debug_dir_game+ filename);
-        shutil.copy(event.src_path, release_dir_editor+ filename);
+        shutil.copy(event.src_path, release_dir_game+ filename);
 
 if __name__ == "__main__":
     path = "..\\" 

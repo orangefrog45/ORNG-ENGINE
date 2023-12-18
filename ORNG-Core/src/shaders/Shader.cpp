@@ -261,6 +261,7 @@ namespace ORNG {
 
 			ORNG_CORE_CRITICAL("Failed to link program for shader '{0}' : '{1}", m_name, message);
 			BREAKPOINT;
+			Reload();
 		}
 
 		glValidateProgram(m_program_id);

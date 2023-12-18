@@ -20,7 +20,7 @@ namespace ORNG {
 
 	class AssetManagerWindow {
 	public:
-		AssetManagerWindow(std::string* p_active_project_dir, std::unique_ptr<Scene>& scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(&scene_context) {};
+		AssetManagerWindow(std::string* p_active_project_dir, Scene* scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(&scene_context) {};
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
@@ -103,7 +103,7 @@ namespace ORNG {
 		Material* mp_selected_material = nullptr;
 		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
 
-		std::unique_ptr<Scene>* mp_scene_context = nullptr;
+		Scene** mp_scene_context = nullptr;
 
 		// UUID's of assets flagged for deletion
 		std::vector<uint64_t> m_asset_deletion_queue;

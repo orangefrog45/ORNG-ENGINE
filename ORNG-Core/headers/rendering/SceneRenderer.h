@@ -86,6 +86,9 @@ namespace ORNG {
 			Get().IDetachRenderpassIntercept(name);
 		}
 
+		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
+			Get().IDrawMeshGBuffer(p_shader, p_mesh, render_group, instances, materials);
+		}
 
 		static SceneRenderer& Get() {
 			static SceneRenderer s_instance;
@@ -126,8 +129,8 @@ namespace ORNG {
 		void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 
 		void DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group);
-		void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials);
-		void RenderVehicles(Shader* p_shader, RenderGroup render_group);
+		void IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials);
+		void RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group);
 
 
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage

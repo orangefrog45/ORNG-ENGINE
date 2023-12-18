@@ -114,6 +114,8 @@ namespace ORNG {
 			DispatchUpdateEvent(VISUAL_TYPE_CHANGED);
 		}
 
+		inline static const int BASE_NUM_PARTICLES = 64;
+
 	private:
 
 		EmitterType m_type = BILLBOARD;
@@ -160,6 +162,8 @@ namespace ORNG {
 		// Index into the SSBO's in ParticleSystem
 		unsigned m_particle_start_index = 0;
 		unsigned m_index = 0;
-		unsigned m_num_particles = 1;
+		unsigned m_num_particles = BASE_NUM_PARTICLES;
 	};
+
+
 }

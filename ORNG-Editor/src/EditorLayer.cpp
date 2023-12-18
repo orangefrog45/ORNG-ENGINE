@@ -17,6 +17,7 @@
 #include "core/Input.h"
 #include "cudamanager/PxCudaContext.h"
 #include "util/ExtraUI.h"
+#include "components/ParticleBufferComponent.h"
 
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
@@ -31,7 +32,6 @@ namespace ORNG {
 		m_executable_directory = m_executable_directory.substr(0, m_executable_directory.find_last_of('\\'));
 
 		InitImGui();
-		m_active_scene = std::make_unique<Scene>();
 		m_asset_manager_window.Init();
 
 		m_grid_mesh = std::make_unique<GridMesh>();
@@ -128,7 +128,7 @@ namespace ORNG {
 			GenerateProject("base-project");
 		}
 
-		MakeProjectActive(base_proj_dir);
+		MakeProjectActive(m_start_filepath);
 
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
@@ -897,6 +897,7 @@ namespace ORNG {
 			m_active_scene->LoadScene(m_current_project_directory + "\\scene.yml");
 			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml", true);
 
+			m_active_scene->CreateEntity("particle buffer").AddComponent<ParticleBufferComponent>();
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -913,7 +914,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-		const char* names[10] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard" };
+		const char* names[11] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard", "Particle buffer"};
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -964,6 +965,9 @@ namespace ORNG {
 			break;
 		case 9:
 			entity->AddComponent<BillboardComponent>();
+			break;
+		case 10:
+			entity->AddComponent<ParticleBufferComponent>();
 			break;
 		}
 	}
@@ -1500,6 +1504,15 @@ namespace ORNG {
 				}
 			}
 
+			if (auto* p_buffer_comp = entity->GetComponent<ParticleBufferComponent>(); p_buffer_comp && ExtraUI::H2TreeNode("Particle buffer component")) {
+				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+					entity->DeleteComponent<ParticleBufferComponent>();
+				}
+				else {
+					RenderParticleBufferComponentEditor(p_buffer_comp);
+				}
+			}
+
 			glm::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
 			glm::vec2 button_size = { 200, 50 };
 			glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
@@ -1647,6 +1660,23 @@ namespace ORNG {
 			ImGui::PopID();
 		}
 	}
+
+
+	void EditorLayer::RenderParticleBufferComponentEditor(ParticleBufferComponent* p_comp) {
+		ImGui::PushID(p_comp);
+
+		ImGui::Text("Min. allocated particles"); ImGui::SameLine();
+		if (ExtraUI::InputUint("##e", p_comp->m_min_allocated_particles)) {
+			p_comp->DispatchUpdateEvent();
+		}
+
+		ImGui::Text("Buffer ID"); ImGui::SameLine();
+		if (ExtraUI::InputUint("##bi", p_comp->m_buffer_id)) {
+			p_comp->DispatchUpdateEvent();
+		}
+
+	}
+
 
 	void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp) {
 		ImGui::PushID(p_comp);

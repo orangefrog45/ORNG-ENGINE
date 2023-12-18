@@ -1,3 +1,7 @@
+18/12/23:
+-Support for flexible and performant GPU particle systems using ParticleBufferComponents with layer integration
+-Dynamic particle emission from shaders using append buffer with EmitParticleDirect/Append functions
+
 11/12/23:
 -Fixed prefabs not serializing children
 -Fixed collision callbacks
