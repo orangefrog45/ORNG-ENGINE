@@ -10,7 +10,7 @@ ORNG Editor/res/textures
 venv/
 x64/
 PhysXGpu_64.dll
-*.yml
+
 
 CMakeLists.txt.user
 CMakeCache.txt
