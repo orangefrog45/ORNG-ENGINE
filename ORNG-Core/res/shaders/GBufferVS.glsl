@@ -105,7 +105,7 @@ void main() {
 			vec2 step_size = vec2(1.0) / vec2(u_material.sprite_data.num_cols, u_material.sprite_data.num_rows);
 			vs_tex_coord.xy *= step_size;
 
-			#ifdef PARTICLE
+			#if defined PARTICLE && !defined(PARTICLES_DETACHED)
 				uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * interpolation); 
 			#else
 				uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * (float(uint(ubo_common.time_elapsed) % 1000) / 1000.0)); 

@@ -181,6 +181,7 @@ namespace ORNG {
 		ent.AddComponent<AudioComponent>();
 		ent.AddComponent<VehicleComponent>();
 		ent.AddComponent<ParticleEmitterComponent>();
+		ent.AddComponent<ParticleBufferComponent>();
 		DeleteEntity(&ent);
 
 		m_is_loaded = true;

@@ -335,6 +335,7 @@ namespace ORNG {
 	void ParticleSystem::OnUnload() {
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_particle_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_particle_buffer_listener.GetRegisterID());
 	}
 
 	void ParticleSystem::InitBuffer(ParticleBufferComponent* p_comp) {

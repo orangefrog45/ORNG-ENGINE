@@ -1,0 +1,74 @@
+ˆ]Entities:
+  - Entity: 6199804998579314014
+    Name: Flare
+    ParentID: 0
+    TransformComp:
+      Pos: [-75.4699936, 87.7199936, -53.7200012]
+      Scale: [0.0373999961, 0.0408479944, 0.240799993]
+      Orientation: [0, 0, 0]
+      Absolute: false
+    MeshComp:
+      MeshAssetID: 3
+      Materials: [5205132746783364575]
+    PointlightComp:
+      Colour: [1, 0.100000001, 0.100000001]
+      AttenConstant: 1
+      AttenLinear: 0.0500000007
+      AttenExp: 0.0329999998
+      Shadows: false
+      ShadowDistance: 48
+    ScriptComp:
+      ScriptPath: .\res\scripts\FlareScript.cpp
+    ParticleEmitterComp:
+      Spread: 1
+      Spawn extents: [0.100000001, 0.100000001, 0.300000012]
+      Velocity range: [0.100000001, 1]
+      Nb. particles: 3
+      Lifespan: 100
+      Spawn delay: 10
+      Type: 0
+      Acceleration: [0, 0, 0]
+      Colour over time:
+        Points:
+          - [0.00320394943, 1.35261321, 1.62125504, 1.62125504]
+          - [1, 0, 0, 0]
+      Alpha over time:
+        Points:
+          - [0, 0]
+          - [1, 1]
+      Scale over time:
+        Points:
+          - [0.000756750931, 0.113291696, 0.0802816302, 0.0967866629]
+          - [1, 0, 0, 0]
+      MaterialUUID: 5205132746783364575
+  - Entity: 8870635818375270726
+    Name: New entity
+    ParentID: 6199804998579314014
+    TransformComp:
+      Pos: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Orientation: [0, 0, 0]
+      Absolute: false
+    ParticleEmitterComp:
+      Spread: 0.25
+      Spawn extents: [0.100000001, 0.100000001, 0.300000012]
+      Velocity range: [0.100000001, 1]
+      Nb. particles: 100
+      Lifespan: 10000
+      Spawn delay: 100
+      Type: 0
+      Acceleration: [0, -0.100000001, 0]
+      Colour over time:
+        Points:
+          - [0.00225206558, 2.9543457, 0.0673213229, 0]
+          - [0.299451411, 2.36550069, 1.00535369, 0.489435911]
+          - [0.995478511, 2.57636452, 1.41778433, 0.662941515]
+      Alpha over time:
+        Points:
+          - [0, 0]
+          - [1, 1]
+      Scale over time:
+        Points:
+          - [0, 0.0380678549, 0.035299737, 0.0436040945]
+          - [1, 0, 0, 0]
+      MaterialUUID: 16858941075718011016î<“Þš

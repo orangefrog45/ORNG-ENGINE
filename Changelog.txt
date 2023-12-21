@@ -1,3 +1,10 @@
+21/12/23:
+-Audio component looping
+-Script changes/compilation time optimization
+-More script utilities
+-General bugfixes
+-Editor layer structure changes (no longer owns scene)
+
 18/12/23:
 -Support for flexible and performant GPU particle systems using ParticleBufferComponents with layer integration
 -Dynamic particle emission from shaders using append buffer with EmitParticleDirect/Append functions
