@@ -281,8 +281,8 @@ namespace ORNG {
 				// Check if group should be deleted
 				if (group->m_instances.empty()) {
 					group->ProcessUpdates();
+					groups[y]->erase(groups[y]->begin() + i);
 					delete group;
-					groups[y]->erase(m_instance_groups.begin() + i);
 					i--;
 				}
 			}

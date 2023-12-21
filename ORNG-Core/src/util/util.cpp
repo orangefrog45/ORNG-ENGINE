@@ -71,6 +71,15 @@ namespace ORNG {
 		return c1 == c2 || cur + c1 == c2 || c1 == cur + c2;
 	}
 
+	bool IsEntryAFile(const std::filesystem::directory_entry& entry) {
+		try {
+			return std::filesystem::is_regular_file(entry);
+		}
+		catch (std::exception& e) {
+			ORNG_CORE_ERROR("std::filesystem::is_regular_file err with path '{0}', '{1}'", entry.path().string(), e.what());
+		}
+	}
+
 	std::string GetFileLastWriteTime(const std::string& filepath) {
 		std::string formatted = "";
 

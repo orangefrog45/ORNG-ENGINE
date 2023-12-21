@@ -118,8 +118,12 @@ namespace ORNG {
 
 			if (t_event.mouse_action == MOVE)
 				SetCursorPos(t_event.mouse_pos_new.x, t_event.mouse_pos_new.y);
-			};
+			else if (t_event.mouse_action == TOGGLE_VISIBILITY) {
+				glfwSetInputMode(p_window, GLFW_CURSOR, (std::any_cast<bool>(t_event.data_payload) ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED));
+				ORNG_CORE_TRACE("TOGGLE VISIBLITY {0}", std::any_cast<bool>(t_event.data_payload));
+			}
 
+			};
 		Events::EventManager::RegisterListener(m_mouse_listener);
 	}
 }

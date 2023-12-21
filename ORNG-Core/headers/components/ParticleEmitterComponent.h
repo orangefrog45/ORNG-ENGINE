@@ -2,6 +2,9 @@
 #include "util/Interpolators.h"
 
 namespace ORNG {
+	class Material;
+	class MeshAsset;
+
 	struct ParticleMeshResources : public Component {
 		ParticleMeshResources(SceneEntity* p_entity) : Component(p_entity) {};
 
@@ -120,7 +123,7 @@ namespace ORNG {
 
 		EmitterType m_type = BILLBOARD;
 
-		enum EmitterSubEvent {
+		enum EmitterSubEvent : uint32_t {
 			DEFAULT= 0,
 			NB_PARTICLES_CHANGED = 2,
 			LIFESPAN_CHANGED = 4,
@@ -130,15 +133,7 @@ namespace ORNG {
 			FULL_UPDATE = 64,
 		};
 
-		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, std::any data_payload = 0.f) {
-			Events::ECS_Event<ParticleEmitterComponent> evt;
-			evt.affected_components[0] = this;
-			evt.event_type = Events::ECS_EventType::COMP_UPDATED;
-			evt.sub_event_type = se;
-			evt.data_payload = data_payload;
-
-			Events::EventManager::DispatchEvent(evt);
-		}
+		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, std::any data_payload = 0.f);
 		// User-configurable parameters
 
 		glm::vec3 acceleration = { 0, 0, 0 };

@@ -2,9 +2,6 @@
 
 #include <yaml-cpp/yaml.h>
 
-
-
-
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
 #include "scene/SceneEntity.h"
@@ -13,6 +10,7 @@
 #include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
+#include "physics/Physics.h"
 /*
 	struct VertexData {
 			std::vector<glm::vec3> positions;
@@ -558,10 +556,10 @@ namespace ORNG {
 				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
 				if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 					auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
-					entity.GetComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : p_replacement_material;
+					entity.AddComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : p_replacement_material;
 				}
 				else {
-					auto* p_res = entity.GetComponent<ParticleMeshResources>();
+					auto* p_res = entity.AddComponent<ParticleMeshResources>();
 					p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
 					p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
 
@@ -584,9 +582,7 @@ namespace ORNG {
 				p_buffer->m_buffer_id = buffer_node["BufferID"].as<uint32_t>();
 				p_buffer->m_min_allocated_particles = buffer_node["Min allocated particles"].as<uint32_t>();
 				
-				Events::ECS_Event<ParticleBufferComponent> e_event;
-				e_event.affected_components[0] = p_buffer;
-				e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
+				Events::ECS_Event<ParticleBufferComponent> e_event{ e_event.event_type = Events::ECS_EventType::COMP_UPDATED, p_buffer };
 				Events::EventManager::DispatchEvent(e_event);
 			}
 		}

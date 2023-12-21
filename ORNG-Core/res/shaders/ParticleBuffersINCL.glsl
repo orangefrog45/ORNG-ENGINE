@@ -69,9 +69,6 @@ layout(std140, binding = 6) buffer Particles {
 layout(std140, binding = 6) buffer ParticlesDetached {
     uint current_index;
     
-    // Must be updated whenever a particle is initialized or killed
-    uint num_alive_particles;
-    
     // General data that can be used by an implementation for anything, will not be modified by the engine
     vec4 data[8];
     int data_int[8];

@@ -20,11 +20,15 @@ namespace ORNG {
 
 	class AssetManagerWindow {
 	public:
-		AssetManagerWindow(std::string* p_active_project_dir, Scene* scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(&scene_context) {};
+		AssetManagerWindow(std::string* p_active_project_dir, std::unique_ptr<Scene>* scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(scene_context) {};
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
 		void Init();
+
+		void SetScene(std::unique_ptr<Scene>* scene_context) {
+			mp_scene_context = scene_context;
+		}
 
 		void OnShutdown() {
 			mp_preview_scene = nullptr;
@@ -36,6 +40,7 @@ namespace ORNG {
 		void SelectTexture(Texture2D* p_texture) {
 			mp_selected_texture = p_texture;
 		}
+
 
 		// Returns 0 if preview not found for material
 		uint32_t GetMaterialPreviewTex(const Material* p_material) {
@@ -103,7 +108,7 @@ namespace ORNG {
 		Material* mp_selected_material = nullptr;
 		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
 
-		Scene** mp_scene_context = nullptr;
+		std::unique_ptr<Scene>* mp_scene_context = nullptr;
 
 		// UUID's of assets flagged for deletion
 		std::vector<uint64_t> m_asset_deletion_queue;

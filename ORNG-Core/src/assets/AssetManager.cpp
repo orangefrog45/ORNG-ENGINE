@@ -278,6 +278,8 @@ namespace ORNG {
 		default_spec.storage_type = GL_UNSIGNED_BYTE;
 
 
+		ORNG_CORE_TRACE(std::filesystem::current_path().string());
+		ORNG_CORE_TRACE(project_dir);
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
 			if (entry.is_directory() || entry.path().extension() != ".bin")

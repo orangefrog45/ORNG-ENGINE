@@ -9,7 +9,7 @@ void main() {
 
 	ORNG::Application application;
 	ORNG::GameLayer game{ };
-	ORNG::EditorLayer editor{ &*game.p_scene, exe_path + "\\projects\\base-project"};
+	ORNG::EditorLayer editor{ &game.p_scene, exe_path + "\\projects\\base-project"};
 	game.SetEditor(&editor);
 
 	application.layer_stack.PushLayer(static_cast<ORNG::Layer*>(&game));

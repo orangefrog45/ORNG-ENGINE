@@ -104,7 +104,7 @@ namespace ORNG {
 		glm::vec3 GetOrientation() const { return m_orientation; };
 
 
-		enum UpdateType {
+		enum UpdateType : uint8_t {
 			TRANSLATION = 0,
 			SCALE = 1,
 			ORIENTATION = 2,

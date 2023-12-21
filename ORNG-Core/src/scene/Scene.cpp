@@ -24,7 +24,6 @@ namespace ORNG {
 
 		m_particle_system.OnUpdate();
 		m_physics_system.OnUpdate(ts);
-		m_mesh_component_manager.OnUpdate();
 
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
@@ -36,6 +35,7 @@ namespace ORNG {
 			}
 		}
 
+		m_mesh_component_manager.OnUpdate();
 		if (m_camera_system.GetActiveCamera())
 			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 

@@ -15,6 +15,13 @@ namespace ORNG {
 		unsigned num_cols = 5;
 
 		unsigned fps = 24;
+
+		template<typename S>
+		void serialize(S& s) {
+			s.value4b(num_rows);
+			s.value4b(num_cols);
+			s.value4b(fps);
+		}
 	};
 
 	struct Material : public Asset {
@@ -54,6 +61,8 @@ namespace ORNG {
 			s.object(tile_scale);
 			s.text1b(name, ORNG_MAX_NAME_SIZE);
 			s.object(uuid);
+			s.value1b(is_spritesheet);
+			s.object(spritesheet_data);
 		}
 
 		RenderGroup render_group = SOLID;
@@ -65,7 +74,6 @@ namespace ORNG {
 		float ao = 0.1f;
 		bool emissive = false;
 		float emissive_strength = 1.f;
-		bool opaque = true;
 		float opacity = 1.0;
 
 		Texture2D* base_color_texture = nullptr;

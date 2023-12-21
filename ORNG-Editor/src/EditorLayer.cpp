@@ -24,6 +24,7 @@ constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 
 
+
 namespace ORNG {
 	void EditorLayer::Init() {
 		char buffer[ORNG_MAX_FILEPATH_SIZE];
@@ -114,8 +115,8 @@ namespace ORNG {
 		mp_picking_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 		mp_picking_fb->Add2DTexture("component_ids_split", GL_COLOR_ATTACHMENT0, picking_spec);
 
-		SceneRenderer::SetActiveScene(&*m_active_scene);
-		static auto  s = &*m_active_scene;
+		SceneRenderer::SetActiveScene(&*(*mp_scene_context));
+		static auto s = &*(*mp_scene_context);
 		m_event_stack.SetContext(s);
 
 		mp_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
@@ -130,21 +131,25 @@ namespace ORNG {
 
 		MakeProjectActive(m_start_filepath);
 
+
 		ORNG_CORE_INFO("Editor layer initialized");
 	}
 
 
 
 	void EditorLayer::BeginPlayScene() {
-		SceneSerializer::SerializeScene(*m_active_scene, m_temp_scene_serialization, true);
+		SceneSerializer::SerializeScene(*(*mp_scene_context), m_temp_scene_serialization, true);
 		m_simulate_mode_active = true;
 
 		// Set to fullscreen so mouse coordinate and gui operations in scripts work correctly as they would in a runtime layer
 		m_fullscreen_scene_display = true;
-		m_active_scene->OnStart();
+		(*mp_scene_context)->OnStart();
 	}
 
 	void EditorLayer::EndPlayScene() {
+		// Reset mouse state as scripts may have modified it
+		Input::SetCursorVisible(true);
+
 		glm::vec3 cam_pos;
 		glm::vec3 look_at_pos;
 
@@ -156,10 +161,10 @@ namespace ORNG {
 
 		mp_editor_camera = nullptr;
 
-		m_active_scene->ClearAllEntities();
-		SceneSerializer::DeserializeScene(*m_active_scene, m_temp_scene_serialization, false, false);
+		(*mp_scene_context)->ClearAllEntities();
+		SceneSerializer::DeserializeScene(*(*mp_scene_context), m_temp_scene_serialization, false, false);
 
-		mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
+		mp_editor_camera = std::make_unique<SceneEntity>(&*(*mp_scene_context), (*mp_scene_context)->m_registry.create(), &(*mp_scene_context)->m_registry, (*mp_scene_context)->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 		p_transform->SetAbsolutePosition(cam_pos);
 		p_transform->LookAt(look_at_pos);
@@ -175,7 +180,7 @@ namespace ORNG {
 			EndPlayScene();
 
 		mp_editor_camera = nullptr;
-		m_active_scene->UnloadScene();
+		(*mp_scene_context)->UnloadScene();
 		m_asset_manager_window.OnShutdown();
 	}
 
@@ -228,14 +233,51 @@ namespace ORNG {
 		else
 			m_scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
 
+		if (!ImGui::GetIO().WantCaptureKeyboard) {
+			// Show/hide ui in simulation mode
+			if (Input::IsKeyPressed(Key::Tab)) {
+				m_render_ui = !m_render_ui;
+			}
 
-		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('z') && !m_simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
-			if (Input::IsKeyDown(Key::Shift))
-				m_event_stack.Redo();
-			else
-				m_event_stack.Undo();
+
+			// Duplicate entity keybind
+			if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
+				auto vec = DuplicateEntitiesTracked(m_selected_entity_ids);
+				std::vector<uint64_t> duplicate_ids;
+				for (auto* p_ent : vec) {
+					duplicate_ids.push_back(p_ent->m_uuid());
+				}
+				m_selected_entity_ids = duplicate_ids;
+			}
+
+			if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('z') && !m_simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
+				if (Input::IsKeyDown(Key::Shift))
+					m_event_stack.Redo();
+				else
+					m_event_stack.Undo();
+			}
+
+
+			if (Input::IsKeyDown(Key::K))
+				mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
+
+			if (Input::IsKeyDown(Key::F) && !m_selected_entity_ids.empty()) {
+				auto* p_entity_transform = (*mp_scene_context)->GetEntity(m_selected_entity_ids[0])->GetComponent<TransformComponent>();
+				auto* p_editor_transform = mp_editor_camera->GetComponent<TransformComponent>();
+				auto pos = p_entity_transform->GetAbsoluteTransforms()[0];
+				p_editor_transform->SetAbsolutePosition(pos + glm::vec3(5.0, 3.0, 5.0));
+				p_editor_transform->LookAt(pos);
+			}
+
+			if (m_simulate_mode_active) {
+				mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = (float)Window::GetWidth() / (float)Window::GetHeight();
+				if (Input::IsKeyDown(Key::Escape))
+					EndPlayScene();
+				else
+					mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_scene_display_rect.x / m_scene_display_rect.y;
+			}
+
 		}
-
 
 		static bool dragging = false;
 		if (Input::IsMouseClicked(0)) {
@@ -252,53 +294,21 @@ namespace ORNG {
 
 		dragging = ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse;
 
-		if (Input::IsKeyDown(Key::K))
-			mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
-
-		if (Input::IsKeyDown(Key::F) && !m_selected_entity_ids.empty()) {
-			auto* p_entity_transform = m_active_scene->GetEntity(m_selected_entity_ids[0])->GetComponent<TransformComponent>();
-			auto* p_editor_transform = mp_editor_camera->GetComponent<TransformComponent>();
-			auto pos = p_entity_transform->GetAbsoluteTransforms()[0];
-			p_editor_transform->SetAbsolutePosition(pos + glm::vec3(5.0, 3.0, 5.0));
-			p_editor_transform->LookAt(pos);
-		}
 
 		float ts = FrameTiming::GetTimeStep();
 		UpdateEditorCam();
 
-		if (m_simulate_mode_active) {
-			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = (float)Window::GetWidth() / (float)Window::GetHeight();
-			if (Input::IsKeyDown(Key::Escape))
-				EndPlayScene();
-		}
 
-		else
-			mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_scene_display_rect.x / m_scene_display_rect.y;
 
 		if (m_simulate_mode_active && !m_simulate_mode_paused)
-			m_active_scene->Update(ts);
+			(*mp_scene_context)->Update(ts);
 		else {
-			m_active_scene->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
-			m_active_scene->m_particle_system.OnUpdate(); // Continue simulating particles for visual feedback
-			m_active_scene->m_audio_system.OnUpdate(); // For accurate audio playback
-			m_active_scene->terrain.UpdateTerrainQuadtree(m_active_scene->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
+			(*mp_scene_context)->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
+			(*mp_scene_context)->m_particle_system.OnUpdate(); // Continue simulating particles for visual feedback
+			(*mp_scene_context)->m_audio_system.OnUpdate(); // For accurate audio playback
+			(*mp_scene_context)->terrain.UpdateTerrainQuadtree((*mp_scene_context)->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
 
-		// Show/hide ui in simulation mode
-		if (Input::IsKeyPressed(Key::Tab)) {
-			m_render_ui = !m_render_ui;
-		}
-
-
-		// Duplicate entity keybind
-		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
-			auto vec = DuplicateEntitiesTracked(m_selected_entity_ids);
-			std::vector<uint64_t> duplicate_ids;
-			for (auto* p_ent : vec) {
-				duplicate_ids.push_back(p_ent->m_uuid());
-			}
-			m_selected_entity_ids = duplicate_ids;
-		}
 	}
 
 	void EditorLayer::MultiSelectDisplay() {
@@ -309,7 +319,7 @@ namespace ORNG {
 		glm::vec2 n = glm::vec2(m_scene_display_rect.x, m_scene_display_rect.y);
 
 
-		auto* p_cam = m_active_scene->GetActiveCamera();
+		auto* p_cam = (*mp_scene_context)->GetActiveCamera();
 		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		auto pos = p_transform->GetAbsoluteTransforms()[0];
 
@@ -346,7 +356,7 @@ namespace ORNG {
 
 		ExtraMath::Plane f{ -target, far_middle };
 
-		for (auto [entity, transform] : m_active_scene->m_registry.view<TransformComponent>().each()) {
+		for (auto [entity, transform] : (*mp_scene_context)->m_registry.view<TransformComponent>().each()) {
 			auto pos1 = transform.GetAbsoluteTransforms()[0];
 			if (ne.GetSignedDistanceToPlane(pos1) >= 0 &&
 				f.GetSignedDistanceToPlane(pos1) >= 0 &&
@@ -355,20 +365,20 @@ namespace ORNG {
 				t.GetSignedDistanceToPlane(pos1) >= 0 &&
 				b.GetSignedDistanceToPlane(pos1) >= 0
 				) {
-				auto* p_entity = m_active_scene->GetEntity(entity);
+				auto* p_entity = (*mp_scene_context)->GetEntity(entity);
 				if (m_general_settings.selection_settings.select_only_parents && p_entity->GetParent() != entt::null)
 					continue;
 
 				if (!m_general_settings.selection_settings.select_all) {
 					if (m_general_settings.selection_settings.select_light_objects && (p_entity->HasComponent<PointLightComponent>() || p_entity->HasComponent<SpotLightComponent>()))
-						SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+						SelectEntity((*mp_scene_context)->GetEntity(entity)->m_uuid());
 					else if (m_general_settings.selection_settings.select_mesh_objects && p_entity->HasComponent<MeshComponent>())
-						SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+						SelectEntity((*mp_scene_context)->GetEntity(entity)->m_uuid());
 					else if (m_general_settings.selection_settings.select_physics_objects && p_entity->HasComponent<PhysicsComponent>())
-						SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+						SelectEntity((*mp_scene_context)->GetEntity(entity)->m_uuid());
 				}
 				else {
-					SelectEntity(m_active_scene->GetEntity(entity)->m_uuid());
+					SelectEntity((*mp_scene_context)->GetEntity(entity)->m_uuid());
 				}
 			}
 		}
@@ -467,7 +477,7 @@ namespace ORNG {
 				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
 					if (p_payload->DataSize == sizeof(Prefab*)) {
 						std::string prefab_data = (*static_cast<Prefab**>(p_payload->Data))->serialized_content;
-						auto& ent = m_simulate_mode_active ? m_active_scene->InstantiatePrefabCallScript(prefab_data) : m_active_scene->InstantiatePrefab(prefab_data);
+						auto& ent = m_simulate_mode_active ? (*mp_scene_context)->InstantiatePrefabCallScript(prefab_data) : (*mp_scene_context)->InstantiatePrefab(prefab_data);
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 						glm::vec3 pos;
 						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
@@ -545,7 +555,7 @@ namespace ORNG {
 
 
 		SceneRenderer::SceneRenderingSettings settings;
-		SceneRenderer::SetActiveScene(&*m_active_scene);
+		SceneRenderer::SetActiveScene(&*(*mp_scene_context));
 		settings.p_output_tex = &*mp_scene_display_texture;
 		SceneRenderer::RenderScene(settings);
 
@@ -601,7 +611,7 @@ namespace ORNG {
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
 		ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), toolbar_height));
 
-		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
+		if (ImGui::Begin("##Toolbar", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNavInputs)) {
 			if (ImGui::Button("Files")) {
 				ImGui::OpenPopup("FilePopup");
 			}
@@ -640,8 +650,8 @@ namespace ORNG {
 				std::string scene_filepath{ "scene.yml" };
 				std::string uuid_filepath{ "./res/scripts/includes/uuids.h" };
 				AssetManager::SerializeAssets();
-				SceneSerializer::SerializeScene(*m_active_scene, scene_filepath);
-				SceneSerializer::SerializeSceneUUIDs(*m_active_scene, uuid_filepath);
+				SceneSerializer::SerializeScene(*(*mp_scene_context), scene_filepath);
+				SceneSerializer::SerializeSceneUUIDs(*(*mp_scene_context), uuid_filepath);
 				selected_component = 0;
 			}
 			}
@@ -729,6 +739,8 @@ namespace ORNG {
 		FileDelete("./res/scripts/includes/ScriptInstancer.h");
 		FileDelete("./res/scripts/includes/VehicleComponent.h");
 		FileDelete("./res/scripts/includes/ParticleEmitterComponent.h");
+		FileDelete("./res/scripts/includes/ScriptAPIImpl.h");
+
 
 
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
@@ -749,6 +761,8 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/VehicleComponent.h", "./res/scripts/includes/VehicleComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ParticleEmitterComponent.h", "./res/scripts/includes/ParticleEmitterComponent.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
+
 	}
 
 
@@ -875,8 +889,9 @@ namespace ORNG {
 			if (m_simulate_mode_active)
 				EndPlayScene();
 
+			ORNG_CORE_TRACE(folder_path);
+			m_current_project_directory = std::filesystem::absolute(folder_path).string();
 			std::filesystem::current_path(folder_path);
-			m_current_project_directory = folder_path;
 			RefreshScriptIncludes();
 
 			// Deselect material and texture that's about to be deleted
@@ -889,17 +904,15 @@ namespace ORNG {
 			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
 
 
-			if (m_active_scene->m_is_loaded)
-				m_active_scene->UnloadScene();
+			if ((*mp_scene_context)->m_is_loaded)
+				(*mp_scene_context)->UnloadScene();
 
 			AssetManager::ClearAll();
 			AssetManager::LoadAssetsFromProjectPath(m_current_project_directory, false);
-			m_active_scene->LoadScene(m_current_project_directory + "\\scene.yml");
-			SceneSerializer::DeserializeScene(*m_active_scene, m_current_project_directory + "\\scene.yml", true);
+			(*mp_scene_context)->LoadScene(m_current_project_directory + "\\scene.yml");
+			SceneSerializer::DeserializeScene(*(*mp_scene_context), m_current_project_directory + "\\scene.yml", true);
 
-			m_active_scene->CreateEntity("particle buffer").AddComponent<ParticleBufferComponent>();
-
-			mp_editor_camera = std::make_unique<SceneEntity>(&*m_active_scene, m_active_scene->m_registry.create(), &m_active_scene->m_registry, m_active_scene->uuid());
+			mp_editor_camera = std::make_unique<SceneEntity>(&*(*mp_scene_context), (*mp_scene_context)->m_registry.create(), &(*mp_scene_context)->m_registry, (*mp_scene_context)->uuid());
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
@@ -991,7 +1004,7 @@ namespace ORNG {
 		GL_StateManager::ClearDepthBits();
 		GL_StateManager::ClearBitsUnsignedInt();
 
-		auto view = m_active_scene->m_registry.view<MeshComponent>();
+		auto view = (*mp_scene_context)->m_registry.view<MeshComponent>();
 		for (auto [entity, mesh] : view.each()) {
 			//Split uint64 into two uint32's for texture storage
 			uint64_t full_id = mesh.GetEntityUUID();
@@ -1034,7 +1047,7 @@ namespace ORNG {
 		mp_highlight_shader->SetUniform("u_color", glm::vec4(1.0, 0, 0, 0.1));
 
 		for (auto id : m_selected_entity_ids) {
-			auto* current_entity = m_active_scene->GetEntity(id);
+			auto* current_entity = (*mp_scene_context)->GetEntity(id);
 
 			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
 				continue;
@@ -1066,14 +1079,14 @@ namespace ORNG {
 		mp_highlight_shader->SetUniform("u_color", glm::vec4(0.0, 1.0, 0, 0.1));
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		// Break into 3 sep. loops to reduce vao changes
-		for (auto [entity, phys, transform] : m_active_scene->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
+		for (auto [entity, phys, transform] : (*mp_scene_context)->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::BOX) {
 				mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
 				Renderer::DrawCube();
 			}
 		}
 
-		for (auto [entity, phys, transform] : m_active_scene->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
+		for (auto [entity, phys, transform] : (*mp_scene_context)->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::SPHERE) {
 				auto at = transform.GetAbsoluteTransforms();
 				auto sf = ((PxSphereGeometry*)&phys.p_shape->getGeometry())->radius;
@@ -1103,7 +1116,7 @@ namespace ORNG {
 			}
 		}
 
-		for (auto [entity, mesh, phys, transform] : m_active_scene->m_registry.view<MeshComponent, PhysicsComponent, TransformComponent>().each()) {
+		for (auto [entity, mesh, phys, transform] : (*mp_scene_context)->m_registry.view<MeshComponent, PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::TRIANGLE_MESH) {
 				mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
 				for (int i = 0; i < mesh.mp_mesh_asset->m_submeshes.size(); i++) {
@@ -1130,7 +1143,7 @@ namespace ORNG {
 				if (!std::filesystem::exists(new_filepath)) {
 					FileCopy(filepath, new_filepath);
 				}
-				m_active_scene->skybox.LoadEnvironmentMap(new_filepath);
+				(*mp_scene_context)->skybox.LoadEnvironmentMap(new_filepath);
 				};
 
 			if (ImGui::Button("Load skybox texture")) {
@@ -1226,7 +1239,7 @@ namespace ORNG {
 		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && m_selected_entities_are_dragged && ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax())) {
 			DeselectEntity(p_entity->GetUUID());
 			for (auto id : m_selected_entity_ids) {
-				m_active_scene->GetEntity(id)->SetParent(*p_entity);
+				(*mp_scene_context)->GetEntity(id)->SetParent(*p_entity);
 			}
 
 			m_selected_entities_are_dragged = false;
@@ -1273,7 +1286,7 @@ namespace ORNG {
 		if (p_entity && VectorContains(open_tree_nodes, p_entity->GetUUID())) {
 			entt::entity current_child_entity = p_entity_relationship_comp->first;
 			while (current_child_entity != entt::null) {
-				auto& child_rel_comp = m_active_scene->m_registry.get<RelationshipComponent>(current_child_entity);
+				auto& child_rel_comp = (*mp_scene_context)->m_registry.get<RelationshipComponent>(current_child_entity);
 				// Render child entity node, propagate event up
 				ret.e_event = static_cast<EntityNodeEvent>((ret.e_event | RenderEntityNode(child_rel_comp.GetEntity(), layer + 1, node_selection_active, selection_box).e_event));
 				current_child_entity = child_rel_comp.next;
@@ -1283,12 +1296,12 @@ namespace ORNG {
 		ImGui::PopID();
 		return ret;
 	}
-	
+
 
 
 
 	void EditorLayer::RenderSceneGraph() {
-		if (ImGui::Begin("Scene graph", (bool*)0, 0)) {
+		if (ImGui::Begin("Scene graph", (bool*)0, ImGuiWindowFlags_NoNavInputs)) {
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_selected_entity_ids.clear();
@@ -1327,7 +1340,7 @@ namespace ORNG {
 				m_general_settings.editor_window_settings.display_terrain_editor = ExtraUI::EmptyTreeNode("Terrain");
 				m_general_settings.editor_window_settings.display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
 
-				for (auto* p_entity : m_active_scene->m_entities) {
+				for (auto* p_entity : (*mp_scene_context)->m_entities) {
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
 
@@ -1344,16 +1357,16 @@ namespace ORNG {
 			}
 			else if (active_event & EntityNodeEvent::E_DELETE) {
 				for (auto id : m_selected_entity_ids) {
-					if (auto* p_entity = m_active_scene->GetEntity(id))
+					if (auto* p_entity = (*mp_scene_context)->GetEntity(id))
 						DeleteEntitiesTracked(m_selected_entity_ids);
 				}
 			}
-		
+
 
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 				if (m_selected_entities_are_dragged && ImGui::IsWindowHovered()) {
 					for (auto id : m_selected_entity_ids) {
-						m_active_scene->GetEntity(id)->RemoveParent();
+						(*mp_scene_context)->GetEntity(id)->RemoveParent();
 					}
 				}
 
@@ -1369,7 +1382,7 @@ namespace ORNG {
 
 	void EditorLayer::DisplayEntityEditor() {
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("Properties")) {
+		if (ImGui::Begin("Properties", (bool*)0, ImGuiWindowFlags_NoNavInputs)) {
 			if (m_general_settings.editor_window_settings.display_directional_light_editor)
 				RenderDirectionalLightEditor();
 			if (m_general_settings.editor_window_settings.display_global_fog_editor)
@@ -1381,7 +1394,7 @@ namespace ORNG {
 			if (m_general_settings.editor_window_settings.display_bloom_editor)
 				RenderBloomEditor();
 
-			auto entity = m_active_scene->GetEntity(m_selected_entity_ids.empty() ? 0 : m_selected_entity_ids[0]);
+			auto entity = (*mp_scene_context)->GetEntity(m_selected_entity_ids.empty() ? 0 : m_selected_entity_ids[0]);
 			if (!entity) {
 				ImGui::End();
 				return;
@@ -1400,7 +1413,7 @@ namespace ORNG {
 			static std::vector<TransformComponent*> transforms;
 			transforms.clear();
 			for (auto id : m_selected_entity_ids) {
-				transforms.push_back(m_active_scene->GetEntity(id)->GetComponent<TransformComponent>());
+				transforms.push_back((*mp_scene_context)->GetEntity(id)->GetComponent<TransformComponent>());
 			}
 			ImGui::Text("Name: ");
 			ImGui::SameLine();
@@ -1655,7 +1668,7 @@ namespace ORNG {
 		for (int i = 0; i < 4; i++) {
 			ImGui::PushID(i);
 			if (ImGui::DragFloat3("##pos", &p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p[0])) {
-				m_active_scene->m_physics_system.InitVehicle(p_comp);
+				(*mp_scene_context)->m_physics_system.InitVehicle(p_comp);
 			}
 			ImGui::PopID();
 		}
@@ -2028,7 +2041,7 @@ namespace ORNG {
 
 		glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
-		CameraComponent* p_cam = m_active_scene->m_camera_system.GetActiveCamera();
+		CameraComponent* p_cam = (*mp_scene_context)->m_camera_system.GetActiveCamera();
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
 		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
@@ -2048,7 +2061,7 @@ namespace ORNG {
 				e.event_type = TRANSFORM_UPDATE;
 				e.affected_entities = m_selected_entity_ids;
 				for (auto id : m_selected_entity_ids) {
-					e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
+					e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*(*mp_scene_context)->GetEntity(id)));
 				}
 				m_event_stack.PushEvent(e);
 			}
@@ -2212,18 +2225,18 @@ namespace ORNG {
 	void EditorLayer::RenderGlobalFogEditor() {
 		if (ExtraUI::H2TreeNode("Global fog")) {
 			ImGui::Text("Scattering");
-			ImGui::SliderFloat("##scattering", &m_active_scene->post_processing.global_fog.scattering_coef, 0.f, 0.1f);
+			ImGui::SliderFloat("##scattering", &(*mp_scene_context)->post_processing.global_fog.scattering_coef, 0.f, 0.1f);
 			ImGui::Text("Absorption");
-			ImGui::SliderFloat("##absorption", &m_active_scene->post_processing.global_fog.absorption_coef, 0.f, 0.1f);
+			ImGui::SliderFloat("##absorption", &(*mp_scene_context)->post_processing.global_fog.absorption_coef, 0.f, 0.1f);
 			ImGui::Text("Density");
-			ImGui::SliderFloat("##density", &m_active_scene->post_processing.global_fog.density_coef, 0.f, 1.f);
+			ImGui::SliderFloat("##density", &(*mp_scene_context)->post_processing.global_fog.density_coef, 0.f, 1.f);
 			ImGui::Text("Scattering anistropy");
-			ImGui::SliderFloat("##scattering anistropy", &m_active_scene->post_processing.global_fog.scattering_anistropy, -1.f, 1.f);
+			ImGui::SliderFloat("##scattering anistropy", &(*mp_scene_context)->post_processing.global_fog.scattering_anistropy, -1.f, 1.f);
 			ImGui::Text("Emissive factor");
-			ImGui::SliderFloat("##emissive", &m_active_scene->post_processing.global_fog.emissive_factor, 0.f, 2.f);
+			ImGui::SliderFloat("##emissive", &(*mp_scene_context)->post_processing.global_fog.emissive_factor, 0.f, 2.f);
 			ImGui::Text("Step count");
-			ImGui::SliderInt("##step count", &m_active_scene->post_processing.global_fog.step_count, 0, 512);
-			ExtraUI::ShowColorVec3Editor("Color", m_active_scene->post_processing.global_fog.color);
+			ImGui::SliderInt("##step count", &(*mp_scene_context)->post_processing.global_fog.step_count, 0, 512);
+			ExtraUI::ShowColorVec3Editor("Color", (*mp_scene_context)->post_processing.global_fog.color);
 		}
 	}
 
@@ -2232,9 +2245,9 @@ namespace ORNG {
 
 	void EditorLayer::RenderBloomEditor() {
 		if (ExtraUI::H2TreeNode("Bloom")) {
-			ImGui::SliderFloat("Intensity", &m_active_scene->post_processing.bloom.intensity, 0.f, 10.f);
-			ImGui::SliderFloat("Threshold", &m_active_scene->post_processing.bloom.threshold, 0.0f, 50.0f);
-			ImGui::SliderFloat("Knee", &m_active_scene->post_processing.bloom.knee, 0.f, 1.f);
+			ImGui::SliderFloat("Intensity", &(*mp_scene_context)->post_processing.bloom.intensity, 0.f, 10.f);
+			ImGui::SliderFloat("Threshold", &(*mp_scene_context)->post_processing.bloom.threshold, 0.0f, 50.0f);
+			ImGui::SliderFloat("Knee", &(*mp_scene_context)->post_processing.bloom.knee, 0.f, 1.f);
 		}
 	}
 
@@ -2243,23 +2256,23 @@ namespace ORNG {
 
 	void EditorLayer::RenderTerrainEditor() {
 		if (ExtraUI::H2TreeNode("Terrain")) {
-			ImGui::InputFloat("Height factor", &m_active_scene->terrain.m_height_scale);
+			ImGui::InputFloat("Height factor", &(*mp_scene_context)->terrain.m_height_scale);
 			static int terrain_width = 1000;
 
 			if (ImGui::InputInt("Size", &terrain_width) && terrain_width > 500)
-				m_active_scene->terrain.m_width = terrain_width;
+				(*mp_scene_context)->terrain.m_width = terrain_width;
 			else
-				terrain_width = m_active_scene->terrain.m_width;
+				terrain_width = (*mp_scene_context)->terrain.m_width;
 
 			static int terrain_seed = 123;
 			ImGui::InputInt("Seed", &terrain_seed);
-			m_active_scene->terrain.m_seed = terrain_seed;
+			(*mp_scene_context)->terrain.m_seed = terrain_seed;
 
-			if (auto* p_new_material = RenderMaterialComponent(m_active_scene->terrain.mp_material))
-				m_active_scene->terrain.mp_material = p_new_material;
+			if (auto* p_new_material = RenderMaterialComponent((*mp_scene_context)->terrain.mp_material))
+				(*mp_scene_context)->terrain.mp_material = p_new_material;
 
 			if (ImGui::Button("Reload"))
-				m_active_scene->terrain.ResetTerrainQuadtree();
+				(*mp_scene_context)->terrain.ResetTerrainQuadtree();
 		}
 	}
 
@@ -2271,7 +2284,7 @@ namespace ORNG {
 			ImGui::Text("DIR LIGHT CONTROLS");
 
 			static glm::vec3 light_dir = glm::vec3(0, 0.5, 0.5);
-			static glm::vec3 light_color = m_active_scene->directional_light.color;
+			static glm::vec3 light_color = (*mp_scene_context)->directional_light.color;
 
 			ImGui::SliderFloat("X", &light_dir.x, -1.f, 1.f);
 			ImGui::SliderFloat("Y", &light_dir.y, -1.f, 1.f);
@@ -2279,21 +2292,21 @@ namespace ORNG {
 			ExtraUI::ShowColorVec3Editor("Color", light_color);
 
 			ImGui::Text("Cascade ranges");
-			ImGui::SliderFloat("##c1", &m_active_scene->directional_light.cascade_ranges[0], 0.f, 50.f);
-			ImGui::SliderFloat("##c2", &m_active_scene->directional_light.cascade_ranges[1], 0.f, 150.f);
-			ImGui::SliderFloat("##c3", &m_active_scene->directional_light.cascade_ranges[2], 0.f, 500.f);
+			ImGui::SliderFloat("##c1", &(*mp_scene_context)->directional_light.cascade_ranges[0], 0.f, 50.f);
+			ImGui::SliderFloat("##c2", &(*mp_scene_context)->directional_light.cascade_ranges[1], 0.f, 150.f);
+			ImGui::SliderFloat("##c3", &(*mp_scene_context)->directional_light.cascade_ranges[2], 0.f, 500.f);
 			ImGui::Text("Z-mults");
-			ImGui::SliderFloat("##z1", &m_active_scene->directional_light.z_mults[0], 0.f, 10.f);
-			ImGui::SliderFloat("##z2", &m_active_scene->directional_light.z_mults[1], 0.f, 10.f);
-			ImGui::SliderFloat("##z3", &m_active_scene->directional_light.z_mults[2], 0.f, 10.f);
+			ImGui::SliderFloat("##z1", &(*mp_scene_context)->directional_light.z_mults[0], 0.f, 10.f);
+			ImGui::SliderFloat("##z2", &(*mp_scene_context)->directional_light.z_mults[1], 0.f, 10.f);
+			ImGui::SliderFloat("##z3", &(*mp_scene_context)->directional_light.z_mults[2], 0.f, 10.f);
 
-			ImGui::SliderFloat("Size", &m_active_scene->directional_light.light_size, 0.f, 150.f);
-			ImGui::SliderFloat("Blocker search size", &m_active_scene->directional_light.blocker_search_size, 0.f, 50.f);
+			ImGui::SliderFloat("Size", &(*mp_scene_context)->directional_light.light_size, 0.f, 150.f);
+			ImGui::SliderFloat("Blocker search size", &(*mp_scene_context)->directional_light.blocker_search_size, 0.f, 50.f);
 
-			ImGui::Checkbox("Shadows", &m_active_scene->directional_light.shadows_enabled);
+			ImGui::Checkbox("Shadows", &(*mp_scene_context)->directional_light.shadows_enabled);
 
-			m_active_scene->directional_light.color = glm::vec3(light_color.x, light_color.y, light_color.z);
-			m_active_scene->directional_light.SetLightDirection(light_dir);
+			(*mp_scene_context)->directional_light.color = glm::vec3(light_color.x, light_color.y, light_color.z);
+			(*mp_scene_context)->directional_light.SetLightDirection(light_dir);
 		}
 	}
 
@@ -2334,17 +2347,17 @@ namespace ORNG {
 		std::vector<SceneEntity*> ret;
 
 		for (auto id : entities) {
-			auto* p_original_ent = m_active_scene->GetEntity(id);
+			auto* p_original_ent = (*mp_scene_context)->GetEntity(id);
 
 			if (m_simulate_mode_active)
-				p_dup_ent = &m_active_scene->DuplicateEntityCallScript(*p_original_ent);
+				p_dup_ent = &(*mp_scene_context)->DuplicateEntityCallScript(*p_original_ent);
 			else
 				p_dup_ent = &p_original_ent->Duplicate();
 
 			e.affected_entities.push_back(p_dup_ent->m_uuid());
 
 			p_dup_ent->ForEachChildRecursive([&](entt::entity ent) {
-				auto* p_current_ent = m_active_scene->GetEntity(ent);
+				auto* p_current_ent = (*mp_scene_context)->GetEntity(ent);
 				e.affected_entities.push_back(p_current_ent->GetUUID());
 				});
 
@@ -2356,10 +2369,10 @@ namespace ORNG {
 		e.affected_entities.assign(unique_entities.begin(), unique_entities.end());
 
 		// Sort entities so the most nested ones are processed first as if the parent is processed before then the child entity may not be valid
-		Scene::SortEntitiesNumParents(&*m_active_scene, e.affected_entities, true);
+		Scene::SortEntitiesNumParents(&*(*mp_scene_context), e.affected_entities, true);
 
 		for (auto id : e.affected_entities) {
-			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*m_active_scene->GetEntity(id)));
+			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*(*mp_scene_context)->GetEntity(id)));
 		}
 
 
@@ -2376,11 +2389,11 @@ namespace ORNG {
 
 		for (auto id : entities) {
 			DeselectEntity(id);
-			auto* p_entity = m_active_scene->GetEntity(id);
+			auto* p_entity = (*mp_scene_context)->GetEntity(id);
 			e.affected_entities.push_back(id);
 
 			p_entity->ForEachChildRecursive([&](entt::entity ent) {
-				auto* p_current_ent = m_active_scene->GetEntity(ent);
+				auto* p_current_ent = (*mp_scene_context)->GetEntity(ent);
 				e.affected_entities.push_back(p_current_ent->GetUUID());
 			});
 
@@ -2391,19 +2404,19 @@ namespace ORNG {
 		e.affected_entities.assign(unique_entities.begin(), unique_entities.end());
 
 		// Sort entities so the most nested ones are processed first as if the parent is processed before then the child entity may not be valid
-		Scene::SortEntitiesNumParents(&*m_active_scene, e.affected_entities, true);
+		Scene::SortEntitiesNumParents(&*(*mp_scene_context), e.affected_entities, true);
 
 		for (auto id : e.affected_entities) {
-			auto& ent = *m_active_scene->GetEntity(id);
+			auto& ent = *(*mp_scene_context)->GetEntity(id);
 			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(ent));
-			m_active_scene->DeleteEntity(&ent);
+			(*mp_scene_context)->DeleteEntity(&ent);
 		}
 
 		m_event_stack.PushEvent(e);
 	}
 
 	SceneEntity& EditorLayer::CreateEntityTracked(const std::string& name) {
-		auto& ent = m_active_scene->CreateEntity(name);
+		auto& ent = (*mp_scene_context)->CreateEntity(name);
 		EditorEvent e;
 		e.event_type = ENTITY_CREATE;
 		e.affected_entities.push_back(ent.GetUUID());

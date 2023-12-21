@@ -1,9 +1,6 @@
 #ifndef SCENE_ENTITY_H
 #define SCENE_ENTITY_H
 
-#define __cpp_lib_concepts
-#include <concepts>
-
 #ifndef ORNG_SCRIPT_ENV
 #include "Scene.h"
 #endif

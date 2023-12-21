@@ -27,7 +27,6 @@
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.
 
 #pragma once
-#include "physics/Physics.h"
 #include "physx/vehicle2/PxVehicleAPI.h"
 
 namespace ORNG {

@@ -141,7 +141,12 @@ namespace ORNG {
 			Get().I_Init();
 		}
 
+		static glm::vec2 GetMouseDelta() {
+			return Get().m_mouse_position - Get().m_last_mouse_position;
+		}
+
 		static void OnUpdate() {
+			Get().m_last_mouse_position = Get().m_mouse_position;
 			// Press state only valid for one frame, then the key is considered "held"
 			for (auto& [key, v] : Get().m_key_states) {
 				if (v == InputType::PRESS)
@@ -160,6 +165,15 @@ namespace ORNG {
 			e_event.mouse_action = MOVE;
 			e_event.mouse_button = MouseButton::NONE;
 			e_event.mouse_pos_new = glm::ivec2(x, y);
+			Events::EventManager::DispatchEvent(e_event);
+		}
+
+		static void SetCursorVisible(bool visible) {
+			Events::MouseEvent e_event;
+			e_event.event_type = Events::MouseEventType::SET;
+			e_event.mouse_action = TOGGLE_VISIBILITY;
+			e_event.mouse_button = MouseButton::NONE;
+			e_event.data_payload = visible;
 			Events::EventManager::DispatchEvent(e_event);
 		}
 
@@ -186,6 +200,8 @@ namespace ORNG {
 		}
 
 		glm::ivec2 m_mouse_position{ 0, 0 };
+		glm::ivec2 m_last_mouse_position{ 0, 0 };
+
 
 		std::unordered_map<Key, InputType> m_key_states;
 		std::unordered_map<MouseButton, InputType> m_mouse_states;

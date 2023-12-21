@@ -32,10 +32,7 @@ namespace ORNG {
 	}
 
 	void MeshComponent::DispatchUpdateEvent() {
-		Events::ECS_Event<MeshComponent> e_event;
-		e_event.affected_components[0] = this;
-		e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-
+		Events::ECS_Event<MeshComponent> e_event{ Events::ECS_EventType::COMP_UPDATED, this };
 		Events::EventManager::DispatchEvent(e_event);
 	}
 }

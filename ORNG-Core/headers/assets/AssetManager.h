@@ -275,6 +275,8 @@ namespace ORNG {
 				des.object(data.tile_scale);
 				des.text1b(data.name, ORNG_MAX_NAME_SIZE);
 				des.object(data.uuid);
+				des.value1b(data.is_spritesheet);
+				des.object(data.spritesheet_data);
 			}
 			else if constexpr (std::is_same_v<T, PhysXMaterialAsset>) {
 				des.object(data.uuid);

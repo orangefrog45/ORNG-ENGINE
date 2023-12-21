@@ -17,6 +17,7 @@ namespace ORNG {
 		UP = 0,
 		DOWN = 1,
 		MOVE = 2,
+		TOGGLE_VISIBILITY,
 	};
 
 	enum InputType {
@@ -59,6 +60,7 @@ namespace ORNG::Events {
 		MouseButton mouse_button;
 		glm::ivec2 mouse_pos_new;
 		glm::ivec2 mouse_pos_old;
+		std::any data_payload;
 	};
 
 
@@ -90,6 +92,7 @@ namespace ORNG::Events {
 
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
+		ECS_Event(ECS_EventType t_event_type, T* p_comp, uint32_t t_sub_event_type = UINT32_MAX) : event_type(t_event_type), sub_event_type(t_sub_event_type) { affected_components[0] = p_comp; };
 		ECS_EventType event_type;
 		uint32_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
 

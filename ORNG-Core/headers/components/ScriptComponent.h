@@ -2,7 +2,6 @@
 #define SCRIPTCOMPONENT_H
 
 #include "components/Component.h"
-#include "scripting/ScriptingEngine.h" // For ScriptSymbols
 #include "scripting/ScriptShared.h"
 
 namespace ORNG {

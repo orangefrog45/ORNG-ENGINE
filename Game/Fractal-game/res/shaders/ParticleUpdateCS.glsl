@@ -180,32 +180,29 @@ void main() {
 
 	vec3 pos = vec3(gl_GlobalInvocationID.x % 100, (gl_GlobalInvocationID.x / 100) %  100, gl_GlobalInvocationID.x / float(100 * 100)) * 0.55 - vec3(50, 50, 50) * 0.55 ;
 	float d = map(pos);
-		float r = rnd(vec2(d, gl_GlobalInvocationID.x)) * 2.0 * PI;
-	if ( gl_GlobalInvocationID.x == 0  ) {
+	float r = rnd(vec2(d, gl_GlobalInvocationID.x)) * 2.0 * PI;
+	if (false && ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w < 0) {
 		vec3 col = Colour(pos);
-		Particle p;
 
-		p.scale.w = col.r +  vec3(1.0, 0.2, 0.05).r * (1.0 + abs(sin(r)) * 5.0) * 0.25;
-		p.pos.w = col.g +  vec3(1.0, 0.2, 0.05).g * 0.1;
-		p.quat.w = col.b +  vec3(1.0, 0.2, 0.05).b * (1.0 + abs(cos(r)) * 5.0) * 10.0;
-		p.quat.xyz = normalize(vec3(cos(r) * 2.0 * PI, sin(r) * 2.0 * PI, cos(r) * sin(r) * 2.0 * PI));
-		p.velocity_life.xyz = calcNormal(pos, d) * 0.1;
-		p.velocity_life.w = 1000.0;
-		p.pos.xyz = pos;
-		EmitParticleDirect(p);
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].scale.w = col.r +  vec3(1.0, 0.2, 0.05).r * (1.0 + abs(sin(r)) * 5.0) * 0.25;
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.w = col.g +  vec3(1.0, 0.2, 0.05).g * 0.1;
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].quat.w = col.b +  vec3(1.0, 0.2, 0.05).b * (1.0 + abs(cos(r)) * 5.0) * 10.0;
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].quat.xyz = normalize(vec3(cos(r) * 2.0 * PI, sin(r) * 2.0 * PI, cos(r) * sin(r) * 2.0 * PI));
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz = calcNormal(pos, d) * 0.1;
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w = 20000.0;
+		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz = pos;
+		//EmitParticleDirect(p);
 	}
 
 
-		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w -= ubo_common.delta_time;
-		// ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w = 0;
+	 ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w -= ubo_common.delta_time;
+	 // ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w = 0;
 
-		if (ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.w < 1000.0) {
-		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz = BitangentNoise3D(ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz * 0.001 * exp(exp(-length(ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz) * 0.01 * sin(ubo_common.time_elapsed * 0.001)))) * 25.0;
-		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz += ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz * 0.001 * ubo_common.delta_time;
-		// ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz += ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz * ubo_common.delta_time * 0.001 / clamp(exp(length(ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz - ubo_common.camera_pos.xyz) * 0.1), 1.0, 100000.0);
-		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].scale.xyz = vec3(0.1);
-		ssbo_particles_detached.particles[gl_GlobalInvocationID.x].flags = 0;
-		}
+	 ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz = BitangentNoise3D(ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz * 0.001 * exp(exp(-length(ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz) * 0.01 * sin(ubo_common.time_elapsed * 0.001)))) * 25.0;
+	 ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz += ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz * 0.001 * ubo_common.delta_time;
+	 // ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz += ssbo_particles_detached.particles[gl_GlobalInvocationID.x].velocity_life.xyz * ubo_common.delta_time * 0.001 / clamp(exp(length(ssbo_particles_detached.particles[gl_GlobalInvocationID.x].pos.xyz - ubo_common.camera_pos.xyz) * 0.1), 1.0, 100000.0);
+	 ssbo_particles_detached.particles[gl_GlobalInvocationID.x].scale.xyz = vec3(0.6);
+	 ssbo_particles_detached.particles[gl_GlobalInvocationID.x].flags = 0;
 
 
 	// No updates, particles remain stationary

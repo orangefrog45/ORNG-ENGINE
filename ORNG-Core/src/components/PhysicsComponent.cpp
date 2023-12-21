@@ -83,10 +83,7 @@ namespace ORNG {
 	}
 
 	void PhysicsComponent::SendUpdateEvent() {
-		Events::ECS_Event<PhysicsComponent> phys_event;
-		phys_event.affected_components[0] = this;
-		phys_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-
+		Events::ECS_Event<PhysicsComponent> phys_event{ Events::ECS_EventType::COMP_UPDATED, this };
 		Events::EventManager::DispatchEvent(phys_event);
 	}
 

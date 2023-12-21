@@ -41,11 +41,12 @@ namespace ORNG {
 	class EditorLayer : public Layer {
 		friend class GameLayer;
 	public:
-		EditorLayer(Scene* p_scene, const std::string& start_filepath) : m_active_scene(p_scene), m_start_filepath(start_filepath) {};
+		EditorLayer(std::unique_ptr<Scene>* p_scene, const std::string& start_filepath) : mp_scene_context(p_scene), m_start_filepath(start_filepath) { m_asset_manager_window.SetScene(p_scene); };
 		void Init();
 
-		void SetScene(Scene* p_scene) {
-			m_active_scene = p_scene;
+		void SetScene(std::unique_ptr<Scene>* p_scene) {
+			mp_scene_context = p_scene;
+			m_asset_manager_window.SetScene(p_scene);
 		}
 
 	private:
@@ -146,7 +147,7 @@ namespace ORNG {
 		GeneralSettings m_general_settings;
 		EditorEventStack m_event_stack;
 
-		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory, m_active_scene };
+		AssetManagerWindow m_asset_manager_window{ &m_current_project_directory, mp_scene_context };
 
 		// Size, not position
 		ImVec2 m_scene_display_rect{ 1, 1 };
@@ -191,7 +192,7 @@ namespace ORNG {
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 
 		std::unique_ptr<GridMesh> m_grid_mesh = nullptr;
-		Scene* m_active_scene = nullptr;
+		std::unique_ptr<Scene>* mp_scene_context = nullptr;
 
 		std::unique_ptr<SceneEntity> mp_editor_camera{ nullptr };
 

@@ -672,9 +672,9 @@ namespace ORNG {
 		}
 
 		mp_gbuffer_shader_variants->Activate(PARTICLE_BILLBOARD);
+		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 
 			IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
 		}

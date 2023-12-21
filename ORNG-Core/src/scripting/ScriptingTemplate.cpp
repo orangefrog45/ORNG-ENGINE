@@ -29,3 +29,4 @@ extern "C" {
 #define ORNG_CLASS ScriptClassExample
 
 #include "includes/ScriptInstancer.h"
+#include "includes/ScriptAPIImpl.h"

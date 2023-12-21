@@ -111,10 +111,7 @@ namespace ORNG {
 		up = glm::normalize(glm::cross(right, forward));
 
 		if (GetEntity()) {
-			Events::ECS_Event<TransformComponent> e_event;
-			e_event.affected_components[0] = this;
-			e_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-			e_event.sub_event_type = type;
+			Events::ECS_Event<TransformComponent> e_event{ Events::ECS_EventType::COMP_UPDATED, this, type };
 			Events::EventManager::DispatchEvent(e_event);
 		}
 	}

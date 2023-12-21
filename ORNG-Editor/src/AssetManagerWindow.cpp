@@ -15,6 +15,7 @@
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "scene/MeshInstanceGroup.h"
 #include "scene/SceneEntity.h"
+#include "physics/Physics.h"
 
 namespace ORNG {
 	void GenerateErrorMessage(const std::string&) {
@@ -297,8 +298,8 @@ namespace ORNG {
 				OnRequestDeleteAsset(p_asset);
 			}
 			if (ImGui::Selectable("Edit")) {
-				std::string open_file_command = "start " + relative_path;
-				std::system(open_file_command.c_str());
+				std::string open_file_command = "start \"" + relative_path + "\"";
+				ShellExecute(NULL, "open", relative_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 			}
 			ImGui::EndPopup();
 		}
@@ -315,16 +316,18 @@ namespace ORNG {
 
 			if (ImGui::Button("Create script")) {
 				std::string script_path = *mp_active_project_dir + "\\res\\scripts\\" + new_script_name + ".cpp";
-				FileCopy(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp", script_path);
-				std::string open_file_command = "start \"" + script_path + "\"";
-				std::system(open_file_command.c_str());
-				AssetManager::AddAsset(new ScriptAsset(script_path));
+				if (!AssetManager::GetAsset<ScriptAsset>(script_path)) {
+					FileCopy(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp", script_path);
+					std::string open_file_command = "start \"" + script_path + "\"";
+					std::system(open_file_command.c_str());
+					AssetManager::AddAsset(new ScriptAsset(script_path));
+				}
 			}
 			ExtraUI::AlphaNumTextInput(new_script_name);
 
 			if (ImGui::BeginTable("##script table", column_count)) {
 				for (const auto& entry : std::filesystem::directory_iterator(*mp_active_project_dir + "\\res\\scripts")) {
-					if (std::filesystem::is_regular_file(entry) && entry.path().extension().string() == ".cpp") {
+					if (IsEntryAFile(entry) && entry.path().extension().string() == ".cpp") {
 						ImGui::TableNextColumn();
 						RenderScriptAsset(entry);
 					}

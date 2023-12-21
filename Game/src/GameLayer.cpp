@@ -19,7 +19,8 @@ namespace ORNG {
 
 	void GameLayer::OnInit() {
 		p_scene = std::make_unique<Scene>();
-		p_editor_layer->SetScene(&*p_scene);
+		p_editor_layer->SetScene(&p_scene);
+
 		// Initialize fractal renderpass
 		p_kleinian_shader = &Renderer::GetShaderLibrary().CreateShader("kleinian");
 		p_kleinian_shader->AddStage(GL_VERTEX_SHADER,  "res/shaders/QuadVS.glsl");
@@ -77,7 +78,7 @@ namespace ORNG {
 		p_particle_render_shader_variants = &Renderer::GetShaderLibrary().CreateShaderVariants("Particle render test layer");
 		p_particle_render_shader_variants->SetPath(GL_VERTEX_SHADER,  "res/shaders/GBufferVS.glsl");
 		p_particle_render_shader_variants->SetPath(GL_FRAGMENT_SHADER,  "res/shaders/ParticleRenderFS.glsl");
-		p_particle_render_shader_variants->AddVariant(0, {"PARTICLE", "PARTICLES_DETACHED"}, gbuffer_uniforms);
+		p_particle_render_shader_variants->AddVariant(0, {"PARTICLE", "PARTICLES_DETACHED", "BILLBOARD"}, gbuffer_uniforms);
 
 		//p_particle_update_shader_variants->Activate(ParticleUpdateShaderVariant::INITIALIZE);
 		//GL_StateManager::DispatchCompute(glm::ceil(p_comp->GetCurrentAllocatedParticles() / 32.f), 1, 1);
@@ -91,7 +92,7 @@ namespace ORNG {
 
 		rp.stage = RenderpassStage::POST_GBUFFER;
 		rp.name = "fractal";
-		//SceneRenderer::AttachRenderpassIntercept(rp);
+		SceneRenderer::AttachRenderpassIntercept(rp);
 
 		Renderpass particle_rp;
 		particle_rp.func = [this](RenderResources res) {
@@ -100,14 +101,12 @@ namespace ORNG {
 		particle_rp.stage = RenderpassStage::POST_GBUFFER;
 		particle_rp.name = "particle render";
 
-		SceneRenderer::AttachRenderpassIntercept(particle_rp);
+		//SceneRenderer::AttachRenderpassIntercept(particle_rp);
 	}
 
-
 	void GameLayer::UpdateParticles() {
-
-		auto* p_ent = p_editor_layer->m_active_scene->GetEntity("Pbuf");
-			if (!p_ent->GetComponent<ParticleBufferComponent>()) {
+		auto* p_ent = p_scene->GetEntity("Pbuf");
+		if (!p_ent->GetComponent<ParticleBufferComponent>()) {
 			ORNG_CORE_TRACE("NOT FOUND");
 			return;
 		}
@@ -135,7 +134,7 @@ namespace ORNG {
 		if (Input::IsKeyPressed('j'))
 			map_scale = 1.0;
 
-		UpdateParticles();
+		//UpdateParticles();
 	}
 
 	void GameLayer::DrawMap() {
@@ -155,9 +154,9 @@ namespace ORNG {
 		p_particle_render_shader_variants->Activate(0);
 
 		const auto* p_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
-		const auto* p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+		const auto* p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 
-		auto* p_ent = p_editor_layer->m_active_scene->GetEntity("Pbuf");
+		auto* p_ent = p_scene->GetEntity("Pbuf");
 		if (!p_ent->GetComponent<ParticleBufferComponent>()) {
 			ORNG_CORE_TRACE("NOT FOUND");
 			return;

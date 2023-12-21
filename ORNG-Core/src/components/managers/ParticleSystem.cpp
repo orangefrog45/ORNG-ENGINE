@@ -55,7 +55,6 @@ namespace ORNG {
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index", "u_num_emitters" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::COPY_ALIVE_PARTICLES, { "COPY_ALIVE_PARTICLES" }, { });
 
 			mp_append_buffer_transfer_cs = &Renderer::GetShaderLibrary().CreateShader("particle append buffer transfer");
 			mp_append_buffer_transfer_cs->AddStage(GL_COMPUTE_SHADER, "res/shaders/ParticleAppendTransferCS.glsl");
@@ -187,7 +186,6 @@ namespace ORNG {
 		// Initialize emitter
 		if (m_emitter_ssbo.GetGPU_BufferSize() < (int)m_emitter_entities.size() * emitter_struct_size) {
 			m_emitter_ssbo.Resize(glm::max((int)glm::ceil(m_emitter_entities.size() * 1.5f), 10) * emitter_struct_size);
-			//p_emitter_gpu_buffer = static_cast<std::byte*>(glMapNamedBufferRange(m_emitter_ssbo.GetHandle(), 0, m_emitter_entities.size() * emitter_struct_size, GL_DYNAMIC_STORAGE_BIT));
 		}
 
 
@@ -358,7 +356,6 @@ namespace ORNG {
 
 	void ParticleSystem::UpdateAppendBuffer() {
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-		ORNG_CORE_TRACE(*p_num_appended);
 
 		if (*p_num_appended == 0)
 			return;
@@ -379,6 +376,7 @@ namespace ORNG {
 
 	void ParticleSystem::OnUpdate() {
 		mp_particle_cs->ActivateProgram();
+		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 		if (total_emitter_particles > 0)
 			GL_StateManager::DispatchCompute(glm::ceil(total_emitter_particles / 32.f), 1, 1);

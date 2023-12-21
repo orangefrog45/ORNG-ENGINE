@@ -44,10 +44,7 @@ namespace ORNG {
 
 	void CameraComponent::MakeActive() {
 		is_active = true;
-		Events::ECS_Event<CameraComponent> update_event;
-		update_event.affected_components[0] = this;
-		update_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-
+		Events::ECS_Event<CameraComponent> update_event{ Events::ECS_EventType::COMP_UPDATED, this };
 		Events::EventManager::DispatchEvent(update_event);
 	};
 

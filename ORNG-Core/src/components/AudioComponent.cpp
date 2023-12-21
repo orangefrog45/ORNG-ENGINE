@@ -1,5 +1,6 @@
 #include "pch/pch.h"
 #include "components/AudioComponent.h"
+#include "events/EventManager.h"
 #include <fmod.hpp>
 
 namespace ORNG {
@@ -28,10 +29,38 @@ namespace ORNG {
 		return b;
 	}
 
+	void AudioComponent::Play(uint64_t uuid) {
+		// Large event, pass off to audiosystem to handle
+		if (uuid == INVALID_SOUND_UUID) {
+			if (m_sound_asset_uuid == INVALID_SOUND_UUID) {
+				ORNG_CORE_ERROR("AudioComponent::Play failed, component does not have a valid sound uuid");
+				return;
+			}
+			DispatchAudioEvent(m_sound_asset_uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
+		}
+		else {
+			DispatchAudioEvent(uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
+			m_sound_asset_uuid = uuid;
+		}
+	}
+
+	void AudioComponent::DispatchAudioEvent(std::any data, Events::ECS_EventType event_type, uint32_t sub_event_type) {
+		Events::ECS_Event<AudioComponent> e_event{ event_type, this, sub_event_type };
+		e_event.data_payload = data;
+
+		Events::EventManager::DispatchEvent(e_event);
+	}
+
 	bool AudioComponent::IsPaused() {
 		bool b;
 		mp_channel->getPaused(&b);
 		return b;
+	}
+
+	void AudioComponent::SetLooped(bool looped) {
+		is_looped = looped;
+		mp_channel->setLoopCount(looped ? -1 : 0);
+		mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | (looped ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | FMOD_3D_LINEARROLLOFF);
 	}
 
 	void AudioComponent::SetPlaybackPosition(float time_in_ms) {

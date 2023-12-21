@@ -28,11 +28,6 @@ void OnEmitterDelete(uint start_index, uint num_emitters) {
 
 void main() {
     
-    #ifdef COPY_ALIVE_PARTICLES
-    if (ssbo_particles_detached[gl_GlobalInvocationID.x].velocity_life.w > 0)
-        ssbo_secondary_particles[atomicAdd(ssbo_secondary_particles.current_index, 1)] = ssbo_particles_detached[gl_GlobalInvocationID.x];
-    #endif
-
     #ifdef EMITTER_DELETE_DECREMENT_EMITTERS
     OnEmitterDelete(u_emitter_index, u_num_emitters);
     #elif defined EMITTER_DELETE_DECREMENT_PARTICLES

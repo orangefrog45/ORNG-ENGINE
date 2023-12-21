@@ -2,7 +2,6 @@
 #define PHYSICSCOMPONENT_H
 
 #include "Component.h"
-#include "events/EventManager.h"
 
 namespace physx {
 	class PxRigidDynamic;
@@ -61,7 +60,7 @@ namespace ORNG {
 
 	private:
 		void SendUpdateEvent();
-		
+
 		bool m_is_trigger = false;
 		physx::PxShape* p_shape = nullptr;
 		PhysXMaterialAsset* p_material = nullptr;
@@ -90,14 +89,11 @@ namespace ORNG {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		FixedJointComponent(SceneEntity* p_entity) : Component(p_entity) {};
-		void Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1) {
-					Events::ECS_Event<FixedJointComponent> joint_event;
-		joint_event.affected_components[0] = this;
-		joint_event.event_type = Events::ECS_EventType::COMP_UPDATED;
-		joint_event.sub_event_type = static_cast<uint8_t>(JointEventType::CONNECT);
+		/*void Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1) {
+		Events::ECS_Event<FixedJointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, this, JointEventType::CONNECT };
 		joint_event.data_payload = std::make_pair(t_a0, t_a1);
 		Events::EventManager::DispatchEvent(joint_event);
-		}
+		}*/
 		void Break();
 
 	private:

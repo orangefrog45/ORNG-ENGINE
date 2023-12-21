@@ -16,6 +16,7 @@ namespace ORNG {
 		friend class MeshInstanceGroup;
 		friend class SceneRenderer;
 		friend class SceneSerializer;
+
 		explicit MeshComponent(SceneEntity* p_entity);
 		MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset);
 		MeshComponent(const MeshComponent& other) = delete;

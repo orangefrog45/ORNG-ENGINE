@@ -87,14 +87,30 @@ void main() {
 		vs_tex_coord = position;
 		gl_Position = proj_pos.xyww;
 #else
-		vs_tex_coord = vec3(tex_coord, 0.f);
+		//vs_tex_coord = transpose(CalculateTbnMatrixTransform()) * mat3(transform_ssbo.transforms[gl_InstanceID]) * vec3(tex_coord.x, tex_coord.y, 0.f);
+		#ifdef PARTICLE
+				#define PTCL PARTICLE_SSBO.particles[vs_particle_index]
+				#ifndef PARTICLES_DETACHED
+					vs_particle_index = u_transform_start_index + gl_InstanceID;
+					#define EMITTER ssbo_particle_emitters.emitters[PARTICLE_SSBO.particles[vs_particle_index].emitter_index]
+					float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
+				#else
+					vs_particle_index = gl_InstanceID;
+				#endif
+		#endif
 
+		vs_tex_coord = vec3(tex_coord.x, tex_coord.y, 0.f);
 		if (u_material.using_spritesheet)
 		{
 			vec2 step_size = vec2(1.0) / vec2(u_material.sprite_data.num_cols, u_material.sprite_data.num_rows);
 			vs_tex_coord.xy *= step_size;
-			
-			uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * (float(uint(ubo_common.time_elapsed) % 1000) / 1000.0)); 
+
+			#ifdef PARTICLE
+				uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * interpolation); 
+			#else
+				uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * (float(uint(ubo_common.time_elapsed) % 1000) / 1000.0)); 
+			#endif
+
 			uint row = (u_material.sprite_data.num_cols * u_material.sprite_data.num_rows - index - 1) / u_material.sprite_data.num_cols;
 			uint col = index - (index / u_material.sprite_data.num_cols) * u_material.sprite_data.num_cols;
 
@@ -102,32 +118,24 @@ void main() {
 			vs_tex_coord.y += step_size.y * float(row);
 		}
 
-		#if defined PARTICLE
-			#ifndef PARTICLES_DETACHED
-				vs_particle_index = u_transform_start_index + gl_InstanceID;
-			#else
-				vs_particle_index = gl_InstanceID;
-			#endif
-		#endif
-
-
 
 
 		#if defined PARTICLE && defined BILLBOARD
+			#ifndef PARTICLES_DETACHED
+				vec3 interpolated_scale = InterpolateV3(interpolation, EMITTER.scale_over_life);
+			#endif
 
-			#define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]
-			#define PTCL ssbo_particles.particles[vs_particle_index]
-
-			float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
-			vec3 interpolated_scale = InterpolateV3(interpolation, EMITTER.scale_over_life);
-
-			#define TRANSFORM ssbo_particles.particles[vs_particle_index]
+			#define TRANSFORM PARTICLE_SSBO.particles[vs_particle_index]
 
 			vec3 t_pos = TRANSFORM.pos.xyz;
 			vec3 cam_up = vec3(PVMatrices.view[0][1], PVMatrices.view[1][1], PVMatrices.view[2][1]);
 			vec3 cam_right = vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]);
 			
-			vs_position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x * interpolated_scale.x + position.y * cam_up * TRANSFORM.scale.y * interpolated_scale.y, 1.0);
+			#ifndef PARTICLES_DETACHED
+				vs_position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x * interpolated_scale.x + position.y * cam_up * TRANSFORM.scale.y * interpolated_scale.y, 1.0);
+			#else
+				vs_position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x + position.y * cam_up * TRANSFORM.scale.y, 1.0);
+			#endif
 
 			#undef TRANSFORM
 

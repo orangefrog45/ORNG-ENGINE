@@ -33,10 +33,7 @@ namespace ORNG {
 		// Dispatches event attached to single component, used for connections with entt::registry::on_construct etc
 		template<std::derived_from<Component> T>
 		static void DispatchComponentEvent(entt::registry& registry, entt::entity entity, Events::ECS_EventType type) {
-			Events::ECS_Event<T> e_event;
-			e_event.affected_components[0] = &registry.get<T>(entity);
-			e_event.event_type = type;
-
+			Events::ECS_Event<T> e_event{ type, &registry.get<T>(entity) };
 			Events::EventManager::DispatchEvent(e_event);
 		}
 
@@ -217,7 +214,6 @@ namespace ORNG {
 
 		std::vector<std::tuple<TriggerEvent, SceneEntity*, SceneEntity*>> m_trigger_event_queue;
 
-
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
@@ -324,6 +320,9 @@ namespace ORNG {
 	};
 
 	class ParticleBufferComponent;
+
+	class Shader;
+	class ShaderVariants;
 
 	class ParticleSystem : public ComponentSystem {
 		friend class EditorLayer;
