@@ -889,7 +889,6 @@ namespace ORNG {
 			if (m_simulate_mode_active)
 				EndPlayScene();
 
-			ORNG_CORE_TRACE(folder_path);
 			m_current_project_directory = std::filesystem::absolute(folder_path).string();
 			std::filesystem::current_path(folder_path);
 			RefreshScriptIncludes();
