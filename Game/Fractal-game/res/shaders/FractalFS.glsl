@@ -46,7 +46,7 @@ ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 }*/
 
 //vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-vec3 CSize = vec3(0.5, 0.8, 0.9) * 1.35;
+vec3 CSize = vec3(0.5, 0.8, 0.9) *1.1;
 
 vec2 grad(ivec2 z)  // replace this anything that returns a random vector
 {
@@ -161,7 +161,7 @@ vec3 rma(vec3 p)
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
 	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
-
+CSize = vec3(0.5, 0.8, 0.9) * 1.2 + normalize(p.yxz * p.xyz * p.zxy) * vec3(1, 1, 0) * 0.15 * sin(ubo_common.time_elapsed * 0.001) * cos(ubo_common.time_elapsed * 0.0001);
 	vec3 o = p;
 	p = p.xzy;
 	float scale = 1.;
@@ -171,7 +171,6 @@ float map(vec3 p) {
 		// box fold
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
-		//float r2 = dot(p, p + p); //Alternate fractal
 		K
 		p *= k;
 		scale *= k;

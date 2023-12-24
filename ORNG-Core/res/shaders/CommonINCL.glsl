@@ -3,11 +3,13 @@
 struct InterpolatorV3 {
 	vec4 points[8];
 	uint active_points;
+	float scale;
 };
 
 struct InterpolatorV1 {
 	vec4 point_pairs[4];
 	uint active_points;
+	float scale;
 };
 
 
@@ -22,13 +24,13 @@ float InterpolateV1(float x, InterpolatorV1 interpolator) {
 		if (interpolator.point_pairs[i].x > x) {
 			return mix(interpolator.point_pairs[max(i - 1, 0)].w, 
 			interpolator.point_pairs[i].y, 
-			(x - interpolator.point_pairs[max(i - 1, 0)].z) / (interpolator.point_pairs[i].x - interpolator.point_pairs[max(i - 1, 0)].z));
+			(x - interpolator.point_pairs[max(i - 1, 0)].z) / (interpolator.point_pairs[i].x - interpolator.point_pairs[max(i - 1, 0)].z)) * interpolator.scale;
 		}
 
 		if (interpolator.point_pairs[i].z > x) {
 			return mix(interpolator.point_pairs[i].y, 
 			interpolator.point_pairs[i].w, 
-			(x - interpolator.point_pairs[i].x) / (interpolator.point_pairs[i].z - interpolator.point_pairs[i].x));
+			(x - interpolator.point_pairs[i].x) / (interpolator.point_pairs[i].z - interpolator.point_pairs[i].x)) * interpolator.scale;
 		}
 	}
 
@@ -44,7 +46,7 @@ vec3 InterpolateV3(float x, InterpolatorV3 interpolator) {
 		if (interpolator.points[i].x > x) {
 			return mix(interpolator.points[max(i - 1, 0)].yzw, 
 			interpolator.points[i].yzw, 
-			(x - interpolator.points[max(i - 1, 0)].x) / (interpolator.points[i].x - interpolator.points[max(i - 1, 0)].x));
+			(x - interpolator.points[max(i - 1, 0)].x) / (interpolator.points[i].x - interpolator.points[max(i - 1, 0)].x)) * interpolator.scale;
 		}
 	}
 

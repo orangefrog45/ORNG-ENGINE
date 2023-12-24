@@ -27,6 +27,8 @@ namespace ORNG {
 	std::string GetFileDirectory(const std::string& filepath);
 	std::string GetFileLastWriteTime(const std::string& filepath);
 
+	void Create_Directory(const std::string& path);
+
 	bool IsEntryAFile(const std::filesystem::directory_entry& entry);
 
 	void PushMatrixIntoArray(const glm::mat4& m, float* array_ptr);

@@ -557,6 +557,8 @@ namespace ORNG {
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*(*mp_scene_context));
 		settings.p_output_tex = &*mp_scene_display_texture;
+		settings.render_meshes = m_general_settings.debug_render_settings.render_meshes;
+		settings.render_voxel_debug = m_general_settings.debug_render_settings.render_voxel_debug;
 		SceneRenderer::RenderScene(settings);
 
 		mp_editor_pass_fb->Bind();
@@ -596,6 +598,8 @@ namespace ORNG {
 		if (ImGui::Begin("Settings")) {
 			ImGui::SeparatorText("Debug rendering");
 			ImGui::Checkbox("Render physx debug", &m_general_settings.debug_render_settings.render_physx_debug);
+			ImGui::Checkbox("Render meshes", &m_general_settings.debug_render_settings.render_meshes);
+			ImGui::Checkbox("Render voxel grid", &m_general_settings.debug_render_settings.render_voxel_debug);
 
 			ImGui::SeparatorText("Selection");
 			ImGui::Checkbox("Select physics objects", &m_general_settings.selection_settings.select_physics_objects);
@@ -830,33 +834,20 @@ namespace ORNG {
 				s.close();
 			}
 
-			if (!std::filesystem::exists(dir_path + "/res/"))
-				std::filesystem::create_directory(dir_path + "/res");
-
-			if (!std::filesystem::exists(dir_path + "/res/meshes"))
-				std::filesystem::create_directory(dir_path + "/res/meshes");
-
-			if (!std::filesystem::exists(dir_path + "/res/textures"))
-				std::filesystem::create_directory(dir_path + "/res/textures");
-
-			if (!std::filesystem::exists(dir_path + "/res/shaders"))
-				std::filesystem::create_directory(dir_path + "/res/shaders");
-
-			if (!std::filesystem::exists(dir_path + "/res/scripts"))
-				std::filesystem::create_directory(dir_path + "/res/scripts");
-
-			if (!std::filesystem::exists(dir_path + "/res/prefabs"))
-				std::filesystem::create_directory(dir_path + "/res/prefabs");
-
-			if (!std::filesystem::exists(dir_path + "/res/materials"))
-				std::filesystem::create_directory(dir_path + "/res/materials");
-
-			if (!std::filesystem::exists(dir_path + "/res/audio"))
-				std::filesystem::create_directory(dir_path + "/res/audio");
-
-			if (!std::filesystem::exists(dir_path + "/res/physx-materials"))
-				std::filesystem::create_directory(dir_path + "/res/physx-materials");
-
+			// If any of these are missing, will be recreated
+			Create_Directory(dir_path + "/res/");
+			Create_Directory(dir_path + "/res/meshes");
+			Create_Directory(dir_path + "/res/textures");
+			Create_Directory(dir_path + "/res/shaders");
+			Create_Directory(dir_path + "/res/scripts");
+			Create_Directory(dir_path + "/res/scripts/bin");
+			Create_Directory(dir_path + "/res/scripts/bin/release");
+			Create_Directory(dir_path + "/res/scripts/bin/debug");
+			Create_Directory(dir_path + "/res/scripts/includes");
+			Create_Directory(dir_path + "/res/prefabs");
+			Create_Directory(dir_path + "/res/materials");
+			Create_Directory(dir_path + "/res/audio");
+			Create_Directory(dir_path + "/res/physx-materials");
 
 
 			std::ifstream stream(dir_path + "/scene.yml");
@@ -1759,12 +1750,6 @@ namespace ORNG {
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode("Velocity over life")) {
-			if (ExtraUI::InterpolatorV3Graph("Velocity over life", &p_comp->m_velocity_life_interpolator))
-				p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
-
-			ImGui::TreePop();
-		}
 
 		ImGui::Text("Acceleration"); ImGui::SameLine();
 		if (ImGui::DragFloat3("##ac", &p_comp->acceleration.x)) {

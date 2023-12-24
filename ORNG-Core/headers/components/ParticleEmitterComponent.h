@@ -144,12 +144,9 @@ namespace ORNG {
 		float m_spread = 1.0; // 1 = 360 degree spread, 0 = no spread
 		bool m_active = true;
 
-		InterpolatorV3 m_life_colour_interpolator{ {0, 1}, {0, 10} };
-		InterpolatorV3 m_life_scale_interpolator{ {0, 1}, {0, 10} };
-		InterpolatorV3 m_velocity_life_interpolator{ {0, 1}, {-100.0, 100.0} };
-
-
-		InterpolatorV1 m_life_alpha_interpolator{ {0, 1}, {0, 1} };
+		InterpolatorV3 m_life_colour_interpolator{ {0, 1}, {0, 1}, {1, 1, 1}, {1, 1, 1} };
+		InterpolatorV3 m_life_scale_interpolator{ {0, 1}, {0, 1}, {1, 1, 1}, {1, 1, 1} };
+		InterpolatorV1 m_life_alpha_interpolator{ {0, 1}, {0, 1}, 1, 1 };
 
 
 		// State

@@ -31,6 +31,10 @@ uniform uint u_transform_start_index;
 flat out uint vs_particle_index;
 #endif
 
+#ifdef VOXELIZE
+uniform mat4 u_orth_proj_view_matrix;
+#endif
+
 uniform Material u_material;
 
 mat3 CalculateTbnMatrixTransform() {
@@ -180,6 +184,10 @@ void main() {
 			vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
 		#endif
 
-		gl_Position = PVMatrices.proj_view * vs_position;
+		#ifdef VOXELIZE
+			gl_Position = u_orth_proj_view_matrix * vs_position;
+		#else
+			gl_Position = PVMatrices.proj_view * vs_position;
+		#endif
 #endif
 }

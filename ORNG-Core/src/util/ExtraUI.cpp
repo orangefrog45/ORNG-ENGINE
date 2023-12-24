@@ -394,10 +394,11 @@ namespace ORNG {
 				}
 			}
 
-
 			p_interpolator->SortPoints();
 			ImPlot::EndPlot();
 		}
+		ImGui::Text("Scale"); ImGui::SameLine();
+		ret |= ImGui::InputFloat("##scale", &p_interpolator->scale);
 
 		ImGui::PopID();
 

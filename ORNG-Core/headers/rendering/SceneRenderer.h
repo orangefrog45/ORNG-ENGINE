@@ -49,7 +49,8 @@ namespace ORNG {
 		struct SceneRenderingSettings {
 			// Will custom user renderpasses be executed
 			bool do_intercept_renderpasses = true;
-
+			bool render_meshes = true;
+			bool render_voxel_debug = true;
 			bool display_depth_map = false;
 			CameraComponent* p_cam_override = nullptr;
 
@@ -96,12 +97,13 @@ namespace ORNG {
 		}
 
 		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
-		void DoGBufferPass(CameraComponent* p_cam);
+		void DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings);
 		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoLightingPass(Texture2D* output_tex);
 		void DoFogPass(unsigned int width, unsigned int height);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
+		void DoVoxelizationPass(unsigned output_width, unsigned output_height);
 
 	private:
 
@@ -144,6 +146,9 @@ namespace ORNG {
 		Shader* mp_persp_depth_shader = nullptr; //spotlights
 		Shader* mp_pointlight_depth_shader = nullptr;
 
+		ShaderVariants* mp_scene_voxelization_shader = nullptr;
+		Shader* mp_voxel_debug_shader = nullptr;
+		Framebuffer* mp_scene_voxelization_fb = nullptr;
 
 		Shader* m_blur_shader = nullptr;
 		Shader* m_fog_shader = nullptr;
@@ -170,6 +175,8 @@ namespace ORNG {
 		Texture2D m_fog_blur_tex_2{ "SR fog blur 2 tex" };
 		Texture2D m_bloom_tex{ "SR fog blur 1" };
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
+
+		Texture3D m_scene_voxel_tex{ "SR scene voxel tex" };
 
 		PointlightSystem m_pointlight_system;
 		SpotlightSystem m_spotlight_system;

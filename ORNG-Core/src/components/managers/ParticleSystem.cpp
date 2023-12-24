@@ -238,13 +238,10 @@ namespace ORNG {
 		comp.m_life_colour_interpolator.ConvertSelfToBytes(p_byte);
 		ConvertToBytes(0.0f, p_byte); // padding
 		ConvertToBytes(0.0f, p_byte); // padding
-		ConvertToBytes(0.0f, p_byte); // padding
 		comp.m_life_scale_interpolator.ConvertSelfToBytes(p_byte);
 		ConvertToBytes(0.0f, p_byte); // padding
 		ConvertToBytes(0.0f, p_byte); // padding
-		ConvertToBytes(0.0f, p_byte); // padding
 		comp.m_life_alpha_interpolator.ConvertSelfToBytes(p_byte);
-		ConvertToBytes(0.0f, p_byte); // padding
 		ConvertToBytes(0.0f, p_byte); // padding
 		ConvertToBytes(0.0f, p_byte); // padding
 		ConvertToBytes(comp.acceleration.x, p_byte); 

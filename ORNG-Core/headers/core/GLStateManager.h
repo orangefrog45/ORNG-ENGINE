@@ -122,6 +122,7 @@ namespace ORNG {
 			static const int BLOOM = GL_TEXTURE24;
 			static const int EMISSIVE = GL_TEXTURE25;
 			static const int POINTLIGHT_DEPTH = GL_TEXTURE26;
+			static const int SCENE_VOXELIZATION = GL_TEXTURE27;
 		};
 
 		struct TextureUnitIndexes {

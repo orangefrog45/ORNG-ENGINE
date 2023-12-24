@@ -1,3 +1,6 @@
+24/12/23:
+-Voxel cone traced GI rough implementation
+
 21/12/23:
 -Audio component looping
 -Script changes/compilation time optimization

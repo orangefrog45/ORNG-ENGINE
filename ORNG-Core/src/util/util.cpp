@@ -34,6 +34,17 @@ namespace ORNG {
 		}
 	}
 
+	void Create_Directory(const std::string& path) {
+		try {
+			if (!std::filesystem::exists(path))
+				std::filesystem::create_directory(path);
+		}
+		catch (std::exception& e) {
+			ORNG_CORE_ERROR("std::filesystem::create_directory error: '{0}'", e.what());
+		}
+	}
+
+
 
 	std::string GetFileDirectory(const std::string& filepath) {
 		size_t forward_pos = filepath.rfind("/");

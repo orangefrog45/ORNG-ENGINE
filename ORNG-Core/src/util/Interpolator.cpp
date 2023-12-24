@@ -105,6 +105,7 @@ namespace ORNG {
 		}
 
 		ConvertToBytes((unsigned)points.size(), p_byte);
+		ConvertToBytes(scale, p_byte);
 	}
 
 	void InterpolatorV3::ConvertSelfToBytes(std::byte*& p_byte) {
@@ -123,6 +124,7 @@ namespace ORNG {
 		}
 
 		ConvertToBytes((unsigned)points.size(), p_byte);
+		ConvertToBytes(scale, p_byte);
 	}
 
 

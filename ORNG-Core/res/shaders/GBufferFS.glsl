@@ -126,7 +126,7 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	return albedo_col;
 }
 
-#endif
+#endif // ifndef SKYBOX_MODE
 
 
 
