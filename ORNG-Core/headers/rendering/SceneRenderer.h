@@ -145,6 +145,7 @@ namespace ORNG {
 		Shader* mp_orth_depth_shader = nullptr; //dir light
 		Shader* mp_persp_depth_shader = nullptr; //spotlights
 		Shader* mp_pointlight_depth_shader = nullptr;
+		Shader* mp_voxel_mipmap_shader = nullptr;
 
 		ShaderVariants* mp_scene_voxelization_shader = nullptr;
 		Shader* mp_voxel_debug_shader = nullptr;

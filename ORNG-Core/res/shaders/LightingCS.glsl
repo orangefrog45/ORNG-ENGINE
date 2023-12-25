@@ -99,7 +99,7 @@ vec3 ConeTrace(vec3 cone_dir) {
 		alpha += a * voxel.a;
 		}
 
-		d += step_length;
+		d += diam * 0.75;
 	}
 
 	return col.xyz ;
@@ -124,14 +124,14 @@ vec3 CalculateIndirectDiffuseLighting() {
 	dir =  0.7071f * sampled_normal -  0.7071f * (0.309f * T - 0.951f * B);
 	col += ConeTrace(dir);*/
 
-	for (int i = 0; i < 16; i++) {
+	for (int i = 0; i < 12; i++) {
 		if (dot(diffuseConeDirections[i], sampled_normal) < 0 )
 		continue;
 		
 		col += ConeTrace(diffuseConeDirections[i]);
 	}
 
-	return col / 8.0;
+	return col / 6.0;
 }
 
 void main()

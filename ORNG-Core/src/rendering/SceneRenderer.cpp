@@ -110,6 +110,11 @@ namespace ORNG {
 		mp_voxel_debug_shader->Init();
 		mp_voxel_debug_shader->AddUniform("u_aligned_camera_pos");
 
+		mp_voxel_mipmap_shader = &mp_shader_library->CreateShader("voxel-mipmap");
+		mp_voxel_mipmap_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/MipMap3D.glsl");
+		mp_voxel_mipmap_shader->Init();
+		mp_voxel_mipmap_shader->AddUniform("u_mip_level");
+
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
 		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/TransparentCompositeFS.glsl");
 		mp_transparency_composite_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
@@ -359,6 +364,7 @@ namespace ORNG {
 		voxel_spec.storage_type = GL_FLOAT;
 		voxel_spec.mag_filter = GL_LINEAR;
 		voxel_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		voxel_spec.generate_mipmaps = true;
 		
 		m_scene_voxel_tex.SetSpec(voxel_spec);
 
@@ -595,7 +601,7 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height) {
-		ORNG_PROFILE_FUNC();
+		ORNG_PROFILE_FUNC_GPU();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glDisable(GL_DEPTH_TEST);
@@ -615,16 +621,26 @@ namespace ORNG {
 			for (auto* p_group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID);
 			}
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glViewport(0, 0, output_width, output_height);
-		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
-		glBindTexture(GL_TEXTURE_3D, m_scene_voxel_tex.GetTextureHandle());
-		glGenerateMipmap(GL_TEXTURE_3D);
+		mp_voxel_mipmap_shader->ActivateProgram();
+		for (int i = 1; i < 6; i++) {
+			glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), i - 1, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA8);
+			glBindImageTexture(1, m_scene_voxel_tex.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+			mp_voxel_mipmap_shader->SetUniform<unsigned>("u_mip_level", i);
+			int group_dim = glm::ceil((256.f / (i + 1)) / 4.f);
+			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		}
+
+		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 	}
 

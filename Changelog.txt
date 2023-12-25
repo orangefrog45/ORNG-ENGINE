@@ -1,3 +1,6 @@
+25/12/23:
+-Significant performance improvements for VXGI with mipmap compute shader
+
 24/12/23:
 -Voxel cone traced GI rough implementation
 
