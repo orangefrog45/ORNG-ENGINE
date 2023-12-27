@@ -33,6 +33,7 @@ flat out uint vs_particle_index;
 
 #ifdef VOXELIZE
 uniform mat4 u_orth_proj_view_matrix;
+uniform vec3 u_aligned_camera_pos;
 #endif
 
 uniform Material u_material;
@@ -69,6 +70,9 @@ mat3 CalculateTbnMatrix() {
 }
 
 
+vec3 roundToNearestMultiple(vec3 input, float multiple) {
+    return round(input / multiple) * multiple;
+}
 
 void main() {
 
@@ -185,7 +189,7 @@ void main() {
 		#endif
 
 		#ifdef VOXELIZE
-			gl_Position = u_orth_proj_view_matrix * vs_position;
+			gl_Position = u_orth_proj_view_matrix * vec4(vs_position.xyz, vs_position.w);
 		#else
 			gl_Position = PVMatrices.proj_view * vs_position;
 		#endif

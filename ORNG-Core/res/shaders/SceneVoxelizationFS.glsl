@@ -103,15 +103,18 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 
 
 void main() {
+    vec3 n = normalize(vs_normal);
     vec3 col = vec3(0);
+    
     if (u_material.emissive) {
         col = CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;
     } else {
         for (int i = 0; i < ubo_point_lights_shadow.lights.length(); i++) {
             col += CalculatePointlight(ubo_point_lights_shadow.lights[i]) * (1.0 - ShadowCalculationPointlight(ubo_point_lights_shadow.lights[i], i, vs_position.xyz ));
         }
+        col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vs_position.xyz));
         col *= CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;
     }
-    imageStore(voxel_image, ivec3((vs_position.xyz ) * 5.0  + vec3(128)), vec4(col, 1));
+    imageStore(voxel_image, ivec3((vs_position.xyz - u_aligned_camera_pos  ) * 5.0  + vec3(128)), vec4(col, 1));
 
 }

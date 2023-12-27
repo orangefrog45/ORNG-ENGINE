@@ -13,5 +13,5 @@ void main() {
     vs_lookup_coord = ivec3(gl_InstanceID % 256, (gl_InstanceID / 256) % 256, gl_InstanceID / (256 * 256));
 
     vec3 pos = (vec3(vs_lookup_coord.xyz) + position - vec3(128, 128, 128)) * 0.2;
-    gl_Position = PVMatrices.proj_view * vec4( pos, 1.0);
+    gl_Position = PVMatrices.proj_view * vec4( u_aligned_camera_pos + pos, 1.0);
 }

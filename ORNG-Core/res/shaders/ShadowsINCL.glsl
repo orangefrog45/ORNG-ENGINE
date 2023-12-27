@@ -134,6 +134,31 @@ float ShadowCalculationPointlight(PointLight light, int light_index, vec3 world_
 }
 
 
+float CheapShadowCalculationDirectional(vec3 world_pos) {
+	float shadow = 0;
+
+	vec3 proj_coords = vec3(0);
+	float frag_distance_from_cam = length(world_pos.xyz - ubo_common.camera_pos.xyz);
+
+	// branchless checks for range
+	int index = 3;
+	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[2]);
+	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[1]);
+	index -= int(frag_distance_from_cam <= ubo_global_lighting.directional_light.cascade_ranges[0]);
+	vec4 frag_pos_light_space = ubo_global_lighting.directional_light.light_space_transforms[index] * vec4(world_pos, 1);
+	proj_coords = (frag_pos_light_space / frag_pos_light_space.w).xyz;
+	//depth map in range 0,1 proj in -1,1 (NDC), so convert
+	proj_coords = proj_coords * 0.5f + 0.5f;
+	if (proj_coords.z > 1.0f || index == 3) {
+		return 0.0f; // early return, fragment out of range
+	}
+	float current_depth = proj_coords.z;
+	float sampled_depth = texture(DIR_DEPTH_SAMPLER, vec3(vec2(proj_coords.xy), index)).r;
+	shadow = current_depth > sampled_depth ? 1.0f : 0.0f;
+	return shadow;
+
+}
+
 
 float ShadowCalculationDirectional(vec3 light_dir, vec3 world_pos) {
 	float shadow = 0.0f;

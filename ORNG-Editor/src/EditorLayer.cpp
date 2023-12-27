@@ -411,6 +411,9 @@ namespace ORNG {
 			if (Input::IsKeyDown(Key::Shift))
 				movement_vec *= 100.0;
 
+			if (Input::IsKeyDown(Key::LeftControl))
+				movement_vec *= 0.1;
+
 			p_transform->SetAbsolutePosition(pos + movement_vec);
 		}
 

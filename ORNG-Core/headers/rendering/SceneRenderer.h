@@ -50,7 +50,7 @@ namespace ORNG {
 			// Will custom user renderpasses be executed
 			bool do_intercept_renderpasses = true;
 			bool render_meshes = true;
-			bool render_voxel_debug = true;
+			bool render_voxel_debug = false;
 			bool display_depth_map = false;
 			CameraComponent* p_cam_override = nullptr;
 

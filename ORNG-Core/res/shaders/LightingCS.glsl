@@ -64,20 +64,12 @@ vec3 rnd_dirs[6] =  {
 	vec3(0.230,0.359,-0.904),
 };
 
-vec3 roundToNearestMultiple(vec3 input, float multiple) {
-    return round(input / multiple) * multiple;
-}
 
-#define DIFFUSE_APERTURE 0.872665f
-
-	const vec3 diffuseConeDirections[16] = { vec3(0.57735f, 0.57735f, 0.57735f), vec3(0.57735f, -0.57735f, -0.57735f), vec3(-0.57735f, 0.57735f, -0.57735f), vec3(-0.57735f, -0.57735f, 0.57735f), vec3(-0.903007f, -0.182696f, -0.388844f), vec3(-0.903007f, 0.182696f, 0.388844f), vec3(0.903007f, -0.182696f, 0.388844f), vec3(0.903007f, 0.182696f, -0.388844f), vec3(-0.388844f, -0.903007f, -0.182696f), vec3(0.388844f, -0.903007f, 0.182696f), vec3(0.388844f, 0.903007f, -0.182696f), vec3(-0.388844f, 0.903007f, 0.182696f), vec3(-0.182696f, -0.388844f, -0.903007f), vec3(0.182696f, 0.388844f, -0.903007f), vec3(-0.182696f, 0.388844f, 0.903007f), vec3(0.182696f, -0.388844f, 0.903007f) };	
-	const float aperture = 0.872665f;
-        #define NUM_CONES 16
+#define DIFFUSE_APERTURE PI / 3.0
 
 vec3 ConeTrace(vec3 cone_dir) {
 	cone_dir = normalize(cone_dir);
 	vec4 col = vec4(0);
-	float alpha = 0;
 
 	const float tan_half_angle = tan(DIFFUSE_APERTURE * 0.5);
 	const float tan_eighth_angle = tan(DIFFUSE_APERTURE * 0.125);
@@ -86,52 +78,53 @@ vec3 ConeTrace(vec3 cone_dir) {
 
 	float d = step_length;
 
-	while (d < 25.0 && alpha < 0.95) {
-		vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal * 0.34;
+	while (d < 25.0 && col.a < 0.9) {
+		vec3 step_pos = sampled_world_pos + cone_dir * d - sampled_normal * 0.14;
 		float diam = 2.0 * tan_half_angle * d;
-		float mip = min(log2(diam / 0.2 ), 5.4);
+		float mip = log2(diam / 0.2 );
 
-		vec4 voxel = textureLod(voxel_grid_sampler, ((step_pos) * 5.0 + vec3(128)) / (256.0 ), mip);
+		vec4 voxel = textureLod(voxel_grid_sampler, ((step_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / (256.0), mip);
+		
 		if (voxel.a > 0.0) {
-
-		float a = 1.0 - alpha;
-		col.rgb += a  * voxel.rgb;
-		alpha += a * voxel.a;
+			float a = 1.0 - col.a;
+			col.rgb += a  * voxel.rgb;
+			col.a += a * voxel.a;
 		}
 
-		d += diam * 0.75;
+		d += diam * 0.5;
 	}
 
-	return col.xyz ;
+	return col.rgb;
+	//return textureLod(voxel_grid_sampler, vec3(((sampled_world_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / 256.0), 1).xyz;
 }
 
 vec3 CalculateIndirectDiffuseLighting() {
 	vec3 col = vec3(0);
-	/*float d = dot(vec3(0, 1, 0), sampled_normal);
-	vec3 T = normalize((d < 0 || d > 0.99) ? cross(sampled_normal, vec3(1, 0, 0)) : cross(sampled_normal, vec3(0, 1, 0)));
+	float d = dot(vec3(0, 1, 0), sampled_normal);
+	vec3 T = normalize((d > 0.999999) ? cross(sampled_normal, vec3(1, 0, 0)) : cross(sampled_normal, vec3(0, 1, 0)));
 	vec3 B = normalize(cross(T, sampled_normal));
 
 	vec3 dir = sampled_normal;
-	col += ConeTrace(dir);
+	col += ConeTrace(dir) * 0.25;
 	dir =  0.7071f * sampled_normal +  0.7071f * T;
-	col += ConeTrace(dir);
+	col += ConeTrace(dir) * 0.15;
 	dir =  0.7071f * sampled_normal +  0.7071f * (0.309f * T + 0.951f * B);
-	col += ConeTrace(dir);
+	col += ConeTrace(dir) * 0.15;
 	dir =  0.7071f * sampled_normal +  0.7071f * (-0.809f * T + 0.588f * B);
-	col += ConeTrace(dir);
+	col += ConeTrace(dir) * 0.15;
 	dir =  0.7071f * sampled_normal -  0.7071f * (-0.809f * T - 0.588f * B);
-	col += ConeTrace(dir);
+	col += ConeTrace(dir) * 0.15;
 	dir =  0.7071f * sampled_normal -  0.7071f * (0.309f * T - 0.951f * B);
-	col += ConeTrace(dir);*/
+	col += ConeTrace(dir) * 0.15;
 
-	for (int i = 0; i < 12; i++) {
-		if (dot(diffuseConeDirections[i], sampled_normal) < 0 )
+	/*for (int i = 0; i < 16; i++) {
+		if (dot(diffuseConeDirections[i], sampled_normal) < -0.0 )
 		continue;
 		
 		col += ConeTrace(diffuseConeDirections[i]);
-	}
+	}*/
 
-	return col / 6.0;
+	return col;
 }
 
 void main()
@@ -140,7 +133,6 @@ void main()
 		imageStore(u_output_texture, tex_coords, vec4(sampled_albedo.rgb, 1.0));
 		return;
 	}
-
 
 	vec3 total_light = vec3(0.0, 0.0, 0.0);
 	vec3 v = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
@@ -153,7 +145,7 @@ void main()
 
 	total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
 	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
-	total_light += abs(CalculateIndirectDiffuseLighting()) * sampled_albedo.xyz;
+	total_light += CalculateIndirectDiffuseLighting() * sampled_albedo.xyz ;
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 

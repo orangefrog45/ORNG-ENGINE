@@ -27,7 +27,7 @@ void main() {
 #elif defined(VOXELIZATION)
 	albedo.xyz = imageLoad(voxel_tex, vs_lookup_coord).xyz;
 	if (length(albedo.xyz) < 0.00001)
-	discard;
+		discard;
 	albedo.w = 1.0;
 	shader_id = 110;
 

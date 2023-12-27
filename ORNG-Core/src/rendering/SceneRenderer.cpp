@@ -451,12 +451,13 @@ namespace ORNG {
 		PrepRenderPasses(p_cam, settings.p_output_tex);
 
 		if (settings.do_intercept_renderpasses) {
+			DoDepthPass(p_cam, settings.p_output_tex);
 			DoVoxelizationPass(spec.width, spec.height);
 
 			DoGBufferPass(p_cam, settings);
+
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 
-			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
 
 			DoLightingPass(settings.p_output_tex);
@@ -468,9 +469,9 @@ namespace ORNG {
 			RunRenderpassIntercepts(RenderpassStage::POST_POST_PROCESS, res);
 		}
 		else {
+			DoDepthPass(p_cam, settings.p_output_tex);
 			DoVoxelizationPass(spec.width, spec.height);
 			DoGBufferPass(p_cam, settings);
-			DoDepthPass(p_cam, settings.p_output_tex);
 			DoLightingPass(settings.p_output_tex);
 			DoFogPass(spec.width, spec.height);
 			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
@@ -606,30 +607,38 @@ namespace ORNG {
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
+		for (int i = 0; i < 7; i++) {
+			glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), i, GL_RGBA, GL_FLOAT, nullptr);
+		}
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
 		glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
 		glViewport(0, 0, 256, 256);
 		mp_scene_voxelization_shader->Activate(0);
+		glEnable(GL_CONSERVATIVE_RASTERIZATION_NV);
 		
 		auto proj = glm::ortho(-128.f * 0.2f, 128.f * 0.2f, -128.f * 0.2f, 128.f * 0.2f, 0.2f, 256.f * 0.2f);
-		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(0.2));
+		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4));
+
 		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(128 * 0.2, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, 128 * 0.2, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, 128 * 0.2), cam_pos, {0, 1, 0}) };
 
+		mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
-			mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
 			for (auto* p_group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID);
 			}
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
+		glDisable(GL_CONSERVATIVE_RASTERIZATION_NV);
+
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glViewport(0, 0, output_width, output_height);
 
 		mp_voxel_mipmap_shader->ActivateProgram();
-		for (int i = 1; i < 6; i++) {
+		for (int i = 1; i < 7; i++) {
 			glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), i - 1, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA8);
 			glBindImageTexture(1, m_scene_voxel_tex.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
@@ -638,6 +647,7 @@ namespace ORNG {
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
 		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
@@ -762,7 +772,7 @@ namespace ORNG {
 		if (settings.render_voxel_debug) {
 			glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA8);
 			mp_voxel_debug_shader->ActivateProgram();
-			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(0.2)));
+			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
 			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 256 * 256 * 256);
 		}
 		
@@ -945,7 +955,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SCENE_VOXELIZATION, false);
 
 		m_lighting_shader->ActivateProgram();
-		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(0.2)));
+		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
 
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);

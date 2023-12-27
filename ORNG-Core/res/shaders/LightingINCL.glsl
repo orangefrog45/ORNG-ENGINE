@@ -146,6 +146,8 @@ vec3 CalcDirectionalLight(vec3 v, vec3 f0, vec3 n, float roughness, float metall
 }
 
 
+
+
 vec3 CalculateDirectLightContribution(vec3 v, vec3 f0, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
 	vec3 total_light = vec3(0);
 		// Directional light

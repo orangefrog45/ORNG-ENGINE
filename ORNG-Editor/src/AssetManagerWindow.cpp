@@ -575,6 +575,7 @@ namespace ORNG {
 			ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
 			ImGui::EndDragDropSource();
 		}
+		ASSERT(m_material_preview_textures.contains(p_material));
 		if (ExtraUI::CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
 			mp_selected_material = p_material;
 
@@ -839,7 +840,6 @@ namespace ORNG {
 		p_tex->SetSpec(m_asset_preview_spec);
 		m_material_preview_textures[p_material] = p_tex;
 
-
 		auto* p_mesh = mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>();
 		if (auto* p_cube_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID); p_mesh->GetMeshData() != p_cube_mesh)
 			p_mesh->SetMeshAsset(p_cube_mesh);
@@ -848,6 +848,9 @@ namespace ORNG {
 		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
 		p_mesh->SetMaterialID(0, p_material);
 
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
 
