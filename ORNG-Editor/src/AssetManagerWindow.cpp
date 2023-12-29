@@ -215,14 +215,9 @@ namespace ORNG {
 
 
 
-	void AssetManagerWindow::RenderScriptAsset(const std::filesystem::directory_entry& entry) {
-		std::string entry_path = entry.path().string();
-		std::string relative_path = ".\\" + entry_path.substr(entry_path.rfind("\\res\\scripts") + 1);
-		ImGui::PushID(entry_path.c_str());
+	void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 
-		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
-		ASSERT(p_asset);
-		static ScriptAsset* p_currently_editing_asset = nullptr;
+		/*static ScriptAsset* p_currently_editing_asset = nullptr;
 
 		if (p_asset && p_asset == p_currently_editing_asset) {
 			static std::string current_name = "";
@@ -237,10 +232,10 @@ namespace ORNG {
 				}
 
 				// Unload script with old path, load script with new path
-				ScriptingEngine::UnloadScriptDLL(relative_path);
-				std::string new_fp = relative_path.substr(0, relative_path.rfind("\\") + 1) + current_name + ".cpp";
-				if (FileCopy(relative_path, new_fp)) {
-					FileDelete(relative_path);
+				ScriptingEngine::UnloadScriptDLL(p_asset->filepath);
+				std::string new_fp = p_asset->filepath.substr(0, p_asset->filepath.rfind("\\") + 1) + current_name + ".cpp";
+				if (FileCopy(p_asset->filepath, new_fp)) {
+					FileDelete(p_asset->filepath);
 					p_asset->symbols = ScriptingEngine::GetSymbolsFromScriptCpp(new_fp, false);
 					p_asset->filepath = new_fp;
 				}
@@ -287,24 +282,54 @@ namespace ORNG {
 		if (ImGui::BeginPopup("script_option_popup"))
 		{
 			if ((!is_loaded && ImGui::Selectable("Load"))) {
-				auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false);
+				auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(p_asset->filepath, false);
 				if (!AssetManager::AddAsset(new ScriptAsset(symbols)))
 					GenerateErrorMessage("AssetManager::AddScriptAsset failed");
 			}
 			else if (is_loaded && ImGui::Selectable("Reload")) {
-				ReloadScript(relative_path);
+				ReloadScript(p_asset->filepath);
 			}
 			if (ImGui::Selectable("Delete")) {
 				OnRequestDeleteAsset(p_asset);
 			}
 			if (ImGui::Selectable("Edit")) {
-				std::string open_file_command = "start \"" + relative_path + "\"";
-				ShellExecute(NULL, "open", relative_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+				ShellExecute(NULL, "open", p_asset->filepath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 			}
 			ImGui::EndPopup();
 		}
 
-		ImGui::PopID(); // entry_path.c_str()
+		ImGui::PopID(); // p_asset*/
+
+		AssetDisplaySpec spec;
+
+		spec.on_drag = [p_asset]() {
+			static ScriptAsset* p_dragged_script = nullptr;
+			p_dragged_script = p_asset;
+			ImGui::SetDragDropPayload("SCRIPT", &p_dragged_script, sizeof(ScriptAsset*));
+			ImGui::EndDragDropSource();
+			};
+
+		if (!p_asset->symbols.loaded) {
+			spec.popup_spec.options.push_back(std::make_pair("Load",
+				[p_asset]() {
+					auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(p_asset->filepath, false);
+					if (!AssetManager::AddAsset(new ScriptAsset(symbols)))
+						GenerateErrorMessage("AssetManager::AddScriptAsset failed");
+				}));
+		} else {
+		spec.popup_spec.options.push_back(std::make_pair("Reload",
+			[this, p_asset]() {
+				ReloadScript(p_asset->filepath);
+			}));
+		};
+
+		spec.popup_spec.options.push_back(std::make_pair("Edit",
+			[p_asset]() { ShellExecute(NULL, "open", p_asset->filepath.c_str(), NULL, NULL, SW_SHOWDEFAULT); }
+		));
+
+		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+
+		RenderBaseAsset(p_asset, spec);
 	}
 
 
@@ -326,11 +351,9 @@ namespace ORNG {
 			ExtraUI::AlphaNumTextInput(new_script_name);
 
 			if (ImGui::BeginTable("##script table", column_count)) {
-				for (const auto& entry : std::filesystem::directory_iterator(*mp_active_project_dir + "\\res\\scripts")) {
-					if (IsEntryAFile(entry) && entry.path().extension().string() == ".cpp") {
-						ImGui::TableNextColumn();
-						RenderScriptAsset(entry);
-					}
+				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
+					ImGui::TableNextColumn();
+					RenderScriptAsset(p_script);
 				}
 				ImGui::EndTable();
 			}
@@ -362,6 +385,7 @@ namespace ORNG {
 			{
 				for (auto* p_mesh_asset : AssetManager::GetView<MeshAsset>())
 				{
+					ImGui::TableNextColumn();
 					RenderMeshAsset(p_mesh_asset);
 				}
 
@@ -390,22 +414,7 @@ namespace ORNG {
 				for (auto* p_mat : AssetManager::GetView<PhysXMaterialAsset>())
 				{
 					ImGui::TableNextColumn();
-					ImGui::PushID(p_mat);
-
-					ImGui::SeparatorText(p_mat->name.c_str());
-					ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
-
-					if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(0)) // Select
-						mp_selected_physx_material = p_mat;
-
-					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-						static PhysXMaterialAsset* p_dragged_material = nullptr;
-						p_dragged_material = p_mat;
-						ImGui::SetDragDropPayload("PHYSX-MATERIAL", &p_dragged_material, sizeof(PhysXMaterialAsset*));
-						ImGui::EndDragDropSource();
-					}
-
-					ImGui::PopID(); // p_mat
+					RenderPhysXMaterial(p_mat);
 				}
 				ImGui::EndTable();
 				ImGui::EndTabItem();
@@ -413,35 +422,35 @@ namespace ORNG {
 		} // END PHYSX MAT TAB
 	}
 
+	void AssetManagerWindow::RenderPhysXMaterial(PhysXMaterialAsset* p_material) {
+		AssetDisplaySpec spec;
+		spec.on_drag = [p_material]() {
+			static PhysXMaterialAsset* p_dragged_material = nullptr;
+			p_dragged_material = p_material;
+			ImGui::SetDragDropPayload("PHYSX-MATERIAL", &p_dragged_material, sizeof(PhysXMaterialAsset*));
+			ImGui::EndDragDropSource();
+			};
+
+		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+
+		RenderBaseAsset(p_material, spec);
+	}
+
+
 
 	void AssetManagerWindow::RenderMeshAsset(MeshAsset* p_mesh_asset) {
-		ImGui::PushID(p_mesh_asset);
-		ImGui::TableNextColumn();
+		AssetDisplaySpec spec;
 
-		std::string name = p_mesh_asset->filepath.substr(p_mesh_asset->filepath.find_last_of('\\') + 1);
-		ExtraUI::NameWithTooltip(name);
-		if (p_mesh_asset->GetLoadStatus())
-		{
-			ExtraUI::CenteredImageButton(ImTextureID(m_mesh_preview_textures[p_mesh_asset]->GetTextureHandle()), image_button_size);
-			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-				static MeshAsset* p_dragged_mesh = nullptr;
-				p_dragged_mesh = p_mesh_asset;
-				ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
-				ImGui::EndDragDropSource();
-			}
-		}
-		else
-			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Loading...");
+		spec.on_drag = [p_mesh_asset]() {
+			static MeshAsset* p_dragged_mesh = nullptr;
+			p_dragged_mesh = p_mesh_asset;
+			ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
+			ImGui::EndDragDropSource();
+			};
 
-		if (ExtraUI::RightClickPopup("mesh_popup"))
-		{
-			if (ImGui::Selectable("Delete")) {
-				OnRequestDeleteAsset(p_mesh_asset);
-			}
-			ImGui::EndPopup();
-		}
+		spec.p_tex = &*m_mesh_preview_textures[p_mesh_asset];
 
-		ImGui::PopID();
+		RenderBaseAsset(p_mesh_asset, spec);
 	}
 
 
@@ -472,6 +481,7 @@ namespace ORNG {
 						ORNG_CORE_ERROR("Texture asset '{0}' not added, already found in project files", new_filepath);
 					}
 					};
+
 				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
 			}
 
@@ -493,49 +503,73 @@ namespace ORNG {
 	}
 
 
+	void AssetManagerWindow::RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec& display_spec) {
+		ImGui::PushID(p_asset);
 
+		ExtraUI::NameWithTooltip(display_spec.override_name.empty() ? p_asset->filepath.substr(p_asset->filepath.find_last_of('\\') + 1).c_str() : display_spec.override_name);
 
-
-
-	void AssetManagerWindow::RenderTexture(Texture2D* p_texture) {
-		ImGui::PushID(p_texture);
-
-		ExtraUI::NameWithTooltip(p_texture->GetSpec().filepath.substr(p_texture->GetSpec().filepath.find_last_of('\\') + 1).c_str());
-
-		if (ExtraUI::CenteredImageButton(ImTextureID(p_texture->GetTextureHandle()), image_button_size)) {
-			mp_selected_texture = p_texture;
-			m_current_2d_tex_spec = mp_selected_texture->GetSpec();
+		if (ExtraUI::CenteredImageButton(ImTextureID(display_spec.p_tex->GetTextureHandle()), image_button_size) && display_spec.on_click) {
+			display_spec.on_click();
 		};
 
-		if (ImGui::BeginDragDropSource()) {
-			static Texture2D* p_dragged_texture = nullptr;
-			p_dragged_texture = p_texture;
-			ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
-			ImGui::EndDragDropSource();
+		if (ImGui::BeginDragDropSource() && display_spec.on_drag) {
+			display_spec.on_drag();
 		}
 
-		if (ExtraUI::RightClickPopup("tex_popup"))
+		if (ExtraUI::RightClickPopup("asset_popup"))
 		{
-			if (ImGui::Selectable("Delete")) { // Base material not deletable
-				OnRequestDeleteAsset(p_texture);
+			if (ImGui::Selectable("Delete")) 
+				OnRequestDeleteAsset(p_asset, display_spec.on_delete);
+
+			for (auto& pair : display_spec.popup_spec.options) {
+				if (ImGui::Selectable(pair.first))
+					pair.second();
 			}
+
 			ImGui::EndPopup();
-		}
+		} 
 
 		ImGui::PopID();
 	}
 
 
 
+	void AssetManagerWindow::RenderTexture(Texture2D* p_texture) {
+	
+		AssetDisplaySpec spec;
+		spec.on_drag = [p_texture]() {
+			static Texture2D* p_dragged_texture = nullptr;
+			p_dragged_texture = p_texture;
+			ImGui::SetDragDropPayload("TEXTURE", &p_dragged_texture, sizeof(Texture2D*));
+			ImGui::EndDragDropSource();
+			};
+
+		spec.on_delete = [p_texture]() {
+			FileDelete(p_texture->GetSpec().filepath + ".otex");
+			};
+
+		spec.on_click = [this, p_texture]() {
+			mp_selected_texture = p_texture;
+			m_current_2d_tex_spec = mp_selected_texture->GetSpec();
+			};
+
+		spec.p_tex = p_texture;
+
+		RenderBaseAsset(p_texture, spec);
+	}
+
+
+
+
 
 	void AssetManagerWindow::RenderMaterialTab() {
+		auto materials = AssetManager::GetView<Material>();
+
 		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
 			if (ImGui::IsItemClicked()) {
 				// Refresh previews (they update automatically mostly but this fixes some bugs)
-				for (auto& [name, p_asset] : AssetManager::Get().m_assets) {
-					if (auto* p_mat = dynamic_cast<Material*>(p_asset)) {
-						m_materials_to_gen_previews.push_back(p_mat);
-					}
+				for (auto* p_mat : materials) {
+					//m_materials_to_gen_previews.push_back(p_mat);
 				}
 			}
 
@@ -545,7 +579,7 @@ namespace ORNG {
 			}
 
 			if (ImGui::BeginTable("Material viewer", column_count)) { //MATERIAL VIEWING TABLE
-				for (auto p_material : AssetManager::GetView<Material>()) {
+				for (auto p_material : materials) {
 					if (!m_material_preview_textures.contains(p_material))
 						// No material preview so proceeding will lead to a crash
 						continue;
@@ -563,54 +597,34 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderMaterial(Material* p_material) {
-		ImGui::PushID(p_material);
-
-		unsigned int tex_id = p_material->base_color_texture ? p_material->base_color_texture->GetTextureHandle() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle();
-
-		ExtraUI::NameWithTooltip(p_material->name.c_str());
-		static Material* p_dragged_material = nullptr;
-
-		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+		AssetDisplaySpec spec;
+		spec.on_drag = [p_material]() {
+			static Material* p_dragged_material = nullptr;
 			p_dragged_material = p_material;
 			ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
 			ImGui::EndDragDropSource();
-		}
-		ASSERT(m_material_preview_textures.contains(p_material));
-		if (ExtraUI::CenteredImageButton(ImTextureID(m_material_preview_textures[p_material]->GetTextureHandle()), image_button_size))
+			};
+
+		spec.on_click = [this, p_material]() {
 			mp_selected_material = p_material;
+			};
 
-		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-			p_dragged_material = p_material;
-			ImGui::SetDragDropPayload("MATERIAL", &p_dragged_material, sizeof(Material*));
-			ImGui::EndDragDropSource();
-		}
+		std::function<void()> on_duplicate = [this, p_material]() {
+			auto* p_new_material = new Material();
+			*p_new_material = *p_material;
+			// Give clone a unique UUID
+			p_new_material->uuid = UUID();
+			AssetManager::AddAsset(p_new_material);
+			// Render a preview for material
+			m_materials_to_gen_previews.push_back(p_new_material);
+			};
 
-		// Deletion popup
-		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
-			ImGui::OpenPopup("my_select_popup");
-		}
-		if (ImGui::BeginPopup("my_select_popup"))
-		{
-			if (p_material->uuid() != ORNG_BASE_MATERIAL_ID && ImGui::Selectable("Delete")) { // Base material not deletable
-				// Process next frame before imgui render else imgui will attempt to render the preview texture for this which will be deleted
-				OnRequestDeleteAsset(p_material);
-			}
+		spec.popup_spec.options.push_back(std::make_pair("Duplicate", on_duplicate));
+		spec.p_tex = &*m_material_preview_textures[p_material];
+		spec.override_name = p_material->name;
 
-			if (ImGui::Selectable("Duplicate")) {
-				auto* p_new_material = new Material();
-				*p_new_material = *p_material;
-				// Give clone a unique UUID
-				p_new_material->uuid = UUID();
-				AssetManager::AddAsset(p_new_material);
-				// Render a preview for material
-				m_materials_to_gen_previews.push_back(p_new_material);
-			}
-			ImGui::EndPopup();
-		}
+		RenderBaseAsset(p_material, spec);
 
-
-
-		ImGui::PopID();
 	}
 
 
@@ -635,29 +649,9 @@ namespace ORNG {
 			}
 
 			if (ImGui::BeginTable("##audio asset table", column_count)) {
-				for (auto [key, asset] : AssetManager::Get().m_assets) {
-					auto* p_sound = dynamic_cast<SoundAsset*>(asset);
-					if (!p_sound)
-						continue;
-
+				for (auto* p_sound : AssetManager::GetView<SoundAsset>()) {
 					ImGui::TableNextColumn();
-					ExtraUI::NameWithTooltip(p_sound->filepath);
-
-					ExtraUI::CenteredSquareButton(ICON_FA_MUSIC, image_button_size);
-
-					static SoundAsset* p_dragged_sound_asset;
-					if (ImGui::BeginDragDropSource()) {
-						p_dragged_sound_asset = p_sound;
-						ImGui::SetDragDropPayload("AUDIO", &p_dragged_sound_asset, sizeof(SoundAsset*));
-						ImGui::EndDragDropSource();
-					}
-
-					if (ExtraUI::RightClickPopup("audio popup")) {
-						if (ImGui::Selectable("Delete")) {
-							OnRequestDeleteAsset(p_sound);
-						}
-						ImGui::EndPopup();
-					}
+					RenderAudioAsset(p_sound);
 				}
 				ImGui::EndTable();
 			}
@@ -666,32 +660,32 @@ namespace ORNG {
 	}
 
 
+	void AssetManagerWindow::RenderAudioAsset(SoundAsset* p_asset) {
+		AssetDisplaySpec spec;
+
+		spec.on_drag = [p_asset]() {
+			static SoundAsset* p_dragged_sound_asset;
+			p_dragged_sound_asset = p_asset;
+			ImGui::SetDragDropPayload("AUDIO", &p_dragged_sound_asset, sizeof(SoundAsset*));
+			ImGui::EndDragDropSource();
+			};
+
+		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+
+		RenderBaseAsset(p_asset, spec);
+
+	}
+
 	void AssetManagerWindow::RenderPrefabTab() {
 		if (ImGui::BeginTabItem("Prefabs")) {
 			ImVec2 start_cursor_pos = ImGui::GetCursorPos();
 
 			if (ImGui::BeginTable("##prefab table", column_count)) {
 				for (auto p_prefab : AssetManager::GetView<Prefab>()) {
-					ImGui::PushID(p_prefab);
 					ImGui::TableNextColumn();
-					ExtraUI::NameWithTooltip(p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1));
-					ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
-					static Prefab* p_dragged_prefab = nullptr;
-
-					if (ImGui::BeginDragDropSource()) {
-						p_dragged_prefab = p_prefab;
-						ImGui::SetDragDropPayload("PREFAB", &p_dragged_prefab, sizeof(Prefab*));
-						ImGui::EndDragDropSource();
-					}
-
-					if (ExtraUI::RightClickPopup("prefab-poup")) {
-						if (ImGui::Selectable("Delete")) {
-							OnRequestDeleteAsset(p_prefab);
-						}
-						ImGui::EndPopup();
-					}
-					ImGui::PopID();
+					RenderPrefab(p_prefab);
 				}
+
 				ImGui::EndTable();
 			}
 
@@ -700,27 +694,41 @@ namespace ORNG {
 
 			// Setup entity drag drop on entire section
 			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
-					if (p_payload->DataSize == sizeof(std::vector<uint64_t>)) {
-						std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
+				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY"); p_payload && p_payload->DataSize == sizeof(std::vector<uint64_t>)) {
+					std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
 
-						for (auto id : id_vec) {
-							auto* p_ent = (*mp_scene_context)->GetEntity(id);
-							std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_ent->name + ".opfb";
+					for (auto id : id_vec) {
+						auto* p_ent = (*mp_scene_context)->GetEntity(id);
+						std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_ent->name + ".opfb";
 
-							if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
-								m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(*p_ent, fp); });
-							}
-							else
-								CreateAndSerializePrefab(*p_ent, fp);
+						if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
+							m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(*p_ent, fp); });
 						}
-
+						else
+							CreateAndSerializePrefab(*p_ent, fp);
 					}
+
 				}
 			}
 			ImGui::EndTabItem();
 		}
 	}
+
+	void AssetManagerWindow::RenderPrefab(Prefab* p_prefab) {
+		AssetDisplaySpec spec;
+
+		spec.on_drag = [p_prefab]() {
+			static Prefab* p_dragged_prefab = nullptr;
+			p_dragged_prefab = p_prefab;
+			ImGui::SetDragDropPayload("PREFAB", &p_dragged_prefab, sizeof(Prefab*));
+			ImGui::EndDragDropSource();
+			};
+
+		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+
+		RenderBaseAsset(p_prefab, spec);
+	}
+
 
 
 

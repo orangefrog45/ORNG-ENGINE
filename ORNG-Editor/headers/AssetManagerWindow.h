@@ -5,6 +5,8 @@
 namespace ORNG {
 	class MeshAsset;
 	class Material;
+	class ScriptAsset;
+	class Prefab;
 
 	struct ConfirmationWindowData {
 		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {};
@@ -17,6 +19,26 @@ namespace ORNG {
 		std::string error;
 		std::vector<std::string> prev_logs;
 	};
+
+	struct ImGuiPopupSpec {
+		std::vector<std::pair<const char*, std::function<void()>>> options;
+	};
+
+	struct AssetDisplaySpec {
+		Texture2D* p_tex = nullptr;
+		std::function<void()> on_delete = nullptr;
+		std::function<void()> on_click = nullptr;
+		std::function<void()> on_drag = nullptr;
+		std::function<void()> on_drop = nullptr;
+
+		std::function<void()> on_name_clicked = nullptr;
+
+		ImGuiPopupSpec popup_spec;
+		
+		std::string override_name;
+	};
+
+
 
 	class AssetManagerWindow {
 	public:
@@ -70,14 +92,17 @@ namespace ORNG {
 		bool RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		void RenderTextureEditorSection();
 
+		void RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec& display_spec);
+
 		void ReloadScript(const std::string& relative_path);
-		void RenderScriptAsset(const std::filesystem::directory_entry& entry);
+		void RenderScriptAsset(ScriptAsset* p_asset);
 		void RenderScriptTab();
 
 		void RenderMeshAssetTab();
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
 
 		void RenderPhysxMaterialTab();
+		void RenderPhysXMaterial(PhysXMaterialAsset* p_material);
 
 		void RenderTextureTab();
 		void RenderTexture(Texture2D* p_tex);
@@ -88,11 +113,16 @@ namespace ORNG {
 		void RenderPhysXMaterialEditor();
 
 		void RenderAudioTab();
+		void RenderAudioAsset(SoundAsset* p_asset);
 
 		void RenderPrefabTab();
+		void RenderPrefab(Prefab* p_prefab);
 
-		void OnRequestDeleteAsset(Asset* p_asset) {
+		void OnRequestDeleteAsset(Asset* p_asset, std::function<void()> callback = nullptr) {
 			PushConfirmationWindow("Delete asset?", [=] {
+				if (callback)
+					callback();
+
 				// Cleanup binary file
 				FileDelete(p_asset->filepath);
 

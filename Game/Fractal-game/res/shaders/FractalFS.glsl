@@ -46,7 +46,7 @@ ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 }*/
 
 //vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-vec3 CSize = vec3(0.5, 0.8, 0.9) *1.1;
+vec3 CSize = vec3(0.8, 0.99, 1);
 
 vec2 grad(ivec2 z)  // replace this anything that returns a random vector
 {
@@ -116,13 +116,13 @@ vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
 
 //#define K float k = max((abs(sin(ubo_common.time_elapsed * 0.0001)) * 50.0) / (r2), 0.58);
 
-#define K float k = max(1.5 / (r2 ), 0.68);
+#define K float k = max(1.2 / (r2 ), 0.58);
 
 vec3 Colour(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
-	for (int i = 0; i < 24; i++)
+	for (int i = 0; i < 16; i++)
 	{
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
@@ -133,7 +133,8 @@ vec3 Colour(vec3 p)
 		p *= k;
 		scale *= k;
 	}
-	return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
+	return  vec3((length(p.xz) + length(p.yz)) / length(p.xy), length(p.yz), length(p.xy));
+	//return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
 	//	float k = max((2.) / (r2), .027);
@@ -141,7 +142,7 @@ vec3 rma(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
-	for (int i = 0; i < 24; i++)
+	for (int i = 0; i < 18; i++)
 	{
 		
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
@@ -161,25 +162,31 @@ vec3 rma(vec3 p)
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
 	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
-CSize = vec3(0.5, 0.8, 0.9) * 1.2 + normalize(p.yxz * p.xyz * p.zxy) * vec3(1, 1, 0) * 0.15 * sin(ubo_common.time_elapsed * 0.001) * cos(ubo_common.time_elapsed * 0.0001);
 	vec3 o = p;
 	p = p.xzy;
-	float scale = 1.;
+	float scale = 0.5;
 	// Move point towards limit set
 	for (int i = 0; i < 12; i++)
 	{
 		// box fold
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		//p.y += exp(p.z * 0.05) * 0.0001 * sin(ubo_common.time_elapsed * 0.001);
+		//p.z -= cos(length(p) * 5.0 * abs(cos(ubo_common.time_elapsed * 0.00001))) * 0.02;
+		//p.y -= atan(length(p)) * 0.6;
+
+
 		float r2 = dot(p, p);
 		K
 		p *= k;
 		scale *= k;
 	}
+		float f = (length(p.xz) + length(p.yz)) / length(p.xy);
+		scale +=  0.02 * exp(f * 0.1);
 
 	float l = length(p.xy);
 	float rxy = l - 4.0;
 	float n = l * p.z;
-	rxy = max(rxy, -(n) / 4.);
+	rxy = max(rxy, -(n) * 0.25);
 	return (rxy) / abs(scale);
 
 }
