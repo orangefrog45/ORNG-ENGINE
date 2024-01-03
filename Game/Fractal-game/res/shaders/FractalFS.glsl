@@ -46,7 +46,10 @@ ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 }*/
 
 //vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-vec3 CSize = vec3(0.8, 0.99, 1);
+uniform vec3 CSize;
+uniform float u_k_factor_1;
+uniform float u_k_factor_2;
+uniform uint u_num_iters;
 
 vec2 grad(ivec2 z)  // replace this anything that returns a random vector
 {
@@ -116,13 +119,13 @@ vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
 
 //#define K float k = max((abs(sin(ubo_common.time_elapsed * 0.0001)) * 50.0) / (r2), 0.58);
 
-#define K float k = max(1.2 / (r2 ), 0.58);
+#define K float k = max((u_k_factor_1)  / (r2  ), u_k_factor_2);
 
 vec3 Colour(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < u_num_iters; i++)
 	{
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
@@ -133,8 +136,9 @@ vec3 Colour(vec3 p)
 		p *= k;
 		scale *= k;
 	}
-	return  vec3((length(p.xz) + length(p.yz)) / length(p.xy), length(p.yz), length(p.xy));
+	//return  clamp(vec3((length(p.xz) + length(p.yz)) / max(length(p.xy), 0.00001), length(p.yz), length(p.xy)), vec3(0.01), vec3(1)) ;
 	//return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
+	return  clamp(mix(abs(p.xzy * p.zxz) * vec3(0.88, 5.6, 0.12), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
 	//	float k = max((2.) / (r2), .027);
@@ -142,9 +146,8 @@ vec3 rma(vec3 p)
 {
 	p = p.xzy;
 	float scale = 1.;
-	for (int i = 0; i < 18; i++)
+	for (int i = 0; i < u_num_iters; i++)
 	{
-		
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
@@ -154,39 +157,36 @@ vec3 rma(vec3 p)
 		p *= k;
 		scale *= k;
 	}
-	return  vec3(0.5, clamp(1.0 - p.z, 0, 1), 0.01);
+	return  vec3(0.5, clamp(p.x, 0, 1), 0.1);
 }
 
 
 
 // Pseudo-kleinian DE with parameters from here https://www.shadertoy.com/view/4s3GW2
 float map(vec3 p) {
-	//p.y += 40.0 + 20.0 * sin(ubo_common.time_elapsed * 0.0001 * p.x * 0.01);
-	vec3 o = p;
 	p = p.xzy;
 	float scale = 0.5;
 	// Move point towards limit set
-	for (int i = 0; i < 12; i++)
+	float ns = noise(p.xy * 0.01 + normalize(p.xy) * 1  );
+	ns+= noise(p.xy * 0.001 );
+	ns+= noise(p.xy * 0.0001 ) * 1.0;
+
+		vec3 c = CSize + vec3(0, 0, ns);
+	for (int i = 0; i < u_num_iters; i++)
 	{
 		// box fold
+
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
-		//p.y += exp(p.z * 0.05) * 0.0001 * sin(ubo_common.time_elapsed * 0.001);
-		//p.z -= cos(length(p) * 5.0 * abs(cos(ubo_common.time_elapsed * 0.00001))) * 0.02;
-		//p.y -= atan(length(p)) * 0.6;
-
-
 		float r2 = dot(p, p);
 		K
 		p *= k;
 		scale *= k;
 	}
-		float f = (length(p.xz) + length(p.yz)) / length(p.xy);
-		scale +=  0.02 * exp(f * 0.1);
 
 	float l = length(p.xy);
 	float rxy = l - 4.0;
 	float n = l * p.z;
-	rxy = max(rxy, -(n) * 0.25);
+	rxy = max(rxy, -(n) * 0.1);
 	return (rxy) / abs(scale);
 
 }
@@ -257,7 +257,8 @@ void main() {
 			normal = vec4(norm, 1.0);
 			shader_id = 1;
 
-			albedo = vec4(Colour(step_pos) + vec3(1.0, 0.2, 0.05) * exp((-i / 256.0 ) * 10.0), 1.0);
+			albedo = vec4(Colour(step_pos) * 0.8 * exp(-i * 0.01) , 1.0);
+			//albedo = vec4(Colour(step_pos) + vec3(1.0, 0.2, 0.05) * exp((-i / 256.0 ) * 10.0), 1.0);
 
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 

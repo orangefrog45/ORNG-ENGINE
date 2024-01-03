@@ -26,6 +26,11 @@ namespace ORNG {
 		void UpdateParticles();
 		void RenderParticles();
 
+		glm::vec3 fractal_csize = {0.9, 0.8, 0.7};
+		float k_factor_1 = 0.9;
+		float k_factor_2 = 0.5;
+		int num_iters = 12;
+
 
 		// Set up once with ifdefs for different update/render functionality
 		ShaderVariants* p_particle_update_shader_variants = nullptr;

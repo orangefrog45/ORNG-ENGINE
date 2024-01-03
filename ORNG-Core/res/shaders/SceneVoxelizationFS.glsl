@@ -9,7 +9,7 @@ layout(binding = 25) uniform sampler2D emissive_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 
 
-layout(binding = 0, rgba8) writeonly uniform image3D voxel_image;
+layout(binding = 0, rgba16f) writeonly uniform image3D voxel_image;
 
 in vec4 vs_position;
 in vec3 vs_normal;

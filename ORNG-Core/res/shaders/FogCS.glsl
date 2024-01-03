@@ -124,7 +124,7 @@ void main() {
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
 	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / (vec2(imageSize(fog_texture))));
 	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float cam_to_frag_dist = min(length(cam_to_frag), 2000.0);
+	float cam_to_frag_dist = min(length(cam_to_frag), 10000.0);
 	float step_distance = cam_to_frag_dist / float(u_step_count);
 
 
@@ -142,6 +142,8 @@ void main() {
 		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
 		fog_density += u_density_coef * 0.5f;
+		fog_density *= exp(-step_pos.y * 0.01) * float(step_pos.y < 500.0);
+
 
 		vec3 slice_light = vec3(0);
 

@@ -1,4 +1,11 @@
+3/1/23:
+-Anisotropic mipmapping and sampling for VCTGI, currently extremely unoptimized
+-General QOL keybinds/features in the editor
+-Fixed material/mesh previews
+
 29/12/23:
+-Stabilized windows and docking for editor UI
+-Fixed script reloading bug, made more stable in general
 -Refactoring AssetManagerWindow
 
 27/12/23:

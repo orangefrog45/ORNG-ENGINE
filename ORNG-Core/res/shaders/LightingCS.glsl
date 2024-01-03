@@ -11,10 +11,22 @@ ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
-layout(binding = 16) uniform sampler2D view_depth_sampler;
+
+layout(binding = 5) uniform sampler3D pos_x_voxel_mip_sampler;
+layout(binding = 6) uniform sampler3D pos_y_voxel_mip_sampler;
+
 layout(binding = 7) uniform sampler2D normal_sampler;
+
+layout(binding = 8) uniform sampler3D pos_z_voxel_mip_sampler;
+layout(binding = 9) uniform sampler3D neg_x_voxel_mip_sampler;
+layout(binding = 10) uniform sampler3D neg_y_voxel_mip_sampler;
+
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 12) uniform usampler2D shader_id_sampler;
+
+layout(binding = 13) uniform sampler3D neg_z_voxel_mip_sampler;
+
+layout(binding = 16) uniform sampler2D view_depth_sampler;
 layout(binding = 19) uniform sampler2D roughness_metallic_ao_sampler;
 layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
 layout(binding = 21) uniform samplerCube specular_prefilter_sampler;
@@ -78,12 +90,28 @@ vec3 ConeTrace(vec3 cone_dir) {
 
 	float d = step_length;
 
-	while (d < 25.0 && col.a < 0.9) {
-		vec3 step_pos = sampled_world_pos + cone_dir * d - sampled_normal * 0.14;
+	vec3 weight = cone_dir * cone_dir;
+	while (d < 25.0 && col.a < 0.95) {
+		vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal * 0.2;
 		float diam = 2.0 * tan_half_angle * d;
-		float mip = log2(diam / 0.2 );
+		float mip = clamp(log2(diam / 0.1 ), 0.0, 6.0);
 
-		vec4 voxel = textureLod(voxel_grid_sampler, ((step_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / (256.0), mip);
+		vec3 coord = ((step_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / (256.0);
+		if (any(greaterThan(coord, vec3(1))) || any(lessThan(coord, vec3(0))) )
+		break;
+
+		vec4 mip_col = vec4(0);
+		float adjusted_mip = max(mip - 1., 0.);
+		mip_col += (cone_dir.x < 0 ? textureLod(neg_x_voxel_mip_sampler, coord, adjusted_mip) : textureLod(pos_x_voxel_mip_sampler, coord, adjusted_mip)) * weight.x;
+		mip_col += (cone_dir.y < 0 ? textureLod(neg_y_voxel_mip_sampler, coord, adjusted_mip) : textureLod(pos_y_voxel_mip_sampler, coord, adjusted_mip)) * weight.y;
+		mip_col += (cone_dir.z < 0 ? textureLod(neg_z_voxel_mip_sampler, coord, adjusted_mip) : textureLod(pos_z_voxel_mip_sampler, coord, adjusted_mip)) * weight.z;
+
+		if (mip < 1.0) {
+			mip_col = mix(texture(voxel_grid_sampler, coord), mip_col, clamp(mip, 0, 1));
+		}
+
+
+		vec4 voxel = mip_col;
 		
 		if (voxel.a > 0.0) {
 			float a = 1.0 - col.a;
@@ -91,16 +119,25 @@ vec3 ConeTrace(vec3 cone_dir) {
 			col.a += a * voxel.a;
 		}
 
-		d += diam * 0.5;
+		d += diam * 0.25;
 	}
 
 	return col.rgb;
 	//return textureLod(voxel_grid_sampler, vec3(((sampled_world_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / 256.0), 1).xyz;
 }
 
+const vec3 diffuseConeDirections[] =
+{
+    vec3(0.0f, 1.0f, 0.0f),
+    vec3(0.0f, 0.5f, 0.866025f),
+    vec3(0.823639f, 0.5f, 0.267617f),
+    vec3(0.509037f, 0.5f, -0.7006629f),
+    vec3(-0.50937f, 0.5f, -0.7006629f),
+    vec3(-0.823639f, 0.5f, 0.267617f)
+};
 vec3 CalculateIndirectDiffuseLighting() {
 	vec3 col = vec3(0);
-	float d = dot(vec3(0, 1, 0), sampled_normal);
+	/*float d = dot(vec3(0, 1, 0), sampled_normal);
 	vec3 T = normalize((d > 0.999999) ? cross(sampled_normal, vec3(1, 0, 0)) : cross(sampled_normal, vec3(0, 1, 0)));
 	vec3 B = normalize(cross(T, sampled_normal));
 
@@ -115,16 +152,19 @@ vec3 CalculateIndirectDiffuseLighting() {
 	dir =  0.7071f * sampled_normal -  0.7071f * (-0.809f * T - 0.588f * B);
 	col += ConeTrace(dir) * 0.15;
 	dir =  0.7071f * sampled_normal -  0.7071f * (0.309f * T - 0.951f * B);
-	col += ConeTrace(dir) * 0.15;
+	col += ConeTrace(dir) * 0.15;*/
 
-	/*for (int i = 0; i < 16; i++) {
-		if (dot(diffuseConeDirections[i], sampled_normal) < -0.0 )
-		continue;
-		
-		col += ConeTrace(diffuseConeDirections[i]);
-	}*/
+	vec3 non_parallel = abs(dot(sampled_normal, vec3(0, 1, 0))) > 0.99999 ? vec3(0, 0, 1) : vec3(0, 1, 0);
+	vec3 right = normalize(non_parallel - dot(sampled_normal, non_parallel) * sampled_normal);
+	vec3 up = cross(right, sampled_normal);
 
-	return col;
+
+	for (int i = 0; i < 6; i++) {
+		vec3 cone_dir = normalize(sampled_normal + diffuseConeDirections[i].x * right + diffuseConeDirections[i].z * up);
+		col += ConeTrace(cone_dir);
+	}
+
+	return col / 6.0;
 }
 
 void main()
@@ -145,7 +185,7 @@ void main()
 
 	total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
 	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
-	total_light += CalculateIndirectDiffuseLighting() * sampled_albedo.xyz ;
+	total_light += CalculateIndirectDiffuseLighting() * sampled_albedo.xyz * 0.5;
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 

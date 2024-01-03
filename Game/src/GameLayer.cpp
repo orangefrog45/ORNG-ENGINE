@@ -26,6 +26,10 @@ namespace ORNG {
 		p_kleinian_shader->AddStage(GL_VERTEX_SHADER,  "res/shaders/QuadVS.glsl");
 		p_kleinian_shader->AddStage(GL_FRAGMENT_SHADER,  "res/shaders/FractalFS.glsl");
 		p_kleinian_shader->Init();
+		p_kleinian_shader->AddUniform("CSize");
+		p_kleinian_shader->AddUniform("u_k_factor_1");
+		p_kleinian_shader->AddUniform("u_k_factor_2");
+		p_kleinian_shader->AddUniform("u_num_iters");
 
 		p_map_shader = &Renderer::GetShaderLibrary().CreateShader("kleinian-map");
 		p_map_shader->AddStage(GL_VERTEX_SHADER,  "res/shaders/QuadVS.glsl");
@@ -87,6 +91,10 @@ namespace ORNG {
 		Renderpass rp;
 		rp.func = [&](RenderResources res) {
 			p_kleinian_shader->ActivateProgram();
+			p_kleinian_shader->SetUniform("CSize", fractal_csize);
+			p_kleinian_shader->SetUniform("u_k_factor_1", k_factor_1);
+			p_kleinian_shader->SetUniform("u_k_factor_2", k_factor_2);
+			p_kleinian_shader->SetUniform<unsigned>("u_num_iters", num_iters);
 			Renderer::DrawQuad();
 			};
 
@@ -106,10 +114,7 @@ namespace ORNG {
 
 	void GameLayer::UpdateParticles() {
 		auto* p_ent = p_scene->GetEntity("Pbuf");
-		if (!p_ent->GetComponent<ParticleBufferComponent>()) {
-			ORNG_CORE_TRACE("NOT FOUND");
-			return;
-		}
+
 
 		p_particle_update_shader_variants->Activate(ParticleUpdateShaderVariant::STATE_UPDATE);
 		GL_StateManager::BindSSBO(p_ent->GetComponent<ParticleBufferComponent>()->m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
@@ -168,7 +173,7 @@ namespace ORNG {
 	}
 
 	void GameLayer::OnRender() {
-		//DrawMap();
+		DrawMap();
 	}
 
 
@@ -180,11 +185,17 @@ namespace ORNG {
 		std::string coords = std::format("{}, {}, {}", pos.x, pos.y, pos.z);
 		std::string scale = std::format("Scale: {}", map_scale);
 
+		ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Once);
 		if (ImGui::Begin("map", (bool*)0, ImGuiWindowFlags_NoDecoration)) {
+			ImGui::SliderFloat3("Csize", &fractal_csize[0], 0, 10);
+			ImGui::SliderFloat("k1", &k_factor_1, 0, 2);
+			ImGui::SliderFloat("k2", &k_factor_2, 0, 2);
+			ImGui::SliderInt("Iters", &num_iters, 0, 64);
 			ImGui::Text(coords.c_str());
 			ImGui::Text(scale.c_str());
 			ImGui::Image(ImTextureID(p_map_tex->GetTextureHandle()), ImVec2(1024, 1024));
 		}
+
 
 		ImGui::End();
 	}

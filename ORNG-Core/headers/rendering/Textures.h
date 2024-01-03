@@ -113,6 +113,7 @@ namespace ORNG {
 
 	struct Texture3DSpec : public Texture2DArraySpec {};
 
+
 	class Texture3D : public TextureBase {
 	public:
 		friend class Scene;

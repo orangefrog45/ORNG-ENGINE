@@ -347,10 +347,10 @@ namespace ORNG {
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(script_folder)) {
 			auto path = entry.path();
+			std::string path_string = path.string();
 			if (entry.is_directory() || (!precompiled_scripts && path.extension() != ".cpp") || (precompiled_scripts && path.extension() != ".dll") || path.string().find("scripts\\includes") != std::string::npos)
 				continue;
 			else {
-				std::string path_string = path.string();
 				if (precompiled_scripts) {
 #ifdef NDEBUG
 					if (path_string.find("debug") != std::string::npos)

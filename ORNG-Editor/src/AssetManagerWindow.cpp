@@ -94,16 +94,16 @@ namespace ORNG {
 
 	void AssetManagerWindow::OnMainRender() {
 		// Generate previews at this stage, delayed as if done during the ImGui rendering phase ImGui will stop rendering on that frame, causing a UI flicker
-		for (auto* p_material : m_materials_to_gen_previews) {
-			CreateMaterialPreview(p_material);
+	
+		if (!m_materials_to_gen_previews.empty()) {
+			CreateMaterialPreview(m_materials_to_gen_previews[0]);
+			m_materials_to_gen_previews.erase(m_materials_to_gen_previews.begin());
+		} 
+		else if (!m_meshes_to_gen_previews.empty()) {
+			CreateMeshPreview(m_meshes_to_gen_previews[0]);
+			m_meshes_to_gen_previews.erase(m_meshes_to_gen_previews.begin());
 		}
 
-		for (auto* p_mesh : m_meshes_to_gen_previews) {
-			CreateMeshPreview(p_mesh);
-		}
-
-		m_materials_to_gen_previews.clear();
-		m_meshes_to_gen_previews.clear();
 	}
 
 
@@ -190,21 +190,19 @@ namespace ORNG {
 		}
 
 		// Reload script and reconnect it to script components previously using it
-		if (AssetManager::DeleteAsset(p_curr_asset)) {
+		if (ScriptingEngine::UnloadScriptDLL(relative_path)) {
 			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
 			std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
 
 			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false);
-			ScriptAsset* p_asset = nullptr;
 			if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
 				GenerateErrorMessage("Failed to reload script");
 			}
-
-			p_asset = AssetManager::AddAsset(new ScriptAsset(symbols));
+			p_curr_asset->symbols = symbols;
 
 			// Reconnect script components that were using this script
 			for (auto p_script : components_to_reconnect) {
-				p_script->SetSymbols(&p_asset->symbols);
+				p_script->SetSymbols(&p_curr_asset->symbols);
 			}
 		}
 		else {
@@ -365,7 +363,15 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderMeshAssetTab() {
-		if (ImGui::BeginTabItem("Meshes")) // MESH TAB
+		bool is_tab_open = ImGui::BeginTabItem("Meshes");
+
+		if (ImGui::IsItemClicked()) {
+			for (auto* p_mesh : AssetManager::GetView<MeshAsset>()) {
+				m_meshes_to_gen_previews.push_back(p_mesh);
+			}
+		}
+
+		if (is_tab_open) // MESH TAB
 		{
 			if (ImGui::Button("Add mesh")) // MESH FILE EXPLORER
 			{
@@ -393,6 +399,8 @@ namespace ORNG {
 				ImGui::EndTabItem();
 			} // END MESH VIEWING TABLE
 		} //	 END MESH TAB
+
+
 	}
 
 
@@ -448,7 +456,7 @@ namespace ORNG {
 			ImGui::EndDragDropSource();
 			};
 
-		spec.p_tex = &*m_mesh_preview_textures[p_mesh_asset];
+		spec.p_tex = m_mesh_preview_textures.contains(p_mesh_asset) ? m_mesh_preview_textures[p_mesh_asset].get() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 
 		RenderBaseAsset(p_mesh_asset, spec);
 	}
@@ -564,15 +572,16 @@ namespace ORNG {
 
 	void AssetManagerWindow::RenderMaterialTab() {
 		auto materials = AssetManager::GetView<Material>();
+		bool is_tab_open = ImGui::BeginTabItem("Materials");
 
-		if (ImGui::BeginTabItem("Materials")) { // MATERIAL TAB
-			if (ImGui::IsItemClicked()) {
-				// Refresh previews (they update automatically mostly but this fixes some bugs)
-				for (auto* p_mat : materials) {
-					//m_materials_to_gen_previews.push_back(p_mat);
-				}
+		if (ImGui::IsItemClicked()) {
+			// Refresh previews (they update automatically mostly but this fixes some bugs)
+			for (auto* p_mat : materials) {
+				m_materials_to_gen_previews.push_back(p_mat);
 			}
+		}
 
+		if (is_tab_open) { // MATERIAL TAB
 			if (ImGui::Button("Create material")) {
 				auto* p_mat = new Material();
 				AssetManager::AddAsset(p_mat);
@@ -620,7 +629,7 @@ namespace ORNG {
 			};
 
 		spec.popup_spec.options.push_back(std::make_pair("Duplicate", on_duplicate));
-		spec.p_tex = &*m_material_preview_textures[p_material];
+		spec.p_tex = m_material_preview_textures.contains(p_material) ? m_material_preview_textures.at(p_material).get() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 		spec.override_name = p_material->name;
 
 		RenderBaseAsset(p_material, spec);
@@ -824,7 +833,6 @@ namespace ORNG {
 		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
 
 		SceneRenderer::SceneRenderingSettings settings;
@@ -835,17 +843,17 @@ namespace ORNG {
 
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0, true);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
-
-		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
+		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 
 	}
 
 	void AssetManagerWindow::CreateMaterialPreview(const Material* p_material) {
 		auto p_tex = std::make_shared<Texture2D>(p_material->name + " - Material preview");
 		p_tex->SetSpec(m_asset_preview_spec);
+
+		if (m_material_preview_textures.contains(p_material))
+			m_material_preview_textures.erase(p_material);
+
 		m_material_preview_textures[p_material] = p_tex;
 
 		auto* p_mesh = mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>();
@@ -854,24 +862,20 @@ namespace ORNG {
 
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
+
 		p_mesh->SetMaterialID(0, p_material);
 
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
-		settings.p_output_tex = &*p_tex;
+		settings.p_output_tex = p_tex.get();
 		// Disable additional user renderpasses as this is just a preview of a mesh
 		settings.do_intercept_renderpasses = false;
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
-
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0, true);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
+		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 	}
 
 

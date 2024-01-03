@@ -454,7 +454,7 @@ namespace ORNG {
 		ImGui::SetNextWindowSize(m_scene_display_rect);
 
 
-		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
+		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)mp_scene_display_texture->GetTextureHandle(), ImVec2(m_scene_display_rect.x, m_scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
@@ -550,12 +550,12 @@ namespace ORNG {
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		GL_StateManager::DefaultClearBits();
 
-		m_asset_manager_window.OnMainRender();
 
 		if (ImGui::IsMouseClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
 			DoPickingPass();
 		}
 
+		m_asset_manager_window.OnMainRender();
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*(*mp_scene_context));
@@ -563,6 +563,7 @@ namespace ORNG {
 		settings.render_meshes = m_general_settings.debug_render_settings.render_meshes;
 		settings.render_voxel_debug = m_general_settings.debug_render_settings.render_voxel_debug;
 		SceneRenderer::RenderScene(settings);
+
 
 		mp_editor_pass_fb->Bind();
 		DoSelectedEntityHighlightPass();
@@ -579,12 +580,16 @@ namespace ORNG {
 		}
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		GL_StateManager::DefaultClearBits();
+
 
 		if (m_simulate_mode_active) {
 			mp_quad_shader->ActivateProgram();
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 			Renderer::DrawQuad();
 		}
+
+
 	}
 
 
@@ -1294,7 +1299,11 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
-		if (ImGui::Begin("Scene graph", (bool*)0, ImGuiWindowFlags_NoNavInputs)) {
+		static bool mouse_over_title = false;
+
+		if (ImGui::Begin("Scene graph", (bool*)0, ImGuiWindowFlags_NoNavInputs | (mouse_over_title ? 0 : ImGuiWindowFlags_NoMove))) {
+			if (!Input::IsMouseDown(0))
+				mouse_over_title = ImGui::IsItemHovered();
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_selected_entity_ids.clear();
@@ -1326,13 +1335,15 @@ namespace ORNG {
 
 			EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
 
-			if (ExtraUI::H2TreeNode("Entities")) {
+			if (ExtraUI::H2TreeNode("Scene settings")) {
 				m_general_settings.editor_window_settings.display_skybox_editor = ExtraUI::EmptyTreeNode("Skybox");
 				m_general_settings.editor_window_settings.display_directional_light_editor = ExtraUI::EmptyTreeNode("Directional Light");
 				m_general_settings.editor_window_settings.display_global_fog_editor = ExtraUI::EmptyTreeNode("Global fog");
 				m_general_settings.editor_window_settings.display_terrain_editor = ExtraUI::EmptyTreeNode("Terrain");
 				m_general_settings.editor_window_settings.display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
+			}
 
+			if (ExtraUI::H2TreeNode("Entities")) {
 				for (auto* p_entity : (*mp_scene_context)->m_entities) {
 					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
 						continue;
@@ -1374,8 +1385,12 @@ namespace ORNG {
 
 
 	void EditorLayer::DisplayEntityEditor() {
-		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("Properties", (bool*)0, ImGuiWindowFlags_NoNavInputs)) {
+		static bool mouse_over_title = false;
+
+		if (ImGui::Begin("Properties", (bool*)0, ImGuiWindowFlags_NoNavInputs | (mouse_over_title ? 0 : ImGuiWindowFlags_NoMove))) {
+			if (!Input::IsMouseDown(0))
+				mouse_over_title = ImGui::IsItemHovered();
+
 			if (m_general_settings.editor_window_settings.display_directional_light_editor)
 				RenderDirectionalLightEditor();
 			if (m_general_settings.editor_window_settings.display_global_fog_editor)
@@ -2011,13 +2026,14 @@ namespace ORNG {
 		static ImGuizmo::OPERATION current_operation = ImGuizmo::TRANSLATE;
 		static ImGuizmo::MODE current_mode = ImGuizmo::WORLD;
 
-
-		if (Input::IsKeyDown(GLFW_KEY_1))
-			current_operation = ImGuizmo::TRANSLATE;
-		else if (Input::IsKeyDown(GLFW_KEY_2))
-			current_operation = ImGuizmo::SCALE;
-		else if (Input::IsKeyDown(GLFW_KEY_3))
-			current_operation = ImGuizmo::ROTATE;
+		if (!ImGui::GetIO().WantCaptureMouse) {
+			if (Input::IsKeyPressed(GLFW_KEY_1))
+				current_operation = ImGuizmo::TRANSLATE;
+			else if (Input::IsKeyPressed(GLFW_KEY_2))
+				current_operation = ImGuizmo::SCALE;
+			else if (Input::IsKeyPressed(GLFW_KEY_3))
+				current_operation = ImGuizmo::ROTATE;
+		}
 
 		ImGui::Text("Gizmo rendering");
 		if (ImGui::RadioButton("World", current_mode == ImGuizmo::WORLD))
@@ -2040,9 +2056,20 @@ namespace ORNG {
 		static bool is_using = false;
 		static bool mouse_down = false;
 
+		// Alt-drag duplication keybind
+		if ((Input::IsKeyPressed(Key::Alt) && ImGuizmo::IsUsing()) || (Input::IsKeyDown(Key::Alt) && ImGuizmo::IsOver() && Input::IsMouseClicked(0))) {
+			auto dupes = DuplicateEntitiesTracked(m_selected_entity_ids);
 
+			if (!Input::IsKeyPressed(Key::LeftControl))
+				m_selected_entity_ids.clear();
+
+			for (auto* p_ent : dupes) {
+				SelectEntity(p_ent->m_uuid());
+			}
+		}
 
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], &snap[0]) && ImGuizmo::IsUsing()) {
+
 			if (!is_using && !mouse_down && !m_simulate_mode_active) {
 				EditorEvent e;
 				e.event_type = TRANSFORM_UPDATE;
@@ -2052,8 +2079,6 @@ namespace ORNG {
 				}
 				m_event_stack.PushEvent(e);
 			}
-
-
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
@@ -2270,7 +2295,7 @@ namespace ORNG {
 		if (ExtraUI::H1TreeNode("Directional light")) {
 			ImGui::Text("DIR LIGHT CONTROLS");
 
-			static glm::vec3 light_dir = glm::vec3(0, 0.5, 0.5);
+			static glm::vec3 light_dir = (*mp_scene_context)->directional_light.m_light_direction;
 			static glm::vec3 light_color = (*mp_scene_context)->directional_light.color;
 
 			ImGui::SliderFloat("X", &light_dir.x, -1.f, 1.f);

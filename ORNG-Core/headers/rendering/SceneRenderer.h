@@ -32,6 +32,26 @@ namespace ORNG {
 	};
 
 
+	struct DirectMeshRenderData {
+		glm::vec3 camera_pos;
+		float cam_fov = 60.f;
+		float aspect_ratio = 1.f;
+		Texture2D* p_output_tex = nullptr;
+
+		MeshAsset* p_mesh = nullptr;
+		std::vector<Material*> materials;
+	};
+
+	struct VoxelMipFaces {
+		Texture3D pos_x{ "Voxel face X+" };
+		Texture3D pos_y{ "Voxel face Y+" };
+		Texture3D pos_z{ "Voxel face Z+" };
+
+		Texture3D neg_x{ "Voxel face X-" };
+		Texture3D neg_y{ "Voxel face Y-" };
+		Texture3D neg_z{ "Voxel face Z-" };
+	};
+
 	class SceneRenderer {
 		friend class EditorLayer;
 	public:
@@ -105,6 +125,8 @@ namespace ORNG {
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
 		void DoVoxelizationPass(unsigned output_width, unsigned output_height);
 
+		void RenderMeshDirect(const DirectMeshRenderData& mesh_data);
+
 	private:
 
 		void IAttachRenderpassIntercept(Renderpass renderpass) {
@@ -145,7 +167,7 @@ namespace ORNG {
 		Shader* mp_orth_depth_shader = nullptr; //dir light
 		Shader* mp_persp_depth_shader = nullptr; //spotlights
 		Shader* mp_pointlight_depth_shader = nullptr;
-		Shader* mp_voxel_mipmap_shader = nullptr;
+		ShaderVariants* mp_3d_mipmap_shader = nullptr;
 
 		ShaderVariants* mp_scene_voxelization_shader = nullptr;
 		Shader* mp_voxel_debug_shader = nullptr;
@@ -178,11 +200,11 @@ namespace ORNG {
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
 
 		Texture3D m_scene_voxel_tex{ "SR scene voxel tex" };
+		VoxelMipFaces m_voxel_mip_faces;
 
 		PointlightSystem m_pointlight_system;
 		SpotlightSystem m_spotlight_system;
 
-		glm::vec3 m_sampled_world_pos = { 0, 0, 0 };
 		unsigned int m_num_shadow_cascades = 3;
 		unsigned int m_shadow_map_resolution = 4096;
 	};

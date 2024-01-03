@@ -14,7 +14,7 @@ uniform vec4 u_color;
 ORNG_INCLUDE "BuffersINCL.glsl"
 
 #ifdef VOXELIZATION
-layout(binding = 0, rgba8) uniform readonly image3D voxel_tex;
+layout(binding = 0, rgba16f) uniform readonly image3D voxel_tex;
 
 in flat ivec3 vs_lookup_coord;
 #endif
@@ -25,8 +25,8 @@ void main() {
 	albedo = u_color;
 	albedo.w = 1.0;
 #elif defined(VOXELIZATION)
-	albedo.xyz = imageLoad(voxel_tex, vs_lookup_coord).xyz;
-	if (length(albedo.xyz) < 0.00001)
+	albedo.xyzw = imageLoad(voxel_tex, vs_lookup_coord);
+	if (length(albedo.w) < 0.1)
 		discard;
 	albedo.w = 1.0;
 	shader_id = 110;

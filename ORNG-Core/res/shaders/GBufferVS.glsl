@@ -189,7 +189,7 @@ void main() {
 		#endif
 
 		#ifdef VOXELIZE
-			gl_Position = u_orth_proj_view_matrix * vec4(vs_position.xyz, vs_position.w);
+			gl_Position = u_orth_proj_view_matrix * vec4(vs_position.xyz, 1);
 		#else
 			gl_Position = PVMatrices.proj_view * vs_position;
 		#endif

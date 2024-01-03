@@ -38,6 +38,12 @@ namespace ORNG {
 		T_PARTICLE_BILLBOARD,
 	};
 
+	enum MipMap3D_ShaderVariants {
+		DEFAULT_MIP,
+		ANISOTROPIC,
+		ANISOTROPIC_CHAIN,
+	};
+
 	void SceneRenderer::I_Init() {
 		mp_shader_library = &Renderer::GetShaderLibrary();
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
@@ -110,10 +116,12 @@ namespace ORNG {
 		mp_voxel_debug_shader->Init();
 		mp_voxel_debug_shader->AddUniform("u_aligned_camera_pos");
 
-		mp_voxel_mipmap_shader = &mp_shader_library->CreateShader("voxel-mipmap");
-		mp_voxel_mipmap_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/MipMap3D.glsl");
-		mp_voxel_mipmap_shader->Init();
-		mp_voxel_mipmap_shader->AddUniform("u_mip_level");
+		mp_3d_mipmap_shader = &mp_shader_library->CreateShaderVariants("3d-mipmap");
+		mp_3d_mipmap_shader->SetPath(GL_COMPUTE_SHADER, "res/shaders/MipMap3D.glsl");
+		mp_3d_mipmap_shader->AddVariant(MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
+		mp_3d_mipmap_shader->AddVariant(MipMap3D_ShaderVariants::ANISOTROPIC, {"ANISOTROPIC_MIPMAP"}, {});
+		mp_3d_mipmap_shader->AddVariant(MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, {"u_mip_level"});
+
 
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
 		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/TransparentCompositeFS.glsl");
@@ -357,16 +365,29 @@ namespace ORNG {
 
 		Texture3DSpec voxel_spec;
 		voxel_spec.format = GL_RGBA;
-		voxel_spec.internal_format = GL_RGBA8;
+		voxel_spec.internal_format = GL_RGBA16F;
 		voxel_spec.width = 256;
 		voxel_spec.height = 256;
 		voxel_spec.layer_count = 256;
 		voxel_spec.storage_type = GL_FLOAT;
 		voxel_spec.mag_filter = GL_LINEAR;
-		voxel_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-		voxel_spec.generate_mipmaps = true;
+		voxel_spec.min_filter = GL_LINEAR;
 		
 		m_scene_voxel_tex.SetSpec(voxel_spec);
+
+		Texture3DSpec voxel_mip_spec = voxel_spec;
+		voxel_mip_spec.width = 128;
+		voxel_mip_spec.height = 128;
+		voxel_mip_spec.layer_count = 128;
+		voxel_mip_spec.generate_mipmaps = true;
+		voxel_mip_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+		
+		m_voxel_mip_faces.neg_x.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces.neg_y.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces.neg_z.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces.pos_x.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces.pos_y.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces.pos_z.SetSpec(voxel_mip_spec);
 
 		mp_scene_voxelization_fb = &mp_framebuffer_library->CreateFramebuffer("scene voxelization", false);
 		mp_scene_voxelization_fb->Bind();
@@ -380,7 +401,7 @@ namespace ORNG {
 		auto& spec = p_output_tex->GetSpec();
 		Texture2DSpec fog_spec = m_fog_output_tex.GetSpec();
 
-		if (fog_spec.width != spec.width || fog_spec.height != fog_spec.height) {
+		if (fog_spec.width != spec.width || fog_spec.height != spec.height) {
 			fog_spec.width = spec.width / 2;
 			fog_spec.height = spec.height / 2;
 			m_fog_output_tex.SetSpec(fog_spec);
@@ -601,22 +622,23 @@ namespace ORNG {
 		}
 	}
 
+	void SceneRenderer::RenderMeshDirect(const DirectMeshRenderData& mesh_data) {
+		//PrepRenderPasses()
+	}
+
 	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height) {
 		ORNG_PROFILE_FUNC_GPU();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-		for (int i = 0; i < 7; i++) {
-			glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), i, GL_RGBA, GL_FLOAT, nullptr);
-		}
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glViewport(0, 0, 256, 256);
 		mp_scene_voxelization_shader->Activate(0);
-		glEnable(GL_CONSERVATIVE_RASTERIZATION_NV);
-		
+
 		auto proj = glm::ortho(-128.f * 0.2f, 128.f * 0.2f, -128.f * 0.2f, 128.f * 0.2f, 0.2f, 256.f * 0.2f);
 		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4));
 
@@ -631,26 +653,53 @@ namespace ORNG {
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
-		glDisable(GL_CONSERVATIVE_RASTERIZATION_NV);
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glViewport(0, 0, output_width, output_height);
+		
+		// Create anisotropic mips
+		constexpr unsigned num_mip_levels = 6;
+		std::array<Texture3D*, 6> voxel_mips = { &m_voxel_mip_faces.pos_x, &m_voxel_mip_faces.pos_y, &m_voxel_mip_faces.pos_z, &m_voxel_mip_faces.neg_x, &m_voxel_mip_faces.neg_y, &m_voxel_mip_faces.neg_z };
+		for (int i = 0; i < 6; i++) {
+			for (int y = 0; y < num_mip_levels; y++) {
+				glClearTexImage(voxel_mips[i]->GetTextureHandle(), y, GL_RGBA, GL_FLOAT, nullptr);
+			}
 
-		mp_voxel_mipmap_shader->ActivateProgram();
-		for (int i = 1; i < 7; i++) {
-			glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), i - 1, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA8);
-			glBindImageTexture(1, m_scene_voxel_tex.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+			glBindImageTexture(i + 1, voxel_mips[i]->GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		}
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-			mp_voxel_mipmap_shader->SetUniform<unsigned>("u_mip_level", i);
-			int group_dim = glm::ceil((256.f / (i + 1)) / 4.f);
+		mp_3d_mipmap_shader->Activate(MipMap3D_ShaderVariants::ANISOTROPIC);
+		GL_StateManager::DispatchCompute(128, 128, 128);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		mp_3d_mipmap_shader->Activate(MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[0]->GetTextureHandle(), GL_TEXTURE0);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[1]->GetTextureHandle(), GL_TEXTURE1);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[2]->GetTextureHandle(), GL_TEXTURE2);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[3]->GetTextureHandle(), GL_TEXTURE3);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[4]->GetTextureHandle(), GL_TEXTURE4);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[5]->GetTextureHandle(), GL_TEXTURE5);
+
+		for (int i = 1; i <= num_mip_levels; i++) {
+			mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
+			glBindImageTexture(0, voxel_mips[0]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(1, voxel_mips[1]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(2, voxel_mips[2]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(3, voxel_mips[3]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(4, voxel_mips[4]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(5, voxel_mips[5]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+
+			int group_dim = glm::ceil((128.f / (i + 1)) / 4.f);
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
-		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA8);
+		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+
+		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 	}
 
@@ -770,10 +819,10 @@ namespace ORNG {
 		}
 
 		if (settings.render_voxel_debug) {
-			glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA8);
+			glBindImageTexture(0, m_voxel_mip_faces.pos_y.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 			mp_voxel_debug_shader->ActivateProgram();
 			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 256 * 256 * 256);
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 128 * 128 * 128);
 		}
 		
 
@@ -953,6 +1002,14 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSpecularPrefilter().GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_pointlight_system.m_pointlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SCENE_VOXELIZATION, false);
+
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_x.GetTextureHandle(), GL_TEXTURE5, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_y.GetTextureHandle(), GL_TEXTURE6, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_z.GetTextureHandle(), GL_TEXTURE8, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.neg_x.GetTextureHandle(), GL_TEXTURE9, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.neg_y.GetTextureHandle(), GL_TEXTURE10, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.neg_z.GetTextureHandle(), GL_TEXTURE13, false);
+
 
 		m_lighting_shader->ActivateProgram();
 		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));

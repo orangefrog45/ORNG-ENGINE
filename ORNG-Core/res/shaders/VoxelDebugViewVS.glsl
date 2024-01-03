@@ -10,8 +10,8 @@ out flat ivec3 vs_lookup_coord;
 uniform vec3 u_aligned_camera_pos;
 
 void main() {
-    vs_lookup_coord = ivec3(gl_InstanceID % 256, (gl_InstanceID / 256) % 256, gl_InstanceID / (256 * 256));
+    vs_lookup_coord = ivec3(gl_InstanceID % 128, (gl_InstanceID / 128) % 128, gl_InstanceID / (128 * 128));
 
-    vec3 pos = (vec3(vs_lookup_coord.xyz) + position - vec3(128, 128, 128)) * 0.2;
+    vec3 pos = (vec3(vs_lookup_coord.xyz) + position - vec3(64, 64, 64)) * 0.4;
     gl_Position = PVMatrices.proj_view * vec4( u_aligned_camera_pos + pos, 1.0);
 }

@@ -12,7 +12,8 @@ uniform float u_scale;
 
 
 //vec3 CSize = vec3(0.9 + sin(ubo_common.time_elapsed * 0.0001) * 0.1, 0.9 + cos(ubo_common.time_elapsed * 0.0001) * 0.1, 1.3);
-vec3 CSize = vec3(1.0, 1.3, 1.3);
+vec3 CSize = vec3(0.8, 0.99, 1) * 0.8;
+
 
 
 vec3 invertSphere(vec3 position, vec3 sphereCenter, float sphereRadius) {
@@ -39,21 +40,21 @@ float sdTriangleIsosceles(  vec2 p,  vec2 q )
                   vec2( dot(b,b), s*(p.y-q.y)  ));
     return -sqrt(d.x)*sign(d.y);
 }
+#define K float k = max(1.2 / (r2 ), 0.18);
 
 
 vec3 Colour(vec3 p)
 {
-	p.y += 40.0;
 		p = p.xzy;
 
 	float scale = 1.;
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < 36; i++)
 	{
 
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
 						//p = invertSphere(p , p.yxz,1.5);
 		float r2 = dot(p, p);
-		float k = max((2.) / (r2), .027);
+		K
 		p *= k;
 		scale *= k;
 	}
@@ -61,7 +62,7 @@ vec3 Colour(vec3 p)
     float l = length(p.xy);
 	float rxy = l - 4.0;
 	float n = l * p.z;
-	rxy = max(rxy, -(n) / 4.);
+	rxy = max(rxy, -(n) * 0.15);
 	float dist =  (rxy) / abs(scale);
     //return clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 	return  vec3(1) * float(dist < 0.5 * log(u_scale * 3.0) * 3.0  && dist > 0.25 * log(u_scale * 3.0) * 3.0 );
