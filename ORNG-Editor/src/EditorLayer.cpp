@@ -561,7 +561,9 @@ namespace ORNG {
 		SceneRenderer::SetActiveScene(&*(*mp_scene_context));
 		settings.p_output_tex = &*mp_scene_display_texture;
 		settings.render_meshes = m_general_settings.debug_render_settings.render_meshes;
-		settings.render_voxel_debug = m_general_settings.debug_render_settings.render_voxel_debug;
+		settings.voxel_mip_layer = m_general_settings.debug_render_settings.voxel_mip;
+		settings.voxel_render_face = m_general_settings.debug_render_settings.voxel_render_face;
+
 		SceneRenderer::RenderScene(settings);
 
 
@@ -607,7 +609,25 @@ namespace ORNG {
 			ImGui::SeparatorText("Debug rendering");
 			ImGui::Checkbox("Render physx debug", &m_general_settings.debug_render_settings.render_physx_debug);
 			ImGui::Checkbox("Render meshes", &m_general_settings.debug_render_settings.render_meshes);
-			ImGui::Checkbox("Render voxel grid", &m_general_settings.debug_render_settings.render_voxel_debug);
+			static int voxel_mip = 0;
+			if (ImGui::InputInt("Voxel mip", &voxel_mip) && voxel_mip >= 0 && voxel_mip <= 6) {
+				m_general_settings.debug_render_settings.voxel_mip = voxel_mip;
+			}
+
+			const char* faces[8] = { "NONE", "BASE", "POS_X", "POS_Y", "POS_Z", "NEG_X", "NEG_Y", "NEG_Z" };
+			static int current_face = 0;
+
+			if (ImGui::BeginCombo("Voxel face", faces[current_face])) {
+				for (int i = 0; i < 8; i++) {
+					bool selected = current_face == i;
+
+					if (ImGui::Selectable(faces[i], &selected)) {
+						current_face = i;
+						m_general_settings.debug_render_settings.voxel_render_face = (VoxelRenderFace)(1 << i);
+					}
+				}
+				ImGui::EndCombo();
+			}
 
 			ImGui::SeparatorText("Selection");
 			ImGui::Checkbox("Select physics objects", &m_general_settings.selection_settings.select_physics_objects);
@@ -1608,8 +1628,8 @@ namespace ORNG {
 		ImGui::Button(ICON_FA_FILE, ImVec2(100, 100));
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("SCRIPT")) {
-				if (p_payload->DataSize == sizeof(std::string)) {
-					ScriptSymbols* p_symbols = &AssetManager::GetAsset<ScriptAsset>(*static_cast<std::string*>(p_payload->Data))->symbols;
+				if (p_payload->DataSize == sizeof(ScriptAsset*)) {
+					ScriptSymbols* p_symbols = &(*static_cast<ScriptAsset**>(p_payload->Data))->symbols;
 					p_script->SetSymbols(p_symbols);
 				}
 			}

@@ -26,8 +26,13 @@ target_include_directories(ORNG_EDITOR PUBLIC
 headers
 )
 
+target_include_directories(ORNG_CORE PUBLIC headers)
+
 file(GLOB_RECURSE SOURCE_FILES "${CMAKE_CURRENT_LIST_DIR}/src/*.cpp")
 set_property(TARGET ORNG_EDITOR PROPERTY SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/src")
+target_compile_definitions(ORNG_EDITOR PUBLIC ORNG_EDITOR_LAYER=true)
+target_compile_definitions(ORNG_CORE PUBLIC ORNG_EDITOR_LAYER=true)
+
 
 
 add_subdirectory(extern/imguizmo)

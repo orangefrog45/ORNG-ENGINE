@@ -17,6 +17,7 @@
 #include "rendering/Material.h"
 #include "assets/AssetManager.h"
 #include "glm/glm/gtc/round.hpp"
+#include <glm/glm/gtc/integer.hpp>
 
 #include "scene/MeshInstanceGroup.h"
 
@@ -363,19 +364,30 @@ namespace ORNG {
 		mp_bloom_threshold_shader->AddUniform("u_threshold");
 		mp_bloom_threshold_shader->AddUniform("u_knee");
 
-		Texture3DSpec voxel_spec;
-		voxel_spec.format = GL_RGBA;
-		voxel_spec.internal_format = GL_RGBA16F;
-		voxel_spec.width = 256;
-		voxel_spec.height = 256;
-		voxel_spec.layer_count = 256;
-		voxel_spec.storage_type = GL_FLOAT;
-		voxel_spec.mag_filter = GL_LINEAR;
-		voxel_spec.min_filter = GL_LINEAR;
+		Texture3DSpec voxel_spec_rgbaf;
+		voxel_spec_rgbaf.format = GL_RGBA;
+		voxel_spec_rgbaf.internal_format = GL_RGBA16F;
+		voxel_spec_rgbaf.width = 256;
+		voxel_spec_rgbaf.height = 256;
+		voxel_spec_rgbaf.layer_count = 256;
+		voxel_spec_rgbaf.storage_type = GL_FLOAT;
+		voxel_spec_rgbaf.mag_filter = GL_LINEAR;
+		voxel_spec_rgbaf.min_filter = GL_LINEAR;
 		
-		m_scene_voxel_tex.SetSpec(voxel_spec);
 
-		Texture3DSpec voxel_mip_spec = voxel_spec;
+		Texture3DSpec voxel_spec_r32ui = voxel_spec_rgbaf;
+		voxel_spec_r32ui.format = GL_RED_INTEGER;
+		voxel_spec_r32ui.internal_format = GL_R32UI;
+		voxel_spec_r32ui.storage_type = GL_UNSIGNED_INT;
+		voxel_spec_r32ui.min_filter = GL_NEAREST;
+		voxel_spec_r32ui.mag_filter = GL_NEAREST;
+
+
+
+		m_scene_voxel_tex_normals.SetSpec(voxel_spec_r32ui);
+		m_scene_voxel_tex.SetSpec(voxel_spec_r32ui);
+
+		Texture3DSpec voxel_mip_spec = voxel_spec_rgbaf;
 		voxel_mip_spec.width = 128;
 		voxel_mip_spec.height = 128;
 		voxel_mip_spec.layer_count = 128;
@@ -626,16 +638,37 @@ namespace ORNG {
 		//PrepRenderPasses()
 	}
 
+
+	unsigned convVec4ToRGBA8(glm::vec4 val) {
+		return (unsigned(val.w) & 0x000000FF) << 24U
+			| (unsigned(val.z) & 0x000000FF) << 16U
+			| (unsigned(val.y) & 0x000000FF) << 8U
+			| (unsigned(val.x) & 0x000000FF);
+	}
+
+	glm::vec4 convRGBA8ToVec4(unsigned val) {
+		return glm::vec4(float((val & 0x000000FF)),
+			float((val & 0x0000FF00) >> 8U),
+			float((val & 0x00FF0000) >> 16U),
+			float((val & 0xFF000000) >> 24U));
+	}
+
 	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height) {
 		ORNG_PROFILE_FUNC_GPU();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
+
+		GLuint clear_val = convVec4ToRGBA8({ 0, 0, 0, 0 });
+		auto c = convRGBA8ToVec4(clear_val);
+		ORNG_CORE_TRACE("{} {} {} {}", c.x, c.y, c.z, c.w);
+		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
+		glClearTexImage(m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(1, m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		glViewport(0, 0, 256, 256);
 		mp_scene_voxelization_shader->Activate(0);
 
@@ -643,7 +676,6 @@ namespace ORNG {
 		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4));
 
 		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(128 * 0.2, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, 128 * 0.2, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, 128 * 0.2), cam_pos, {0, 1, 0}) };
-
 		mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
@@ -652,7 +684,6 @@ namespace ORNG {
 			}
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
-
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
@@ -670,9 +701,10 @@ namespace ORNG {
 		}
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+		glBindImageTexture(2, m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		mp_3d_mipmap_shader->Activate(MipMap3D_ShaderVariants::ANISOTROPIC);
-		GL_StateManager::DispatchCompute(128, 128, 128);
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		GL_StateManager::DispatchCompute(128 / 4, 128 / 4, 128 / 4);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 		mp_3d_mipmap_shader->Activate(MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[0]->GetTextureHandle(), GL_TEXTURE0);
@@ -682,7 +714,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[4]->GetTextureHandle(), GL_TEXTURE4);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[5]->GetTextureHandle(), GL_TEXTURE5);
 
-		for (int i = 1; i <= num_mip_levels; i++) {
+		for (int i = 1; i < 6; i++) {
 			mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
 			glBindImageTexture(0, voxel_mips[0]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 			glBindImageTexture(1, voxel_mips[1]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
@@ -693,10 +725,10 @@ namespace ORNG {
 
 			int group_dim = glm::ceil((128.f / (i + 1)) / 4.f);
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
-		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -720,7 +752,6 @@ namespace ORNG {
 
 		mp_transparency_shader_variants->Activate(DEFAULT);
 		mp_transparency_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
-
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED);
@@ -778,7 +809,6 @@ namespace ORNG {
 		}
 	}
 
-
 	void SceneRenderer::DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings) {
 		ORNG_PROFILE_FUNC_GPU();
 		m_gbuffer_fb->Bind();
@@ -818,13 +848,21 @@ namespace ORNG {
 			}
 		}
 
-		if (settings.render_voxel_debug) {
-			glBindImageTexture(0, m_voxel_mip_faces.pos_y.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+#ifdef ORNG_EDITOR_LAYER
+		if (!((int)settings.voxel_render_face & (int)VoxelRenderFace::NONE)) {
+			if ((int)settings.voxel_render_face & (int)VoxelRenderFace::BASE) {
+				glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			}
+			else {
+				std::array<Texture3D*, 6> voxel_mips = { &m_voxel_mip_faces.pos_x, &m_voxel_mip_faces.pos_y, &m_voxel_mip_faces.pos_z, &m_voxel_mip_faces.neg_x, &m_voxel_mip_faces.neg_y, &m_voxel_mip_faces.neg_z };
+				glBindImageTexture(0, voxel_mips[glm::log2((int)settings.voxel_render_face) - 2]->GetTextureHandle(), settings.voxel_mip_layer, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			}
+
 			mp_voxel_debug_shader->ActivateProgram();
 			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 128 * 128 * 128);
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 256 * 256 * 256);
 		}
-		
+#endif	
 
 
 		/* uniforms */

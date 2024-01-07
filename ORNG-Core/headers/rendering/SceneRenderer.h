@@ -5,6 +5,9 @@
 #include "scene/Scene.h"
 #include "rendering/Material.h"
 
+#ifdef ORNG_EDITOR_LAYER
+#include "Settings.h"
+#endif
 
 namespace ORNG {
 	class Scene;
@@ -70,9 +73,13 @@ namespace ORNG {
 			// Will custom user renderpasses be executed
 			bool do_intercept_renderpasses = true;
 			bool render_meshes = true;
-			bool render_voxel_debug = false;
 			bool display_depth_map = false;
 			CameraComponent* p_cam_override = nullptr;
+
+#ifdef ORNG_EDITOR_LAYER
+			VoxelRenderFace voxel_render_face = VoxelRenderFace::NONE;
+			unsigned voxel_mip_layer = 0;
+#endif
 
 			// Output tex has to have format RGBA16F
 			Texture2D* p_output_tex = nullptr;
@@ -200,6 +207,7 @@ namespace ORNG {
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
 
 		Texture3D m_scene_voxel_tex{ "SR scene voxel tex" };
+		Texture3D m_scene_voxel_tex_normals{ "SR scene voxel tex normals" };
 		VoxelMipFaces m_voxel_mip_faces;
 
 		PointlightSystem m_pointlight_system;

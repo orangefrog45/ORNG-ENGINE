@@ -17,11 +17,22 @@ namespace ORNG {
 		bool display_bloom_editor = false;
 	};
 
+	enum class VoxelRenderFace {
+		NONE = 1 << 0,
+		BASE = 1 << 1,
+		POS_X = 1 << 2,
+		POS_Y = 1 << 3,
+		POS_Z = 1 << 4,
+		NEG_X = 1 << 5,
+		NEG_Y = 1 << 6,
+		NEG_Z = 1 << 7
+	};
 
 	struct DebugRenderSettings {
 		bool render_physx_debug = false;
 		bool render_meshes = true;
-		bool render_voxel_debug = false;
+		VoxelRenderFace voxel_render_face = VoxelRenderFace::NONE;
+		int voxel_mip = 0;
 	};
 
 	struct GeneralSettings {

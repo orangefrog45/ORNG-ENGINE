@@ -1,3 +1,8 @@
+7/1/23:
+-Improvements to anisotropic mipmapping process
+-Specular cone tracing
+-Performance fix to VCTGI (fixed accidentally using 4x threads for first mip)
+
 3/1/23:
 -Anisotropic mipmapping and sampling for VCTGI, currently extremely unoptimized
 -General QOL keybinds/features in the editor

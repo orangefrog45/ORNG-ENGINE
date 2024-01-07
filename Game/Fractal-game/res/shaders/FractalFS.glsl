@@ -127,7 +127,9 @@ vec3 Colour(vec3 p)
 	float scale = 1.;
 	for (int i = 0; i < u_num_iters; i++)
 	{
+		float t = dot(p, normalize(vec3(1.0, 2., 1.5)));
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
+
 		float r2 = dot(p, p);
 		//float r2 = dot(p, p + sin(p.z * .3) * sin(ubo_common.time_elapsed * 0.001));
 		//float r2 = dot(p, p + sin(p.z * .3)); //Alternate fractal
@@ -137,8 +139,8 @@ vec3 Colour(vec3 p)
 		scale *= k;
 	}
 	//return  clamp(vec3((length(p.xz) + length(p.yz)) / max(length(p.xy), 0.00001), length(p.yz), length(p.xy)), vec3(0.01), vec3(1)) ;
-	//return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
-	return  clamp(mix(abs(p.xzy * p.zxz) * vec3(0.88, 5.6, 0.12), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
+	return  clamp(mix(abs(p.xzy) * vec3(0.2, 0.001, 0.005), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
+	//return  clamp(mix(abs(p.xzy * p.zxz) * vec3(0.88, 5.6, 0.12), vec3(0.3), min(dot(p.xzy, p.yxz), 1.0)), vec3(0), vec3(1));
 }
 
 	//	float k = max((2.) / (r2), .027);
@@ -167,16 +169,21 @@ float map(vec3 p) {
 	p = p.xzy;
 	float scale = 0.5;
 	// Move point towards limit set
-	float ns = noise(p.xy * 0.01 + normalize(p.xy) * 1  );
-	ns+= noise(p.xy * 0.001 );
-	ns+= noise(p.xy * 0.0001 ) * 1.0;
 
-		vec3 c = CSize + vec3(0, 0, ns);
 	for (int i = 0; i < u_num_iters; i++)
 	{
-		// box fold
+
+		//p.xz = p.z + p.x < 0 ? -p.zx : p.xz;
+		float t = dot(p, normalize(vec3(1.0, 2., 1.5)));
+		//if (t < 0.0)
+		//p -= 2.0 * t * normalize(vec3(1., 2., 1.5));
 
 		p = 2.0 * clamp(p, -CSize, CSize) - p;
+		// box fold
+		//p.zy = p.y + p.z < 0 ? -p.yz : p.zy;
+
+		p.xy = p.y + p.x < 0 ? -p.yx : p.xy;
+
 		float r2 = dot(p, p);
 		K
 		p *= k;
@@ -233,7 +240,32 @@ float MapVein(vec3 pos, float cyl_dist, float t) {
 	return perlin - perlin_thickness;
 }
 
-in vec4 gl_FragCoord;
+vec3 raySphereIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 sphereCenter, float sphereRadius) {
+    // Calculate the vector from the ray's origin to the sphere's center
+    vec3 oc = rayOrigin - sphereCenter;
+    
+    // Calculate coefficients for the quadratic equation
+    float a = dot(rayDirection, rayDirection);
+    float b = 2.0 * dot(oc, rayDirection);
+    float c = dot(oc, oc) - sphereRadius * sphereRadius;
+    
+    // Calculate the discriminant
+    float discriminant = b * b - 4.0 * a * c;
+    
+    // Check if the ray intersects with the sphere
+    if (discriminant > 0.0) {
+        // Calculate the two possible intersection points
+        float t1 = (-b - sqrt(discriminant)) / (2.0 * a);
+        float t2 = (-b + sqrt(discriminant)) / (2.0 * a);
+        
+        // Return the closest intersection point
+        return rayOrigin + min(t1, t2) * rayDirection;
+    } else {
+        // No intersection, return a point at infinity or some sentinel value
+        return vec3(0.0, 0.0, -1.0);
+    }
+}
+
 void main() {
 	float depth = texture(depth_sampler, tex_coords).r;
 	vec3 world_pos = WorldPosFromDepth(depth, tex_coords);
@@ -241,8 +273,10 @@ void main() {
 	vec3 step_pos = ubo_common.camera_pos.xyz;
 
 	float max_dist = length(world_pos - ubo_common.camera_pos.xyz);
-	float t = 0.01;
-	float d = 0.01;
+	float d = length(ubo_common.camera_pos.xyz) > 500.0 ? length(raySphereIntersection(ubo_common.camera_pos.xyz, march_dir, vec3(0), 500) - ubo_common.camera_pos.xyz) : 0.1;
+	float t = d;
+		step_pos += d * march_dir;
+
 	for (int i = 0; i < 196; i++) {
 		d = map(step_pos);
 		step_pos += d * march_dir;
@@ -252,13 +286,15 @@ void main() {
 			//ssbo_particles_detached.particles[particle_index].velocity_life -= ubo_common.delta_time;
 			//ssbo_particles_detached.particles[particle_index].pos.xyz += ssbo_particles_detached.particles[particle_index].velocity_life.xyz * ubo_common.delta_time;
 
+			if (length(step_pos) > 520.0)
+			discard;
 
 			vec3 norm = calcNormal(step_pos, t);
 			normal = vec4(norm, 1.0);
 			shader_id = 1;
 
-			albedo = vec4(Colour(step_pos) * 0.8 * exp(-i * 0.01) , 1.0);
-			//albedo = vec4(Colour(step_pos) + vec3(1.0, 0.2, 0.05) * exp((-i / 256.0 ) * 10.0), 1.0);
+			//albedo = vec4(Colour(step_pos) * 0.8 * exp(-i * 0.01) , 1.0);
+			albedo = vec4(Colour(step_pos) + vec3(1.0, 0.2, 0.05) * exp((-i / 256.0 ) * 10.0), 1.0);
 
 			//albedo = vec4(Colour(step_pos) * 0.1 * float(perlin >= 0.01) + vec3(0.6, 0.00, 0.00) * float(perlin <= 0.01) * 10.0 / clamp(cyl_dist, 0.1, 20.0), 1.0);
 

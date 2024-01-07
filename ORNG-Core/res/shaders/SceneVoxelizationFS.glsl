@@ -9,7 +9,9 @@ layout(binding = 25) uniform sampler2D emissive_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 
 
-layout(binding = 0, rgba16f) writeonly uniform image3D voxel_image;
+layout(binding = 0, r32ui) uniform coherent uimage3D voxel_image;
+layout(binding = 1, r32ui) uniform coherent uimage3D voxel_image_normals;
+
 
 in vec4 vs_position;
 in vec3 vs_normal;
@@ -101,6 +103,67 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	return albedo_col;
 }
 
+// Below functions sourced from paper https://www.icare3d.org/research/OpenGLInsights-SparseVoxelization.pdf
+uint convVec4ToRGBA8(vec4 val) {
+  return (uint(val.w) & 0x000000FF) << 24U
+    | (uint(val.z) & 0x000000FF) << 16U
+    | (uint(val.y) & 0x000000FF) << 8U
+    | (uint(val.x) & 0x000000FF);
+}
+
+
+
+
+vec4 convRGBA8ToVec4(uint val) {
+  return vec4(float((val & 0x000000FF)),
+      float((val & 0x0000FF00) >> 8U),
+      float((val & 0x00FF0000) >> 16U),
+      float((val & 0xFF000000) >> 24U));
+}
+
+uint encUnsignedNibble(uint m, uint n) {
+  return (m & 0xFEFEFEFE)
+    | (n & 0x00000001)
+    | (n & 0x00000002) << 7U
+    | (n & 0x00000004) << 14U
+    | (n & 0x00000008) << 21U;
+}
+
+uint decUnsignedNibble(uint m) {
+  return (m & 0x00000001)
+    | (m & 0x00000100) >> 7U
+    | (m & 0x00010000) >> 14U
+    | (m & 0x01000000) >> 21U;
+}
+
+/*void imageAtomicRGBA8Avg(layout (r32ui) uimage3D img, ivec3 coords, vec4 val)
+{
+  // LSBs are used for the sample counter of the moving average.
+
+  val *= 255.0;
+  uint newVal = encUnsignedNibble(convVec4ToRGBA8(val), 1);
+  uint prevStoredVal = 0;
+  uint currStoredVal;
+
+  int counter = 0;
+  // Loop as long as destination value gets changed by other threads
+  while ((currStoredVal = imageAtomicCompSwap(img, coords, prevStoredVal, newVal))
+      != prevStoredVal && counter < 16) {
+
+    vec4 rval = convRGBA8ToVec4(currStoredVal & 0xFEFEFEFE);
+    uint n = decUnsignedNibble(currStoredVal);
+    rval = rval * n + val;
+    rval /= ++n;
+    rval = round(rval / 2) * 2;
+    newVal = encUnsignedNibble(convVec4ToRGBA8(rval), n);
+
+    prevStoredVal = currStoredVal;
+
+    counter++;
+  }
+}*/
+
+
 
 void main() {
     vec3 n = normalize(vs_normal);
@@ -115,6 +178,13 @@ void main() {
         col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vs_position.xyz));
         col *= CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;
     }
-    imageStore(voxel_image, ivec3((vs_position.xyz - u_aligned_camera_pos  ) * 5.0  + vec3(128)), vec4(col, 1));
 
+    ivec3 coord = ivec3((vs_position.xyz - u_aligned_camera_pos  ) * 5.0  + vec3(128));
+
+    if (any(greaterThan(coord, vec3(256))) || any(lessThan(coord, vec3(0))))
+        discard;
+        
+    imageAtomicMax(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
+
+    imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(min(col, vec3(1)) * 255, 255)));
 }
