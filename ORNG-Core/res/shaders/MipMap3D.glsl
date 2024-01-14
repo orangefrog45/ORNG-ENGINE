@@ -46,14 +46,6 @@ void FetchTexels(ivec3 start_coord, uint face_index, out vec4[8] values) {
 
 #endif
 
-const vec3 faces[] = {
-    vec3(1, 0, 0),
-    vec3(0, 1, 0),
-    vec3(0, 0, 1),
-    vec3(-1, 0, 0),
-    vec3(0, -1, 0),
-    vec3(0, 0, -1),
-};
 
 vec4 AlphaBlend(vec4 v0, vec4 v1) {
     return v0 + v1 * (1 - v0.a);

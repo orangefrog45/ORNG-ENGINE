@@ -303,7 +303,7 @@ namespace ORNG {
 		int num_particles_to_decrement = (total_emitter_particles - (p_comp->m_particle_start_index + old_nb_particles));
 
 		if (num_particles_to_decrement > 0)
-			GL_StateManager::DispatchCompute(num_particles_to_decrement, 1, 1);
+			GL_StateManager::DispatchCompute(glm::ceil(num_particles_to_decrement / 32.f), 1, 1);
 
 		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS);
 		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);

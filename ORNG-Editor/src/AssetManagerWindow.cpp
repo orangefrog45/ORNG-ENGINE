@@ -1088,6 +1088,9 @@ namespace ORNG {
 				m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_LINEAR : GL_NEAREST;
 				m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST;
 
+				std::string mipmapped = std::format("Mipmaps: {}", mp_selected_texture->GetSpec().generate_mipmaps ? "true" : "false");
+				ImGui::Text(mipmapped.c_str());
+
 				m_current_2d_tex_spec.generate_mipmaps = true;
 
 				if (ImGui::Button("Load")) {

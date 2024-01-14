@@ -1,3 +1,7 @@
+14/1/24:
+-Large voxel GI performance boost by cone tracing at half res and doing a depth-aware upsample
+-Some refactoring
+
 7/1/24:
 -Improvements to anisotropic mipmapping process
 -Specular cone tracing

@@ -20,6 +20,8 @@ namespace ORNG {
 
 		void RemovePoint(unsigned index);
 
+		unsigned GetNbPoints() { return points.size(); };
+
 		glm::vec2 GetPoint(unsigned index);
 
 		void SortPoints() {
@@ -57,6 +59,8 @@ namespace ORNG {
 		void SetPoint(unsigned index, const glm::vec4& v);
 
 		void RemovePoint(unsigned index);
+
+		unsigned GetNbPoints() { return points.size(); };
 
 		glm::vec4 GetPoint(unsigned index);
 

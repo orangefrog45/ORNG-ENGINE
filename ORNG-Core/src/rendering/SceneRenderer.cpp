@@ -45,6 +45,11 @@ namespace ORNG {
 		ANISOTROPIC_CHAIN,
 	};
 
+	enum class DepthAwareUpsampleSV {
+		DEFAULT,
+		CONE_TRACE
+	};
+
 	void SceneRenderer::I_Init() {
 		mp_shader_library = &Renderer::GetShaderLibrary();
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
@@ -156,15 +161,15 @@ namespace ORNG {
 
 		// blue noise for post-processing effects in quad
 		Texture2DSpec noise_spec;
-		noise_spec.filepath = "../ORNG-Core/res/textures/BlueNoise64Tiled.png";
+		noise_spec.filepath = "res/textures/BlueNoise64Tiled.png";
 		noise_spec.min_filter = GL_NEAREST;
 		noise_spec.mag_filter = GL_NEAREST;
 		noise_spec.wrap_params = GL_REPEAT;
 		noise_spec.storage_type = GL_UNSIGNED_BYTE;
+		noise_spec.wrap_params = GL_REPEAT;
 
 		m_blue_noise_tex.SetSpec(noise_spec);
 		m_blue_noise_tex.LoadFromFile();
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 
 
 		mp_orth_depth_shader = &mp_shader_library->CreateShader("orth_depth");
@@ -190,11 +195,16 @@ namespace ORNG {
 		mp_pointlight_depth_shader->AddUniform("u_light_zfar");
 
 
-		m_blur_shader = &mp_shader_library->CreateShader("blur");
+		m_blur_shader = &mp_shader_library->CreateShader("SR Blur");
 		m_blur_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BlurFS.glsl");
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
-		m_blur_shader->AddUniform("u_first_iter");
+
+		mp_depth_aware_upsample_sv = &mp_shader_library->CreateShaderVariants("SR depth aware upsample");
+		mp_depth_aware_upsample_sv->SetPath(GL_COMPUTE_SHADER, "res/shaders/DepthAwareUpsampleCS.glsl");
+		mp_depth_aware_upsample_sv->AddVariant((unsigned)DepthAwareUpsampleSV::DEFAULT, {}, {});
+		// Cone trace upsample pass is also normal-aware as well as depth-aware
+		mp_depth_aware_upsample_sv->AddVariant((unsigned)DepthAwareUpsampleSV::CONE_TRACE, {"CONE_TRACE_UPSAMPLE"}, {});
 
 
 		/* GBUFFER FB */
@@ -209,8 +219,8 @@ namespace ORNG {
 
 
 		Texture2DSpec low_pres_spec;
-		low_pres_spec.format = GL_RGB;
-		low_pres_spec.internal_format = GL_RGB16F;
+		low_pres_spec.format = GL_RGBA;
+		low_pres_spec.internal_format = GL_RGBA16F;
 		low_pres_spec.storage_type = GL_FLOAT;
 		low_pres_spec.width = Window::GetWidth();
 		low_pres_spec.height = Window::GetHeight();
@@ -232,6 +242,7 @@ namespace ORNG {
 		m_gbuffer_fb->Add2DTexture("shared_depth", GL_DEPTH_ATTACHMENT, gbuffer_depth_spec);
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 		m_gbuffer_fb->EnableDrawBuffers(4, buffers);
+
 
 		/* TRANSPARENCY FB */
 		mp_transparency_fb = &mp_framebuffer_library->CreateFramebuffer("transparency", true);
@@ -329,8 +340,8 @@ namespace ORNG {
 		resize_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
 			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
 				Texture2DSpec resized_spec = m_fog_output_tex.GetSpec();
-				resized_spec.width = t_event.new_window_size.x / 2;
-				resized_spec.height = t_event.new_window_size.y / 2;
+				resized_spec.width = t_event.new_window_size.x * 0.5;
+				resized_spec.height = t_event.new_window_size.y * 0.5;
 				m_fog_output_tex.SetSpec(resized_spec);
 
 				resized_spec.width = t_event.new_window_size.x;
@@ -339,9 +350,14 @@ namespace ORNG {
 				m_fog_blur_tex_2.SetSpec(resized_spec);
 
 				Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
-				resized_bloom_spec.width = t_event.new_window_size.x / 2;
-				resized_bloom_spec.height = t_event.new_window_size.y / 2;
+				resized_bloom_spec.width = t_event.new_window_size.x * 0.5;
+				resized_bloom_spec.height = t_event.new_window_size.y * 0.5;
 				m_bloom_tex.SetSpec(resized_bloom_spec);
+
+				Texture2DSpec resized_ct_spec = m_cone_trace_accum_tex.GetSpec();
+				resized_ct_spec.width = t_event.new_window_size.x * 0.5;
+				resized_ct_spec.height = t_event.new_window_size.y * 0.5;
+				m_cone_trace_accum_tex.SetSpec(resized_ct_spec);
 			}
 			};
 
@@ -394,6 +410,7 @@ namespace ORNG {
 		voxel_mip_spec.generate_mipmaps = true;
 		voxel_mip_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 		
+
 		m_voxel_mip_faces.neg_x.SetSpec(voxel_mip_spec);
 		m_voxel_mip_faces.neg_y.SetSpec(voxel_mip_spec);
 		m_voxel_mip_faces.neg_z.SetSpec(voxel_mip_spec);
@@ -404,6 +421,16 @@ namespace ORNG {
 		mp_scene_voxelization_fb = &mp_framebuffer_library->CreateFramebuffer("scene voxelization", false);
 		mp_scene_voxelization_fb->Bind();
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_blue_noise_tex.GetTarget(), m_blue_noise_tex.GetTextureHandle(), 0);
+
+		mp_cone_trace_shader = &Renderer::GetShaderLibrary().CreateShader("SR cone trace");
+		mp_cone_trace_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/ConeTraceCS.glsl");
+		mp_cone_trace_shader->Init();
+		mp_cone_trace_shader->AddUniform("u_aligned_camera_pos");
+
+		Texture2DSpec cone_trace_spec = low_pres_spec;
+		cone_trace_spec.width = Window::GetWidth() * 0.5;
+		cone_trace_spec.height = Window::GetHeight() * 0.5;
+		m_cone_trace_accum_tex.SetSpec(cone_trace_spec);
 
 	}
 
@@ -634,10 +661,6 @@ namespace ORNG {
 		}
 	}
 
-	void SceneRenderer::RenderMeshDirect(const DirectMeshRenderData& mesh_data) {
-		//PrepRenderPasses()
-	}
-
 
 	unsigned convVec4ToRGBA8(glm::vec4 val) {
 		return (unsigned(val.w) & 0x000000FF) << 24U
@@ -661,8 +684,6 @@ namespace ORNG {
 		glDisable(GL_CULL_FACE);
 
 		GLuint clear_val = convVec4ToRGBA8({ 0, 0, 0, 0 });
-		auto c = convRGBA8ToVec4(clear_val);
-		ORNG_CORE_TRACE("{} {} {} {}", c.x, c.y, c.z, c.w);
 		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glClearTexImage(m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -714,14 +735,14 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[4]->GetTextureHandle(), GL_TEXTURE4);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[5]->GetTextureHandle(), GL_TEXTURE5);
 
-		for (int i = 1; i < 6; i++) {
+		for (int i = 1; i <= 6; i++) {
 			mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
-			glBindImageTexture(0, voxel_mips[0]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(1, voxel_mips[1]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(2, voxel_mips[2]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(3, voxel_mips[3]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(4, voxel_mips[4]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
-			glBindImageTexture(5, voxel_mips[5]->GetTextureHandle(), i, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+			glBindImageTexture(0, voxel_mips[0]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindImageTexture(1, voxel_mips[1]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindImageTexture(2, voxel_mips[2]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindImageTexture(3, voxel_mips[3]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindImageTexture(4, voxel_mips[4]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindImageTexture(5, voxel_mips[5]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 			int group_dim = glm::ceil((128.f / (i + 1)) / 4.f);
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
@@ -860,7 +881,7 @@ namespace ORNG {
 
 			mp_voxel_debug_shader->ActivateProgram();
 			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), 256 * 256 * 256);
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), glm::pow(256 / (settings.voxel_mip_layer + 1), 3));
 		}
 #endif	
 
@@ -994,18 +1015,18 @@ namespace ORNG {
 		glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-
-		//blur fog texture
-		m_blur_shader->ActivateProgram();
+		//Upsample fog texture
+		mp_depth_aware_upsample_sv->Activate((unsigned)DepthAwareUpsampleSV::DEFAULT);
 		GL_StateManager::BindTexture(
 			GL_TEXTURE_2D, m_fog_output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3
 		);
 
-		m_blur_shader->SetUniform("u_first_iter", 1);
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_blur_tex_1.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glDispatchCompute((GLuint)glm::ceil((float)width / 8.f), (GLuint)glm::ceil((float)height / 8.f), 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		m_blur_shader->SetUniform("u_first_iter", 0);
+
+		//blur fog texture
+		m_blur_shader->ActivateProgram();
 
 		for (int i = 0; i < 2; i++) {
 			m_blur_shader->SetUniform("u_horizontal", 1);
@@ -1040,6 +1061,8 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSpecularPrefilter().GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_pointlight_system.m_pointlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SCENE_VOXELIZATION, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
+
 
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_x.GetTextureHandle(), GL_TEXTURE5, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_y.GetTextureHandle(), GL_TEXTURE6, false);
@@ -1054,8 +1077,24 @@ namespace ORNG {
 
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+
+		// Cone trace at half res
+		glClearTexImage(m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
+		mp_cone_trace_shader->ActivateProgram();
+		mp_cone_trace_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
+		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 16.f), (GLuint)glm::ceil((float)spec.height / 16.f), 1);
+
+		glBindImageTexture(7, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		mp_depth_aware_upsample_sv->Activate((unsigned)DepthAwareUpsampleSV::CONE_TRACE);
+		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_cone_trace_accum_tex.GetTextureHandle(), GL_TEXTURE23, false);
+		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+
+
 	}
 
 

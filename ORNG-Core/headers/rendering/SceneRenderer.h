@@ -132,8 +132,6 @@ namespace ORNG {
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
 		void DoVoxelizationPass(unsigned output_width, unsigned output_height);
 
-		void RenderMeshDirect(const DirectMeshRenderData& mesh_data);
-
 	private:
 
 		void IAttachRenderpassIntercept(Renderpass renderpass) {
@@ -180,12 +178,14 @@ namespace ORNG {
 		Shader* mp_voxel_debug_shader = nullptr;
 		Framebuffer* mp_scene_voxelization_fb = nullptr;
 
+		ShaderVariants* mp_depth_aware_upsample_sv = nullptr;
 		Shader* m_blur_shader = nullptr;
 		Shader* m_fog_shader = nullptr;
 		Shader* m_lighting_shader = nullptr;
 		Shader* mp_bloom_downsample_shader = nullptr;
 		Shader* mp_bloom_upsample_shader = nullptr;
 		Shader* mp_bloom_threshold_shader = nullptr;
+		Shader* mp_cone_trace_shader = nullptr;
 		ShaderVariants* mp_transparency_shader_variants = nullptr;
 
 		Shader* mp_transparency_composite_shader = nullptr;
@@ -205,6 +205,8 @@ namespace ORNG {
 		Texture2D m_fog_blur_tex_2{ "SR fog blur 2 tex" };
 		Texture2D m_bloom_tex{ "SR fog blur 1" };
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
+
+		Texture2D m_cone_trace_accum_tex{ "SR cone trace accum" };
 
 		Texture3D m_scene_voxel_tex{ "SR scene voxel tex" };
 		Texture3D m_scene_voxel_tex_normals{ "SR scene voxel tex normals" };

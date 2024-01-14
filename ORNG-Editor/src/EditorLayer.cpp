@@ -2381,6 +2381,9 @@ namespace ORNG {
 		for (auto id : entities) {
 			auto* p_original_ent = (*mp_scene_context)->GetEntity(id);
 
+			if (!p_original_ent)
+				continue;
+
 			if (m_simulate_mode_active)
 				p_dup_ent = &(*mp_scene_context)->DuplicateEntityCallScript(*p_original_ent);
 			else

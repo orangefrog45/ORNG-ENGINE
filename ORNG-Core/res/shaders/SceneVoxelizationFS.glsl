@@ -121,48 +121,6 @@ vec4 convRGBA8ToVec4(uint val) {
       float((val & 0xFF000000) >> 24U));
 }
 
-uint encUnsignedNibble(uint m, uint n) {
-  return (m & 0xFEFEFEFE)
-    | (n & 0x00000001)
-    | (n & 0x00000002) << 7U
-    | (n & 0x00000004) << 14U
-    | (n & 0x00000008) << 21U;
-}
-
-uint decUnsignedNibble(uint m) {
-  return (m & 0x00000001)
-    | (m & 0x00000100) >> 7U
-    | (m & 0x00010000) >> 14U
-    | (m & 0x01000000) >> 21U;
-}
-
-/*void imageAtomicRGBA8Avg(layout (r32ui) uimage3D img, ivec3 coords, vec4 val)
-{
-  // LSBs are used for the sample counter of the moving average.
-
-  val *= 255.0;
-  uint newVal = encUnsignedNibble(convVec4ToRGBA8(val), 1);
-  uint prevStoredVal = 0;
-  uint currStoredVal;
-
-  int counter = 0;
-  // Loop as long as destination value gets changed by other threads
-  while ((currStoredVal = imageAtomicCompSwap(img, coords, prevStoredVal, newVal))
-      != prevStoredVal && counter < 16) {
-
-    vec4 rval = convRGBA8ToVec4(currStoredVal & 0xFEFEFEFE);
-    uint n = decUnsignedNibble(currStoredVal);
-    rval = rval * n + val;
-    rval /= ++n;
-    rval = round(rval / 2) * 2;
-    newVal = encUnsignedNibble(convVec4ToRGBA8(rval), n);
-
-    prevStoredVal = currStoredVal;
-
-    counter++;
-  }
-}*/
-
 
 
 void main() {

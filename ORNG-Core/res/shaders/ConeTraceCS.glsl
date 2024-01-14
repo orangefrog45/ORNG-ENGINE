@@ -1,12 +1,6 @@
-#version 430 core
-
-ORNG_INCLUDE "UtilINCL.glsl"
+#version 460 core
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-
-const unsigned int NUM_SHADOW_CASCADES = 3;
-ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
-
 
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
@@ -28,7 +22,11 @@ layout(binding = 22) uniform sampler2D brdf_lut_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 layout(binding = 27) uniform usampler3D voxel_grid_sampler;
 
+
 layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
+
+uniform vec3 u_aligned_camera_pos;
+
 
 #define DIR_DEPTH_SAMPLER dir_depth_sampler
 #define POINTLIGHT_DEPTH_SAMPLER pointlight_depth_sampler
@@ -37,27 +35,30 @@ layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 #define DIFFUSE_PREFILTER_SAMPLER diffuse_prefilter_sampler
 #define BRDF_LUT_SAMPLER brdf_lut_sampler
 
-uniform vec3 u_aligned_camera_pos;
 
 ORNG_INCLUDE "LightingINCL.glsl"
 
+ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy * 2);
+
 unsigned int shader_id = texelFetch(shader_id_sampler, tex_coords, 0).r;
-vec3 sampled_world_pos = WorldPosFromDepth(texelFetch(view_depth_sampler, tex_coords, 0).r, tex_coords / vec2(imageSize(u_output_texture)));
+vec3 sampled_world_pos = WorldPosFromDepth(texelFetch(view_depth_sampler, tex_coords, 0).r, (tex_coords / 2) / vec2(imageSize(u_output_texture) ));
 vec3 sampled_normal = normalize(texelFetch(normal_sampler, tex_coords, 0).xyz);
 vec3 sampled_albedo = texelFetch(albedo_sampler, tex_coords, 0).xyz;
 
 vec3 roughness_metallic_ao = texelFetch(roughness_metallic_ao_sampler, tex_coords, 0).rgb;
-float roughness = roughness_metallic_ao.r;
-float metallic = roughness_metallic_ao.g;
-float ao = roughness_metallic_ao.b;
 
+const vec3 diffuse_cone_dirs[] =
+{
+    vec3(0.0f, 1.0f, 0.0f),
+    vec3(0.0f, 0.5f, 0.866025f),
+    vec3(0.823639f, 0.5f, 0.267617f),
+    vec3(0.509037f, 0.5f, -0.7006629f),
+    vec3(-0.50937f, 0.5f, -0.7006629f),
+    vec3(-0.823639f, 0.5f, 0.267617f)
+};
 
-vec4 convRGBA8ToVec4(uint val) {
-  return vec4(float((val & 0x000000FF)),
-      float((val & 0x0000FF00) >> 8U),
-      float((val & 0x00FF0000) >> 16U),
-      float((val & 0xFF000000) >> 24U));
-}
+#define DIFFUSE_APERTURE_MAX PI / 3.0
+#define DIFFUSE_APERTURE_MIN PI / 6.0
 
 
 vec3 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modifier) {
@@ -72,8 +73,9 @@ vec3 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 	float d = step_length ;
 
 	vec3 weight = cone_dir * cone_dir;
-	while (col.a < 0.95) {
-		vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal * 0.2 ;
+
+	while (col.a < 0.95 ) {
+		vec3 step_pos = sampled_world_pos + cone_dir * d  ;
 
 		vec3 coord = ((step_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / (256.0);
 		if (any(greaterThan(coord, vec3(1))) || any(lessThan(coord, vec3(0))) )
@@ -108,67 +110,36 @@ vec3 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 	return col.rgb;
 	//return textureLod(voxel_grid_sampler, vec3(((sampled_world_pos - u_aligned_camera_pos ) * 5.0 + vec3(128)) / 256.0), 1).xyz;
 }
-
-const vec3 diffuseConeDirections[] =
-{
-    vec3(0.0f, 1.0f, 0.0f),
-    vec3(0.0f, 0.5f, 0.866025f),
-    vec3(0.823639f, 0.5f, 0.267617f),
-    vec3(0.509037f, 0.5f, -0.7006629f),
-    vec3(-0.50937f, 0.5f, -0.7006629f),
-    vec3(-0.823639f, 0.5f, 0.267617f)
-};
-
-#define DIFFUSE_APERTURE_MAX PI / 3.0
-#define DIFFUSE_APERTURE_MIN PI / 6.0
-
 	
 vec3 CalculateIndirectDiffuseLighting() {
 	vec3 col = vec3(0);
 
-
-	vec3 non_parallel = abs(dot(sampled_normal, vec3(0, 1, 0))) > 0.99999 ? vec3(0, 0, 1) : vec3(0, 1, 0);
-	vec3 right = normalize(non_parallel - dot(sampled_normal, non_parallel) * sampled_normal);
-	vec3 up = cross(right, sampled_normal);
+    vec3 avg_normal = normalize(texelFetch(normal_sampler, tex_coords, 0 ).xyz);
+    
+	vec3 non_parallel = abs(dot(avg_normal, vec3(0, 1, 0))) > 0.99999 ? vec3(0, 0, 1) : vec3(0, 1, 0);
+	vec3 right = normalize(non_parallel - dot(avg_normal, non_parallel) * avg_normal);
+	vec3 up = cross(right, avg_normal);
 
 
 	float aperture = max(DIFFUSE_APERTURE_MAX, DIFFUSE_APERTURE_MIN) ;
 	for (int i = 0; i < 6; i++) {
-		vec3 cone_dir = normalize(sampled_normal + diffuseConeDirections[i].x * right + diffuseConeDirections[i].z * up);
-		col += ConeTrace(cone_dir, aperture, 0.15, 1.0);
+		vec3 cone_dir = normalize(avg_normal + diffuse_cone_dirs[i].x * right + diffuse_cone_dirs[i].z * up);
+		col += ConeTrace(cone_dir, aperture, 0.15,0.5);
 	}
 	col *= (1.0 - roughness_metallic_ao.g);
 	col /= 6.0;
 
 
 
-	col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), sampled_normal)), clamp(roughness_metallic_ao.r * PI * 0.5 , 0.5, PI ), 0.6, 0.25) * (1.0 - roughness_metallic_ao.r) ;
+	col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), avg_normal)), clamp(roughness_metallic_ao.r * PI * 0.5 , 0.3, PI ), 0.3, 0.4) * (1.0 - roughness_metallic_ao.r) ;
 	return col ;
 }
 
 
+void main() {
+    if (shader_id != 1)
+    return;
 
-void main()
-{
-	if (shader_id != 1) { // 1 = default lighting shader id
-		imageStore(u_output_texture, tex_coords, vec4(sampled_albedo.rgb, 1.0));
-		return;
-	}
-
-	vec3 total_light = vec3(0.0, 0.0, 0.0);
-	vec3 v = normalize(ubo_common.camera_pos.xyz - sampled_world_pos);
-	vec3 r = reflect(-v, sampled_normal);
-	float n_dot_v = max(dot(sampled_normal, v), 0.0);
-
-	//reflection amount
-	vec3 f0 = vec3(0.04); // TODO: Support different values for more metallic objects
-	f0 = mix(f0, sampled_albedo.xyz, metallic);
-
-	total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
-	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
-	//total_light += CalculateIndirectDiffuseLighting() * sampled_albedo.xyz ;
-
-	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
-
-	imageStore(u_output_texture, tex_coords, vec4(light_color, 1.0));
-};
+    vec3 light = CalculateIndirectDiffuseLighting() * sampled_albedo.xyz ;
+	imageStore(u_output_texture, tex_coords / 2, vec4(light, 1.0));
+}
