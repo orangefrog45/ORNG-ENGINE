@@ -512,17 +512,12 @@ namespace ORNG {
 
 		if (settings.do_intercept_renderpasses) {
 			DoDepthPass(p_cam, settings.p_output_tex);
-			DoVoxelizationPass(spec.width, spec.height);
-
-			DoGBufferPass(p_cam, settings);
-
-			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
-
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
-
+			DoVoxelizationPass(spec.width, spec.height);
+			DoGBufferPass(p_cam, settings);
+			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 			DoLightingPass(settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_LIGHTING, res);
-
 			DoFogPass(spec.width, spec.height);
 			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
 			DoPostProcessingPass(p_cam, settings.p_output_tex);

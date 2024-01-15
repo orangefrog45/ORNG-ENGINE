@@ -113,12 +113,6 @@ void EmitParticleAppend(Particle p, uint buffer_index) {
 
 
 
-
- vec3 qtransform( vec4 q, vec3 v ){ 
-	return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
-} 
-
-
 #ifndef PARTICLES_DETACHED
 
 #define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[index].emitter_index]

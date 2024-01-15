@@ -3,7 +3,6 @@
 #ifdef EMITTER_DELETE_DECREMENT_EMITTERS
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 uniform uint u_num_emitters;
-
 #else
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 #endif
@@ -11,7 +10,13 @@ layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 #define FIRST_INITIALIZATION
 uniform uint u_start_index;
 uniform uint u_emitter_index;
+
+#ifdef EMITTER_DELETE_DECREMENT_PARTICLES
+uniform uint u_num_particles;
+#endif
+
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
+
 
 
 // This function runs just before the memory for the emitter is deleted and the buffers are restructured
@@ -21,8 +26,9 @@ void OnEmitterDelete(uint start_index, uint num_emitters) {
         ssbo_particle_emitters.emitters[i].start_index -= ssbo_particle_emitters.emitters[start_index].num_particles;
     }
 
-    #else
-    ssbo_particles.particles[start_index + gl_GlobalInvocationID.x].emitter_index--;
+    #elif defined EMITTER_DELETE_DECREMENT_PARTICLES
+    if (gl_GlobalInvocationID.x < u_num_particles)
+        ssbo_particles.particles[start_index + gl_GlobalInvocationID.x].emitter_index--;
     #endif
 }
 

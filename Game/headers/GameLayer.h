@@ -27,6 +27,8 @@ namespace ORNG {
 		void RenderParticles();
 		void DrawFractal();
 
+		void SetFractalUniforms();
+
 		std::unique_ptr<Texture2D> p_fractal_depth_chain = nullptr;
 
 		glm::vec3 fractal_csize = {0.9, 0.8, 0.7};

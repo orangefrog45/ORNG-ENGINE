@@ -109,8 +109,6 @@ namespace ORNG {
 		rp.func = [this](RenderResources res) {
 			DrawFractal();
 			glBindImageTexture(1, p_fractal_depth_chain->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_R16F);
-
-
 			p_kleinian_shader_full_res->ActivateProgram();
 			p_kleinian_shader_full_res->SetUniform("CSize", fractal_csize);
 			p_kleinian_shader_full_res->SetUniform("u_k_factor_1", k_factor_1);
@@ -130,7 +128,7 @@ namespace ORNG {
 		particle_rp.stage = RenderpassStage::POST_GBUFFER;
 		particle_rp.name = "particle render";
 
-		//SceneRenderer::AttachRenderpassIntercept(particle_rp);
+		SceneRenderer::AttachRenderpassIntercept(particle_rp);
 
 		Texture2DSpec fractal_depth_spec;
 		fractal_depth_spec.format = GL_RED;
@@ -163,27 +161,21 @@ namespace ORNG {
 			glm::vec2 pixel_znear_size = { znear_size.x / dim.x, znear_size.y / dim.y };
 
 			p_kleinian_shader_mips->Activate((unsigned)FractalShaderVariant::FIRST_PASS);
-			p_kleinian_shader_mips->SetUniform("CSize", fractal_csize);
-			p_kleinian_shader_mips->SetUniform("u_k_factor_1", k_factor_1);
-			p_kleinian_shader_mips->SetUniform("u_k_factor_2", k_factor_2);
+			SetFractalUniforms();
 			p_kleinian_shader_mips->SetUniform("u_pixel_znear_size", pixel_znear_size);
 			p_kleinian_shader_mips->SetUniform("u_pixel_zfar_size", pixel_zfar_size);
-			p_kleinian_shader_mips->SetUniform<unsigned>("u_num_iters", num_iters);
 
 
 
 			glBindImageTexture(0, p_fractal_depth_chain->GetTextureHandle(), MAX_FRACTAL_MIP, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
 			GL_StateManager::DispatchCompute(dim.x / 8.f, dim.y / 8.f, 1);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
 		p_kleinian_shader_mips->Activate((unsigned)FractalShaderVariant::MID_PASS);
-		p_kleinian_shader_mips->SetUniform("CSize", fractal_csize);
-		p_kleinian_shader_mips->SetUniform("u_k_factor_1", k_factor_1);
-		p_kleinian_shader_mips->SetUniform("u_k_factor_2", k_factor_2);
-		p_kleinian_shader_mips->SetUniform<unsigned>("u_num_iters", num_iters);
+		SetFractalUniforms();
 
 		for (int mip_layer = MAX_FRACTAL_MIP - 1; mip_layer >= 0; mip_layer--) {
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 			glm::vec2 dim = { Window::GetWidth() / 2.0 / pow(2, mip_layer), Window::GetHeight() / 2.0 / pow(2, mip_layer) };
 			glm::vec2 pixel_zfar_size = { zfar_size.x / dim.x,  zfar_size.y / dim.y };
@@ -195,10 +187,17 @@ namespace ORNG {
 			glBindImageTexture(0, p_fractal_depth_chain->GetTextureHandle(), mip_layer, GL_FALSE, 0, GL_WRITE_ONLY, GL_R16F);
 			glBindImageTexture(1, p_fractal_depth_chain->GetTextureHandle(), mip_layer + 1, GL_FALSE, 0, GL_READ_ONLY, GL_R16F);
 			GL_StateManager::DispatchCompute(dim.x / 8.f, dim.y / 8.f, 1);
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
+	}
+
+	void GameLayer::SetFractalUniforms() {
+		p_kleinian_shader_mips->SetUniform("CSize", fractal_csize);
+		p_kleinian_shader_mips->SetUniform("u_k_factor_1", k_factor_1);
+		p_kleinian_shader_mips->SetUniform("u_k_factor_2", k_factor_2);
+		p_kleinian_shader_mips->SetUniform<unsigned>("u_num_iters", num_iters);
 	}
 
 	void GameLayer::UpdateParticles() {
@@ -228,7 +227,7 @@ namespace ORNG {
 		if (Input::IsKeyPressed('j'))
 			map_scale = 1.0;
 
-		//UpdateParticles();
+		UpdateParticles();
 	}
 
 	void GameLayer::DrawMap() {

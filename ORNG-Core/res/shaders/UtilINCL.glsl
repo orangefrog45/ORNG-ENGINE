@@ -21,6 +21,10 @@ float rnd(vec2 x)
 }
 
 
+ vec3 qtransform( vec4 q, vec3 v ){ 
+	return v + 2.0*cross(cross(v, q.xyz ) + q.w*v, q.xyz);
+} 
+
 // calculate floating point numbers equality accurately
 bool isApproximatelyEqual(float a, float b)
 {

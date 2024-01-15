@@ -53,7 +53,7 @@ namespace ORNG {
 			mp_particle_initializer_cs->SetPath(GL_COMPUTE_SHADER, "res/shaders/ParticleInitializerCS.glsl");
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::DEFAULT, {}, { "u_start_index", "u_emitter_index" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index", "u_num_emitters" });
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index" });
+			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index", "u_num_particles" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
 
 			mp_append_buffer_transfer_cs = &Renderer::GetShaderLibrary().CreateShader("particle append buffer transfer");
@@ -295,16 +295,18 @@ namespace ORNG {
 		int old_nb_particles = p_comp->m_num_particles - dif;
 		ASSERT(old_nb_particles >= 0);
 
-		// Adjust emitter indices to account for deletion (handled in shader)
-		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES);
-		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
-		mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index);
-		// TODO: Parallelize
+
 		int num_particles_to_decrement = (total_emitter_particles - (p_comp->m_particle_start_index + old_nb_particles));
-
-		if (num_particles_to_decrement > 0)
+		if (num_particles_to_decrement > 0) {
+			// Adjust emitter indices to account for deletion (handled in shader)
+			mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES);
+			mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
+			mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
+			mp_particle_initializer_cs->SetUniform<unsigned>("u_num_particles", num_particles_to_decrement);
 			GL_StateManager::DispatchCompute(glm::ceil(num_particles_to_decrement / 32.f), 1, 1);
+		}
 
+		// Emitter "start indices" (where their particles start in the buffer) need to be modified to account for deletion
 		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS);
 		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
 		mp_particle_initializer_cs->SetUniform<unsigned>("u_num_emitters", m_emitter_entities.size());

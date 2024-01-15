@@ -46,7 +46,6 @@ namespace ORNG {
 			exit(EXIT_FAILURE);
 		}
 
-		// Have to do up here for now to prevent a crash
 		layer_stack.m_imgui_layer.OnInit();
 		AudioEngine::Init();
 		Input::Init();
