@@ -279,20 +279,20 @@ namespace ORNG {
 	}
 
 
-	void Shader::CompileShader(unsigned int shader_type, const std::string& source, unsigned int& shaderID) {
-		shaderID = glCreateShader(shader_type);
+	void Shader::CompileShader(unsigned int shader_type, const std::string& source, unsigned int& shader_id) {
+		shader_id = glCreateShader(shader_type);
 		const char* src = source.c_str();
-		glShaderSource(shaderID, 1, &src, nullptr);
-		glCompileShader(shaderID);
+		glShaderSource(shader_id, 1, &src, nullptr);
+		glCompileShader(shader_id);
 
 		int result;
-		glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result);
+		glGetShaderiv(shader_id, GL_COMPILE_STATUS, &result);
 
 		if (result == GL_FALSE) {
 			int length;
-			glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &length);
+			glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &length);
 			char* message = (char*)alloca(length * sizeof(char));
-			glGetShaderInfoLog(shaderID, length, &length, message);
+			glGetShaderInfoLog(shader_id, length, &length, message);
 
 			std::string shader_type_name;
 

@@ -934,6 +934,7 @@ namespace ORNG {
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
+
 		}
 		else {
 			ORNG_CORE_ERROR("Project folder path invalid");

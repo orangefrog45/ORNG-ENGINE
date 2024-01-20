@@ -375,7 +375,7 @@ namespace ORNG {
 		{
 			if (ImGui::Button("Add mesh")) // MESH FILE EXPLORER
 			{
-				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx\0*.obj;*.fbx\0";
+				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx;*.glb\0*.obj;*.fbx;*.glb\0";
 
 				//setting up file explorer callbacks
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
@@ -778,6 +778,9 @@ namespace ORNG {
 				// Gen binary file if none exists
 				SceneSerializer::SerializeBinary(filepath, *p_mesh);
 			}
+
+			// Update the mesh filepath from the source file initially loaded to the generated binary file
+			p_mesh->filepath = filepath;
 
 			break;
 		}

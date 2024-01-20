@@ -4,12 +4,11 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 [Bb][Uu][Ii][Ll][Dd]
-ORNG Editor/res/meshes
-ORNG Editor/res/textures
 
 venv/
 x64/
 PhysXGpu_64.dll
+Game/
 
 
 CMakeLists.txt.user

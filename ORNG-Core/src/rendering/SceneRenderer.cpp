@@ -807,7 +807,7 @@ namespace ORNG {
 
 	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), &group->m_materials[0]);
+		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data());
 	}
 
 	void SceneRenderer::IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {

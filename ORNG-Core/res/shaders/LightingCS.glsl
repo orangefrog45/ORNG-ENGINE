@@ -126,11 +126,9 @@ const vec3 diffuseConeDirections[] =
 vec3 CalculateIndirectDiffuseLighting() {
 	vec3 col = vec3(0);
 
-
 	vec3 non_parallel = abs(dot(sampled_normal, vec3(0, 1, 0))) > 0.99999 ? vec3(0, 0, 1) : vec3(0, 1, 0);
 	vec3 right = normalize(non_parallel - dot(sampled_normal, non_parallel) * sampled_normal);
 	vec3 up = cross(right, sampled_normal);
-
 
 	float aperture = max(DIFFUSE_APERTURE_MAX, DIFFUSE_APERTURE_MIN) ;
 	for (int i = 0; i < 6; i++) {
@@ -139,8 +137,6 @@ vec3 CalculateIndirectDiffuseLighting() {
 	}
 	col *= (1.0 - roughness_metallic_ao.g);
 	col /= 6.0;
-
-
 
 	col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), sampled_normal)), clamp(roughness_metallic_ao.r * PI * 0.5 , 0.5, PI ), 0.6, 0.25) * (1.0 - roughness_metallic_ao.r) ;
 	return col ;

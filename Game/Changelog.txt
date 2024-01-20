@@ -1,9 +1,0 @@
-14/1/24:
--Sped up fractal rendering by marching at lower resolutions then using those ray distances as starting points at higher resolution passes
-
-11/11/23:
--Added a top-down map
-
-7/11/23:
--Fixed lighting bug caused by not normalizing z output
--Colouring changes to fractal
