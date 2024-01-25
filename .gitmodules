@@ -37,3 +37,7 @@
 [submodule "ORNG-Core/extern/implot"]
 	path = ORNG-Core/extern/implot
 	url = https://github.com/epezent/implot
+[submodule "ORNG-Editor/extern/sol2"]
+	path = ORNG-Editor/extern/sol2
+	url = https://github.com/ThePhD/sol2
+
