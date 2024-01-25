@@ -9,6 +9,20 @@ namespace ORNG {
 			Get().I_InitGL();
 		}
 
+		static void InitGlew() {
+			GLint GlewInitResult = glewInit();
+
+			if (GLEW_OK != GlewInitResult)
+			{
+				ORNG_CORE_CRITICAL("GLEW INIT FAILED");
+				printf("ERROR: %s", glewGetErrorString(GlewInitResult));
+				exit(EXIT_FAILURE);
+			}
+
+			Get().m_glew_initialized = true;
+
+		}
+
 		inline static void BindVAO(unsigned int vao) {
 			Get().IBindVAO(vao);
 		}
@@ -74,6 +88,10 @@ namespace ORNG {
 
 		inline static void DefaultClearBits() {
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		}
+
+		inline static bool IsGlewIntialized() {
+			return Get().m_glew_initialized;
 		}
 
 		struct UniformBindingPoints {
@@ -171,6 +189,8 @@ namespace ORNG {
 			static GL_StateManager s_instance;
 			return s_instance;
 		}
+
+		bool m_glew_initialized = false;
 
 		struct TextureBindData {
 			unsigned int tex_target = 0;

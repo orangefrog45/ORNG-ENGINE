@@ -15,7 +15,7 @@ namespace ORNG {
 	class BufferBase {
 		friend class VAO;
 	public:
-		BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags=0) : buffer_type(t_buffer_type), m_is_mutable(is_mutable), m_flags(flags) {};
+		BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags = 0);
 
 		void Init();
 

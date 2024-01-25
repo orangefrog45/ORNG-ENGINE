@@ -8,6 +8,7 @@
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
+#include "core/FrameTiming.h"
 
 
 namespace ORNG {
@@ -17,12 +18,12 @@ namespace ORNG {
 	}
 
 	void Scene::Update(float ts) {
-		ORNG_PROFILE_FUNC();
 
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
 		m_particle_system.OnUpdate();
+		ORNG_PROFILE_FUNC();
 		m_physics_system.OnUpdate(ts);
 
 		SetScriptState();
@@ -36,8 +37,8 @@ namespace ORNG {
 		}
 
 		m_mesh_component_manager.OnUpdate();
-		if (m_camera_system.GetActiveCamera())
-			terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
+		//if (m_camera_system.GetActiveCamera())
+			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 
 
 		for (auto* p_entity : m_entity_deletion_queue) {
@@ -199,6 +200,7 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Script execution error for entity '{0}' : '{1}'", GetEntity(entity)->name, e.what());
 			}
 		}
+		ORNG_CORE_TRACE("FRAMETIMING : {0}", FrameTiming::GetTotalElapsedTime());
 	}
 
 	void Scene::SetScriptState() {

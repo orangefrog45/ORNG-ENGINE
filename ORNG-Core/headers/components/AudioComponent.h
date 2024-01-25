@@ -43,6 +43,8 @@ namespace ORNG {
 		void SetVolume(float v);
 		void SetPlaybackPosition(float time_in_ms);
 		void SetLooped(bool looped);
+		void Set3DLevel(float level);
+		void Set3DOcclusion(float occlusion);
 
 		float GetVolume();
 		float GetPitch();
@@ -65,6 +67,9 @@ namespace ORNG {
 		// Have to store a copy of this state here because it's not retrievable in the channel if the channel isn't actively playing
 		float m_volume = 1.f;
 		float m_pitch = 1.f;
+		float m_level_3d = 1.f;
+		float m_occlusion = 0.f;
+
 		bool is_looped = false;
 		AudioRange m_range{ 0.1f, 10000.f };
 

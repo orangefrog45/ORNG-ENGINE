@@ -26,23 +26,26 @@ namespace ORNG {
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo);
 	}
 
-	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear) {
-		std::array<float, m_common_ubo_size / sizeof(float)> data;
+	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear) {
+		std::array<std::byte, m_common_ubo_size> data;
+		std::byte* p_byte = data.data();
 
-		data[0] = camera_pos.x;
-		data[1] = camera_pos.y;
-		data[2] = camera_pos.z;
-		data[3] = 0.f; //padding
-		data[4] = camera_target.x;
-		data[5] = camera_target.y;
-		data[6] = camera_target.z;
-		data[7] = 0.f; //padding
-		data[8] = FrameTiming::GetTotalElapsedTime();
-		data[9] = render_resolution_x;
-		data[10] = render_resolution_y;
-		data[11] = cam_zfar;
-		data[12] = cam_znear;
-		data[13] = FrameTiming::GetTimeStep();
+		ConvertToBytes(camera_pos, p_byte);
+		ConvertToBytes(0, p_byte);
+		ConvertToBytes(camera_target, p_byte);
+		ConvertToBytes(0, p_byte);
+		ConvertToBytes(cam_right, p_byte);
+		ConvertToBytes(0, p_byte);
+		ConvertToBytes(cam_up, p_byte);
+		ConvertToBytes(0, p_byte);
+		ConvertToBytes((float)FrameTiming::GetTotalElapsedTime(), p_byte);
+		ConvertToBytes(render_resolution_x, p_byte);
+		ConvertToBytes(render_resolution_y, p_byte);
+		ConvertToBytes(cam_zfar, p_byte);
+		ConvertToBytes(cam_znear, p_byte);
+		ConvertToBytes((float)FrameTiming::GetTimeStep(), p_byte);
+		ConvertToBytes(FrameTiming::GetTotalElapsedTime(), p_byte);
+
 
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
@@ -137,6 +140,7 @@ namespace ORNG {
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, sizeof(glm::mat4), &proj_view[0][0]);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, sizeof(glm::mat4), &glm::inverse(proj)[0][0]);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 4, sizeof(glm::mat4), &glm::inverse(view)[0][0]);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 5, sizeof(glm::mat4), &glm::inverse(proj_view)[0][0]);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 }

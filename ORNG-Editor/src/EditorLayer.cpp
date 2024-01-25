@@ -24,6 +24,7 @@ constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 
 
+using namespace ORNG::Events;
 
 namespace ORNG {
 	void EditorLayer::Init() {
@@ -131,8 +132,8 @@ namespace ORNG {
 
 		MakeProjectActive(m_start_filepath);
 
-
 		ORNG_CORE_INFO("Editor layer initialized");
+		EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_INITIALIZATION));
 	}
 
 
@@ -144,6 +145,8 @@ namespace ORNG {
 		// Set to fullscreen so mouse coordinate and gui operations in scripts work correctly as they would in a runtime layer
 		m_fullscreen_scene_display = true;
 		(*mp_scene_context)->OnStart();
+
+		EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_START_SIMULATION));
 	}
 
 	void EditorLayer::EndPlayScene() {
@@ -172,6 +175,9 @@ namespace ORNG {
 
 		m_simulate_mode_active = false;
 		m_fullscreen_scene_display = false;
+
+		EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_END_SIMULATION));
+
 	}
 
 
@@ -935,6 +941,7 @@ namespace ORNG {
 			p_transform->SetAbsolutePosition(cam_pos);
 			mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 
+			EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_SCENE_LOAD));
 		}
 		else {
 			ORNG_CORE_ERROR("Project folder path invalid");
@@ -1717,6 +1724,8 @@ namespace ORNG {
 			p_comp->DispatchUpdateEvent();
 		}
 
+		ImGui::PopID();
+
 	}
 
 
@@ -2092,7 +2101,7 @@ namespace ORNG {
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], &snap[0]) && ImGuizmo::IsUsing()) {
 
 			if (!is_using && !mouse_down && !m_simulate_mode_active) {
-				EditorEvent e;
+				EditorEntityEvent e;
 				e.event_type = TRANSFORM_UPDATE;
 				e.affected_entities = m_selected_entity_ids;
 				for (auto id : m_selected_entity_ids) {
@@ -2375,7 +2384,7 @@ namespace ORNG {
 
 	std::vector<SceneEntity*> EditorLayer::DuplicateEntitiesTracked(std::vector<uint64_t> entities) {
 		SceneEntity* p_dup_ent = nullptr;
-		EditorEvent e;
+		EditorEntityEvent e;
 
 		std::vector<SceneEntity*> ret;
 
@@ -2420,7 +2429,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DeleteEntitiesTracked(std::vector<uint64_t> entities) {
-		EditorEvent e;
+		EditorEntityEvent e;
 		e.event_type = ENTITY_DELETE;
 
 		for (auto id : entities) {
@@ -2453,7 +2462,7 @@ namespace ORNG {
 
 	SceneEntity& EditorLayer::CreateEntityTracked(const std::string& name) {
 		auto& ent = (*mp_scene_context)->CreateEntity(name);
-		EditorEvent e;
+		EditorEntityEvent e;
 		e.event_type = ENTITY_CREATE;
 		e.affected_entities.push_back(ent.GetUUID());
 		m_event_stack.PushEvent(e);

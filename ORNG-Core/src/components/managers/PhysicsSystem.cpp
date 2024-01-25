@@ -78,7 +78,8 @@ namespace ORNG {
 		return PxFilterFlag::eDEFAULT;
 	}
 
-
+// TODO: add in-editor option for this
+#define GPU_PHYSICS_ENABLED false
 
 	void PhysicsSystem::OnLoad() {
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
@@ -92,12 +93,19 @@ namespace ORNG {
 		scene_desc.gravity = PxVec3(0, -9.81, 0);
 		scene_desc.cpuDispatcher = Physics::GetCPUDispatcher();
 		scene_desc.cudaContextManager = Physics::GetCudaContextManager();
-		scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
 		scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
 		scene_desc.solverType = PxSolverType::eTGS;
 
-		scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
+
+		if constexpr (GPU_PHYSICS_ENABLED) {
+			scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+			scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
+		}
+		else {
+			scene_desc.broadPhaseType = PxBroadPhaseType::ePABP;
+		}
+
 		scene_desc.simulationEventCallback = &m_collision_callback;
 
 
@@ -668,11 +676,10 @@ namespace ORNG {
 			UpdateTransformCompFromGlobalPose(vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose() * shape[0]->getLocalPose(), transform);
 		}
 
+		ORNG_PROFILE_FUNC();
 		m_accumulator -= m_step_size * 1000.f;
 		mp_phys_scene->simulate(m_step_size);
 		mp_phys_scene->fetchResults(true);
-		mp_phys_scene->fetchResultsParticleSystem();
-
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
 

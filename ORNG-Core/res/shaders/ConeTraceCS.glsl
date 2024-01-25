@@ -140,6 +140,6 @@ void main() {
     if (shader_id != 1)
     return;
 
-    vec3 light = CalculateIndirectDiffuseLighting() * sampled_albedo.xyz ;
+    vec3 light = vec3(0) ;
 	imageStore(u_output_texture, tex_coords / 2, vec4(light, 1.0));
 }

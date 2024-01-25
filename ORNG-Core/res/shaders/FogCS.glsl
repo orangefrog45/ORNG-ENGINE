@@ -60,7 +60,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 	vec3 frag_to_light_dir = normalize(frag_to_light);
 
 	float spot_factor = dot(frag_to_light_dir, -light.dir.xyz);
-
+	
 	if (spot_factor > light.aperture) {
 		float shadow = ShadowCalculationSpotlight(light, index, world_pos);
 
@@ -124,7 +124,7 @@ void main() {
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
 	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / (vec2(imageSize(fog_texture))));
 	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float cam_to_frag_dist = min(length(cam_to_frag), 10000.0);
+	float cam_to_frag_dist = min(length(cam_to_frag), 1000.0);
 	float step_distance = cam_to_frag_dist / float(u_step_count);
 
 
@@ -134,15 +134,13 @@ void main() {
 
 	vec4 accum = vec4(0, 0, 0, 1);
 
-	float extinction_coef = (u_absorption_coef + u_scattering_coef);
 
 	// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 200.f;
+		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 2000.f;
 		//float fog_density = fbm(fog_sampling_coords) * u_density_coef;
 		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
-		fog_density += u_density_coef * 0.5f;
-		fog_density *= exp(-step_pos.y * 0.01) * float(step_pos.y < 500.0);
+		fog_density += u_density_coef * 0.5f * 3;
 
 
 		vec3 slice_light = vec3(0);
@@ -157,7 +155,7 @@ void main() {
 
 		float dir_shadow = CheapShadowCalculationDirectional(step_pos);
 		slice_light += ubo_global_lighting.directional_light.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
-		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, extinction_coef);
+		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, u_absorption_coef + u_scattering_coef);
 		step_pos += ray_dir * step_distance;
 	}
 

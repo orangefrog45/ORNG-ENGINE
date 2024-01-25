@@ -1,11 +1,17 @@
 #pragma once
+#include <fmod_errors.h>
+
+#include "util/Log.h"
+#include "util/util.h"
+
+
 namespace FMOD {
 	class System;
 }
 
+#define ORNG_CALL_FMOD(x) if (x != FMOD_OK){ ORNG_CORE_ERROR("FMOD Error at '{0}', line '{1}' : '{2}", FUNC_NAME, __LINE__, FMOD_ErrorString(x)); BREAKPOINT;}
+
 namespace ORNG {
-
-
 	class AudioEngine {
 	public:
 

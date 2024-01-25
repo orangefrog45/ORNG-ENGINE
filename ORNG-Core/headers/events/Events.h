@@ -138,6 +138,22 @@ namespace ORNG::Events {
 	public:
 		uint64_t scene_id = 0;
 	};
+
+
+#ifdef ORNG_EDITOR_LAYER
+	enum class EditorEventType {
+		POST_INITIALIZATION,
+		POST_SCENE_LOAD,
+		SCENE_START_SIMULATION,
+		SCENE_END_SIMULATION
+	};
+
+	struct EditorEvent : public Event {
+		EditorEvent(EditorEventType type) : event_type(type) {};
+		EditorEventType event_type;
+	};
+
+#endif
 }
 
 #endif

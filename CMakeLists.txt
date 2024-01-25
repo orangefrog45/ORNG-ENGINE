@@ -26,6 +26,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wno-error)
 endif()
 
+
 add_subdirectory("ORNG-Core")
 add_subdirectory("ORNG-Editor")
 add_subdirectory("Game")

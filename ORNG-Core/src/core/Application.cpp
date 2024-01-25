@@ -35,21 +35,11 @@ namespace ORNG {
 		Window::Init();
 		GLFWwindow* window = Window::GetGLFWwindow();
 
-
-		//GLEW INIT
-		GLint GlewInitResult = glewInit();
-
-		if (GLEW_OK != GlewInitResult)
-		{
-			ORNG_CORE_CRITICAL("GLEW INIT FAILED");
-			printf("ERROR: %s", glewGetErrorString(GlewInitResult));
-			exit(EXIT_FAILURE);
-		}
-
+		GL_StateManager::InitGlew();
 		layer_stack.m_imgui_layer.OnInit();
+		GL_StateManager::InitGL();
 		AudioEngine::Init();
 		Input::Init();
-		GL_StateManager::InitGL();
 		CodedAssets::Init();
 		Renderer::Init();
 		Physics::Init();

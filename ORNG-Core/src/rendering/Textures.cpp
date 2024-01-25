@@ -16,8 +16,17 @@ namespace ORNG {
 
 	TextureBaseSpec::TextureBaseSpec() : internal_format(GL_NONE), format(GL_NONE), min_filter(GL_NONE), mag_filter(GL_NONE), wrap_params(GL_REPEAT), storage_type(GL_UNSIGNED_BYTE) {};
 
-	TextureBase::TextureBase(unsigned int texture_target, const std::string& name) : Asset(name), m_texture_target(texture_target), m_name(name) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
-	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : Asset(name), m_texture_target(texture_target), m_name(name), uuid(t_uuid) { glGenTextures(1, &m_texture_obj); ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); };
+	TextureBase::TextureBase(unsigned int texture_target, const std::string& name) : Asset(name), m_texture_target(texture_target), m_name(name) {
+		glGenTextures(1, &m_texture_obj); 
+		ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); 
+		ASSERT(GL_StateManager::IsGlewIntialized());
+	};
+
+	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : Asset(name), m_texture_target(texture_target), m_name(name), uuid(t_uuid) { 
+		glGenTextures(1, &m_texture_obj); 
+		ASSERT(name.length() <= ORNG_MAX_NAME_SIZE);
+		ASSERT(GL_StateManager::IsGlewIntialized());
+	};
 
 	void TextureBase::Unload() { 
 		if (int unit = GL_StateManager::IsTextureBound(m_texture_obj); unit != -1)

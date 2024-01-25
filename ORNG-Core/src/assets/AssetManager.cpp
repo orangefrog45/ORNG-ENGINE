@@ -286,8 +286,18 @@ namespace ORNG {
 		default_spec.storage_type = GL_UNSIGNED_BYTE;
 
 
-		ORNG_CORE_TRACE(std::filesystem::current_path().string());
-		ORNG_CORE_TRACE(project_dir);
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
+			std::string path = entry.path().string();
+
+			if (entry.is_directory() || path.find("diffuse_prefilter") != std::string::npos || entry.path().extension() != ".otex") // Skip serialized diffuse prefilter
+				continue;
+
+			default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
+			auto* p_tex = new Texture2D(default_spec.filepath);
+			DeserializeAssetBinary(path, *p_tex);
+			AddAsset(p_tex);
+			LoadTexture2D(p_tex);
+		}
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
 			if (entry.is_directory() || entry.path().extension() != ".bin")
@@ -301,20 +311,6 @@ namespace ORNG {
 			LoadMeshAssetIntoGL(p_mesh);
 		}
 
-
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
-			std::string path = entry.path().string();
-			bool is_tex_loaded = AssetManager::GetAsset<Texture2D>(path) ? true : false;
-
-			if (entry.is_directory() || path.find("diffuse_prefilter") != std::string::npos || is_tex_loaded || entry.path().extension() != ".otex") // Skip serialized diffuse prefilter
-				continue;
-
-			default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
-			auto* p_tex = new Texture2D(default_spec.filepath);
-			DeserializeAssetBinary(path, *p_tex);
-			AddAsset(p_tex);
-			LoadTexture2D(p_tex);
-		}
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(audio_folder)) {
 			auto path = entry.path();

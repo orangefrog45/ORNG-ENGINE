@@ -463,6 +463,7 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
+
 		UpdateLightSpaceMatrices(p_cam);
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
@@ -470,7 +471,7 @@ namespace ORNG {
 		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
 		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
+		mp_shader_library->SetCommonUBO(p_cam_transform->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->directional_light);
 
@@ -513,7 +514,7 @@ namespace ORNG {
 		if (settings.do_intercept_renderpasses) {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
-			DoVoxelizationPass(spec.width, spec.height);
+			//DoVoxelizationPass(spec.width, spec.height);
 			DoGBufferPass(p_cam, settings);
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 			DoLightingPass(settings.p_output_tex);
@@ -525,7 +526,7 @@ namespace ORNG {
 		}
 		else {
 			DoDepthPass(p_cam, settings.p_output_tex);
-			DoVoxelizationPass(spec.width, spec.height);
+			//DoVoxelizationPass(spec.width, spec.height);
 			DoGBufferPass(p_cam, settings);
 			DoLightingPass(settings.p_output_tex);
 			DoFogPass(spec.width, spec.height);
@@ -752,6 +753,8 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height) {
+		GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
+
 		mp_transparency_fb->Bind();
 		mp_transparency_fb->BindTexture2D(m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH);
@@ -780,9 +783,9 @@ namespace ORNG {
 		}
 
 		mp_transparency_shader_variants->Activate(T_PARTICLE_BILLBOARD);
+		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 
 			IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material);
 		}
@@ -849,6 +852,7 @@ namespace ORNG {
 			}
 
 			//RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
+			GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 			mp_gbuffer_shader_variants->Activate(PARTICLE);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);

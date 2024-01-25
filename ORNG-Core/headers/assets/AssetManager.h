@@ -256,19 +256,19 @@ namespace ORNG {
 				des.value4b(data.emissive_strength);
 				uint64_t texid;
 				des.value8b(texid);
-				data.base_color_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.base_color_texture = GetAsset<Texture2D>(texid);
 				des.value8b(texid);
-				data.normal_map_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.normal_map_texture = GetAsset<Texture2D>(texid);
 				des.value8b(texid);
-				data.metallic_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.metallic_texture = GetAsset<Texture2D>(texid);
 				des.value8b(texid);
-				data.roughness_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.roughness_texture = GetAsset<Texture2D>(texid);
 				des.value8b(texid);
-				data.ao_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.ao_texture = GetAsset<Texture2D>(texid);
 				des.value8b(texid);
-				data.displacement_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.displacement_texture = GetAsset<Texture2D>(texid);
 				des.value8b(texid);
-				data.emissive_texture = GetAsset<Texture2D>(texid);
+				if (texid != 0) data.emissive_texture = GetAsset<Texture2D>(texid);
 
 				des.value4b(data.parallax_layers);
 				des.value4b(data.parallax_height_scale);

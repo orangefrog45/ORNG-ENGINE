@@ -2,6 +2,8 @@
 #include "components/AudioComponent.h"
 #include "events/EventManager.h"
 #include <fmod.hpp>
+#include <fmod_errors.h>
+
 
 namespace ORNG {
 	void AudioComponent::SetPitch(float p) {
@@ -15,7 +17,8 @@ namespace ORNG {
 	}
 
 	void AudioComponent::SetMinMaxRange(float min, float max) {
-		m_range.min = min; m_range.max = max;
+		m_range.min = min; 
+		m_range.max = max;
 		mp_channel->set3DMinMaxDistance(min, max);
 	}
 
@@ -61,6 +64,12 @@ namespace ORNG {
 		is_looped = looped;
 		mp_channel->setLoopCount(looped ? -1 : 0);
 		mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | (looped ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | FMOD_3D_LINEARROLLOFF);
+	}
+
+
+	void AudioComponent::Set3DLevel(float level) {
+		m_level_3d = level;
+		mp_channel->set3DLevel(level);
 	}
 
 	void AudioComponent::SetPlaybackPosition(float time_in_ms) {

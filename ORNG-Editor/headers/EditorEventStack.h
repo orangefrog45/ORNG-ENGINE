@@ -5,18 +5,18 @@
 namespace ORNG {
 	class Scene;
 
-	enum EditorEventType {
+	enum EditorEntityEventType {
 		TRANSFORM_UPDATE,
 		ENTITY_DELETE,
 		ENTITY_CREATE
 	};
 
 
-	struct EditorEvent {
+	struct EditorEntityEvent {
 		std::vector<uint64_t> affected_entities;
 		std::vector<std::string> serialized_entities_before;
 		std::vector<std::string> serialized_entities_after;
-		EditorEventType event_type;
+		EditorEntityEventType event_type;
 	};
 
 	constexpr unsigned MAX_EVENT_HISTORY = 50;
@@ -25,7 +25,7 @@ namespace ORNG {
 	public:
 		EditorEventStack() = default;
 		void SetContext(Scene*& p_context) { mp_scene_context = &p_context; };
-		void PushEvent(const EditorEvent& e) {
+		void PushEvent(const EditorEntityEvent& e) {
 			if (m_active_index != m_events.size() - 1)
 				m_events.erase(m_events.begin() + glm::max(m_active_index, 0), m_events.end());
 
@@ -42,10 +42,10 @@ namespace ORNG {
 
 	private:
 
-		std::optional<EditorEvent> GetMostRecentEvent() { return m_events.empty() ? std::nullopt : std::make_optional(m_events[m_events.size() - 1]); };
+		std::optional<EditorEntityEvent> GetMostRecentEvent() { return m_events.empty() ? std::nullopt : std::make_optional(m_events[m_events.size() - 1]); };
 
 		int m_active_index = -1;
-		std::vector<EditorEvent> m_events;
+		std::vector<EditorEntityEvent> m_events;
 
 		Scene** mp_scene_context = nullptr;
 	};

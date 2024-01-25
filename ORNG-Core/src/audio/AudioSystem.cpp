@@ -46,10 +46,7 @@ namespace ORNG {
 
 
 	void AudioSystem::OnAudioDeleteEvent(const Events::ECS_Event<AudioComponent>& e_event) {
-		if (auto result = e_event.affected_components[0]->mp_channel->stop(); result != FMOD_OK) {
-			ORNG_CORE_ERROR("Fmod channel stop error '{0}'", FMOD_ErrorString(result));
-		}
-
+		ORNG_CALL_FMOD(e_event.affected_components[0]->mp_channel->stop());
 		delete e_event.affected_components[0]->mp_fmod_pos;
 		delete e_event.affected_components[0]->mp_fmod_vel;
 	}
@@ -73,10 +70,10 @@ namespace ORNG {
 			static FMOD_VECTOR up;
 			up = { transform.up.x, transform.up.y, transform.up.z };
 			cam_velocity = { 0, 0, 0 };
-			AudioEngine::GetSystem()->set3DListenerAttributes(0, &cam_pos, &cam_velocity, &forward, &up);
+			ORNG_CALL_FMOD(AudioEngine::GetSystem()->set3DListenerAttributes(0, &cam_pos, &cam_velocity, &forward, &up));
 		}
 
-		AudioEngine::GetSystem()->update();
+		ORNG_CALL_FMOD(AudioEngine::GetSystem()->update());
 	}
 
 	void AudioSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& e_event) {
@@ -98,8 +95,7 @@ namespace ORNG {
 		auto* p_asset = AssetManager::GetAsset<SoundAsset>(ORNG_BASE_SOUND_ID);
 
 		// Default initialize channel with the base sound
-		if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
-			ORNG_CORE_ERROR("Error initializing audio component with base sound '{0}', '{1}'", p_asset->source_filepath, FMOD_ErrorString(result));
+		ORNG_CALL_FMOD(AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel));
 	}
 
 	void AudioSystem::OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event) {
@@ -114,15 +110,13 @@ namespace ORNG {
 			if (!p_asset)
 				return;
 
-			if (auto result = AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel); result != FMOD_OK)
-				ORNG_CORE_ERROR("Error playing sound '{0}', '{1}'", p_asset->source_filepath, FMOD_ErrorString(result));
-
-			p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel);
-			p_sound_comp->mp_channel->setVolume(p_sound_comp->m_volume);
-			p_sound_comp->mp_channel->set3DMinMaxDistance(p_sound_comp->m_range.min, p_sound_comp->m_range.max);
-			p_sound_comp->mp_channel->setPitch(p_sound_comp->m_pitch);
-			p_sound_comp->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF);
-			p_sound_comp->mp_channel->setPaused(false);
+			ORNG_CALL_FMOD(AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.affected_components[0]->mp_channel));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setVolume(p_sound_comp->m_volume));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->set3DMinMaxDistance(p_sound_comp->m_range.min, p_sound_comp->m_range.max));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setPitch(p_sound_comp->m_pitch));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setPaused(false));
 			break;
 		}
 		}

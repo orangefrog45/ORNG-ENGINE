@@ -8,6 +8,9 @@ namespace ORNG {
 #define ORNG_MAX_FILEPATH_SIZE 500
 #define ORNG_MAX_NAME_SIZE 500
 
+#define CONCAT(x, y) CONCAT_IMPL(x, y)
+#define CONCAT_IMPL(x, y) x##y
+
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 
 	constexpr bool SHADER_DEBUG_MODE = false; // true = CreateUniform throws error if uniform doesn't exist

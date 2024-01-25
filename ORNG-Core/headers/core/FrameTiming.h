@@ -17,13 +17,15 @@ namespace ORNG {
 
 
 
-		static float GetTimeStep() {
+		static double GetTimeStep() {
 			return Get().IGetTimeStep();
 		}
 
-		static float GetTotalElapsedTime() {
+		static double GetTotalElapsedTime() {
 			return Get().total_elapsed_time;
 		}
+
+
 
 		static void UpdateTimeStep() {
 			Get().IUpdateTimeStep();

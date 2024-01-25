@@ -25,12 +25,15 @@ layout(std140, binding = 1) uniform GlobalLighting{
 layout(std140, binding = 2) uniform commons{
 	vec4 camera_pos;
 	vec4 camera_target;
+	vec4 camera_right;
+	vec4 camera_up;
 	float time_elapsed;
 	float render_resolution_x;
 	float render_resolution_y;
 	float cam_zfar;
 	float cam_znear;
 	float delta_time;
+	double time_elapsed_precise;
 } ubo_common;
 
 layout(std140, binding = 0) uniform Matrices{
@@ -39,4 +42,5 @@ layout(std140, binding = 0) uniform Matrices{
 	mat4 proj_view;
 	mat4 inv_projection;
 	mat4 inv_view;
+	mat4 inv_proj_view;
 } PVMatrices;

@@ -1,5 +1,6 @@
 #pragma once
 #include "TimeStep.h"
+#include "util/util.h"
 
 namespace ORNG {
 	class ProfilingTimers {
@@ -113,6 +114,4 @@ namespace ORNG {
 #define ORNG_PROFILE_FUNC()
 #endif
 
-#define CONCAT(x, y) CONCAT_IMPL(x, y)
-#define CONCAT_IMPL(x, y) x##y
 }

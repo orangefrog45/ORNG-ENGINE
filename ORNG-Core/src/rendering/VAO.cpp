@@ -8,6 +8,10 @@ static constexpr unsigned int NORMAL_LOCATION = 2;
 static constexpr unsigned int TANGENT_LOCATION = 3;
 
 namespace ORNG {
+
+	BufferBase::BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags) : buffer_type(t_buffer_type), m_is_mutable(is_mutable), m_flags(flags) { ASSERT(GL_StateManager::IsGlewIntialized()); };
+
+
 	VAO_Base::~VAO_Base() {
 		glDeleteVertexArrays(1, &m_vao_handle);
 	}

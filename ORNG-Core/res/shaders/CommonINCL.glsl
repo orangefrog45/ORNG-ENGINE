@@ -12,14 +12,16 @@ struct InterpolatorV1 {
 	float scale;
 };
 
+#define MAX_INTERPOLATORV1_POINTS 8
+#define MAX_INTERPOLATORV3_POINTS 8
 
 float InterpolateV1(float x, InterpolatorV1 interpolator) {
 	if (x < interpolator.point_pairs[0].x)
 		return interpolator.point_pairs[0].y;
-		
+
 	int num_pairs =  int(ceil(float(interpolator.active_points) / 2.f));
 
-	for (int i = 0; i < num_pairs; i++) {
+	for (int i = 0; i < MAX_INTERPOLATORV1_POINTS / 2; i++) {
 
 		if (interpolator.point_pairs[i].x > x) {
 			return mix(interpolator.point_pairs[max(i - 1, 0)].w, 
@@ -41,8 +43,11 @@ float InterpolateV1(float x, InterpolatorV1 interpolator) {
 vec3 InterpolateV3(float x, InterpolatorV3 interpolator) {
 	if (x < interpolator.points[0].x)
 		return interpolator.points[0].yzx;
+
+	if(x > interpolator.points[max(interpolator.active_points - 1, 0)].x)
+		return interpolator.points[max(interpolator.active_points - 1, 0)].yzx;
 		
-	for (int i = 0; i < interpolator.active_points; i++) {
+	for (int i = 0; i < MAX_INTERPOLATORV3_POINTS; i++) {
 		if (interpolator.points[i].x > x) {
 			return mix(interpolator.points[max(i - 1, 0)].yzw, 
 			interpolator.points[i].yzw, 
