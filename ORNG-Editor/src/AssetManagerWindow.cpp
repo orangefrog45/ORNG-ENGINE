@@ -181,7 +181,7 @@ namespace ORNG {
 		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
 		std::vector<ScriptComponent*> components_to_reconnect;
 		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-			if (p_curr_asset->PathEqualTo(script_comp.GetSymbols()->script_path)) {
+			if (auto* p_symbols = script_comp.GetSymbols(); p_symbols && p_curr_asset->PathEqualTo(script_comp.GetSymbols()->script_path)) {
 				components_to_reconnect.push_back(&script_comp);
 				// Free memory for instances that were allocated by the DLL
 				script_comp.GetSymbols()->DestroyInstance(script_comp.p_instance);
@@ -194,7 +194,7 @@ namespace ORNG {
 			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
 			std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
 
-			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false);
+			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false, true);
 			if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
 				GenerateErrorMessage("Failed to reload script");
 			}

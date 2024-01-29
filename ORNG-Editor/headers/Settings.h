@@ -1,6 +1,7 @@
 #pragma once
 
 namespace ORNG {
+
 	struct SelectionSettings {
 		bool select_all = true;
 		bool select_physics_objects;

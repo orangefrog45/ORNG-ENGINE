@@ -7,11 +7,8 @@ namespace ORNG {
 
 
 	void PointlightSystem::OnLoad() {
-		m_shadow_pointlight_ssbo_handle = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_shadow_pointlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS_SHADOW);
-
-		m_shadowless_pointlight_ssbo_handle = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_shadowless_pointlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS_SHADOWLESS);
+		if (!m_pointlight_ssbo.IsInitialized())
+			m_pointlight_ssbo.Init();
 
 		TextureCubemapArraySpec pointlight_depth_spec;
 		pointlight_depth_spec.format = GL_DEPTH_COMPONENT;
@@ -42,7 +39,7 @@ namespace ORNG {
 		output_vec[index++] = pos.z;
 		output_vec[index++] = 0; //padding
 		// - END COLOR - START MAX_DISTANCE
-		output_vec[index++] = light.shadow_distance;
+		output_vec[index++] = light.shadows_enabled ?  light.shadow_distance : -1.f;
 		// - END MAX_DISTANCE - START ATTENUATION
 		auto& atten = light.attenuation;
 		output_vec[index++] = atten.constant;
@@ -54,16 +51,13 @@ namespace ORNG {
 	void PointlightSystem::OnUpdate(entt::registry* p_registry) {
 		auto view = p_registry->view<PointLightComponent>();
 		if (view.size() == 0) {
-			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_pointlight_ssbo_handle);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
-			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_pointlight_ssbo_handle);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
+			glNamedBufferData(m_pointlight_ssbo.GetHandle(), 0, nullptr, GL_STREAM_DRAW);
 			return;
 		}
+		m_pointlight_ssbo.data.clear();
 
 		constexpr unsigned int point_light_fs_num_float = 12; // amount of floats in pointlight struct in shaders
-		std::vector<float> light_array_shadowless;
-		std::vector<float> light_array_shadows;
+
 		int num_shadowless = 0;
 		int num_shadow = 0;
 		for (auto [entity, light] : view.each()) {
@@ -85,32 +79,21 @@ namespace ORNG {
 			m_pointlight_depth_tex.SetSpec(spec_copy);
 		}
 
-		light_array_shadowless.resize(num_shadowless * point_light_fs_num_float);
-		light_array_shadows.resize(num_shadow * point_light_fs_num_float);
+		m_pointlight_ssbo.data.resize((num_shadowless + num_shadow) * point_light_fs_num_float);
 
 		int i = 0;
-		int s = 0;
 		for (auto [entity, light] : view.each()) {
-			if (light.shadows_enabled)
-				WriteLightToVector(light_array_shadows, light, s);
-			else
-				WriteLightToVector(light_array_shadowless, light, i);
+			WriteLightToVector(m_pointlight_ssbo.data, light, i);
 		}
 
+		m_pointlight_ssbo.FillBuffer();
 
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_pointlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), light_array_shadowless.data(), GL_STREAM_DRAW);
-
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_pointlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadows.size(), light_array_shadows.data(), GL_STREAM_DRAW);
+		GL_StateManager::BindSSBO(m_pointlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
 	}
 
 
 
 	void PointlightSystem::OnUnload() {
-		glDeleteBuffers(1, &m_shadow_pointlight_ssbo_handle);
-		glDeleteBuffers(1, &m_shadowless_pointlight_ssbo_handle);
-
 	}
 
 

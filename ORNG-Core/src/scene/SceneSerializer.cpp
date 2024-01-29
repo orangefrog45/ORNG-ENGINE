@@ -534,7 +534,7 @@ namespace ORNG {
 					p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ToPxVec3(wheel["SuspensionAttachment"].as<glm::vec3>());
 				}
 
-				scene.m_physics_system.InitVehicle(p_comp);
+				scene.physics_system.InitVehicle(p_comp);
 			}
 
 
@@ -595,7 +595,7 @@ namespace ORNG {
 		std::ofstream fout{ output };
 		fout << "#pragma once" << "\n";
 		fout << "namespace ScriptInterface {\n";
-		fout << "namespace Scene {\n";
+		fout << "namespace World {\n";
 		fout << "namespace Entities {\n";
 
 		for (auto* p_entity : scene.m_entities) {

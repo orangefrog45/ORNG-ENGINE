@@ -8,16 +8,14 @@
 namespace ORNG {
 
 	void SpotlightSystem::OnUnload() {
-		glDeleteBuffers(1, &m_shadow_spotlight_ssbo_handle);
-		glDeleteBuffers(1, &m_shadowless_spotlight_ssbo_handle);
 	}
 
 
 	void SpotlightSystem::OnLoad() {
-		m_shadowless_spotlight_ssbo_handle = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_shadowless_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS_SHADOWLESS);
-		m_shadow_spotlight_ssbo_handle = GL_StateManager::GenBuffer();
-		GL_StateManager::BindSSBO(m_shadow_spotlight_ssbo_handle, GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS_SHADOW);
+		if (!m_spotlight_ssbo.IsInitialized())
+			m_spotlight_ssbo.Init();
+
+		GL_StateManager::BindSSBO(m_spotlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
 
 		Texture2DArraySpec spotlight_depth_spec;
 		spotlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
@@ -83,7 +81,7 @@ namespace ORNG {
 		output_vec[index++] = mat[3][2];
 		output_vec[index++] = mat[3][3];
 		//40 - END INTENSITY - START MAX_DISTANCE
-		output_vec[index++] = light.shadow_distance;
+		output_vec[index++] = light.shadows_enabled ? light.shadow_distance : -1.f;
 		//44 - END MA++TANCE - START ATTENUATION
 		auto& atten = light.attenuation;
 		output_vec[index++] = atten.constant;
@@ -101,13 +99,10 @@ namespace ORNG {
 	void SpotlightSystem::OnUpdate(entt::registry* p_registry) {
 
 		auto view = p_registry->view<SpotLightComponent>();
+		m_spotlight_ssbo.data.clear();
 
 		if (view.empty()) {
-			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_spotlight_ssbo_handle);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
-			GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_spotlight_ssbo_handle);
-			glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_STREAM_DRAW);
-			return;
+			glNamedBufferData(m_spotlight_ssbo.GetHandle(), 0, nullptr, GL_STREAM_DRAW);
 		}
 
 		int num_shadow = 0;
@@ -132,28 +127,16 @@ namespace ORNG {
 		}
 
 		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
-		std::vector<float> light_array_shadow;
-		std::vector<float> light_array_shadowless;
+		m_spotlight_ssbo.data.resize((num_shadow + num_shadowless) * spot_light_fs_num_float);
 
-		light_array_shadow.resize(num_shadow * spot_light_fs_num_float);
-		light_array_shadowless.resize(num_shadowless * spot_light_fs_num_float);
-
-		int i = 0;
-		int s = 0;
-
-		int* p_ia = nullptr;
+		int index = 0;
 		for (auto [entity, light] : view.each()) {
-			if (light.shadows_enabled)
-				WriteLightToVector(light_array_shadow, light, s);
-			else
-				WriteLightToVector(light_array_shadowless, light, i);
+			WriteLightToVector(m_spotlight_ssbo.data, light, index);
 		}
 
+		m_spotlight_ssbo.FillBuffer();
 
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadowless_spotlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadowless.size(), light_array_shadowless.data(), GL_STREAM_DRAW);
-		GL_StateManager::BindBuffer(GL_SHADER_STORAGE_BUFFER, m_shadow_spotlight_ssbo_handle);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * light_array_shadow.size(), light_array_shadow.data(), GL_STREAM_DRAW);
+		GL_StateManager::BindSSBO(m_spotlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
 	}
 
 

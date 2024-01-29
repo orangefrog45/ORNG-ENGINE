@@ -130,8 +130,8 @@ void main() {
     if (u_material.emissive) {
         col = CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;
     } else {
-        for (int i = 0; i < ubo_point_lights_shadow.lights.length(); i++) {
-            col += CalculatePointlight(ubo_point_lights_shadow.lights[i]) * (1.0 - ShadowCalculationPointlight(ubo_point_lights_shadow.lights[i], i, vs_position.xyz ));
+        for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
+            col += CalculatePointlight(ubo_point_lights.lights[i]) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, vs_position.xyz ));
         }
         col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vs_position.xyz));
         col *= CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;

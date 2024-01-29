@@ -587,6 +587,7 @@ namespace ORNG {
 			p_comp->p_shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
 		}
 
+		p_comp->p_shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
 
 		p_comp->p_shape->acquireReference();
 
@@ -799,15 +800,15 @@ namespace ORNG {
 		PxRaycastBuffer ray_buffer;                 // [out] Raycast results
 		RaycastResults ret;
 
-		if (bool status = mp_phys_scene->raycast(ToPxVec3(origin), ToPxVec3(unit_dir), max_distance, ray_buffer)) {
+		if (mp_phys_scene->raycast(ToPxVec3(origin), ToPxVec3(unit_dir), max_distance, ray_buffer)) {
 			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
 
-			// Check dynamic physics components
-			for (auto [entity, phys_comp] : mp_registry->view<PhysicsComponent>().each()) {
-				if (phys_comp.p_rigid_actor == p_closest_actor) {
-					ret.p_phys_comp = &phys_comp;
-					ret.p_entity = phys_comp.GetEntity();
-				}
+			ret.p_entity = TryGetEntityFromPxActor(static_cast<const PxActor*>(p_closest_actor));
+			ret.p_phys_comp = ret.p_entity->GetComponent<PhysicsComponent>();
+			if (!ret.p_entity) {
+				ORNG_CORE_ERROR("Failed to find entity from raycast results");
+				ret.p_entity = nullptr;
+				return ret;
 			}
 
 			ret.hit = true;
@@ -818,4 +819,27 @@ namespace ORNG {
 
 		return ret;
 	};
+
+	OverlapQueryResults PhysicsSystem::OverlapQuery(glm::vec3 pos, float range) {
+		PxOverlapHit overlap_hits[256];
+		PxOverlapBuffer overlap_buffer{ overlap_hits, 256 };
+		OverlapQueryResults ret;
+
+		if (mp_phys_scene->overlap(PxSphereGeometry(range), PxTransform(ToPxVec3(pos)), overlap_buffer)) {
+			for (int i = 0; i < overlap_buffer.getNbAnyHits(); i++) {
+				auto* p_ent = TryGetEntityFromPxActor(static_cast<const PxActor*>(overlap_hits[i].actor));
+
+				if (!p_ent) {
+					ORNG_CORE_ERROR("Failed to find entity from overlap result");
+					continue;
+				}
+
+				ret.entities.push_back(p_ent);
+
+			}
+		}
+
+		return ret;
+	}
+
 }

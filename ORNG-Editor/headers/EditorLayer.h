@@ -5,6 +5,7 @@
 #include "scene/GridMesh.h"
 #include "Settings.h"
 #include "EditorEventStack.h"
+#include "LuaCLI.h"
 
 namespace physx {
 	class PxMaterial;
@@ -99,6 +100,10 @@ namespace ORNG {
 		void RenderVehicleComponentEditor(VehicleComponent* p_comp);
 		void RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp);
 		void RenderParticleBufferComponentEditor(ParticleBufferComponent* p_comp);
+
+		void InitLua();
+		void UpdateLuaEntityArray();
+		LuaCLI m_lua_cli;
 
 		void RenderProjectGenerator(int& selected_component_from_popup);
 

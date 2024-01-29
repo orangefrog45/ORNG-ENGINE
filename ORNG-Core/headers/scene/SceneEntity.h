@@ -86,7 +86,7 @@ namespace ORNG {
 		// Returns a new duplicate entity in the scene
 		SceneEntity& Duplicate() {
 #ifdef ORNG_SCRIPT_ENV
-			return ScriptInterface::Scene::DuplicateEntity(*this);
+			return ScriptInterface::World::DuplicateEntity(*this);
 #else
 			return mp_scene->DuplicateEntity(*this);
 #endif

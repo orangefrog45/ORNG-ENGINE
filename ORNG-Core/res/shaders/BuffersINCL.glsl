@@ -1,21 +1,15 @@
 ORNG_INCLUDE "CommonINCL.glsl"
 
-layout(std140, binding = 2) buffer PointLights {
+layout(std140, binding = 1) buffer PointLights {
 	PointLight lights[];
-} ubo_point_lights_shadow;
+} ubo_point_lights;
 
 
-layout(std140, binding = 1) buffer PointLightsShadowless {
-	PointLight lights[];
-} ubo_point_lights_shadowless;
-
-layout(std140, binding = 4) buffer SpotLights {
+layout(std140, binding = 2) buffer SpotLights {
 	SpotLight lights[];
-} ubo_spot_lights_shadow;
+} ubo_spot_lights;
 
-layout(std140, binding = 3) buffer SpotLightsShadowless {
-	SpotLight lights[];
-} ubo_spot_lights_shadowless;
+
 
 
 layout(std140, binding = 1) uniform GlobalLighting{

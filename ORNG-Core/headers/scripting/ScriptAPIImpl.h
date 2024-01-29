@@ -22,28 +22,39 @@ extern "C" {
 	}
 
 	__declspec(dllexport) void SetCreateEntityCallback(std::function<ORNG::SceneEntity& (const std::string&)> func) {
-		ScriptInterface::Scene::CreateEntity = func;
+		ScriptInterface::World::CreateEntity = func;
 	}
 
 	__declspec(dllexport) void SetDeleteEntityCallback(std::function<void(ORNG::SceneEntity*)> func) {
-		ScriptInterface::Scene::DeleteEntity = func;
+		ScriptInterface::World::DeleteEntity = func;
 	}
 
 	__declspec(dllexport) void SetDuplicateEntityCallback(std::function<ORNG::SceneEntity& (ORNG::SceneEntity&)> func) {
-		ScriptInterface::Scene::DuplicateEntity = func;
+		ScriptInterface::World::DuplicateEntity = func;
 	}
 
 	__declspec(dllexport) void SetInstantiatePrefabCallback(std::function<ORNG::SceneEntity& (const std::string&)> func) {
-		ScriptInterface::Scene::InstantiatePrefab = func;
+		ScriptInterface::World::InstantiatePrefab = func;
+	}
+
+	__declspec(dllexport) void SetGetEntityEnttHandleCallback(std::function<ORNG::SceneEntity& (entt::entity)> func) {
+		ScriptInterface::World::GetEntityEnttHandle = func;
 	}
 
 	__declspec(dllexport) void SetGetEntityCallback(std::function<ORNG::SceneEntity& (uint64_t)> func) {
-		ScriptInterface::Scene::GetEntity = func;
+		ScriptInterface::World::GetEntity = func;
+	}
+	__declspec(dllexport) void SetRaycastCallback(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)> func) {
+		ScriptInterface::World::Raycast = func;
 	}
 
-	__declspec(dllexport) void SetRaycastCallback(std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)> func) {
-		ScriptInterface::Scene::Raycast = func;
+	__declspec(dllexport) void SetOverlapQueryCallback(std::function <ORNG::OverlapQueryResults(glm::vec3, float)> func) {
+		ScriptInterface::World::OverlapQuery = func;
 	}
+
+
+
+
 }
 
 namespace ScriptInterface {

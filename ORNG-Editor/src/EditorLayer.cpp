@@ -34,6 +34,7 @@ namespace ORNG {
 		m_executable_directory = m_executable_directory.substr(0, m_executable_directory.find_last_of('\\'));
 
 		InitImGui();
+		InitLua();
 		m_asset_manager_window.Init();
 
 		m_grid_mesh = std::make_unique<GridMesh>();
@@ -134,7 +135,9 @@ namespace ORNG {
 
 		ORNG_CORE_INFO("Editor layer initialized");
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_INITIALIZATION));
+
 	}
+
 
 
 
@@ -233,6 +236,16 @@ namespace ORNG {
 
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
+
+
+		for (int i = 0; i < m_selected_entity_ids.size(); i++) {
+			auto id = m_selected_entity_ids[i];
+			if (!(*mp_scene_context)->GetEntity(id)) {
+				ORNG_CORE_WARN("Invalid entity ID {0} selected", id);
+				m_selected_entity_ids.erase(m_selected_entity_ids.begin() + i);
+				i--;
+			}
+		}
 
 		if (m_fullscreen_scene_display)
 			m_scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - toolbar_height) };
@@ -519,6 +532,11 @@ namespace ORNG {
 
 
 		RenderToolbar();
+
+		m_lua_cli.render_pos = { LEFT_WINDOW_WIDTH, toolbar_height };
+		m_lua_cli.size = { m_scene_display_rect.x, 250 };
+		m_lua_cli.OnImGuiRender();
+
 		m_asset_manager_window.OnRenderUI();
 
 
@@ -1098,6 +1116,151 @@ namespace ORNG {
 		Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_grid_mesh->m_vao, ceil(m_grid_mesh->grid_width / m_grid_mesh->grid_step) * 2);
 	}
 
+
+	void EditorLayer::UpdateLuaEntityArray() {
+		std::string reset_script = R"(
+			entity_array = 1
+			entity_array = {}
+		)";
+
+		for (int i = 0; i < (*mp_scene_context)->m_entities.size(); i++) {
+			auto* p_ent = (*mp_scene_context)->m_entities[i];
+			auto* p_transform = p_ent->GetComponent<TransformComponent>();
+			auto* p_relation_comp = p_ent->GetComponent<RelationshipComponent>();
+
+			auto pos = p_transform->GetPosition();
+			auto scale = p_transform->GetScale();
+			auto rot = p_transform->GetOrientation();
+
+			std::string entity_push_script = std::format("entity_array[{0}] = entity.new(\"{1}\", {2}, vec3.new({3}, {4}, {5}),  vec3.new({6}, {7}, {8}), vec3.new({9}, {10}, {11}), {12})", i+1, p_ent->name, (unsigned)p_ent->m_entt_handle, pos.x, pos.y, pos.z, scale.x, scale.y, scale.z, rot.x, rot.y, rot.z, (unsigned)p_relation_comp->parent);
+
+			m_lua_cli.GetLua().script(entity_push_script);
+		}
+
+
+	}
+
+
+	void EditorLayer::InitLua() {
+
+		m_lua_cli.Init();
+		m_lua_cli.input_callbacks.push_back([this] {
+			UpdateLuaEntityArray();
+			});
+
+		m_lua_cli.GetLua().set_function("ORNG_select_entity", [this](unsigned handle) {
+			auto* p_ent = (*mp_scene_context)->GetEntity(entt::entity(handle));
+			if (p_ent)
+				m_selected_entity_ids.push_back(p_ent->GetUUID());
+			});
+
+		m_lua_cli.GetLua().set_function("get_entity", [this](unsigned handle) -> LuaEntity {
+			auto* p_ent = (*mp_scene_context)->GetEntity(entt::entity(handle));
+			if (!p_ent)
+				return LuaEntity{ "NULL", (unsigned)entt::null, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, (unsigned)entt::null };
+
+			auto* p_transform = p_ent->GetComponent<TransformComponent>();
+			auto* p_relation_comp = p_ent->GetComponent<RelationshipComponent>();
+
+			return LuaEntity{ p_ent->name, (unsigned)p_ent->GetEnttHandle(), p_transform->GetPosition(), p_transform->GetScale(), p_transform->GetOrientation(), (unsigned)p_relation_comp->parent};
+
+			});
+
+
+		std::string util_script = R"(
+			entity_array = {}
+
+			function evaluate(expression, entity)
+				local chunk, err_message = load("return " .. expression, "c", "t", {entity = entity, get_entity = get_entity})
+    
+				if not chunk then
+					error("Error in expression: " .. err_message)
+				end
+    
+				return chunk() 
+			end
+
+			function select(expression)
+				num_selected = 0;
+
+				for i, entity in ipairs(entity_array) do
+					if (evaluate(expression, entity)) then
+						ORNG_select_entity(entity.entt_handle)
+						num_selected = num_selected + 1
+					end
+				end
+				print(tostring(num_selected) .. " entities selected")
+			end
+	
+)";
+		m_lua_cli.GetLua().script(util_script);
+
+		std::function<void(glm::vec3)> p_translate_func = [this](glm::vec3 v) {
+			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
+			for (auto id : m_selected_entity_ids) {
+				auto* p_ent = (*mp_scene_context)->GetEntity(id);
+
+				auto* p_transform = p_ent->GetComponent<TransformComponent>();
+				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
+				p_transform->SetPosition(p_transform->GetPosition() + v);
+			}
+
+			m_event_stack.PushEvent(e);
+			};
+
+		std::function<void(glm::vec3)> p_scale_func = [this](glm::vec3 v) {
+			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
+			for (auto id : m_selected_entity_ids) {
+				auto* p_ent = (*mp_scene_context)->GetEntity(id);
+
+				auto* p_transform = p_ent->GetComponent<TransformComponent>();
+				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
+				p_transform->SetScale(p_transform->GetScale() * v);
+			}
+
+			m_event_stack.PushEvent(e);
+			};
+
+
+		std::function<void(glm::vec3, float)> p_rot_func = [this](glm::vec3 axis, float angle_degrees) {
+			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
+			for (auto id : m_selected_entity_ids) {
+				auto* p_ent = (*mp_scene_context)->GetEntity(id);
+
+				auto* p_transform = p_ent->GetComponent<TransformComponent>();
+				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
+				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))));
+			}
+
+			m_event_stack.PushEvent(e);
+			};
+
+
+		std::function<void(glm::vec3, float, glm::vec3)> p_rot_about_point_func = [this](glm::vec3 axis, float angle_degrees, glm::vec3 pivot) {
+			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
+			for (auto id : m_selected_entity_ids) {
+				auto* p_ent = (*mp_scene_context)->GetEntity(id);
+
+				auto* p_transform = p_ent->GetComponent<TransformComponent>();
+				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
+
+				glm::quat q = glm::angleAxis(glm::radians(angle_degrees), axis);
+				glm::vec3 offset_pos = p_transform->GetAbsoluteTransforms()[0] - pivot;
+				p_transform->SetAbsolutePosition(q * offset_pos + pivot);
+				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))));
+			}
+
+			m_event_stack.PushEvent(e);
+			};
+
+		m_lua_cli.GetLua().set_function("translate", p_translate_func);
+		m_lua_cli.GetLua().set_function("scale", p_scale_func);
+		m_lua_cli.GetLua().set_function("rotate", p_rot_func);
+		m_lua_cli.GetLua().set_function("rotate_about", p_rot_about_point_func);
+	}
+
+	
+
 	void EditorLayer::RenderPhysxDebug() {
 		mp_highlight_shader->ActivateProgram();
 		glDisable(GL_DEPTH_TEST);
@@ -1153,6 +1316,7 @@ namespace ORNG {
 
 
 		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
@@ -1704,7 +1868,7 @@ namespace ORNG {
 		for (int i = 0; i < 4; i++) {
 			ImGui::PushID(i);
 			if (ImGui::DragFloat3("##pos", &p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p[0])) {
-				(*mp_scene_context)->m_physics_system.InitVehicle(p_comp);
+				(*mp_scene_context)->physics_system.InitVehicle(p_comp);
 			}
 			ImGui::PopID();
 		}
@@ -2101,9 +2265,7 @@ namespace ORNG {
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], &snap[0]) && ImGuizmo::IsUsing()) {
 
 			if (!is_using && !mouse_down && !m_simulate_mode_active) {
-				EditorEntityEvent e;
-				e.event_type = TRANSFORM_UPDATE;
-				e.affected_entities = m_selected_entity_ids;
+				EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
 				for (auto id : m_selected_entity_ids) {
 					e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*(*mp_scene_context)->GetEntity(id)));
 				}
@@ -2465,6 +2627,7 @@ namespace ORNG {
 		EditorEntityEvent e;
 		e.event_type = ENTITY_CREATE;
 		e.affected_entities.push_back(ent.GetUUID());
+		e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(ent));
 		m_event_stack.PushEvent(e);
 		return ent;
 	}

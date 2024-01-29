@@ -149,7 +149,7 @@ namespace ORNG {
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
-
+		OverlapQueryResults OverlapQuery(glm::vec3 pos, float range);
 
 		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
 		SceneEntity* TryGetEntityFromPxActor(const physx::PxActor* p_actor) {
@@ -259,8 +259,7 @@ namespace ORNG {
 		Texture2DArray m_spotlight_depth_tex{
 		"Spotlight depth"
 		}; // Used for shadow maps
-		unsigned int m_shadow_spotlight_ssbo_handle;
-		unsigned int m_shadowless_spotlight_ssbo_handle;
+		SSBO<float> m_spotlight_ssbo{true, 0};
 	};
 
 
@@ -279,8 +278,8 @@ namespace ORNG {
 		void OnDepthMapUpdate();
 	private:
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
-		unsigned int m_shadowless_pointlight_ssbo_handle;
-		unsigned int m_shadow_pointlight_ssbo_handle;
+		SSBO<float> m_pointlight_ssbo{ true, 0 };
+
 	};
 
 

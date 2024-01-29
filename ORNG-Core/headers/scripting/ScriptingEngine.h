@@ -17,7 +17,7 @@ namespace ORNG {
 
 	class ScriptingEngine {
 	public:
-		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled);
+		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled, bool force_recompilation = false);
 		static ScriptSymbols LoadScriptDll(const std::string& dll_path, const std::string& relative_path);
 		// Produces a path that a scripts dll will be stored in
 		static std::string GetDllPathFromScriptCpp(const std::string& script_filepath);

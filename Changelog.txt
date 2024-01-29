@@ -1,3 +1,13 @@
+29/1/24:
+-Lua dev console for editor, useful for selecting/modifying entities using conditional logic
+-Rewrote some of the point/spotlight buffer code to remerge shadowed and shadowless lights and use new SSBO class
+-Some bug/crash fixes
+
+27/1/24:
+-Physx overlap queries in scene
+-Removed namespace collision problems from scripts, a few other improvements
+-Fixed physx debug rendering causing regular meshes to stop rendering
+
 25/1/24:
 -Error handling and dead code cleanup
 -Some more audio component functionality

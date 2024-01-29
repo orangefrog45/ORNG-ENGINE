@@ -27,6 +27,10 @@ namespace ORNG {
 			Get().IBindVAO(vao);
 		}
 
+		inline static void DeleteBuffer(unsigned buffer_handle) {
+			glDeleteBuffers(1, &buffer_handle);
+		}
+
 
 		inline static void BindSSBO(unsigned int ssbo, unsigned int binding_index) {
 			Get().IBindSSBO(ssbo, binding_index);
@@ -102,10 +106,8 @@ namespace ORNG {
 
 		struct SSBO_BindingPoints {
 			static const int TRANSFORMS = 0;
-			static const int POINT_LIGHTS_SHADOWLESS = 1;
-			static const int POINT_LIGHTS_SHADOW = 2;
-			static const int SPOT_LIGHTS_SHADOWLESS = 3;
-			static const int SPOT_LIGHTS_SHADOW = 4;
+			static const int POINT_LIGHTS = 1;
+			static const int SPOT_LIGHTS = 2;
 			static const int PARTICLE_EMITTERS = 5;
 			static const int PARTICLES = 6;
 			static const int PARTICLE_APPEND = 7;

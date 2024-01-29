@@ -118,7 +118,7 @@ float ShadowCalculationSpotlight(SpotLight light, float light_index, vec3 world_
 	shadow /= 9.0;*/
 
 
-	float adaptive_epsilon = CalcAdaptiveEpsilon(current_depth, light.max_distance);
+	float adaptive_epsilon = CalcAdaptiveEpsilon(current_depth, light.shadow_distance);
 	shadow += ((current_depth - adaptive_epsilon) > texture(SPOTLIGHT_DEPTH_SAMPLER, vec3(vec2(proj_coords.xy), light_index)).r) ? 1.0 : 0.0;
 
 	return shadow;
@@ -126,7 +126,7 @@ float ShadowCalculationSpotlight(SpotLight light, float light_index, vec3 world_
 
 float ShadowCalculationPointlight(PointLight light, int light_index, vec3 world_pos) {
 	vec3 light_to_frag = world_pos - light.pos.xyz;
-	float closest_depth = texture(POINTLIGHT_DEPTH_SAMPLER, vec4(light_to_frag, light_index)).r * light.max_distance; // Transform normalized depth to range 0, zFar
+	float closest_depth = texture(POINTLIGHT_DEPTH_SAMPLER, vec4(light_to_frag, light_index)).r * light.shadow_distance; // Transform normalized depth to range 0, zFar
 	float current_depth = length(light_to_frag);
 	float bias = 0.1;
 	float shadow = float((current_depth - bias) > closest_depth);

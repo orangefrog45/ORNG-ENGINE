@@ -918,7 +918,7 @@ namespace ORNG {
 		}
 
 		// Spotlights
-		glViewport(0, 0, 2048, 2048);
+		glViewport(0, 0, 512, 512);
 		mp_persp_depth_shader->ActivateProgram();
 		auto spotlights = mp_scene->m_registry.view<SpotLightComponent, TransformComponent>();
 

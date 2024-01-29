@@ -156,30 +156,31 @@ vec3 CalcDirectionalLight(vec3 v, vec3 f0, vec3 n, float roughness, float metall
 
 vec3 CalculateDirectLightContribution(vec3 v, vec3 f0, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
 	vec3 total_light = vec3(0);
-		// Directional light
+	// Directional light
 	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz), world_pos);
 	total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo) * (1.0 - shadow);
 
 		// Pointlights
-	for (int i = 0; i < ubo_point_lights_shadow.lights.length(); i++) {
-		total_light += (CalcPointLight(ubo_point_lights_shadow.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo)) * (1.0 - ShadowCalculationPointlight(ubo_point_lights_shadow.lights[i], i, world_pos));
+	for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
+		if (ubo_point_lights.lights[i].shadow_distance > 0.f)
+			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, world_pos));
+		else
+			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) ;
 	}
 
-	for (int i = 0; i < ubo_point_lights_shadowless.lights.length(); i++) {
-		total_light += (CalcPointLight(ubo_point_lights_shadowless.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo));
-	}
 
 	//Spotlights
-	for (int i = 0; i < ubo_spot_lights_shadowless.lights.length(); i++) {
-		total_light += (CalcSpotLight(ubo_spot_lights_shadowless.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo));
-	}
+	for (int i = 0; i < ubo_spot_lights.lights.length(); i++) {
+		if (ubo_spot_lights.lights[i].shadow_distance > 0.f) {
+			float shadow = ShadowCalculationSpotlight(ubo_spot_lights.lights[i], i, world_pos);
 
-	for (int i = 0; i < ubo_spot_lights_shadow.lights.length(); i++) {
-		float shadow = ShadowCalculationSpotlight(ubo_spot_lights_shadow.lights[i], i, world_pos);
-		if (shadow >= 0.99)
-			continue;
+			if (shadow >= 0.99)
+				continue;
 
-		total_light += (CalcSpotLight(ubo_spot_lights_shadow.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo)) * (1.0 - shadow);
+			total_light += CalcSpotLight(ubo_spot_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) * (1.0 - shadow);
+		} else {
+			total_light += CalcSpotLight(ubo_spot_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo);
+		}
 	}
 
 	return total_light;

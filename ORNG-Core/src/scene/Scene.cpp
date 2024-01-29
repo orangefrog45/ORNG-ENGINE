@@ -18,13 +18,13 @@ namespace ORNG {
 	}
 
 	void Scene::Update(float ts) {
+		ORNG_PROFILE_FUNC();
 
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
 
 		m_particle_system.OnUpdate();
-		ORNG_PROFILE_FUNC();
-		m_physics_system.OnUpdate(ts);
+		physics_system.OnUpdate(ts);
 
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
@@ -161,7 +161,7 @@ namespace ORNG {
 
 		post_processing.global_fog.SetNoise(noise);
 		terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
-		m_physics_system.OnLoad();
+		physics_system.OnLoad();
 		m_mesh_component_manager.OnLoad();
 		m_camera_system.OnLoad();
 		m_transform_system.OnLoad();
@@ -205,6 +205,15 @@ namespace ORNG {
 
 	void Scene::SetScriptState() {
 		for (auto* p_script_asset : AssetManager::GetView<ScriptAsset>()) {
+			p_script_asset->symbols.SceneGetEntityEnttHandleSetter([this](entt::entity entt_handle) -> SceneEntity& {
+				auto* p_ent = GetEntity(entt_handle);
+
+				if (!p_ent)
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with entt handle {} not found", (uint32_t)entt_handle)); // Caught in Scene::Update
+
+				return *p_ent;
+				});
+
 			p_script_asset->symbols.SceneEntityCreationSetter([this](const std::string& str) -> SceneEntity& {
 				return CreateEntity(str);
 				});
@@ -223,7 +232,7 @@ namespace ORNG {
 				});
 
 			p_script_asset->symbols.SceneRaycastSetter([this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
-				return m_physics_system.Raycast(origin, unit_dir, max_distance);
+				return physics_system.Raycast(origin, unit_dir, max_distance);
 				});
 
 			p_script_asset->symbols.SceneGetEntitySetter([this](uint64_t id) -> SceneEntity& {
@@ -232,7 +241,11 @@ namespace ORNG {
 				if (!p_ent)
 					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with uuid {} not found", id)); // Caught in Scene::Update
 
-				return *GetEntity(id);
+				return *p_ent;
+				});
+
+			p_script_asset->symbols.SceneOverlapQuerySetter([this](glm::vec3 pos, float range) -> OverlapQueryResults {
+				return physics_system.OverlapQuery(pos, range);
 				});
 		}
 	}
@@ -252,7 +265,7 @@ namespace ORNG {
 
 		m_registry.clear();
 		m_transform_system.OnUnload();
-		m_physics_system.OnUnload();
+		physics_system.OnUnload();
 		m_mesh_component_manager.OnUnload();
 		m_camera_system.OnUnload();
 		m_audio_system.OnUnload();

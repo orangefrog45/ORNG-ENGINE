@@ -40,7 +40,6 @@ namespace ORNG {
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 #endif
 			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
-				return false;
 				return true; // Core engine library has changed so recompilation needed
 			}
 		}
@@ -228,8 +227,10 @@ namespace ORNG {
 		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
 		symbols.SceneGetEntitySetter = (GetEntitySetter)(GetProcAddress(script_dll, "SetGetEntityCallback"));
 		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
+		symbols.SceneOverlapQuerySetter = (OverlapQuerySetter)(GetProcAddress(script_dll, "SetOverlapQueryCallback"));
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
+		symbols.SceneGetEntityEnttHandleSetter = (GetEntityEnttHandleSetter)(GetProcAddress(script_dll, "SetGetEntityEnttHandleCallback"));
 		symbols.loaded = true;
 		symbols.DestroyInstance(symbols.CreateInstance());
 
@@ -245,7 +246,7 @@ namespace ORNG {
 		return symbols;
 	}
 
-	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled) {
+	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled, bool force_recompilation) {
 		if (sm_loaded_script_dll_handles.contains(filepath)) {
 			ORNG_CORE_CRITICAL("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
 			BREAKPOINT;
@@ -266,7 +267,7 @@ namespace ORNG {
 				return ScriptSymbols(relative_path);
 			}
 
-			if (DoesScriptNeedRecompilation(filepath, metadata_path)) {
+			if (force_recompilation || DoesScriptNeedRecompilation(filepath, metadata_path)) {
 				// Write out metadata that can be checked for validity when recompiling (compilation can be skipped if valid)
 				ScriptMetadata md;
 #ifdef NDEBUG

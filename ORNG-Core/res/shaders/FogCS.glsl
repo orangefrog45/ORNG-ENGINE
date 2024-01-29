@@ -36,7 +36,7 @@ uniform vec3 u_fog_color;
 vec3 CalcPointLight(PointLight light, vec3 world_pos) {
 	float distance = length(light.pos.xyz - world_pos);
 
-	if (distance > light.max_distance)
+	if (distance > light.shadow_distance)
 		return vec3(0.0);
 
 	vec3 diffuse_color = light.color.xyz;
@@ -54,7 +54,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 	vec3 frag_to_light = light.pos.xyz - world_pos.xyz;
 	float distance = length(frag_to_light);
 
-	if (distance > light.max_distance)
+	if (distance > light.shadow_distance)
 		return vec3(0.0);
 
 	vec3 frag_to_light_dir = normalize(frag_to_light);
@@ -62,7 +62,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 	float spot_factor = dot(frag_to_light_dir, -light.dir.xyz);
 	
 	if (spot_factor > light.aperture) {
-		float shadow = ShadowCalculationSpotlight(light, index, world_pos);
+		float shadow = light.shadow_distance > 0.f ? ShadowCalculationSpotlight(light, index, world_pos) : 0.f;
 
 		if (shadow >= 0.99) {
 			return vec3(0); // early return as no light will reach this spot
@@ -145,12 +145,12 @@ void main() {
 
 		vec3 slice_light = vec3(0);
 
-		for (unsigned int i = 0; i < ubo_point_lights_shadowless.lights.length(); i++) {
-			slice_light += CalcPointLight(ubo_point_lights_shadowless.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights_shadowless.lights[i].pos.xyz - step_pos));
+		for (unsigned int i = 0; i < ubo_point_lights.lights.length(); i++) {
+			slice_light += CalcPointLight(ubo_point_lights.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights.lights[i].pos.xyz - step_pos));
 		}
 
-		for (unsigned int i = 0; i < ubo_spot_lights_shadow.lights.length(); i++) {
-			slice_light += CalcSpotLight(ubo_spot_lights_shadow.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights_shadow.lights[i].dir.xyz);
+		for (unsigned int i = 0; i < ubo_spot_lights.lights.length(); i++) {
+			slice_light += CalcSpotLight(ubo_spot_lights.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights.lights[i].dir.xyz);
 		}
 
 		float dir_shadow = CheapShadowCalculationDirectional(step_pos);

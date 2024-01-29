@@ -13,6 +13,8 @@ namespace ORNG {
 
 
 	struct EditorEntityEvent {
+		EditorEntityEvent() = default;
+		EditorEntityEvent(EditorEntityEventType _event_type, std::vector<uint64_t> _affected_entities) : event_type(_event_type), affected_entities(_affected_entities) {};
 		std::vector<uint64_t> affected_entities;
 		std::vector<std::string> serialized_entities_before;
 		std::vector<std::string> serialized_entities_after;

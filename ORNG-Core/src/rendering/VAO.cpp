@@ -75,6 +75,7 @@ namespace ORNG {
 
 	void BufferBase::Resize(size_t size_bytes) {
 		GLuint buf = GL_StateManager::GenBuffer();
+		size_bytes = glm::max(size_bytes, (size_t)8);
 
 		if (m_is_mutable)
 			glNamedBufferData(buf, size_bytes, nullptr, draw_type);
