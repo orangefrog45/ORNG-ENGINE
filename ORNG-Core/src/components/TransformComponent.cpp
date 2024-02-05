@@ -4,7 +4,6 @@
 #include "util/ExtraMath.h"
 #include "events/EventManager.h"
 #include "scene/SceneEntity.h"
-#include "glm/glm/gtc/quaternion.hpp"
 
 
 

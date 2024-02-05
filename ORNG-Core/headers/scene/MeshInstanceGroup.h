@@ -1,5 +1,6 @@
 #pragma once
 #include "components/MeshComponent.h"
+#include "rendering/VAO.h"
 
 
 namespace ORNG {

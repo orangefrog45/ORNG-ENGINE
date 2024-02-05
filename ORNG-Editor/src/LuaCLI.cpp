@@ -2,9 +2,7 @@
 #include "LuaCLI.h"
 #include "imgui.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
-#include "core/Window.h"
 #include "core/Input.h"
-#include <GLFW/glfw3.h>
 
 
 namespace ORNG {
@@ -41,7 +39,7 @@ namespace ORNG {
 		static bool display_window = false;
 		static bool reselect = true;
 
-		if (!ImGui::GetIO().WantCaptureKeyboard && Input::IsKeyPressed(GLFW_KEY_GRAVE_ACCENT)) {
+		if (!ImGui::GetIO().WantCaptureKeyboard && Input::IsKeyPressed(Key::Accent)) {
 			display_window = !display_window;
 			reselect = display_window;
 		}

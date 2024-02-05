@@ -25,7 +25,7 @@ namespace ORNG {
 		ExtraMath::Frustum view_frustum;
 		float fov = 90.0f;
 		float zNear = 0.1f;
-		float zFar = 2500.f;
+		float zFar = 10000.f;
 		float exposure = 1.f;
 		float aspect_ratio = 16.0 / 9.0;
 	protected:

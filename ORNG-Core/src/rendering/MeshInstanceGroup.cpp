@@ -1,11 +1,7 @@
 #include "pch/pch.h"
 
-#include "rendering/MeshAsset.h"
 #include "scene/MeshInstanceGroup.h"
-#include "components/ComponentSystems.h"
 #include "components/TransformComponent.h"
-#include "util/Log.h"
-#include "scene/Scene.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {

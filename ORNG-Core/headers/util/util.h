@@ -1,7 +1,7 @@
 #pragma once
 #include "Log.h"
 namespace ORNG {
-#define BREAKPOINT __debugbreak()
+#define BREAKPOINT ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak()
 #define ASSERT(x) if (!(x)) __debugbreak()
 #define VEC_PUSH_VEC3(vector, vec3) vector.push_back(vec3.x); vector.push_back(vec3.y); vector.push_back(vec3.z)
 #define VEC_PUSH_VEC2(vector, vec2) vector.push_back(vec2.x); vector.push_back(vec2.y)
@@ -27,8 +27,17 @@ namespace ORNG {
 	void FileDelete(const std::string& filepath);
 	bool PathEqualTo(const std::string& path1, const std::string& path2);
 	bool FileExists(const std::string& filepath);
+
+	// Replaces all instances of "text_to_replace" with "replacement_text"
+	// Modifies "input" string directly, returns number of replacement operations
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
+
+	bool TryFileDelete(const std::string& filepath);
+
 	std::string GetFileDirectory(const std::string& filepath);
 	std::string GetFileLastWriteTime(const std::string& filepath);
+
+	std::string GetApplicationExecutableDirectory();
 
 	void Create_Directory(const std::string& path);
 

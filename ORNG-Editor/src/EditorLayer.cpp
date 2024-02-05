@@ -1,24 +1,21 @@
 #include "pch/pch.h"
 
+
 #include <glfw/glfw3.h>
+#include "yaml/include/yaml-cpp/yaml.h"
 #include <fmod.hpp>
 
 #include "EditorLayer.h"
 #include "../extern/Icons.h"
-#include "../extern/imgui/backends/imgui_impl_glfw.h"
 #include "../extern/imgui/backends/imgui_impl_opengl3.h"
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
 #include "../extern/imguizmo/ImGuizmo.h"
-#include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
-#include "yaml-cpp/yaml.h"
 #include "scripting/ScriptingEngine.h"
 #include "core/Input.h"
-#include "cudamanager/PxCudaContext.h"
 #include "util/ExtraUI.h"
 #include "components/ParticleBufferComponent.h"
-
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
@@ -44,11 +41,6 @@ namespace ORNG {
 		mp_grid_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/GridFS.glsl");
 		mp_grid_shader->Init();
 
-
-		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("2d_quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/QuadFS.glsl");
-		mp_quad_shader->Init();
 
 		mp_plane_shader = &Renderer::GetShaderLibrary().CreateShader("plane");
 		mp_plane_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/res/shaders/QuadVS.glsl");
@@ -610,7 +602,7 @@ namespace ORNG {
 
 
 		if (m_simulate_mode_active) {
-			mp_quad_shader->ActivateProgram();
+			Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 			Renderer::DrawQuad();
 		}
@@ -819,6 +811,7 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ParticleEmitterComponent.h", "./res/scripts/includes/ParticleEmitterComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
 
+
 	}
 
 
@@ -853,24 +846,10 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/materials");
 		std::filesystem::create_directory(project_path + "/res/physx-materials");
 
+		// Update engine resources
+		FileDelete("./res/core-res");
+		FileCopy(GetApplicationExecutableDirectory() + "/res", "./res/core-res/", true);
 		RefreshScriptIncludes();
-
-		/*// Include header files for API so intellisense works
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", project_path + "/res/scripts/includes/SceneEntity.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", project_path + "/res/scripts/includes/glm/", true);
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", project_path + "/res/scripts/includes/Scene.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", project_path + "/res/scripts/includes/ScriptAPI.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", project_path + "/res/scripts/includes/SceneScriptInterface.h");
-		// Components
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", project_path + "/res/scripts/includes/Component.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", project_path + "/res/scripts/includes/MeshComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", project_path + "/res/scripts/includes/ScriptComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", project_path + "/res/scripts/includes/Lights.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", project_path + "/res/scripts/includes/TransformComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", project_path + "/res/scripts/includes/PhysicsComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", project_path + "/res/scripts/includes/CameraComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", project_path + "/res/scripts/includes/AudioComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", project_path + "/res/scripts/includes/EnttSingleInclude.h");*/
 
 		return true;
 	}
@@ -928,12 +907,18 @@ namespace ORNG {
 
 
 	bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
+		ORNG_CORE_INFO("Attempting to make project '{0}' active", folder_path);
+
 		if (ValidateProjectDir(folder_path)) {
 			if (m_simulate_mode_active)
 				EndPlayScene();
 
 			m_current_project_directory = std::filesystem::absolute(folder_path).string();
 			std::filesystem::current_path(folder_path);
+
+			// Update resources
+			FileDelete("./res/core-res");
+			FileCopy(GetApplicationExecutableDirectory() + "/res", "./res/core-res/", true);
 			RefreshScriptIncludes();
 
 			// Deselect material and texture that's about to be deleted

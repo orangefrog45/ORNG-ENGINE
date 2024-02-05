@@ -1,6 +1,6 @@
 #include "rendering/Textures.h"
 #include "scene/Scene.h"
-#include "events/EventManager.h"
+#include "events/Events.h"
 
 namespace ORNG {
 	class MeshAsset;

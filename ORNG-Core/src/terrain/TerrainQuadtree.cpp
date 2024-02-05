@@ -2,10 +2,8 @@
 
 #include "terrain/TerrainQuadtree.h"
 #include "util/Log.h"
-#include "util/util.h"
 #include "terrain/TerrainChunk.h"
 #include "terrain/ChunkLoader.h"
-#include "components/CameraComponent.h"
 #include <glm/glm/gtc/round.hpp>
 
 namespace ORNG {

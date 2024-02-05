@@ -40,6 +40,7 @@ namespace ORNG {
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 #endif
 			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
+				return false;
 				return true; // Core engine library has changed so recompilation needed
 			}
 		}
@@ -208,6 +209,48 @@ namespace ORNG {
 		return output_path;
 	}
 
+	void ScriptingEngine::OnDeleteScript(const std::string& script_filepath) {
+		ASSERT(FileExists(script_filepath));
+		UnloadScriptDLL(script_filepath);
+
+		std::string dll_path = GetDllPathFromScriptCpp(script_filepath);
+
+		if (FileExists(dll_path)) {
+			std::string no_extension_path = dll_path.substr(0, dll_path.rfind("."));
+			std::string no_extension_path_alt = no_extension_path;
+
+#ifdef NDEBUG
+			StringReplace(no_extension_path_alt, "release", "debug");
+#else
+			StringReplace(no_extension_path_alt, "debug", "release");
+#endif
+
+			FileDelete(dll_path);
+			TryFileDelete(no_extension_path + ".metadata");
+			TryFileDelete(no_extension_path + ".lib");
+			TryFileDelete(no_extension_path + ".obj");
+			TryFileDelete(no_extension_path + ".exp");
+
+			TryFileDelete(no_extension_path_alt + ".dll");
+			TryFileDelete(no_extension_path_alt + ".metadata");
+			TryFileDelete(no_extension_path_alt + ".lib");
+			TryFileDelete(no_extension_path_alt + ".obj");
+			TryFileDelete(no_extension_path_alt + ".exp");
+		}
+
+		FileDelete(script_filepath);
+	}
+
+	ScriptStatusQueryResults ScriptingEngine::GetScriptData(const std::string& script_filepath) {
+		for (int i = 0; i < sm_loaded_script_dll_handles.size(); i++) {
+			if (PathEqualTo(script_filepath, sm_loaded_script_dll_handles[i].filepath))
+				return { true, i };
+		}
+
+		return { false, -1 };
+	}
+
+
 	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& relative_path) {
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
@@ -215,9 +258,6 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", dll_path);
 			return ScriptSymbols(relative_path);
 		}
-
-		// Keep record of loaded DLL's
-		sm_loaded_script_dll_handles[relative_path] = script_dll;
 
 		ScriptSymbols symbols{ relative_path };
 
@@ -242,15 +282,18 @@ namespace ORNG {
 		event_setter(&Events::EventManager::Get());
 		frame_timing_setter(&FrameTiming::Get());
 
+		// Keep record of loaded DLL's
+		sm_loaded_script_dll_handles.push_back({ relative_path, script_dll, symbols });
 
 		return symbols;
 	}
 
 	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled, bool force_recompilation) {
-		if (sm_loaded_script_dll_handles.contains(filepath)) {
-			ORNG_CORE_CRITICAL("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
-			BREAKPOINT;
+		if (auto results = GetScriptData(filepath); results.is_loaded) {
+			ORNG_CORE_WARN("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
+			return sm_loaded_script_dll_handles[results.script_data_index].symbols;
 		}
+
 		std::string filename = filepath.substr(filepath.find_last_of("\\") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
 		std::string file_dir = filepath.substr(0, filepath.find_last_of("\\") + 1);
@@ -328,10 +371,9 @@ namespace ORNG {
 
 
 	bool ScriptingEngine::UnloadScriptDLL(const std::string& filepath) {
-		if (sm_loaded_script_dll_handles.contains(filepath)) {
-			FreeLibrary(sm_loaded_script_dll_handles[filepath]);
-
-			sm_loaded_script_dll_handles.erase(filepath);
+		if (auto results = GetScriptData(filepath); results.is_loaded) {
+			FreeLibrary(sm_loaded_script_dll_handles[results.script_data_index].dll_handle);
+			sm_loaded_script_dll_handles.erase(sm_loaded_script_dll_handles.begin() + results.script_data_index);
 			return true;
 		}
 		else {

@@ -1,3 +1,4 @@
+#ifndef NO_LIGHTING
 ORNG_INCLUDE "BuffersINCL.glsl"
 ORNG_INCLUDE "ShadowsINCL.glsl"
 
@@ -203,3 +204,4 @@ vec3 CalculateAmbientLightContribution(float n_dot_v, vec3 f0, vec3 r, float rou
 	total_light += ambient_light;
 	return total_light;
 }
+#endif

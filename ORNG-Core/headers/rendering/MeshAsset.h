@@ -35,7 +35,7 @@ namespace ORNG {
 		MeshAsset(const std::string& filename) : Asset(filename) {};
 		MeshAsset(const std::string& filename, uint64_t t_uuid) : Asset(filename) { uuid = UUID(t_uuid); };
 		MeshAsset(const MeshAsset& other) = default;
-		~MeshAsset() = default;
+		~MeshAsset() =default;
 
 		bool LoadMeshData();
 
@@ -86,7 +86,7 @@ namespace ORNG {
 
 		AABB m_aabb;
 
-		Assimp::Importer m_importer;
+		std::unique_ptr<Assimp::Importer> mp_importer = nullptr;
 
 		unsigned int num_indices = 0;
 		uint8_t num_materials = 0;

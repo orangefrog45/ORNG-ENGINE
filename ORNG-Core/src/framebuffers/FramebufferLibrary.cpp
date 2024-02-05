@@ -2,7 +2,6 @@
 
 #include "framebuffers/FramebufferLibrary.h"
 #include "util/Log.h"
-#include "core/Window.h"
 #include "events/EventManager.h"
 
 namespace ORNG {

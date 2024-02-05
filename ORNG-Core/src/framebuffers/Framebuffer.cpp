@@ -6,7 +6,6 @@
 #include "util/Log.h"
 #include "util/util.h"
 #include "rendering/Textures.h"
-#include "events/EventManager.h"
 
 
 namespace ORNG {

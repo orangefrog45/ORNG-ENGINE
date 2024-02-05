@@ -24,6 +24,10 @@ namespace ORNG {
 		Shader& GetShader(const char* name);
 		void DeleteShader(const char* name);
 
+		Shader& GetQuadShader() {
+			return GetShader("SL quad");
+		}
+
 		void ReloadShaders();
 
 		[[nodiscard]] inline unsigned int CreateIncrementalShaderID() const { // This can be incremental as these id's don't need to stay the same between
@@ -34,6 +38,8 @@ namespace ORNG {
 		inline static const uint64_t LIGHTING_SHADER_ID = 1;
 		inline static const uint64_t INVALID_SHADER_ID = 0; //useful for rendering things that should not have any shader applied to them (e.g skybox), only default gbuffer albedo
 	private:
+
+		Shader* mp_quad_shader = nullptr;
 
 		std::unordered_map<std::string, Shader> m_shaders;
 		std::unordered_map<std::string, ShaderVariants> m_shader_variants;

@@ -15,6 +15,16 @@ namespace ORNG {
 		}
 	}
 
+	bool TryFileDelete(const std::string& filepath) {
+		if (FileExists(filepath)) {
+			FileDelete(filepath);
+			return true;
+		}
+
+		return false;
+	}
+
+
 	void FileDelete(const std::string& filepath) {
 		try {
 			std::filesystem::remove(filepath);
@@ -33,6 +43,22 @@ namespace ORNG {
 			return false;
 		}
 	}
+
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text) {
+		size_t pos = input.find(text_to_replace, 0);
+		unsigned num_replacements = 0;
+
+		while (pos < input.size() && pos != std::string::npos) {
+			ORNG_CORE_TRACE(pos);
+			input.replace(pos, text_to_replace.size(), replacement_text);
+			num_replacements++;
+
+			pos = input.find(text_to_replace, pos + replacement_text.size());
+		}
+
+		return num_replacements;
+	}
+
 
 	void Create_Directory(const std::string& path) {
 		try {
@@ -89,6 +115,16 @@ namespace ORNG {
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::is_regular_file err with path '{0}', '{1}'", entry.path().string(), e.what());
 		}
+	}
+
+	std::string GetApplicationExecutableDirectory() {
+		char buffer[MAX_PATH];
+		GetModuleFileNameA(NULL, buffer, MAX_PATH);
+
+		std::string directory = buffer;
+		directory = directory.substr(0, directory.find_last_of("\\"));
+
+		return directory;
 	}
 
 	std::string GetFileLastWriteTime(const std::string& filepath) {

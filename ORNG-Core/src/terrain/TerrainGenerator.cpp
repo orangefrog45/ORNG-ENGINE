@@ -2,10 +2,6 @@
 
 #include "terrain/TerrainGenerator.h"
 #include "../extern/fastnoiselite/FastNoiseLite.h"
-#include "glm/glm/gtc/round.hpp"
-#include "util/Log.h"
-#include "util/TimeStep.h"
-#include "../extern/glm/glm/gtc/quaternion.hpp"
 
 namespace ORNG {
 	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, unsigned int resolution,

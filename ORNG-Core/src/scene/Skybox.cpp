@@ -1,10 +1,5 @@
 #include "pch/pch.h"
 #include "scene/Skybox.h"
-#include "rendering/Renderer.h"
-#include "util/util.h"
-#include "core/GLStateManager.h"
-#include "core/Window.h"
-#include "stb/stb_image_write.h"
 #include "rendering/EnvMapLoader.h"
 
 namespace ORNG {

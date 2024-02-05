@@ -1,6 +1,5 @@
 #include "pch/pch.h"
 #include <fmod.hpp>
-#include <fmod_errors.h>
 #include "components/ComponentSystems.h"
 #include "audio/AudioEngine.h"
 #include "assets/AssetManager.h"
@@ -18,8 +17,8 @@ namespace ORNG {
 
 
 	void AudioSystem::OnLoad() {
-		const char* name = std::to_string(GetSceneUUID()).c_str();
-		AudioEngine::GetSystem()->createChannelGroup(name, &mp_channel_group);
+		std::string name = std::to_string(GetSceneUUID());
+		AudioEngine::GetSystem()->createChannelGroup(name.c_str(), &mp_channel_group);
 		m_audio_listener.scene_id = GetSceneUUID();
 		m_audio_listener.OnEvent = [this](const Events::ECS_Event<AudioComponent>& e_event) {
 			using enum Events::ECS_EventType;
@@ -52,6 +51,7 @@ namespace ORNG {
 	}
 
 	void AudioSystem::OnUnload() {
+		mp_channel_group->release();
 		Events::EventManager::DeregisterListener(m_audio_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 	}

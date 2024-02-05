@@ -17,7 +17,7 @@ src/components/managers/PhysicsSystem.cpp
 src/components/managers/PointlightComponentManager.cpp
 src/components/managers/SpotlightComponentManager.cpp
 src/core/Application.cpp
-src/core/CodedAssets.cpp
+
 src/core/GLStateManager.cpp
 src/core/Window.cpp
 src/events/EventManager.cpp

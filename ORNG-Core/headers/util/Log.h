@@ -13,6 +13,7 @@ namespace ORNG {
 	public:
 
 		static void Init();
+		static void Flush();
 		static std::string GetLastLog();
 		static std::vector<std::string> GetLastLogs();
 		static std::shared_ptr<spdlog::logger>& GetCoreLogger();

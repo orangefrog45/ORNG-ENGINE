@@ -1,7 +1,6 @@
 #include "pch/pch.h"
 
 #include "components/CameraComponent.h"
-#include "core/Window.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {

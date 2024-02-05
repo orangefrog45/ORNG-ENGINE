@@ -1,3 +1,12 @@
+5/2/24:
+-Proper script binary cleanup
+-General stability improvements to scripting engine
+-Removed some unused headers
+
+3/2/24:
+-Fixed some issues with core engine assets not being available causing crashes
+-Engine log output file
+
 29/1/24:
 -Lua dev console for editor, useful for selecting/modifying entities using conditional logic
 -Rewrote some of the point/spotlight buffer code to remerge shadowed and shadowless lights and use new SSBO class

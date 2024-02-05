@@ -1,8 +1,6 @@
 #include "pch/pch.h"
 #include "components/PhysicsComponent.h"
 #include "events/EventManager.h"
-#include <characterkinematic/PxCapsuleController.h>
-#include <PxPhysicsAPI.h>
 #include "physics/Physics.h"
 #include "assets/PhysXMaterialAsset.h"
 

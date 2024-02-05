@@ -1,14 +1,9 @@
 #include "pch/pch.h"
 #include "assets/AssetManager.h"
-#include "core/CodedAssets.h"
 #include "events/EventManager.h"
 #include "core/Window.h"
-#include "assimp/scene.h"
 #include "rendering/Textures.h"
 #include "rendering/MeshAsset.h"
-#include "audio/AudioEngine.h"
-#include <fmod.hpp>
-#include <fmod_errors.h>
 #include "core/GLStateManager.h"
 #include "scene/SceneSerializer.h"
 #include "physics/Physics.h" // for material initialization
@@ -187,7 +182,7 @@ namespace ORNG {
 			}
 		}
 
-		asset->PopulateBuffers();
+		asset->OnLoadIntoGL();
 
 		/*glFinish();
 		asset->m_vao.vertex_data.positions.clear();
@@ -268,6 +263,27 @@ namespace ORNG {
 		}
 	}
 
+	void AssetManager::LoadExternalBaseAssets(const std::string& project_dir) {
+		if (!GetAsset<SoundAsset>(ORNG_BASE_SOUND_ID)) {
+			m_assets.erase(ORNG_BASE_SOUND_ID);
+			mp_base_sound = std::make_unique<SoundAsset>(project_dir + "\\res\\core-res\\audio\\mouse-click.mp3");
+			mp_base_sound->uuid = UUID(ORNG_BASE_SOUND_ID);
+			AddAsset(&*mp_base_sound);
+			mp_base_sound->source_filepath = mp_base_sound->filepath;
+			mp_base_sound->CreateSound();
+		}
+
+		if (!GetAsset<MeshAsset>(ORNG_BASE_SPHERE_ID)) {
+			m_assets.erase(ORNG_BASE_SPHERE_ID);
+			mp_base_sphere.release();
+			mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.obj");
+			DeserializeAssetBinary("res/core-res/meshes/Sphere.obj.bin", *mp_base_sphere);
+			mp_base_sphere->PopulateBuffers();
+			mp_base_sphere->m_is_loaded = true;
+			mp_base_sphere->uuid = UUID(ORNG_BASE_SPHERE_ID);
+			AddAsset(&*mp_base_sphere);
+		}
+	}
 
 	void AssetManager::LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts) {
 		std::string texture_folder = project_dir + "\\res\\textures\\";
@@ -285,6 +301,7 @@ namespace ORNG {
 		default_spec.generate_mipmaps = true;
 		default_spec.storage_type = GL_UNSIGNED_BYTE;
 
+		Get().LoadExternalBaseAssets(project_dir);
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
 			std::string path = entry.path().string();
@@ -424,29 +441,21 @@ namespace ORNG {
 	void AssetManager::InitBaseAssets() {
 		InitBaseCube();
 		InitBaseTexture();
-		InitBaseSphere();
 		InitBase3DQuad();
 
 		mp_replacement_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
 		auto symbols = ScriptSymbols("");
 		mp_base_script = std::make_unique<ScriptAsset>(symbols);
-		mp_base_sound = std::make_unique<SoundAsset>(ORNG_CORE_MAIN_DIR "\\res\\audio\\mouse-click.mp3");
 		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
 		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
 		mp_replacement_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
-		mp_base_sound->uuid = UUID(ORNG_BASE_SOUND_ID);
 		mp_base_script->uuid = UUID(ORNG_BASE_SCRIPT_ID);
 
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
 		AddAsset(&*mp_replacement_material);
-		AddAsset(&*mp_base_sound);
 		AddAsset(&*mp_base_script);
-		AddAsset(&*mp_base_sphere);
 		AddAsset(&*mp_base_quad);
-
-		mp_base_sound->source_filepath = mp_base_sound->filepath;
-		mp_base_sound->CreateSound();
 
 		mp_base_physx_material = std::make_unique<PhysXMaterialAsset>("BASE");
 		mp_base_physx_material->uuid = UUID(ORNG_BASE_PHYSX_MATERIAL_ID);
@@ -467,13 +476,6 @@ namespace ORNG {
 		Get().mp_base_quad.release();
 	};
 
-	void AssetManager::InitBaseSphere() {
-		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.obj");
-		DeserializeAssetBinary("res/meshes/Sphere.obj.bin", *mp_base_sphere);
-		mp_base_sphere->PopulateBuffers();
-		mp_base_sphere->m_is_loaded = true;
-		DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(&*mp_base_sphere));
-	}
 
 
 	void AssetManager::InitBaseCube() {

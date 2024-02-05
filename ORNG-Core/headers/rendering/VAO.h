@@ -90,6 +90,17 @@ namespace ORNG {
 		std::vector<DataType> data;
 	};
 
+	class UBO : public BufferBase {
+	public:
+		UBO(bool is_mutable, GLbitfield flags) : BufferBase(GL_UNIFORM_BUFFER, is_mutable, flags) { };
+
+		size_t GetSizeCPU() override { return data.size(); }
+
+		void* GetDataPtr() override { return data.data(); }
+
+		std::vector<std::byte> data;
+	};
+
 
 
 	class VertexBufferBase : public BufferBase {

@@ -312,6 +312,9 @@ namespace ORNG {
 	private:
 		void I_Init();
 
+		// Loads all base assets (assets the engine runtime requires) that require an external file, e.g the sphere mesh needs to be loaded from a binary file. These files are always present in the "res/core-res" folder of a project
+		void LoadExternalBaseAssets(const std::string& project_dir);
+
 		void IOnShutdown();
 		void ISerializeAssets();
 
@@ -331,7 +334,6 @@ namespace ORNG {
 
 		void InitBaseAssets();
 		void InitBaseCube();
-		void InitBaseSphere();
 		void InitBaseTexture();
 		void InitBase3DQuad();
 

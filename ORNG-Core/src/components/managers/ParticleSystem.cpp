@@ -70,12 +70,11 @@ namespace ORNG {
 			m_particle_ssbo.Init();
 			m_emitter_ssbo.Init();
 			m_particle_append_ssbo.Init();
-
+			m_particle_append_ssbo.Resize(sizeof(uint32_t) + particle_struct_size * 100'000);
+			p_num_appended = static_cast<unsigned*>(glMapNamedBufferRange(m_particle_append_ssbo.GetHandle(), 0, sizeof(unsigned), GL_MAP_WRITE_BIT | GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
 		}
 
 
-		m_particle_append_ssbo.Resize(sizeof(uint32_t) + particle_struct_size * 100'000);
-		p_num_appended = static_cast<unsigned*>(glMapNamedBufferRange(m_particle_append_ssbo.GetHandle(), 0, sizeof(unsigned), GL_MAP_WRITE_BIT | GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
 
 		m_particle_append_ssbo.draw_type = GL_DYNAMIC_DRAW;
 		m_particle_ssbo.draw_type = GL_DYNAMIC_DRAW;
@@ -183,10 +182,8 @@ namespace ORNG {
 
 		}
 
-		// Initialize emitter
-		if (m_emitter_ssbo.GetGPU_BufferSize() < (int)m_emitter_entities.size() * emitter_struct_size) {
+		if (m_emitter_ssbo.GetGPU_BufferSize() < m_emitter_entities.size() * emitter_struct_size)
 			m_emitter_ssbo.Resize(glm::max((int)glm::ceil(m_emitter_entities.size() * 1.5f), 10) * emitter_struct_size);
-		}
 
 
 		UpdateEmitterBufferAtIndex(p_comp->m_index);

@@ -1,13 +1,9 @@
 #include "pch/pch.h"
 
-#include <yaml-cpp/yaml.h>
 
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
 #include "scene/SceneEntity.h"
-#include "components/ComponentAPI.h"
-#include "rendering/Textures.h"
-#include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
 #include "physics/Physics.h"

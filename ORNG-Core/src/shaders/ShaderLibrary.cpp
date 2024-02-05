@@ -2,7 +2,6 @@
 
 #include "shaders/ShaderLibrary.h"
 #include "util/util.h"
-#include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
 #include "core/FrameTiming.h"
 #include "components/Lights.h"
@@ -24,6 +23,11 @@ namespace ORNG {
 		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
 		glBufferData(GL_UNIFORM_BUFFER, m_common_ubo_size, nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo);
+
+		mp_quad_shader = &CreateShader("SL quad");
+		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
+		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.glsl");
+		mp_quad_shader->Init();
 	}
 
 	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear) {

@@ -1,8 +1,8 @@
+
 #include "pch/pch.h"
 #include "util/TimeStep.h"
 #include "scene/Scene.h"
 #include "util/util.h"
-#include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "assets/AssetManager.h"
@@ -18,7 +18,6 @@ namespace ORNG {
 	}
 
 	void Scene::Update(float ts) {
-		ORNG_PROFILE_FUNC();
 
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
@@ -27,11 +26,12 @@ namespace ORNG {
 		physics_system.OnUpdate(ts);
 
 		SetScriptState();
+		ORNG_PROFILE_FUNC();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
 				script.p_instance->OnUpdate();
 			}
-			catch (std::exception e) {
+			catch (std::exception& e) {
 				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.GetSymbols()->script_path, e.what());
 			}
 		}

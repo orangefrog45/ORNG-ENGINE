@@ -1,6 +1,5 @@
 #include "pch/pch.h"
 #include "rendering/VAO.h"
-#include "util/Log.h"
 #include "core/GLStateManager.h"
 static constexpr unsigned int POSITION_LOCATION = 0;
 static constexpr unsigned int TEX_COORD_LOCATION = 1;
@@ -9,7 +8,7 @@ static constexpr unsigned int TANGENT_LOCATION = 3;
 
 namespace ORNG {
 
-	BufferBase::BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags) : buffer_type(t_buffer_type), m_is_mutable(is_mutable), m_flags(flags) { ASSERT(GL_StateManager::IsGlewIntialized()); };
+	BufferBase::BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags) : buffer_type(t_buffer_type), m_is_mutable(is_mutable), m_flags(flags) {  };
 
 
 	VAO_Base::~VAO_Base() {
@@ -39,15 +38,17 @@ namespace ORNG {
 		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
 
 		if (m_is_mutable)
-			glBufferData(buffer_type, GetSizeCPU(), GetDataPtr(), draw_type);
+			glNamedBufferData(m_ogl_handle, GetSizeCPU(), GetDataPtr(), draw_type);
 		else
-			glBufferStorage(buffer_type, GetSizeCPU(), GetDataPtr(), m_flags);
+			glNamedBufferStorage(m_ogl_handle, GetSizeCPU(), GetDataPtr(), m_flags);
 
 	}
 
 	void BufferBase::Init() {
+		ASSERT(GL_StateManager::IsGlewIntialized());
 		m_ogl_handle = GL_StateManager::GenBuffer();
 		m_is_initalized = true;
+		Resize(64);
 	}
 
 

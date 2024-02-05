@@ -1,7 +1,6 @@
 #include "pch/pch.h"
 #include "layers/LayerStack.h"
 #include "util/Log.h"
-#include "layers/ImGuiLayer.h"
 
 namespace ORNG {
 	void LayerStack::PopLayer(Layer* p_layer) {

@@ -1,8 +1,6 @@
 #include "pch/pch.h"
 #include "physics/Physics.h"
 #include "pvd/PxPvd.h"
-#include "rendering/Renderer.h"
-#include "core/CodedAssets.h"
 
 
 #define PHYSX_DEBUG

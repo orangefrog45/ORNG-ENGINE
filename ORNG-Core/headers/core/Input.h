@@ -83,6 +83,7 @@ namespace ORNG {
 		Home = 268,
 		End = 269,
 		Insert = 260,
+		Accent = 96,
 	};
 
 

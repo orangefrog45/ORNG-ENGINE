@@ -1,6 +1,5 @@
 #include "pch/pch.h"
 #include "core/GLStateManager.h"
-#include "rendering/VAO.h"
 #include "util/Log.h"
 
 namespace ORNG {

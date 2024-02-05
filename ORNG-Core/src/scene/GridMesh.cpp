@@ -1,7 +1,6 @@
 #include "pch/pch.h"
 
 #include "scene/GridMesh.h"
-#include "util/util.h"
 #include "components/TransformComponent.h"
 
 static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;

@@ -4,14 +4,11 @@
 #include "shaders/ShaderLibrary.h"
 #include "core/Window.h"
 #include "rendering/Renderer.h"
-#include "framebuffers/FramebufferLibrary.h"
 #include "core/GLStateManager.h"
-#include "scene/Scene.h"
 #include "components/CameraComponent.h"
 #include "events/EventManager.h"
 #include "util/Timers.h"
 #include "scene/SceneEntity.h"
-#include "core/CodedAssets.h"
 #include "terrain/TerrainChunk.h"
 #include "core/FrameTiming.h"
 #include "rendering/Material.h"
@@ -507,6 +504,7 @@ namespace ORNG {
 		auto& spec = settings.p_output_tex->GetSpec();
 		RenderResources res;
 		res.p_gbuffer_fb = m_gbuffer_fb;
+		res.p_output_tex = settings.p_output_tex;
 
 		glViewport(0, 0, spec.width, spec.height);
 		PrepRenderPasses(p_cam, settings.p_output_tex);
@@ -1078,6 +1076,7 @@ namespace ORNG {
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
 
+#ifdef VOXEL_GI
 		// Cone trace at half res
 		glClearTexImage(m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
 		mp_cone_trace_shader->ActivateProgram();
@@ -1092,6 +1091,7 @@ namespace ORNG {
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_cone_trace_accum_tex.GetTextureHandle(), GL_TEXTURE23, false);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+#endif
 
 
 	}

@@ -178,7 +178,6 @@ namespace ORNG {
 
 		ImFont* mp_large_font = nullptr;
 
-		Shader* mp_quad_shader = nullptr;
 		Shader* mp_picking_shader = nullptr;
 		Shader* mp_grid_shader = nullptr;
 		Shader* mp_highlight_shader = nullptr;

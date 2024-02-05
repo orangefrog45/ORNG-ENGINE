@@ -24,6 +24,7 @@ namespace ORNG {
 
 	struct RenderResources {
 		Framebuffer* p_gbuffer_fb;
+		Texture2D* p_output_tex;
 	};
 
 	typedef void(__cdecl* RenderpassFunc)(RenderResources);

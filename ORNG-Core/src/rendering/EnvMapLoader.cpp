@@ -1,11 +1,9 @@
 #include "pch/pch.h"
 #include "rendering/EnvMapLoader.h"
 #include "rendering/Renderer.h"
-#include "util/util.h"
 #include "core/GLStateManager.h"
 #include "core/Window.h"
 #include "stb/stb_image_write.h"
-#include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
 
 namespace ORNG {

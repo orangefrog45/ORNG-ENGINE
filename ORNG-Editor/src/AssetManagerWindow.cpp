@@ -5,15 +5,11 @@
 #include "core/Window.h"
 #include "util/ExtraUI.h"
 #include "rendering/MeshAsset.h"
-#include "core/CodedAssets.h"
-#include "Icons.h"
 #include "rendering/SceneRenderer.h"
 #include "scene/SceneEntity.h"
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
-#include "core/Input.h"
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
-#include "scene/MeshInstanceGroup.h"
 #include "scene/SceneEntity.h"
 #include "physics/Physics.h"
 
@@ -215,89 +211,6 @@ namespace ORNG {
 
 	void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 
-		/*static ScriptAsset* p_currently_editing_asset = nullptr;
-
-		if (p_asset && p_asset == p_currently_editing_asset) {
-			static std::string current_name = "";
-			ExtraUI::AlphaNumTextInput(current_name);
-
-			if (Input::IsKeyPressed(Key::Enter)) {
-				std::vector<ScriptComponent*> scripts_to_reconnect;
-
-				for (auto [entity, script] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-					if (script.GetSymbols() == &p_asset->symbols)
-						scripts_to_reconnect.push_back(&script);
-				}
-
-				// Unload script with old path, load script with new path
-				ScriptingEngine::UnloadScriptDLL(p_asset->filepath);
-				std::string new_fp = p_asset->filepath.substr(0, p_asset->filepath.rfind("\\") + 1) + current_name + ".cpp";
-				if (FileCopy(p_asset->filepath, new_fp)) {
-					FileDelete(p_asset->filepath);
-					p_asset->symbols = ScriptingEngine::GetSymbolsFromScriptCpp(new_fp, false);
-					p_asset->filepath = new_fp;
-				}
-
-				for (auto* p_script : scripts_to_reconnect) {
-					p_script->SetSymbols(&p_asset->symbols);
-				}
-
-				current_name.clear();
-				p_currently_editing_asset = nullptr;
-
-				// Update save with new paths
-				std::string scene_path = ".\\scene.yml";
-				SceneSerializer::SerializeScene(**mp_scene_context, scene_path);
-			}
-		}
-		else {
-			ExtraUI::NameWithTooltip(entry_path.substr(entry_path.find_last_of("\\") + 1));
-			if (ImGui::IsItemClicked())
-				p_currently_editing_asset = p_asset;
-		}
-
-		bool is_loaded = p_asset ? p_asset->symbols.loaded : false;
-		if (p_asset && p_asset->symbols.loaded)
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Loaded");
-		else if (p_asset && !p_asset->symbols.loaded)
-			ImGui::TextColored(ImVec4(1, 0.2, 0, 1), "Loading failed");
-		else
-			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Not loaded");
-
-		ExtraUI::CenteredSquareButton(ICON_FA_FILE, image_button_size);
-		static std::string dragged_script_filepath;
-		if (is_loaded && ImGui::BeginDragDropSource()) {
-			dragged_script_filepath = relative_path;
-			ImGui::SetDragDropPayload("SCRIPT", &dragged_script_filepath, sizeof(std::string));
-			ImGui::EndDragDropSource();
-		}
-
-		// Deletion popup
-		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) {
-			ImGui::OpenPopup("script_option_popup");
-		}
-
-		if (ImGui::BeginPopup("script_option_popup"))
-		{
-			if ((!is_loaded && ImGui::Selectable("Load"))) {
-				auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(p_asset->filepath, false);
-				if (!AssetManager::AddAsset(new ScriptAsset(symbols)))
-					GenerateErrorMessage("AssetManager::AddScriptAsset failed");
-			}
-			else if (is_loaded && ImGui::Selectable("Reload")) {
-				ReloadScript(p_asset->filepath);
-			}
-			if (ImGui::Selectable("Delete")) {
-				OnRequestDeleteAsset(p_asset);
-			}
-			if (ImGui::Selectable("Edit")) {
-				ShellExecute(NULL, "open", p_asset->filepath.c_str(), NULL, NULL, SW_SHOWDEFAULT);
-			}
-			ImGui::EndPopup();
-		}
-
-		ImGui::PopID(); // p_asset*/
-
 		AssetDisplaySpec spec;
 
 		spec.on_drag = [p_asset]() {
@@ -305,6 +218,10 @@ namespace ORNG {
 			p_dragged_script = p_asset;
 			ImGui::SetDragDropPayload("SCRIPT", &p_dragged_script, sizeof(ScriptAsset*));
 			ImGui::EndDragDropSource();
+			};
+
+		spec.on_delete = [p_asset]() {
+			ScriptingEngine::OnDeleteScript(p_asset->filepath);
 			};
 
 		if (!p_asset->symbols.loaded) {

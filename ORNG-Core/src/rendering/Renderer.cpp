@@ -5,7 +5,6 @@
 #include "util/Log.h"
 #include "rendering/Quad.h"
 #include "core/GLStateManager.h"
-#include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
 
 namespace ORNG {
