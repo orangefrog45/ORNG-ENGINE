@@ -24,7 +24,11 @@ namespace ORNG {
 
 	struct RenderResources {
 		Framebuffer* p_gbuffer_fb;
+		Framebuffer* p_depth_fb;
 		Texture2D* p_output_tex;
+
+		Texture2DArray* p_spotlight_depth_tex;
+		TextureCubemapArray* p_pointlight_depth_tex;
 	};
 
 	typedef void(__cdecl* RenderpassFunc)(RenderResources);
@@ -132,6 +136,7 @@ namespace ORNG {
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
 		void DoVoxelizationPass(unsigned output_width, unsigned output_height);
+		static void DrawAllMeshes(RenderGroup render_group);
 
 	private:
 
@@ -154,7 +159,6 @@ namespace ORNG {
 		void DrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
 		void DoBloomPass(unsigned int width, unsigned int height);
-		void DrawAllMeshes(RenderGroup render_group) const;
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 

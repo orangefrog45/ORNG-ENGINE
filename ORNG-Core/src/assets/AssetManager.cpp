@@ -36,6 +36,8 @@ namespace ORNG {
 						e_event.event_type = Events::AssetEventType::MESH_LOADED;
 						e_event.data_payload = reinterpret_cast<uint8_t*>(p_mesh);
 						Events::EventManager::DispatchEvent(e_event);
+
+						p_mesh->ClearCPU_VertexData();
 					}
 				}
 			}
@@ -183,13 +185,6 @@ namespace ORNG {
 		}
 
 		asset->OnLoadIntoGL();
-
-		/*glFinish();
-		asset->m_vao.vertex_data.positions.clear();
-		asset->m_vao.vertex_data.normals.clear();
-		asset->m_vao.vertex_data.tangents.clear();
-		asset->m_vao.vertex_data.tex_coords.clear();
-		asset->m_vao.vertex_data.indices.clear();*/
 
 		asset->m_is_loaded = true;
 		DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(asset));

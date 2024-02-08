@@ -19,7 +19,7 @@ namespace ORNG {
 		}
 
 		ORNG_CORE_INFO("Loading mesh: {0}", filepath);
-
+		mp_importer = std::make_unique<Assimp::Importer>();
 
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 		bool ret = false;

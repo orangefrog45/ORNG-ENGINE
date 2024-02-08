@@ -40,7 +40,6 @@ namespace ORNG {
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 #endif
 			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
-				return false;
 				return true; // Core engine library has changed so recompilation needed
 			}
 		}

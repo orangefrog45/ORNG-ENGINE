@@ -22,7 +22,7 @@ namespace ORNG {
 		ASSERT(GL_StateManager::IsGlewIntialized());
 	};
 
-	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : Asset(name), m_texture_target(texture_target), m_name(name), uuid(t_uuid) { 
+	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : Asset(name, t_uuid), m_texture_target(texture_target), m_name(name) { 
 		glGenTextures(1, &m_texture_obj); 
 		ASSERT(name.length() <= ORNG_MAX_NAME_SIZE);
 		ASSERT(GL_StateManager::IsGlewIntialized());
@@ -330,7 +330,7 @@ namespace ORNG {
 			if (m_spec.generate_mipmaps)
 				glGenerateMipmap(m_texture_target);
 
-			//GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, 0, GL_TEXTURE0, true);
 			filepath = m_spec.filepath;
 			return true;
 		}

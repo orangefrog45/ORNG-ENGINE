@@ -25,6 +25,7 @@ namespace ORNG {
 		layer_stack.Shutdown();
 		Physics::Shutdown();
 		AssetManager::OnShutdown();
+		Log::Flush();
 		//ImGui::DestroyContext();
 	}
 

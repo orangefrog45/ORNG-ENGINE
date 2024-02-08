@@ -41,6 +41,7 @@ namespace ORNG {
 
 
 	class AssetManagerWindow {
+		friend class EditorLayer;
 	public:
 		AssetManagerWindow(std::string* p_active_project_dir, std::unique_ptr<Scene>* scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(scene_context) {};
 		// Renders previews, does not render the UI
@@ -73,6 +74,9 @@ namespace ORNG {
 			return m_mesh_preview_textures.contains(p_mesh) ? m_mesh_preview_textures[p_mesh]->GetTextureHandle() : 0;
 		}
 		inline static const int window_height = 300;
+
+		Scene* p_extern_scene = nullptr;
+
 	private:
 		void RenderMainAssetWindow();
 
@@ -149,6 +153,7 @@ namespace ORNG {
 		std::vector<ErrorMessage> m_error_messages;
 
 		std::unique_ptr<Scene> mp_preview_scene = nullptr;
+
 
 		// Should always be equal to working directory but just to be safe track explicitly from EditorLayer
 		std::string* mp_active_project_dir = nullptr;

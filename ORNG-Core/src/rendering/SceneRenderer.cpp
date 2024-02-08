@@ -505,6 +505,9 @@ namespace ORNG {
 		RenderResources res;
 		res.p_gbuffer_fb = m_gbuffer_fb;
 		res.p_output_tex = settings.p_output_tex;
+		res.p_depth_fb = m_depth_fb;
+		res.p_pointlight_depth_tex = &m_pointlight_system.m_pointlight_depth_tex;
+		res.p_spotlight_depth_tex = &m_spotlight_system.m_spotlight_depth_tex;
 
 		glViewport(0, 0, spec.width, spec.height);
 		PrepRenderPasses(p_cam, settings.p_output_tex);
@@ -518,6 +521,8 @@ namespace ORNG {
 			DoLightingPass(settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_LIGHTING, res);
 			DoFogPass(spec.width, spec.height);
+			glViewport(0, 0, spec.width, spec.height);
+
 			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
 			DoPostProcessingPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_POST_PROCESS, res);
@@ -528,6 +533,8 @@ namespace ORNG {
 			DoGBufferPass(p_cam, settings);
 			DoLightingPass(settings.p_output_tex);
 			DoFogPass(spec.width, spec.height);
+			glViewport(0, 0, spec.width, spec.height);
+
 			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
 			DoPostProcessingPass(p_cam, settings.p_output_tex);
 		}
@@ -656,19 +663,6 @@ namespace ORNG {
 	}
 
 
-	unsigned convVec4ToRGBA8(glm::vec4 val) {
-		return (unsigned(val.w) & 0x000000FF) << 24U
-			| (unsigned(val.z) & 0x000000FF) << 16U
-			| (unsigned(val.y) & 0x000000FF) << 8U
-			| (unsigned(val.x) & 0x000000FF);
-	}
-
-	glm::vec4 convRGBA8ToVec4(unsigned val) {
-		return glm::vec4(float((val & 0x000000FF)),
-			float((val & 0x0000FF00) >> 8U),
-			float((val & 0x00FF0000) >> 16U),
-			float((val & 0xFF000000) >> 24U));
-	}
 
 	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height) {
 		ORNG_PROFILE_FUNC_GPU();
@@ -677,7 +671,7 @@ namespace ORNG {
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
-		GLuint clear_val = convVec4ToRGBA8({ 0, 0, 0, 0 });
+		GLuint clear_val = 0;
 		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glClearTexImage(m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -791,19 +785,25 @@ namespace ORNG {
 
 		//RenderVehicles(mp_transparency_shader_variants, RenderGroup::ALPHA_TESTED);
 
-		glEnable(GL_CULL_FACE);
-
 
 		mp_composition_fb->Bind();
 		mp_composition_fb->BindTexture2D(p_output_tex->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		mp_transparency_composite_shader->ActivateProgram();
+
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glDepthFunc(GL_ALWAYS);
+		glDisable(GL_DEPTH_TEST);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::VIEW_DEPTH);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_transparency_fb->GetTexture<Texture2D>("accum").GetTextureHandle(), GL_TEXTURE0);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_transparency_fb->GetTexture<Texture2D>("revealage").GetTextureHandle(), GL_TEXTURE1);
+
 		Renderer::DrawQuad();
-		mp_composition_fb->BindTexture2D(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		glEnable(GL_DEPTH_TEST);
+
+		glEnable(GL_CULL_FACE);
 		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LEQUAL);
+
 	}
 
 	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group) {
@@ -1166,8 +1166,8 @@ namespace ORNG {
 
 
 
-	void SceneRenderer::DrawAllMeshes(RenderGroup render_group) const {
-		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+	void SceneRenderer::DrawAllMeshes(RenderGroup render_group) {
+		for (const auto* group : Get().mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			const MeshAsset* mesh_data = group->GetMeshAsset();
 			GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 

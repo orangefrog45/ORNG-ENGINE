@@ -271,8 +271,6 @@ namespace ORNG {
 		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };
 
 		for (int y = 0; y < 2; y++) {
-			std::vector<unsigned> group_deletion_indices;
-
 			for (int i = 0; i < groups[y]->size(); i++) {
 				auto* group = (*groups[y])[i];
 

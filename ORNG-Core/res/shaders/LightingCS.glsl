@@ -167,4 +167,5 @@ void main()
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 
 	imageStore(u_output_texture, tex_coords, vec4(light_color, 1.0));
+
 };

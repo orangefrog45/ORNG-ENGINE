@@ -73,7 +73,6 @@ namespace ORNG {
 			s.value4b(m_texture_target);
 		}
 
-		UUID uuid;
 	protected:
 		bool LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
 		bool LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer = 0);

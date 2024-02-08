@@ -1,3 +1,10 @@
+6/2/24:
+-Selected entity outline shader instead of highlight
+-Removed duplicate texture asset uuid
+-Script asset UI improvements
+-Fixed issue with common ubo where wrong type was being converted to bytes
+-Fixed material/mesh previews
+
 5/2/24:
 -Proper script binary cleanup
 -General stability improvements to scripting engine

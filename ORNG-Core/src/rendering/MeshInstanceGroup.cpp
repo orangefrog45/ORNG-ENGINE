@@ -45,7 +45,7 @@ namespace ORNG {
 		m_instances_to_update.erase(std::unique(m_instances_to_update.begin(), m_instances_to_update.end()), m_instances_to_update.end());
 
 		std::vector<glm::mat4> transforms;
-
+		
 		// Used for saving the first position of a "chunk" of transforms to be updated, so they can be more efficiently updated with fewer buffersubdata calls
 		int first_index_of_chunk = -1;
 
@@ -56,7 +56,7 @@ namespace ORNG {
 		transforms.push_back(m_instances_to_update[0]->GetComponent<TransformComponent>()->GetMatrix());
 		glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances.at(m_instances_to_update[0]) * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
 		transforms.clear();
-
+		
 		for (int i = 1; i < m_instances_to_update.size(); i++) {
 			if (m_instances.at(m_instances_to_update[i]) == m_instances.at(m_instances_to_update[i - 1]) + 1) // Check if indices are sequential in the gpu transform buffer
 			{
@@ -101,6 +101,7 @@ namespace ORNG {
 
 		// TODO: Batch add operations
 		m_transform_ssbo.PushBack(&transform_bytes[0], sizeof(glm::mat4));
+		m_instances_to_update.push_back(ptr);
 
 		m_instances[ptr] = m_instances.size();
 	}

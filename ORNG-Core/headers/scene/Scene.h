@@ -77,6 +77,10 @@ namespace ORNG {
 		void LoadScene(const std::string& filepath);
 		void UnloadScene();
 
+		entt::registry& GetRegistry() {
+			return m_registry;
+		}
+
 		bool IsLoaded() {
 			return m_is_loaded;
 		}

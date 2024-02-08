@@ -47,6 +47,15 @@ namespace ORNG {
 
 		const MeshVAO& GetVAO() const { return m_vao; }
 
+		void ClearCPU_VertexData() {
+			glFinish();
+			m_vao.vertex_data.positions.clear();
+			m_vao.vertex_data.normals.clear();
+			m_vao.vertex_data.tangents.clear();
+			m_vao.vertex_data.tex_coords.clear();
+			m_vao.vertex_data.indices.clear();
+		}
+
 		unsigned GetNbMaterials() {
 			return num_materials;
 		}

@@ -32,7 +32,8 @@ namespace ORNG {
 
 		InitImGui();
 		InitLua();
-		m_asset_manager_window.Init();
+
+
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
@@ -66,11 +67,12 @@ namespace ORNG {
 		mp_picking_shader->AddUniform("transform");
 
 		mp_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl");
+		mp_highlight_shader->AddStage(GL_VERTEX_SHADER, m_executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl", {"OUTLINE"});
 		mp_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/ColorFS.glsl");
 		mp_highlight_shader->Init();
 		mp_highlight_shader->AddUniform("transform");
 		mp_highlight_shader->AddUniform("u_color");
+		mp_highlight_shader->AddUniform("u_scale");
 
 		// Setting up the scene display texture
 		m_color_render_texture_spec.format = GL_RGBA;
@@ -116,6 +118,7 @@ namespace ORNG {
 		mp_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
 		mp_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
 		mp_editor_pass_fb->AddShared2DTexture("Editor scene display", *mp_scene_display_texture, GL_COLOR_ATTACHMENT0);
+		mp_editor_pass_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 
 
 		std::string base_proj_dir = m_executable_directory + "\\projects\\base-project";
@@ -127,6 +130,9 @@ namespace ORNG {
 
 		ORNG_CORE_INFO("Editor layer initialized");
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_INITIALIZATION));
+
+		m_asset_manager_window.p_extern_scene = mp_scene_context->get();
+		m_asset_manager_window.Init();
 
 	}
 
@@ -229,6 +235,9 @@ namespace ORNG {
 	void EditorLayer::Update() {
 		ORNG_PROFILE_FUNC();
 
+		// Update camera pos variable for lua console
+		auto pos = mp_editor_camera->GetComponent<TransformComponent>()->GetPosition();
+		m_lua_cli.GetLua().script(std::format("pos = vec3.new({}, {}, {})", pos.x, pos.y, pos.z));
 
 		for (int i = 0; i < m_selected_entity_ids.size(); i++) {
 			auto id = m_selected_entity_ids[i];
@@ -244,7 +253,7 @@ namespace ORNG {
 		else
 			m_scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - toolbar_height) };
 
-		if (!ImGui::GetIO().WantCaptureKeyboard) {
+		if (!ImGui::GetIO().WantCaptureKeyboard && !Input::IsMouseDown(1)) {
 			// Show/hide ui in simulation mode
 			if (Input::IsKeyPressed(Key::Tab)) {
 				m_render_ui = !m_render_ui;
@@ -276,7 +285,12 @@ namespace ORNG {
 				auto* p_entity_transform = (*mp_scene_context)->GetEntity(m_selected_entity_ids[0])->GetComponent<TransformComponent>();
 				auto* p_editor_transform = mp_editor_camera->GetComponent<TransformComponent>();
 				auto pos = p_entity_transform->GetAbsoluteTransforms()[0];
-				p_editor_transform->SetAbsolutePosition(pos + glm::vec3(5.0, 3.0, 5.0));
+				auto offset = pos - p_editor_transform->GetAbsoluteTransforms()[0];
+
+				if (length(offset) < 0.001f)
+					offset = { 1, 0, 0 };
+
+				p_editor_transform->SetAbsolutePosition(pos - glm::normalize(offset) * 3.f);
 				p_editor_transform->LookAt(pos);
 			}
 
@@ -527,13 +541,13 @@ namespace ORNG {
 
 		m_lua_cli.render_pos = { LEFT_WINDOW_WIDTH, toolbar_height };
 		m_lua_cli.size = { m_scene_display_rect.x, 250 };
-		m_lua_cli.OnImGuiRender();
+		m_lua_cli.OnImGuiRender(!Input::IsMouseDown(1));
 
 		m_asset_manager_window.OnRenderUI();
 
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(15, 5));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(LEFT_WINDOW_WIDTH, Window::GetHeight() - toolbar_height - m_asset_manager_window.window_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
@@ -571,10 +585,9 @@ namespace ORNG {
 			DoPickingPass();
 		}
 
-		m_asset_manager_window.OnMainRender();
 
 		SceneRenderer::SceneRenderingSettings settings;
-		SceneRenderer::SetActiveScene(&*(*mp_scene_context));
+		SceneRenderer::SetActiveScene(&**mp_scene_context);
 		settings.p_output_tex = &*mp_scene_display_texture;
 		settings.render_meshes = m_general_settings.debug_render_settings.render_meshes;
 		settings.voxel_mip_layer = m_general_settings.debug_render_settings.voxel_mip;
@@ -582,13 +595,7 @@ namespace ORNG {
 
 		SceneRenderer::RenderScene(settings);
 
-
-		mp_editor_pass_fb->Bind();
-		DoSelectedEntityHighlightPass();
-		RenderGrid();
-		if (m_general_settings.debug_render_settings.render_physx_debug)
-			RenderPhysxDebug();
-
+		m_asset_manager_window.OnMainRender();
 		// Mouse drag selection quad
 		if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
 			mp_quad_col_shader->ActivateProgram();
@@ -596,6 +603,13 @@ namespace ORNG {
 			glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
 			Renderer::DrawScaledQuad((glm::vec2(m_mouse_drag_data.start.x, Window::GetHeight() - m_mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_mouse_drag_data.end.x, Window::GetHeight() - m_mouse_drag_data.end.y) / w) * 2.f - 1.f);
 		}
+
+		mp_editor_pass_fb->Bind();
+		DoSelectedEntityHighlightPass();
+		RenderGrid();
+		if (m_general_settings.debug_render_settings.render_physx_debug)
+			RenderPhysxDebug();
+
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		GL_StateManager::DefaultClearBits();
@@ -964,7 +978,7 @@ namespace ORNG {
 		int selected_component = -1;
 		if (ImGui::BeginPopup("my_select_popup"))
 		{
-			ImGui::SeparatorText("Create entity");
+			ImGui::SeparatorText(p_entity ? "Add component" : "Create entity");
 			for (int i = 0; i < IM_ARRAYSIZE(names); i++)
 				if (ImGui::Selectable(names[i]))
 					selected_component = i;
@@ -1070,7 +1084,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
-		glDisable(GL_DEPTH_TEST);
+		/*glDisable(GL_DEPTH_TEST);
 		mp_editor_pass_fb->Bind();
 		mp_highlight_shader->ActivateProgram();
 		mp_highlight_shader->SetUniform("u_color", glm::vec4(1.0, 0, 0, 0.1));
@@ -1087,7 +1101,55 @@ namespace ORNG {
 			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
 		}
+		glEnable(GL_DEPTH_TEST);*/
+
+
+		mp_editor_pass_fb->Bind();
+		glEnable(GL_STENCIL_TEST);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+		glClearStencil(0);
+		glClear(GL_STENCIL_BUFFER_BIT);
+
+		glStencilFunc(GL_ALWAYS, 1, 0xFF);
+
+		glDisable(GL_DEPTH_TEST);
+		mp_highlight_shader->ActivateProgram();
+		mp_highlight_shader->SetUniform("u_color", glm::vec4(0.0, 1, 0, 0));
+
+		for (auto id : m_selected_entity_ids) {
+			auto* current_entity = (*mp_scene_context)->GetEntity(id);
+
+			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
+				continue;
+
+			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
+
+			mp_highlight_shader->SetUniform("u_scale", 1.f);
+			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
+		}
+
+		glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+
+
+		for (auto id : m_selected_entity_ids) {
+			auto* current_entity = (*mp_scene_context)->GetEntity(id);
+			mp_highlight_shader->SetUniform("u_color", glm::vec4(1.0, 0.2, 0, 1));
+
+			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
+				continue;
+
+			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
+
+			mp_highlight_shader->SetUniform("u_scale", 1.025f);
+
+			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
+		}
+
 		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_STENCIL_TEST);
+
 	}
 
 
@@ -1154,6 +1216,7 @@ namespace ORNG {
 
 		std::string util_script = R"(
 			entity_array = {}
+			pos = 0;
 
 			function evaluate(expression, entity)
 				local chunk, err_message = load("return " .. expression, "c", "t", {entity = entity, get_entity = get_entity})
@@ -1178,70 +1241,64 @@ namespace ORNG {
 			end
 	
 )";
+
 		m_lua_cli.GetLua().script(util_script);
 
+#define TRANSFORM_LUA_SKELETON(x) 	EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids }; \
+		for (auto id : m_selected_entity_ids) { \
+			auto* p_ent = (*mp_scene_context)->GetEntity(id); \
+\
+			auto* p_transform = p_ent->GetComponent<TransformComponent>(); \
+			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent)); \
+			x; \
+		} \
+\
+		m_event_stack.PushEvent(e); \
+
+
 		std::function<void(glm::vec3)> p_translate_func = [this](glm::vec3 v) {
-			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
-			for (auto id : m_selected_entity_ids) {
-				auto* p_ent = (*mp_scene_context)->GetEntity(id);
-
-				auto* p_transform = p_ent->GetComponent<TransformComponent>();
-				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
-				p_transform->SetPosition(p_transform->GetPosition() + v);
-			}
-
-			m_event_stack.PushEvent(e);
+			TRANSFORM_LUA_SKELETON(p_transform->SetPosition(p_transform->GetPosition() + v));
 			};
 
 		std::function<void(glm::vec3)> p_scale_func = [this](glm::vec3 v) {
-			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
-			for (auto id : m_selected_entity_ids) {
-				auto* p_ent = (*mp_scene_context)->GetEntity(id);
-
-				auto* p_transform = p_ent->GetComponent<TransformComponent>();
-				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
-				p_transform->SetScale(p_transform->GetScale() * v);
-			}
-
-			m_event_stack.PushEvent(e);
+			TRANSFORM_LUA_SKELETON(p_transform->SetScale(p_transform->GetScale() * v));
 			};
-
 
 		std::function<void(glm::vec3, float)> p_rot_func = [this](glm::vec3 axis, float angle_degrees) {
-			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
-			for (auto id : m_selected_entity_ids) {
-				auto* p_ent = (*mp_scene_context)->GetEntity(id);
-
-				auto* p_transform = p_ent->GetComponent<TransformComponent>();
-				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
-				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))));
-			}
-
-			m_event_stack.PushEvent(e);
+			TRANSFORM_LUA_SKELETON(p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation()))))));
 			};
 
+		std::function<void(glm::vec3)> p_move_to_func = [this](glm::vec3 pos) {
+			TRANSFORM_LUA_SKELETON(p_transform->SetAbsolutePosition(pos));
+			};
 
+		std::function<void()> p_match_func = [this]() {
+			auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
+			TRANSFORM_LUA_SKELETON(
+				p_transform->SetAbsolutePosition(p_cam_transform->GetPosition());
+				p_transform->LookAt(p_cam_transform->GetPosition() + p_cam_transform->forward);
+			);
+			};
+
+		
 		std::function<void(glm::vec3, float, glm::vec3)> p_rot_about_point_func = [this](glm::vec3 axis, float angle_degrees, glm::vec3 pivot) {
-			EditorEntityEvent e{ TRANSFORM_UPDATE, m_selected_entity_ids };
-			for (auto id : m_selected_entity_ids) {
-				auto* p_ent = (*mp_scene_context)->GetEntity(id);
-
-				auto* p_transform = p_ent->GetComponent<TransformComponent>();
-				e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*p_ent));
-
+			TRANSFORM_LUA_SKELETON(
 				glm::quat q = glm::angleAxis(glm::radians(angle_degrees), axis);
 				glm::vec3 offset_pos = p_transform->GetAbsoluteTransforms()[0] - pivot;
 				p_transform->SetAbsolutePosition(q * offset_pos + pivot);
-				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))));
-			}
-
-			m_event_stack.PushEvent(e);
+				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))))
+				);
 			};
+
+#undef TRANSFORM_LUA_SKELETON
 
 		m_lua_cli.GetLua().set_function("translate", p_translate_func);
 		m_lua_cli.GetLua().set_function("scale", p_scale_func);
 		m_lua_cli.GetLua().set_function("rotate", p_rot_func);
 		m_lua_cli.GetLua().set_function("rotate_about", p_rot_about_point_func);
+		m_lua_cli.GetLua().set_function("moveto", p_move_to_func);
+		m_lua_cli.GetLua().set_function("match", p_match_func);
+
 	}
 
 	
@@ -1603,7 +1660,8 @@ namespace ORNG {
 			ImGui::Text("Name: ");
 			ImGui::SameLine();
 			ExtraUI::AlphaNumTextInput(entity->name);
-
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 55);
+			RenderCreationWidget(entity, ImGui::Button("+", ImVec2(20, 20)));
 
 			//TRANSFORM
 			if (ExtraUI::H2TreeNode("Entity transform")) {
@@ -1716,7 +1774,6 @@ namespace ORNG {
 			glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
 			ImGui::Dummy(ImVec2(padding_size.x, padding_size.y));
 
-			RenderCreationWidget(entity, ImGui::Button("Add component", ImVec2(button_size.x, button_size.y)));
 		}
 		ImGui::End(); // end entity editor window
 	}
@@ -2234,18 +2291,6 @@ namespace ORNG {
 
 		static bool is_using = false;
 		static bool mouse_down = false;
-
-		// Alt-drag duplication keybind
-		if ((Input::IsKeyPressed(Key::Alt) && ImGuizmo::IsUsing()) || (Input::IsKeyDown(Key::Alt) && ImGuizmo::IsOver() && Input::IsMouseClicked(0))) {
-			auto dupes = DuplicateEntitiesTracked(m_selected_entity_ids);
-
-			if (!Input::IsKeyPressed(Key::LeftControl))
-				m_selected_entity_ids.clear();
-
-			for (auto* p_ent : dupes) {
-				SelectEntity(p_ent->m_uuid());
-			}
-		}
 
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &p_cam->GetProjectionMatrix()[0][0], current_operation, current_mode, &current_operation_matrix[0][0], &delta_matrix[0][0], &snap[0]) && ImGuizmo::IsUsing()) {
 

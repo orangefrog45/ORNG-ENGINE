@@ -24,6 +24,7 @@ namespace ORNG {
 		glBufferData(GL_UNIFORM_BUFFER, m_common_ubo_size, nullptr, GL_DYNAMIC_DRAW);
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo);
 
+		ORNG_CORE_TRACE(std::filesystem::current_path().string());
 		mp_quad_shader = &CreateShader("SL quad");
 		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
 		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.glsl");
@@ -43,8 +44,8 @@ namespace ORNG {
 		ConvertToBytes(cam_up, p_byte);
 		ConvertToBytes(0, p_byte);
 		ConvertToBytes((float)FrameTiming::GetTotalElapsedTime(), p_byte);
-		ConvertToBytes(render_resolution_x, p_byte);
-		ConvertToBytes(render_resolution_y, p_byte);
+		ConvertToBytes((float)render_resolution_x, p_byte);
+		ConvertToBytes((float)render_resolution_y, p_byte);
 		ConvertToBytes(cam_zfar, p_byte);
 		ConvertToBytes(cam_znear, p_byte);
 		ConvertToBytes((float)FrameTiming::GetTimeStep(), p_byte);

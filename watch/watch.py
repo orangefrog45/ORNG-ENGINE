@@ -16,7 +16,7 @@ class Handler(FileSystemEventHandler):
         # Function to execute when a file is modified
         filename : str = event.src_path;
 
-        if filename.find("res\\shaders") == -1 or filename.find("out\\") != -1 or filename.find("build\\") != -1 or filename.find(".glsl") == -1:
+        if filename.find("res\\shaders") == -1 or filename.find("out\\") != -1 or filename.find("build\\") != -1 or filename.find(".glsl") == -1 or filename.find("core-res") != -1:
             return;
 
         debug_path = ""

@@ -19,7 +19,7 @@ namespace ORNG {
 	class LuaCLI {
 	public:
 		void Init();
-		void OnImGuiRender();
+		void OnImGuiRender(bool enable_typing);
 		sol::state& GetLua() { return lua; }
 
 		std::vector<std::function<void()>> input_callbacks;

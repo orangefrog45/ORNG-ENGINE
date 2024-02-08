@@ -14,8 +14,6 @@
 #include "physics/Physics.h"
 
 namespace ORNG {
-	void GenerateErrorMessage(const std::string&) {
-	}
 
 	inline static std::string GenerateMeshBinaryPath(MeshAsset* p_mesh) {
 		return ".\\res\\meshes\\" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("\\") + 1) + ".bin";
@@ -90,7 +88,6 @@ namespace ORNG {
 
 	void AssetManagerWindow::OnMainRender() {
 		// Generate previews at this stage, delayed as if done during the ImGui rendering phase ImGui will stop rendering on that frame, causing a UI flicker
-	
 		if (!m_materials_to_gen_previews.empty()) {
 			CreateMaterialPreview(m_materials_to_gen_previews[0]);
 			m_materials_to_gen_previews.erase(m_materials_to_gen_previews.begin());
@@ -192,7 +189,7 @@ namespace ORNG {
 
 			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false, true);
 			if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
-				GenerateErrorMessage("Failed to reload script");
+				ORNG_CORE_ERROR("Failed to reload script");
 			}
 			p_curr_asset->symbols = symbols;
 
@@ -210,7 +207,6 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
-
 		AssetDisplaySpec spec;
 
 		spec.on_drag = [p_asset]() {
@@ -227,9 +223,7 @@ namespace ORNG {
 		if (!p_asset->symbols.loaded) {
 			spec.popup_spec.options.push_back(std::make_pair("Load",
 				[p_asset]() {
-					auto symbols = ScriptingEngine::GetSymbolsFromScriptCpp(p_asset->filepath, false);
-					if (!AssetManager::AddAsset(new ScriptAsset(symbols)))
-						GenerateErrorMessage("AssetManager::AddScriptAsset failed");
+					p_asset->symbols = ScriptingEngine::GetSymbolsFromScriptCpp(p_asset->filepath, false);
 				}));
 		} else {
 		spec.popup_spec.options.push_back(std::make_pair("Reload",
@@ -244,7 +238,15 @@ namespace ORNG {
 
 		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 
-		RenderBaseAsset(p_asset, spec);
+		if (!ScriptingEngine::GetScriptData(p_asset->filepath).is_loaded) {
+			ImGui::PushStyleColor(ImGuiCol_Text, { 1, 0.5, 0, 1 });
+			RenderBaseAsset(p_asset, spec);
+			ImGui::PopStyleColor();
+		}
+		else {
+			RenderBaseAsset(p_asset, spec);
+		}
+
 	}
 
 
@@ -258,9 +260,8 @@ namespace ORNG {
 				std::string script_path = *mp_active_project_dir + "\\res\\scripts\\" + new_script_name + ".cpp";
 				if (!AssetManager::GetAsset<ScriptAsset>(script_path)) {
 					FileCopy(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp", script_path);
-					std::string open_file_command = "start \"" + script_path + "\"";
-					std::system(open_file_command.c_str());
-					AssetManager::AddAsset(new ScriptAsset(script_path));
+					ShellExecute(NULL, "open", script_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
+					AssetManager::AddAsset(new ScriptAsset(script_path, false));
 				}
 			}
 			ExtraUI::AlphaNumTextInput(new_script_name);
@@ -443,7 +444,7 @@ namespace ORNG {
 
 		if (ExtraUI::RightClickPopup("asset_popup"))
 		{
-			if (ImGui::Selectable("Delete")) 
+			if (ImGui::Selectable("Delete"))
 				OnRequestDeleteAsset(p_asset, display_spec.on_delete);
 
 			for (auto& pair : display_spec.popup_spec.options) {
@@ -470,6 +471,7 @@ namespace ORNG {
 			};
 
 		spec.on_delete = [p_texture]() {
+			ORNG_CORE_TRACE("DELETING {0}", p_texture->uuid());
 			FileDelete(p_texture->GetSpec().filepath + ".otex");
 			};
 
@@ -512,7 +514,6 @@ namespace ORNG {
 					ImGui::TableNextColumn();
 					RenderMaterial(p_material);
 				}
-
 
 				ImGui::EndTable();
 			} //END MATERIAL VIEWING TABLE
@@ -691,7 +692,7 @@ namespace ORNG {
 				return;
 
 			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
-			if (!std::filesystem::exists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
+			if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
 				SceneSerializer::SerializeBinary(filepath, *p_mesh);
 			}
@@ -788,7 +789,6 @@ namespace ORNG {
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
-
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
 		settings.p_output_tex = p_tex.get();
@@ -796,6 +796,7 @@ namespace ORNG {
 		settings.do_intercept_renderpasses = false;
 		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0);
 	}
 
 
@@ -889,7 +890,7 @@ namespace ORNG {
 			if (!mp_selected_material->ao_texture)
 				ret |= ImGui::SliderFloat("AO", &mp_selected_material->ao, 0.f, 1.f);
 
-			ImGui::Checkbox("Emissive", &mp_selected_material->emissive);
+			ret |= ImGui::Checkbox("Emissive", &mp_selected_material->emissive);
 
 
 			if (mp_selected_material->emissive || mp_selected_material->emissive_texture)

@@ -50,7 +50,10 @@ namespace ORNG {
 
 	struct ScriptAsset : public Asset {
 		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { };
-		ScriptAsset(const std::string& filepath) : Asset(filepath), symbols(ScriptingEngine::GetSymbolsFromScriptCpp(filepath, false)) {  };
+		ScriptAsset(const std::string& filepath, bool immediately_load = true) : Asset(filepath), symbols(filepath) { 
+			if (immediately_load)
+				symbols = ScriptingEngine::GetSymbolsFromScriptCpp(filepath, false);
+		};
 
 		ScriptSymbols symbols;
 	};

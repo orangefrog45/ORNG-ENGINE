@@ -27,6 +27,7 @@ void main() {
 	vec3 K = textureLod(sampler_input, local_tex_coords + vec2(-2.0, 2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
 	vec3 L = textureLod(sampler_input, local_tex_coords + vec2(0.0, 2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
 	vec3 M = textureLod(sampler_input, local_tex_coords + vec2(2.0, 2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
+	
 
 
 

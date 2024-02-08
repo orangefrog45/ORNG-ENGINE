@@ -10,6 +10,7 @@ namespace physx {
 namespace ORNG {
 	struct Asset {
 		Asset(const std::string& t_filepath) : filepath(t_filepath) {};
+		Asset(const std::string& t_filepath, uint64_t _uuid) : filepath(t_filepath), uuid(_uuid) {};
 		virtual ~Asset() = default;
 
 		bool operator == (const std::string& t_filepath) {

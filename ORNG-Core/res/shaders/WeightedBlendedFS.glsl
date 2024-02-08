@@ -1,8 +1,6 @@
 #version 460 core
-// your first render target which is used to accumulate pre-multiplied color values
 layout(location = 0) out vec4 accum;
 
-// your second render target which is used to store pixel revealage
 layout(location = 1) out float reveal;
 
 layout(binding = 1) uniform sampler2D diffuse_sampler;
@@ -100,8 +98,8 @@ void main() {
 	float ao  = texture(ao_sampler, vs_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
     vec4 albedo = CalculateAlbedoAndEmissive(vs_tex_coord.xy);
 
-	total_light += CalculateDirectLightContribution(v, f0, vs_position.xyz, n, roughness, metallic, albedo.rgb);
-	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
+	total_light += CalculateDirectLightContributionCheap(v, f0, vs_position.xyz, n, roughness, metallic, albedo.rgb);
+	//total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
     vec4 color = vec4(total_light, u_material.base_color.a * albedo.w);
 
     float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 

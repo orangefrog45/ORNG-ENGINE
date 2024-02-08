@@ -204,4 +204,72 @@ vec3 CalculateAmbientLightContribution(float n_dot_v, vec3 f0, vec3 r, float rou
 	total_light += ambient_light;
 	return total_light;
 }
+
+vec3 CalcPointlightCheap(PointLight light, vec3 world_pos, vec3 normal) {
+    vec3 dir = light.pos.xyz - world_pos.xyz;
+    const float l = length(dir);
+    dir = normalize(dir);
+
+    float attenuation = light.constant +
+		light.a_linear * l +
+		light.exp * pow(l, 2);
+
+    const float r = max(dot(normalize(normal), dir), 0.f);
+    return r / attenuation * light.color.xyz;
+}
+
+vec3 CalcSpotlightCheap(SpotLight light, vec3 world_pos, vec3 normal) {
+    vec3 dir = light.pos.xyz - world_pos.xyz;
+	float spot_factor = dot(normalize(dir), -light.dir.xyz);
+
+    vec3 color = vec3(0);
+
+	if (spot_factor < 0.0001 || spot_factor < light.aperture)
+		return color;
+
+    const float l = length(dir);
+    dir = normalize(dir);
+
+    float attenuation = light.constant +
+		light.a_linear * l +
+		light.exp * pow(l, 2);
+
+	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / max((1.0 - light.aperture), 1e-5));
+    const float r = max(dot(normalize(normal), dir), 0.f);
+
+    return r * spotlight_intensity / attenuation * light.color.xyz;
+}
+
+vec3 CalculateDirectLightContributionCheap(vec3 v, vec3 f0, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
+	vec3 total_light = vec3(0);
+	// Directional light
+	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz), world_pos);
+	total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo) * (1.0 - shadow);
+
+	// Pointlights
+	for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
+		if (ubo_point_lights.lights[i].shadow_distance > 0.f)
+			total_light += CalcPointlightCheap(ubo_point_lights.lights[i], world_pos, n) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, world_pos));
+		else
+			total_light += CalcPointlightCheap(ubo_point_lights.lights[i], world_pos, n) ;
+	}
+
+
+	//Spotlights
+	for (int i = 0; i < ubo_spot_lights.lights.length(); i++) {
+		if (ubo_spot_lights.lights[i].shadow_distance > 0.f) {
+			float shadow = ShadowCalculationSpotlight(ubo_spot_lights.lights[i], i, world_pos);
+
+			if (shadow >= 0.99)
+				continue;
+
+			total_light += CalcSpotlightCheap(ubo_spot_lights.lights[i], world_pos, n) * (1.0 - shadow);
+		} else {
+			total_light += CalcSpotlightCheap(ubo_spot_lights.lights[i], world_pos, n);
+		}
+	}
+
+	return total_light * albedo;
+}
+
 #endif

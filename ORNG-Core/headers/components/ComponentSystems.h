@@ -255,6 +255,7 @@ namespace ORNG {
 		void OnUpdate(entt::registry* p_registry);
 		void OnUnload();
 	private:
+
 		void WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index);
 		Texture2DArray m_spotlight_depth_tex{
 		"Spotlight depth"

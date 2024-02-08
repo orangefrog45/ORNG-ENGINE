@@ -35,7 +35,7 @@ namespace ORNG {
 		bool is_error;
 	};
 
-	void LuaCLI::OnImGuiRender() {
+	void LuaCLI::OnImGuiRender(bool enable_typing) {
 		static bool display_window = false;
 		static bool reselect = true;
 
@@ -58,9 +58,11 @@ namespace ORNG {
 		ImGui::SetNextWindowPos({ render_pos.x, render_pos.y});
 		ImGui::SetNextWindowSize({ size.x, size.y });
 		if (ImGui::Begin("Util console")) {
-			static std::string lua_input;
+			static std::string lua_input_1;
+			static std::string lua_input_2;
+			static std::string* p_active_string = &lua_input_1;
 
-			if (ImGui::BeginChild(1232, { 0, 0 }, true)) {
+			if (ImGui::BeginChild(1232, { 0, size.y * 0.7f }, true)) {
 				for (const auto& output : output_stack) {
 					ImGui::PushStyleColor(ImGuiCol_Text, output.is_error ? ImVec4{ 1, 0, 0, 1 } : ImVec4{ 1, 1, 1, 1 });
 					ImGui::Text(output.content.c_str());
@@ -74,30 +76,35 @@ namespace ORNG {
 				reselect = false;
 			}
 
-			ImGui::InputText("##input", &lua_input);
+			lua_input_1 = "HI";
+
+			ImGui::InputText("##input", p_active_string, enable_typing ? 0 : ImGuiInputTextFlags_ReadOnly );
+
+			if (Input::IsKeyPressed(Key::ArrowUp) && command_index > 0) {
+				p_active_string = p_active_string == &lua_input_1 ? &lua_input_2 : &lua_input_1;
+				command_index--;
+				*p_active_string = prev_command_stack[command_index];
+			}
+
 
 			if (ImGui::IsItemFocused()) {
-				if (Input::IsKeyPressed(Key::ArrowUp) && command_index > 0) {
-					command_index--;
-					lua_input = prev_command_stack[command_index];
-
-				}
 
 				if (Input::IsKeyPressed(Key::Enter)) {
 					try {
 						std::ranges::for_each(input_callbacks, [](const auto& p_func) {p_func(); });
-						output_stack.push_back({ lua_input, false });
-						prev_command_stack.push_back(lua_input);
+						output_stack.push_back({ *p_active_string, false });
+						prev_command_stack.push_back(*p_active_string);
 						command_index = prev_command_stack.size();
-						lua.script(lua_input);
+						lua.script(*p_active_string);
 					}
 					catch (std::exception& e) {
 						output_stack.push_back({ e.what(), true });
 					}
 
-					reselect = !lua_input.empty();
-					lua_input.clear();
+					reselect = !(*p_active_string).empty();
+					p_active_string->clear();
 				}
+
 			}
 
 		}
