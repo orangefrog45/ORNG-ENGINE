@@ -1,7 +1,7 @@
 #version 430 core
 
 in layout(location = 0) vec3 pos;
-in layout(location = 1) vec3 normal;
+in layout(location = 2) vec3 normal;
 
 #ifdef COLOR
 in layout(location = 1) vec3 icol;
@@ -26,7 +26,7 @@ void main() {
 	if (u_scale < 1.01)
 	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1.f);
 	else
-	gl_Position = PVMatrices.proj_view * transform * vec4(pos * (u_scale + max(log(l * 0.08) * 0.1, 0)), 1.f);
+	gl_Position = PVMatrices.proj_view *( transform * vec4(pos, 1.f) + vec4(normal, 0) *  (u_scale * 0.1));
 
 #else
 	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1.f);

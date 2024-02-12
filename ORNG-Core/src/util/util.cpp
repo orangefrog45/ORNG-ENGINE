@@ -24,6 +24,21 @@ namespace ORNG {
 		return false;
 	}
 
+	bool TryDirectoryDelete(const std::string& filepath) {
+		if (FileExists(filepath)) {
+			try {
+				std::filesystem::remove_all(filepath);
+			}
+			catch (std::exception& e) {
+				ORNG_CORE_ERROR("std::filesystem::remove_all failed : '{0}'", e.what());
+			}
+			return true;
+		}
+
+		return false;
+	}
+
+
 
 	void FileDelete(const std::string& filepath) {
 		try {

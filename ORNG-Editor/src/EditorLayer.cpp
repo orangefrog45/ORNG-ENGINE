@@ -677,7 +677,7 @@ namespace ORNG {
 			if (ImGui::Button("Files")) {
 				ImGui::OpenPopup("FilePopup");
 			}
-			static std::vector<std::string> file_options{ "New project", "Open project", "Save project" };
+			static std::vector<std::string> file_options{ "New project", "Open project", "Save project", "Build game"};
 			static int selected_component = 0;
 
 
@@ -705,7 +705,6 @@ namespace ORNG {
 					};
 
 				ExtraUI::ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
-				selected_component = 0;
 				break;
 			}
 			case 3: {
@@ -714,9 +713,16 @@ namespace ORNG {
 				AssetManager::SerializeAssets();
 				SceneSerializer::SerializeScene(*(*mp_scene_context), scene_filepath);
 				SceneSerializer::SerializeSceneUUIDs(*(*mp_scene_context), uuid_filepath);
-				selected_component = 0;
+				break;
+			}
+			case 4: {
+				BuildGameFromActiveProject();
+				break;
 			}
 			}
+
+			selected_component = 0;
+
 
 			ImGui::SameLine();
 			if (m_simulate_mode_active && ImGui::Button(ICON_FA_CIRCLE))
@@ -744,6 +750,24 @@ namespace ORNG {
 	}
 
 
+	void EditorLayer::BuildGameFromActiveProject() {
+		// Delete old build
+		TryFileDelete("build");
+
+		Create_Directory("build");
+		FileCopy(m_current_project_directory + "/scene.yml", "build/scene.yml");
+		FileCopy(m_current_project_directory + "/res", "build/res", true);
+		FileCopy(GetApplicationExecutableDirectory() + "/res/shaders", "build/res/shaders", true);
+		FileCopy(GetApplicationExecutableDirectory() + "/../ORNG-Runtime/ORNG_RUNTIME.exe", "build/ORNG_RUNTIME.exe");
+
+		std::vector<std::string> dlls = {
+			"fmod.dll", "PhysX_64.dll", "PhysXCommon_64.dll", "PhysXCooking_64.dll", "PhysXFoundation_64.dll"
+		};
+
+		for (const auto& path : dlls) {
+			FileCopy(GetApplicationExecutableDirectory() + "/../ORNG-Runtime/" + path, "build/" + path);
+		}
+	}
 
 	void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
 		ImGui::SetNextWindowSize(ImVec2(500, 200));
@@ -932,7 +956,8 @@ namespace ORNG {
 
 			// Update resources
 			FileDelete("./res/core-res");
-			FileCopy(GetApplicationExecutableDirectory() + "/res", "./res/core-res/", true);
+			Create_Directory("res/core-res");
+			FileCopy(GetApplicationExecutableDirectory() + "/res", "res/core-res", true);
 			RefreshScriptIncludes();
 
 			// Deselect material and texture that's about to be deleted
@@ -1272,6 +1297,10 @@ namespace ORNG {
 			TRANSFORM_LUA_SKELETON(p_transform->SetAbsolutePosition(pos));
 			};
 
+		std::function<void(glm::vec3)> p_cam_move_to_func = [this](glm::vec3 pos) {
+			mp_editor_camera->GetComponent<TransformComponent>()->SetPosition(pos);
+			};
+
 		std::function<void()> p_match_func = [this]() {
 			auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 			TRANSFORM_LUA_SKELETON(
@@ -1297,6 +1326,7 @@ namespace ORNG {
 		m_lua_cli.GetLua().set_function("rotate", p_rot_func);
 		m_lua_cli.GetLua().set_function("rotate_about", p_rot_about_point_func);
 		m_lua_cli.GetLua().set_function("moveto", p_move_to_func);
+		m_lua_cli.GetLua().set_function("move_me", p_cam_move_to_func);
 		m_lua_cli.GetLua().set_function("match", p_match_func);
 
 	}

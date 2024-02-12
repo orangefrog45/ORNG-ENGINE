@@ -27,7 +27,8 @@ namespace ORNG {
 		PARTICLE,
 		SKYBOX,
 		BILLBOARD,
-		PARTICLE_BILLBOARD
+		PARTICLE_BILLBOARD,
+		UNIFORM_TRANSFORM
 	};
 
 	enum TransparencyShaderVariants {
@@ -77,9 +78,9 @@ namespace ORNG {
 				"u_material.sprite_data.fps"
 		};
 
+
 		std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
 		ptcl_uniforms.push_back("u_transform_start_index");
-
 
 		mp_gbuffer_shader_variants = &mp_shader_library->CreateShaderVariants("gbuffer");
 		mp_gbuffer_shader_variants->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
@@ -92,6 +93,10 @@ namespace ORNG {
 			mp_gbuffer_shader_variants->AddVariant(SKYBOX, { "SKYBOX_MODE" }, {});
 			mp_gbuffer_shader_variants->AddVariant(BILLBOARD, { "BILLBOARD" }, gbuffer_uniforms);
 			mp_gbuffer_shader_variants->AddVariant(PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
+
+			std::vector<std::string> transform_uniforms = gbuffer_uniforms;
+			transform_uniforms.push_back("u_transform");
+			mp_gbuffer_shader_variants->AddVariant(UNIFORM_TRANSFORM, { "UNIFORM_TRANSFORM" }, transform_uniforms);
 		}
 
 
@@ -865,6 +870,8 @@ namespace ORNG {
 				IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
 			}
 		}
+		mp_gbuffer_shader_variants->Activate(UNIFORM_TRANSFORM);
+		RenderVehicles(mp_gbuffer_shader_variants, SOLID);
 
 #ifdef ORNG_EDITOR_LAYER
 		if (!((int)settings.voxel_render_face & (int)VoxelRenderFace::NONE)) {

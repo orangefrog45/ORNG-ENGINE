@@ -35,6 +35,7 @@ namespace ORNG {
 		Log::Init();
 
 		ORNG_CORE_INFO("Initializing core engine");
+		Log::Flush();
 
 		Window::Init();
 		GLFWwindow* window = Window::GetGLFWwindow();
@@ -51,10 +52,10 @@ namespace ORNG {
 		SceneRenderer::Init();
 		AssetManager::Init();
 
+
 		ORNG_CORE_INFO("Core engine initialized, intializing layers");
 		layer_stack.Init();
 		ORNG_CORE_INFO("Layers initialized, beginning main loop");
-
 
 		// Engine loop
 		Events::EngineCoreEvent render_event;

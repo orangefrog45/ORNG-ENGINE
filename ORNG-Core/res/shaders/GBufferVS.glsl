@@ -16,12 +16,15 @@ layout(std140, binding = 0) buffer transforms {
 } transform_ssbo;
 
 
+#ifdef UNIFORM_TRANSFORM
+uniform mat4 u_transform;
+#endif
 
 out vec4 vs_position;
 out vec3 vs_normal;
 out vec3 vs_tex_coord;
 out vec3 vs_tangent;
-out mat4 vs_transform;
+out flat mat4 vs_transform;
 out vec3 vs_original_normal;
 out vec3 vs_view_dir_tangent_space;
 
@@ -49,11 +52,11 @@ mat3 CalculateTbnMatrixTransform() {
 	#endif
 
 	t = normalize(t - dot(t, n) * n);
-	vec3 b = cross(n, t);
+	vec3 b = normalize(cross(n, t));
 
 	mat3 tbn = mat3(t, b, n);
 
-	return tbn;
+	return transpose(tbn);
 }
 
 
@@ -85,8 +88,6 @@ void main() {
 		vs_normal = vertex_normal;
 		vs_position = vec4(position, 1.f);
 		gl_Position = PVMatrices.proj_view * vs_position;
-		mat3 tbn = CalculateTbnMatrix();
-		vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
 
 #elif defined SKYBOX_MODE
 		vs_position = vec4(position, 0.0);
@@ -170,7 +171,12 @@ void main() {
 			vs_position = vec4(t_pos + position.x * cam_right * transform_ssbo.transforms[gl_InstanceID][0][0] + position.y * cam_up * transform_ssbo.transforms[gl_InstanceID][1][1], 1.0);
 
 		#else
+			#ifdef UNIFORM_TRANSFORM
+			vs_transform = u_transform;
+			#else
 			vs_transform = transform_ssbo.transforms[gl_InstanceID];
+			#endif
+
 			vs_position = vs_transform * (vec4(position, 1.0f));
 			vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
 
@@ -185,7 +191,7 @@ void main() {
 		
 		#ifndef BILLBOARD
 			mat3 tbn = CalculateTbnMatrixTransform();
-			vs_view_dir_tangent_space = tbn * (ubo_common.camera_pos.xyz - vs_position.xyz);
+			vs_view_dir_tangent_space = tbn * ( ubo_common.camera_pos.xyz - vs_position.xyz);
 		#endif
 
 		#ifdef VOXELIZE

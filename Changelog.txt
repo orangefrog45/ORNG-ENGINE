@@ -1,3 +1,7 @@
+12/6/24:
+-Proper game exporting/building from editor
+-Vehicle component transform sync fixes
+
 6/2/24:
 -Selected entity outline shader instead of highlight
 -Removed duplicate texture asset uuid

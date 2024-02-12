@@ -2,7 +2,7 @@
 #include "Log.h"
 namespace ORNG {
 #define BREAKPOINT ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak()
-#define ASSERT(x) if (!(x)) __debugbreak()
+#define ASSERT(x) if (!(x)) { ORNG_CORE_ERROR("Assertion failed '{0}' at '{1}', '{2}'", #x, FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();}
 #define VEC_PUSH_VEC3(vector, vec3) vector.push_back(vec3.x); vector.push_back(vec3.y); vector.push_back(vec3.z)
 #define VEC_PUSH_VEC2(vector, vec2) vector.push_back(vec2.x); vector.push_back(vec2.y)
 #define ORNG_MAX_FILEPATH_SIZE 500
@@ -33,6 +33,8 @@ namespace ORNG {
 	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
 
 	bool TryFileDelete(const std::string& filepath);
+
+	bool TryDirectoryDelete(const std::string& filepath);
 
 	std::string GetFileDirectory(const std::string& filepath);
 	std::string GetFileLastWriteTime(const std::string& filepath);

@@ -256,7 +256,9 @@ namespace ORNG {
 		bool result = vehicle.initialize(*Physics::GetPhysics(), params, *p_base_material, true);
 		vehicle.setUpActor(*mp_phys_scene, PxTransform(PxIdentity), "Test vehicle");
 		PxShape* shapes[5];
+
 		vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shapes[0], 5);
+		vehicle.mPhysXState.physxActor.rigidBody->setGlobalPose(TransformComponentToPxTransform(*p_comp->GetEntity()->GetComponent<TransformComponent>()));
 
 		for (int i = 0; i < 1; i++) {
 			// TODO: Have actual parameters for changing shapes and debug visuals for it
@@ -478,6 +480,10 @@ namespace ORNG {
 			auto* p_ent = t_event.affected_components[0]->GetEntity();
 			auto* p_phys_comp = p_ent->GetComponent<PhysicsComponent>();
 
+			if (auto* p_vehicle_comp = p_ent->GetComponent<VehicleComponent>()) {
+				p_vehicle_comp->m_vehicle.mPhysXState.physxActor.rigidBody->setGlobalPose(TransformComponentToPxTransform(*p_transform));
+			}
+
 			if (auto* p_controller_comp = p_ent->GetComponent<CharacterControllerComponent>()) {
 				glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
 				p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
@@ -489,15 +495,7 @@ namespace ORNG {
 					return;
 				}
 
-				auto n_transforms = p_transform->GetAbsoluteTransforms();
-				glm::vec3 abs_pos = n_transforms[0];
-				glm::quat n_quat{ glm::radians(n_transforms[2]) };
-
-				PxVec3 px_pos{ abs_pos.x, abs_pos.y, abs_pos.z };
-				PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
-				PxTransform px_transform{ px_pos, n_px_quat };
-
-				p_phys_comp->p_rigid_actor->setGlobalPose(px_transform);
+				p_phys_comp->p_rigid_actor->setGlobalPose(TransformComponentToPxTransform(*p_transform));
 			}
 		}
 	}
@@ -674,8 +672,11 @@ namespace ORNG {
 			PxShape* shape[1];
 			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shape[0], 1);
 
+			mp_currently_updating_transform = &transform;
 			UpdateTransformCompFromGlobalPose(vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose() * shape[0]->getLocalPose(), transform);
+			mp_currently_updating_transform = nullptr;
 		}
+
 
 		ORNG_PROFILE_FUNC();
 		m_accumulator -= m_step_size * 1000.f;

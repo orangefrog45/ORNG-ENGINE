@@ -45,7 +45,9 @@ namespace ORNG {
 
 
 	void AudioSystem::OnAudioDeleteEvent(const Events::ECS_Event<AudioComponent>& e_event) {
-		ORNG_CALL_FMOD(e_event.affected_components[0]->mp_channel->stop());
+		// Don't error check this as FMOD will clean this up if the channel is invalid.
+		e_event.affected_components[0]->mp_channel->stop();
+
 		delete e_event.affected_components[0]->mp_fmod_pos;
 		delete e_event.affected_components[0]->mp_fmod_vel;
 	}

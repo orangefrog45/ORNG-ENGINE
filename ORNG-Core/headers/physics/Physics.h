@@ -4,8 +4,9 @@
 
 #include "util/Log.h"
 #include "util/util.h"
-
-
+#include "glm/glm/gtc/quaternion.hpp"
+#include "glm/glm/trigonometric.hpp"
+#include "components/TransformComponent.h"
 
 class UserErrorCallback : public physx::PxErrorCallback
 {
@@ -35,6 +36,14 @@ namespace ORNG {
 		return glm::vec3(pxVec.x, pxVec.y, pxVec.z);
 	}
 
+	inline static physx::PxTransform TransformComponentToPxTransform(TransformComponent& t) {
+		auto n_transforms = t.GetAbsoluteTransforms();
+		glm::quat n_quat{ glm::radians(n_transforms[2]) };
+
+		physx::PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
+
+		return { ToPxVec3(n_transforms[0]), n_px_quat};
+	}
 
 	class Physics {
 	public:

@@ -573,8 +573,7 @@ namespace ORNG {
 			0.0, 1.0, // Vertex 10
 			0.0, 0.0, // Vertex 11
 
-			1.0, 0.0, // Vertex 12
-			1.0, 1.0, // Vertex 13
+			1.0, 1.0, 1.0, // Vertex 13
 			0.0, 1.0, // Vertex 14
 			0.0, 0.0, // Vertex 15
 

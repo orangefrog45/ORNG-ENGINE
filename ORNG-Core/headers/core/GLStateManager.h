@@ -15,6 +15,7 @@ namespace ORNG {
 			if (GLEW_OK != GlewInitResult)
 			{
 				ORNG_CORE_CRITICAL("GLEW INIT FAILED");
+				Log::Flush();
 				printf("ERROR: %s", glewGetErrorString(GlewInitResult));
 				exit(EXIT_FAILURE);
 			}

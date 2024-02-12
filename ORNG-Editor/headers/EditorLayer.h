@@ -61,6 +61,8 @@ namespace ORNG {
 		bool GenerateProject(const std::string& project_name);
 		// Sets working directory to folder_path so all resources will be found there.
 		bool MakeProjectActive(const std::string& folder_path);
+		void BuildGameFromActiveProject();
+
 		void InitImGui();
 		// Window containing the actual rendered scene
 		void RenderDisplayWindow();

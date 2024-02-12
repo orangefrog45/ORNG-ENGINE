@@ -19,9 +19,10 @@ in vec4 vs_position;
 in vec3 vs_normal;
 in vec3 vs_tex_coord;
 in vec3 vs_tangent;
-in mat4 vs_transform;
+in flat mat4 vs_transform;
 in vec3 vs_original_normal;
 in vec3 vs_view_dir_tangent_space;
+
 
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 
@@ -52,10 +53,10 @@ vec2 ParallaxMap()
 	float layer_depth = 1.0 / float(u_num_parallax_layers);
 	float current_layer_depth = 0.0f;
 	vec2 current_tex_coords = vs_tex_coord.xy * u_material.tile_scale;
-	float current_depth_map_value = 1.0 - texture(displacement_sampler, vs_tex_coord.xy).r;
+	float current_depth_map_value = 1.0 - texture(displacement_sampler, current_tex_coords).r;
 	vec2 p = normalize(vs_view_dir_tangent_space).xy * u_parallax_height_scale;
 
-	vec2 delta_tex_coords = p / u_num_parallax_layers;
+	vec2 delta_tex_coords = p / u_num_parallax_layers * u_material.tile_scale;
 	float delta_depth = layer_depth / u_num_parallax_layers;
 
 	while (current_layer_depth < current_depth_map_value) {
@@ -67,7 +68,7 @@ vec2 ParallaxMap()
 	vec2 prev_tex_coords = current_tex_coords + delta_tex_coords;
 
 	float after_depth = current_depth_map_value - current_layer_depth;
-	float before_depth = texture(displacement_sampler, prev_tex_coords).r - current_layer_depth + layer_depth;
+	float before_depth = (1.0 - texture(displacement_sampler, prev_tex_coords).r) - current_layer_depth + layer_depth;
 
 	float weight = after_depth / (after_depth - before_depth);
 
@@ -88,7 +89,7 @@ mat3 CalculateTbnMatrixTransform() {
 
 	mat3 tbn = mat3(t, b, n);
 
-	return tbn;
+	return transpose(tbn);
 }
 
 
@@ -132,7 +133,7 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 
 void main() {
 #ifndef SKYBOX_MODE
-	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap()  : vs_tex_coord.xy * u_material.tile_scale;
+	vec2 adj_tex_coord = u_displacement_sampler_active ? ParallaxMap() : vs_tex_coord.xy * u_material.tile_scale;
 	roughness_metallic_ao.r = texture(roughness_sampler, adj_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
 	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
 	roughness_metallic_ao.b = texture(ao_sampler, adj_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
