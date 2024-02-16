@@ -209,6 +209,14 @@ namespace ORNG {
 	void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 		AssetDisplaySpec spec;
 
+		unsigned using_count = 0;
+		for (auto [entity, script] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+			if (script.GetSymbols() == &p_asset->symbols) 
+				using_count++;
+		}
+
+		spec.delete_confirmation_str = using_count == 0 ? "" : std::format("{} entities are using this.", using_count);
+
 		spec.on_drag = [p_asset]() {
 			static ScriptAsset* p_dragged_script = nullptr;
 			p_dragged_script = p_asset;
@@ -350,6 +358,15 @@ namespace ORNG {
 
 	void AssetManagerWindow::RenderPhysXMaterial(PhysXMaterialAsset* p_material) {
 		AssetDisplaySpec spec;
+
+		unsigned using_count = 0;
+		for (auto [entity, comp] : (*mp_scene_context)->m_registry.view<PhysicsComponent>().each()) {
+			if (comp.GetMaterial() == p_material)
+				using_count++;
+		}
+
+		spec.delete_confirmation_str = using_count == 0 ? "" : std::format("{} entities are using this.", using_count);
+
 		spec.on_drag = [p_material]() {
 			static PhysXMaterialAsset* p_dragged_material = nullptr;
 			p_dragged_material = p_material;
@@ -357,6 +374,9 @@ namespace ORNG {
 			ImGui::EndDragDropSource();
 			};
 
+		spec.on_click = [this, p_material]() {
+			mp_selected_physx_material = p_material;
+			};
 		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 
 		RenderBaseAsset(p_material, spec);
@@ -366,6 +386,14 @@ namespace ORNG {
 
 	void AssetManagerWindow::RenderMeshAsset(MeshAsset* p_mesh_asset) {
 		AssetDisplaySpec spec;
+
+		unsigned using_count = 0;
+		for (auto [entity, mesh] : (*mp_scene_context)->m_registry.view<MeshComponent>().each()) {
+			if (mesh.GetMeshData() == p_mesh_asset)
+				using_count++;
+		}
+
+		spec.delete_confirmation_str = using_count == 0 ? "" : std::format("{} entities are using this.", using_count);
 
 		spec.on_drag = [p_mesh_asset]() {
 			static MeshAsset* p_dragged_mesh = nullptr;
@@ -445,7 +473,7 @@ namespace ORNG {
 		if (ExtraUI::RightClickPopup("asset_popup"))
 		{
 			if (ImGui::Selectable("Delete"))
-				OnRequestDeleteAsset(p_asset, display_spec.on_delete);
+				OnRequestDeleteAsset(p_asset, display_spec.delete_confirmation_str);
 
 			for (auto& pair : display_spec.popup_spec.options) {
 				if (ImGui::Selectable(pair.first))
@@ -463,6 +491,7 @@ namespace ORNG {
 	void AssetManagerWindow::RenderTexture(Texture2D* p_texture) {
 	
 		AssetDisplaySpec spec;
+
 		spec.on_drag = [p_texture]() {
 			static Texture2D* p_dragged_texture = nullptr;
 			p_dragged_texture = p_texture;
@@ -855,6 +884,8 @@ namespace ORNG {
 		bool ret = false;
 
 		if (ImGui::Begin("Material editor")) {
+			MaterialFlags flags = mp_selected_material->GetFlags();
+
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Right)) {
 				// Hide this tree node
 				mp_selected_material = nullptr;
@@ -890,27 +921,56 @@ namespace ORNG {
 			if (!mp_selected_material->ao_texture)
 				ret |= ImGui::SliderFloat("AO", &mp_selected_material->ao, 0.f, 1.f);
 
-			ret |= ImGui::Checkbox("Emissive", &mp_selected_material->emissive);
+			static bool emissive = false;
+			emissive = (flags & ORNG_MatFlags_EMISSIVE);
+			if (ImGui::Checkbox("Emissive", &emissive)) {
+				mp_selected_material->FlipFlags(ORNG_MatFlags_EMISSIVE);
+				ret = true;
+			}
 
-
-			if (mp_selected_material->emissive || mp_selected_material->emissive_texture)
+			if ((flags & ORNG_MatFlags_EMISSIVE) || mp_selected_material->emissive_texture)
 				ret |= ImGui::SliderFloat("Emissive strength", &mp_selected_material->emissive_strength, -10.f, 10.f);
 
 			int num_parallax_layers = mp_selected_material->parallax_layers;
 			if (mp_selected_material->displacement_texture) {
-				ret |= ImGui::InputInt("Parallax layers", &num_parallax_layers);
+				ImGui::SeparatorText("Displacement");
 
-				if (num_parallax_layers >= 0)
-					mp_selected_material->parallax_layers = num_parallax_layers;
+				static bool tessellated = false;
+				tessellated = (flags & ORNG_MatFlags_TESSELLATED);
+				static bool parallax = false;
+				parallax = (flags & ORNG_MatFlags_PARALLAX_MAP);
 
-				ret |= ImGui::InputFloat("Parallax scale", &mp_selected_material->parallax_height_scale);
+				if (ImGui::Checkbox("Tessellated", &tessellated)) {
+					mp_selected_material->FlipFlags(ORNG_MatFlags_TESSELLATED);
+					ret = true;
+				}
+
+				if (ImGui::Checkbox("Parallax mapping", &parallax)) {
+					mp_selected_material->FlipFlags(ORNG_MatFlags_PARALLAX_MAP);
+					ret = true;
+				}
+
+				if (parallax) {
+					ret |= ImGui::InputInt("Parallax layers", &num_parallax_layers);
+
+					if (num_parallax_layers >= 0)
+						mp_selected_material->parallax_layers = num_parallax_layers;
+
+					ret |= ImGui::InputFloat("Parallax scale", &mp_selected_material->displacement_scale);
+				}
 			}
 
 			ret |= ExtraUI::ShowVec2Editor("Tile scale", mp_selected_material->tile_scale);
 
-			ret |= ImGui::Checkbox("Spritesheet", &mp_selected_material->is_spritesheet);
+			static bool is_spritesheet = false;
+			is_spritesheet = (flags & ORNG_MatFlags_IS_SPRITESHEET);
 
-			if (mp_selected_material->is_spritesheet) {
+			if (ImGui::Checkbox("Spritesheet", &is_spritesheet)) {
+				mp_selected_material->FlipFlags(ORNG_MatFlags_IS_SPRITESHEET);
+				ret = true;
+			}
+
+			if (flags & ORNG_MatFlags_IS_SPRITESHEET) {
 				ret |= ExtraUI::InputUint("Rows", mp_selected_material->spritesheet_data.num_rows);
 				ret |= ExtraUI::InputUint("Cols", mp_selected_material->spritesheet_data.num_cols);
 			}
@@ -933,6 +993,7 @@ namespace ORNG {
 		}
 	window_end:
 		ImGui::End();
+
 		return ret;
 	}
 

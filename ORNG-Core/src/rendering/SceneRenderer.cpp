@@ -18,7 +18,8 @@
 
 #include "scene/MeshInstanceGroup.h"
 
-
+// Material flags that can go through the normal gbuffer/shader pipeline with just the fragment/vertex (no tessellation) shaders
+#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP)
 
 namespace ORNG {
 	enum GBufferVariants {
@@ -62,17 +63,16 @@ namespace ORNG {
 				"u_ao_sampler_active",
 				"u_displacement_sampler_active",
 				"u_num_parallax_layers",
-				"u_parallax_height_scale",
+				"u_displacement_scale",
 				"u_material.base_color",
 				"u_material.metallic",
 				"u_material.roughness",
 				"u_material.ao",
 				"u_material.tile_scale",
-				"u_material.emissive",
 				"u_material.emissive_strength",
+				"u_material.flags",
 				"u_bloom_threshold",
 				"u_shader_id",
-				"u_material.using_spritesheet",
 				"u_material.sprite_data.num_rows",
 				"u_material.sprite_data.num_cols",
 				"u_material.sprite_data.fps"
@@ -81,6 +81,13 @@ namespace ORNG {
 
 		std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
 		ptcl_uniforms.push_back("u_transform_start_index");
+
+		mp_gbuffer_displacement_sv = &mp_shader_library->CreateShaderVariants("SR gbuffer displaced");
+		mp_gbuffer_displacement_sv->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_TESS_CONTROL_SHADER, "res/shaders/GBufferTCS.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_TESS_EVALUATION_SHADER, "res/shaders/GBufferTES.glsl");
+		mp_gbuffer_displacement_sv->AddVariant(0, {"TESSELLATE"}, gbuffer_uniforms);
 
 		mp_gbuffer_shader_variants = &mp_shader_library->CreateShaderVariants("gbuffer");
 		mp_gbuffer_shader_variants->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
@@ -597,7 +604,7 @@ namespace ORNG {
 			p_shader->SetUniform("u_displacement_sampler_active", 0);
 		}
 		else {
-			p_shader->SetUniform("u_parallax_height_scale", p_material->parallax_height_scale);
+			p_shader->SetUniform("u_displacement_scale", p_material->displacement_scale);
 			p_shader->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
 			p_shader->SetUniform("u_displacement_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT);
@@ -611,15 +618,14 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->emissive_texture->GetTextureHandle(), GL_StateManager::TextureUnits::EMISSIVE);
 		}
 
+		p_shader->SetUniform("u_material.flags", (unsigned)p_material->flags);
 		p_shader->SetUniform("u_material.base_color", p_material->base_color);
 		p_shader->SetUniform("u_material.roughness", p_material->roughness);
 		p_shader->SetUniform("u_material.ao", p_material->ao);
 		p_shader->SetUniform("u_material.metallic", p_material->metallic);
 		p_shader->SetUniform("u_material.tile_scale", p_material->tile_scale);
-		p_shader->SetUniform("u_material.emissive", (int)p_material->emissive);
 		p_shader->SetUniform("u_material.emissive_strength", p_material->emissive_strength);
 
-		p_shader->SetUniform("u_material.using_spritesheet", p_material->is_spritesheet);
 		p_shader->SetUniform("u_material.sprite_data.num_rows", p_material->spritesheet_data.num_rows);
 		p_shader->SetUniform("u_material.sprite_data.num_cols", p_material->spritesheet_data.num_cols);
 		p_shader->SetUniform("u_material.sprite_data.fps", p_material->spritesheet_data.fps);
@@ -641,7 +647,7 @@ namespace ORNG {
 				if (p_material->render_group != render_group)
 					continue;
 				p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[0]->getLocalPose()) * b_scale);
-				p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+				p_shader->SetUniform<unsigned int>("u_shader_id", (p_material->flags & ORNG_MatFlags_EMISSIVE) ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
 				SetGBufferMaterial(p_shader, p_material);
 
@@ -657,7 +663,7 @@ namespace ORNG {
 						continue;
 
 					p_shader->SetUniform("u_transform", PxTransformToGlmMat4(pose * shapes[wheel + 1]->getLocalPose()) * w_scale);
-					p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+					p_shader->SetUniform<unsigned int>("u_shader_id", (p_material->flags & ORNG_MatFlags_EMISSIVE) ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
 					//SetGBufferMaterial(p_material);
 
@@ -694,7 +700,7 @@ namespace ORNG {
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 			for (auto* p_group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID);
+				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
@@ -770,13 +776,13 @@ namespace ORNG {
 		mp_transparency_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED);
+			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 		}
 
 		mp_transparency_shader_variants->Activate(T_PARTICLE);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-			IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0]);
+			IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 		}
 
 		mp_transparency_shader_variants->Activate(T_PARTICLE_BILLBOARD);
@@ -784,7 +790,7 @@ namespace ORNG {
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 
-			IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material);
+			IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 		}
 
 
@@ -811,23 +817,23 @@ namespace ORNG {
 
 	}
 
-	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group) {
+	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data());
+		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data(), mat_flags, primitive_type);
 	}
 
-	void SceneRenderer::IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
+	void SceneRenderer::IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, GLenum primitive_type) {
 		for (unsigned int i = 0; i < p_mesh->m_submeshes.size(); i++) {
 			const Material* p_material = materials[p_mesh->m_submeshes[i].material_index];
 
-			if (p_material->render_group != render_group)
+			if (p_material->render_group != render_group || !(mat_flags & p_material->flags))
 				continue;
 
-			p_shader->SetUniform<unsigned int>("u_shader_id", p_material->emissive ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+			p_shader->SetUniform<unsigned int>("u_shader_id", (p_material->flags & ORNG_MatFlags_EMISSIVE) ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
 
 			SetGBufferMaterial(p_shader, p_material);
 
-			Renderer::DrawSubMeshInstanced(p_mesh, instances, i);
+			Renderer::DrawSubMeshInstanced(p_mesh, instances, i, primitive_type);
 		}
 	}
 
@@ -839,19 +845,27 @@ namespace ORNG {
 		GL_StateManager::ClearBitsUnsignedInt();
 
 		using enum GBufferVariants;
-		mp_gbuffer_shader_variants->Activate(MESH);
-		mp_gbuffer_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 
 		if (settings.render_meshes) {
+			// Draw tessellated meshes
+			mp_gbuffer_displacement_sv->Activate(0);
+			mp_gbuffer_displacement_sv->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
+			glPatchParameteri(GL_PATCH_VERTICES, 3);
+			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+				DrawInstanceGroupGBuffer(mp_gbuffer_displacement_sv, group, SOLID, ORNG_MatFlags_TESSELLATED, GL_PATCHES);
+			}
+
+			mp_gbuffer_shader_variants->Activate(GBufferVariants::MESH);
+			mp_gbuffer_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 			//Draw all meshes in scene (instanced)
 			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID);
+				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 
 
 			mp_gbuffer_shader_variants->Activate(BILLBOARD);
 			for (const auto* group : mp_scene->m_mesh_component_manager.GetBillboardInstanceGroups()) {
-				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID);
+				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 
 			//RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
@@ -859,7 +873,7 @@ namespace ORNG {
 			mp_gbuffer_shader_variants->Activate(PARTICLE);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-				IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0]);
+				IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 
 			mp_gbuffer_shader_variants->Activate(PARTICLE_BILLBOARD);
@@ -867,7 +881,7 @@ namespace ORNG {
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 
-				IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material);
+				IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 		}
 		mp_gbuffer_shader_variants->Activate(UNIFORM_TRANSFORM);
@@ -1183,7 +1197,7 @@ namespace ORNG {
 				if (p_material->render_group != render_group)
 					continue;
 
-				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i);
+				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i, GL_TRIANGLES);
 			}
 		}
 	}

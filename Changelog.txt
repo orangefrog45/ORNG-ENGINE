@@ -1,3 +1,8 @@
+16/2/24:
+-Tessellation shaders and displacement mapping support on meshes
+-Switched to flags for some material bool properties
+-Some safety features on asset deletion
+
 12/6/24:
 -Proper game exporting/building from editor
 -Vehicle component transform sync fixes

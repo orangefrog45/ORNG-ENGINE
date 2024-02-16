@@ -129,10 +129,10 @@ namespace ORNG {
 		m_draw_call_amount++;
 	}
 
-	void Renderer::IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index) {
+	void Renderer::IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index, GLenum primitive_type) {
 		GL_StateManager::BindVAO(mesh_data->m_vao.GetHandle());
 
-		glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
+		glDrawElementsInstancedBaseVertex(primitive_type,
 			mesh_data->m_submeshes[submesh_index].num_indices,
 			GL_UNSIGNED_INT,
 			(void*)(sizeof(unsigned int) * mesh_data->m_submeshes[submesh_index].base_index),

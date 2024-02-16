@@ -30,6 +30,7 @@ namespace ORNG {
 	};
 
 	struct DebugRenderSettings {
+		bool render_wireframe = false;
 		bool render_physx_debug = false;
 		bool render_meshes = true;
 		VoxelRenderFace voxel_render_face = VoxelRenderFace::NONE;

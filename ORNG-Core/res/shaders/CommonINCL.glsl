@@ -102,15 +102,19 @@ struct SpritesheetData {
 	uint fps;
 };
 
+#define MAT_FLAG_SPRITESHEET 1 << 4
+#define MAT_FLAG_EMISSIVE 1 << 3
+#define MAT_FLAG_PARALLAX_MAPPED 1 << 2
+#define MAT_FLAG_TESSELLATED 1 << 1
+
 struct Material {
 	vec4 base_color;
 	float metallic;
 	float roughness;
 	float ao;
 	vec2 tile_scale;
-	bool emissive;
 	float emissive_strength;
 
-	bool using_spritesheet;
+	uint flags;
 	SpritesheetData sprite_data;
 };

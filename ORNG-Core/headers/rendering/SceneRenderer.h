@@ -119,8 +119,8 @@ namespace ORNG {
 			Get().IDetachRenderpassIntercept(name);
 		}
 
-		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials) {
-			Get().IDrawMeshGBuffer(p_shader, p_mesh, render_group, instances, materials);
+		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES) {
+			Get().IDrawMeshGBuffer(p_shader, p_mesh, render_group, instances, materials, mat_flags, primitive_type);
 		}
 
 		static SceneRenderer& Get() {
@@ -162,8 +162,8 @@ namespace ORNG {
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 
-		void DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group);
-		void IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials);
+		void DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES);
+		void IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES);
 		void RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group);
 
 
@@ -171,6 +171,7 @@ namespace ORNG {
 		std::vector<Renderpass> m_render_intercepts;
 
 		ShaderVariants* mp_gbuffer_shader_variants = nullptr;
+		ShaderVariants* mp_gbuffer_displacement_sv = nullptr;
 
 		Shader* m_post_process_shader = nullptr;
 

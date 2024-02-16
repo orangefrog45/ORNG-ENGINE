@@ -20,14 +20,21 @@ layout(std140, binding = 0) buffer transforms {
 uniform mat4 u_transform;
 #endif
 
-out vec4 vs_position;
-out vec3 vs_normal;
-out vec3 vs_tex_coord;
-out vec3 vs_tangent;
-out flat mat4 vs_transform;
-out vec3 vs_original_normal;
-out vec3 vs_view_dir_tangent_space;
 
+out VSVertData {
+    vec4 position;
+    vec3 normal;
+    vec2 tex_coord;
+    vec3 tangent;
+    vec3 original_normal;
+    vec3 view_dir_tangent_space;
+} vert_data;
+
+#ifdef TESSELLATE
+out int vs_instance_id;
+#endif
+
+out flat mat4 vs_transform;
 
 #ifdef PARTICLE
 uniform uint u_transform_start_index;
@@ -78,25 +85,27 @@ vec3 roundToNearestMultiple(vec3 input, float multiple) {
 }
 
 void main() {
+#ifdef TESSELLATE
+	vs_instance_id = gl_InstanceID;
+#endif
 
-	vs_tangent = in_tangent;
-	vs_original_normal = vertex_normal;
+	vert_data.tangent = in_tangent;
+	vert_data.original_normal = vertex_normal;
 
 #ifdef TERRAIN_MODE
 
-		vs_tex_coord = vec3(tex_coord, 0.f);
-		vs_normal = vertex_normal;
-		vs_position = vec4(position, 1.f);
-		gl_Position = PVMatrices.proj_view * vs_position;
+		vert_data.tex_coord = tex_coord;
+		vert_data.normal = vertex_normal;
+		vert_data.position = vec4(position, 1.f);
+		gl_Position = PVMatrices.proj_view * vert_data.position;
 
 #elif defined SKYBOX_MODE
-		vs_position = vec4(position, 0.0);
-		vec4 view_pos = vec4(mat3(PVMatrices.view) * vs_position.xyz, 1.0);
+		vert_data.position = vec4(position, 0.0);
+		vec4 view_pos = vec4(mat3(PVMatrices.view) * vert_data.position.xyz, 1.0);
 		vec4 proj_pos = PVMatrices.projection * view_pos;
-		vs_tex_coord = position;
 		gl_Position = proj_pos.xyww;
 #else
-		//vs_tex_coord = transpose(CalculateTbnMatrixTransform()) * mat3(transform_ssbo.transforms[gl_InstanceID]) * vec3(tex_coord.x, tex_coord.y, 0.f);
+		//vert_data.tex_coord = transpose(CalculateTbnMatrixTransform()) * mat3(transform_ssbo.transforms[gl_InstanceID]) * vec3(tex_coord.x, tex_coord.y, 0.f);
 		#ifdef PARTICLE
 				#define PTCL PARTICLE_SSBO.particles[vs_particle_index]
 				#ifndef PARTICLES_DETACHED
@@ -108,11 +117,11 @@ void main() {
 				#endif
 		#endif
 
-		vs_tex_coord = vec3(tex_coord.x, tex_coord.y, 0.f);
-		if (u_material.using_spritesheet)
+		vert_data.tex_coord = tex_coord;
+		if (bool(u_material.flags & MAT_FLAG_SPRITESHEET))
 		{
 			vec2 step_size = vec2(1.0) / vec2(u_material.sprite_data.num_cols, u_material.sprite_data.num_rows);
-			vs_tex_coord.xy *= step_size;
+			vert_data.tex_coord.xy *= step_size;
 
 			#if defined PARTICLE && !defined(PARTICLES_DETACHED)
 				uint index = uint(float(u_material.sprite_data.num_cols * u_material.sprite_data.num_rows) * interpolation); 
@@ -123,8 +132,8 @@ void main() {
 			uint row = (u_material.sprite_data.num_cols * u_material.sprite_data.num_rows - index - 1) / u_material.sprite_data.num_cols;
 			uint col = index - (index / u_material.sprite_data.num_cols) * u_material.sprite_data.num_cols;
 
-			vs_tex_coord.x += step_size.x * float(col);
-			vs_tex_coord.y += step_size.y * float(row);
+			vert_data.tex_coord.x += step_size.x * float(col);
+			vert_data.tex_coord.y += step_size.y * float(row);
 		}
 
 
@@ -141,9 +150,9 @@ void main() {
 			vec3 cam_right = vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]);
 			
 			#ifndef PARTICLES_DETACHED
-				vs_position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x * interpolated_scale.x + position.y * cam_up * TRANSFORM.scale.y * interpolated_scale.y, 1.0);
+				vert_data.position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x * interpolated_scale.x + position.y * cam_up * TRANSFORM.scale.y * interpolated_scale.y, 1.0);
 			#else
-				vs_position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x + position.y * cam_up * TRANSFORM.scale.y, 1.0);
+				vert_data.position = vec4(t_pos + position.x * cam_right * TRANSFORM.scale.x + position.y * cam_up * TRANSFORM.scale.y, 1.0);
 			#endif
 
 			#undef TRANSFORM
@@ -158,8 +167,8 @@ void main() {
 				#define TRANSFORM ssbo_particles.particles[vs_particle_index]
 			#endif
 
-			vs_position = vec4(qtransform(TRANSFORM.quat, (position * TRANSFORM.scale.xyz)) + TRANSFORM.pos.xyz, 1.0);
-			vs_normal = qtransform(vec4(TRANSFORM.quat.xyz, 1.0), vertex_normal);
+			vert_data.position = vec4(qtransform(TRANSFORM.quat, (position * TRANSFORM.scale.xyz)) + TRANSFORM.pos.xyz, 1.0);
+			vert_data.normal = qtransform(vec4(TRANSFORM.quat.xyz, 1.0), vertex_normal);
 
 			#undef TRANSFORM
 
@@ -168,7 +177,7 @@ void main() {
 			vec3 cam_up = vec3(PVMatrices.view[0][1], PVMatrices.view[1][1], PVMatrices.view[2][1]);
 			vec3 cam_right = vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]);
 
-			vs_position = vec4(t_pos + position.x * cam_right * transform_ssbo.transforms[gl_InstanceID][0][0] + position.y * cam_up * transform_ssbo.transforms[gl_InstanceID][1][1], 1.0);
+			vert_data.position = vec4(t_pos + position.x * cam_right * transform_ssbo.transforms[gl_InstanceID][0][0] + position.y * cam_up * transform_ssbo.transforms[gl_InstanceID][1][1], 1.0);
 
 		#else
 			#ifdef UNIFORM_TRANSFORM
@@ -176,9 +185,13 @@ void main() {
 			#else
 			vs_transform = transform_ssbo.transforms[gl_InstanceID];
 			#endif
-
-			vs_position = vs_transform * (vec4(position, 1.0f));
-			vs_normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
+			
+			#ifdef TESSELLATE
+				vert_data.position = (vec4(position, 1.0f));
+			#else
+				vert_data.position = vs_transform * (vec4(position, 1.0f));
+			#endif
+			vert_data.normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
 
 		#endif
 
@@ -186,18 +199,22 @@ void main() {
 
 
 		#ifdef BILLBOARD
-			vs_normal = ubo_common.camera_pos.xyz - t_pos;
+			vert_data.normal = ubo_common.camera_pos.xyz - t_pos;
 		#endif
 		
 		#ifndef BILLBOARD
 			mat3 tbn = CalculateTbnMatrixTransform();
-			vs_view_dir_tangent_space = tbn * ( ubo_common.camera_pos.xyz - vs_position.xyz);
+			vert_data.view_dir_tangent_space = tbn * ( ubo_common.camera_pos.xyz - vert_data.position.xyz);
 		#endif
 
 		#ifdef VOXELIZE
-			gl_Position = u_orth_proj_view_matrix * vec4(vs_position.xyz, 1);
+			gl_Position = u_orth_proj_view_matrix * vec4(vert_data.position.xyz, 1);
 		#else
-			gl_Position = PVMatrices.proj_view * vs_position;
+		#ifdef TESSELLATE
+		gl_Position = vert_data.position;
+		#else
+		gl_Position = PVMatrices.proj_view * vert_data.position;
+		#endif
 		#endif
 #endif
 }

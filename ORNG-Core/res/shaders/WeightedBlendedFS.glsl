@@ -61,7 +61,7 @@ flat in uint vs_particle_index;
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
 	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
-	albedo_col *= u_material.emissive ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
+	albedo_col *= bool(u_material.flags & MAT_FLAG_EMISSIVE) ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 
 #ifdef PARTICLE
 #define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]

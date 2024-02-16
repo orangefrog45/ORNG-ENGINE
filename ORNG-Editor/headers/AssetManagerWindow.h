@@ -34,6 +34,7 @@ namespace ORNG {
 		std::function<void()> on_name_clicked = nullptr;
 
 		ImGuiPopupSpec popup_spec;
+		std::string delete_confirmation_str;
 		
 		std::string override_name;
 	};
@@ -122,8 +123,8 @@ namespace ORNG {
 		void RenderPrefabTab();
 		void RenderPrefab(Prefab* p_prefab);
 
-		void OnRequestDeleteAsset(Asset* p_asset, std::function<void()> callback = nullptr) {
-			PushConfirmationWindow("Delete asset?", [=] {
+		void OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, std::function<void()> callback = nullptr) {
+			PushConfirmationWindow("Delete asset? " + confirmation_text, [=] {
 				if (callback)
 					callback();
 

@@ -15,12 +15,13 @@ namespace ORNG {
 		VehicleComponent(SceneEntity* p_entity) : Component(p_entity) { };
 		void SetThrottle(float t) { m_vehicle.mCommandState.throttle = t; };
 		void SetSteer(float t) { m_vehicle.mCommandState.steer = t; };
-		void SetBrake(float t) { m_vehicle.mCommandState.nbBrakes = 2; m_vehicle.mCommandState.brakes[0] = t; m_vehicle.mCommandState.brakes[1] = t; };
+		void SetHandBrake(float t) { m_vehicle.mCommandState.nbBrakes = 2;  m_vehicle.mCommandState.brakes[1] = t; };
+		void SetBrake(float t) { m_vehicle.mCommandState.nbBrakes = 2;  m_vehicle.mCommandState.brakes[0] = t; };
 
 		glm::vec3 wheel_scale{ 1,1,1, };
 		glm::vec3 body_scale{ 1,1,1 };
-	private:
 		DirectDriveVehicle m_vehicle{};
+	private:
 
 		// TODO: Once skeletal meshes are supported, use the mesh component in the entity
 		MeshAsset* p_body_mesh = nullptr;

@@ -593,6 +593,12 @@ namespace ORNG {
 		settings.voxel_mip_layer = m_general_settings.debug_render_settings.voxel_mip;
 		settings.voxel_render_face = m_general_settings.debug_render_settings.voxel_render_face;
 
+		if (m_general_settings.debug_render_settings.render_wireframe) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
 		SceneRenderer::RenderScene(settings);
 
 		m_asset_manager_window.OnMainRender();
@@ -638,6 +644,7 @@ namespace ORNG {
 		if (ImGui::Begin("Settings")) {
 			ImGui::SeparatorText("Debug rendering");
 			ImGui::Checkbox("Render physx debug", &m_general_settings.debug_render_settings.render_physx_debug);
+			ImGui::Checkbox("Wireframe mode", &m_general_settings.debug_render_settings.render_wireframe);
 			ImGui::Checkbox("Render meshes", &m_general_settings.debug_render_settings.render_meshes);
 			static int voxel_mip = 0;
 			if (ImGui::InputInt("Voxel mip", &voxel_mip) && voxel_mip >= 0 && voxel_mip <= 6) {

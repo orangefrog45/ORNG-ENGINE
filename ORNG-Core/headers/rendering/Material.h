@@ -24,8 +24,22 @@ namespace ORNG {
 		}
 	};
 
-	struct Material : public Asset {
-		friend class Scene;
+	enum MaterialFlags : uint32_t {
+		ORNG_MatFlags_INVALID = 0,
+
+		ORNG_MatFlags_NONE = 1 << 0,
+		ORNG_MatFlags_TESSELLATED = 1 << 1,
+		ORNG_MatFlags_PARALLAX_MAP = 1 << 2,
+		ORNG_MatFlags_EMISSIVE = 1 << 3,
+		ORNG_MatFlags_IS_SPRITESHEET = 1 << 4,
+
+		ORNG_MatFlags_ALL = ~(0),
+	};
+
+	class Material : public Asset {
+		friend class SceneRenderer;
+		friend class AssetManager;
+	public:
 		explicit Material(Texture2D* p_base_color_tex) : Asset(""), base_color_texture(p_base_color_tex) {};
 
 		// New material wont have a path until saved
@@ -47,7 +61,6 @@ namespace ORNG {
 			s.value4b(roughness);
 			s.value4b(metallic);
 			s.value4b(ao);
-			s.value1b(emissive);
 			s.value4b(emissive_strength);
 			s.value8b(base_color_texture ? base_color_texture->uuid() : 0);
 			s.value8b(normal_map_texture ? normal_map_texture->uuid() : 0);
@@ -57,12 +70,40 @@ namespace ORNG {
 			s.value8b(displacement_texture ? displacement_texture->uuid() : 0);
 			s.value8b(emissive_texture ? emissive_texture->uuid() : 0);
 			s.value4b(parallax_layers);
-			s.value4b(parallax_height_scale);
 			s.object(tile_scale);
 			s.text1b(name, ORNG_MAX_NAME_SIZE);
 			s.object(uuid);
-			s.value1b(is_spritesheet);
 			s.object(spritesheet_data);
+
+			s.value4b((uint32_t)flags);
+			s.value4b(displacement_scale);
+		}
+
+		inline void FlipFlags(MaterialFlags _flags) {
+			flags = (MaterialFlags)(flags ^ _flags);
+
+			if (flags != 0)
+				flags = (MaterialFlags)(flags & ~(ORNG_MatFlags_NONE));
+			else
+				flags = (MaterialFlags)(flags | ORNG_MatFlags_NONE);
+		}
+
+		inline void RaiseFlags(MaterialFlags _flags) {
+			flags = (MaterialFlags)(flags | _flags);
+
+			if (flags != 0)
+				flags = (MaterialFlags)(flags & ~(ORNG_MatFlags_NONE));
+		};
+
+		inline void RemoveFlags(MaterialFlags _flags) {
+			flags = (MaterialFlags)(flags & ~_flags);
+
+			if (flags == 0)
+				flags = (MaterialFlags)(flags | ORNG_MatFlags_NONE);
+		}
+
+		inline MaterialFlags GetFlags() {
+			return flags;
 		}
 
 		RenderGroup render_group = SOLID;
@@ -72,7 +113,6 @@ namespace ORNG {
 		float roughness = 0.2f;
 		float metallic = 0.0f;
 		float ao = 0.1f;
-		bool emissive = false;
 		float emissive_strength = 1.f;
 		float opacity = 1.0;
 
@@ -84,17 +124,18 @@ namespace ORNG {
 		Texture2D* displacement_texture = nullptr;
 		Texture2D* emissive_texture = nullptr;
 
-		bool is_spritesheet = true;
 		SpriteSheetData spritesheet_data;
 
 		uint32_t parallax_layers = 24;
-		float parallax_height_scale = 0.05f;
+		float displacement_scale = 0.05f;
 
 		glm::vec2 tile_scale{ 1.f, 1.f };
 
 		std::string name = "Unnamed material";
 
-
 		uint64_t shader_id = 1; // 1 = default shader (pbr lighting)
+
+	private:
+		MaterialFlags flags = MaterialFlags::ORNG_MatFlags_NONE;
 	};
 }

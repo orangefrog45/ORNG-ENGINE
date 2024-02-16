@@ -61,8 +61,8 @@ namespace ORNG {
 			Get().IDrawSubMesh(data, submesh_index);
 		}
 
-		inline static void DrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index) {
-			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index);
+		inline static void DrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index, GLenum primitive_type) {
+			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index, primitive_type);
 		}
 
 		static void DrawVAOArrays(const VAO& vao, unsigned int num_indices, GLenum primitive_type) {
@@ -100,7 +100,7 @@ namespace ORNG {
 		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
 		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);
 		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);
-		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index);
+		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index, GLenum primitive_type);
 		void IDrawUnitCube() const;
 		void IDrawQuad() const;
 		void IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count);

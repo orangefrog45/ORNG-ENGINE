@@ -58,6 +58,11 @@ namespace ORNG {
 		void SetTrigger(bool is_trigger);
 		bool IsTrigger() { return m_is_trigger; }
 
+		PhysXMaterialAsset* GetMaterial() {
+			return p_material;
+		}
+
+
 	private:
 		void SendUpdateEvent();
 

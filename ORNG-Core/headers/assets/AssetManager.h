@@ -252,7 +252,6 @@ namespace ORNG {
 				des.value4b(data.roughness);
 				des.value4b(data.metallic);
 				des.value4b(data.ao);
-				des.value1b(data.emissive);
 				des.value4b(data.emissive_strength);
 				uint64_t texid;
 				des.value8b(texid);
@@ -271,12 +270,15 @@ namespace ORNG {
 				if (texid != 0) data.emissive_texture = GetAsset<Texture2D>(texid);
 
 				des.value4b(data.parallax_layers);
-				des.value4b(data.parallax_height_scale);
 				des.object(data.tile_scale);
 				des.text1b(data.name, ORNG_MAX_NAME_SIZE);
 				des.object(data.uuid);
-				des.value1b(data.is_spritesheet);
 				des.object(data.spritesheet_data);
+
+				uint32_t flags;
+				des.value4b(flags);
+				data.flags = (MaterialFlags)flags;
+				des.value4b(data.displacement_scale);
 			}
 			else if constexpr (std::is_same_v<T, PhysXMaterialAsset>) {
 				des.object(data.uuid);
