@@ -38,23 +38,20 @@ namespace ORNG {
 		}
 
 		void SetAbsoluteScale(glm::vec3 scale) {
-			glm::vec3 abs_scale = GetAbsoluteTransforms()[1];
-
-			SetScale(scale / (abs_scale / m_scale));
+			SetScale(scale / (m_abs_scale / m_scale));
 		}
 
 		inline void SetAbsolutePosition(glm::vec3 pos) {
-			glm::vec3 final_pos = pos;
+			/*glm::vec3 final_pos = pos;
 			if (GetParent() && !m_is_absolute) {
 				final_pos = glm::inverse(GetParent()->GetMatrix()) * glm::vec4(pos, 1.0);
-			}
+			}*/
 
-			SetPosition(final_pos);
+			SetPosition(pos - (m_abs_pos - m_pos));
 		}
 
 		inline void SetAbsoluteOrientation(glm::vec3 orientation) {
-			glm::vec3 absolute_orientation = GetAbsoluteTransforms()[2];
-			SetOrientation(orientation - (absolute_orientation - m_orientation));
+			SetOrientation(orientation - (m_abs_orientation - m_orientation));
 		}
 
 		inline void SetOrientation(float x, float y, float z) {
@@ -91,8 +88,21 @@ namespace ORNG {
 			m_is_absolute = mode;
 			RebuildMatrix(UpdateType::ALL);
 		}
+
+		inline glm::vec3 GetAbsPosition() {
+			return m_abs_pos;
+		}
+
+		inline glm::vec3 GetAbsOrientation() {
+			return m_abs_orientation;
+		}
+
+		inline glm::vec3 GetAbsScale() {
+			return m_abs_scale;
+		}
+
 		// Returns inherited position([0]), scale([1]), rotation ([2]) including this components transforms.
-		std::array<glm::vec3, 3> GetAbsoluteTransforms();
+		std::tuple<glm::vec3, glm::vec3, glm::vec3> GetAbsoluteTransforms() { return std::make_tuple(m_abs_pos, m_abs_scale, m_abs_orientation); }
 
 		TransformComponent* GetParent();
 
@@ -118,15 +128,23 @@ namespace ORNG {
 
 		void RebuildMatrix(UpdateType type);
 	private:
+		void UpdateAbsTransforms();
+
 		entt::entity m_parent_handle = entt::null;
 		// If true, transform will not take parent transforms into account when building matrix.
 		bool m_is_absolute = false;
 
 
 		glm::mat4 m_transform = glm::mat4(1);
+
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
 		glm::vec3 m_orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+
+		glm::vec3 m_abs_scale = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 m_abs_orientation = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 m_abs_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+
 		glm::vec3 g_up = { 0.0, 1.0, 0.0 };
 
 	};

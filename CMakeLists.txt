@@ -31,6 +31,7 @@ add_subdirectory("ORNG-Core")
 add_subdirectory("ORNG-Editor")
 add_subdirectory("Game")
 add_subdirectory("ORNG-Runtime")
+add_subdirectory("NetGame")
 
 
 

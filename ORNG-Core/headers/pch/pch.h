@@ -3,6 +3,7 @@
 #define FASTNOISE_STATIC_LIB
 #ifdef _MSC_VER
 #define FUNC_NAME __FUNCTION__ // or __FUNCSIG__
+#define WIN32_LEAN_AND_MEAN
 #else
 #define FUNC_NAME __PRETTY_FUNCTION__
 #endif

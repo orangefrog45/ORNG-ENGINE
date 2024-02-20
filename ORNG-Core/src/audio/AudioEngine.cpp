@@ -1,7 +1,7 @@
 #include "pch/pch.h"
 #include <fmod.hpp>
+#include <combaseapi.h>
 #include "audio/AudioEngine.h"
-
 
 namespace ORNG {
 

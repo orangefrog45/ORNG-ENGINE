@@ -63,7 +63,7 @@ namespace ORNG {
 	void AudioSystem::OnUpdate() {
 		if (auto* p_active_cam = mp_registry->try_get<CameraComponent>(*mp_active_cam_id)) {
 			auto& transform = mp_registry->get<TransformComponent>(*mp_active_cam_id);
-			auto pos = transform.GetAbsoluteTransforms()[0];
+			auto pos = transform.GetAbsPosition();
 			static FMOD_VECTOR cam_pos;
 			cam_pos = { pos.x, pos.y, pos.z };
 			static FMOD_VECTOR cam_velocity;
@@ -80,7 +80,7 @@ namespace ORNG {
 
 	void AudioSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& e_event) {
 		if (auto* p_sound_comp = e_event.affected_components[0]->GetEntity()->GetComponent<AudioComponent>()) {
-			auto pos = e_event.affected_components[0]->GetAbsoluteTransforms()[0];
+			auto pos = e_event.affected_components[0]->GetAbsPosition();
 			*p_sound_comp->mp_fmod_pos = { pos.x, pos.y, pos.z };
 			p_sound_comp->mp_channel->set3DAttributes(p_sound_comp->mp_fmod_pos, p_sound_comp->mp_fmod_vel);
 		}
@@ -88,7 +88,7 @@ namespace ORNG {
 
 
 	void AudioSystem::OnAudioAddEvent(const Events::ECS_Event<AudioComponent>& e_event) {
-		auto pos = e_event.affected_components[0]->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		auto pos = e_event.affected_components[0]->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
 		e_event.affected_components[0]->mp_fmod_pos = new FMOD_VECTOR{ pos.x, pos.y, pos.z };
 		e_event.affected_components[0]->mp_fmod_vel = new FMOD_VECTOR{ 0, 0, 0 };
 

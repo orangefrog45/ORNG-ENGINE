@@ -14,13 +14,12 @@ namespace ORNG {
 		const float half_far_plane_height = tanf(glm::radians(fov * 0.5f)) * zFar;
 		const float half_far_plane_width = half_far_plane_height * aspect_ratio;
 		auto* p_transform = GetEntity()->GetComponent<TransformComponent>();
-		auto transforms = p_transform->GetAbsoluteTransforms();
 		glm::vec3 target = p_transform->forward;
 
 		const glm::vec3 up = p_transform->up;
 		const glm::vec3 right = p_transform->right;
 
-		glm::vec3 pos = transforms[0];
+		glm::vec3 pos = p_transform->GetAbsPosition();
 
 		// Middle of zfar plane
 		const glm::vec3 far_point = pos + target * zFar;

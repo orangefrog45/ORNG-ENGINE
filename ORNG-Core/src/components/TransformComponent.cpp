@@ -32,34 +32,30 @@ namespace ORNG {
 
 
 
-	std::array<glm::vec3, 3> TransformComponent::GetAbsoluteTransforms() {
-		// Sum all parent transforms to get absolute position
+	void TransformComponent::UpdateAbsTransforms() {
 		TransformComponent* p_parent_transform = GetParent();
 
-		glm::vec3 abs_translation = m_pos;
-		glm::vec3 abs_scale = m_scale;
-		glm::vec3 abs_rotation = m_orientation;
+		m_abs_scale = m_scale;
+		m_abs_orientation = m_orientation;
 
-		if (!p_parent_transform || m_is_absolute)
-			return std::array<glm::vec3, 3>{abs_translation, abs_scale, abs_rotation};
+		if (!p_parent_transform || m_is_absolute) {
+			m_abs_pos = m_pos;
+			return;
+		}
 
 		while (p_parent_transform) {
-			abs_rotation += p_parent_transform->m_orientation;
-			abs_translation += p_parent_transform->m_pos;
-			abs_scale *= p_parent_transform->m_scale;
+			m_abs_orientation += p_parent_transform->m_orientation;
+			m_abs_scale *= p_parent_transform->m_scale;
 
 			p_parent_transform = p_parent_transform->GetParent();
 		}
 
-
-		glm::vec3 pos = GetParent()->GetMatrix() * glm::vec4(m_pos, 1.0);
-		return std::array<glm::vec3, 3>{pos, abs_scale, abs_rotation};
+		m_abs_pos = GetParent()->GetMatrix() * glm::vec4(m_pos, 1.0);
 	}
 
 
 	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up, glm::vec3 t_right) {
-		glm::vec3 abs_pos = GetAbsoluteTransforms()[0];
-		glm::vec3 t_target = glm::normalize(t_pos - abs_pos);
+		glm::vec3 t_target = glm::normalize(t_pos - m_abs_pos);
 		t_target = glm::normalize(t_target);
 		t_right = glm::normalize(glm::cross(t_target, up));
 		g_up = t_up;
@@ -88,10 +84,7 @@ namespace ORNG {
 			m_transform = trans_mat * rot_mat * scale_mat;
 		}
 		else {
-			auto transforms = p_parent->GetAbsoluteTransforms();
-			auto s = transforms[1];
-			auto t = transforms[0];
-			auto r = transforms[2];
+			auto [t, s, r] = p_parent->GetAbsoluteTransforms();
 
 			// Apply parent scaling to the position and scale to make up for not using the scale transform below
 			glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x * s.x, m_scale.y * s.y, m_scale.z * s.z);
@@ -108,6 +101,8 @@ namespace ORNG {
 		forward = glm::normalize(rot_mat_new * glm::vec3(0.0, 0.0, -1.0));
 		right = glm::normalize(glm::cross(forward, g_up));
 		up = glm::normalize(glm::cross(right, forward));
+
+		UpdateAbsTransforms();
 
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event{ Events::ECS_EventType::COMP_UPDATED, this, type };

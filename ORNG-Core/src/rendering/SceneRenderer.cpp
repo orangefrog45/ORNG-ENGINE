@@ -477,10 +477,10 @@ namespace ORNG {
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
+		glm::vec3 pos = p_cam_transform->GetAbsPosition();
 		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(p_cam_transform->GetAbsoluteTransforms()[0], p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
+		mp_shader_library->SetCommonUBO(pos, p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->directional_light);
 
@@ -493,7 +493,7 @@ namespace ORNG {
 		// Calculate light space matrices
 		const float aspect_ratio = p_cam->aspect_ratio;
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
+		glm::vec3 pos = p_cam_transform->GetAbsPosition();
 		glm::mat4 cam_view_matrix = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		const float fov = glm::radians(p_cam->fov / 2.f);
 
@@ -693,7 +693,7 @@ namespace ORNG {
 		mp_scene_voxelization_shader->Activate(0);
 
 		auto proj = glm::ortho(-128.f * 0.2f, 128.f * 0.2f, -128.f * 0.2f, 128.f * 0.2f, 0.2f, 256.f * 0.2f);
-		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4));
+		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4));
 
 		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(128 * 0.2, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, 128 * 0.2, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, 128 * 0.2), cam_pos, {0, 1, 0}) };
 		mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
@@ -898,7 +898,7 @@ namespace ORNG {
 			}
 
 			mp_voxel_debug_shader->ActivateProgram();
-			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
+			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
 			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), glm::pow(256 / (settings.voxel_mip_layer + 1), 3));
 		}
 #endif	
@@ -950,7 +950,7 @@ namespace ORNG {
 			GL_StateManager::ClearDepthBits();
 
 			mp_persp_depth_shader->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
-			mp_persp_depth_shader->SetUniform("u_light_pos", transform.GetAbsoluteTransforms()[0]);
+			mp_persp_depth_shader->SetUniform("u_light_pos", transform.GetAbsPosition());
 			DrawAllMeshes(SOLID);
 		}
 
@@ -964,7 +964,7 @@ namespace ORNG {
 			if (!pointlight.shadows_enabled)
 				continue;
 			glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, pointlight.shadow_distance);
-			glm::vec3 light_pos = transform.GetAbsoluteTransforms()[0];
+			glm::vec3 light_pos = transform.GetAbsPosition();
 
 			std::array<glm::mat4, 6> captureViews =
 			{
@@ -1091,7 +1091,7 @@ namespace ORNG {
 
 
 		m_lighting_shader->ActivateProgram();
-		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
+		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
 
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -1124,7 +1124,7 @@ namespace ORNG {
 	void SceneRenderer::DrawTerrain(CameraComponent* p_cam) {
 		std::vector<TerrainQuadtree*> node_array;
 
-		mp_scene->terrain.m_quadtree->QueryChunks(node_array, p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], mp_scene->terrain.m_width);
+		mp_scene->terrain.m_quadtree->QueryChunks(node_array, p_cam->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), mp_scene->terrain.m_width);
 		for (auto& node : node_array) {
 			const TerrainChunk* chunk = node->GetChunk();
 			if (chunk->m_bounding_box.IsOnFrustum(p_cam->view_frustum)) {

@@ -37,12 +37,12 @@ namespace ORNG {
 	}
 
 	inline static physx::PxTransform TransformComponentToPxTransform(TransformComponent& t) {
-		auto n_transforms = t.GetAbsoluteTransforms();
-		glm::quat n_quat{ glm::radians(n_transforms[2]) };
+		auto [p, s, r] = t.GetAbsoluteTransforms();
+		glm::quat n_quat{ glm::radians(r)};
 
 		physx::PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
 
-		return { ToPxVec3(n_transforms[0]), n_px_quat};
+		return { ToPxVec3(p), n_px_quat};
 	}
 
 	class Physics {

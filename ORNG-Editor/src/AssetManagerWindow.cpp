@@ -1,4 +1,5 @@
 #include "pch/pch.h"
+#include <shellapi.h>
 #include <imgui.h>
 #include "AssetManagerWindow.h"
 #include "assets/AssetManager.h"

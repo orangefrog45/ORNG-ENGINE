@@ -485,7 +485,7 @@ namespace ORNG {
 			}
 
 			if (auto* p_controller_comp = p_ent->GetComponent<CharacterControllerComponent>()) {
-				glm::vec3 pos = p_transform->GetAbsoluteTransforms()[0];
+				glm::vec3 pos = p_transform->GetAbsPosition();
 				p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
 			}
 
@@ -553,7 +553,7 @@ namespace ORNG {
 		auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
 
-		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[1];
+		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
 		glm::vec3 scaled_extents = aabb.max * scale_factor;
 
 
@@ -614,11 +614,8 @@ namespace ORNG {
 	void PhysicsSystem::InitComponent(PhysicsComponent* p_comp) {
 		auto* p_meshc = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
-		auto transforms = p_transform->GetAbsoluteTransforms();
+		auto [pos, scale, rot] = p_transform->GetAbsoluteTransforms();
 		glm::vec3 extents = p_transform->GetScale() * (p_meshc ? p_meshc->GetMeshData()->GetAABB().max : glm::vec3(1));
-
-		glm::vec3 pos = transforms[0];
-		glm::vec3 rot = transforms[2];
 
 		glm::quat quat = glm::quat(glm::radians(rot));
 		PxQuat px_quat{ quat.x, quat.y, quat.z, quat.w };
@@ -753,8 +750,8 @@ namespace ORNG {
 		desc.stepOffset = 1.8f;
 		p_comp->mp_controller = mp_controller_manager->createController(desc);
 
-		auto abs_transforms = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms();
-		p_comp->mp_controller->setPosition(PxExtendedVec3(abs_transforms[0].x, abs_transforms[0].y, abs_transforms[0].z));
+		auto abs_pos = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
+		p_comp->mp_controller->setPosition(PxExtendedVec3(abs_pos.x, abs_pos.y, abs_pos.z));
 	}
 
 

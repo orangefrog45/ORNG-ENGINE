@@ -9,6 +9,7 @@ venv/
 x64/
 PhysXGpu_64.dll
 Game/
+NetGame/
 
 
 CMakeLists.txt.user

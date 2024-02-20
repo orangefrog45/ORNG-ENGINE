@@ -58,7 +58,7 @@ namespace ORNG {
 		void OnShutdown() override;
 
 		// Sets up directory structure for a new project
-		bool GenerateProject(const std::string& project_name);
+		bool GenerateProject(const std::string& project_name, bool abs_path);
 		// Sets working directory to folder_path so all resources will be found there.
 		bool MakeProjectActive(const std::string& folder_path);
 		void BuildGameFromActiveProject();

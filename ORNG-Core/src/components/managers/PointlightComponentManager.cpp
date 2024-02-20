@@ -33,7 +33,7 @@ namespace ORNG {
 		output_vec[index++] = color.z;
 		output_vec[index++] = 0; //padding
 		// - END COLOR +- START POS
-		auto pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		auto pos = std::get<0>(light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms());
 		output_vec[index++] = pos.x;
 		output_vec[index++] = pos.y;
 		output_vec[index++] = pos.z;

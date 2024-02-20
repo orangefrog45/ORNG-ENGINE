@@ -123,7 +123,7 @@ namespace ORNG {
 
 		std::string base_proj_dir = m_executable_directory + "\\projects\\base-project";
 		if (!std::filesystem::exists(base_proj_dir)) {
-			GenerateProject("base-project");
+			GenerateProject("base-project", false);
 		}
 
 		MakeProjectActive(m_start_filepath);
@@ -159,7 +159,7 @@ namespace ORNG {
 
 		{
 			auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
-			cam_pos = p_cam_transform->GetAbsoluteTransforms()[0];
+			cam_pos = p_cam_transform->GetAbsPosition();
 			look_at_pos = cam_pos + p_cam_transform->forward;
 		}
 
@@ -283,15 +283,15 @@ namespace ORNG {
 
 			if (Input::IsKeyDown(Key::F) && !m_selected_entity_ids.empty()) {
 				auto* p_entity_transform = (*mp_scene_context)->GetEntity(m_selected_entity_ids[0])->GetComponent<TransformComponent>();
-				auto* p_editor_transform = mp_editor_camera->GetComponent<TransformComponent>();
-				auto pos = p_entity_transform->GetAbsoluteTransforms()[0];
-				auto offset = pos - p_editor_transform->GetAbsoluteTransforms()[0];
+				auto* p_editor_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
+				auto pos = p_entity_transform->GetAbsPosition();
+				auto offset = pos - p_editor_cam_transform->GetAbsPosition();
 
 				if (length(offset) < 0.001f)
 					offset = { 1, 0, 0 };
 
-				p_editor_transform->SetAbsolutePosition(pos - glm::normalize(offset) * 3.f);
-				p_editor_transform->LookAt(pos);
+				p_editor_cam_transform->SetAbsolutePosition(pos - glm::normalize(offset) * 3.f);
+				p_editor_cam_transform->LookAt(pos);
 			}
 
 			if (m_simulate_mode_active) {
@@ -346,7 +346,7 @@ namespace ORNG {
 
 		auto* p_cam = (*mp_scene_context)->GetActiveCamera();
 		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		auto pos = p_transform->GetAbsoluteTransforms()[0];
+		auto pos = p_transform->GetAbsPosition();
 
 		glm::vec3 min_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
 		glm::vec3 max_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), max, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
@@ -382,7 +382,7 @@ namespace ORNG {
 		ExtraMath::Plane f{ -target, far_middle };
 
 		for (auto [entity, transform] : (*mp_scene_context)->m_registry.view<TransformComponent>().each()) {
-			auto pos1 = transform.GetAbsoluteTransforms()[0];
+			auto pos1 = transform.GetAbsPosition();
 			if (ne.GetSignedDistanceToPlane(pos1) >= 0 &&
 				f.GetSignedDistanceToPlane(pos1) >= 0 &&
 				r.GetSignedDistanceToPlane(pos1) >= 0 &&
@@ -416,11 +416,10 @@ namespace ORNG {
 
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
-		auto abs_transforms = p_transform->GetAbsoluteTransforms();
 		p_cam->aspect_ratio = m_scene_display_rect.x / m_scene_display_rect.y;
 		// Camera movement
 		if (ImGui::IsMouseDown(1)) {
-			glm::vec3 pos = abs_transforms[0];
+			glm::vec3 pos = p_transform->GetAbsPosition();
 			glm::vec3 movement_vec{ 0.0, 0.0, 0.0 };
 			float time_elapsed = FrameTiming::GetTimeStep();
 			movement_vec += p_transform->right * (float)Input::IsKeyDown(GLFW_KEY_D) * time_elapsed * cam_speed;
@@ -457,9 +456,9 @@ namespace ORNG {
 
 
 			if (rot_y.y <= 0.997f && rot_y.y >= -0.997f)
-				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_y));
+				p_transform->LookAt(p_transform->GetAbsPosition() + glm::normalize(rot_y));
 			else
-				p_transform->LookAt(p_transform->GetAbsoluteTransforms()[0] + glm::normalize(rot_x));
+				p_transform->LookAt(p_transform->GetAbsPosition() + glm::normalize(rot_x));
 
 
 			Window::SetCursorPos(last_mouse_pos.x, last_mouse_pos.y);
@@ -498,7 +497,7 @@ namespace ORNG {
 						ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_payload->Data));
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 						auto& mesh_aabb = ent.GetComponent<MeshComponent>()->GetMeshData()->m_aabb;
-						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsoluteTransforms()[0] + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f));
+						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f));
 						SelectEntity(ent.GetUUID());
 					}
 				}
@@ -510,10 +509,10 @@ namespace ORNG {
 						glm::vec3 pos;
 						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
 							auto& mesh_aabb = p_mesh->GetMeshData()->m_aabb;
-							pos = p_cam_transform->GetAbsoluteTransforms()[0] + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f);
+							pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f);
 						}
 						else {
-							pos = p_cam_transform->GetAbsoluteTransforms()[0] + p_cam_transform->forward * 5.f;
+							pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * 5.f;
 						}
 						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(pos);
 					}
@@ -703,6 +702,7 @@ namespace ORNG {
 			switch (selected_component) {
 			case 1:
 				RenderProjectGenerator(selected_component);
+				// Allow selected_component to keep its value so this can continue rendering until another option is picked
 				break;
 			case 2: {
 				//setting up file explorer callbacks
@@ -712,6 +712,7 @@ namespace ORNG {
 					};
 
 				ExtraUI::ShowFileExplorer(m_executable_directory + "/projects", valid_extensions, success_callback);
+				selected_component = 0;
 				break;
 			}
 			case 3: {
@@ -720,15 +721,15 @@ namespace ORNG {
 				AssetManager::SerializeAssets();
 				SceneSerializer::SerializeScene(*(*mp_scene_context), scene_filepath);
 				SceneSerializer::SerializeSceneUUIDs(*(*mp_scene_context), uuid_filepath);
+				selected_component = 0;
 				break;
 			}
 			case 4: {
 				BuildGameFromActiveProject();
+				selected_component = 0;
 				break;
 			}
 			}
-
-			selected_component = 0;
 
 
 			ImGui::SameLine();
@@ -780,7 +781,8 @@ namespace ORNG {
 		ImGui::SetNextWindowSize(ImVec2(500, 200));
 		ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() / 2 - 250, Window::GetHeight() / 2 - 100));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
-		static std::string project_name;
+		static std::string project_dir;
+
 		if (ImGui::Begin("##project gen", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar)) {
 			if (ImGui::IsMouseDoubleClicked(1)) // close window
 				selected_component_from_popup = 0;
@@ -788,8 +790,8 @@ namespace ORNG {
 			ImGui::PushFont(mp_large_font);
 			ImGui::SeparatorText("Generate project");
 			ImGui::PopFont();
-			ImGui::Text("Name");
-			ExtraUI::AlphaNumTextInput(project_name);
+			ImGui::Text("Path");
+			ImGui::InputText("#pdir", &project_dir);
 
 			static std::string err_msg = "";
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
@@ -797,8 +799,8 @@ namespace ORNG {
 			ImGui::PopStyleColor();
 
 			if (ImGui::Button("Generate")) {
-				if (GenerateProject(project_name)) {
-					MakeProjectActive(m_executable_directory + "\\projects\\" + project_name);
+				if (FileExists(project_dir) && GenerateProject(project_dir, true)) {
+					MakeProjectActive(project_dir);
 					selected_component_from_popup = 0;
 				}
 				else {
@@ -860,7 +862,7 @@ namespace ORNG {
 	}
 
 
-	bool EditorLayer::GenerateProject(const std::string& project_name) {
+	bool EditorLayer::GenerateProject(const std::string& project_name, bool abs_path) {
 		if (std::filesystem::exists(m_executable_directory + "/projects/" + project_name)) {
 			ORNG_CORE_ERROR("Project with name '{0}' already exists", project_name);
 			return false;
@@ -869,8 +871,8 @@ namespace ORNG {
 		if (!std::filesystem::exists(m_executable_directory + "/projects"))
 			std::filesystem::create_directory(m_executable_directory + "/projects");
 
-		std::string project_path = m_executable_directory + "/projects/" + project_name;
-		std::filesystem::create_directory(project_path);
+		std::string project_path = abs_path ? project_name : m_executable_directory + "/projects/" + project_name;
+		Create_Directory(project_path);
 		// Create base scene for project to use
 		std::ofstream s{ project_path + "/scene.yml" };
 		s << ORNG_BASE_SCENE_YAML;
@@ -973,7 +975,7 @@ namespace ORNG {
 
 			m_selected_entity_ids.clear();
 
-			glm::vec3 cam_pos = mp_editor_camera ? mp_editor_camera->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0] : glm::vec3{ 0, 0, 0 };
+			glm::vec3 cam_pos = mp_editor_camera ? mp_editor_camera->GetComponent<TransformComponent>()->GetAbsPosition() : glm::vec3{0, 0, 0};
 			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
 
 
@@ -1320,7 +1322,7 @@ namespace ORNG {
 		std::function<void(glm::vec3, float, glm::vec3)> p_rot_about_point_func = [this](glm::vec3 axis, float angle_degrees, glm::vec3 pivot) {
 			TRANSFORM_LUA_SKELETON(
 				glm::quat q = glm::angleAxis(glm::radians(angle_degrees), axis);
-				glm::vec3 offset_pos = p_transform->GetAbsoluteTransforms()[0] - pivot;
+				glm::vec3 offset_pos = std::get<0>(p_transform->GetAbsoluteTransforms()) - pivot;
 				p_transform->SetAbsolutePosition(q * offset_pos + pivot);
 				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))))
 				);
@@ -1356,12 +1358,8 @@ namespace ORNG {
 
 		for (auto [entity, phys, transform] : (*mp_scene_context)->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::SPHERE) {
-				auto at = transform.GetAbsoluteTransforms();
+				auto [t, s, r] = transform.GetAbsoluteTransforms();
 				auto sf = ((PxSphereGeometry*)&phys.p_shape->getGeometry())->radius;
-
-				auto s = at[1];
-				auto t = at[0];
-				auto r = at[2];
 				glm::mat4 m;
 				glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(transform.m_orientation.x, transform.m_orientation.y, transform.m_orientation.z);
 
@@ -2319,8 +2317,8 @@ namespace ORNG {
 
 		CameraComponent* p_cam = (*mp_scene_context)->m_camera_system.GetActiveCamera();
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 pos = p_cam_transform->GetAbsoluteTransforms()[0];
-		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
+		glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
+		glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
 
 		glm::mat4 delta_matrix;
 		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
@@ -2341,10 +2339,8 @@ namespace ORNG {
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
-			auto base_abs_transforms = transforms[0]->GetAbsoluteTransforms();
-			glm::vec3 base_abs_translation = base_abs_transforms[0];
-			glm::vec3 base_abs_scale = base_abs_transforms[1];
-			glm::vec3 base_abs_rotation = base_abs_transforms[2];
+			// The origin of the transform (e.g rotate about this space)
+			auto [base_abs_translation, base_abs_scale, base_abs_orientation] = transforms[0]->GetAbsoluteTransforms();
 
 			glm::vec3 delta_translation = matrix_translation;
 			glm::vec3 delta_scale = matrix_scale;
@@ -2355,7 +2351,7 @@ namespace ORNG {
 			for (auto* p_transform : transforms) {
 				switch (current_operation) {
 				case ImGuizmo::TRANSLATE:
-					p_transform->SetAbsolutePosition(p_transform->GetAbsoluteTransforms()[0] + delta_translation);
+					p_transform->SetAbsolutePosition(p_transform->GetAbsPosition() + delta_translation);
 					break;
 				case ImGuizmo::SCALE:
 				{
@@ -2363,9 +2359,8 @@ namespace ORNG {
 					break;
 				}
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_selected_entity_ids[0] as origin
-					auto current_transforms = p_transform->GetAbsoluteTransforms();
 					if (auto* p_parent_transform = p_transform->GetParent()) {
-						glm::vec3 s = p_parent_transform->GetAbsoluteTransforms()[1];
+						glm::vec3 s = p_parent_transform->GetAbsScale();
 						glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z));
 						glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
 						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
@@ -2376,7 +2371,7 @@ namespace ORNG {
 						p_transform->SetOrientation(orientation.x, orientation.y, orientation.z);
 					}
 
-					glm::vec3 abs_translation = current_transforms[0];
+					glm::vec3 abs_translation = p_transform->GetAbsPosition();
 					glm::vec3 transformed_pos = abs_translation - base_abs_translation;
 					glm::vec3 rotation_offset = glm::mat3(ExtraMath::Init3DRotateTransform(delta_rotation.x, delta_rotation.y, delta_rotation.z)) * transformed_pos; // rotate around transformed origin
 					p_transform->SetAbsolutePosition(base_abs_translation + rotation_offset);

@@ -32,11 +32,10 @@ namespace ORNG {
 	}
 
 	static glm::mat4 CalculateLightSpaceTransform(SpotLightComponent& light) {
-		auto transforms = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms();
 		float z_near = 0.01f;
 		float z_far = light.shadow_distance;
 		glm::mat4 light_perspective = glm::perspective(glm::degrees(acosf(light.GetAperture())), 1.0f, z_near, z_far);
-		glm::vec3 pos = transforms[0];
+		glm::vec3 pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
 		glm::vec3 light_dir = light.GetEntity()->GetComponent<TransformComponent>()->forward;
 		glm::mat4 spot_light_view = glm::lookAt(pos, pos + light_dir, glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -50,7 +49,7 @@ namespace ORNG {
 		output_vec[index++] = color.z;
 		output_vec[index++] = 0; //padding
 		//16 - END COLOR - START POS
-		auto pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0];
+		auto pos = std::get<0>(light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms());
 		output_vec[index++] = pos.x;
 		output_vec[index++] = pos.y;
 		output_vec[index++] = pos.z;

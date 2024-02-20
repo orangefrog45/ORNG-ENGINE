@@ -207,9 +207,7 @@ namespace ORNG {
 	void ParticleSystem::UpdateEmitterBufferAtIndex(unsigned index) {
 		auto& comp = mp_registry->get<ParticleEmitterComponent>(m_emitter_entities[index]);
 		auto* p_transform = comp.GetEntity()->GetComponent<TransformComponent>();
-		auto abs_transforms = p_transform->GetAbsoluteTransforms();
-		glm::vec3 pos = abs_transforms[0];
-		glm::vec3 rot = abs_transforms[2];
+		auto [pos, scale, rot] = p_transform->GetAbsoluteTransforms();
 		glm::vec3 forward = p_transform->forward;
 
 		std::array<std::byte, emitter_struct_size> emitter_data;
