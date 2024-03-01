@@ -6,7 +6,7 @@ in vec2 ts_tex_coords[];
 out vec2 tex_coords;
 in patch int ts_instance_id;
 
-out flat mat4 vs_transform;
+out flat int ts_instance_id_out;
 
 layout(binding = 9) uniform sampler2D displacement_sampler;
 
@@ -39,6 +39,22 @@ ORNG_INCLUDE "BuffersINCL.glsl"
 	uniform Material u_material;
 
 
+vec3 normalsFromHeight(vec2 uv)
+{
+    vec4 h;
+    vec2 tex_size = textureSize(displacement_sampler, 0);
+    vec2 texel_size = vec2(1.0) / tex_size;
+
+    h[0] = texture(displacement_sampler, uv + vec2(texel_size * vec2( 0,-1))).r;
+    h[1] = texture(displacement_sampler, uv + vec2(texel_size * vec2(-1, 0))).r;
+    h[2] = texture(displacement_sampler, uv + vec2(texel_size * vec2( 1, 0))).r;
+    h[3] = texture(displacement_sampler, uv + vec2(texel_size * vec2( 0, 1))).r;
+    vec3 n;
+    n.z = (h[3] - h[0]) * u_material.displacement_scale;
+    n.x = (h[2] - h[1]) * u_material.displacement_scale;
+    n.y = 2;
+    return normalize(n);
+}
 
 
 void main() {
@@ -54,10 +70,26 @@ void main() {
     vec4 pos2 = gl_in[2].gl_Position;
 
     vec4 pos = u * pos0 + v * pos1 + w * pos2;
-    vec3 n = normalize(in_vert_data[0].normal + in_vert_data[1].normal + in_vert_data[2].normal) ;
-    if(u_displacement_sampler_active)
-        pos.xyz += n * texture(displacement_sampler, tex_coord * u_material.tile_scale).r * -1.0 ;
+    vec3 n = normalize(u * in_vert_data[0].normal + v * in_vert_data[1].normal + w * in_vert_data[2].normal  ) ;
+    vec3 tangent =  normalize(u * in_vert_data[0].tangent + v * in_vert_data[1].tangent + w * in_vert_data[2].tangent  ) ;
 
-    vs_transform = transform_ssbo.transforms[ts_instance_id];
+    if(u_displacement_sampler_active) {
+        //vec3 bitangent = cross(tangent, n);
+
+        //vec3 pos_plus_tangent = pos + tangent * 0.01;
+       // vec3 pos_plus_bitangent = pos + bitangent * 0.01;
+        
+    }
+
+
+    out_vert_data.normal = n;
+    out_vert_data.tangent = normalize(u * in_vert_data[0].tangent + v * in_vert_data[1].tangent + w * in_vert_data[2].tangent  ) ;
+    out_vert_data.position = pos;
+
+    ts_instance_id_out = ts_instance_id;
+    
+    if(u_displacement_sampler_active)
+        pos.xyz += n * texture(displacement_sampler, tex_coord * u_material.tile_scale).r * u_material.displacement_scale ;
+
     gl_Position = PVMatrices.proj_view * transform_ssbo.transforms[ts_instance_id] * pos ;
 }

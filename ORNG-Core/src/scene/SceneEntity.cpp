@@ -22,24 +22,19 @@ namespace ORNG {
 		// If parent has no children, link this to first
 		if (current_parent_child == entt::null) {
 			p_parent_comp->first = m_entt_handle;
-			p_parent_comp->num_children++;
-			// Update transform hierarchy
-			auto* p_transform = GetComponent<TransformComponent>();
-			p_transform->m_parent_handle = p_parent_comp->GetEnttHandle();
-			p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
-			return;
+		}
+		else {
+			while (mp_registry->get<RelationshipComponent>(current_parent_child).next != entt::null) {
+				current_parent_child = mp_registry->get<RelationshipComponent>(current_parent_child).next;
+			}
+
+			// Link this entity to last entity found in parents linked list of children
+			auto& prev_child_of_parent = mp_registry->get<RelationshipComponent>(current_parent_child);
+			prev_child_of_parent.next = m_entt_handle;
+			p_comp->prev = entt::entity{ prev_child_of_parent.GetEnttHandle() };
 		}
 
-		while (mp_registry->get<RelationshipComponent>(current_parent_child).next != entt::null) {
-			current_parent_child = mp_registry->get<RelationshipComponent>(current_parent_child).next;
-		}
-
-		// Link this entity to last entity found in parents linked list of children
-		auto& prev_child_of_parent = mp_registry->get<RelationshipComponent>(current_parent_child);
-		prev_child_of_parent.next = m_entt_handle;
-		p_comp->prev = entt::entity{ prev_child_of_parent.GetEnttHandle() };
 		p_parent_comp->num_children++;
-
 		// Update transform hierarchy
 		auto* p_transform = GetComponent<TransformComponent>();
 		p_transform->m_parent_handle = p_parent_comp->GetEnttHandle();

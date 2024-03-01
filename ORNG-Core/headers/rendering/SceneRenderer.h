@@ -15,6 +15,11 @@ namespace ORNG {
 	class FramebufferLibrary;
 	struct CameraComponent;
 
+	template<typename T>
+	concept ShaderType = requires(T t) {
+		std::is_same_v<T, Shader> || std::is_same_v<T, ShaderVariants>;
+	};
+
 	enum RenderpassStage {
 		POST_GBUFFER,
 		POST_DEPTH,
@@ -58,6 +63,11 @@ namespace ORNG {
 		Texture3D neg_x{ "Voxel face X-" };
 		Texture3D neg_y{ "Voxel face Y-" };
 		Texture3D neg_z{ "Voxel face Z-" };
+	};
+
+	enum class VoxelizationSV {
+		CASCADE_0,
+		CASCADE_1
 	};
 
 	class SceneRenderer {
@@ -135,10 +145,16 @@ namespace ORNG {
 		void DoFogPass(unsigned int width, unsigned int height);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
-		void DoVoxelizationPass(unsigned output_width, unsigned output_height);
-		static void DrawAllMeshes(RenderGroup render_group);
+		void DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, float cascade_width, float voxel_size, VoxelizationSV shader_variant);
 
 	private:
+		// Returns true if any state was changed
+		bool SetGL_StateFromMatFlags(MaterialFlags flags);
+
+		// Sets state back to default values
+		void UndoGL_StateModificationsFromMatFlags(MaterialFlags flags);
+
+		void DrawAllMeshesDepth(RenderGroup render_group);
 
 		void IAttachRenderpassIntercept(Renderpass renderpass) {
 			ASSERT(std::ranges::find_if(m_render_intercepts, [&](const auto& pass) {return pass.name == renderpass.name; }) == m_render_intercepts.end());
@@ -175,9 +191,7 @@ namespace ORNG {
 
 		Shader* m_post_process_shader = nullptr;
 
-		Shader* mp_orth_depth_shader = nullptr; //dir light
-		Shader* mp_persp_depth_shader = nullptr; //spotlights
-		Shader* mp_pointlight_depth_shader = nullptr;
+		ShaderVariants* mp_depth_sv = nullptr;
 		ShaderVariants* mp_3d_mipmap_shader = nullptr;
 
 		ShaderVariants* mp_scene_voxelization_shader = nullptr;
@@ -214,9 +228,14 @@ namespace ORNG {
 
 		Texture2D m_cone_trace_accum_tex{ "SR cone trace accum" };
 
-		Texture3D m_scene_voxel_tex{ "SR scene voxel tex" };
-		Texture3D m_scene_voxel_tex_normals{ "SR scene voxel tex normals" };
-		VoxelMipFaces m_voxel_mip_faces;
+		Texture3D m_scene_voxel_tex_c0{ "SR scene voxel tex cascade 0" };
+		Texture3D m_scene_voxel_tex_c0_normals{ "SR scene voxel tex normals cascade 0" };
+
+		Texture3D m_scene_voxel_tex_c1{ "SR scene voxel tex cascade 1" };
+		Texture3D m_scene_voxel_tex_c1_normals{ "SR scene voxel tex normals cascade 1" };
+
+		Texture3D m_voxel_mip_faces_c0{ "SR voxel mips cascade 0" };
+		Texture3D m_voxel_mip_faces_c1{ "SR voxel mips cascade 1" };
 
 		PointlightSystem m_pointlight_system;
 		SpotlightSystem m_spotlight_system;

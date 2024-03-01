@@ -21,7 +21,26 @@ namespace ORNG {
 			}
 
 			Get().m_glew_initialized = true;
+			std::string gl_version{ reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)) };
 
+			int major = -1;
+			int minor = -1;
+			for (char c : gl_version) {
+				if (std::isdigit(c)) {
+					if (major == -1) {
+						major = CharToInt(c);
+					}
+					else if (minor == -1) {
+						minor = CharToInt(c);
+						break;
+					}
+				}
+			}
+
+			if (major < 4 || (major == 4 && minor < 6)) {
+				ORNG_CORE_CRITICAL("Minimum opengl version required is 4.6, GPU only supports up to {}.{}", major, minor);
+				BREAKPOINT;
+			}
 		}
 
 		inline static void BindVAO(unsigned int vao) {

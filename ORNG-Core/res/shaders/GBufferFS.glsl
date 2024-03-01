@@ -16,11 +16,24 @@ layout(binding = 25) uniform sampler2D emissive_sampler;
 
 
 #ifdef TESSELLATE
+in flat int ts_instance_id_out;
+
+layout(std140, binding = 0) buffer transforms {
+	mat4 transforms[];
+} transform_ssbo;
+
+#define TRANSFORM transform_ssbo.transforms[ts_instance_id_out]
 
 in TSVertData {
+	vec4 position;
+	vec3 normal;
+	vec2 tex_coord;
+	vec3 tangent;
+	vec3 original_normal;
+	vec3 view_dir_tangent_space;
+} vert_data;
 #else
 in VSVertData {
-#endif
     vec4 position;
     vec3 normal;
     vec2 tex_coord;
@@ -31,12 +44,8 @@ in VSVertData {
 
 in flat mat4 vs_transform;
 
-/*in vec4 vert_data.position;
-in vec3 vert_data.normal;
-in vec3 vert_data.tex_coord;
-in vec3 vert_data.tangent;
-in vec3 vert_data.original_normal;
-in vec3 vert_data.view_dir_tangent_space;*/
+#define TRANSFORM vs_transform
+#endif
 
 
 
@@ -96,8 +105,8 @@ mat3 CalculateTbnMatrixTransform() {
 	vec3 t = normalize(-vec3(PVMatrices.view[0][0], PVMatrices.view[1][0], PVMatrices.view[2][0]));
 	vec3 n = normalize(vert_data.normal);
 #else
-	vec3 t = normalize(vec3(mat3(vs_transform) * vert_data.tangent));
-	vec3 n = normalize(vec3(mat3(vs_transform) * vert_data.original_normal));
+	vec3 t = normalize(vec3(mat3(TRANSFORM) * vert_data.tangent));
+	vec3 n = normalize(vec3(mat3(TRANSFORM) * vert_data.normal));
 #endif
 
 	t = normalize(t - dot(t, n) * n);
@@ -167,17 +176,19 @@ void main() {
 	albedo = vec4(texture(cube_color_sampler, normalize(vert_data.position.xyz)).rgb, 1.f);
 #else
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
-	if (albedo.w < 0.99)
+	if (albedo.w < 0.5)
 		discard;
-
+	albedo.w = 1.0;
 	if (u_normal_sampler_active) {
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
-		normal = vec4(normalize(tbn * sampled_normal).rgb, 1.0);
+		normal = vec4(normalize(tbn * sampled_normal * (gl_FrontFacing ? 1.0 : -1.0)).rgb, 1.0);
 	}
 	else {
-		normal = vec4(normalize(vert_data.normal), 1.0);
+		normal = vec4(normalize(vert_data.normal * (gl_FrontFacing ? 1.0 : -1.0)), 1.0);
 	}
+
+
 	shader_id = u_shader_id;
 #endif
 

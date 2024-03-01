@@ -105,7 +105,6 @@ void main() {
 		vec4 proj_pos = PVMatrices.projection * view_pos;
 		gl_Position = proj_pos.xyww;
 #else
-		//vert_data.tex_coord = transpose(CalculateTbnMatrixTransform()) * mat3(transform_ssbo.transforms[gl_InstanceID]) * vec3(tex_coord.x, tex_coord.y, 0.f);
 		#ifdef PARTICLE
 				#define PTCL PARTICLE_SSBO.particles[vs_particle_index]
 				#ifndef PARTICLES_DETACHED
@@ -210,11 +209,11 @@ void main() {
 		#ifdef VOXELIZE
 			gl_Position = u_orth_proj_view_matrix * vec4(vert_data.position.xyz, 1);
 		#else
-		#ifdef TESSELLATE
-		gl_Position = vert_data.position;
-		#else
-		gl_Position = PVMatrices.proj_view * vert_data.position;
-		#endif
+			#ifdef TESSELLATE
+			gl_Position = vert_data.position;
+			#else
+			gl_Position = PVMatrices.proj_view * vert_data.position;
+			#endif
 		#endif
 #endif
 }

@@ -160,8 +160,8 @@ void main()
 	vec3 f0 = vec3(0.04); // TODO: Support different values for more metallic objects
 	f0 = mix(f0, sampled_albedo.xyz, metallic);
 
-	total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
-	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
+	//total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
+	//total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
 	//total_light += CalculateIndirectDiffuseLighting() * sampled_albedo.xyz ;
 
 	vec3 light_color = max(vec3(total_light), vec3(0.0, 0.0, 0.0));

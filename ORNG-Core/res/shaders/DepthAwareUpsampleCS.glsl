@@ -35,7 +35,7 @@ void main() {
 #ifdef CONE_TRACE_UPSAMPLE
             float dot_n = dot(texelFetch(normal_sampler, tex_coords + ivec2(x, y), 0).xyz, original_normal);
 
-            if (depth_dif < 0.001 && dot_n > 0.9) {
+            if (depth_dif < 0.001 ) {
                 result += sampled_offset;
                 sum += 1.0 ;
             }

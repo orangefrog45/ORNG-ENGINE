@@ -929,6 +929,13 @@ namespace ORNG {
 				ret = true;
 			}
 
+			static bool disable_face_culling = false;
+			disable_face_culling = (flags & ORNG_MatFlags_DISABLE_BACKFACE_CULL);
+			if (ImGui::Checkbox("Disable backface culling", &disable_face_culling)) {
+				mp_selected_material->FlipFlags(ORNG_MatFlags_DISABLE_BACKFACE_CULL);
+				ret = true;
+			}
+
 			if ((flags & ORNG_MatFlags_EMISSIVE) || mp_selected_material->emissive_texture)
 				ret |= ImGui::SliderFloat("Emissive strength", &mp_selected_material->emissive_strength, -10.f, 10.f);
 

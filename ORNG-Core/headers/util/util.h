@@ -15,28 +15,24 @@ namespace ORNG {
 
 	constexpr bool SHADER_DEBUG_MODE = false; // true = CreateUniform throws error if uniform doesn't exist
 
-	template<typename T>
-	bool VectorContains(const std::vector<T>& vec, const T& value) {
-		if (vec.empty())
-			return false;
 
-		return std::ranges::find(vec, value) != vec.end();
-	}
-
+	/*
+	FILE UTILS
+	*/
 	bool FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive = false);
-	void FileDelete(const std::string& filepath);
-	bool PathEqualTo(const std::string& path1, const std::string& path2);
-	bool FileExists(const std::string& filepath);
 
-	// Replaces all instances of "text_to_replace" with "replacement_text"
-	// Modifies "input" string directly, returns number of replacement operations
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
+	void FileDelete(const std::string& filepath);
+
+	bool PathEqualTo(const std::string& path1, const std::string& path2);
+
+	bool FileExists(const std::string& filepath);
 
 	bool TryFileDelete(const std::string& filepath);
 
 	bool TryDirectoryDelete(const std::string& filepath);
 
 	std::string GetFileDirectory(const std::string& filepath);
+
 	std::string GetFileLastWriteTime(const std::string& filepath);
 
 	std::string GetApplicationExecutableDirectory();
@@ -45,7 +41,23 @@ namespace ORNG {
 
 	bool IsEntryAFile(const std::filesystem::directory_entry& entry);
 
+
+	/*
+	MISC UTILS
+	*/
 	void PushMatrixIntoArray(const glm::mat4& m, float* array_ptr);
+
+	template<typename T>
+	bool VectorContains(const std::vector<T>& vec, const T& value) {
+		if (vec.empty())
+			return false;
+
+		return std::ranges::find(vec, value) != vec.end();
+	}
+
+	// Replaces all instances of "text_to_replace" with "replacement_text"
+	// Modifies "input" string directly, returns number of replacement operations
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
 
 	// Copies raw bytes of matrix into array of std::byte, this will increment the ptr provided by sizeof(mat4)
 	void PushMatrixIntoArrayBytes(const glm::mat4& m, std::byte*& array_ptr);
@@ -55,5 +67,10 @@ namespace ORNG {
 	void ConvertToBytes(const T& value, std::byte*& bytes) {
 		std::memcpy(bytes, &value, sizeof(T));
 		bytes += sizeof(T);
+	}
+
+	// E.g converts '9' to integer value 9, not ascii code
+	inline int CharToInt(char c) {
+		return c - '0';
 	}
 }

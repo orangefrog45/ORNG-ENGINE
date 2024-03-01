@@ -1,3 +1,9 @@
+01/3/24:
+-Started work on multiple voxel GI cascades to extend GI range
+-Depth passes now account for transparency in materials (binary opacity only)
+-More material parameters (disable backface culling)
+-Some small tessellation tweaks
+
 20/2/24:
 -Projects can now be created in any directory
 -Absolute transforms now cached

@@ -22,7 +22,7 @@ namespace ORNG {
 
 		// Each frame, check if any meshes have finished loading vertex data and load them into GPU if they have
 		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
-			if (t_event.event_type == Events::EngineCoreEvent::EventType::ENGINE_UPDATE) {
+			if (t_event.event_type == Events::EngineCoreEvent::EventType::ENGINE_UPDATE && !m_mesh_loading_queue.empty()) {
 				for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
 					[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
 						auto* p_mesh = m_mesh_loading_queue[i].get();

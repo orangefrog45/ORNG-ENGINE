@@ -2,7 +2,7 @@
 
 layout(vertices = 3) out;
 
-patch out int ts_instance_id;
+out patch int ts_instance_id;
 in int vs_instance_id[];
 
 in VSVertData {
@@ -24,6 +24,7 @@ out TCSVertData {
 } out_vert_data[];
 
 ORNG_INCLUDE "BuffersINCL.glsl"
+
 layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];
 } transform_ssbo;
@@ -38,11 +39,12 @@ void main() {
     out_vert_data[gl_InvocationID].view_dir_tangent_space = in_vert_data[gl_InvocationID].view_dir_tangent_space;
 
     ts_instance_id = vs_instance_id[gl_InvocationID];
+    vec3 p = vec3(transform_ssbo.transforms[vs_instance_id[gl_InvocationID]] * in_vert_data[gl_InvocationID].position);
+    float steps = length(ubo_common.camera_pos.xyz - p) / 20.0;
+    gl_TessLevelOuter[0] = 10.0 / max(steps, 1.0);
+    gl_TessLevelOuter[1] = 10.0 / max(steps, 1.0);
+    gl_TessLevelOuter[2] = 10.0 / max(steps, 1.0);
 
-    gl_TessLevelOuter[0] = 40;
-    gl_TessLevelOuter[1] = 40;
-    gl_TessLevelOuter[2] = 40;
-
-    gl_TessLevelInner[0] = 40;
-    gl_TessLevelInner[1] = 40;
+    gl_TessLevelInner[0] = 10.0 / max(steps, 1.0);
+    gl_TessLevelInner[1] = 10.0 / max(steps, 1.0);
 }

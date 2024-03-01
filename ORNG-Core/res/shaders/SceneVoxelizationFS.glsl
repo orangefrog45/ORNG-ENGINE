@@ -1,5 +1,18 @@
 #version 460 core
 
+#ifndef PREV_CASCADE_WORLD_SIZE
+#error PREV_CASCADE_WORLD_SIZE must be defined
+#endif
+
+#ifndef CURRENT_CASCADE_TEX_SIZE
+#error CURRENT_CASCADE_TEX_SIZE must be defined
+#endif
+
+#ifndef VOXEL_SIZE
+#error VOXEL_SIZE must be defined
+#endif
+
+
 layout(binding = 1) uniform sampler2D diffuse_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
@@ -13,13 +26,14 @@ layout(binding = 0, r32ui) uniform coherent uimage3D voxel_image;
 layout(binding = 1, r32ui) uniform coherent uimage3D voxel_image_normals;
 
 
-in vec4 vs_position;
-in vec3 vs_normal;
-in vec3 vs_tex_coord;
-in vec3 vs_tangent;
-in mat4 vs_transform;
-in vec3 vs_original_normal;
-in vec3 vs_view_dir_tangent_space;
+in VSVertData {
+    vec4 position;
+    vec3 normal;
+    vec2 tex_coord;
+    vec3 tangent;
+    vec3 original_normal;
+    vec3 view_dir_tangent_space;
+} vert_data;
 
 ORNG_INCLUDE "CommonINCL.glsl"
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
@@ -31,24 +45,14 @@ ORNG_INCLUDE "BuffersINCL.glsl"
 ORNG_INCLUDE "ShadowsINCL.glsl"
 
 uniform uint u_shader_id;
-uniform bool u_normal_sampler_active;
-uniform bool u_roughness_sampler_active;
-uniform bool u_metallic_sampler_active;
-uniform bool u_displacement_sampler_active;
 uniform bool u_emissive_sampler_active;
-uniform bool u_ao_sampler_active;
-uniform bool u_terrain_mode;
-uniform bool u_skybox_mode;
-uniform float u_parallax_height_scale;
-uniform uint u_num_parallax_layers;
-uniform float u_bloom_threshold;
 uniform Material u_material;
 
 uniform vec3 u_aligned_camera_pos;
 
 
 vec3 CalculatePointlight(PointLight light) {
-    vec3 dir = light.pos.xyz - vs_position.xyz;
+    vec3 dir = light.pos.xyz - vert_data.position.xyz;
     const float l = length(dir);
     dir = normalize(dir);
 
@@ -56,12 +60,12 @@ vec3 CalculatePointlight(PointLight light) {
 		light.a_linear * l +
 		light.exp * pow(l, 2);
 
-    const float r = max(dot(normalize(vs_normal), dir), 0.f);
+    const float r = max(dot(normalize(vert_data.normal), dir), 0.f);
     return r / attenuation * light.color.xyz;
 }
 
 vec3 CalculateSpotlight(SpotLight light) {
-    vec3 dir = light.pos.xyz - vs_position.xyz;
+    vec3 dir = light.pos.xyz - vert_data.position.xyz;
 	float spot_factor = dot(normalize(dir), -light.dir.xyz);
 
     vec3 color = vec3(0);
@@ -77,7 +81,7 @@ vec3 CalculateSpotlight(SpotLight light) {
 		light.exp * pow(l, 2);
 
 	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / max((1.0 - light.aperture), 1e-5));
-    const float r = max(dot(normalize(vs_normal), dir), 0.f);
+    const float r = max(dot(normalize(vert_data.normal), dir), 0.f);
 
     return r * spotlight_intensity / attenuation * light.color.xyz;
 }
@@ -122,27 +126,51 @@ vec4 convRGBA8ToVec4(uint val) {
 }
 
 
+vec3 AdjustTexCoordsForCascade(vec3 world_coords) {
+    /* 
+        Larger cascades have a sphere with radius PREV_CASCADE_WORLD_SIZE removed from their middle as the voxel data will already be stored in the smaller cascades
+        Therefore the texture coordinates need to be shifted towards the origin as to not leave a gap in the texture data
+    */
+
+    return world_coords - normalize(world_coords) * 25.6;
+}
+
+bool PointInsideAABB(vec3 extents, vec3 p) {
+    return (p.x < extents.x && p.x > -extents.x && p.y < extents.y && p.y > -extents.y && p.z < extents.z && p.z > -extents.z);
+}
 
 void main() {
-    vec3 n = normalize(vs_normal);
+#ifdef CASCADE_0
+        ivec3 coord = ivec3((vert_data.position.xyz - u_aligned_camera_pos) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
+#else
+        vec3 rel_coord = vert_data.position.xyz - u_aligned_camera_pos;
+
+        if (length(rel_coord) < 25.6) 
+            discard; // Discard any fragments that will be stored in the smaller cascades
+
+        vec3 cascade_coord = AdjustTexCoordsForCascade(rel_coord);
+
+
+        ivec3 coord = ivec3(cascade_coord / 0.4 + 128);
+#endif
+
+    if (any(greaterThan(coord, vec3(CURRENT_CASCADE_TEX_SIZE))) || any(lessThan(coord, vec3(0))))
+        discard;
+
+    vec3 n = normalize(vert_data.normal);
+
     vec3 col = vec3(0);
-    
     if (bool(u_material.flags & MAT_FLAG_EMISSIVE)) {
-        col = CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;
+        col = CalculateAlbedoAndEmissive(vert_data.tex_coord.xy).rgb;
     } else {
         for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
-            col += CalculatePointlight(ubo_point_lights.lights[i]) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, vs_position.xyz ));
+            col += CalculatePointlight(ubo_point_lights.lights[i]) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, vert_data.position.xyz));
         }
-        col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vs_position.xyz));
-        col *= CalculateAlbedoAndEmissive(vs_tex_coord.xy).rgb;
+        col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vert_data.position.xyz));
+        col *= CalculateAlbedoAndEmissive(vert_data.tex_coord.xy).rgb;
     }
-
-    ivec3 coord = ivec3((vs_position.xyz - u_aligned_camera_pos  ) * 5.0  + vec3(128));
-
-    if (any(greaterThan(coord, vec3(256))) || any(lessThan(coord, vec3(0))))
-        discard;
-        
     imageAtomicMax(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
+    imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(clamp(col, vec3(0), vec3(1)) * 255, 255)));
 
-    imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(min(col, vec3(1)) * 255, 255)));
+    discard;
 }

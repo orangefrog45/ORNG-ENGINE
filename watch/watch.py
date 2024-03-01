@@ -9,6 +9,8 @@ debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
 release_dir_editor = "..\\out\\build\\x64-Release\\ORNG-Editor\\res\\shaders\\"
 debug_dir_game = "..\\out\\build\\x64-Debug\\Game\\res\\shaders\\"
 release_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
+debug_dir_net_game = "..\\out\\build\\x64-Debug\\NetGame\\res\\shaders\\"
+release_dir_net_game = "..\\out\\build\\x64-Release\\NetGame\\res\\shaders\\"
 
 
 class Handler(FileSystemEventHandler):
@@ -31,9 +33,13 @@ class Handler(FileSystemEventHandler):
             debug_path = debug_dir_editor
             release_path= release_dir_editor
 
-        if filename.find("Game") != -1:
+        if filename.find("Game") != -1 and filename.find("Net") == -1:
             debug_path = debug_dir_game
             release_path= release_dir_game
+
+        if filename.find("Net") != -1:
+            debug_path = debug_dir_net_game
+            release_path= release_dir_net_game
 
         print(f'File {event.src_path} has been modified.')
         filename = filename.split("\\").pop()
@@ -43,6 +49,8 @@ class Handler(FileSystemEventHandler):
         shutil.copy(event.src_path, release_dir_editor + filename);
         shutil.copy(event.src_path, debug_dir_game+ filename);
         shutil.copy(event.src_path, release_dir_game+ filename);
+       # shutil.copy(event.src_path, debug_dir_net_game+ filename);
+        shutil.copy(event.src_path, release_dir_net_game+ filename);
 
 if __name__ == "__main__":
     path = "..\\" 

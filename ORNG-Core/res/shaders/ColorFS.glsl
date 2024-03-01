@@ -26,10 +26,10 @@ void main() {
 	albedo.w = 1.0;
 #elif defined(VOXELIZATION)
 	albedo.xyzw = imageLoad(voxel_tex, vs_lookup_coord);
-	if (length(albedo.w) < 0.1)
+	if (length(albedo.w) < 0.00001)
 		discard;
 	albedo.w = 1.0;
-	shader_id = 110;
+	shader_id = 0;
 
 #else
 	o_col = u_color;

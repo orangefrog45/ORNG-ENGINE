@@ -114,6 +114,7 @@ struct Material {
 	float ao;
 	vec2 tile_scale;
 	float emissive_strength;
+	float displacement_scale;
 
 	uint flags;
 	SpritesheetData sprite_data;

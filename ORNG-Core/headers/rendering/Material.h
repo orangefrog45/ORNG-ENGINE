@@ -32,6 +32,7 @@ namespace ORNG {
 		ORNG_MatFlags_PARALLAX_MAP = 1 << 2,
 		ORNG_MatFlags_EMISSIVE = 1 << 3,
 		ORNG_MatFlags_IS_SPRITESHEET = 1 << 4,
+		ORNG_MatFlags_DISABLE_BACKFACE_CULL = 1 << 5,
 
 		ORNG_MatFlags_ALL = ~(0),
 	};

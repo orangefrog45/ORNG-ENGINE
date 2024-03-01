@@ -17,12 +17,12 @@
 #include <glm/glm/gtc/integer.hpp>
 
 #include "scene/MeshInstanceGroup.h"
-
 // Material flags that can go through the normal gbuffer/shader pipeline with just the fragment/vertex (no tessellation) shaders
-#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP)
+#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
+#define VOXEL_GI
 
 namespace ORNG {
-	enum GBufferVariants {
+	enum class GBufferVariants {
 		TERRAIN,
 		MESH,
 		PARTICLE,
@@ -32,13 +32,13 @@ namespace ORNG {
 		UNIFORM_TRANSFORM
 	};
 
-	enum TransparencyShaderVariants {
+	enum class TransparencyShaderVariants {
 		DEFAULT,
 		T_PARTICLE,
 		T_PARTICLE_BILLBOARD,
 	};
 
-	enum MipMap3D_ShaderVariants {
+	enum class MipMap3D_ShaderVariants {
 		DEFAULT_MIP,
 		ANISOTROPIC,
 		ANISOTROPIC_CHAIN,
@@ -48,6 +48,13 @@ namespace ORNG {
 		DEFAULT,
 		CONE_TRACE
 	};
+
+	enum class DepthSV {
+		DIRECTIONAL,
+		SPOTLIGHT,
+		POINTLIGHT
+	};
+
 
 	void SceneRenderer::I_Init() {
 		mp_shader_library = &Renderer::GetShaderLibrary();
@@ -63,7 +70,6 @@ namespace ORNG {
 				"u_ao_sampler_active",
 				"u_displacement_sampler_active",
 				"u_num_parallax_layers",
-				"u_displacement_scale",
 				"u_material.base_color",
 				"u_material.metallic",
 				"u_material.roughness",
@@ -71,6 +77,7 @@ namespace ORNG {
 				"u_material.tile_scale",
 				"u_material.emissive_strength",
 				"u_material.flags",
+				"u_material.displacement_scale",
 				"u_bloom_threshold",
 				"u_shader_id",
 				"u_material.sprite_data.num_rows",
@@ -94,16 +101,16 @@ namespace ORNG {
 		mp_gbuffer_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
 		{
 			using enum GBufferVariants;
-			mp_gbuffer_shader_variants->AddVariant(TERRAIN, { "TERRAIN_MODE" }, gbuffer_uniforms);
-			mp_gbuffer_shader_variants->AddVariant(MESH, {}, gbuffer_uniforms);
-			mp_gbuffer_shader_variants->AddVariant(PARTICLE, { "PARTICLE" }, ptcl_uniforms);
-			mp_gbuffer_shader_variants->AddVariant(SKYBOX, { "SKYBOX_MODE" }, {});
-			mp_gbuffer_shader_variants->AddVariant(BILLBOARD, { "BILLBOARD" }, gbuffer_uniforms);
-			mp_gbuffer_shader_variants->AddVariant(PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
+			mp_gbuffer_shader_variants->AddVariant((unsigned)TERRAIN, { "TERRAIN_MODE" }, gbuffer_uniforms);
+			mp_gbuffer_shader_variants->AddVariant((unsigned)MESH, {}, gbuffer_uniforms);
+			mp_gbuffer_shader_variants->AddVariant((unsigned)PARTICLE, { "PARTICLE" }, ptcl_uniforms);
+			mp_gbuffer_shader_variants->AddVariant((unsigned)SKYBOX, { "SKYBOX_MODE" }, {});
+			mp_gbuffer_shader_variants->AddVariant((unsigned)BILLBOARD, { "BILLBOARD" }, gbuffer_uniforms);
+			mp_gbuffer_shader_variants->AddVariant((unsigned)PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
 
 			std::vector<std::string> transform_uniforms = gbuffer_uniforms;
 			transform_uniforms.push_back("u_transform");
-			mp_gbuffer_shader_variants->AddVariant(UNIFORM_TRANSFORM, { "UNIFORM_TRANSFORM" }, transform_uniforms);
+			mp_gbuffer_shader_variants->AddVariant((unsigned)UNIFORM_TRANSFORM, { "UNIFORM_TRANSFORM" }, transform_uniforms);
 		}
 
 
@@ -112,9 +119,9 @@ namespace ORNG {
 		mp_transparency_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
 		{
 			using enum TransparencyShaderVariants;
-			mp_transparency_shader_variants->AddVariant(DEFAULT, { }, gbuffer_uniforms);
-			mp_transparency_shader_variants->AddVariant(T_PARTICLE, { "PARTICLE" }, ptcl_uniforms);
-			mp_transparency_shader_variants->AddVariant(T_PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
+			mp_transparency_shader_variants->AddVariant((unsigned)DEFAULT, { }, gbuffer_uniforms);
+			mp_transparency_shader_variants->AddVariant((unsigned)T_PARTICLE, { "PARTICLE" }, ptcl_uniforms);
+			mp_transparency_shader_variants->AddVariant((unsigned)T_PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
 		}
 
 		auto voxel_uniforms = gbuffer_uniforms;
@@ -123,7 +130,8 @@ namespace ORNG {
 		mp_scene_voxelization_shader = &mp_shader_library->CreateShaderVariants("scene-voxelizer");
 		mp_scene_voxelization_shader->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
 		mp_scene_voxelization_shader->SetPath(GL_FRAGMENT_SHADER, "res/shaders/SceneVoxelizationFS.glsl");
-		mp_scene_voxelization_shader->AddVariant(0, {"VOXELIZE"}, voxel_uniforms);
+		mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::CASCADE_0, {"VOXELIZE", "CASCADE_0", "PREV_CASCADE_WORLD_SIZE 0", "CURRENT_CASCADE_TEX_SIZE 256", "VOXEL_SIZE 0.2" }, voxel_uniforms);
+		mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::CASCADE_1, {"VOXELIZE", "PREV_CASCADE_WORLD_SIZE 51.2", "CURRENT_CASCADE_TEX_SIZE 256", "VOXEL_SIZE 0.4" }, voxel_uniforms);
 
 		mp_voxel_debug_shader = &mp_shader_library->CreateShader("voxel_debug");
 		mp_voxel_debug_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/VoxelDebugViewVS.glsl");
@@ -133,9 +141,9 @@ namespace ORNG {
 
 		mp_3d_mipmap_shader = &mp_shader_library->CreateShaderVariants("3d-mipmap");
 		mp_3d_mipmap_shader->SetPath(GL_COMPUTE_SHADER, "res/shaders/MipMap3D.glsl");
-		mp_3d_mipmap_shader->AddVariant(MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
-		mp_3d_mipmap_shader->AddVariant(MipMap3D_ShaderVariants::ANISOTROPIC, {"ANISOTROPIC_MIPMAP"}, {});
-		mp_3d_mipmap_shader->AddVariant(MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, {"u_mip_level"});
+		mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
+		mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC, {"ANISOTROPIC_MIPMAP"}, {});
+		mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, {"u_mip_level"});
 
 
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
@@ -180,28 +188,12 @@ namespace ORNG {
 		m_blue_noise_tex.SetSpec(noise_spec);
 		m_blue_noise_tex.LoadFromFile();
 
-
-		mp_orth_depth_shader = &mp_shader_library->CreateShader("orth_depth");
-		mp_orth_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_orth_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "ORTHOGRAPHIC" });
-		mp_orth_depth_shader->Init();
-		mp_orth_depth_shader->AddUniform("u_light_pv_matrix");
-
-		mp_persp_depth_shader = &mp_shader_library->CreateShader("persp_depth");
-		mp_persp_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_persp_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE", "SPOTLIGHT"});
-		mp_persp_depth_shader->Init();
-		mp_persp_depth_shader->AddUniform("u_light_pv_matrix");
-		mp_persp_depth_shader->AddUniform("u_light_pos");
-
-
-		mp_pointlight_depth_shader = &mp_shader_library->CreateShader("pointlight_depth");
-		mp_pointlight_depth_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_pointlight_depth_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl", { "PERSPECTIVE", "POINTLIGHT" });
-		mp_pointlight_depth_shader->Init();
-		mp_pointlight_depth_shader->AddUniform("u_light_pv_matrix");
-		mp_pointlight_depth_shader->AddUniform("u_light_pos");
-		mp_pointlight_depth_shader->AddUniform("u_light_zfar");
+		mp_depth_sv = &mp_shader_library->CreateShaderVariants("SR Depth");
+		mp_depth_sv->SetPath(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
+		mp_depth_sv->SetPath(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl");
+		mp_depth_sv->AddVariant((unsigned)DepthSV::DIRECTIONAL, { "ORTHOGRAPHIC" }, { "u_alpha_test", "u_light_pv_matrix" });
+		mp_depth_sv->AddVariant((unsigned)DepthSV::SPOTLIGHT, { "PERSPECTIVE", "SPOTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos"});
+		mp_depth_sv->AddVariant((unsigned)DepthSV::POINTLIGHT, { "PERSPECTIVE", "POINTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos", "u_light_zfar"});
 
 
 		m_blur_shader = &mp_shader_library->CreateShader("SR Blur");
@@ -409,23 +401,22 @@ namespace ORNG {
 
 
 
-		m_scene_voxel_tex_normals.SetSpec(voxel_spec_r32ui);
-		m_scene_voxel_tex.SetSpec(voxel_spec_r32ui);
+		m_scene_voxel_tex_c0_normals.SetSpec(voxel_spec_r32ui);
+		m_scene_voxel_tex_c0.SetSpec(voxel_spec_r32ui);
+		m_scene_voxel_tex_c1.SetSpec(voxel_spec_r32ui);
+		m_scene_voxel_tex_c1_normals.SetSpec(voxel_spec_r32ui);
 
 		Texture3DSpec voxel_mip_spec = voxel_spec_rgbaf;
 		voxel_mip_spec.width = 128;
 		voxel_mip_spec.height = 128;
-		voxel_mip_spec.layer_count = 128;
+		voxel_mip_spec.layer_count = 128 * 6; // Each face starts at z = face_index * 128
 		voxel_mip_spec.generate_mipmaps = true;
+		voxel_mip_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		voxel_mip_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 		
 
-		m_voxel_mip_faces.neg_x.SetSpec(voxel_mip_spec);
-		m_voxel_mip_faces.neg_y.SetSpec(voxel_mip_spec);
-		m_voxel_mip_faces.neg_z.SetSpec(voxel_mip_spec);
-		m_voxel_mip_faces.pos_x.SetSpec(voxel_mip_spec);
-		m_voxel_mip_faces.pos_y.SetSpec(voxel_mip_spec);
-		m_voxel_mip_faces.pos_z.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces_c0.SetSpec(voxel_mip_spec);
+		m_voxel_mip_faces_c1.SetSpec(voxel_mip_spec);
 
 		mp_scene_voxelization_fb = &mp_framebuffer_library->CreateFramebuffer("scene voxelization", false);
 		mp_scene_voxelization_fb->Bind();
@@ -527,7 +518,8 @@ namespace ORNG {
 		if (settings.do_intercept_renderpasses) {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
-			//DoVoxelizationPass(spec.width, spec.height);
+			DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0);
+			DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::CASCADE_1);
 			DoGBufferPass(p_cam, settings);
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 			DoLightingPass(settings.p_output_tex);
@@ -541,7 +533,8 @@ namespace ORNG {
 		}
 		else {
 			DoDepthPass(p_cam, settings.p_output_tex);
-			//DoVoxelizationPass(spec.width, spec.height);
+			DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0);
+
 			DoGBufferPass(p_cam, settings);
 			DoLightingPass(settings.p_output_tex);
 			DoFogPass(spec.width, spec.height);
@@ -604,7 +597,7 @@ namespace ORNG {
 			p_shader->SetUniform("u_displacement_sampler_active", 0);
 		}
 		else {
-			p_shader->SetUniform("u_displacement_scale", p_material->displacement_scale);
+			p_shader->SetUniform("u_material.displacement_scale", p_material->displacement_scale);
 			p_shader->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
 			p_shader->SetUniform("u_displacement_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT);
@@ -673,34 +666,40 @@ namespace ORNG {
 		}
 	}
 
+	unsigned convVec4ToRGBA8(glm::vec4 val) {
+		return (unsigned(val.w) & 0x000000FF) << 24U
+			| (unsigned(val.z) & 0x000000FF) << 16U
+			| (unsigned(val.y) & 0x000000FF) << 8U
+			| (unsigned(val.x) & 0x000000FF);
+	}
 
+	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, float cascade_width, float voxel_size, VoxelizationSV shader_variant) {
+		float half_cascade_width = cascade_width * 0.5f;
 
-	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height) {
 		ORNG_PROFILE_FUNC_GPU();
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
-		GLuint clear_val = 0;
-		glClearTexImage(m_scene_voxel_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
-		glClearTexImage(m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
+		GLuint clear_val = convVec4ToRGBA8({ 0, 0, 0, 0 });
+		glClearTexImage(main_cascade_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
+		glClearTexImage(normals_main_cascade_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		glBindImageTexture(1, m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(0, main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(1, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		glViewport(0, 0, 256, 256);
-		mp_scene_voxelization_shader->Activate(0);
+		mp_scene_voxelization_shader->Activate((unsigned)shader_variant);
 
-		auto proj = glm::ortho(-128.f * 0.2f, 128.f * 0.2f, -128.f * 0.2f, 128.f * 0.2f, 0.2f, 256.f * 0.2f);
+		auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
 		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4));
 
-		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(128 * 0.2, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, 128 * 0.2, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, 128 * 0.2), cam_pos, {0, 1, 0}) };
+		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
 		mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 			for (auto* p_group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
+				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, GL_TRIANGLES);
 			}
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
@@ -708,47 +707,32 @@ namespace ORNG {
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glViewport(0, 0, output_width, output_height);
-		
-		// Create anisotropic mips
-		constexpr unsigned num_mip_levels = 6;
-		std::array<Texture3D*, 6> voxel_mips = { &m_voxel_mip_faces.pos_x, &m_voxel_mip_faces.pos_y, &m_voxel_mip_faces.pos_z, &m_voxel_mip_faces.neg_x, &m_voxel_mip_faces.neg_y, &m_voxel_mip_faces.neg_z };
-		for (int i = 0; i < 6; i++) {
-			for (int y = 0; y < num_mip_levels; y++) {
-				glClearTexImage(voxel_mips[i]->GetTextureHandle(), y, GL_RGBA, GL_FLOAT, nullptr);
-			}
 
-			glBindImageTexture(i + 1, voxel_mips[i]->GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		// Clear old data
+		constexpr unsigned num_mip_levels = 6;
+		for (int i = 0; i < num_mip_levels; i++) {
+			glClearTexImage(cascade_mips.GetTextureHandle(), i, GL_RGBA, GL_FLOAT, nullptr);
 		}
+		glBindImageTexture(1, cascade_mips.GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		glBindImageTexture(2, m_scene_voxel_tex_normals.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-		mp_3d_mipmap_shader->Activate(MipMap3D_ShaderVariants::ANISOTROPIC);
-		GL_StateManager::DispatchCompute(128 / 4, 128 / 4, 128 / 4);
+		// Create first anisotropic mip
+		glBindImageTexture(2, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		mp_3d_mipmap_shader->Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC);
+		GL_StateManager::DispatchCompute(half_cascade_width / 4, half_cascade_width / 4, half_cascade_width / 4);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
-		mp_3d_mipmap_shader->Activate(MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[0]->GetTextureHandle(), GL_TEXTURE0);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[1]->GetTextureHandle(), GL_TEXTURE1);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[2]->GetTextureHandle(), GL_TEXTURE2);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[3]->GetTextureHandle(), GL_TEXTURE3);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[4]->GetTextureHandle(), GL_TEXTURE4);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, voxel_mips[5]->GetTextureHandle(), GL_TEXTURE5);
-
+		// Create mip chain from anisotropic mip
+		mp_3d_mipmap_shader->Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, cascade_mips.GetTextureHandle(), GL_TEXTURE0);
 		for (int i = 1; i <= 6; i++) {
 			mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
-			glBindImageTexture(0, voxel_mips[0]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			glBindImageTexture(1, voxel_mips[1]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			glBindImageTexture(2, voxel_mips[2]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			glBindImageTexture(3, voxel_mips[3]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			glBindImageTexture(4, voxel_mips[4]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			glBindImageTexture(5, voxel_mips[5]->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			glBindImageTexture(0, cascade_mips.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-			int group_dim = glm::ceil((128.f / (i + 1)) / 4.f);
+			int group_dim = glm::ceil((half_cascade_width / (i + 1)) / 4.f);
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
 			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
-
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -772,20 +756,20 @@ namespace ORNG {
 		glClearBufferfv(GL_COLOR, 0, &filler_0[0]);
 		glClearBufferfv(GL_COLOR, 1, &filler_1[0]);
 
-		mp_transparency_shader_variants->Activate(DEFAULT);
+		mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::DEFAULT);
 		mp_transparency_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 		//Draw all meshes in scene (instanced)
 		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 		}
 
-		mp_transparency_shader_variants->Activate(T_PARTICLE);
+		mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 			IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 		}
 
-		mp_transparency_shader_variants->Activate(T_PARTICLE_BILLBOARD);
+		mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE_BILLBOARD);
 		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
@@ -814,7 +798,6 @@ namespace ORNG {
 		glEnable(GL_CULL_FACE);
 		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LEQUAL);
-
 	}
 
 	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type) {
@@ -833,7 +816,12 @@ namespace ORNG {
 
 			SetGBufferMaterial(p_shader, p_material);
 
+			bool state_changed = SetGL_StateFromMatFlags(p_material->flags);
+
 			Renderer::DrawSubMeshInstanced(p_mesh, instances, i, primitive_type);
+
+			if (state_changed)
+				UndoGL_StateModificationsFromMatFlags(p_material->flags);
 		}
 	}
 
@@ -855,7 +843,7 @@ namespace ORNG {
 				DrawInstanceGroupGBuffer(mp_gbuffer_displacement_sv, group, SOLID, ORNG_MatFlags_TESSELLATED, GL_PATCHES);
 			}
 
-			mp_gbuffer_shader_variants->Activate(GBufferVariants::MESH);
+			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::MESH);
 			mp_gbuffer_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 			//Draw all meshes in scene (instanced)
 			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
@@ -863,20 +851,20 @@ namespace ORNG {
 			}
 
 
-			mp_gbuffer_shader_variants->Activate(BILLBOARD);
+			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::BILLBOARD);
 			for (const auto* group : mp_scene->m_mesh_component_manager.GetBillboardInstanceGroups()) {
 				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 
 			//RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
 			GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
-			mp_gbuffer_shader_variants->Activate(PARTICLE);
+			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 				IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 
-			mp_gbuffer_shader_variants->Activate(PARTICLE_BILLBOARD);
+			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE_BILLBOARD);
 			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
@@ -884,17 +872,17 @@ namespace ORNG {
 				IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS);
 			}
 		}
-		mp_gbuffer_shader_variants->Activate(UNIFORM_TRANSFORM);
+		mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::UNIFORM_TRANSFORM);
 		RenderVehicles(mp_gbuffer_shader_variants, SOLID);
 
 #ifdef ORNG_EDITOR_LAYER
-		if (!((int)settings.voxel_render_face & (int)VoxelRenderFace::NONE)) {
-			if ((int)settings.voxel_render_face & (int)VoxelRenderFace::BASE) {
-				glBindImageTexture(0, m_scene_voxel_tex.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+		if (!((unsigned)settings.voxel_render_face & (int)VoxelRenderFace::NONE)) {
+			if ((unsigned)settings.voxel_render_face & (int)VoxelRenderFace::BASE) {
+				glBindImageTexture(0, m_scene_voxel_tex_c0.GetTextureHandle(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_R32UI);
 			}
 			else {
-				std::array<Texture3D*, 6> voxel_mips = { &m_voxel_mip_faces.pos_x, &m_voxel_mip_faces.pos_y, &m_voxel_mip_faces.pos_z, &m_voxel_mip_faces.neg_x, &m_voxel_mip_faces.neg_y, &m_voxel_mip_faces.neg_z };
-				glBindImageTexture(0, voxel_mips[glm::log2((int)settings.voxel_render_face) - 2]->GetTextureHandle(), settings.voxel_mip_layer, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+				//std::array<Texture3D*, 6> voxel_mips = { &m_voxel_mip_faces_c0.pos_x, &m_voxel_mip_faces_c0.pos_y, &m_voxel_mip_faces_c0.pos_z, &m_voxel_mip_faces_c0.neg_x, &m_voxel_mip_faces_c0.neg_y, &m_voxel_mip_faces_c0.neg_z };
+				glBindImageTexture(0, m_voxel_mip_faces_c0.GetTextureHandle(), settings.voxel_mip_layer, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 			}
 
 			mp_voxel_debug_shader->ActivateProgram();
@@ -905,12 +893,12 @@ namespace ORNG {
 
 
 		/* uniforms */
-		mp_gbuffer_shader_variants->Activate(TERRAIN);
+		mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::TERRAIN);
 		SetGBufferMaterial(mp_gbuffer_shader_variants, mp_scene->terrain.mp_material);
 		mp_gbuffer_shader_variants->SetUniform<unsigned int>("u_shader_id", m_lighting_shader->GetID());
 		DrawTerrain(p_cam);
 
-		mp_gbuffer_shader_variants->Activate(SKYBOX);
+		mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::SKYBOX);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
 		DrawSkybox();
 	}
@@ -925,20 +913,20 @@ namespace ORNG {
 		if (mp_scene->directional_light.shadows_enabled) {
 			// Render cascades
 			m_depth_fb->Bind();
-			mp_orth_depth_shader->ActivateProgram();
+			mp_depth_sv->Activate((unsigned)DepthSV::DIRECTIONAL);
 			for (int i = 0; i < 3; i++) {
 				glViewport(0, 0, m_shadow_map_resolution, m_shadow_map_resolution);
 				m_depth_fb->BindTextureLayerToFBAttachment(m_directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
 				GL_StateManager::ClearDepthBits();
 
-				mp_orth_depth_shader->SetUniform("u_light_pv_matrix", mp_scene->directional_light.m_light_space_matrices[i]);
-				DrawAllMeshes(SOLID);
+				mp_depth_sv->SetUniform("u_light_pv_matrix", mp_scene->directional_light.m_light_space_matrices[i]);
+				DrawAllMeshesDepth(SOLID);
 			}
 		}
 
 		// Spotlights
 		glViewport(0, 0, 512, 512);
-		mp_persp_depth_shader->ActivateProgram();
+		mp_depth_sv->Activate((unsigned)DepthSV::SPOTLIGHT);
 		auto spotlights = mp_scene->m_registry.view<SpotLightComponent, TransformComponent>();
 
 		int index = 0;
@@ -949,15 +937,15 @@ namespace ORNG {
 			m_depth_fb->BindTextureLayerToFBAttachment(m_spotlight_system.m_spotlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
 			GL_StateManager::ClearDepthBits();
 
-			mp_persp_depth_shader->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
-			mp_persp_depth_shader->SetUniform("u_light_pos", transform.GetAbsPosition());
-			DrawAllMeshes(SOLID);
+			mp_depth_sv->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
+			mp_depth_sv->SetUniform("u_light_pos", transform.GetAbsPosition());
+			DrawAllMeshesDepth(SOLID);
 		}
 
 		// Pointlights
 		index = 0;
 		glViewport(0, 0, 512, 512);
-		mp_pointlight_depth_shader->ActivateProgram();
+		mp_depth_sv->Activate((unsigned)DepthSV::POINTLIGHT);
 		auto pointlights = mp_scene->m_registry.view<PointLightComponent, TransformComponent>();
 
 		for (auto [entity, pointlight, transform] : pointlights.each()) {
@@ -976,16 +964,16 @@ namespace ORNG {
 			   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 			};
 
-			mp_pointlight_depth_shader->SetUniform("u_light_pos", light_pos);
-			mp_pointlight_depth_shader->SetUniform("u_light_zfar", pointlight.shadow_distance);
+			mp_depth_sv->SetUniform("u_light_pos", light_pos);
+			mp_depth_sv->SetUniform("u_light_zfar", pointlight.shadow_distance);
 
 			// Draw depth cubemap
 			for (int i = 0; i < 6; i++) {
 				m_depth_fb->BindTextureLayerToFBAttachment(m_pointlight_system.m_pointlight_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
 				GL_StateManager::ClearDepthBits();
 
-				mp_pointlight_depth_shader->SetUniform("u_light_pv_matrix", captureProjection * captureViews[i]);
-				DrawAllMeshes(SOLID);
+				mp_depth_sv->SetUniform("u_light_pv_matrix", captureProjection * captureViews[i]);
+				DrawAllMeshesDepth(SOLID);
 			}
 
 			index++;
@@ -1013,6 +1001,20 @@ namespace ORNG {
 
 	void SceneRenderer::DoFogPass(unsigned int width, unsigned int height) {
 		ORNG_PROFILE_FUNC_GPU();
+
+		static bool clear_image = true;
+
+		if (mp_scene->post_processing.global_fog.density_coef < 0.001f || mp_scene->post_processing.global_fog.step_count == 0) {
+			if (clear_image) {
+				glClearTexImage(m_fog_blur_tex_1.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
+				clear_image = false;
+			}
+
+			return;
+		}
+
+		clear_image = true;
+
 		//draw fog texture
 		m_fog_shader->ActivateProgram();
 
@@ -1078,17 +1080,10 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetIrradianceTexture().GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSpecularPrefilter().GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_pointlight_system.m_pointlight_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex.GetTextureHandle(), GL_StateManager::TextureUnits::SCENE_VOXELIZATION, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex_c0.GetTextureHandle(), GL_StateManager::TextureUnits::SCENE_VOXELIZATION, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
-
-
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_x.GetTextureHandle(), GL_TEXTURE5, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_y.GetTextureHandle(), GL_TEXTURE6, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.pos_z.GetTextureHandle(), GL_TEXTURE8, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.neg_x.GetTextureHandle(), GL_TEXTURE9, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.neg_y.GetTextureHandle(), GL_TEXTURE10, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces.neg_z.GetTextureHandle(), GL_TEXTURE13, false);
-
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces_c0.GetTextureHandle(), GL_TEXTURE5, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces_c1.GetTextureHandle(), GL_TEXTURE6, false);
 
 		m_lighting_shader->ActivateProgram();
 		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
@@ -1096,22 +1091,23 @@ namespace ORNG {
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 #ifdef VOXEL_GI
 		// Cone trace at half res
 		glClearTexImage(m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
 		mp_cone_trace_shader->ActivateProgram();
-		mp_cone_trace_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms()[0], glm::vec3(6.4)));
+		mp_cone_trace_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 16.f), (GLuint)glm::ceil((float)spec.height / 16.f), 1);
-
 		glBindImageTexture(7, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 		mp_depth_aware_upsample_sv->Activate((unsigned)DepthAwareUpsampleSV::CONE_TRACE);
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_cone_trace_accum_tex.GetTextureHandle(), GL_TEXTURE23, false);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 #endif
 
 
@@ -1185,20 +1181,51 @@ namespace ORNG {
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
+	void SceneRenderer::UndoGL_StateModificationsFromMatFlags(MaterialFlags flags) {
+		if (flags & MaterialFlags::ORNG_MatFlags_DISABLE_BACKFACE_CULL)
+			glEnable(GL_CULL_FACE);
+	}
 
+	bool SceneRenderer::SetGL_StateFromMatFlags(MaterialFlags flags) {
+		bool ret = false;
 
-	void SceneRenderer::DrawAllMeshes(RenderGroup render_group) {
+		if (flags & MaterialFlags::ORNG_MatFlags_DISABLE_BACKFACE_CULL) {
+			ret = true;
+			glDisable(GL_CULL_FACE);
+		}
+
+		return ret;
+	}
+
+	void SceneRenderer::DrawAllMeshesDepth(RenderGroup render_group) {
 		for (const auto* group : Get().mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
 			const MeshAsset* mesh_data = group->GetMeshAsset();
 			GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {
 				const Material* p_material = group->m_materials[group->m_mesh_asset->m_submeshes[i].material_index];
+
 				if (p_material->render_group != render_group)
 					continue;
 
+				if (p_material->base_color_texture && p_material->base_color_texture->GetSpec().format == GL_RGBA) {
+					mp_depth_sv->SetUniform("u_alpha_test", true);
+					GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+				}
+				else {
+					mp_depth_sv->SetUniform("u_alpha_test", false);
+				}
+
+				bool state_changed = SetGL_StateFromMatFlags(p_material->flags);
+
 				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i, GL_TRIANGLES);
+
+				if (state_changed)
+					UndoGL_StateModificationsFromMatFlags(p_material->flags);
 			}
 		}
 	}
+
+
+
 }

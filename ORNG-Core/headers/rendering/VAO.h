@@ -212,8 +212,9 @@ namespace ORNG {
 		}
 
 		void DeleteBuffer(uint8_t index) {
-			if (!m_buffers.contains(index))
+			if (!m_buffers.contains(index)) {
 				ORNG_CORE_ERROR("VAO::DeleteBuffer failed, buffer with index '{0}' not found", index);
+			}
 			else {
 				delete m_buffers[index];
 				m_buffers.erase(index);

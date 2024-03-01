@@ -42,12 +42,12 @@ namespace ORNG {
 		}
 
 		inline void SetAbsolutePosition(glm::vec3 pos) {
-			/*glm::vec3 final_pos = pos;
+			glm::vec3 final_pos = pos;
 			if (GetParent() && !m_is_absolute) {
 				final_pos = glm::inverse(GetParent()->GetMatrix()) * glm::vec4(pos, 1.0);
-			}*/
+			}
 
-			SetPosition(pos - (m_abs_pos - m_pos));
+			SetPosition(final_pos);
 		}
 
 		inline void SetAbsoluteOrientation(glm::vec3 orientation) {

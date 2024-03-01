@@ -6,6 +6,7 @@ namespace ORNG {
 	void Quad::Load() {
 		m_vao = std::make_unique<VAO>();
 		m_vao->Init();
+		ORNG_CORE_TRACE("Quad vao created");
 		auto* p_position_buffer = m_vao->AddBuffer<VertexBufferGL<float>>(0, GL_FLOAT, 2, GL_STATIC_DRAW);
 		auto* p_tex_coord_buffer = m_vao->AddBuffer<VertexBufferGL<float>>(1, GL_FLOAT, 2, GL_STATIC_DRAW);
 
@@ -27,8 +28,11 @@ namespace ORNG {
 			1.0f, 0.0f,
 			1.0f, 1.0f,
 		};
+		ORNG_CORE_TRACE("Filling vao ");
 
 		m_vao->FillBuffers();
+		ORNG_CORE_TRACE("Vao filled ");
+
 	}
 
 	void Quad::SetVertices(glm::vec2 min, glm::vec2 max) {

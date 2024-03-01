@@ -5,13 +5,19 @@
 
 namespace ORNG {
 	void EditorEventStack::Undo() {
-		if (m_events.empty() || m_active_index == -1)
+		/*if (m_events.empty() || m_active_index == -1)
+			return;*/
+
+		if (m_events.empty() || m_active_index == m_events.size())
 			return;
 
 		auto& e = m_events[m_active_index];
 
-		if (m_active_index > -1)
-			m_active_index--;
+	/*	if (m_active_index > -1)
+			m_active_index--;*/
+
+		if (m_active_index < m_events.size())
+			m_active_index++;
 
 
 		if (e.event_type == ENTITY_CREATE) {
@@ -52,10 +58,15 @@ namespace ORNG {
 	}
 
 	void EditorEventStack::Redo() {
-		if (m_events.empty() || m_active_index == m_events.size() - 1)
+	/*	if (m_events.empty() || m_active_index == m_events.size() - 1)
 			return;
 
-		m_active_index++;
+		m_active_index++;*/
+
+		if (m_events.empty() || m_active_index == 0)
+			return;
+
+		m_active_index--;
 
 		auto& e = m_events[m_active_index];
 
