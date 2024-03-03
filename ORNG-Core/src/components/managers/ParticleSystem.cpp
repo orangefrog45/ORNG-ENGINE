@@ -172,12 +172,12 @@ namespace ORNG {
 
 		if (m_particle_ssbo.GetGPU_BufferSize() <= total_emitter_particles * particle_struct_size ) {
 
-			unsigned new_allocated_particles = glm::ceil(glm::max(total_emitter_particles * 1.5f, 10'000.f));
+			unsigned new_allocated_particles = (unsigned)glm::ceil(glm::max(total_emitter_particles * 1.5f, 10'000.f));
 			m_particle_ssbo.Resize(new_allocated_particles * particle_struct_size);
 
 			mp_particle_initializer_cs->Activate(ParticleCSVariants::INITIALIZE_AS_DEAD);
 			mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
-			GL_StateManager::DispatchCompute(glm::ceil((new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f), 1, 1);
+			GL_StateManager::DispatchCompute((int)glm::ceil((new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 		}
@@ -298,7 +298,7 @@ namespace ORNG {
 			mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
 			mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
 			mp_particle_initializer_cs->SetUniform<unsigned>("u_num_particles", num_particles_to_decrement);
-			GL_StateManager::DispatchCompute(glm::ceil(num_particles_to_decrement / 32.f), 1, 1);
+			GL_StateManager::DispatchCompute((int)glm::ceil(num_particles_to_decrement / 32.f), 1, 1);
 		}
 
 		// Emitter "start indices" (where their particles start in the buffer) need to be modified to account for deletion
@@ -361,7 +361,7 @@ namespace ORNG {
 
 			mp_append_buffer_transfer_cs->ActivateProgram();
 			mp_append_buffer_transfer_cs->SetUniform<unsigned>("u_buffer_index", buf_comp.GetBufferID());
-			GL_StateManager::DispatchCompute(glm::ceil(*p_num_appended / 32.f), 1, 1);
+			GL_StateManager::DispatchCompute((int)glm::ceil(*p_num_appended / 32.f), 1, 1);
 		}
 
 		unsigned reset = 0;

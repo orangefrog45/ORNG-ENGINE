@@ -45,6 +45,8 @@ namespace ORNG {
 		// Allocates buffer on GPU with data
 		virtual void FillBuffer();
 
+		void BufferSubData(size_t start, size_t size, std::byte* p_data);
+
 		// Allocates new buffer with size size_bytes, old data is copied
 		void Resize(size_t size_bytes);
 

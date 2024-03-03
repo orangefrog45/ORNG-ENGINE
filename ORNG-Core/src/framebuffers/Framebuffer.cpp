@@ -19,12 +19,11 @@ namespace ORNG {
 			if (texture_entry.second.is_shared)
 				return;
 
-
 			if (texture_entry.second.p_texture->m_texture_target == GL_TEXTURE_2D) {
 				Texture2D* p_texture = static_cast<Texture2D*>(texture_entry.second.p_texture);
 				Texture2DSpec new_spec = p_texture->GetSpec();
-				new_spec.width = Window::GetWidth() * texture_entry.second.screen_size_ratio.x;
-				new_spec.height = Window::GetHeight() * texture_entry.second.screen_size_ratio.y;
+				new_spec.width = (uint32_t)Window::GetWidth() * texture_entry.second.screen_size_ratio.x;
+				new_spec.height = (uint32_t)Window::GetHeight() * texture_entry.second.screen_size_ratio.y;
 				p_texture->SetSpec(new_spec);
 			}
 		}

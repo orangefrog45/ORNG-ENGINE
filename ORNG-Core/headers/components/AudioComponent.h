@@ -10,7 +10,7 @@ struct FMOD_VECTOR;
 namespace ORNG {
 	constexpr uint64_t INVALID_SOUND_UUID = 0;
 
-	class SoundAsset;
+	struct SoundAsset;
 
 	namespace Events {
 		enum class ECS_EventType;
@@ -41,7 +41,7 @@ namespace ORNG {
 		void SetPitch(float p);
 		void SetMinMaxRange(float min, float max);
 		void SetVolume(float v);
-		void SetPlaybackPosition(float time_in_ms);
+		void SetPlaybackPosition(unsigned time_in_ms);
 		void SetLooped(bool looped);
 		void Set3DLevel(float level);
 		void Set3DOcclusion(float occlusion);

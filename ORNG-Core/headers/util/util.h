@@ -1,6 +1,7 @@
 #pragma once
 #include "Log.h"
-namespace ORNG {
+
+
 #define BREAKPOINT ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak()
 #define ASSERT(x) if (!(x)) { ORNG_CORE_ERROR("Assertion failed '{0}' at '{1}', '{2}'", #x, FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();}
 #define VEC_PUSH_VEC3(vector, vec3) vector.push_back(vec3.x); vector.push_back(vec3.y); vector.push_back(vec3.z)
@@ -13,7 +14,42 @@ namespace ORNG {
 
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 
+
+namespace ORNG {
+
 	constexpr bool SHADER_DEBUG_MODE = false; // true = CreateUniform throws error if uniform doesn't exist
+
+
+	template<typename T>
+	concept Vec2Type = requires(T vec) {
+		{ vec.x };
+		{ vec.y };
+	};
+
+	template<typename T>
+	concept Vec3Type = Vec2Type<T> && requires(T vec) {
+		{ vec.z };
+	};
+
+	template<typename T>
+	concept Vec4Type = Vec3Type<T> && requires(T vec) {
+		{ vec.w };
+	};
+
+	template<Vec4Type SourceType, Vec4Type DestType>
+	DestType ConvertVec4(SourceType vec) {
+		return DestType{ vec.x, vec.y, vec.z, vec.w };
+	}
+
+	template<Vec3Type SourceType, Vec3Type DestType>
+	DestType ConvertVec3(SourceType vec) {
+		return DestType{ vec.x, vec.y, vec.z };
+	}
+
+	template<Vec2Type SourceType, Vec2Type DestType>
+	DestType ConvertVec2(SourceType vec) {
+		return DestType{ vec.x, vec.y };
+	}
 
 
 	/*

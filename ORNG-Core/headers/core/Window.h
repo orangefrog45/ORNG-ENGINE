@@ -3,7 +3,8 @@
 #include "util/util.h"
 #include "events/EventManager.h"
 
-class GLFWwindow;
+struct GLFWwindow;
+
 namespace ORNG {
 
 	class Window {
@@ -44,8 +45,8 @@ namespace ORNG {
 		}
 
 		struct ScrollData {
-			bool active;
-			glm::vec2 offset;
+			bool active = false;
+			glm::vec2 offset = { 0, 0 };
 		};
 
 

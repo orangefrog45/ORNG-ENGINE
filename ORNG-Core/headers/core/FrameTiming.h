@@ -15,8 +15,6 @@ namespace ORNG {
 			return s_instance;
 		}
 
-
-
 		static double GetTimeStep() {
 			return Get().IGetTimeStep();
 		}
@@ -25,16 +23,20 @@ namespace ORNG {
 			return Get().total_elapsed_time;
 		}
 
+		static unsigned GetFrameCount() {
+			return Get().current_frame;
+		}
 
-
-		static void UpdateTimeStep() {
-			Get().IUpdateTimeStep();
+		static void Update() {
+			Get().IUpdate();
 		}
 
 
 	private:
 
-		void IUpdateTimeStep() {
+		void IUpdate() {
+			current_frame++;
+
 			last_frame_time = current_frame_time;
 			current_frame_time = std::chrono::steady_clock::now();
 			current_frame_time_step = std::chrono::duration_cast<std::chrono::microseconds>(current_frame_time - last_frame_time).count() / 1000.0;
@@ -44,6 +46,8 @@ namespace ORNG {
 		float IGetTimeStep() const {
 			return current_frame_time_step;
 		}
+
+		unsigned current_frame = 0;
 
 		double current_frame_time_step = 0;
 		double total_elapsed_time = 0;

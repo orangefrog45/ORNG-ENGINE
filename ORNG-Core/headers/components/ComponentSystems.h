@@ -149,14 +149,28 @@ namespace ORNG {
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
-		OverlapQueryResults OverlapQuery(glm::vec3 pos, float range);
+		OverlapQueryResults OverlapQuery(PxGeometry& geom, glm::vec3 pos);
+
+		enum class ActorType : uint8_t {
+			RIGID_BODY,
+			CHARACTER_CONTROLLER,
+			VEHICLE
+		};
 
 		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
 		SceneEntity* TryGetEntityFromPxActor(const physx::PxActor* p_actor) {
 			if (m_entity_lookup.contains(p_actor))
-				return m_entity_lookup[p_actor];
+				return m_entity_lookup[p_actor].first;
 			else
 				return nullptr;
+		}
+
+		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
+		std::optional<std::pair<SceneEntity*, ActorType>> TryGetEntityAndTypeFromPxActor(const physx::PxActor* p_actor) {
+			if (m_entity_lookup.contains(p_actor))
+				return m_entity_lookup[p_actor];
+			else
+				return std::nullopt;
 		}
 
 		bool InitVehicle(VehicleComponent* p_comp);
@@ -202,8 +216,10 @@ namespace ORNG {
 
 		std::unordered_map<const MeshAsset*, physx::PxTriangleMesh*> m_triangle_meshes;
 
+
 		// Quick way to find an entity from its corresponding phys comps PxRigidActor
-		std::unordered_map<const physx::PxActor*, SceneEntity*> m_entity_lookup;
+		std::unordered_map<const physx::PxActor*, std::pair<SceneEntity*, ActorType>> m_entity_lookup;
+
 		// Queue of entities that need OnCollision script events (if they have one) to fire, has to be done outside of simulation due to restrictions with rigidbody modification during simulation, processed each frame in OnUpdate
 		std::vector<std::pair<SceneEntity*, SceneEntity*>> m_entity_collision_queue;
 
@@ -217,23 +233,23 @@ namespace ORNG {
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		float m_step_size = (1.f / 60.f);
+		float m_step_size = (1.f / 120.f);
 		float m_accumulator = 0.f;
 
 		class PhysCollisionCallback : public physx::PxSimulationEventCallback {
 		public:
 			PhysCollisionCallback(PhysicsSystem* p_system) : mp_system(p_system) {};
-			virtual void onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) override {};
+			virtual void onConstraintBreak([[maybe_unused]] PxConstraintInfo* constraints, [[maybe_unused]] PxU32 count) override {};
 
-			virtual void onWake(PxActor** actors, PxU32 count) override {};
+			virtual void onWake([[maybe_unused]] PxActor** actors, [[maybe_unused]] PxU32 count) override {};
 
-			virtual void onSleep(PxActor** actors, PxU32 count) override {};
+			virtual void onSleep[[maybe_unused]] (PxActor** actors, [[maybe_unused]] PxU32 count) override {};
 
 			virtual void onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs) override;
 
 			virtual void onTrigger(PxTriggerPair* pairs, PxU32 count) override;
 
-			virtual void onAdvance(const PxRigidBody* const* bodyBuffer, const PxTransform* poseBuffer, const PxU32 count) override {};
+			virtual void onAdvance([[maybe_unused]] const PxRigidBody* const* bodyBuffer, [[maybe_unused]] const PxTransform* poseBuffer, [[maybe_unused]] const PxU32 count) override {};
 
 
 		private:

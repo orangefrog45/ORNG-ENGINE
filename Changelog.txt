@@ -1,3 +1,8 @@
+3/3/24:
+-Voxel GI bugfixing/debug code cleanup and cascades almost fully implemented
+-More scripting utilities (exposed physx api, get entity by name)
+-General refactoring/bugfixing
+
 01/3/24:
 -Started work on multiple voxel GI cascades to extend GI range
 -Depth passes now account for transparency in materials (binary opacity only)

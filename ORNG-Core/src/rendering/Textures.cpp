@@ -393,7 +393,10 @@ namespace ORNG {
 			return false;
 		}
 	}
-
+	template <typename T>
+	struct TypeIdentity {
+		using type = T;
+	};
 
 	bool TextureCubemap::SetSpec(const TextureCubemapSpec& spec) {
 		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) &&

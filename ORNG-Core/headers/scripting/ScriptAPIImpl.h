@@ -3,6 +3,10 @@
 #include "core/Input.h"
 #include "ScriptAPI.h"
 
+namespace physx {
+	class PxGeometry;
+}
+
 extern "C" {
 
 	// Connect main application's event system with dll
@@ -37,8 +41,8 @@ extern "C" {
 		ScriptInterface::World::InstantiatePrefab = func;
 	}
 
-	__declspec(dllexport) void SetGetEntityEnttHandleCallback(std::function<ORNG::SceneEntity& (entt::entity)> func) {
-		ScriptInterface::World::GetEntityEnttHandle = func;
+	__declspec(dllexport) void SetGetEntityByNameCallback(std::function<ORNG::SceneEntity& (const std::string&)> func) {
+		ScriptInterface::World::GetEntityByName = func;
 	}
 
 	__declspec(dllexport) void SetGetEntityCallback(std::function<ORNG::SceneEntity& (uint64_t)> func) {
@@ -48,7 +52,7 @@ extern "C" {
 		ScriptInterface::World::Raycast = func;
 	}
 
-	__declspec(dllexport) void SetOverlapQueryCallback(std::function <ORNG::OverlapQueryResults(glm::vec3, float)> func) {
+	__declspec(dllexport) void SetOverlapQueryCallback(std::function <ORNG::OverlapQueryResults(physx::PxGeometry&, glm::vec3)> func) {
 		ScriptInterface::World::OverlapQuery = func;
 	}
 

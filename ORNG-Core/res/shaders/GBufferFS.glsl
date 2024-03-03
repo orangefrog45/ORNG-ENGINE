@@ -178,7 +178,7 @@ void main() {
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
 	if (albedo.w < 0.5)
 		discard;
-	albedo.w = 1.0;
+		albedo.w = 1.0;
 	if (u_normal_sampler_active) {
 		mat3 tbn = CalculateTbnMatrixTransform();
 		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;

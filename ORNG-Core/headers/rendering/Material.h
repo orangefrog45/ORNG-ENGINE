@@ -34,7 +34,7 @@ namespace ORNG {
 		ORNG_MatFlags_IS_SPRITESHEET = 1 << 4,
 		ORNG_MatFlags_DISABLE_BACKFACE_CULL = 1 << 5,
 
-		ORNG_MatFlags_ALL = ~(0),
+		ORNG_MatFlags_ALL = UINT_MAX,
 	};
 
 	class Material : public Asset {
@@ -50,7 +50,7 @@ namespace ORNG {
 		explicit Material(const std::string& filepath) : Asset(filepath) {};
 
 		// Set ID explicitly, this is only to be used in rare scenarios (e.g the base replacement material in-engine)
-		explicit Material(uint64_t id) : Asset("") { uuid = UUID(0); };
+		explicit Material(uint64_t id) : Asset("") { uuid = UUID(id); };
 
 
 		Material(const Material& other) = default;
@@ -134,7 +134,7 @@ namespace ORNG {
 
 		std::string name = "Unnamed material";
 
-		uint64_t shader_id = 1; // 1 = default shader (pbr lighting)
+		uint8_t shader_id = 1; // 1 = default shader (pbr lighting)
 
 	private:
 		MaterialFlags flags = MaterialFlags::ORNG_MatFlags_NONE;

@@ -5,9 +5,7 @@
 #include "util/UUID.h"
 
 namespace ORNG {
-	struct Material;
-
-
+	class Material;
 
 	class Shader {
 	public:

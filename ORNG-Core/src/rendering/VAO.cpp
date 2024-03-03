@@ -34,6 +34,15 @@ namespace ORNG {
 		glVertexAttribPointer(index, comps_per_attribute, data_type, GL_FALSE, stride, 0);
 	}
 
+	void BufferBase::BufferSubData(size_t start, size_t size, std::byte* p_data) {
+		if (!m_is_mutable) {
+			ORNG_CORE_ERROR("Calling BufferSubData on an immutable buffer isn't allowed");
+		}
+
+		glNamedBufferSubData(m_ogl_handle, start, size, p_data);
+	}
+
+
 	void BufferBase::FillBuffer() {
 		GL_StateManager::BindBuffer(buffer_type, m_ogl_handle);
 

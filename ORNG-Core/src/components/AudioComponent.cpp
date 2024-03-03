@@ -71,7 +71,7 @@ namespace ORNG {
 		mp_channel->set3DLevel(level);
 	}
 
-	void AudioComponent::SetPlaybackPosition(float time_in_ms) {
+	void AudioComponent::SetPlaybackPosition(unsigned time_in_ms) {
 		mp_channel->setPosition(time_in_ms, FMOD_TIMEUNIT_MS);
 	}
 

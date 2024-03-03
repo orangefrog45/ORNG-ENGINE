@@ -33,8 +33,6 @@ namespace ORNG {
 
 		bool CheckIntersection(glm::vec3 position) const;
 
-		/* Find leaf node inside quadtree that can contain position */
-		TerrainQuadtree& DoBoundaryTest(glm::vec3 position);
 		TerrainQuadtree& GetParent() {
 			if (!m_is_root_node) return *m_parent;
 			return *this;

@@ -56,7 +56,7 @@ namespace ORNG {
 		TimerObject(const TimerObject&) = delete;
 		~TimerObject() {
 			if (ProfilingTimers::AreTimersEnabled() && ProfilingTimers::AreTimersReadyToUpdate()) {
-				double time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - first_time).count();
+				double time_elapsed = (double)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - first_time).count();
 				ProfilingTimers::StoreTimerData(std::format("{} - {}ms", func_name, time_elapsed / 1000.0));
 			}
 		}
@@ -83,7 +83,7 @@ namespace ORNG {
 			glEndQuery(GL_TIME_ELAPSED);
 			glGetQueryObjectuiv(query, GL_QUERY_RESULT, &result);
 			query_finished = true;
-			return result / 1000000.0;
+			return (unsigned)result / 1000000.0;
 		}
 
 		GPU_TimerObject(const GPU_TimerObject&) = delete;

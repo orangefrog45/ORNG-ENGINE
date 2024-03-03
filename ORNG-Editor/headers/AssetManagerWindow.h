@@ -5,8 +5,8 @@
 namespace ORNG {
 	class MeshAsset;
 	class Material;
-	class ScriptAsset;
-	class Prefab;
+	struct ScriptAsset;
+	struct Prefab;
 
 	struct ConfirmationWindowData {
 		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {};

@@ -91,5 +91,5 @@ void main() {
     if(u_displacement_sampler_active)
         pos.xyz += n * texture(displacement_sampler, tex_coord * u_material.tile_scale).r * u_material.displacement_scale ;
 
-    gl_Position = PVMatrices.proj_view * transform_ssbo.transforms[ts_instance_id] * pos ;
+    gl_Position = PVMatrices.proj_view * pos ;
 }

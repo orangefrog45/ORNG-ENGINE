@@ -13,7 +13,6 @@ namespace ORNG {
 
 		m_framebuffer_library.Init();
 		m_shader_library.Init();
-		ORNG_CORE_TRACE("Loading quad");
 		mp_quad = new Quad();
 		mp_quad->Load();
 

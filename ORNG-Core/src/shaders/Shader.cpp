@@ -255,7 +255,7 @@ namespace ORNG {
 		if (result == GL_FALSE) {
 			int length;
 			glGetProgramiv(m_program_id, GL_INFO_LOG_LENGTH, &length);
-			char* message = (char*)alloca(length * sizeof(char));
+			char* message = (char*)_malloca(length * sizeof(char));
 			glGetProgramInfoLog(m_program_id, length, &length, message);
 
 

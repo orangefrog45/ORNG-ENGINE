@@ -205,11 +205,11 @@ namespace ORNG {
 
 	void Scene::SetScriptState() {
 		for (auto* p_script_asset : AssetManager::GetView<ScriptAsset>()) {
-			p_script_asset->symbols.SceneGetEntityEnttHandleSetter([this](entt::entity entt_handle) -> SceneEntity& {
-				auto* p_ent = GetEntity(entt_handle);
+			p_script_asset->symbols.SceneGetEntityByNameSetter([this](const std::string& name) -> SceneEntity& {
+				auto* p_ent = GetEntity(name);
 
 				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with entt handle {} not found", (uint32_t)entt_handle)); // Caught in Scene::Update
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with name {} not found", name)); // Caught in Scene::Update
 
 				return *p_ent;
 				});
@@ -244,8 +244,8 @@ namespace ORNG {
 				return *p_ent;
 				});
 
-			p_script_asset->symbols.SceneOverlapQuerySetter([this](glm::vec3 pos, float range) -> OverlapQueryResults {
-				return physics_system.OverlapQuery(pos, range);
+			p_script_asset->symbols.SceneOverlapQuerySetter([this](PxGeometry& geom, glm::vec3 pos) -> OverlapQueryResults {
+				return physics_system.OverlapQuery(geom, pos);
 				});
 		}
 	}

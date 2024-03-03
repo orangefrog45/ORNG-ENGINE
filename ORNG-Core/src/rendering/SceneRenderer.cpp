@@ -341,23 +341,23 @@ namespace ORNG {
 		resize_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
 			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
 				Texture2DSpec resized_spec = m_fog_output_tex.GetSpec();
-				resized_spec.width = t_event.new_window_size.x * 0.5;
-				resized_spec.height = t_event.new_window_size.y * 0.5;
+				resized_spec.width = (uint32_t)t_event.new_window_size.x * 0.5;
+				resized_spec.height = (uint32_t)t_event.new_window_size.y * 0.5;
 				m_fog_output_tex.SetSpec(resized_spec);
 
-				resized_spec.width = t_event.new_window_size.x;
-				resized_spec.height = t_event.new_window_size.y;
+				resized_spec.width = (uint32_t)t_event.new_window_size.x;
+				resized_spec.height = (uint32_t)t_event.new_window_size.y;
 				m_fog_blur_tex_1.SetSpec(resized_spec);
 				m_fog_blur_tex_2.SetSpec(resized_spec);
 
 				Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
-				resized_bloom_spec.width = t_event.new_window_size.x * 0.5;
-				resized_bloom_spec.height = t_event.new_window_size.y * 0.5;
+				resized_bloom_spec.width = (uint32_t)t_event.new_window_size.x * 0.5;
+				resized_bloom_spec.height = (uint32_t)t_event.new_window_size.y * 0.5;
 				m_bloom_tex.SetSpec(resized_bloom_spec);
 
 				Texture2DSpec resized_ct_spec = m_cone_trace_accum_tex.GetSpec();
-				resized_ct_spec.width = t_event.new_window_size.x * 0.5;
-				resized_ct_spec.height = t_event.new_window_size.y * 0.5;
+				resized_ct_spec.width = (uint32_t)t_event.new_window_size.x * 0.5;
+				resized_ct_spec.height = (uint32_t)t_event.new_window_size.y * 0.5;
 				m_cone_trace_accum_tex.SetSpec(resized_ct_spec);
 			}
 			};
@@ -489,9 +489,9 @@ namespace ORNG {
 		const float fov = glm::radians(p_cam->fov / 2.f);
 
 		glm::vec3 light_dir = light.GetLightDirection();
-		light.m_light_space_matrices[0] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light_dir, light.z_mults[0], m_shadow_map_resolution);;
-		light.m_light_space_matrices[1] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light_dir, light.z_mults[1], m_shadow_map_resolution);;
-		light.m_light_space_matrices[2] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light_dir, light.z_mults[2], m_shadow_map_resolution);;
+		light.m_light_space_matrices[0] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, 0.1f, light.cascade_ranges[0]), cam_view_matrix, light_dir, light.z_mults[0], (float)m_shadow_map_resolution);;
+		light.m_light_space_matrices[1] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]), cam_view_matrix, light_dir, light.z_mults[1], (float)m_shadow_map_resolution);;
+		light.m_light_space_matrices[2] = ExtraMath::CalculateLightSpaceMatrix(glm::perspective(fov, aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]), cam_view_matrix, light_dir, light.z_mults[2], (float)m_shadow_map_resolution);;
 	}
 
 
@@ -518,8 +518,12 @@ namespace ORNG {
 		if (settings.do_intercept_renderpasses) {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
-			DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0);
-			DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::CASCADE_1);
+
+			if (FrameTiming::GetFrameCount() % 2 == 0)
+				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0);
+			else
+				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::CASCADE_1);
+
 			DoGBufferPass(p_cam, settings);
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 			DoLightingPass(settings.p_output_tex);
@@ -692,7 +696,7 @@ namespace ORNG {
 		mp_scene_voxelization_shader->Activate((unsigned)shader_variant);
 
 		auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
-		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4));
+		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f));
 
 		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
 		mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
@@ -719,7 +723,7 @@ namespace ORNG {
 		// Create first anisotropic mip
 		glBindImageTexture(2, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		mp_3d_mipmap_shader->Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC);
-		GL_StateManager::DispatchCompute(half_cascade_width / 4, half_cascade_width / 4, half_cascade_width / 4);
+		GL_StateManager::DispatchCompute((int)half_cascade_width / 4, (int)half_cascade_width / 4, (int)half_cascade_width / 4);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 		// Create mip chain from anisotropic mip
@@ -729,7 +733,7 @@ namespace ORNG {
 			mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
 			glBindImageTexture(0, cascade_mips.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-			int group_dim = glm::ceil((half_cascade_width / (i + 1)) / 4.f);
+			int group_dim = (int)glm::ceil((half_cascade_width / (i + 1)) / 4.f);
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
 			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
@@ -882,12 +886,12 @@ namespace ORNG {
 			}
 			else {
 				//std::array<Texture3D*, 6> voxel_mips = { &m_voxel_mip_faces_c0.pos_x, &m_voxel_mip_faces_c0.pos_y, &m_voxel_mip_faces_c0.pos_z, &m_voxel_mip_faces_c0.neg_x, &m_voxel_mip_faces_c0.neg_y, &m_voxel_mip_faces_c0.neg_z };
-				glBindImageTexture(0, m_voxel_mip_faces_c0.GetTextureHandle(), settings.voxel_mip_layer, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
+				glBindImageTexture(0, m_voxel_mip_faces_c1.GetTextureHandle(), settings.voxel_mip_layer, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA16F);
 			}
 
 			mp_voxel_debug_shader->ActivateProgram();
-			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), glm::pow(256 / (settings.voxel_mip_layer + 1), 3));
+			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(12.8f)));
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), (unsigned)glm::pow(256 / (settings.voxel_mip_layer + 1), 3));
 		}
 #endif	
 
@@ -1086,7 +1090,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces_c1.GetTextureHandle(), GL_TEXTURE6, false);
 
 		m_lighting_shader->ActivateProgram();
-		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
+		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f)));
 
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -1097,7 +1101,7 @@ namespace ORNG {
 		// Cone trace at half res
 		glClearTexImage(m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
 		mp_cone_trace_shader->ActivateProgram();
-		mp_cone_trace_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4)));
+		mp_cone_trace_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f)));
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 16.f), (GLuint)glm::ceil((float)spec.height / 16.f), 1);
 		glBindImageTexture(7, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -1199,7 +1203,6 @@ namespace ORNG {
 
 	void SceneRenderer::DrawAllMeshesDepth(RenderGroup render_group) {
 		for (const auto* group : Get().mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-			const MeshAsset* mesh_data = group->GetMeshAsset();
 			GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {

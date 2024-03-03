@@ -3,7 +3,6 @@
 
 namespace ORNG {
 	struct PhysXMaterialAsset : public Asset {
-	public:
 		PhysXMaterialAsset(const std::string& t_filepath) : Asset(t_filepath) {};
 
 		template<typename S>

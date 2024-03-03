@@ -137,7 +137,7 @@ namespace ORNG {
 		m_asset_deletion_queue.clear();
 		RenderMainAssetWindow();
 
-		if (mp_selected_material && RenderMaterialEditorSection())
+		if (mp_selected_material && mp_selected_material->uuid() != ORNG_BASE_MATERIAL_ID &&  RenderMaterialEditorSection())
 			m_materials_to_gen_previews.push_back(mp_selected_material);
 
 		if (mp_selected_texture)

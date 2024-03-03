@@ -13,7 +13,6 @@
 #include "./glm/gtx/transform.hpp"
 #include "./glm/gtx/quaternion.hpp"
 
-
 #include "Component.h"
 #include "Lights.h"
 #include "MeshComponent.h"

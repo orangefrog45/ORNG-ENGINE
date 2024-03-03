@@ -19,7 +19,7 @@ namespace physx {
 namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
-	class PhysXMaterialAsset;
+	struct PhysXMaterialAsset;
 
 
 
@@ -80,9 +80,13 @@ namespace ORNG {
 	public:
 		friend class PhysicsSystem;
 		explicit CharacterControllerComponent(SceneEntity* p_entity) : Component(p_entity) {};
+
+		// Movement will update transform at the end of each frame and can be overwritten by calling functions like LookAt
+		// To avoid overwriting, ensure this is called AFTER any transform updates to the entity it is attached to
 		void Move(glm::vec3 disp, float minDist, float elapsedTime);
-	private:
+		bool moved_during_frame = false;
 		physx::PxController* mp_controller = nullptr;
+	private:
 	};
 
 	enum JointEventType {
@@ -90,7 +94,8 @@ namespace ORNG {
 		BREAK
 	};
 
-	struct FixedJointComponent : public Component {
+	class FixedJointComponent : public Component {
+	public:
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		FixedJointComponent(SceneEntity* p_entity) : Component(p_entity) {};

@@ -161,13 +161,5 @@ namespace ORNG {
 		}
 	}
 
-	TerrainQuadtree& TerrainQuadtree::DoBoundaryTest(glm::vec3 position) {
-		if (!m_is_subdivided) return *this;
 
-		for (auto& node : m_child_nodes) {
-			if (node.CheckIntersection(position)) {
-				return node.DoBoundaryTest(position);
-			}
-		}
-	}
 }

@@ -325,7 +325,7 @@ namespace ORNG {
 
 			for (int i = 0; i < 4; i++) {
 				Out(out, std::format("Wheel{}", i), YAML::BeginMap);
-				Out(out, "SuspensionAttachment", ToGlmVec3(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
+				Out(out, "SuspensionAttachment", ConvertVec3<PxVec3, glm::vec3>(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
 				out << YAML::EndMap;
 			}
 
@@ -527,7 +527,7 @@ namespace ORNG {
 				}
 				for (int i = 0; i < 4; i++) {
 					auto wheel = vehicle_node[std::format("Wheel{}", i)];
-					p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ToPxVec3(wheel["SuspensionAttachment"].as<glm::vec3>());
+					p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ConvertVec3<glm::vec3, PxVec3>(wheel["SuspensionAttachment"].as<glm::vec3>());
 				}
 
 				scene.physics_system.InitVehicle(p_comp);
@@ -541,7 +541,7 @@ namespace ORNG {
 				p_emitter->m_spread = emitter_node["Spread"].as<float>();
 				p_emitter->m_spawn_extents = emitter_node["Spawn extents"].as<glm::vec3>();
 				p_emitter->m_velocity_min_max_scalar = emitter_node["Velocity range"].as<glm::vec2>();
-				p_emitter->m_num_particles = emitter_node["Nb. particles"].as<float>();
+				p_emitter->m_num_particles = emitter_node["Nb. particles"].as<unsigned>();
 				p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
 				p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
 				p_emitter->m_type = static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>());
@@ -731,5 +731,7 @@ namespace ORNG {
 		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
 		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
 		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
+
+		return true;
 	}
 }

@@ -76,7 +76,7 @@ namespace ORNG {
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
 
-			FrameTiming::UpdateTimeStep();
+			FrameTiming::Update();
 		}
 
 		// Cleanup

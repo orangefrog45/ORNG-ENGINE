@@ -185,11 +185,7 @@ void main() {
 			vs_transform = transform_ssbo.transforms[gl_InstanceID];
 			#endif
 			
-			#ifdef TESSELLATE
-				vert_data.position = (vec4(position, 1.0f));
-			#else
-				vert_data.position = vs_transform * (vec4(position, 1.0f));
-			#endif
+			vert_data.position = vs_transform * (vec4(position, 1.0f));
 			vert_data.normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
 
 		#endif

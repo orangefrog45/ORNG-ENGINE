@@ -161,20 +161,12 @@ namespace ORNG {
 		}
 
 		static void SetCursorPos(int x, int y) {
-			Events::MouseEvent e_event;
-			e_event.event_type = Events::MouseEventType::SET;
-			e_event.mouse_action = MOVE;
-			e_event.mouse_button = MouseButton::NONE;
-			e_event.mouse_pos_new = glm::ivec2(x, y);
+			Events::MouseEvent e_event{ Events::MouseEventType::SET, MOVE, MouseButton::NONE, glm::ivec2(x, y), Input::GetMousePos()};
 			Events::EventManager::DispatchEvent(e_event);
 		}
 
 		static void SetCursorVisible(bool visible) {
-			Events::MouseEvent e_event;
-			e_event.event_type = Events::MouseEventType::SET;
-			e_event.mouse_action = TOGGLE_VISIBILITY;
-			e_event.mouse_button = MouseButton::NONE;
-			e_event.data_payload = visible;
+			Events::MouseEvent e_event{ Events::MouseEventType::SET, TOGGLE_VISIBILITY, MouseButton::NONE, {0, 0}, {0, 0}, visible };
 			Events::EventManager::DispatchEvent(e_event);
 		}
 

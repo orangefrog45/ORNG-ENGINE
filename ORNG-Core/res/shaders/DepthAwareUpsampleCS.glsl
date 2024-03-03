@@ -26,8 +26,8 @@ void main() {
 #endif
 
 
-    for (int x = 0; x <= 1; x++) {
-        for (int y = 0; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
             // Sample value from the half-resolution input texture
             vec4 sampled_offset = texture(in_tex, vec2((tex_coords + vec2(x, y) * 0.5)) * 0.5 / textureSize(in_tex, 0));
             float depth_dif = abs(texelFetch(depth_sampler, tex_coords + ivec2(x, y), 0).r - original_depth);
@@ -51,8 +51,9 @@ void main() {
 
 #ifdef CONE_TRACE_UPSAMPLE // Composite here (luminance written directly to the main render texture)
 	vec4 original = imageLoad(out_tex, tex_coords);
-	imageStore(out_tex, tex_coords, original + result * (1.0 / max(sum, 0.0000001f)));
+    vec3 store = vec3(original.rgb +  result.rgb * (1.0 / max(sum, 1)));
+    imageStore(out_tex, tex_coords, vec4(store.rgb, original.a));
 #else // Store for later composition (fog uses this as it needs blur passes before)
-	imageStore(out_tex, tex_coords, result * (1.0 / max(sum, 0.0000001f)));
+	imageStore(out_tex, tex_coords, result * (1.0 / max(sum, 1)));
 #endif
 }

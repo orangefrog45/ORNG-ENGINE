@@ -610,8 +610,8 @@ namespace ORNG {
 		}
 
 		mp_editor_pass_fb->Bind();
-		DoSelectedEntityHighlightPass();
 		RenderGrid();
+		DoSelectedEntityHighlightPass();
 		if (m_general_settings.debug_render_settings.render_physx_debug)
 			RenderPhysxDebug();
 
@@ -858,6 +858,12 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ParticleEmitterComponent.h", "./res/scripts/includes/ParticleEmitterComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
 
+		if (!FileExists(ORNG_CORE_MAIN_DIR "/../extern/vcpkg/installed/x64-windows/include")) {
+			ORNG_CORE_ERROR("Physx include dir not found, scripts referencing the physx API will not compile");
+		}
+		else {
+			FileCopy(ORNG_CORE_MAIN_DIR "/../extern/vcpkg/installed/x64-windows/include/physx/", "./res/scripts/includes/physx/", true);
+		}
 
 	}
 
@@ -1118,26 +1124,6 @@ namespace ORNG {
 
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
-		/*glDisable(GL_DEPTH_TEST);
-		mp_editor_pass_fb->Bind();
-		mp_highlight_shader->ActivateProgram();
-		mp_highlight_shader->SetUniform("u_color", glm::vec4(1.0, 0, 0, 0.1));
-
-		for (auto id : m_selected_entity_ids) {
-			auto* current_entity = (*mp_scene_context)->GetEntity(id);
-
-			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
-				continue;
-
-			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
-
-
-			mp_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
-			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
-		}
-		glEnable(GL_DEPTH_TEST);*/
-
-
 		mp_editor_pass_fb->Bind();
 		glEnable(GL_STENCIL_TEST);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
@@ -1337,7 +1323,7 @@ namespace ORNG {
 		m_lua_cli.GetLua().set_function("moveto", p_move_to_func);
 		m_lua_cli.GetLua().set_function("move_me", p_cam_move_to_func);
 		m_lua_cli.GetLua().set_function("match", p_match_func);
-
+		
 	}
 
 	
@@ -1429,8 +1415,7 @@ namespace ORNG {
 
 
 	EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer, bool node_selection_active, const Box2D& selection_box) {
-		EntityNodeData ret;
-		ret.e_event = EntityNodeEvent::E_NONE;
+		EntityNodeData ret{ EntityNodeEvent::E_NONE, {0, 0}, {0, 0} };
 
 		// Tree nodes that are open are stored here so their children are rendered with the logic below, independant of if the parent tree node is visible or not.
 		static std::vector<uint64_t> open_tree_nodes;
@@ -2162,7 +2147,7 @@ namespace ORNG {
 				ImVec2 mouse_pos = ImGui::GetMousePos();
 				ImVec2 local_mouse{ mouse_pos.x - (wp.x + prev_curs_pos.x), mouse_pos.y - (wp.y + prev_curs_pos.y) };
 
-				p_audio->mp_channel->setPosition(((float)local_mouse.x / playback_widget_width) * (float)total_length, FMOD_TIMEUNIT_MS);
+				p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length), FMOD_TIMEUNIT_MS);
 			}
 		}
 		if (first_mouse_down && ImGui::IsMouseReleased(0)) {
@@ -2263,7 +2248,7 @@ namespace ORNG {
 		ImGui::Checkbox("Gizmos", &render_gizmos);
 		ImGui::SameLine();
 		static bool absolute_mode = false;
-
+		absolute_mode = transforms[0]->IsAbsolute();
 		if (ImGui::Checkbox("Absolute", &absolute_mode)) {
 			transforms[0]->SetAbsoluteMode(absolute_mode);
 		}

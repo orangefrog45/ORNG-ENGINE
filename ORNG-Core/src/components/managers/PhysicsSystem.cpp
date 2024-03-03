@@ -90,7 +90,7 @@ namespace ORNG {
 		PxTolerancesScale scale(1.f);
 		PxSceneDesc scene_desc{ scale };
 		scene_desc.filterShader = FilterShader;
-		scene_desc.gravity = PxVec3(0, -9.81, 0);
+		scene_desc.gravity = PxVec3(0.f, -9.81f, 0.f);
 		scene_desc.cpuDispatcher = Physics::GetCPUDispatcher();
 		scene_desc.cudaContextManager = Physics::GetCudaContextManager();
 		scene_desc.flags |= PxSceneFlag::eENABLE_PCM;
@@ -246,9 +246,9 @@ namespace ORNG {
 		auto* p_base_material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
 
 		static PxVehiclePhysXMaterialFriction f1;
-		f1.friction = 0.8;
+		f1.friction = 0.8f;
 		f1.material = p_base_material;
-		PxVec3 half_extents({ 0.5, 0.5, 1.0 });
+		PxVec3 half_extents({ 0.5f, 0.5f, 1.0f });
 		PxCookingParams params{ PxTolerancesScale(Physics::GetToleranceScale()) };
 		//setPhysXIntegrationParams(vehicle.mBaseParams.axleDescription, &f1, 1, 0.5, vehicle.mPhysXParams);
 		vehicle.mPhysXParams.create(vehicle.mBaseParams.axleDescription, PxQueryFilterData(), nullptr, &f1, 1, 0.5, PxTransform({ 0.0, 0.0, 0.5 }), half_extents, PxTransform(PxIdentity));
@@ -293,9 +293,9 @@ namespace ORNG {
 		vehicle.mBaseParams.axleDescription.nbWheels = 4;
 
 
-		vehicle.mBaseParams.ackermannParams[0].strength = 1.0;
-		vehicle.mBaseParams.ackermannParams[0].trackWidth = 1.55;
-		vehicle.mBaseParams.ackermannParams[0].wheelBase = 2.86;
+		vehicle.mBaseParams.ackermannParams[0].strength = 1.0f;
+		vehicle.mBaseParams.ackermannParams[0].trackWidth = 1.55f;
+		vehicle.mBaseParams.ackermannParams[0].wheelBase = 2.86f;
 		vehicle.mBaseParams.frame.setToDefault();
 		vehicle.mBaseParams.frame.lngAxis = PxVehicleAxes::eNegZ;
 		vehicle.mBaseParams.frame.latAxis = PxVehicleAxes::ePosX;
@@ -303,82 +303,82 @@ namespace ORNG {
 
 		vehicle.mBaseParams.scale.scale = 1.0;
 
-		vehicle.mBaseParams.brakeResponseParams->maxResponse = 2875.0;
-		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[0] = 1.0;
-		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[1] = 1.0;
-		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[2] = 1.0;
-		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[3] = 1.0;
+		vehicle.mBaseParams.brakeResponseParams->maxResponse = 2875.0f;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[0] = 1.0f;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[1] = 1.0f;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[2] = 1.0f;
+		vehicle.mBaseParams.brakeResponseParams->wheelResponseMultipliers[3] = 1.0f;
 
 		vehicle.mBaseParams.steerResponseParams.maxResponse = 0.83;
 
-		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[0] = 0.75;
-		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[1] = 0.75;
-		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[2] = 0.0;
-		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[3] = 0.0;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[0] = 0.75f;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[1] = 0.75f;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[2] = 0.0f;
+		vehicle.mBaseParams.steerResponseParams.wheelResponseMultipliers[3] = 0.0f;
 
-		vehicle.mBaseParams.suspensionParams[0].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
-		vehicle.mBaseParams.suspensionParams[1].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
-		vehicle.mBaseParams.suspensionParams[2].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
-		vehicle.mBaseParams.suspensionParams[3].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
+		vehicle.mBaseParams.suspensionParams[0].suspensionAttachment.p = { -0.7952629923820496f, -0.10795199871063233f, 1.269219994544983f };
+		vehicle.mBaseParams.suspensionParams[1].suspensionAttachment.p = { 0.7952629923820496f, -0.10795199871063233f, 1.269219994544983f };
+		vehicle.mBaseParams.suspensionParams[2].suspensionAttachment.p = { -0.7952629923820496f, -0.10795199871063233f, -1.593999981880188f };
+		vehicle.mBaseParams.suspensionParams[3].suspensionAttachment.p = { 0.7952629923820496f, -0.10795199871063233f, -1.593999981880188f };
 
-		vehicle.mBaseParams.suspensionForceParams[0].damping = 8528;
-		vehicle.mBaseParams.suspensionForceParams[0].stiffness = 32833;
-		vehicle.mBaseParams.suspensionForceParams[0].sprungMass = 553;
+		vehicle.mBaseParams.suspensionForceParams[0].damping = 8528.f;
+		vehicle.mBaseParams.suspensionForceParams[0].stiffness = 32833.f;
+		vehicle.mBaseParams.suspensionForceParams[0].sprungMass = 553.f;
 
-		vehicle.mBaseParams.suspensionForceParams[1].damping = 8742;
-		vehicle.mBaseParams.suspensionForceParams[1].stiffness = 33657;
-		vehicle.mBaseParams.suspensionForceParams[1].sprungMass = 567;
+		vehicle.mBaseParams.suspensionForceParams[1].damping = 8742.f;
+		vehicle.mBaseParams.suspensionForceParams[1].stiffness = 33657.f;
+		vehicle.mBaseParams.suspensionForceParams[1].sprungMass = 567.f;
 
-		vehicle.mBaseParams.suspensionForceParams[2].damping = 6765;
-		vehicle.mBaseParams.suspensionForceParams[2].stiffness = 26049;
-		vehicle.mBaseParams.suspensionForceParams[2].sprungMass = 439;
+		vehicle.mBaseParams.suspensionForceParams[2].damping = 6765.f;
+		vehicle.mBaseParams.suspensionForceParams[2].stiffness = 26049.f;
+		vehicle.mBaseParams.suspensionForceParams[2].sprungMass = 439.f;
 
-		vehicle.mBaseParams.suspensionForceParams[3].damping = 6985;
-		vehicle.mBaseParams.suspensionForceParams[3].stiffness = 26894;
-		vehicle.mBaseParams.suspensionForceParams[3].sprungMass = 453;
+		vehicle.mBaseParams.suspensionForceParams[3].damping = 6985.f;
+		vehicle.mBaseParams.suspensionForceParams[3].stiffness = 26894.f;
+		vehicle.mBaseParams.suspensionForceParams[3].sprungMass = 453.f;
 
 
 		vehicle.mBaseParams.suspensionStateCalculationParams.suspensionJounceCalculationType = PxVehicleSuspensionJounceCalculationType::eSWEEP;
 		for (int i = 0; i < 4; i++) {
-			vehicle.mBaseParams.suspensionComplianceParams[i].suspForceAppPoint.addPair(0, { 0, 0, -0.11204999685287476 });
-			vehicle.mBaseParams.suspensionComplianceParams[i].wheelCamberAngle.addPair(0, 0);
-			vehicle.mBaseParams.suspensionComplianceParams[i].wheelToeAngle.addPair(0, 0);
-			vehicle.mBaseParams.suspensionComplianceParams[i].tireForceAppPoint.addPair(0, { 0, 0, -0.11204999685287476 });
+			vehicle.mBaseParams.suspensionComplianceParams[i].suspForceAppPoint.addPair(0, { 0.f, 0.f, -0.11204999685287476f });
+			vehicle.mBaseParams.suspensionComplianceParams[i].wheelCamberAngle.addPair(0, 0.f);
+			vehicle.mBaseParams.suspensionComplianceParams[i].wheelToeAngle.addPair(0, 0.f);
+			vehicle.mBaseParams.suspensionComplianceParams[i].tireForceAppPoint.addPair(0, { 0.f, 0.f, -0.11204999685287476f });
 
-			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[0][0] = 0;
-			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[0][1] = 1;
-			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[1][0] = 0.10000000149011612;
-			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[1][1] = 1;
-			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[2][0] = 1;
-			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[2][1] = 1;
-			vehicle.mBaseParams.tireForceParams[i].loadFilter[0][0] = 0;
-			vehicle.mBaseParams.tireForceParams[i].loadFilter[0][1] = 0.23080000281333924;
-			vehicle.mBaseParams.tireForceParams[i].loadFilter[1][0] = 3.0;
-			vehicle.mBaseParams.tireForceParams[i].loadFilter[1][1] = 3.0;
-			vehicle.mBaseParams.tireForceParams[i].camberStiff = 0;
-			vehicle.mBaseParams.tireForceParams[i].longStiff = 24525.0;
-			vehicle.mBaseParams.tireForceParams[i].latStiffX = 0.009999999776482582;
-			vehicle.mBaseParams.wheelParams[i].halfWidth = 0.15768450498580934;
-			vehicle.mBaseParams.wheelParams[i].radius = 0.532520031929016;
-			vehicle.mBaseParams.wheelParams[i].mass = 20;
-			vehicle.mBaseParams.wheelParams[i].moi = 1.1716899871826172;
-			vehicle.mBaseParams.wheelParams[i].dampingRate = 0.25;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[0][0] = 0.f;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[0][1] = 1.f;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[1][0] = 0.10000000149011612f;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[1][1] = 1.f;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[2][0] = 1.f;
+			vehicle.mBaseParams.tireForceParams[i].frictionVsSlip[2][1] = 1.f;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[0][0] = 0.f;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[0][1] = 0.23080000281333924f;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[1][0] = 3.0f;
+			vehicle.mBaseParams.tireForceParams[i].loadFilter[1][1] = 3.0f;
+			vehicle.mBaseParams.tireForceParams[i].camberStiff = 0.f;
+			vehicle.mBaseParams.tireForceParams[i].longStiff = 24525.0f;
+			vehicle.mBaseParams.tireForceParams[i].latStiffX = 0.009999999776482582f;
+			vehicle.mBaseParams.wheelParams[i].halfWidth = 0.15768450498580934f;
+			vehicle.mBaseParams.wheelParams[i].radius = 0.532520031929016f;
+			vehicle.mBaseParams.wheelParams[i].mass = 20.f;
+			vehicle.mBaseParams.wheelParams[i].moi = 1.1716899871826172f;
+			vehicle.mBaseParams.wheelParams[i].dampingRate = 0.25f;
 
-			vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.q = { 0, 0, 0, 1 };
-			vehicle.mBaseParams.suspensionParams[i].suspensionTravelDir = { 0, -1, 0 };
-			vehicle.mBaseParams.suspensionParams[i].suspensionTravelDist = 0.221110999584198;
-			vehicle.mBaseParams.suspensionParams[i].wheelAttachment.p = { 0, 0, 0 };
-			vehicle.mBaseParams.suspensionParams[i].wheelAttachment.q = { 0, 0, 0, 1 };
+			vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.q = { 0.f, 0.f, 0.f, 1.f };
+			vehicle.mBaseParams.suspensionParams[i].suspensionTravelDir = { 0.f, -1.f, 0.f };
+			vehicle.mBaseParams.suspensionParams[i].suspensionTravelDist = 0.221110999584198f;
+			vehicle.mBaseParams.suspensionParams[i].wheelAttachment.p = { 0.f, 0.f, 0.f };
+			vehicle.mBaseParams.suspensionParams[i].wheelAttachment.q = { 0.f, 0.f, 0.f, 1.f };
 		}
 
 		for (int i = 0; i < 2; i++) {
-			vehicle.mBaseParams.tireForceParams[i].latStiffY = 118699.637252138;
-			vehicle.mBaseParams.tireForceParams[i].restLoad = 5628.72314453125;
+			vehicle.mBaseParams.tireForceParams[i].latStiffY = 118699.637252138f;
+			vehicle.mBaseParams.tireForceParams[i].restLoad = 5628.72314453125f;
 		}
 
 		for (int i = 2; i < 4; i++) {
-			vehicle.mBaseParams.tireForceParams[i].latStiffY = 143930.84033118;
-			vehicle.mBaseParams.tireForceParams[i].restLoad = 4604.3134765625;
+			vehicle.mBaseParams.tireForceParams[i].latStiffY = 143930.84033118f;
+			vehicle.mBaseParams.tireForceParams[i].restLoad = 4604.3134765625f;
 		}
 
 		/*
@@ -390,19 +390,17 @@ namespace ORNG {
 			const PxVec3& physXActorBoxShapeHalfExtents, const PxTransform& physxActorBoxShapeLocalPose);*/
 
 
-		vehicle.mBaseParams.suspensionParams[0].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
-		vehicle.mBaseParams.suspensionParams[1].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, 1.269219994544983 };
-		vehicle.mBaseParams.suspensionParams[2].suspensionAttachment.p = { -0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
-		vehicle.mBaseParams.suspensionParams[3].suspensionAttachment.p = { 0.7952629923820496, -0.10795199871063233, -1.593999981880188 };
+		vehicle.mBaseParams.suspensionParams[0].suspensionAttachment.p = { -0.7952629923820496f, -0.10795199871063233f, 1.269219994544983f };
+		vehicle.mBaseParams.suspensionParams[1].suspensionAttachment.p = { 0.7952629923820496f, -0.10795199871063233f, 1.269219994544983f };
+		vehicle.mBaseParams.suspensionParams[2].suspensionAttachment.p = { -0.7952629923820496f, -0.10795199871063233f, -1.593999981880188f };
+		vehicle.mBaseParams.suspensionParams[3].suspensionAttachment.p = { 0.7952629923820496f, -0.10795199871063233f, -1.593999981880188f };
 		vehicle.mTransmissionCommandState.gear = vehicle.mTransmissionCommandState.eFORWARD;
 
-
-
-		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.maxResponse = 2000.0;
-		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[0] = -1.0;
-		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[1] = -1.0;
-		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[2] = 0.0;
-		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[3] = 0.0;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.maxResponse = 2000.0f;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[0] = -1.0f;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[1] = -1.0f;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[2] = 0.0f;
+		vehicle.mDirectDriveParams.directDriveThrottleResponseParams.wheelResponseMultipliers[3] = 0.0f;
 
 		InitVehicle(p_comp);
 	}
@@ -603,7 +601,7 @@ namespace ORNG {
 			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
 		}
 
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
+		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 	}
 
@@ -637,13 +635,13 @@ namespace ORNG {
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 
 		// Store in entity lookup map for fast retrieval
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = p_comp->GetEntity();
+		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
 	}
 
 
 
 
-	static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform) {
+	static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type) {
 		PxVec3 phys_pos = pose.p;
 		PxQuatT phys_rot = pose.q;
 
@@ -652,7 +650,10 @@ namespace ORNG {
 
 
 		transform.SetAbsolutePosition(glm::vec3(phys_pos.x, phys_pos.y, phys_pos.z));
-		transform.SetAbsoluteOrientation(orientation);
+
+		// Only set orientation from normal rigid bodies (character controllers causing bugs)
+		if (type == PhysicsSystem::ActorType::RIGID_BODY) [[likely]]
+			transform.SetAbsoluteOrientation(orientation);
 	}
 
 
@@ -670,7 +671,7 @@ namespace ORNG {
 			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shape[0], 1);
 
 			mp_currently_updating_transform = &transform;
-			UpdateTransformCompFromGlobalPose(vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose() * shape[0]->getLocalPose(), transform);
+			UpdateTransformCompFromGlobalPose(vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose() * shape[0]->getLocalPose(), transform, ActorType::VEHICLE);
 			mp_currently_updating_transform = nullptr;
 		}
 
@@ -682,11 +683,13 @@ namespace ORNG {
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
 
+
 		for (int i = 0; i < num_active_actors; i++) {
-			if (auto* p_ent = TryGetEntityFromPxActor(active_actors[i])) {
+			if (auto ret = TryGetEntityAndTypeFromPxActor(active_actors[i]); ret.has_value()) {
+				auto& [p_ent, type] = ret.value();
 				auto* p_transform = p_ent->GetComponent<TransformComponent>();
 				mp_currently_updating_transform = p_transform;
-				UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform);
+				UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform, type);
 				mp_currently_updating_transform = nullptr;
 			}
 		}
@@ -738,20 +741,25 @@ namespace ORNG {
 
 
 	void PhysicsSystem::RemoveComponent(CharacterControllerComponent* p_comp) {
+		// Remove from cache
+		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->mp_controller->getActor()));
+
 		p_comp->mp_controller->release();
 	};
 
 
 	void PhysicsSystem::InitComponent(CharacterControllerComponent* p_comp) {
 		PxCapsuleControllerDesc desc;
-		desc.height = 2.0;
-		desc.radius = 0.5;
+		desc.height = 1.8;
+		desc.radius = 0.1;
 		desc.material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
 		desc.stepOffset = 1.8f;
 		p_comp->mp_controller = mp_controller_manager->createController(desc);
 
-		auto abs_pos = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
-		p_comp->mp_controller->setPosition(PxExtendedVec3(abs_pos.x, abs_pos.y, abs_pos.z));
+		// Cache entity
+		m_entity_lookup[static_cast<const PxActor*>(p_comp->mp_controller->getActor())] = std::make_pair(p_comp->GetEntity(), ActorType::CHARACTER_CONTROLLER);
+
+		p_comp->mp_controller->getActor()->setGlobalPose(TransformComponentToPxTransform(*p_comp->GetEntity()->GetComponent<TransformComponent>()));
 	}
 
 
@@ -798,32 +806,32 @@ namespace ORNG {
 		PxRaycastBuffer ray_buffer;                 // [out] Raycast results
 		RaycastResults ret;
 
-		if (mp_phys_scene->raycast(ToPxVec3(origin), ToPxVec3(unit_dir), max_distance, ray_buffer)) {
+		if (mp_phys_scene->raycast(ConvertVec3<glm::vec3, PxVec3>(origin), ConvertVec3<glm::vec3, PxVec3>(unit_dir), max_distance, ray_buffer)) {
 			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
 
 			ret.p_entity = TryGetEntityFromPxActor(static_cast<const PxActor*>(p_closest_actor));
-			ret.p_phys_comp = ret.p_entity->GetComponent<PhysicsComponent>();
 			if (!ret.p_entity) {
 				ORNG_CORE_ERROR("Failed to find entity from raycast results");
 				ret.p_entity = nullptr;
 				return ret;
 			}
+			ret.p_phys_comp = ret.p_entity->GetComponent<PhysicsComponent>();
 
 			ret.hit = true;
-			ret.hit_pos = ToGlmVec3(ray_buffer.block.position);
-			ret.hit_normal = ToGlmVec3(ray_buffer.block.normal);
+			ret.hit_pos = ConvertVec3<PxVec3, glm::vec3>(ray_buffer.block.position);
+			ret.hit_normal = ConvertVec3<PxVec3, glm::vec3>(ray_buffer.block.normal);
 			ret.hit_dist = ray_buffer.block.distance;
 		}
 
 		return ret;
 	};
 
-	OverlapQueryResults PhysicsSystem::OverlapQuery(glm::vec3 pos, float range) {
+	OverlapQueryResults PhysicsSystem::OverlapQuery(PxGeometry& geom, glm::vec3 pos) {
 		PxOverlapHit overlap_hits[256];
 		PxOverlapBuffer overlap_buffer{ overlap_hits, 256 };
 		OverlapQueryResults ret;
 
-		if (mp_phys_scene->overlap(PxSphereGeometry(range), PxTransform(ToPxVec3(pos)), overlap_buffer)) {
+		if (mp_phys_scene->overlap(geom, PxTransform(ConvertVec3<glm::vec3, PxVec3>(pos)), overlap_buffer)) {
 			for (int i = 0; i < overlap_buffer.getNbAnyHits(); i++) {
 				auto* p_ent = TryGetEntityFromPxActor(static_cast<const PxActor*>(overlap_hits[i].actor));
 

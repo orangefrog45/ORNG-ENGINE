@@ -104,8 +104,8 @@ namespace ORNG {
 		unsigned int max_mip_levels = 5;
 
 		for (unsigned int mip = 0; mip < max_mip_levels; mip++) {
-			unsigned int mip_width = tex_spec.width * glm::pow(0.5, mip);
-			unsigned int mip_height = tex_spec.height * glm::pow(0.5, mip);
+			unsigned int mip_width = (unsigned)(tex_spec.width * glm::pow(0.5, mip));
+			unsigned int mip_height = (unsigned)(tex_spec.height * glm::pow(0.5, mip));
 
 			mp_output_fb->SetRenderBufferDimensions(mip_width, mip_height);
 			glViewport(0, 0, mip_width, mip_height);

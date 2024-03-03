@@ -2,7 +2,7 @@
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
-class GLFWwindow;
+struct GLFWwindow;
 namespace ORNG {
 	template<typename T>
 	concept IsVec2 = std::is_same_v<T, ImVec2> || std::is_same_v<T, glm::vec2>;

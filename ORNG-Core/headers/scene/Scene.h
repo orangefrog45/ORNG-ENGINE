@@ -7,7 +7,7 @@
 
 
 namespace ORNG {
-	class Prefab;
+	struct Prefab;
 	class SceneEntity;
 
 

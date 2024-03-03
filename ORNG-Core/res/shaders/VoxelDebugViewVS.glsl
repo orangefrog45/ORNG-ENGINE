@@ -14,7 +14,8 @@ uniform vec3 u_aligned_camera_pos;
 void main() {
     int size = imageSize(voxel_tex).x;
     vs_lookup_coord = ivec3(gl_InstanceID % size, (gl_InstanceID / size) / size, (gl_InstanceID / size) % size);
-    vec3 pos = (vec3(vs_lookup_coord.xyz) + position - vec3(size / 2, size / 2, size / 2)) * 0.2 * (256/size);
+    vec3 pos = (vec3(vs_lookup_coord.xyz) + position - vec3(size / 2, size / 2, size / 2)) * 0.4 * (256/size);
+
     gl_Position = PVMatrices.proj_view * vec4( u_aligned_camera_pos + pos, 1.0);
-    vs_lookup_coord.z += size * 3;
+    vs_lookup_coord.z += size * 4;
 }

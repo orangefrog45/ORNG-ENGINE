@@ -19,9 +19,9 @@ namespace ORNG {
 	};
 
 	struct Bloom {
-		float threshold = 1.0;
-		float knee = 0.1;
-		float intensity = 1.0;
+		float threshold = 1.0f;
+		float knee = 0.1f;
+		float intensity = 1.0f;
 	};
 
 

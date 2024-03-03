@@ -222,7 +222,7 @@ namespace ORNG {
 		std::unordered_map<unsigned int, unsigned int> m_current_ssbo_bindings; // currently bound ssbo object (value) to binding index (key)
 		std::unordered_map<unsigned int, TextureBindData> m_current_texture_bindings; // currently bound texture object (TextureBindData) to texture unit (key)
 
-		int m_current_active_shader_handle = -1;
-		int m_current_bound_vao = -1;
+		unsigned m_current_active_shader_handle = 0;
+		unsigned m_current_bound_vao = 0;
 	};
 }

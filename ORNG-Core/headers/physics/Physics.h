@@ -21,20 +21,11 @@ public:
 
 
 
-
 namespace ORNG {
 	class Texture2D;
 	class Shader;
 	class Framebuffer;
 
-	inline static physx::PxVec3 ToPxVec3(const glm::vec3& glmVec) {
-		return physx::PxVec3(glmVec.x, glmVec.y, glmVec.z);
-	}
-
-	// Conversion from PxVec3 to glm::vec3
-	inline static glm::vec3 ToGlmVec3(const physx::PxVec3& pxVec) {
-		return glm::vec3(pxVec.x, pxVec.y, pxVec.z);
-	}
 
 	inline static physx::PxTransform TransformComponentToPxTransform(TransformComponent& t) {
 		auto [p, s, r] = t.GetAbsoluteTransforms();
@@ -42,7 +33,7 @@ namespace ORNG {
 
 		physx::PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
 
-		return { ToPxVec3(p), n_px_quat};
+		return { ConvertVec3<glm::vec3, physx::PxVec3>(p), n_px_quat};
 	}
 
 	class Physics {

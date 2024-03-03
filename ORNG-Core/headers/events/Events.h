@@ -20,7 +20,7 @@ namespace ORNG {
 		TOGGLE_VISIBILITY,
 	};
 
-	enum InputType {
+	enum InputType : uint8_t {
 		RELEASE = 0, // GLFW_RELEASE
 		PRESS = 1, // GLFW_PRESS
 		HELD = 2 // GLFW_REPEAT
@@ -55,6 +55,9 @@ namespace ORNG::Events {
 	};
 
 	struct MouseEvent : public Event {
+		MouseEvent(MouseEventType _event_type, MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos, std::any _data_payload = 0) :
+			event_type(_event_type), mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos), data_payload(_data_payload) {};
+
 		MouseEventType event_type;
 		MouseAction mouse_action;
 		MouseButton mouse_button;
@@ -65,6 +68,8 @@ namespace ORNG::Events {
 
 
 	struct KeyEvent : public Event {
+		KeyEvent(unsigned _key, uint8_t _event_type) : key(_key), event_type(_event_type) {};
+
 		unsigned int key;
 		uint8_t event_type; // will be InputType enum, can't declare as such due to circular include
 	};
@@ -118,20 +123,6 @@ namespace ORNG::Events {
 		std::function<void()> OnDestroy = nullptr;
 	};
 
-	// Shortcut class for listening to single key, not case-sensitive
-	// For case sensitivity, use EventListener<KeyEvent> instead (will need to use own logic for key checks)
-	class SingleKeyEventListener : public EventListener<KeyEvent> {
-		friend class EventManager;
-	public:
-		SingleKeyEventListener() = delete;
-		// Not case sensitive, if listening for 'a' then 'A' will still trigger listener
-		explicit SingleKeyEventListener(char key_to_listen) : m_listening_key(std::toupper(key_to_listen)) {};
-
-		// Returns the key being listened for
-		char GetListeningKey() { return m_listening_key; }
-	private:
-		char m_listening_key;
-	};
 
 	template<std::derived_from<Component> T>
 	class ECS_EventListener : public EventListener<ECS_Event<T>> {

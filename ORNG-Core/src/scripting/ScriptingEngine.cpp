@@ -269,7 +269,7 @@ namespace ORNG {
 		symbols.SceneOverlapQuerySetter = (OverlapQuerySetter)(GetProcAddress(script_dll, "SetOverlapQueryCallback"));
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
-		symbols.SceneGetEntityEnttHandleSetter = (GetEntityEnttHandleSetter)(GetProcAddress(script_dll, "SetGetEntityEnttHandleCallback"));
+		symbols.SceneGetEntityByNameSetter = (GetEntityByNameSetter)(GetProcAddress(script_dll, "SetGetEntityByNameCallback"));
 		symbols.loaded = true;
 		symbols.DestroyInstance(symbols.CreateInstance());
 

@@ -17,13 +17,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd" CACHE INTERNAL "" FORC
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD" CACHE INTERNAL "" FORCE)
 if(MSVC)
 message("MSVC")
-    add_compile_options(/WX- /W4)
+    add_compile_options(/WX- /W2)
       set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
 # Disable treating warnings as errors for GCC and Clang
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(-Wno-error)
+    message(FATAL_ERROR "Compilation only supported with MSVC")
 endif()
 
 

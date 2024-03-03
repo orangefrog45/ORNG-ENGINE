@@ -21,9 +21,9 @@
 #define ORNG_NUM_BASE_ASSETS 8
 
 
-class GLFWwindow;
+struct GLFWwindow;
 enum aiTextureType;
-class aiMaterial;
+struct aiMaterial;
 
 
 
@@ -86,7 +86,7 @@ namespace bitsery {
 namespace ORNG {
 	class Texture2D;
 	class MeshAsset;
-	class Texture2DSpec;
+	struct Texture2DSpec;
 
 	struct Prefab : public Asset {
 		Prefab(const std::string& filepath) : Asset(filepath) {};
@@ -325,7 +325,6 @@ namespace ORNG {
 		// Intialize PxMaterial
 		static void InitPhysXMaterialAsset(PhysXMaterialAsset& asset);
 
-		static const Material* IGetEmptyMaterial() { return &*Get().mp_replacement_material; }
 		static void LoadMeshAssetIntoGL(MeshAsset* asset);
 		static Texture2D* CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 		void IStallUntilMeshesLoaded();
@@ -348,7 +347,7 @@ namespace ORNG {
 		std::unique_ptr<PhysXMaterialAsset> mp_base_physx_material = nullptr;
 
 		// If a material fails to load etc, use this one instead
-		std::unique_ptr<Material> mp_replacement_material = nullptr;
+		std::unique_ptr<Material> mp_base_material = nullptr;
 
 		// Default-initialize audio components with this sound asset
 		std::unique_ptr<SoundAsset> mp_base_sound = nullptr;

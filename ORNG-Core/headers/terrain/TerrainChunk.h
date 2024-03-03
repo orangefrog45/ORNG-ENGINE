@@ -16,7 +16,7 @@ namespace ORNG {
 		void LoadGLData();
 	private:
 		/*Key for accessing chunk loader loading buffer, required for deletion if chunk not required anymore*/
-		unsigned int m_chunk_key;
+		unsigned int m_chunk_key=0;
 
 		AABB m_bounding_box;
 		MeshVAO m_vao;

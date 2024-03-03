@@ -28,15 +28,6 @@ namespace ORNG {
 		EditorEventStack() = default;
 		void SetContext(Scene*& p_context) { mp_scene_context = &p_context; };
 		void PushEvent(const EditorEntityEvent& e) {
-			//if (m_active_index != m_events.size() - 1)
-			//	m_events.erase(m_events.begin() + glm::max(m_active_index, 0), m_events.end());
-
-			//m_events.push_front(e);
-
-			//if (m_events.size() > MAX_EVENT_HISTORY)
-			//	m_events.erase(m_events.begin());
-
-			//m_active_index = m_events.size() - 1;
 
 			if (m_active_index != 0)
 				m_events.erase(m_events.begin(), m_events.begin() + glm::max(m_active_index, 0));
@@ -47,7 +38,6 @@ namespace ORNG {
 				m_events.erase(m_events.begin());
 
 			m_active_index = 0;
-			//m_active_index = m_events.size() - 1;
 
 			constexpr unsigned MAX_STORED_EVENTS = 50;
 			if (m_events.size() > MAX_STORED_EVENTS) {

@@ -438,17 +438,19 @@ namespace ORNG {
 		InitBaseTexture();
 		InitBase3DQuad();
 
-		mp_replacement_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
+		mp_base_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
+		mp_base_material->name = "Base material";
+
 		auto symbols = ScriptSymbols("");
 		mp_base_script = std::make_unique<ScriptAsset>(symbols);
 		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
 		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
-		mp_replacement_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
+		mp_base_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
 		mp_base_script->uuid = UUID(ORNG_BASE_SCRIPT_ID);
 
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
-		AddAsset(&*mp_replacement_material);
+		AddAsset(&*mp_base_material);
 		AddAsset(&*mp_base_script);
 		AddAsset(&*mp_base_quad);
 
@@ -461,7 +463,7 @@ namespace ORNG {
 
 	void AssetManager::IOnShutdown() {
 		ClearAll();
-		Get().mp_replacement_material.release();
+		Get().mp_base_material.release();
 		Get().mp_base_sound.release();
 		Get().mp_base_tex.release();
 		Get().mp_base_cube.release();

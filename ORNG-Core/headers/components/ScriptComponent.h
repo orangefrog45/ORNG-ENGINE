@@ -7,9 +7,10 @@
 namespace ORNG {
 	class SceneEntity;
 
-	struct ScriptComponent : public Component {
+	class ScriptComponent : public Component {
 		friend class EditorLayer;
 		friend class SceneSerializer;
+	public:
 		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {
 			if (p_instance)
 				p_symbols->DestroyInstance(p_instance);

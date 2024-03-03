@@ -126,33 +126,12 @@ vec4 convRGBA8ToVec4(uint val) {
 }
 
 
-vec3 AdjustTexCoordsForCascade(vec3 world_coords) {
-    /* 
-        Larger cascades have a sphere with radius PREV_CASCADE_WORLD_SIZE removed from their middle as the voxel data will already be stored in the smaller cascades
-        Therefore the texture coordinates need to be shifted towards the origin as to not leave a gap in the texture data
-    */
-
-    return world_coords - normalize(world_coords) * 25.6;
-}
-
 bool PointInsideAABB(vec3 extents, vec3 p) {
     return (p.x < extents.x && p.x > -extents.x && p.y < extents.y && p.y > -extents.y && p.z < extents.z && p.z > -extents.z);
 }
 
 void main() {
-#ifdef CASCADE_0
-        ivec3 coord = ivec3((vert_data.position.xyz - u_aligned_camera_pos) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
-#else
-        vec3 rel_coord = vert_data.position.xyz - u_aligned_camera_pos;
-
-        if (length(rel_coord) < 25.6) 
-            discard; // Discard any fragments that will be stored in the smaller cascades
-
-        vec3 cascade_coord = AdjustTexCoordsForCascade(rel_coord);
-
-
-        ivec3 coord = ivec3(cascade_coord / 0.4 + 128);
-#endif
+    ivec3 coord = ivec3((vert_data.position.xyz - u_aligned_camera_pos) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
 
     if (any(greaterThan(coord, vec3(CURRENT_CASCADE_TEX_SIZE))) || any(lessThan(coord, vec3(0))))
         discard;
@@ -170,6 +149,7 @@ void main() {
         col *= CalculateAlbedoAndEmissive(vert_data.tex_coord.xy).rgb;
     }
     imageAtomicMax(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
+
     imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(clamp(col, vec3(0), vec3(1)) * 255, 255)));
 
     discard;

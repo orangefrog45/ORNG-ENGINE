@@ -9,20 +9,17 @@
 
 namespace ORNG {
 	void ShaderLibrary::Init() {
-		m_matrix_ubo = GL_StateManager::GenBuffer();
-		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_matrix_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, m_matrix_ubo_size, nullptr, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::PVMATRICES, m_matrix_ubo);
+		m_matrix_ubo.Init();
+		m_matrix_ubo.Resize(m_matrix_ubo_size);
+		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::PVMATRICES, m_matrix_ubo.GetHandle());
 
-		m_global_lighting_ubo = GL_StateManager::GenBuffer();
-		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, 68 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBAL_LIGHTING, m_global_lighting_ubo);
+		m_global_lighting_ubo.Init();
+		m_global_lighting_ubo.Resize(72 * sizeof(float));
+		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBAL_LIGHTING, m_global_lighting_ubo.GetHandle());
 
-		m_common_ubo = GL_StateManager::GenBuffer();
-		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
-		glBufferData(GL_UNIFORM_BUFFER, m_common_ubo_size, nullptr, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo);
+		m_common_ubo.Init();
+		m_common_ubo.Resize(m_common_ubo_size);
+		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo.GetHandle());
 
 		ORNG_CORE_TRACE(std::filesystem::current_path().string());
 		mp_quad_shader = &CreateShader("SL quad");
@@ -52,16 +49,13 @@ namespace ORNG {
 		ConvertToBytes(FrameTiming::GetTotalElapsedTime(), p_byte);
 
 
-		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_common_ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, m_common_ubo_size, &data[0]);
+		m_common_ubo.BufferSubData(0, m_common_ubo_size, data.data());
 	}
 
 
 
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light) {
-		GL_StateManager::BindBuffer(GL_UNIFORM_BUFFER, m_global_lighting_ubo);
-
-		constexpr int num_floats_in_buffer = 68;
+		constexpr int num_floats_in_buffer = 72;
 		std::array<float, num_floats_in_buffer> light_data = { 0 };
 		int i = 0;
 		glm::vec3 light_dir = dir_light.GetLightDirection();
@@ -89,7 +83,7 @@ namespace ORNG {
 		light_data[i++] = 0; //padding
 		light_data[i++] = 0; //padding
 
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, num_floats_in_buffer * sizeof(float), &light_data[0]);
+		m_global_lighting_ubo.BufferSubData(0, num_floats_in_buffer * sizeof(float), reinterpret_cast<std::byte*>(light_data.data()));
 	};
 
 	Shader& ShaderLibrary::CreateShader(const char* name, unsigned int id) {
@@ -139,13 +133,19 @@ namespace ORNG {
 
 	void ShaderLibrary::SetMatrixUBOs(glm::mat4& proj, glm::mat4& view) {
 		glm::mat4 proj_view = proj * view;
-		glBindBuffer(GL_UNIFORM_BUFFER, m_matrix_ubo);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), &proj[0][0]);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &view[0][0]);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, sizeof(glm::mat4), &proj_view[0][0]);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, sizeof(glm::mat4), &glm::inverse(proj)[0][0]);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 4, sizeof(glm::mat4), &glm::inverse(view)[0][0]);
-		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 5, sizeof(glm::mat4), &glm::inverse(proj_view)[0][0]);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		static std::vector<std::byte> matrices;
+		matrices.resize(m_matrix_ubo_size);
+		std::byte* p_byte = matrices.data();
+
+		ConvertToBytes(proj, p_byte);
+		ConvertToBytes(view, p_byte);
+		ConvertToBytes(proj_view, p_byte);
+		ConvertToBytes(glm::inverse(proj), p_byte);
+		ConvertToBytes(glm::inverse(view), p_byte);
+		ConvertToBytes(glm::inverse(proj_view), p_byte);
+
+		m_matrix_ubo.BufferSubData(0, m_matrix_ubo_size, matrices.data());
+		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::PVMATRICES, m_matrix_ubo.GetHandle());
+
 	}
 }

@@ -61,7 +61,7 @@ namespace ORNG {
 
 		MeshAsset* GetMeshAsset() const { return m_mesh_asset; }
 
-		unsigned GetInstanceCount() const { return m_instances.size(); }
+		unsigned GetInstanceCount() const { return (unsigned)m_instances.size(); }
 
 		const std::vector<const Material*>& GetMaterialIDs() const { return m_materials; }
 

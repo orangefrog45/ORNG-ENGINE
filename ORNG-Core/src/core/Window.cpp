@@ -22,35 +22,29 @@ namespace ORNG {
 	}
 
 
-	void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	void key_callback([[maybe_unused]] GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, int mods)
 	{
-		Events::KeyEvent e_event;
-		e_event.key = key;
+		ASSERT(key >= 0);
+
 		switch (action) {
 		case GLFW_RELEASE:
-			e_event.event_type = InputType::RELEASE;
+			Events::EventManager::DispatchEvent(Events::KeyEvent{ (unsigned)key, (uint8_t)InputType::RELEASE });
 			break;
 		case GLFW_PRESS:
-			e_event.event_type = InputType::PRESS;
+			Events::EventManager::DispatchEvent(Events::KeyEvent{ (unsigned)key, (uint8_t)InputType::PRESS });
 			break;
 		case GLFW_REPEAT:
 			// "Hold" state tracked in input, not here
 			return;
 		}
-		Events::EventManager::DispatchEvent(e_event);
 	}
 
 	static glm::ivec2 gs_mouse_coords;
 
 	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-		Events::MouseEvent e_event;
-		e_event.event_type = Events::MouseEventType::RECEIVE;
-		e_event.mouse_action = static_cast<MouseAction>(action);
-		e_event.mouse_button = static_cast<MouseButton>(button);
 		double posx, posy;
 		glfwGetCursorPos(window, &posx, &posy);
-		e_event.mouse_pos_old = gs_mouse_coords;
-		e_event.mouse_pos_new = glm::ivec2(floor(posx), floor(posy));
+		Events::MouseEvent e_event{ Events::MouseEventType::RECEIVE, static_cast<MouseAction>(action), static_cast<MouseButton>(button), glm::ivec2(floor(posx), floor(posy)), gs_mouse_coords };
 
 		Events::EventManager::DispatchEvent(e_event);
 
@@ -58,12 +52,7 @@ namespace ORNG {
 	}
 
 	void CursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
-		Events::MouseEvent e_event;
-		e_event.event_type = Events::MouseEventType::RECEIVE;
-		e_event.mouse_action = MOVE;
-		e_event.mouse_button = MouseButton::NONE;
-		e_event.mouse_pos_old = gs_mouse_coords;
-		e_event.mouse_pos_new = glm::ivec2(floor(xPos), floor(yPos));
+		Events::MouseEvent e_event{ Events::MouseEventType::RECEIVE, MOVE, MouseButton::NONE, glm::ivec2(floor(xPos), floor(yPos)), gs_mouse_coords };
 
 		Events::EventManager::DispatchEvent(e_event);
 

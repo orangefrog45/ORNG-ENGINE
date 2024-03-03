@@ -27,7 +27,7 @@ namespace ORNG {
 		float zNear = 0.1f;
 		float zFar = 10000.f;
 		float exposure = 1.f;
-		float aspect_ratio = 16.0 / 9.0;
+		float aspect_ratio = 16.f / 9.f;
 	protected:
 		bool is_active = false;
 	};

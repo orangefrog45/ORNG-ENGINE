@@ -9,9 +9,6 @@ layout(std140, binding = 0) buffer transforms {
 	mat4 transforms[];
 } transform_ssbo;
 
-
-
-
 out vec3 vs_position;
 
 void main() {

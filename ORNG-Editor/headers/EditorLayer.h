@@ -11,8 +11,8 @@ namespace physx {
 	class PxMaterial;
 }
 struct DragData {
-	glm::ivec2 start;
-	glm::ivec2 end;
+	glm::ivec2 start{ 0, 0 };
+	glm::ivec2 end{0, 0};
 };
 
 
@@ -28,6 +28,7 @@ namespace ORNG {
 	};
 
 	struct EntityNodeData {
+		EntityNodeData(EntityNodeEvent _event, ImVec2 _node_max, ImVec2 _node_min) : e_event(_event), node_screen_max(_node_max), node_screen_min(_node_min) {};
 		EntityNodeEvent e_event;
 
 		ImVec2 node_screen_max;

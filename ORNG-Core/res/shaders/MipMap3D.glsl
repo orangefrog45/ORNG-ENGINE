@@ -42,8 +42,8 @@ float FetchTexels(ivec3 start_coord, uint face_index, out vec4[8] values, uint m
         ivec3 local_coord = ivec3(start_coord + aniso_offsets[i]);
         ivec3 coord = ApplyMipFaceTexCoordOffset(local_coord, face_index, mip_dim);
         ivec3 current_octant = ivec3(local_coord / (mip_dim / 2));
-        values[i] = texelFetch(input_mips, coord, u_mip_level - 1)  * float(face_index == coord.z / mip_dim);
-        sum += float(face_index == coord.z / mip_dim );
+        values[i] = texelFetch(input_mips, coord, u_mip_level - 1)  ;
+        sum++;
     }
     return 8.0;
 }

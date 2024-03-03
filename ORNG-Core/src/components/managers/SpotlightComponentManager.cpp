@@ -104,8 +104,9 @@ namespace ORNG {
 			glNamedBufferData(m_spotlight_ssbo.GetHandle(), 0, nullptr, GL_STREAM_DRAW);
 		}
 
-		int num_shadow = 0;
-		int num_shadowless = 0;
+		unsigned num_shadow = 0;
+		unsigned num_shadowless = 0;
+
 		for (auto [entity, light] : view.each()) {
 			if (light.shadows_enabled)
 				num_shadow++;

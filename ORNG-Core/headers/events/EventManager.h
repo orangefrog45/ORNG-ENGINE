@@ -10,7 +10,7 @@
 namespace ORNG {
 	class MeshComponent;
 	class SpotLightComponent;
-	class PointLightComponent;
+	struct PointLightComponent;
 }
 
 namespace ORNG::Events {
@@ -67,13 +67,6 @@ namespace ORNG::Events {
 		static void DispatchEvent(const KeyEvent& t_event) {
 			for (auto [entity, listener] : Get().m_listener_registry.view<EventListener<Events::KeyEvent>>().each()) {
 				listener.OnEvent(t_event);
-			}
-
-			// Listener will already have upper-case key (done automatically), regular EventListener<KeyEvent> is case-aware
-			char upper_key = std::toupper(t_event.key);
-			for (auto [entity, listener] : Get().m_listener_registry.view<SingleKeyEventListener>().each()) {
-				if (listener.m_listening_key == upper_key)
-					listener.OnEvent(t_event);
 			}
 		}
 
