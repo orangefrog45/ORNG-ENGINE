@@ -22,6 +22,7 @@ layout(binding = 27) uniform usampler3D voxel_grid_sampler;
 layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 
 uniform vec3 u_aligned_camera_pos;
+uniform vec3 u_aligned_camera_pos_c1;
 
 
 #define DIR_DEPTH_SAMPLER dir_depth_sampler
@@ -58,28 +59,28 @@ const vec3 diffuse_cone_dirs[] =
 #define DIFFUSE_APERTURE_MIN PI / 6.0
 
 
-vec3 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modifier) {
+vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modifier) {
 	cone_dir = normalize(cone_dir);
 	vec4 col = vec4(0);
 
 	const float tan_half_angle = tan(aperture * 0.5);
 	const float tan_eighth_angle = tan(aperture * 0.125);
 	float step_size_correction_factor = (1.0 + tan_eighth_angle) / (1.0 - tan_eighth_angle);
-	float step_length = step_size_correction_factor * 0.13 ; // increasing makes diffuse softer
+	float step_length = step_size_correction_factor * 0.4 ; // increasing makes diffuse softer
 
 	float d = step_length ;
 
 	vec3 weight = cone_dir * cone_dir;
 	uint current_cascade = 0;
 
+	// TODO: Fix this disaster of a loop
 	while (col.a < 0.95 ) {
-		vec3 step_pos = sampled_world_pos + cone_dir * d  ;
-
-		vec3 coord = vec3(((step_pos - u_aligned_camera_pos ) / (current_cascade == 0 ? 0.4 : 0.8) + vec3(64)) / 128.0);
-
+		vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal.xyz * 0.2  ;
+		
+		vec3 coord = current_cascade == 0 ? vec3(((step_pos - ubo_common.voxel_aligned_cam_pos_c0.xyz) / 0.4 + vec3(64)) / 128.0) : vec3(((step_pos - ubo_common.voxel_aligned_cam_pos_c1.xyz) / 0.8 + vec3(64)) / 128.0);
 		if (any(greaterThan(coord, vec3(1.0))) || any(lessThan(coord, vec3(0.0)))) {
 			if (current_cascade == 1) {
-			break;
+				break;
 			}
 			else {
 				current_cascade = 1;
@@ -88,24 +89,42 @@ vec3 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 		}
 
 		float diam = 2.0 * tan_half_angle * d;
-		float mip = clamp(log2(diam / mip_scaling ), 0.0, 5.0);
 
 		vec4 mip_col = vec4(0);
 		// Shift coordinates to correct direction anisotropic mip
 		coord.z /= 6.0;
 		if (current_cascade == 0) {
+			float mip = clamp(log2(diam / mip_scaling ), 0.0, 4.0);
 			mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), mip) * weight.x;
 			mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), mip) * weight.y;
 			mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), mip) * weight.z;
+
+			if (any(greaterThan(coord, vec3(0.8)))) {
+				float mip2 = clamp(log2(diam / mip_scaling ), 0.0, 5.0) - 1.0;
+
+				vec3 coord_2 =  vec3(((step_pos - ubo_common.voxel_aligned_cam_pos_c1.xyz) / 0.8 + vec3(64)) / 128.0);
+				coord_2.z /= 6.0;
+				vec4 add = vec4(0);
+				float interp = (1.0 - max(max(coord.x, coord.y), coord.z)) * 5.0;
+
+				add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip2, 0.0)) * weight.x * 0.5;
+				add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip2, 0.0)) * weight.y * 0.5;
+				add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip2, 0.0)) * weight.z * 0.5;
+				mip_col = mix(mip_col, add, 1.0 - interp);
+			}
 		} else {
-			mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip - 1, 0.0)) * weight.x * 0.5;
-			mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip - 1, 0.0)) * weight.y * 0.5;
-			mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip - 1, 0.0)) * weight.z * 0.5;
+			float mip = clamp(log2(diam / mip_scaling ), 0.0, 5.0) - 1.0;
+
+			mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip, 0.0)) * weight.x * 0.5;
+			mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip, 0.0)) * weight.y * 0.5;
+			mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip, 0.0)) * weight.z * 0.5;
+
+			if (any(greaterThan(coord, vec3(0.8)))) {
+				//mip_col *= (1.0 - max(max(coord.x, coord.y), coord.z)) * 5.0;
+				//mip_col = vec4(10, 0, 0, 10);
+			}
 		}
 
-		if (mip < 1.0) {
-			//mip_col = mix(convRGBA8ToVec4(texture(voxel_grid_sampler, coord).r) / 255., mip_col, clamp(mip, 0, 1));
-		}
 
 		vec4 voxel = mip_col;
 		
@@ -115,13 +134,13 @@ vec3 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 			col.a += a * voxel.a;
 		}
 
-		d += diam * step_modifier ;
+		d += diam * step_length ;
 	}
-	return col.rgb;
+	return col;
 }
 	
-vec3 CalculateIndirectDiffuseLighting() {
-	vec3 col = vec3(0);
+vec4 CalculateIndirectDiffuseLighting() {
+	vec4 col = vec4(0);
 
     vec3 avg_normal = normalize(texelFetch(normal_sampler, tex_coords, 0 ).xyz);
     
@@ -133,12 +152,10 @@ vec3 CalculateIndirectDiffuseLighting() {
 	float aperture = max(DIFFUSE_APERTURE_MAX, DIFFUSE_APERTURE_MIN) ;
 	for (int i = 0; i < 6; i++) {
 		vec3 cone_dir = normalize(avg_normal + diffuse_cone_dirs[i].x * right + diffuse_cone_dirs[i].z * up);
-		col += ConeTrace(cone_dir, aperture, 0.15, 0.5);
+		col += ConeTrace(cone_dir, aperture, 0.2, 0.25);
 	}
-	col *= (1.0 - roughness_metallic_ao.g * roughness_metallic_ao.g);
+	//col.rgb *= (1.0 - roughness_metallic_ao.g * roughness_metallic_ao.g);
 	col /= 6.0;
-
-
 
 	//col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), avg_normal)), clamp(roughness_metallic_ao.r * PI * 0.5 , 0.3, PI ), 0.3, 0.4) * (1.0 - roughness_metallic_ao.r) ;
 	return col ;
@@ -149,6 +166,7 @@ void main() {
     if (shader_id != 1)
     return;
 
-    vec3 light = CalculateIndirectDiffuseLighting() * texelFetch(albedo_sampler, tex_coords, 0).rgb ;
-	imageStore(u_output_texture, tex_coords / 2, vec4(0, 0, 0, 1.0) );
+	vec4 res = CalculateIndirectDiffuseLighting() ;
+    vec3 light = res.rgb * texelFetch(albedo_sampler, tex_coords, 0).rgb ;
+	imageStore(u_output_texture, tex_coords / 2, vec4(light, res.a) );
 }

@@ -14,6 +14,7 @@ namespace ORNG {
 	static auto s_file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt");
 	std::shared_ptr<spdlog::logger> Log::s_core_logger;
 
+
 	void Log::Init() {
 		// Clear log file
 		std::ofstream("log.txt", std::ios::trunc);

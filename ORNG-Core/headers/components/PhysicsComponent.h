@@ -76,17 +76,17 @@ namespace ORNG {
 
 
 
-	class CharacterControllerComponent : public Component {
+	struct CharacterControllerComponent : public Component {
 	public:
 		friend class PhysicsSystem;
 		explicit CharacterControllerComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
-		// Movement will update transform at the end of each frame and can be overwritten by calling functions like LookAt
+		// Movement will update transform at the end of each frame and can be overwritten by calling functions like LookAt afterwards
 		// To avoid overwriting, ensure this is called AFTER any transform updates to the entity it is attached to
 		void Move(glm::vec3 disp, float minDist, float elapsedTime);
 		bool moved_during_frame = false;
-		physx::PxController* mp_controller = nullptr;
-	private:
+
+		physx::PxController* p_controller = nullptr;
 	};
 
 	enum JointEventType {

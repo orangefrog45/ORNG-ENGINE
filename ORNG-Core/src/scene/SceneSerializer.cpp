@@ -376,6 +376,15 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
+		if (auto* p_controller = entity.GetComponent<CharacterControllerComponent>()) {
+			auto* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
+			Out(out, "CharacterControllerComp", YAML::BeginMap);
+			Out(out, "Height", p_capsule->getHeight());
+			Out(out, "Radius", p_capsule->getRadius());
+
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 	}
 
@@ -580,6 +589,14 @@ namespace ORNG {
 				
 				Events::ECS_Event<ParticleBufferComponent> e_event{ e_event.event_type = Events::ECS_EventType::COMP_UPDATED, p_buffer };
 				Events::EventManager::DispatchEvent(e_event);
+			}
+
+			if (tag == "CharacterControllerComp") {
+				auto* p_controller = entity.AddComponent<CharacterControllerComponent>();
+				PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
+				auto c_node = entity_node["CharacterControllerComp"];
+				p_capsule->setRadius(c_node["Radius"].as<float>());
+				p_capsule->setHeight(c_node["Height"].as<float>());
 			}
 		}
 	}

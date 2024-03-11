@@ -126,18 +126,22 @@ namespace ORNG {
 
 		auto voxel_uniforms = gbuffer_uniforms;
 		voxel_uniforms.push_back("u_orth_proj_view_matrix");
-		voxel_uniforms.push_back("u_aligned_camera_pos");
 		mp_scene_voxelization_shader = &mp_shader_library->CreateShaderVariants("scene-voxelizer");
 		mp_scene_voxelization_shader->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
 		mp_scene_voxelization_shader->SetPath(GL_FRAGMENT_SHADER, "res/shaders/SceneVoxelizationFS.glsl");
 		mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::CASCADE_0, {"VOXELIZE", "CASCADE_0", "PREV_CASCADE_WORLD_SIZE 0", "CURRENT_CASCADE_TEX_SIZE 256", "VOXEL_SIZE 0.2" }, voxel_uniforms);
-		mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::CASCADE_1, {"VOXELIZE", "PREV_CASCADE_WORLD_SIZE 51.2", "CURRENT_CASCADE_TEX_SIZE 256", "VOXEL_SIZE 0.4" }, voxel_uniforms);
+		mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::CASCADE_1, {"VOXELIZE", "CASCADE_1", "PREV_CASCADE_WORLD_SIZE 51.2", "CURRENT_CASCADE_TEX_SIZE 256", "VOXEL_SIZE 0.4" }, voxel_uniforms);
 
 		mp_voxel_debug_shader = &mp_shader_library->CreateShader("voxel_debug");
 		mp_voxel_debug_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/VoxelDebugViewVS.glsl");
 		mp_voxel_debug_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/ColorFS.glsl", {"VOXELIZATION"});
 		mp_voxel_debug_shader->Init();
-		mp_voxel_debug_shader->AddUniform("u_aligned_camera_pos");
+
+		mp_voxel_compute_sv = &mp_shader_library->CreateShaderVariants("SR voxel decrement");
+		mp_voxel_compute_sv->SetPath(GL_COMPUTE_SHADER, "res/shaders/VoxelDecrementCS.glsl");
+		mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE, { "DECREMENT_LUMINANCE" }, {});
+		mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE, { "ON_CAM_POS_UPDATE" }, {"u_delta_tex_coords"});
+		mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::BLIT, { "BLIT" }, {});
 
 		mp_3d_mipmap_shader = &mp_shader_library->CreateShaderVariants("3d-mipmap");
 		mp_3d_mipmap_shader->SetPath(GL_COMPUTE_SHADER, "res/shaders/MipMap3D.glsl");
@@ -154,9 +158,6 @@ namespace ORNG {
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting", ShaderLibrary::LIGHTING_SHADER_ID);
 		m_lighting_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/LightingCS.glsl");
 		m_lighting_shader->Init();
-		m_lighting_shader->AddUniforms({
-			"u_aligned_camera_pos",
-			});
 
 
 
@@ -425,7 +426,6 @@ namespace ORNG {
 		mp_cone_trace_shader = &Renderer::GetShaderLibrary().CreateShader("SR cone trace");
 		mp_cone_trace_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/ConeTraceCS.glsl");
 		mp_cone_trace_shader->Init();
-		mp_cone_trace_shader->AddUniform("u_aligned_camera_pos");
 
 		Texture2DSpec cone_trace_spec = low_pres_spec;
 		cone_trace_spec.width = Window::GetWidth() * 0.5;
@@ -462,8 +462,7 @@ namespace ORNG {
 		return ExtraMath::Init3DTranslationTransform(t.p.x, t.p.y, t.p.z) * ExtraMath::Init3DRotateTransform(euler.x, euler.y, euler.z);
 	}
 
-	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
-
+	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex, glm::vec3 aligned_cam_pos_0, glm::vec3 aligned_cam_pos_1) {
 		UpdateLightSpaceMatrices(p_cam);
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
@@ -471,7 +470,7 @@ namespace ORNG {
 		glm::vec3 pos = p_cam_transform->GetAbsPosition();
 		glm::mat4 view_mat = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
-		mp_shader_library->SetCommonUBO(pos, p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear);
+		mp_shader_library->SetCommonUBO(pos, p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear, aligned_cam_pos_0, aligned_cam_pos_1);
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 		mp_shader_library->SetGlobalLighting(mp_scene->directional_light);
 
@@ -513,16 +512,58 @@ namespace ORNG {
 		res.p_spotlight_depth_tex = &m_spotlight_system.m_spotlight_depth_tex;
 
 		glViewport(0, 0, spec.width, spec.height);
-		PrepRenderPasses(p_cam, settings.p_output_tex);
+
+		int voxel_cascade_to_render = FrameTiming::GetFrameCount() % 2;
+		static glm::vec3 voxel_aligned_cam_pos_0{ 0,0,0 };
+		static glm::vec3 voxel_aligned_cam_pos_1{ 0,0,0 };
+
+
+		// Only update the aligned camera pos for the cascade about to be rendered to ensure consistency for the camera position from when the voxel grid was generated and when it is read from
+		// If not done can cause a 1-frame flicker when the camera is moving and one of the "aligned" positions isn't accurate to when the grid was generated, causing wrong sampling locations
+		{
+			bool cam_pos_has_moved = false;
+
+			if (voxel_cascade_to_render == 0) {
+				auto new_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f));
+				glm::bvec3 res = glm::epsilonEqual(new_pos, voxel_aligned_cam_pos_0, 0.15f);
+				cam_pos_has_moved = !glm::all(res);
+				
+				// Camera update will have shifted texture by 32 voxels as the camera position is rounded to 32 voxels (this aligns it with the highest mip (5) to remove artifacts)
+				if (cam_pos_has_moved) {
+					glm::ivec3 delta_tex_coords = glm::ivec3((unsigned)(!res.x) * 32, (unsigned)(!res.y) * 32, (unsigned)(!res.z) * 32)
+						* glm::ivec3(new_pos.x < voxel_aligned_cam_pos_0.x ? -1 : 1, new_pos.y < voxel_aligned_cam_pos_0.y ? -1 : 1, new_pos.z < voxel_aligned_cam_pos_0.z ? -1 : 1);
+
+					AdjustVoxelGridForCameraMovement(m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, delta_tex_coords, 256);
+				}
+
+				voxel_aligned_cam_pos_0 = new_pos;
+			}
+			else {
+				auto new_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(12.8f));
+				glm::bvec3 res = glm::epsilonEqual(new_pos, voxel_aligned_cam_pos_1, 0.5f);
+				cam_pos_has_moved = !glm::all(res);
+
+				// Camera update will have shifted texture by 32 voxels as the camera position is rounded to 32 voxels (this aligns it with the highest mip (5) to remove artifacts)
+				if (cam_pos_has_moved) {
+					glm::ivec3 delta_tex_coords = glm::ivec3((unsigned)(!res.x) * 32, (unsigned)(!res.y) * 32, (unsigned)(!res.z) * 32) 
+						* glm::ivec3(new_pos.x < voxel_aligned_cam_pos_1.x ? -1 : 1, new_pos.y < voxel_aligned_cam_pos_1.y ? -1 : 1, new_pos.z < voxel_aligned_cam_pos_1.z ? -1 : 1);
+
+					AdjustVoxelGridForCameraMovement(m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, delta_tex_coords, 256);
+				}
+
+				voxel_aligned_cam_pos_1 = new_pos;
+			}
+		}
+
+		PrepRenderPasses(p_cam, settings.p_output_tex, voxel_aligned_cam_pos_0, voxel_aligned_cam_pos_1);
 
 		if (settings.do_intercept_renderpasses) {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
-
-			if (FrameTiming::GetFrameCount() % 2 == 0)
-				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0);
+			if (voxel_cascade_to_render == 0)
+				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0, voxel_aligned_cam_pos_0);
 			else
-				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::CASCADE_1);
+				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::CASCADE_1, voxel_aligned_cam_pos_1);
 
 			DoGBufferPass(p_cam, settings);
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
@@ -537,8 +578,6 @@ namespace ORNG {
 		}
 		else {
 			DoDepthPass(p_cam, settings.p_output_tex);
-			DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::CASCADE_0);
-
 			DoGBufferPass(p_cam, settings);
 			DoLightingPass(settings.p_output_tex);
 			DoFogPass(spec.width, spec.height);
@@ -670,49 +709,68 @@ namespace ORNG {
 		}
 	}
 
-	unsigned convVec4ToRGBA8(glm::vec4 val) {
-		return (unsigned(val.w) & 0x000000FF) << 24U
-			| (unsigned(val.z) & 0x000000FF) << 16U
-			| (unsigned(val.y) & 0x000000FF) << 8U
-			| (unsigned(val.x) & 0x000000FF);
+	void SceneRenderer::AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size) {
+		glClearTexImage(intermediate_copy_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glBindImageTexture(0, voxel_luminance_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(1, intermediate_copy_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+
+		mp_voxel_compute_sv->Activate((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE);
+		mp_voxel_compute_sv->SetUniform("u_delta_tex_coords", delta_tex_coords);
+		GL_StateManager::DispatchCompute(tex_size / 4, tex_size / 4, tex_size / 4);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glBindImageTexture(0, intermediate_copy_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		glBindImageTexture(1, voxel_luminance_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+		mp_voxel_compute_sv->Activate((unsigned)VoxelCS_SV::BLIT);
+		GL_StateManager::DispatchCompute(tex_size / 4, tex_size / 4, tex_size / 4);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
-	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, float cascade_width, float voxel_size, VoxelizationSV shader_variant) {
+	void SceneRenderer::DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, unsigned cascade_width, 
+		float voxel_size, VoxelizationSV shader_variant, glm::vec3 cam_pos) {
 		float half_cascade_width = cascade_width * 0.5f;
 
 		ORNG_PROFILE_FUNC_GPU();
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
+		glDepthFunc(GL_ALWAYS);
 
-		GLuint clear_val = convVec4ToRGBA8({ 0, 0, 0, 0 });
-		glClearTexImage(main_cascade_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
+		GLuint clear_val = 0;
+		// Clear normals, luminance texture not cleared as it accumulates over frames
 		glClearTexImage(normals_main_cascade_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &clear_val);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
 		glBindImageTexture(0, main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		glBindImageTexture(1, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
+
+		// Decrement accumulated values from previous frames as new luminance is about to be added
+		mp_voxel_compute_sv->Activate((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE);
+		GL_StateManager::DispatchCompute(cascade_width / 4, cascade_width / 4, cascade_width / 4);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 		glViewport(0, 0, 256, 256);
 		mp_scene_voxelization_shader->Activate((unsigned)shader_variant);
-
 		auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
-		auto cam_pos = glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f));
 
+		// Draw scene into voxel textures
 		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
-		mp_scene_voxelization_shader->SetUniform("u_aligned_camera_pos", cam_pos);
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 			for (auto* p_group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
-				DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, GL_TRIANGLES);
+				DrawInstanceGroupGBufferWithoutStateChanges(mp_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, GL_TRIANGLES);
 			}
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
+		glDepthFunc(GL_LEQUAL);
+
 		glViewport(0, 0, output_width, output_height);
 
-		// Clear old data
+		// Clear old mip data
 		constexpr unsigned num_mip_levels = 6;
 		for (int i = 0; i < num_mip_levels; i++) {
 			glClearTexImage(cascade_mips.GetTextureHandle(), i, GL_RGBA, GL_FLOAT, nullptr);
@@ -740,7 +798,6 @@ namespace ORNG {
 
 		glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
 	}
 
 	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height) {
@@ -809,6 +866,12 @@ namespace ORNG {
 		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data(), mat_flags, primitive_type);
 	}
 
+	void SceneRenderer::DrawInstanceGroupGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type) {
+		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
+		IDrawMeshGBufferWithoutStateChanges(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data(), mat_flags, primitive_type);
+	}
+
+
 	void SceneRenderer::IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, GLenum primitive_type) {
 		for (unsigned int i = 0; i < p_mesh->m_submeshes.size(); i++) {
 			const Material* p_material = materials[p_mesh->m_submeshes[i].material_index];
@@ -828,6 +891,23 @@ namespace ORNG {
 				UndoGL_StateModificationsFromMatFlags(p_material->flags);
 		}
 	}
+
+	void SceneRenderer::IDrawMeshGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials,
+		MaterialFlags mat_flags, GLenum primitive_type) {
+		for (unsigned int i = 0; i < p_mesh->m_submeshes.size(); i++) {
+			const Material* p_material = materials[p_mesh->m_submeshes[i].material_index];
+
+			if (p_material->render_group != render_group || !(mat_flags & p_material->flags))
+				continue;
+
+			p_shader->SetUniform<unsigned int>("u_shader_id", (p_material->flags & ORNG_MatFlags_EMISSIVE) ? ShaderLibrary::INVALID_SHADER_ID : p_material->shader_id);
+
+			SetGBufferMaterial(p_shader, p_material);
+
+			Renderer::DrawSubMeshInstanced(p_mesh, instances, i, primitive_type);
+		}
+	}
+
 
 	void SceneRenderer::DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings) {
 		ORNG_PROFILE_FUNC_GPU();
@@ -1090,7 +1170,6 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces_c1.GetTextureHandle(), GL_TEXTURE6, false);
 
 		m_lighting_shader->ActivateProgram();
-		m_lighting_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f)));
 
 		auto& spec = p_output_tex->GetSpec();
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -1101,7 +1180,6 @@ namespace ORNG {
 		// Cone trace at half res
 		glClearTexImage(m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
 		mp_cone_trace_shader->ActivateProgram();
-		mp_cone_trace_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(6.4f)));
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 16.f), (GLuint)glm::ceil((float)spec.height / 16.f), 1);
 		glBindImageTexture(7, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);

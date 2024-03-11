@@ -9,7 +9,8 @@ namespace FMOD {
 	class System;
 }
 
-#define ORNG_CALL_FMOD(x) if (x != FMOD_OK){ ORNG_CORE_ERROR("FMOD Error at '{0}', line '{1}' : '{2}", FUNC_NAME, __LINE__, FMOD_ErrorString(x)); BREAKPOINT;}
+//#define ORNG_CALL_FMOD(x) if (x != FMOD_OK){ ORNG_CORE_ERROR("FMOD Error at '{0}', line '{1}' : '{2}", FUNC_NAME, __LINE__, FMOD_ErrorString(x));}
+#define ORNG_CALL_FMOD(x) x
 
 namespace ORNG {
 	class AudioEngine {

@@ -1,22 +1,35 @@
  ## ORNG Engine
- This is a hobby windows-based OpenGL 3D game engine project, currently not in a state to be used. It is not documented and still requires a lot of work. This is my first attempt building a game engine.
+ This is a hobby windows-based OpenGL 3D game engine. It is not really intended for use by anyone other than me however feel free to look at the code or try to build/use it. There are very frequent breaking changes and it is not properly documented currently.
 
- However, if you do decide to try and build, it is currently only properly supported for MSVC using VS (and only tested on VS2022), there are plans to change this, but it is currently non-urgent for me. Cloning this repo recursively and opening the folder in VS should allow you to build error-free. Make sure the editor .exe is set as the startup item.
 
-![Engine screenshot](ORNG_IMAGE.jpg)
+In-engine screenshots (Not my 3D models/textures, credit to the original authors)
+![Engine screenshot](EngineHouseDay.jpg)
+![Engine screenshot](EngineHouseNight.jpg)
+
+&nbsp;
+
+Editor screenshot and some fractal rendering
+![Engine screenshot](FractalEditor.jpg)
+
+
+### Building: 
+Cloning this repo recursively and opening it with VS2022 should allow you to compile and run the engine, make sure the editor exe is set as the startup item in VS. The editor will only work with the MSVC compiler due to the scripting engine relying on it, I have not tested any environments other than VS2022 and I don't expect this to work on them yet.
+
  ### Controls:
  * Move camera: Hold right mouse, WASD + mouse controls
  * Close window/delete component: double right click on header/title bar
  * Drag and drop assets
- * Create entity: right click on "Scene graph" window
+ * Create entity: right click on "Scene graph" window or drag/drop mesh asset in scene view panel
  * Duplicate selected entities: Ctrl+D
- * Reset editor cam: K
+ * Make editor cam active: K
+ * Ctrl+z/Ctrl+shift+z undo/redo
  
 
 
 ### Currently, features include:
 * Visual editor with a simulation mode, uses ImGui for UI
 * Deferred PBR-based 3D renderer
+* Cascaded voxel cone traced global illumination
 * C++ scripting (supports runtime editing/reloading)
 * 3D GPU Physics using Nvidia Physx
 * GPU-driven particle system

@@ -103,6 +103,7 @@ namespace ORNG {
 		void RenderVehicleComponentEditor(VehicleComponent* p_comp);
 		void RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp);
 		void RenderParticleBufferComponentEditor(ParticleBufferComponent* p_comp);
+		void RenderCharacterControllerComponentEditor(CharacterControllerComponent* p_comp);
 
 		void InitLua();
 		void UpdateLuaEntityArray();
@@ -136,7 +137,10 @@ namespace ORNG {
 #define INVALID_ENTITY_ID 0
 
 		inline void SelectEntity(uint64_t id) {
-			if (!VectorContains(m_selected_entity_ids, id) && id != INVALID_ENTITY_ID)
+			if (id == INVALID_ENTITY_ID)
+				return;
+
+			if (!VectorContains(m_selected_entity_ids, id))
 				m_selected_entity_ids.push_back(id);
 			else if (!m_selected_entity_ids.empty())
 				// Makes the selected entity the first ID, which some UI components will operate on more, e.g gizmos will render on this entity now over other selected ones
@@ -185,6 +189,11 @@ namespace ORNG {
 		Shader* mp_grid_shader = nullptr;
 		Shader* mp_highlight_shader = nullptr;
 		Shader* mp_quad_col_shader = nullptr;
+
+		enum class RaymarchSV {
+			CAPSULE,
+		};
+		ShaderVariants* mp_raymarch_shader = nullptr;
 		// Currently used for debug
 		Shader* mp_plane_shader = nullptr;
 

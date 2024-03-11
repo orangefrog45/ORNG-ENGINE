@@ -194,7 +194,7 @@ namespace ORNG {
 		m_vehicle_listener.scene_id = GetSceneUUID();
 		m_vehicle_listener.OnEvent = [this](const Events::ECS_Event<VehicleComponent>& t_event) {
 			switch (t_event.event_type) {
-				using enum Events::ECS_EventType;
+				using enum Events::ECS_EventType; 
 			case COMP_ADDED:
 				InitComponent(t_event.affected_components[0]);
 				break;
@@ -220,8 +220,6 @@ namespace ORNG {
 				break;
 			}
 			};
-
-
 
 
 		// Transform update listener
@@ -484,7 +482,7 @@ namespace ORNG {
 
 			if (auto* p_controller_comp = p_ent->GetComponent<CharacterControllerComponent>()) {
 				glm::vec3 pos = p_transform->GetAbsPosition();
-				p_controller_comp->mp_controller->setPosition({ pos.x, pos.y, pos.z });
+				p_controller_comp->p_controller->setPosition({ pos.x, pos.y, pos.z });
 			}
 
 			if (p_phys_comp) {
@@ -543,17 +541,14 @@ namespace ORNG {
 
 
 
-
-
-
 	void PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
 		// Update component geometry
 		auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
 
 		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
+		ORNG_CORE_TRACE("entity '{}' has abs scale", Format(scale_factor));
 		glm::vec3 scaled_extents = aabb.max * scale_factor;
-
 
 		switch (p_comp->m_geometry_type) {
 		case PhysicsComponent::SPHERE:
@@ -742,9 +737,9 @@ namespace ORNG {
 
 	void PhysicsSystem::RemoveComponent(CharacterControllerComponent* p_comp) {
 		// Remove from cache
-		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->mp_controller->getActor()));
+		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_controller->getActor()));
 
-		p_comp->mp_controller->release();
+		p_comp->p_controller->release();
 	};
 
 
@@ -754,12 +749,12 @@ namespace ORNG {
 		desc.radius = 0.1;
 		desc.material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
 		desc.stepOffset = 1.8f;
-		p_comp->mp_controller = mp_controller_manager->createController(desc);
+		p_comp->p_controller = mp_controller_manager->createController(desc);
 
 		// Cache entity
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->mp_controller->getActor())] = std::make_pair(p_comp->GetEntity(), ActorType::CHARACTER_CONTROLLER);
+		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_controller->getActor())] = std::make_pair(p_comp->GetEntity(), ActorType::CHARACTER_CONTROLLER);
 
-		p_comp->mp_controller->getActor()->setGlobalPose(TransformComponentToPxTransform(*p_comp->GetEntity()->GetComponent<TransformComponent>()));
+		p_comp->p_controller->getActor()->setGlobalPose(TransformComponentToPxTransform(*p_comp->GetEntity()->GetComponent<TransformComponent>()));
 	}
 
 

@@ -22,7 +22,7 @@ namespace ORNG {
 		friend class SceneSerializer;
 	public:
 		AudioComponent() = delete;
-		explicit AudioComponent(SceneEntity* p_entity) : Component(p_entity) { };
+		explicit AudioComponent(SceneEntity* p_entity);
 
 
 		void SetSoundAssetUUID(uint64_t uuid) {
@@ -37,13 +37,18 @@ namespace ORNG {
 			float max;
 		};
 
+		void Stop();
 		void SetPaused(bool b);
 		void SetPitch(float p);
 		void SetMinMaxRange(float min, float max);
 		void SetVolume(float v);
 		void SetPlaybackPosition(unsigned time_in_ms);
 		void SetLooped(bool looped);
+		void Set2D(bool b);
 		void Set3DLevel(float level);
+
+		// -1 for full left, 0 center, 1 full right
+		void SetPan(float pan);
 		void Set3DOcclusion(float occlusion);
 
 		float GetVolume();
@@ -63,12 +68,13 @@ namespace ORNG {
 		void DispatchAudioEvent(std::any data, Events::ECS_EventType event_type, uint32_t sub_event_type);
 
 		uint64_t m_sound_asset_uuid = INVALID_SOUND_UUID;
-
+		uint32_t mode;
 		// Have to store a copy of this state here because it's not retrievable in the channel if the channel isn't actively playing
 		float m_volume = 1.f;
 		float m_pitch = 1.f;
 		float m_level_3d = 1.f;
 		float m_occlusion = 0.f;
+		float m_pan = 0.f;
 
 		bool is_looped = false;
 		AudioRange m_range{ 0.1f, 10000.f };

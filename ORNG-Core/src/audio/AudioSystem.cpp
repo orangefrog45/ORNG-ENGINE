@@ -117,8 +117,9 @@ namespace ORNG {
 			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setVolume(p_sound_comp->m_volume));
 			ORNG_CALL_FMOD(p_sound_comp->mp_channel->set3DMinMaxDistance(p_sound_comp->m_range.min, p_sound_comp->m_range.max));
 			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setPitch(p_sound_comp->m_pitch));
-			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF));
+			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setMode(e_event.affected_components[0]->mode));
 			ORNG_CALL_FMOD(p_sound_comp->mp_channel->setPaused(false));
+
 			break;
 		}
 		}

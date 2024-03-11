@@ -1,4 +1,6 @@
 #version 460 core
+// This shader takes the normal triangle geometry from the scene and voxelizes it, storing the luminance results and normals of the geometry in two 3D textures
+// Uses GbufferVS.glsl as vertex shader
 
 #ifndef PREV_CASCADE_WORLD_SIZE
 #error PREV_CASCADE_WORLD_SIZE must be defined
@@ -38,6 +40,7 @@ in VSVertData {
 ORNG_INCLUDE "CommonINCL.glsl"
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 ORNG_INCLUDE "BuffersINCL.glsl"
+ORNG_INCLUDE "VoxelCommonINCL.glsl"
 
 #define DIR_DEPTH_SAMPLER dir_depth_sampler
 #define POINTLIGHT_DEPTH_SAMPLER pointlight_depth_sampler
@@ -48,7 +51,6 @@ uniform uint u_shader_id;
 uniform bool u_emissive_sampler_active;
 uniform Material u_material;
 
-uniform vec3 u_aligned_camera_pos;
 
 
 vec3 CalculatePointlight(PointLight light) {
@@ -107,31 +109,12 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	return albedo_col;
 }
 
-// Below functions sourced from paper https://www.icare3d.org/research/OpenGLInsights-SparseVoxelization.pdf
-uint convVec4ToRGBA8(vec4 val) {
-  return (uint(val.w) & 0x000000FF) << 24U
-    | (uint(val.z) & 0x000000FF) << 16U
-    | (uint(val.y) & 0x000000FF) << 8U
-    | (uint(val.x) & 0x000000FF);
-}
-
-
-
-
-vec4 convRGBA8ToVec4(uint val) {
-  return vec4(float((val & 0x000000FF)),
-      float((val & 0x0000FF00) >> 8U),
-      float((val & 0x00FF0000) >> 16U),
-      float((val & 0xFF000000) >> 24U));
-}
-
-
-bool PointInsideAABB(vec3 extents, vec3 p) {
-    return (p.x < extents.x && p.x > -extents.x && p.y < extents.y && p.y > -extents.y && p.z < extents.z && p.z > -extents.z);
-}
-
 void main() {
-    ivec3 coord = ivec3((vert_data.position.xyz - u_aligned_camera_pos) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
+#ifdef CASCADE_0
+    ivec3 coord = ivec3((vert_data.position.xyz - ubo_common.voxel_aligned_cam_pos_c0.xyz) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
+#else
+    ivec3 coord = ivec3((vert_data.position.xyz - ubo_common.voxel_aligned_cam_pos_c1.xyz) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
+#endif
 
     if (any(greaterThan(coord, vec3(CURRENT_CASCADE_TEX_SIZE))) || any(lessThan(coord, vec3(0))))
         discard;
@@ -139,6 +122,8 @@ void main() {
     vec3 n = normalize(vert_data.normal);
 
     vec3 col = vec3(0);
+
+    // Calculate luminance value
     if (bool(u_material.flags & MAT_FLAG_EMISSIVE)) {
         col = CalculateAlbedoAndEmissive(vert_data.tex_coord.xy).rgb;
     } else {
@@ -148,9 +133,22 @@ void main() {
         col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vert_data.position.xyz));
         col *= CalculateAlbedoAndEmissive(vert_data.tex_coord.xy).rgb;
     }
-    imageAtomicMax(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
 
-    imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(clamp(col, vec3(0), vec3(1)) * 255, 255)));
+    // Blend accumulated voxel luminance from previous frames (previous value has already been decremented to 95% of its value by a previous pass)
+    vec4 original = convRGBA8ToVec4(imageLoad(voxel_image, coord).r);
+    original.rgb /= 255.0; // Scale down to 0-1
+    original.rgb *= original.a * 0.1; // Apply emissive
+    col.rgb = original.rgb + col.rgb * 0.05 ;
+
+    // Create an emissive component to brighten colours if needed for HDR
+    float l = length(col.rgb);
+    
+    float emissive = clamp(l, 1.0, 25.5);
+    col.rgb /= emissive;
+
+    // Use AtomicMax to prevent flickering from multiple threads trying to write into one voxel
+    imageAtomicMax(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
+    imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(col * 255, emissive * 10.0)));
 
     discard;
 }

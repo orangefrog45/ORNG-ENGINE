@@ -36,16 +36,15 @@ const ivec3 aniso_offsets[] = ivec3[8]
 
 float FetchTexels(ivec3 start_coord, uint face_index, out vec4[8] values, uint mip_dim) {
     float sum = 0.0;
-    ivec3 octant = ivec3(start_coord / (mip_dim / 2));
 
     for (int i = 0; i < 8; i++) {
         ivec3 local_coord = ivec3(start_coord + aniso_offsets[i]);
         ivec3 coord = ApplyMipFaceTexCoordOffset(local_coord, face_index, mip_dim);
-        ivec3 current_octant = ivec3(local_coord / (mip_dim / 2));
-        values[i] = texelFetch(input_mips, coord, u_mip_level - 1)  ;
+        uint current_face_index = uint(coord.z) / mip_dim;
+        values[i] = texelFetch(input_mips, coord, u_mip_level - 1);
         sum++;
     }
-    return 8.0;
+    return sum;
 }
 
 #endif
@@ -81,6 +80,14 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(0, 0, 0))).r) / 255.,
          
     };
+
+    for (int i = 0; i < 8; i++) {
+        // Scale colour by emissive factor stored in alpha component
+        values[i].rgb *= (values[i].a * 25.5);
+
+        // Alpha stores emissive component, switch it back to an actual opacity value here (1.0 for full voxel, 0 for empty, no inbetween)
+        values[i].a = values[i].a > 0.01 ? 1.0 : 0.0;
+    }
 
     vec4 values_normals[8] = {
         normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(1, 1, 1))).r) - 127)),

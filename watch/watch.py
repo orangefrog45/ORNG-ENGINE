@@ -4,13 +4,13 @@ from watchdog.events import FileSystemEventHandler
 import shutil
 
 debug_dir_core = "..\\out\\build\\x64-Debug\\ORNG-Core\\res\\shaders\\"
-release_dir_core = "..\\out\\build\\x64-Release\\ORNG-Core\\res\\shaders\\"
+release_dir_core = "..\\out\\build\\x64-Release-2\\ORNG-Core\\res\\shaders\\"
 debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
-release_dir_editor = "..\\out\\build\\x64-Release\\ORNG-Editor\\res\\shaders\\"
+release_dir_editor = "..\\out\\build\\x64-Release-2\\ORNG-Editor\\res\\shaders\\"
 debug_dir_game = "..\\out\\build\\x64-Debug\\Game\\res\\shaders\\"
-release_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
+release_dir_game = "..\\out\\build\\x64-Release-2\\Game\\res\\shaders\\"
 debug_dir_net_game = "..\\out\\build\\x64-Debug\\NetGame\\res\\shaders\\"
-release_dir_net_game = "..\\out\\build\\x64-Release\\NetGame\\res\\shaders\\"
+release_dir_net_game = "..\\out\\build\\x64-Release-2\\NetGame\\res\\shaders\\"
 
 
 class Handler(FileSystemEventHandler):

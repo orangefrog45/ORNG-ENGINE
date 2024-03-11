@@ -28,18 +28,23 @@ namespace ORNG {
 		mp_quad_shader->Init();
 	}
 
-	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear) {
+	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y,
+		float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1) {
 		std::array<std::byte, m_common_ubo_size> data;
 		std::byte* p_byte = data.data();
 
 		ConvertToBytes(camera_pos, p_byte);
-		ConvertToBytes(0, p_byte);
+		ConvertToBytes(0, p_byte); // padding
 		ConvertToBytes(camera_target, p_byte);
-		ConvertToBytes(0, p_byte);
+		ConvertToBytes(0, p_byte); // padding
 		ConvertToBytes(cam_right, p_byte);
-		ConvertToBytes(0, p_byte);
+		ConvertToBytes(0, p_byte); // padding
 		ConvertToBytes(cam_up, p_byte);
-		ConvertToBytes(0, p_byte);
+		ConvertToBytes(0, p_byte); // padding
+		ConvertToBytes(voxel_aligned_cam_pos_c0, p_byte);
+		ConvertToBytes(0, p_byte); // padding
+		ConvertToBytes(voxel_aligned_cam_pos_c1, p_byte);
+		ConvertToBytes(0, p_byte); // padding
 		ConvertToBytes((float)FrameTiming::GetTotalElapsedTime(), p_byte);
 		ConvertToBytes((float)render_resolution_x, p_byte);
 		ConvertToBytes((float)render_resolution_y, p_byte);

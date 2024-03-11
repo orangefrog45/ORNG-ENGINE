@@ -1,3 +1,4 @@
+#pragma once
 #include "rendering/Textures.h"
 #include "scene/Scene.h"
 #include "events/Events.h"

@@ -16,10 +16,12 @@ namespace ORNG {
 			out << YAML::Key << "Points" << YAML::Value << YAML::BeginSeq;
 
 			for (auto point : interpolator.points) {
-				out << point;
+				//out << point;
 			}
 
 			out << YAML::EndSeq;
+
+			out << YAML::Key << "Scale" << YAML::Value << interpolator.scale;
 			out << YAML::EndMap;
 		}
 
@@ -34,6 +36,8 @@ namespace ORNG {
 				else
 					interpolator.points.push_back(point.as<glm::vec2>());
 			}
+
+			interpolator.scale = interpolator_node["Scale"].as<float>();
 		}
 	};
 

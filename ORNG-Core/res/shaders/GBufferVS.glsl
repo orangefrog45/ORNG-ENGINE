@@ -187,7 +187,6 @@ void main() {
 			
 			vert_data.position = vs_transform * (vec4(position, 1.0f));
 			vert_data.normal = transpose(inverse(mat3(vs_transform))) * vertex_normal;
-
 		#endif
 
 

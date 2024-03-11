@@ -9,9 +9,6 @@ layout(std140, binding = 2) buffer SpotLights {
 	SpotLight lights[];
 } ubo_spot_lights;
 
-
-
-
 layout(std140, binding = 1) uniform GlobalLighting{
 	DirectionalLight directional_light;
 } ubo_global_lighting;
@@ -21,6 +18,8 @@ layout(std140, binding = 2) uniform commons{
 	vec4 camera_target;
 	vec4 camera_right;
 	vec4 camera_up;
+	vec4 voxel_aligned_cam_pos_c0;
+	vec4 voxel_aligned_cam_pos_c1;
 	float time_elapsed;
 	float render_resolution_x;
 	float render_resolution_y;

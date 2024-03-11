@@ -70,6 +70,13 @@ namespace ORNG {
 		CASCADE_1
 	};
 
+	enum class VoxelCS_SV {
+		DECREMENT_LUMINANCE,
+		ON_CAM_POS_UPDATE,
+		BLIT,
+	};
+
+
 	class SceneRenderer {
 		friend class EditorLayer;
 	public:
@@ -138,16 +145,19 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
+		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex, glm::vec3 aligned_cam_pos_0, glm::vec3 aligned_cam_pos_1);
 		void DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings);
 		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoLightingPass(Texture2D* output_tex);
 		void DoFogPass(unsigned int width, unsigned int height);
 		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
-		void DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, float cascade_width, float voxel_size, VoxelizationSV shader_variant);
+		void DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, unsigned cascade_width, float voxel_size, VoxelizationSV shader_variant, glm::vec3 cam_pos);
 
 	private:
+		// Shift voxel luminance data in the 3D texture when the cameras voxel-aligned position changes
+		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size);
+
 		// Returns true if any state was changed
 		bool SetGL_StateFromMatFlags(MaterialFlags flags);
 
@@ -179,7 +189,9 @@ namespace ORNG {
 		void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 
 		void DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES);
+		void DrawInstanceGroupGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES);
 		void IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES);
+		void IDrawMeshGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, GLenum primitive_type=GL_TRIANGLES);
 		void RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group);
 
 
@@ -195,6 +207,7 @@ namespace ORNG {
 		ShaderVariants* mp_3d_mipmap_shader = nullptr;
 
 		ShaderVariants* mp_scene_voxelization_shader = nullptr;
+		ShaderVariants* mp_voxel_compute_sv = nullptr;
 		Shader* mp_voxel_debug_shader = nullptr;
 		Framebuffer* mp_scene_voxelization_fb = nullptr;
 
@@ -207,7 +220,6 @@ namespace ORNG {
 		Shader* mp_bloom_threshold_shader = nullptr;
 		Shader* mp_cone_trace_shader = nullptr;
 		ShaderVariants* mp_transparency_shader_variants = nullptr;
-
 		Shader* mp_transparency_composite_shader = nullptr;
 
 		Framebuffer* m_gbuffer_fb = nullptr;

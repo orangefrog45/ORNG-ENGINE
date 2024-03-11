@@ -45,6 +45,11 @@ extern "C" {
 		ScriptInterface::World::GetEntityByName = func;
 	}
 
+	__declspec(dllexport) void SetGetEntityByEnttHandleCallback(std::function<ORNG::SceneEntity& (entt::entity)> func) {
+		ScriptInterface::World::GetEntityByEnttHandle = func;
+	}
+
+
 	__declspec(dllexport) void SetGetEntityCallback(std::function<ORNG::SceneEntity& (uint64_t)> func) {
 		ScriptInterface::World::GetEntity = func;
 	}

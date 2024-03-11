@@ -88,7 +88,7 @@ namespace ORNG {
 
 
 	void CharacterControllerComponent::Move(glm::vec3 disp, float minDist, float elapsedTime) {
-		mp_controller->move(PxVec3(disp.x, disp.y, disp.z), minDist, elapsedTime, 0);
+		p_controller->move(PxVec3(disp.x, disp.y, disp.z), minDist, elapsedTime, 0);
 
 		moved_during_frame = true;
 	}

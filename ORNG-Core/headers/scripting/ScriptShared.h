@@ -93,6 +93,7 @@ namespace ORNG {
 		DuplicateEntitySetter SceneEntityDuplicationSetter = [](std::function<SceneEntity& (SceneEntity& p_entity)>) {};
 		InstantiatePrefabSetter ScenePrefabInstantSetter = [](std::function<SceneEntity& (const std::string&)>) {};
 		RaycastSetter SceneRaycastSetter = [](std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>) {};
+		GetEntityEnttHandleSetter SceneGetEntityEnttHandleSetter = [](std::function<SceneEntity& (entt::entity entity_uuid)>) {};
 		GetEntitySetter SceneGetEntitySetter = [](std::function<SceneEntity& (uint64_t)>) {};
 		OverlapQuerySetter SceneOverlapQuerySetter = [](std::function<OverlapQueryResults (physx::PxGeometry&, glm::vec3)>) {};
 		GetEntityByNameSetter SceneGetEntityByNameSetter = [](std::function<SceneEntity& (const std::string&)>) {};

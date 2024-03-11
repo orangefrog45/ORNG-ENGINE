@@ -2,33 +2,54 @@
 #include "components/AudioComponent.h"
 #include "events/EventManager.h"
 #include <fmod.hpp>
+#include "audio/AudioEngine.h"
 
 
 namespace ORNG {
+
+	AudioComponent::AudioComponent(SceneEntity* p_entity) : Component(p_entity) { mode = FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF; };
+
 	void AudioComponent::SetPitch(float p) {
 		m_pitch = p;
-		mp_channel->setPitch(p);
+		ORNG_CALL_FMOD(mp_channel->setPitch(p));
 	}
 
 	void AudioComponent::SetVolume(float v) {
 		m_volume = v;
-		mp_channel->setVolume(v);
+		ORNG_CALL_FMOD(mp_channel->setVolume(v));
 	}
 
 	void AudioComponent::SetMinMaxRange(float min, float max) {
 		m_range.min = min; 
 		m_range.max = max;
-		mp_channel->set3DMinMaxDistance(min, max);
+		ORNG_CALL_FMOD(mp_channel->set3DMinMaxDistance(min, max));
 	}
 
 	void AudioComponent::SetPaused(bool b) {
-		mp_channel->setPaused(b);
+		ORNG_CALL_FMOD(mp_channel->setPaused(b));
+	}
+
+	void AudioComponent::Set2D(bool b) {
+		if (b) {
+			mode = mode & ~FMOD_3D;
+			mode = mode | FMOD_2D;
+		}
+		else {
+			mode = mode & ~FMOD_2D;
+			mode = mode | FMOD_3D;
+		}
+
+		ORNG_CALL_FMOD(mp_channel->setMode(mode));
 	}
 
 	bool AudioComponent::IsPlaying() {
-		bool b;
-		mp_channel->isPlaying(&b);
+		bool b = false;
+		ORNG_CALL_FMOD(mp_channel->isPlaying(&b));
 		return b;
+	}
+
+	void AudioComponent::Stop() {
+		ORNG_CALL_FMOD(mp_channel->stop());
 	}
 
 	void AudioComponent::Play(uint64_t uuid) {
@@ -61,23 +82,30 @@ namespace ORNG {
 
 	void AudioComponent::SetLooped(bool looped) {
 		is_looped = looped;
-		mp_channel->setLoopCount(looped ? -1 : 0);
-		mp_channel->setMode(FMOD_DEFAULT | FMOD_3D | (looped ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | FMOD_3D_LINEARROLLOFF);
+		ORNG_CALL_FMOD(mp_channel->setLoopCount(looped ? -1 : 0));
+		mode = FMOD_DEFAULT | FMOD_3D | (looped ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | FMOD_3D_LINEARROLLOFF;
+		ORNG_CALL_FMOD(mp_channel->setMode(mode));
 	}
 
 
 	void AudioComponent::Set3DLevel(float level) {
 		m_level_3d = level;
-		mp_channel->set3DLevel(level);
+		ORNG_CALL_FMOD(mp_channel->set3DLevel(level));
 	}
 
+	void AudioComponent::SetPan(float pan) {
+		m_pan = pan;
+		ORNG_CALL_FMOD(mp_channel->setPan(pan));
+	}
+
+
 	void AudioComponent::SetPlaybackPosition(unsigned time_in_ms) {
-		mp_channel->setPosition(time_in_ms, FMOD_TIMEUNIT_MS);
+		ORNG_CALL_FMOD(mp_channel->setPosition(time_in_ms, FMOD_TIMEUNIT_MS));
 	}
 
 	unsigned int AudioComponent::GetPlaybackPosition() {
 		unsigned int pos;
-		mp_channel->getPosition(&pos, FMOD_TIMEUNIT_MS);
+		ORNG_CALL_FMOD(mp_channel->getPosition(&pos, FMOD_TIMEUNIT_MS));
 		return pos;
 	}
 

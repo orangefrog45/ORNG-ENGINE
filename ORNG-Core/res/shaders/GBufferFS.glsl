@@ -106,7 +106,7 @@ mat3 CalculateTbnMatrixTransform() {
 	vec3 n = normalize(vert_data.normal);
 #else
 	vec3 t = normalize(vec3(mat3(TRANSFORM) * vert_data.tangent));
-	vec3 n = normalize(vec3(mat3(TRANSFORM) * vert_data.normal));
+	vec3 n = normalize(vec3(mat3(TRANSFORM) * vert_data.original_normal));
 #endif
 
 	t = normalize(t - dot(t, n) * n);
@@ -114,7 +114,7 @@ mat3 CalculateTbnMatrixTransform() {
 
 	mat3 tbn = mat3(t, b, n);
 
-	return transpose(tbn);
+	return tbn;
 }
 
 
@@ -167,8 +167,6 @@ void main() {
 
 #ifdef TERRAIN_MODE
 	shader_id = u_shader_id;
-	normal = u_normal_sampler_active ? vec4(CalculateTbnMatrix() * normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0), 1.0) : vec4(normalize(vert_data.normal), 1.0);
-
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
 
 #elif defined SKYBOX_MODE
@@ -176,18 +174,18 @@ void main() {
 	albedo = vec4(texture(cube_color_sampler, normalize(vert_data.position.xyz)).rgb, 1.f);
 #else
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
-	if (albedo.w < 0.5)
+	if (albedo.w < 0.25)
 		discard;
-		albedo.w = 1.0;
+
+		albedo.rgb *= albedo.w;
 	if (u_normal_sampler_active) {
 		mat3 tbn = CalculateTbnMatrixTransform();
-		vec3 sampled_normal = texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0;
+		vec3 sampled_normal = normalize(texture(normal_map_sampler, adj_tex_coord.xy).rgb * 2.0 - 1.0);
 		normal = vec4(normalize(tbn * sampled_normal * (gl_FrontFacing ? 1.0 : -1.0)).rgb, 1.0);
 	}
 	else {
 		normal = vec4(normalize(vert_data.normal * (gl_FrontFacing ? 1.0 : -1.0)), 1.0);
 	}
-
 
 	shader_id = u_shader_id;
 #endif

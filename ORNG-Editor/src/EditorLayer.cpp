@@ -34,6 +34,10 @@ namespace ORNG {
 		InitLua();
 
 
+		mp_raymarch_shader = &Renderer::GetShaderLibrary().CreateShaderVariants("Editor raymarch");
+		mp_raymarch_shader->SetPath(GL_VERTEX_SHADER, m_executable_directory + "/res/shaders/QuadVS.glsl");
+		mp_raymarch_shader->SetPath(GL_FRAGMENT_SHADER, m_executable_directory + "/res/shaders/RaymarchFS.glsl");
+		mp_raymarch_shader->AddVariant((unsigned)RaymarchSV::CAPSULE, { "CAPSULE" }, {"u_capsule_pos", "u_capsule_height", "u_capsule_radius"});
 
 		m_grid_mesh = std::make_unique<GridMesh>();
 		m_grid_mesh->Init();
@@ -1010,7 +1014,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-		const char* names[11] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard", "Particle buffer"};
+		const char* names[12] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard", "Particle buffer", "Character controller"};
 
 		if (trigger)
 			ImGui::OpenPopup("my_select_popup");
@@ -1064,6 +1068,9 @@ namespace ORNG {
 			break;
 		case 10:
 			entity->AddComponent<ParticleBufferComponent>();
+			break;
+		case 11:
+			entity->AddComponent<CharacterControllerComponent>();
 			break;
 		}
 	}
@@ -1337,7 +1344,11 @@ namespace ORNG {
 		// Break into 3 sep. loops to reduce vao changes
 		for (auto [entity, phys, transform] : (*mp_scene_context)->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::BOX) {
-				mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
+				if (auto* p_mesh = phys.GetEntity()->GetComponent<MeshComponent>())
+					mp_highlight_shader->SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().max * 2.f));
+				else
+					mp_highlight_shader->SetUniform("transform", transform.GetMatrix());
+
 				Renderer::DrawCube();
 			}
 		}
@@ -1377,10 +1388,18 @@ namespace ORNG {
 			}
 		}
 
+		mp_raymarch_shader->Activate((unsigned)RaymarchSV::CAPSULE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		for (auto [entity, controller, transform] : (*mp_scene_context)->m_registry.view<CharacterControllerComponent, TransformComponent>().each()) {
+			PxCapsuleController* p_controller = static_cast<PxCapsuleController*>(controller.p_controller);
+			mp_raymarch_shader->SetUniform("u_capsule_pos", transform.GetAbsPosition());
+			mp_raymarch_shader->SetUniform<float>("u_capsule_height", p_controller->getHeight());
+			mp_raymarch_shader->SetUniform<float>("u_capsule_radius", p_controller->getRadius());
+			Renderer::DrawQuad();
+		}
 
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
 
@@ -1515,6 +1534,7 @@ namespace ORNG {
 				else
 					SelectEntity(p_entity->GetUUID());
 			}
+			
 		}
 
 		// Popup opened above if node is right clicked
@@ -1636,6 +1656,18 @@ namespace ORNG {
 	}
 
 
+	template<std::derived_from<Component> CompType>
+	void RenderCompEditor(SceneEntity* p_entity, const std::string& comp_name, std::function<void(CompType*)> render_func) {
+		if (auto* p_comp = p_entity->GetComponent<CompType>(); p_comp && ImGui::CollapsingHeader(comp_name.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
+				p_entity->DeleteComponent<CompType>();
+			}
+			else {
+				render_func(p_comp);
+			}
+		}
+	}
+
 
 
 	void EditorLayer::DisplayEntityEditor() {
@@ -1662,16 +1694,6 @@ namespace ORNG {
 				return;
 			}
 
-			auto meshc = entity->GetComponent<MeshComponent>();
-			auto plight = entity->GetComponent<PointLightComponent>();
-			auto slight = entity->GetComponent<SpotLightComponent>();
-			auto p_cam = entity->GetComponent<CameraComponent>();
-			PhysicsComponent* p_physics_comp = entity->GetComponent<PhysicsComponent>();
-			auto* p_script_comp = entity->GetComponent<ScriptComponent>();
-			auto* p_audio_comp = entity->GetComponent<AudioComponent>();
-			auto* p_vehicle_comp = entity->GetComponent<VehicleComponent>();
-			auto* p_emitter_comp = entity->GetComponent<ParticleEmitterComponent>();
-
 			static std::vector<TransformComponent*> transforms;
 			transforms.clear();
 			for (auto id : m_selected_entity_ids) {
@@ -1683,111 +1705,23 @@ namespace ORNG {
 			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 55);
 			RenderCreationWidget(entity, ImGui::Button("+", ImVec2(20, 20)));
 
-			//TRANSFORM
-			if (ExtraUI::H2TreeNode("Entity transform")) {
+			// Transform comp handled separately as it can't be deleted
+			if (ImGui::CollapsingHeader("Transform component", ImGuiTreeNodeFlags_DefaultOpen)) {
 				RenderTransformComponentEditor(transforms);
 			}
 
+			RenderCompEditor<MeshComponent>(entity, "Mesh component", [this](MeshComponent* p_comp) { RenderMeshComponentEditor(p_comp); });
+			RenderCompEditor<PointLightComponent>(entity, "Pointlight component", [this](PointLightComponent* p_comp) { RenderPointlightEditor(p_comp); });
+			RenderCompEditor<SpotLightComponent>(entity, "Spotlight component", [this](SpotLightComponent* p_comp) { RenderSpotlightEditor(p_comp); });
+			RenderCompEditor<CameraComponent>(entity, "Camera component", [this](CameraComponent* p_comp) { RenderCameraEditor(p_comp); });
+			RenderCompEditor<PhysicsComponent>(entity, "Physics component", [this](PhysicsComponent* p_comp) { RenderPhysicsComponentEditor(p_comp); });
+			RenderCompEditor<ScriptComponent>(entity, "Script component", [this](ScriptComponent* p_comp) { RenderScriptComponentEditor(p_comp); });
+			RenderCompEditor<AudioComponent>(entity, "Audio component", [this](AudioComponent* p_comp) { RenderAudioComponentEditor(p_comp); });
+			RenderCompEditor<VehicleComponent>(entity, "Vehicle component", [this](VehicleComponent* p_comp) { RenderVehicleComponentEditor(p_comp); });
+			RenderCompEditor<ParticleEmitterComponent>(entity, "Particle emitter component", [this](ParticleEmitterComponent* p_comp) { RenderParticleEmitterComponentEditor(p_comp); });
+			RenderCompEditor<ParticleBufferComponent>(entity, "Particle buffer component", [this](ParticleBufferComponent* p_comp) { RenderParticleBufferComponentEditor(p_comp); });
+			RenderCompEditor<CharacterControllerComponent>(entity, "Character controller component", [this](CharacterControllerComponent* p_comp) { RenderCharacterControllerComponentEditor(p_comp); });
 
-			//MESH
-			if (meshc) {
-				if (ExtraUI::H2TreeNode("Mesh component")) {
-					if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-						entity->DeleteComponent<MeshComponent>();
-					}
-					if (meshc->mp_mesh_asset) {
-						RenderMeshComponentEditor(meshc);
-					}
-				}
-			}
-
-
-			ImGui::PushID(plight);
-			if (plight && ExtraUI::H2TreeNode("Pointlight component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<PointLightComponent>();
-				}
-				else {
-					RenderPointlightEditor(plight);
-				}
-			}
-			ImGui::PopID();
-
-			ImGui::PushID(slight);
-			if (slight && ExtraUI::H2TreeNode("Spotlight component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<SpotLightComponent>();
-				}
-				else {
-					RenderSpotlightEditor(slight);
-				}
-			}
-			ImGui::PopID();
-
-			ImGui::PushID(p_cam);
-			if (p_cam && ExtraUI::H2TreeNode("Camera component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<CameraComponent>();
-				}
-				RenderCameraEditor(p_cam);
-			}
-			ImGui::PopID();
-
-			ImGui::PushID(p_physics_comp);
-			if (p_physics_comp && ExtraUI::H2TreeNode("Physics component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<PhysicsComponent>();
-				}
-				else {
-					RenderPhysicsComponentEditor(p_physics_comp);
-				}
-			}
-			ImGui::PopID();
-
-			if (p_script_comp && ExtraUI::H2TreeNode("Script component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<ScriptComponent>();
-				}
-				else {
-					RenderScriptComponentEditor(p_script_comp);
-				}
-			}
-
-			if (p_audio_comp && ExtraUI::H2TreeNode("Audio component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<AudioComponent>();
-				}
-				else {
-					RenderAudioComponentEditor(p_audio_comp);
-				}
-			}
-
-			if (p_vehicle_comp && ExtraUI::H2TreeNode("Vehicle component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<VehicleComponent>();
-				}
-				else {
-					RenderVehicleComponentEditor(p_vehicle_comp);
-				}
-			}
-
-			if (p_emitter_comp && ExtraUI::H2TreeNode("Particle emitter component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<ParticleEmitterComponent>();
-				}
-				else {
-					RenderParticleEmitterComponentEditor(p_emitter_comp);
-				}
-			}
-
-			if (auto* p_buffer_comp = entity->GetComponent<ParticleBufferComponent>(); p_buffer_comp && ExtraUI::H2TreeNode("Particle buffer component")) {
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-					entity->DeleteComponent<ParticleBufferComponent>();
-				}
-				else {
-					RenderParticleBufferComponentEditor(p_buffer_comp);
-				}
-			}
 
 			glm::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
 			glm::vec2 button_size = { 200, 50 };
@@ -1797,9 +1731,6 @@ namespace ORNG {
 		}
 		ImGui::End(); // end entity editor window
 	}
-
-
-
 
 
 	template<typename T>
@@ -1953,6 +1884,27 @@ namespace ORNG {
 		ImGui::PopID();
 
 	}
+
+	void EditorLayer::RenderCharacterControllerComponentEditor(CharacterControllerComponent* p_comp) {
+		ImGui::PushID(p_comp);
+		PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_comp->p_controller);
+		static float radius = 0.f;
+		radius = p_capsule->getRadius();
+		static float height = 0.f;
+		height = p_capsule->getHeight();
+		
+		ImGui::Text("Radius"); ImGui::SameLine();
+		ImGui::InputFloat("##radius", &radius);
+
+		ImGui::Text("Height"); ImGui::SameLine();
+		ImGui::InputFloat("##height", &height);
+
+		p_capsule->setHeight(height);
+		p_capsule->setRadius(radius);
+
+		ImGui::PopID();
+	}
+
 
 
 	void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp) {
@@ -2118,6 +2070,8 @@ namespace ORNG {
 		p_audio->mp_channel->getPosition(&position, FMOD_TIMEUNIT_MS);
 		unsigned int total_length;
 		p_sound->p_sound->getLength(&total_length, FMOD_TIMEUNIT_MS);
+		total_length /= 1000.0;
+		position /= 1000.0;
 
 		ImGui::SetCursorPos(prev_curs_pos);
 		ExtraUI::ColoredButton("##playback position", orange_color_dark, ImVec2(playback_widget_width * ((float)position / (float)total_length), playback_widget_height));
@@ -2147,7 +2101,7 @@ namespace ORNG {
 				ImVec2 mouse_pos = ImGui::GetMousePos();
 				ImVec2 local_mouse{ mouse_pos.x - (wp.x + prev_curs_pos.x), mouse_pos.y - (wp.y + prev_curs_pos.y) };
 
-				p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length), FMOD_TIMEUNIT_MS);
+				p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length) * 1000.0, FMOD_TIMEUNIT_MS);
 			}
 		}
 		if (first_mouse_down && ImGui::IsMouseReleased(0)) {
@@ -2163,12 +2117,15 @@ namespace ORNG {
 			if (!p_audio->IsPaused() && ImGui::SmallButton(ICON_FA_PAUSE)) {
 				p_audio->SetPaused(true);
 			}
-
 			if (p_audio->IsPaused() && ImGui::SmallButton(ICON_FA_PLAY)) {
 				p_audio->SetPaused(false);
 			}
 		}
 
+		if (ImGui::SmallButton(ICON_FA_REPEAT)) {
+			p_audio->Stop();
+			p_audio->Play(p_audio->GetAudioAssetUUID());
+		}
 
 		ImGui::Button(ICON_FA_MUSIC, ImVec2{ 100, 100 });
 		if (ImGui::BeginItemTooltip()) {

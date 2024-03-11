@@ -244,6 +244,15 @@ namespace ORNG {
 				return *p_ent;
 				});
 
+			p_script_asset->symbols.SceneGetEntityEnttHandleSetter([this](entt::entity id) -> SceneEntity& {
+				auto* p_ent = GetEntity(id);
+
+				if (!p_ent)
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with entt handle {} not found", (uint32_t)id)); // Caught in Scene::Update
+
+				return *p_ent;
+				});
+
 			p_script_asset->symbols.SceneOverlapQuerySetter([this](PxGeometry& geom, glm::vec3 pos) -> OverlapQueryResults {
 				return physics_system.OverlapQuery(geom, pos);
 				});

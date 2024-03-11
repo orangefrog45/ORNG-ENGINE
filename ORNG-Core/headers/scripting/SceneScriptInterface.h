@@ -13,6 +13,7 @@ namespace ScriptInterface {
 		inline static std::function<ORNG::SceneEntity& (const std::string&)> CreateEntity = nullptr;
 		inline static std::function<ORNG::SceneEntity& (uint64_t)> GetEntity = nullptr;
 		inline static std::function<ORNG::SceneEntity& (const std::string&)> GetEntityByName = nullptr;
+		inline static std::function<ORNG::SceneEntity& (const entt::entity)> GetEntityByEnttHandle = nullptr;
 		inline static std::function<void(ORNG::SceneEntity*)> DeleteEntity = nullptr;
 		inline static std::function<ORNG::SceneEntity& (ORNG::SceneEntity&)> DuplicateEntity = nullptr;
 		inline static std::function<ORNG::SceneEntity& (const std::string&)> InstantiatePrefab = nullptr;

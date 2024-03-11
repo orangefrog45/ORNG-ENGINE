@@ -270,6 +270,7 @@ namespace ORNG {
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
 		symbols.SceneGetEntityByNameSetter = (GetEntityByNameSetter)(GetProcAddress(script_dll, "SetGetEntityByNameCallback"));
+		symbols.SceneGetEntityEnttHandleSetter = (GetEntityEnttHandleSetter)(GetProcAddress(script_dll, "SetGetEntityByEnttHandleCallback"));
 		symbols.loaded = true;
 		symbols.DestroyInstance(symbols.CreateInstance());
 

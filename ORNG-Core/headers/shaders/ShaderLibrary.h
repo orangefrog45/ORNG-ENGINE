@@ -19,7 +19,9 @@ namespace ORNG {
 
 		void SetMatrixUBOs(glm::mat4& proj, glm::mat4& view);
 		void SetGlobalLighting(const DirectionalLight& dir_light);
-		void SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, float cam_zfar, float cam_znear);
+		void SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, 
+			float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1
+		);
 
 		Shader& GetShader(const char* name);
 		void DeleteShader(const char* name);
@@ -51,6 +53,6 @@ namespace ORNG {
 		inline const static unsigned int m_global_lighting_ubo_size = 16 * sizeof(float);
 
 		UBO m_common_ubo{true, 0};
-		inline const static unsigned int m_common_ubo_size = sizeof(glm::vec4) * 4 + sizeof(float) * 6 + sizeof(double);
+		inline const static unsigned int m_common_ubo_size = sizeof(glm::vec4) * 6 + sizeof(float) * 6 + sizeof(double);
 	};
 }

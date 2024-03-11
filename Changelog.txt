@@ -1,3 +1,10 @@
+9/3/24:
+-Voxel GI cascade improvements, interpolation between cascade borders for smoother transitions, reuse of cascade data for smaller cascade updates,
+full cascade stabilization that's fixed flickering
+-Voxel GI luminance now accumulates over frames for smoother lighting on dynamic objects and less obvious voxel snapping
+-Proper character controller integration (serialization, editor, debug capsule rendering)
+-Updated README
+
 3/3/24:
 -Voxel GI bugfixing/debug code cleanup and cascades almost fully implemented
 -More scripting utilities (exposed physx api, get entity by name)
