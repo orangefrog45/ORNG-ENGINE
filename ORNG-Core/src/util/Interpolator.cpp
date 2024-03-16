@@ -95,36 +95,29 @@ namespace ORNG {
 		constexpr float s = std::numeric_limits<float>::lowest();
 
 		for (int i = 0; i < points.size(); i++) {
-			ConvertToBytes(points[i].x, p_byte);
-			ConvertToBytes(points[i].y, p_byte);
+			ConvertToBytes(p_byte, points[i]);
 		}
 
 		for (int i = points.size(); i < GPU_INTERPOLATOR_STRUCT_MAX_POINTS; i++) {
-			ConvertToBytes(s, p_byte); //padding
-			ConvertToBytes(s, p_byte); //padding
+			ConvertToBytes(p_byte, s); //padding
+			ConvertToBytes(p_byte, s); //padding
 		}
 
-		ConvertToBytes((unsigned)points.size(), p_byte);
-		ConvertToBytes(scale, p_byte);
+		ConvertToBytes(p_byte, (unsigned)points.size(), scale);
 	}
 
 	void InterpolatorV3::ConvertSelfToBytes(std::byte*& p_byte) {
+		constexpr float s = std::numeric_limits<float>::lowest();
+
 		for (int i = 0; i < points.size(); i++) {
-			ConvertToBytes(points[i].x, p_byte);
-			ConvertToBytes(points[i].y, p_byte);
-			ConvertToBytes(points[i].z, p_byte);
-			ConvertToBytes(points[i].w, p_byte);
+			ConvertToBytes(p_byte, points[i]);
 		}
 
 		for (int i = points.size(); i < GPU_INTERPOLATOR_STRUCT_MAX_POINTS; i++) {
-			ConvertToBytes(0.f, p_byte); //padding
-			ConvertToBytes(0.f, p_byte); //padding
-			ConvertToBytes(0.f, p_byte); //padding
-			ConvertToBytes(0.f, p_byte); //padding
+			ConvertToBytes(p_byte, s, s, s, s); // padding
 		}
 
-		ConvertToBytes((unsigned)points.size(), p_byte);
-		ConvertToBytes(scale, p_byte);
+		ConvertToBytes(p_byte, (unsigned)points.size(), scale);
 	}
 
 

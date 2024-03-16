@@ -80,8 +80,12 @@ namespace ORNG {
 		return it == m_entities.end() ? nullptr : *it;
 	}
 	SceneEntity* Scene::GetEntity(entt::entity handle) {
-		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->m_entt_handle == handle; });
-		return it == m_entities.end() ? nullptr : *it;
+		auto* p_transform = m_registry.try_get<TransformComponent>(handle);
+
+		if (!p_transform)
+			return nullptr;
+		else
+			return p_transform->GetEntity();
 	}
 
 
@@ -113,6 +117,13 @@ namespace ORNG {
 			DuplicateEntity(*p_current_child).SetParent(new_entity);
 			p_current_child = GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
 		}
+
+		new_entity.ForEachChildRecursive(
+			[&](entt::entity e) {
+				SceneSerializer::ResolveEntityNodeRefs(*this, *GetEntity(e));
+			}
+		);
+
 		return new_entity;
 	}
 
@@ -139,6 +150,92 @@ namespace ORNG {
 
 			return descending ? num_children_left < num_children_right : num_children_left > num_children_right;
 		});
+	}
+
+	SceneEntity* Scene::TryFindEntity(const EntityNodeRef& ref) {
+		SceneEntity* p_current_ent = ref.GetSrc();
+		
+		for (const auto& ent_name : ref.GetInstructions()) {
+			if (p_current_ent == nullptr)
+				return p_current_ent;
+
+			if (ent_name == "..") {
+				p_current_ent = GetEntity(p_current_ent->GetParent());
+			}
+			else {
+				p_current_ent = p_current_ent->GetChild(ent_name);
+			}
+
+		}
+
+		return p_current_ent;
+	}
+
+
+	std::optional<EntityNodeRef> Scene::GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target) {
+		std::vector<std::string> instructions = { p_target->name };
+
+		std::set<SceneEntity*> src_parents;
+		std::vector<SceneEntity*> ordered_src_parents;
+
+		// Find highest parents for comparison and faster lookup
+		entt::entity highest_parent_src = p_src->GetParent();
+		src_parents.insert(GetEntity(highest_parent_src));
+
+		SceneEntity* p_highest_shared_parent = nullptr;
+
+		{
+			SceneEntity* p_current_parent = GetEntity(p_src->GetParent());
+
+			// Gather all parents of src entity
+			while (p_current_parent) {
+				src_parents.insert(p_current_parent);
+				ordered_src_parents.push_back(p_current_parent);
+				p_current_parent = GetEntity(p_current_parent->GetParent());
+			}
+
+			p_current_parent = GetEntity(p_target->GetParent());
+
+			// Traverse all parents of target entity, this results in either finding either: 
+			// A common parent among target and src 
+			// Finding that target is a child of src
+			while (p_current_parent) {
+				if (!p_current_parent) // No common parents, entities are unrelated and therefore a path can't be formed
+					return std::nullopt;
+
+				if (src_parents.contains(p_current_parent)) {
+					p_highest_shared_parent = p_current_parent;
+					break;
+				}
+				else if (p_current_parent == p_src) {
+					break;
+				}
+				else {
+					instructions.push_back(p_current_parent->name);
+				}
+
+				p_current_parent = GetEntity(p_current_parent->GetParent());
+			}
+		}
+
+		// 0 by default if no common parent is found as then target is assumed to be a child of src
+		// This idx is also how many layers up needed to move until common parent is found
+		unsigned idx = 0;
+
+		if (p_highest_shared_parent)
+			idx = VectorFindIndex(ordered_src_parents, p_highest_shared_parent) + 1;
+
+		// Get path relative to the first common parent
+		for (int i = 0; i < idx; i++) {
+			instructions.push_back("..");
+		}
+
+		// Instruction set is generated in reverse, so reverse here to correct it
+		std::ranges::reverse(instructions);
+
+		EntityNodeRef ref{ p_src, instructions };
+
+		return std::make_optional(ref);
 	}
 
 

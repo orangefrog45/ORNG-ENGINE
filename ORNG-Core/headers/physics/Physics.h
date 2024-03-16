@@ -33,7 +33,7 @@ namespace ORNG {
 
 		physx::PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
 
-		return { ConvertVec3<glm::vec3, physx::PxVec3>(p), n_px_quat};
+		return { ConvertVec3<physx::PxVec3>(p), n_px_quat};
 	}
 
 	class Physics {

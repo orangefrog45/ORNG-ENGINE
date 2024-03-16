@@ -5,6 +5,7 @@
 #include <bitsery/adapter/stream.h>
 #include "bitsery/traits/string.h"
 #include "util/Log.h"
+#include "EntityNodeRef.h"
 
 namespace YAML {
 	class Emitter;
@@ -20,6 +21,9 @@ namespace ORNG {
 	struct VertexData3D;
 	struct TextureFileData;
 	class MeshAsset;
+	class VehicleComponent;
+	class MeshComponent;
+	struct JointComponent;
 
 
 	class SceneSerializer {
@@ -34,8 +38,12 @@ namespace ORNG {
 		static bool DeserializeScene(Scene& scene, const std::string& input, bool load_env_map, bool input_is_filepath = true);
 
 		static void SerializeEntity(SceneEntity& entity, YAML::Emitter& out);
+
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
+
+		// Called on each entity after the scene tree is fully built, resolves any EntityNodeRefs into actual entities and connects them appropiately (e.g joint connections)
+		static void ResolveEntityNodeRefs(Scene& scene, SceneEntity& entity);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 
@@ -48,6 +56,45 @@ namespace ORNG {
 		static std::vector<SceneEntity*> DeserializePrefabFromString(Scene& scene, const std::string& str);
 
 		static SceneEntity& DeserializeEntityUUIDFromString(Scene& scene, const std::string& str);
+
+		static void SerializeEntityNodeRef(YAML::Emitter& out, const EntityNodeRef& ref);
+
+		static void DeserializeEntityNodeRef(const YAML::Node& node, EntityNodeRef& ref);
+
+
+		/* 
+			Component deserializers 
+		*/
+
+		static MeshComponent* DeserializeMeshComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializePointlightComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeSpotlightComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeCameraComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeAudioComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeParticleEmitterComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeParticleBufferComp(const YAML::Node& node, SceneEntity& entity);
+
+		static VehicleComponent* DeserializeVehicleComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeCharacterControllerComp(const YAML::Node& node, SceneEntity& entity);
+
+		static void DeserializeJointComp(const YAML::Node& node, SceneEntity& entity);
+
+		// This resolves the EntityNodeRef's in the joint component and actually connects the joint
+		// This has to occur after the full scene tree has been deserialized for the EntityNodeRef's to navigate properly
+		static void ConnectJointComp(Scene& scene, JointComponent& comp);
 
 
 		template <typename T>
@@ -86,5 +133,6 @@ namespace ORNG {
 		}
 
 	private:
+
 	};
 }

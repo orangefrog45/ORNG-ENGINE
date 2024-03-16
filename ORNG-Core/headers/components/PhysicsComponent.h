@@ -2,6 +2,8 @@
 #define PHYSICSCOMPONENT_H
 
 #include "Component.h"
+#include "physx/extensions/PxD6Joint.h"
+#include "scene/EntityNodeRef.h"
 
 namespace physx {
 	class PxRigidDynamic;
@@ -11,9 +13,8 @@ namespace physx {
 	class PxMaterial;
 	class PxScene;
 	class PxController;
-	class PxFixedJoint;
 	class PxActor;
-	class PxSphericalJoint;
+	class PxD6Joint;
 }
 
 namespace ORNG {
@@ -94,20 +95,42 @@ namespace ORNG {
 		BREAK
 	};
 
-	class FixedJointComponent : public Component {
-	public:
-		friend class PhysicsSystem;
-		friend class EditorLayer;
-		FixedJointComponent(SceneEntity* p_entity) : Component(p_entity) {};
-		/*void Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1) {
-		Events::ECS_Event<FixedJointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, this, JointEventType::CONNECT };
-		joint_event.data_payload = std::make_pair(t_a0, t_a1);
-		Events::EventManager::DispatchEvent(joint_event);
-		}*/
+	struct JointComponent : public Component {
+
+		struct ConnectionData {
+			ConnectionData(PhysicsComponent* _0, PhysicsComponent* _1, bool _use_comp_poses) : first(_0), second(_1), use_component_poses(_use_comp_poses) {};
+
+			PhysicsComponent* first = nullptr;
+			PhysicsComponent* second = nullptr;
+
+			// If false, physics system will place the joint in the middle of the two components instead of using the poses in this->poses
+			bool use_component_poses = false;
+		};
+
+		void Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1, bool use_comp_poses = false);
 		void Break();
 
-	private:
-		physx::PxFixedJoint* mp_joint = nullptr;
+		void SetMotion(physx::PxD6Axis::Enum axis, physx::PxD6Motion::Enum _motion) {
+			if (p_joint)
+				p_joint->setMotion(axis, _motion);
+
+			motion[axis] = _motion;
+		}
+
+		void SetLocalPose(unsigned actor_idx, glm::vec3 p) {
+			if (p_joint)
+				p_joint->setLocalPose((physx::PxJointActorIndex::Enum)actor_idx, physx::PxTransform{ physx::PxVec3(p.x, p.y, p.z) });
+
+			poses[actor_idx] = p;
+		}
+
+		EntityNodeRef attachment_ref0{ GetEntity() };
+		EntityNodeRef attachment_ref1{ GetEntity() };
+
+		std::array<glm::vec3, 2> poses;
+
+		std::unordered_map<physx::PxD6Axis::Enum, physx::PxD6Motion::Enum> motion;
+		physx::PxD6Joint* p_joint = nullptr;
 	};
 
 }

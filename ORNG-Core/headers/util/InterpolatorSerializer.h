@@ -16,7 +16,7 @@ namespace ORNG {
 			out << YAML::Key << "Points" << YAML::Value << YAML::BeginSeq;
 
 			for (auto point : interpolator.points) {
-				//out << point;
+				out << point;
 			}
 
 			out << YAML::EndSeq;

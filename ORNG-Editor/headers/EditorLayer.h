@@ -1,6 +1,7 @@
 #pragma once
 #include "EngineAPI.h"
 #include "../extern/imgui/imgui.h"
+#include "ImGuizmo.h"
 #include "AssetManagerWindow.h"
 #include "scene/GridMesh.h"
 #include "Settings.h"
@@ -19,6 +20,7 @@ struct DragData {
 
 
 namespace ORNG {
+#define SCENE (*mp_scene_context)
 
 
 	enum EntityNodeEvent {
@@ -33,6 +35,11 @@ namespace ORNG {
 
 		ImVec2 node_screen_max;
 		ImVec2 node_screen_min;
+	};
+
+	enum class SelectionMode {
+		ENTITY,
+		JOINT
 	};
 
 
@@ -87,7 +94,6 @@ namespace ORNG {
 
 		void RenderGeneralSettingsMenu();
 
-
 		// Renders a popup with shortcuts to create a new entity with a component, e.g mesh
 		void RenderCreationWidget(SceneEntity* p_entity, bool trigger);
 		void DisplayEntityEditor();
@@ -104,6 +110,8 @@ namespace ORNG {
 		void RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp);
 		void RenderParticleBufferComponentEditor(ParticleBufferComponent* p_comp);
 		void RenderCharacterControllerComponentEditor(CharacterControllerComponent* p_comp);
+		void RenderJointComponentEditor(JointComponent* p_comp);
+		void RenderEntityNodeRef(EntityNodeRef& ref);
 
 		void InitLua();
 		void UpdateLuaEntityArray();
@@ -145,6 +153,16 @@ namespace ORNG {
 			else if (!m_selected_entity_ids.empty())
 				// Makes the selected entity the first ID, which some UI components will operate on more, e.g gizmos will render on this entity now over other selected ones
 				std::iter_swap(std::ranges::find(m_selected_entity_ids, id), m_selected_entity_ids.begin());
+
+			// Open tree nodes for the selected entity to be viewed in the scene panel
+			auto* p_current_parent = SCENE->GetEntity(SCENE->GetEntity(id)->GetParent());
+
+			while (p_current_parent) {
+				if (!VectorContains(m_open_tree_nodes_entities, p_current_parent->m_uuid()))
+					m_open_tree_nodes_entities.push_back(p_current_parent->m_uuid());
+
+				p_current_parent = SCENE->GetEntity(p_current_parent->GetParent());
+			}
 		}
 
 
@@ -153,6 +171,14 @@ namespace ORNG {
 			if (it != m_selected_entity_ids.end())
 				m_selected_entity_ids.erase(it);
 		}
+
+		VAO m_line_vao;
+
+		std::vector<uint64_t> m_open_tree_nodes_entities;
+
+		SelectionMode m_selection_mode = SelectionMode::ENTITY;
+		ImGuizmo::OPERATION current_gizmo_operation = ImGuizmo::TRANSLATE;
+		ImGuizmo::MODE current_gizmo_mode = ImGuizmo::WORLD;
 
 		DragData m_mouse_drag_data;
 
@@ -183,7 +209,9 @@ namespace ORNG {
 		// Working directory will always be this
 		std::string m_current_project_directory;
 
-		ImFont* mp_large_font = nullptr;
+		ImFont* mp_xl_font = nullptr;
+		ImFont* mp_l_font = nullptr;
+		ImFont* mp_m_font = nullptr;
 
 		Shader* mp_picking_shader = nullptr;
 		Shader* mp_grid_shader = nullptr;
@@ -194,16 +222,13 @@ namespace ORNG {
 			CAPSULE,
 		};
 		ShaderVariants* mp_raymarch_shader = nullptr;
-		// Currently used for debug
 		Shader* mp_plane_shader = nullptr;
-
 
 		Framebuffer* mp_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
 		Framebuffer* mp_picking_fb = nullptr;
 
 		// Contains the actual rendering of the scene
 		std::unique_ptr<Texture2D> mp_scene_display_texture{ nullptr };
-
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 
@@ -230,7 +255,7 @@ namespace ORNG {
 		const ImVec4 dark_grey_color = ImVec4(0.1f, 0.1f, 0.1f, opacity);
 		const ImVec4 lighter_grey_color = ImVec4(0.2f, 0.2f, 0.2f, opacity);
 		const ImVec4 lightest_grey_color = ImVec4(0.3f, 0.3f, 0.3f, opacity);
-		inline static const float toolbar_height = 40;
+		inline static constexpr float toolbar_height = 40;
 		glm::vec2 file_explorer_window_size = { 750, 750 };
 	};
 
@@ -249,3 +274,5 @@ Bloom:
   Knee: 0.100000001
   Threshold: 1)"
 }
+
+#undef SCENE

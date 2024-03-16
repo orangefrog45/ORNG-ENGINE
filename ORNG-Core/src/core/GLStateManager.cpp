@@ -25,7 +25,7 @@ namespace ORNG {
 	}
 
 
-	void GL_LogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {
+	void GLAPIENTRY GL_LogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {
 		switch (severity)
 		{
 		case GL_DEBUG_SEVERITY_HIGH:

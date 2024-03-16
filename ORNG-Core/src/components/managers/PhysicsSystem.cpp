@@ -36,12 +36,12 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<CharacterControllerComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
-	inline static void OnFixedJointAdd(entt::registry& registry, entt::entity entity) {
-		ComponentSystem::DispatchComponentEvent<FixedJointComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+	inline static void OnJointAdd(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<JointComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
 
-	inline static void OnFixedJointDestroy(entt::registry& registry, entt::entity entity) {
-		ComponentSystem::DispatchComponentEvent<FixedJointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+	inline static void OnJointDestroy(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<JointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
 	inline static void OnVehicleComponentAdd(entt::registry& registry, entt::entity entity) {
@@ -121,8 +121,8 @@ namespace ORNG {
 		mp_registry->on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
 		mp_registry->on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
 
-		mp_registry->on_construct<FixedJointComponent>().connect<&OnFixedJointAdd>();
-		mp_registry->on_destroy<FixedJointComponent>().connect<&OnFixedJointDestroy>();
+		mp_registry->on_construct<JointComponent>().connect<&OnJointAdd>();
+		mp_registry->on_destroy<JointComponent>().connect<&OnJointDestroy>();
 
 		mp_registry->on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
 		mp_registry->on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
@@ -175,8 +175,8 @@ namespace ORNG {
 
 
 		// Joint listener
-		/*m_joint_listener.scene_id = GetSceneUUID();
-		m_joint_listener.OnEvent = [this](const Events::ECS_Event<FixedJointComponent>& t_event) {
+		m_joint_listener.scene_id = GetSceneUUID();
+		m_joint_listener.OnEvent = [this](const Events::ECS_Event<JointComponent>& t_event) {
 			switch (t_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED:
@@ -189,7 +189,7 @@ namespace ORNG {
 				RemoveComponent(t_event.affected_components[0]);
 				break;
 			}
-			};*/
+			};
 
 		m_vehicle_listener.scene_id = GetSceneUUID();
 		m_vehicle_listener.OnEvent = [this](const Events::ECS_Event<VehicleComponent>& t_event) {
@@ -229,7 +229,7 @@ namespace ORNG {
 			};
 
 		Events::EventManager::RegisterListener(m_phys_listener);
-		//Events::EventManager::RegisterListener(m_joint_listener);
+		Events::EventManager::RegisterListener(m_joint_listener);
 		Events::EventManager::RegisterListener(m_character_controller_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 		Events::EventManager::RegisterListener(m_vehicle_listener);
@@ -267,7 +267,6 @@ namespace ORNG {
 		return result;
 	}
 
-	
 
 	void PhysicsSystem::InitComponent(VehicleComponent* p_comp) {
 		auto& vehicle = p_comp->m_vehicle;
@@ -405,32 +404,59 @@ namespace ORNG {
 
 
 
-	void PhysicsSystem::RemoveComponent(FixedJointComponent* p_comp) {
-		if (p_comp->mp_joint)
-			p_comp->mp_joint->release();
+	void PhysicsSystem::RemoveComponent(JointComponent* p_comp) {
+		if (p_comp->p_joint)
+			p_comp->p_joint->release();
 	}
 
-	void PhysicsSystem::RemoveComponent(VehicleComponent* p_comp) {
-		p_comp->m_vehicle.destroy();
-	}
-
-	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event) {
+	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<JointComponent>& t_event) {
 		switch (t_event.sub_event_type) {
 		case JointEventType::CONNECT:
-			std::pair<PhysicsComponent*, PhysicsComponent*> comps = std::any_cast<std::pair<PhysicsComponent*, PhysicsComponent*>>(t_event.data_payload);
+			JointComponent::ConnectionData connection = std::any_cast<JointComponent::ConnectionData>(t_event.data_payload);
 
-			auto middle = (comps.first->p_rigid_actor->getGlobalPose().p + comps.second->p_rigid_actor->getGlobalPose().p) * 0.5f;
-
-			PxTransform m0(middle - comps.first->p_rigid_actor->getGlobalPose().p);
-			PxTransform m1(middle - comps.second->p_rigid_actor->getGlobalPose().p);
 
 			auto* p_phys = Physics::GetPhysics();
-			t_event.affected_components[0]->mp_joint = PxFixedJointCreate(*p_phys, comps.first->p_rigid_actor, m0, comps.second->p_rigid_actor, m1);
-			t_event.affected_components[0]->mp_joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
+
+			if (connection.use_component_poses) {
+				t_event.affected_components[0]->p_joint = PxD6JointCreate(*p_phys, connection.first->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(t_event.affected_components[0]->poses[0])), 
+					connection.second->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(t_event.affected_components[0]->poses[1])));
+			}
+			else {
+				// Position joint at middle of entities
+				auto middle = (connection.first->p_rigid_actor->getGlobalPose().p + connection.second->p_rigid_actor->getGlobalPose().p) * 0.5f;
+				PxTransform m0(middle - connection.first->p_rigid_actor->getGlobalPose().p);
+				PxTransform m1(middle - connection.second->p_rigid_actor->getGlobalPose().p);
+				t_event.affected_components[0]->p_joint = PxD6JointCreate(*p_phys, connection.first->p_rigid_actor, m0, connection.second->p_rigid_actor, m1);
+
+				// Update stored state
+				t_event.affected_components[0]->poses[0] = ConvertVec3<glm::vec3>(m0.p);
+				t_event.affected_components[0]->poses[1] = ConvertVec3<glm::vec3>(m1.p);
+			}
+
+			for (int i = 0; i < 6; i++) {
+				// Set joint state, deserialized component has it cached else it's defaults
+				t_event.affected_components[0]->p_joint->setMotion((PxD6Axis::Enum)i, t_event.affected_components[0]->motion[(PxD6Axis::Enum)i]);
+			}
+
+			auto* p_ent = t_event.affected_components[0]->GetEntity();
+			auto ref0 = mp_scene->GenEntityNodeRef(p_ent, connection.first->GetEntity());
+			auto ref1 = mp_scene->GenEntityNodeRef(p_ent, connection.second->GetEntity());
+			ASSERT(ref0.has_value());
+			ASSERT(ref1.has_value());
+			t_event.affected_components[0]->attachment_ref0 = ref0.value();
+			t_event.affected_components[0]->attachment_ref1 = ref1.value();
+
 			break;
 		}
 	}
 
+	void PhysicsSystem::InitComponent(JointComponent* p_comp) {
+	}
+
+
+	void PhysicsSystem::RemoveComponent(VehicleComponent* p_comp) {
+		p_comp->m_vehicle.destroy();
+	}
 
 
 	void PhysicsSystem::RemoveComponent(PhysicsComponent* p_comp) {
@@ -459,7 +485,7 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_phys_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_character_controller_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
-		//Events::EventManager::DeregisterListener(m_joint_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_joint_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_vehicle_listener.GetRegisterID());
 	}
 
@@ -467,7 +493,6 @@ namespace ORNG {
 	void PhysicsSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event) {
 		if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 			auto* p_transform = t_event.affected_components[0];
-
 
 			if (p_transform == mp_currently_updating_transform) // Ignore transform event if it was updated by the physics engine, as the states are already synced
 				return;
@@ -547,7 +572,6 @@ namespace ORNG {
 		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
 
 		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
-		ORNG_CORE_TRACE("entity '{}' has abs scale", Format(scale_factor));
 		glm::vec3 scaled_extents = aabb.max * scale_factor;
 
 		switch (p_comp->m_geometry_type) {
@@ -801,7 +825,7 @@ namespace ORNG {
 		PxRaycastBuffer ray_buffer;                 // [out] Raycast results
 		RaycastResults ret;
 
-		if (mp_phys_scene->raycast(ConvertVec3<glm::vec3, PxVec3>(origin), ConvertVec3<glm::vec3, PxVec3>(unit_dir), max_distance, ray_buffer)) {
+		if (mp_phys_scene->raycast(ConvertVec3<PxVec3>(origin), ConvertVec3<PxVec3>(unit_dir), max_distance, ray_buffer)) {
 			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
 
 			ret.p_entity = TryGetEntityFromPxActor(static_cast<const PxActor*>(p_closest_actor));
@@ -813,8 +837,8 @@ namespace ORNG {
 			ret.p_phys_comp = ret.p_entity->GetComponent<PhysicsComponent>();
 
 			ret.hit = true;
-			ret.hit_pos = ConvertVec3<PxVec3, glm::vec3>(ray_buffer.block.position);
-			ret.hit_normal = ConvertVec3<PxVec3, glm::vec3>(ray_buffer.block.normal);
+			ret.hit_pos = ConvertVec3<glm::vec3>(ray_buffer.block.position);
+			ret.hit_normal = ConvertVec3<glm::vec3>(ray_buffer.block.normal);
 			ret.hit_dist = ray_buffer.block.distance;
 		}
 
@@ -826,7 +850,7 @@ namespace ORNG {
 		PxOverlapBuffer overlap_buffer{ overlap_hits, 256 };
 		OverlapQueryResults ret;
 
-		if (mp_phys_scene->overlap(geom, PxTransform(ConvertVec3<glm::vec3, PxVec3>(pos)), overlap_buffer)) {
+		if (mp_phys_scene->overlap(geom, PxTransform(ConvertVec3<PxVec3>(pos)), overlap_buffer)) {
 			for (int i = 0; i < overlap_buffer.getNbAnyHits(); i++) {
 				auto* p_ent = TryGetEntityFromPxActor(static_cast<const PxActor*>(overlap_hits[i].actor));
 

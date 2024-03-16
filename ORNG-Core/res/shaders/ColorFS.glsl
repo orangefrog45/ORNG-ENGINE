@@ -32,7 +32,7 @@ void main() {
 	shader_id = 0;
 
 #else
-	o_col = u_color;
+	o_col = vec4(u_color.rgb, 0.5);
 #endif
 
 }

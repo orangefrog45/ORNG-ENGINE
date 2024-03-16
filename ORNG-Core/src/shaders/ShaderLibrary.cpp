@@ -33,25 +33,25 @@ namespace ORNG {
 		std::array<std::byte, m_common_ubo_size> data;
 		std::byte* p_byte = data.data();
 
-		ConvertToBytes(camera_pos, p_byte);
-		ConvertToBytes(0, p_byte); // padding
-		ConvertToBytes(camera_target, p_byte);
-		ConvertToBytes(0, p_byte); // padding
-		ConvertToBytes(cam_right, p_byte);
-		ConvertToBytes(0, p_byte); // padding
-		ConvertToBytes(cam_up, p_byte);
-		ConvertToBytes(0, p_byte); // padding
-		ConvertToBytes(voxel_aligned_cam_pos_c0, p_byte);
-		ConvertToBytes(0, p_byte); // padding
-		ConvertToBytes(voxel_aligned_cam_pos_c1, p_byte);
-		ConvertToBytes(0, p_byte); // padding
-		ConvertToBytes((float)FrameTiming::GetTotalElapsedTime(), p_byte);
-		ConvertToBytes((float)render_resolution_x, p_byte);
-		ConvertToBytes((float)render_resolution_y, p_byte);
-		ConvertToBytes(cam_zfar, p_byte);
-		ConvertToBytes(cam_znear, p_byte);
-		ConvertToBytes((float)FrameTiming::GetTimeStep(), p_byte);
-		ConvertToBytes(FrameTiming::GetTotalElapsedTime(), p_byte);
+		// Any 0's are padding, most vec3 types are defined as vec4's in the shader for easier alignment.
+		ConvertToBytes(p_byte,
+			camera_pos, 0,
+			camera_target, 0,
+			cam_right, 0,
+			cam_up, 0,
+			voxel_aligned_cam_pos_c0, 0,
+			voxel_aligned_cam_pos_c1, 0,
+			voxel_aligned_cam_pos_c1, 0,
+			voxel_aligned_cam_pos_c1, 0,
+			static_cast<float>(FrameTiming::GetTotalElapsedTime()),
+			static_cast<float>(render_resolution_x),
+			static_cast<float>(render_resolution_y),
+			cam_zfar,
+			cam_znear,
+			static_cast<float>(FrameTiming::GetTimeStep()),
+			static_cast<float>(FrameTiming::GetTotalElapsedTime())
+		);
+
 
 
 		m_common_ubo.BufferSubData(0, m_common_ubo_size, data.data());
@@ -60,35 +60,29 @@ namespace ORNG {
 
 
 	void ShaderLibrary::SetGlobalLighting(const DirectionalLight& dir_light) {
-		constexpr int num_floats_in_buffer = 72;
-		std::array<float, num_floats_in_buffer> light_data = { 0 };
-		int i = 0;
-		glm::vec3 light_dir = dir_light.GetLightDirection();
-		light_data[i++] = light_dir.x;
-		light_data[i++] = light_dir.y;
-		light_data[i++] = light_dir.z;
-		light_data[i++] = 0; //padding
-		light_data[i++] = dir_light.color.x;
-		light_data[i++] = dir_light.color.y;
-		light_data[i++] = dir_light.color.z;
-		light_data[i++] = 0; //padding
-		light_data[i++] = dir_light.cascade_ranges[0];
-		light_data[i++] = dir_light.cascade_ranges[1];
-		light_data[i++] = dir_light.cascade_ranges[2];
-		light_data[i++] = 0; //padding
-		light_data[i++] = dir_light.light_size;
-		light_data[i++] = dir_light.blocker_search_size;
-		light_data[i++] = 0; //padding
-		light_data[i++] = 0; //padding
-		PushMatrixIntoArray(dir_light.m_light_space_matrices[0], &light_data[i]); i += 16;
-		PushMatrixIntoArray(dir_light.m_light_space_matrices[1], &light_data[i]); i += 16;
-		PushMatrixIntoArray(dir_light.m_light_space_matrices[2], &light_data[i]); i += 16;
-		light_data[i++] = dir_light.shadows_enabled;
-		light_data[i++] = 0; //padding
-		light_data[i++] = 0; //padding
-		light_data[i++] = 0; //padding
+		constexpr int buffer_size = 72 * sizeof(float);
+		std::array<std::byte, buffer_size> light_data;
 
-		m_global_lighting_ubo.BufferSubData(0, num_floats_in_buffer * sizeof(float), reinterpret_cast<std::byte*>(light_data.data()));
+		std::byte* p_byte = light_data.data();
+		ConvertToBytes(p_byte,
+			dir_light.GetLightDirection(),
+			0,
+			dir_light.color,
+			0,
+			dir_light.cascade_ranges,
+			0,
+			dir_light.light_size,
+			dir_light.blocker_search_size,
+			0,
+			0,
+			dir_light.m_light_space_matrices,
+			dir_light.shadows_enabled,
+			0,
+			0,
+			0
+			);
+
+		m_global_lighting_ubo.BufferSubData(0, buffer_size, light_data.data());
 	};
 
 	Shader& ShaderLibrary::CreateShader(const char* name, unsigned int id) {
@@ -142,12 +136,14 @@ namespace ORNG {
 		matrices.resize(m_matrix_ubo_size);
 		std::byte* p_byte = matrices.data();
 
-		ConvertToBytes(proj, p_byte);
-		ConvertToBytes(view, p_byte);
-		ConvertToBytes(proj_view, p_byte);
-		ConvertToBytes(glm::inverse(proj), p_byte);
-		ConvertToBytes(glm::inverse(view), p_byte);
-		ConvertToBytes(glm::inverse(proj_view), p_byte);
+		ConvertToBytes(p_byte,
+			proj,
+			view,
+			proj_view,
+			glm::inverse(proj),
+			glm::inverse(view),
+			glm::inverse(proj_view)
+		);
 
 		m_matrix_ubo.BufferSubData(0, m_matrix_ubo_size, matrices.data());
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::PVMATRICES, m_matrix_ubo.GetHandle());

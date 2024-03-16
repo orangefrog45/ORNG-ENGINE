@@ -2,19 +2,6 @@
 // This shader takes the normal triangle geometry from the scene and voxelizes it, storing the luminance results and normals of the geometry in two 3D textures
 // Uses GbufferVS.glsl as vertex shader
 
-#ifndef PREV_CASCADE_WORLD_SIZE
-#error PREV_CASCADE_WORLD_SIZE must be defined
-#endif
-
-#ifndef CURRENT_CASCADE_TEX_SIZE
-#error CURRENT_CASCADE_TEX_SIZE must be defined
-#endif
-
-#ifndef VOXEL_SIZE
-#error VOXEL_SIZE must be defined
-#endif
-
-
 layout(binding = 1) uniform sampler2D diffuse_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
@@ -50,6 +37,9 @@ ORNG_INCLUDE "ShadowsINCL.glsl"
 uniform uint u_shader_id;
 uniform bool u_emissive_sampler_active;
 uniform Material u_material;
+
+uniform float u_voxel_size;
+uniform uint u_cascade_idx;
 
 
 
@@ -110,13 +100,11 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 }
 
 void main() {
-#ifdef CASCADE_0
-    ivec3 coord = ivec3((vert_data.position.xyz - ubo_common.voxel_aligned_cam_pos_c0.xyz) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
-#else
-    ivec3 coord = ivec3((vert_data.position.xyz - ubo_common.voxel_aligned_cam_pos_c1.xyz) / VOXEL_SIZE + CURRENT_CASCADE_TEX_SIZE * 0.5);
-#endif
+    uint current_cascade_tex_size = imageSize(voxel_image).x;
 
-    if (any(greaterThan(coord, vec3(CURRENT_CASCADE_TEX_SIZE))) || any(lessThan(coord, vec3(0))))
+    ivec3 coord = ivec3((vert_data.position.xyz - ubo_common.voxel_aligned_cam_positions[u_cascade_idx].xyz) / u_voxel_size + current_cascade_tex_size * 0.5);
+
+    if (any(greaterThan(coord, vec3(current_cascade_tex_size))) || any(lessThan(coord, vec3(0))))
         discard;
 
     vec3 n = normalize(vert_data.normal);

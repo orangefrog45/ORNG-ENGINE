@@ -71,6 +71,22 @@ namespace ORNG {
 			return GetComponent<RelationshipComponent>()->parent;
 		}
 
+		SceneEntity* GetChild(const std::string& name) {
+			auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
+			entt::entity current_entity = rel_comp.first;
+
+			for (int i = 0; i < rel_comp.num_children; i++) {
+				auto* p_ent = mp_registry->get<TransformComponent>(current_entity).GetEntity();
+
+				if (p_ent->name == name)
+					return p_ent;
+
+				current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+			}
+
+			return nullptr;
+		}
+
 		entt::registry* GetRegistry() {
 			return mp_registry;
 		}

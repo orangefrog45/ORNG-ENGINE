@@ -40,6 +40,12 @@ namespace ORNG {
 			m_uniforms[name] = CreateUniform(name);
 		};
 
+		template<typename... Args>
+		requires((std::is_convertible_v<Args, std::string>), ...)
+		void AddUniforms(Args&&... args) {
+			(AddUniform(args), ...);
+		}
+
 		inline void AddUniforms(const std::vector<std::string>& names) {
 			ActivateProgram();
 			for (auto& uname : names) {

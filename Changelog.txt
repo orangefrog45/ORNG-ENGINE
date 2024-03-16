@@ -1,3 +1,8 @@
+16/3/24:
+-Physx D6 joint components with debug rendering, editor integration and serialization
+-EntityNodeRef's that can be used for relatively referencing entities from paths
+-Improved SceneSerializer performance and cleaned up code
+
 9/3/24:
 -Voxel GI cascade improvements, interpolation between cascade borders for smoother transitions, reuse of cascade data for smaller cascade updates,
 full cascade stabilization that's fixed flickering

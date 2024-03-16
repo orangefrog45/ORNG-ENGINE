@@ -45,29 +45,8 @@ namespace ORNG {
 	};
 
 
-	struct DirectMeshRenderData {
-		glm::vec3 camera_pos;
-		float cam_fov = 60.f;
-		float aspect_ratio = 1.f;
-		Texture2D* p_output_tex = nullptr;
-
-		MeshAsset* p_mesh = nullptr;
-		std::vector<Material*> materials;
-	};
-
-	struct VoxelMipFaces {
-		Texture3D pos_x{ "Voxel face X+" };
-		Texture3D pos_y{ "Voxel face Y+" };
-		Texture3D pos_z{ "Voxel face Z+" };
-
-		Texture3D neg_x{ "Voxel face X-" };
-		Texture3D neg_y{ "Voxel face Y-" };
-		Texture3D neg_z{ "Voxel face Z-" };
-	};
-
 	enum class VoxelizationSV {
-		CASCADE_0,
-		CASCADE_1
+		MAIN
 	};
 
 	enum class VoxelCS_SV {
@@ -145,7 +124,7 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex, glm::vec3 aligned_cam_pos_0, glm::vec3 aligned_cam_pos_1);
+		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings);
 		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
 		void DoLightingPass(Texture2D* output_tex);
@@ -157,6 +136,9 @@ namespace ORNG {
 	private:
 		// Shift voxel luminance data in the 3D texture when the cameras voxel-aligned position changes
 		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size);
+
+		// Returns <aligned_cam_pos_has_changed, new_camera_position, delta_tex_coords>
+		std::tuple<bool, glm::vec3, glm::vec3> UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos, glm::vec3 voxel_aligned_cam_pos);
 
 		// Returns true if any state was changed
 		bool SetGL_StateFromMatFlags(MaterialFlags flags);
@@ -198,6 +180,11 @@ namespace ORNG {
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
 		std::vector<Renderpass> m_render_intercepts;
 
+#define NUM_VOXEL_CASCADES 2
+		// Camera position snapped to the voxel grid per cascade, index 0 = cascade 0 etc (prevents flickering when moving)
+		std::array<glm::vec3, NUM_VOXEL_CASCADES> m_voxel_aligned_cam_positions{ glm::vec3{ 0 } };
+		unsigned m_active_voxel_cascade_idx = 0;
+
 		ShaderVariants* mp_gbuffer_shader_variants = nullptr;
 		ShaderVariants* mp_gbuffer_displacement_sv = nullptr;
 
@@ -226,6 +213,7 @@ namespace ORNG {
 		Framebuffer* m_depth_fb = nullptr;
 		Framebuffer* mp_transparency_fb = nullptr;
 		Framebuffer* mp_composition_fb = nullptr;
+
 		//none of the objects the pointers below reference managed by scene renderer, just inputs
 		Scene* mp_scene = nullptr;
 		ShaderLibrary* mp_shader_library = nullptr;

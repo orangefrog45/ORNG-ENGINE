@@ -97,7 +97,7 @@ namespace ORNG {
 		std::vector<std::byte> transform_bytes;
 		transform_bytes.resize(sizeof(glm::mat4));
 		std::byte* p_byte = &transform_bytes[0];
-		PushMatrixIntoArrayBytes(ptr->GetComponent<TransformComponent>()->GetMatrix(), p_byte);
+		ConvertToBytes(p_byte, ptr->GetComponent<TransformComponent>()->GetMatrix());
 
 		// TODO: Batch add operations
 		m_transform_ssbo.PushBack(&transform_bytes[0], sizeof(glm::mat4));

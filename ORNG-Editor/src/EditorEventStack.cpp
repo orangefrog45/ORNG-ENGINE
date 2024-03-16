@@ -32,6 +32,10 @@ namespace ORNG {
 
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_before[i], ent);
 			}
+
+			for (int i = 0; i < e.affected_entities.size(); i++) {
+				SceneSerializer::ResolveEntityNodeRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+			}
 		}
 		else if (e.event_type == ENTITY_DELETE) {
 			for (int i = 0; i < e.affected_entities.size(); i++) {
@@ -46,6 +50,10 @@ namespace ORNG {
 
 				if (empty_serialized_after)
 					e.serialized_entities_after.push_back(std::to_string(ent.GetUUID()));
+			}
+
+			for (int i = 0; i < e.affected_entities.size(); i++) {
+				SceneSerializer::ResolveEntityNodeRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
 			}
 		}
 	}
@@ -66,6 +74,10 @@ namespace ORNG {
 				auto& ent = *(*mp_scene_context)->GetEntity(e.affected_entities[i]);
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_before[i], ent);
 			}
+
+			for (int i = 0; i < e.affected_entities.size(); i++) {
+				SceneSerializer::ResolveEntityNodeRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+			}
 		}
 		else if (e.event_type == ENTITY_DELETE) {
 			for (int i = 0; i < e.serialized_entities_after.size(); i++) {
@@ -76,6 +88,10 @@ namespace ORNG {
 		else if (e.event_type == TRANSFORM_UPDATE) {
 			for (int i = 0; i < e.affected_entities.size(); i++) {
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_after[i], *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+			}
+
+			for (int i = 0; i < e.affected_entities.size(); i++) {
+				SceneSerializer::ResolveEntityNodeRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
 			}
 		}
 	}

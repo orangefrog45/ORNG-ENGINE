@@ -33,8 +33,7 @@ namespace ORNG {
 
 
 		void SetScale(float scaleX, float scaleY, float scaleZ) {
-			glm::vec3 scale{ scaleX, scaleY, scaleZ };
-			SetScale(scale);
+			SetScale({ scaleX, scaleY, scaleZ });
 		}
 
 		void SetAbsoluteScale(glm::vec3 scale) {
@@ -75,7 +74,7 @@ namespace ORNG {
 		};
 
 		inline void SetScale(const glm::vec3 scale) {
-			m_scale = scale;
+			m_scale = glm::max(scale, glm::vec3(0.001f));
 			RebuildMatrix(UpdateType::SCALE);
 		};
 

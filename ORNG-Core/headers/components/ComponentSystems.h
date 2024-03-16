@@ -180,14 +180,15 @@ namespace ORNG {
 		void InitComponent(PhysicsComponent* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
 		void InitComponent(VehicleComponent* p_comp);
+		void InitComponent(JointComponent* p_comp);
 
-		void HandleComponentUpdate(const Events::ECS_Event<FixedJointComponent>& t_event);
+		void HandleComponentUpdate(const Events::ECS_Event<JointComponent>& t_event);
 		void UpdateComponentState(PhysicsComponent* p_comp);
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
 
 		void RemoveComponent(PhysicsComponent* p_comp);
 		void RemoveComponent(CharacterControllerComponent* p_comp);
-		void RemoveComponent(FixedJointComponent* p_comp);
+		void RemoveComponent(JointComponent* p_comp);
 		void RemoveComponent(VehicleComponent* p_comp);
 
 
@@ -203,7 +204,7 @@ namespace ORNG {
 		Scene* mp_scene = nullptr;
 
 		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
-		Events::ECS_EventListener<FixedJointComponent> m_joint_listener;
+		Events::ECS_EventListener<JointComponent> m_joint_listener;
 		Events::ECS_EventListener<CharacterControllerComponent> m_character_controller_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<VehicleComponent> m_vehicle_listener;

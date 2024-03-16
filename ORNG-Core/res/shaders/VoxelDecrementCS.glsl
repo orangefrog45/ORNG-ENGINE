@@ -42,7 +42,7 @@ void DecrementLuminance() {
 
     vec4 res = convRGBA8ToVec4(imageLoad(voxel_image, tex_coord).r);
     res *= 0.95;
-
+    
     imageStore(voxel_image, tex_coord, uvec4(convVec4ToRGBA8(res)));
 }
 #endif

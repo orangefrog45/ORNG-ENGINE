@@ -21,7 +21,6 @@ void main() {
 #endif
 
 #ifdef OUTLINE
-
 	float l = length(ubo_common.camera_pos.xyz - (vec3(transform[3][0], transform[3][1], transform[3][2])));
 	if (u_scale < 1.01)
 	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1.f);

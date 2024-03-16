@@ -4,6 +4,7 @@
 #include "components/ComponentSystems.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
+#include "EntityNodeRef.h"
 
 
 namespace ORNG {
@@ -47,6 +48,14 @@ namespace ORNG {
 
 		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
 		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
+
+		// Uses a noderef to attempt to find an entity, returns nullptr if none found
+		SceneEntity* TryFindEntity(const EntityNodeRef& ref);
+
+		// Generates a node ref that can be used to locally reference an entity from src "p_src".
+		// Only use on two entities that share a common parent somewhere (can be multiple parents up) or where p_target is a child of p_src (can be multiple children down) 
+		// Returns nullopt if no path can be formed
+		std::optional<EntityNodeRef> GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target);
 
 		static void SortEntitiesNumParents(Scene* p_scene, std::vector<uint64_t>& entity_uuids, bool descending);
 		static void SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending);

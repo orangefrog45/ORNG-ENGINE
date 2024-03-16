@@ -92,4 +92,11 @@ namespace ORNG {
 
 		moved_during_frame = true;
 	}
+
+
+	void JointComponent::Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1, bool use_comp_poses) {
+		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, this, JointEventType::CONNECT };
+		joint_event.data_payload = ConnectionData(t_a0, t_a1, use_comp_poses);
+		Events::EventManager::DispatchEvent(joint_event);
+	}
 }

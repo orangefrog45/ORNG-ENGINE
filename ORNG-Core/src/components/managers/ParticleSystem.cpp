@@ -213,36 +213,28 @@ namespace ORNG {
 		std::array<std::byte, emitter_struct_size> emitter_data;
 		std::byte* p_byte = &emitter_data[0];
 
-		ConvertToBytes(pos.x, p_byte);
-		ConvertToBytes(pos.y, p_byte);
-		ConvertToBytes(pos.z, p_byte);
-		ConvertToBytes(0.f, p_byte); // padding
-		ConvertToBytes(comp.m_particle_start_index, p_byte);
-		ConvertToBytes(comp.m_num_particles, p_byte);
-		ConvertToBytes(comp.m_spread * 2.f * glm::pi<float>(), p_byte);
-		ConvertToBytes(comp.m_velocity_min_max_scalar.x, p_byte);
-		PushMatrixIntoArrayBytes(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z), p_byte);
-		ConvertToBytes(comp.m_spawn_extents.x, p_byte);
-		ConvertToBytes(comp.m_spawn_extents.y, p_byte);
-		ConvertToBytes(comp.m_spawn_extents.z, p_byte);
-		ConvertToBytes(comp.m_velocity_min_max_scalar.y, p_byte);
-		ConvertToBytes(comp.m_particle_lifespan_ms, p_byte);
-		ConvertToBytes(comp.m_particle_spawn_delay_ms, p_byte);
-		ConvertToBytes((int)comp.m_active, p_byte);
-		ConvertToBytes(0.0f, p_byte); // padding
-		comp.m_life_colour_interpolator.ConvertSelfToBytes(p_byte);
-		ConvertToBytes(0.0f, p_byte); // padding
-		ConvertToBytes(0.0f, p_byte); // padding
-		comp.m_life_scale_interpolator.ConvertSelfToBytes(p_byte);
-		ConvertToBytes(0.0f, p_byte); // padding
-		ConvertToBytes(0.0f, p_byte); // padding
-		comp.m_life_alpha_interpolator.ConvertSelfToBytes(p_byte);
-		ConvertToBytes(0.0f, p_byte); // padding
-		ConvertToBytes(0.0f, p_byte); // padding
-		ConvertToBytes(comp.acceleration.x, p_byte); 
-		ConvertToBytes(comp.acceleration.y, p_byte); 
-		ConvertToBytes(comp.acceleration.z, p_byte); 
-		ConvertToBytes(0.0f, p_byte); // padding
+		ConvertToBytes(p_byte,
+			pos, 0.0f,
+			comp.m_particle_start_index, 
+			comp.m_num_particles, 
+			comp.m_spread * 2.0f * glm::pi<float>(),
+			comp.m_velocity_min_max_scalar.x,
+			ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z),
+			comp.m_spawn_extents,
+			comp.m_velocity_min_max_scalar.y,
+			comp.m_particle_lifespan_ms, 
+			comp.m_particle_spawn_delay_ms, 
+			static_cast<int>(comp.m_active), 0.0f,
+			comp.m_life_colour_interpolator,
+			0.0f, 0.0f,
+			comp.m_life_scale_interpolator,
+			0.0f, 0.0f,
+			comp.m_life_alpha_interpolator,
+			0.0f, 0.0f,
+			comp.acceleration,
+			0.f
+			);
+
 		glNamedBufferSubData(m_emitter_ssbo.GetHandle(), index * emitter_struct_size, emitter_struct_size, &emitter_data[0]);
 		//std::memcpy(p_emitter_gpu_buffer + index * emitter_struct_size, &emitter_data[0], emitter_struct_size);
 

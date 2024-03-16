@@ -146,7 +146,7 @@ namespace ORNG {
 		std::vector<SceneEntity*> ents;
 
 		// key = serialized uuid, val = instantiation uuid
-		std::map<uint64_t, uint64_t> id_mappings;
+		std::unordered_map<uint64_t, uint64_t> id_mappings;
 
 		auto entities = data["Entities"];
 
@@ -170,6 +170,10 @@ namespace ORNG {
 			}
 
 			DeserializeEntity(scene, entity_node, *p_ent);
+		}
+
+		for (auto* p_ent : ents) {
+			ResolveEntityNodeRefs(scene, *p_ent);
 		}
 
 		return ents;
@@ -325,7 +329,7 @@ namespace ORNG {
 
 			for (int i = 0; i < 4; i++) {
 				Out(out, std::format("Wheel{}", i), YAML::BeginMap);
-				Out(out, "SuspensionAttachment", ConvertVec3<PxVec3, glm::vec3>(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
+				Out(out, "SuspensionAttachment", ConvertVec3<glm::vec3>(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
 				out << YAML::EndMap;
 			}
 
@@ -385,11 +389,269 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
+		if (auto* p_joint = entity.GetComponent<JointComponent>()) {
+			Out(out, "JointComp", YAML::BeginMap);
+
+			Out(out, "Motion", YAML::Flow);
+			out << YAML::BeginSeq;
+			for (int i = 0; i < 6; i++) {
+				out << (uint32_t)p_joint->motion[(PxD6Axis::Enum)i];
+			}
+
+			out << YAML::EndSeq;
+
+			Out(out, "LP0", p_joint->poses[0]);
+			Out(out, "LP1", p_joint->poses[1]);
+
+			out << "Ref0";
+			SerializeEntityNodeRef(out, p_joint->attachment_ref0);
+
+			out << "Ref1";
+			SerializeEntityNodeRef(out, p_joint->attachment_ref1);
+
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 	}
 
 
 
+	void SceneSerializer::DeserializePointlightComp(const YAML::Node& light_node, SceneEntity& entity) {
+		auto* p_pointlight_comp = entity.AddComponent<PointLightComponent>();
+		p_pointlight_comp->color = light_node["Colour"].as<glm::vec3>();
+		p_pointlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
+		p_pointlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
+		p_pointlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
+		p_pointlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
+		p_pointlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
+	}
+
+	void SceneSerializer::DeserializeSpotlightComp(const YAML::Node& light_node, SceneEntity& entity) {
+		auto* p_spotlight_comp = entity.AddComponent<SpotLightComponent>();
+		p_spotlight_comp->color = light_node["Colour"].as<glm::vec3>();
+		p_spotlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
+		p_spotlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
+		p_spotlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
+		p_spotlight_comp->m_aperture = light_node["Aperture"].as<float>();
+		p_spotlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
+		p_spotlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
+	}
+
+	void SceneSerializer::DeserializeCameraComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_cam_comp = entity.AddComponent<CameraComponent>();
+		p_cam_comp->fov = node["FOV"].as<float>();
+		p_cam_comp->exposure = node["Exposure"].as<float>();
+		p_cam_comp->zFar = node["zFar"].as<float>();
+		p_cam_comp->zNear = node["zNear"].as<float>();
+	}
+
+	void SceneSerializer::DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_script_comp = entity.AddComponent<ScriptComponent>();
+		std::string script_filepath = node["ScriptPath"].as<std::string>();
+		p_script_comp->script_filepath = script_filepath;
+
+		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_filepath);
+		if (!p_asset)
+			p_asset = AssetManager::GetAsset< ScriptAsset>(ORNG_BASE_SCRIPT_ID);
+
+		if (p_asset) {
+			p_script_comp->SetSymbols(&p_asset->symbols);
+		}
+		else {
+			ORNG_CORE_ERROR("Scene deserialization error: no script file with filepath '{0}' found", script_filepath);
+		}
+	}
+
+	void SceneSerializer::DeserializeAudioComp(const YAML::Node& node, SceneEntity& entity) {
+
+	}
+
+	void SceneSerializer::DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
+
+		p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>()));
+		p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>()));
+		p_physics_comp->SetTrigger(node["IsTrigger"].as<bool>());
+
+		auto* p_material = AssetManager::GetAsset<PhysXMaterialAsset>(node["MaterialUUID"].as<uint64_t>());
+		p_physics_comp->SetMaterial(p_material ? *p_material : *AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID));
+	}
+
+	void SceneSerializer::DeserializeParticleEmitterComp(const YAML::Node& emitter_node, SceneEntity& entity) {
+		auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
+		p_emitter->m_spread = emitter_node["Spread"].as<float>();
+		p_emitter->m_spawn_extents = emitter_node["Spawn extents"].as<glm::vec3>();
+		p_emitter->m_velocity_min_max_scalar = emitter_node["Velocity range"].as<glm::vec2>();
+		p_emitter->m_num_particles = emitter_node["Nb. particles"].as<unsigned>();
+		p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
+		p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
+		p_emitter->m_type = static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>());
+		p_emitter->acceleration = emitter_node["Acceleration"].as<glm::vec3>();
+
+		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Alpha over time"], p_emitter->m_life_alpha_interpolator);
+		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Colour over time"], p_emitter->m_life_colour_interpolator);
+		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
+		if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
+			auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
+			entity.AddComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+		else {
+			auto* p_res = entity.AddComponent<ParticleMeshResources>();
+			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
+			p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+
+			auto materials = emitter_node["Materials"];
+			std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
+			p_res->materials.resize(p_res->p_mesh->num_materials);
+
+			for (int i = 0; i < p_res->materials.size(); i++) {
+				auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
+				p_res->materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			}
+		}
+
+		p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE, (int)p_emitter->m_num_particles - ParticleEmitterComponent::BASE_NUM_PARTICLES);
+	}
+
+	void SceneSerializer::DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_transform = entity.GetComponent<TransformComponent>();
+		p_transform->SetPosition(node["Pos"].as<glm::vec3>());
+		p_transform->SetScale(node["Scale"].as<glm::vec3>());
+		p_transform->SetOrientation(node["Orientation"].as<glm::vec3>());
+		p_transform->SetAbsoluteMode(node["Absolute"].as<bool>());
+	}
+
+	void SceneSerializer::DeserializeParticleBufferComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_buffer = entity.AddComponent<ParticleBufferComponent>();
+		p_buffer->m_buffer_id = node["BufferID"].as<uint32_t>();
+		p_buffer->m_min_allocated_particles = node["Min allocated particles"].as<uint32_t>();
+
+		Events::ECS_Event<ParticleBufferComponent> e_event{ e_event.event_type = Events::ECS_EventType::COMP_UPDATED, p_buffer };
+		Events::EventManager::DispatchEvent(e_event);
+	}
+
+	VehicleComponent* SceneSerializer::DeserializeVehicleComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_comp = entity.AddComponent<VehicleComponent>();
+		p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(node["BodyMesh"].as<uint64_t>());
+		p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+
+		p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(node["WheelMesh"].as<uint64_t>());
+		p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+
+
+		p_comp->body_scale = node["BodyScale"].as<glm::vec3>();
+		p_comp->wheel_scale = node["WheelScale"].as<glm::vec3>();
+
+		auto body_materials = node["BodyMaterials"];
+		std::vector<uint64_t> body_ids = body_materials.as<std::vector<uint64_t>>();
+		p_comp->m_body_materials.resize(p_comp->p_body_mesh->num_materials);
+		for (int i = 0; i < p_comp->p_body_mesh->num_materials; i++) {
+			auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
+			p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+
+		auto wheel_materials = node["WheelMaterials"];
+		std::vector<uint64_t> wheel_ids = wheel_materials.as<std::vector<uint64_t>>();
+		p_comp->m_wheel_materials.resize(p_comp->p_wheel_mesh->num_materials);
+		for (int i = 0; i < p_comp->p_wheel_mesh->num_materials; i++) {
+			auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
+			p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+		for (int i = 0; i < 4; i++) {
+			auto wheel = node[std::format("Wheel{}", i)];
+			p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ConvertVec3<PxVec3>(wheel["SuspensionAttachment"].as<glm::vec3>());
+		}
+
+		return p_comp;
+	}
+
+	void SceneSerializer::DeserializeCharacterControllerComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_controller = entity.AddComponent<CharacterControllerComponent>();
+		PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
+		p_capsule->setRadius(node["Radius"].as<float>());
+		p_capsule->setHeight(node["Height"].as<float>());
+	}
+
+	void SceneSerializer::DeserializeJointComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_joint = entity.AddComponent<JointComponent>();
+		auto motion_node = node["Motion"];
+		for (int i = 0; i < 6; i++) {
+			auto motion = (PxD6Motion::Enum)motion_node[i].as<uint32_t>();
+			//p_joint->p_joint->setMotion((PxD6Axis::Enum)i, motion);
+			p_joint->motion[(PxD6Axis::Enum)i] = motion;
+		}
+
+		p_joint->SetLocalPose(0, node["LP0"].as<glm::vec3>());
+		p_joint->SetLocalPose(1, node["LP1"].as<glm::vec3>());
+
+		DeserializeEntityNodeRef(node["Ref0"], p_joint->attachment_ref0);
+		DeserializeEntityNodeRef(node["Ref1"], p_joint->attachment_ref1);
+	}
+
+	void SceneSerializer::ConnectJointComp(Scene& scene, JointComponent& joint) {
+		bool err = false;
+
+		auto* p_ent_0 = scene.TryFindEntity(joint.attachment_ref0);
+		auto* p_ent_1 = scene.TryFindEntity(joint.attachment_ref1);
+
+		err = !(p_ent_0 && p_ent_1);
+
+		if (!err) {
+			auto* p_phys_0 = p_ent_0->GetComponent<PhysicsComponent>();
+			auto* p_phys_1 = p_ent_1->GetComponent<PhysicsComponent>();
+
+			err = !(p_phys_0 && p_phys_1);
+
+			if (!err)
+				joint.Connect(p_phys_0, p_phys_1, true);
+		}
+
+		if (err) {
+			ORNG_CORE_ERROR("Failed to resolve entity node references for joint component on entity, '{}', uuid: '{}'", joint.GetEntityName(), joint.GetEntityUUID());
+		}
+	}
+
+
+	void SceneSerializer::SerializeEntityNodeRef(YAML::Emitter& out, const EntityNodeRef& ref) {
+		out << YAML::BeginMap;
+
+		out << "Instructions" << YAML::Flow << YAML::BeginSeq;
+		for (const auto& instruction : ref.GetInstructions()) {
+			out << instruction;
+		}
+		out << YAML::EndSeq << YAML::EndMap;
+	}
+
+	void SceneSerializer::DeserializeEntityNodeRef(const YAML::Node& node, EntityNodeRef& ref) {
+		for (auto instruction : node["Instructions"]) {
+			ref.m_instructions.push_back(instruction.as<std::string>());
+		}
+	}
+
+
+
+	MeshComponent* SceneSerializer::DeserializeMeshComp(const YAML::Node& mesh_node, SceneEntity& entity) {
+		uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
+		auto* p_mesh_asset = AssetManager::GetAsset<MeshAsset>(mesh_asset_id);
+		auto* p_mesh_comp = entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
+
+		auto materials = mesh_node["Materials"];
+		std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
+		p_mesh_comp->m_materials.resize(ids.size());
+
+		for (int i = 0; i < ids.size(); i++) { // Material slots automatical;ly allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
+			auto* p_mat = AssetManager::GetAsset<Material>(ids[i]);
+			p_mesh_comp->m_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		}
+
+		return p_mesh_comp;
+	}
+
+	void SceneSerializer::ResolveEntityNodeRefs(Scene& scene, SceneEntity& entity) {
+		if (auto* p_joint = entity.GetComponent<JointComponent>())
+			ConnectJointComp(scene, *p_joint);
+	}
 
 
 	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity) {
@@ -399,205 +661,30 @@ namespace ORNG {
 		if (parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
 			entity.SetParent(*scene.GetEntity(parent_id));
 
-		auto transform_node = entity_node["TransformComp"];
-		auto* p_transform = entity.GetComponent<TransformComponent>();
-		p_transform->SetPosition(transform_node["Pos"].as<glm::vec3>());
-		p_transform->SetScale(transform_node["Scale"].as<glm::vec3>());
-		p_transform->SetOrientation(transform_node["Orientation"].as<glm::vec3>());
-		p_transform->SetAbsoluteMode(transform_node["Absolute"].as<bool>());
-
 		entity.name = entity_node["Name"].as<std::string>();
 
-		for (auto node : entity_node) {
-			if (!node.first.IsDefined())
-				continue;
+		std::unordered_map <std::string, std::function<void()>> deserializers = {
+			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }},
+			{"MeshComp",[&] { scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(DeserializeMeshComp(entity_node["MeshComp"], entity)); }},
+			{"PhysicsComp",[&] { DeserializePhysicsComp(entity_node["PhysicsComp"], entity); }},
+			{"PointlightComp",[&] { DeserializePointlightComp(entity_node["PointlightComp"], entity); }},
+			{"SpotlightComp",[&] { DeserializeSpotlightComp(entity_node["SpotlightComp"], entity); }},
+			{"CameraComp",[&] { DeserializeCameraComp(entity_node["CameraComp"], entity); }},
+			{"ScriptComp",[&] { DeserializeScriptComp(entity_node["ScriptComp"], entity); }},
+			{"AudioComp",[&] { DeserializeAudioComp(entity_node["AudioComp"], entity); }},
+			{"VehicleComp",[&] { scene.physics_system.InitVehicle(DeserializeVehicleComp(entity_node["VehicleComp"], entity)); }},
+			{"ParticleEmitterComp",[&] { DeserializeParticleEmitterComp(entity_node["ParticleEmitterComp"], entity); }},
+			{"ParticleBufferComp",[&] { DeserializeParticleBufferComp(entity_node["ParticleBufferComp"], entity); }},
+			{"CharacterControllerComp",[&] { DeserializeCharacterControllerComp(entity_node["CharacterControllerComp"], entity); }},
+			{"JointComp",[&] { DeserializeJointComp(entity_node["JointComp"], entity); }},
+		};
 
-
-			std::string tag = node.first.as<std::string>();
-			if (tag == "MeshComp") {
-				auto mesh_node = entity_node["MeshComp"];
-				uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
-				auto* p_mesh_asset = AssetManager::GetAsset<MeshAsset>(mesh_asset_id);
-				auto* p_mesh_comp = entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
-
-				auto materials = mesh_node["Materials"];
-				std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
-				p_mesh_comp->m_materials.resize(ids.size());
-
-;				for (int i = 0; i < ids.size(); i++) { // Material slots automatical;ly allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
-					auto* p_mat = AssetManager::GetAsset<Material>(ids[i]);
-					p_mesh_comp->m_materials[i] = p_mat ? p_mat : p_replacement_material;
-				}
-
-				scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(p_mesh_comp);
-			}
-
-
-			if (tag == "PhysicsComp") {
-				auto physics_node = entity_node["PhysicsComp"];
-				auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
-
-				p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(physics_node["GeometryType"].as<unsigned int>()));
-				p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(physics_node["RigidBodyType"].as<unsigned int>()));
-				p_physics_comp->SetTrigger(physics_node["IsTrigger"].as<bool>());
-
-				auto* p_material = AssetManager::GetAsset<PhysXMaterialAsset>(physics_node["MaterialUUID"].as<uint64_t>());
-				p_physics_comp->SetMaterial(p_material ? *p_material : *AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID));
-			}
-
-
-			if (tag == "PointlightComp") {
-				auto light_node = entity_node["PointlightComp"];
-				auto* p_pointlight_comp = entity.AddComponent<PointLightComponent>();
-				p_pointlight_comp->color = light_node["Colour"].as<glm::vec3>();
-				p_pointlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
-				p_pointlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
-				p_pointlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
-				p_pointlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
-				p_pointlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
-			}
-
-			if (tag == "SpotlightComp") {
-				auto light_node = entity_node["SpotlightComp"];
-				auto* p_spotlight_comp = entity.AddComponent<SpotLightComponent>();
-				p_spotlight_comp->color = light_node["Colour"].as<glm::vec3>();
-				p_spotlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
-				p_spotlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
-				p_spotlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
-				p_spotlight_comp->m_aperture = light_node["Aperture"].as<float>();
-				p_spotlight_comp->shadows_enabled = light_node["Shadows"].as<bool>();
-				p_spotlight_comp->shadow_distance = light_node["ShadowDistance"].as<float>();
-			}
-
-			if (tag == "CameraComp") {
-				auto cam_node = entity_node["CameraComp"];
-				auto* p_cam_comp = entity.AddComponent<CameraComponent>();
-				p_cam_comp->fov = cam_node["FOV"].as<float>();
-				p_cam_comp->exposure = cam_node["Exposure"].as<float>();
-				p_cam_comp->zFar = cam_node["zFar"].as<float>();
-				p_cam_comp->zNear = cam_node["zNear"].as<float>();
-			}
-
-			if (tag == "ScriptComp") {
-				auto script_node = entity_node["ScriptComp"];
-				auto* p_script_comp = entity.AddComponent<ScriptComponent>();
-				std::string script_filepath = script_node["ScriptPath"].as<std::string>();
-				p_script_comp->script_filepath = script_filepath;
-
-				auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_filepath);
-				if (!p_asset)
-					p_asset = AssetManager::GetAsset< ScriptAsset>(ORNG_BASE_SCRIPT_ID);
-
-				if (p_asset) {
-					p_script_comp->SetSymbols(&p_asset->symbols);
-				}
-				else {
-					ORNG_CORE_ERROR("Scene deserialization error: no script file with filepath '{0}' found", script_filepath);
-				}
-			}
-
-			if (tag == "AudioComp") {
-				auto audio_node = entity_node["AudioComp"];
-				auto* p_comp = entity.AddComponent<AudioComponent>();
-				p_comp->SetMinMaxRange(audio_node["MinRange"].as<float>(), audio_node["MaxRange"].as<float>());
-				p_comp->SetPitch(audio_node["Pitch"].as<float>());
-				p_comp->SetVolume(audio_node["Volume"].as<float>());
-				p_comp->SetSoundAssetUUID(audio_node["AudioUUID"].as<uint64_t>());
-			}
-
-
-			if (tag == "VehicleComp") {
-				auto vehicle_node = entity_node["VehicleComp"];
-				auto* p_comp = entity.AddComponent<VehicleComponent>();
-				p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(vehicle_node["BodyMesh"].as<uint64_t>());
-				p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
-
-				p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(vehicle_node["WheelMesh"].as<uint64_t>());
-				p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
-
-
-				p_comp->body_scale = vehicle_node["BodyScale"].as<glm::vec3>();
-				p_comp->wheel_scale = vehicle_node["WheelScale"].as<glm::vec3>();
-
-				auto body_materials = vehicle_node["BodyMaterials"];
-				std::vector<uint64_t> body_ids = body_materials.as<std::vector<uint64_t>>();
-				p_comp->m_body_materials.resize(p_comp->p_body_mesh->num_materials);
-				for (int i = 0; i < p_comp->p_body_mesh->num_materials; i++) {
-					auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
-					p_comp->m_body_materials[i] = p_mat ? p_mat : p_replacement_material;
-				}
-
-				auto wheel_materials = vehicle_node["WheelMaterials"];
-				std::vector<uint64_t> wheel_ids = wheel_materials.as<std::vector<uint64_t>>();
-				p_comp->m_wheel_materials.resize(p_comp->p_wheel_mesh->num_materials);
-				for (int i = 0; i < p_comp->p_wheel_mesh->num_materials; i++) {
-					auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
-					p_comp->m_wheel_materials[i] = p_mat ? p_mat : p_replacement_material;
-				}
-				for (int i = 0; i < 4; i++) {
-					auto wheel = vehicle_node[std::format("Wheel{}", i)];
-					p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ConvertVec3<glm::vec3, PxVec3>(wheel["SuspensionAttachment"].as<glm::vec3>());
-				}
-
-				scene.physics_system.InitVehicle(p_comp);
-			}
-
-
-			
-			if (tag == "ParticleEmitterComp") {
-				auto emitter_node = entity_node["ParticleEmitterComp"];
-				auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
-				p_emitter->m_spread = emitter_node["Spread"].as<float>();
-				p_emitter->m_spawn_extents = emitter_node["Spawn extents"].as<glm::vec3>();
-				p_emitter->m_velocity_min_max_scalar = emitter_node["Velocity range"].as<glm::vec2>();
-				p_emitter->m_num_particles = emitter_node["Nb. particles"].as<unsigned>();
-				p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
-				p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
-				p_emitter->m_type = static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>());
-				p_emitter->acceleration = emitter_node["Acceleration"].as<glm::vec3>();
-
-				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Alpha over time"], p_emitter->m_life_alpha_interpolator);
-				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Colour over time"], p_emitter->m_life_colour_interpolator);
-				InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
-				if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
-					auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
-					entity.AddComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : p_replacement_material;
-				}
-				else {
-					auto* p_res = entity.AddComponent<ParticleMeshResources>();
-					p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
-					p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
-
-					auto materials = emitter_node["Materials"];
-					std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
-					p_res->materials.resize(p_res->p_mesh->num_materials);
-
-					for (int i = 0; i < p_res->materials.size(); i++) {
-						auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
-						p_res->materials[i] = p_mat ? p_mat : p_replacement_material;
-					}
-				}
-
-				p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE,(int)p_emitter->m_num_particles - ParticleEmitterComponent::BASE_NUM_PARTICLES);
-			}
-
-			if (tag == "ParticleBufferComp") {
-				auto buffer_node = entity_node["ParticleBufferComp"];
-				auto* p_buffer = entity.AddComponent<ParticleBufferComponent>();
-				p_buffer->m_buffer_id = buffer_node["BufferID"].as<uint32_t>();
-				p_buffer->m_min_allocated_particles = buffer_node["Min allocated particles"].as<uint32_t>();
-				
-				Events::ECS_Event<ParticleBufferComponent> e_event{ e_event.event_type = Events::ECS_EventType::COMP_UPDATED, p_buffer };
-				Events::EventManager::DispatchEvent(e_event);
-			}
-
-			if (tag == "CharacterControllerComp") {
-				auto* p_controller = entity.AddComponent<CharacterControllerComponent>();
-				PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
-				auto c_node = entity_node["CharacterControllerComp"];
-				p_capsule->setRadius(c_node["Radius"].as<float>());
-				p_capsule->setHeight(c_node["Height"].as<float>());
-			}
+		auto it = entity_node.begin();
+		// Skip the non-component fields
+		it++; it++; it++;
+		for (it; it != entity_node.end(); it++) {
+			std::string tag = (*it).first.as<std::string>();
+			deserializers[tag]();
 		}
 	}
 
@@ -655,14 +742,13 @@ namespace ORNG {
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
-		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
 
+		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		for (auto* p_entity : scene.m_entities) {
 			SerializeEntity(*p_entity, out);
 		}
-
 		out << YAML::EndSeq;
 
 		out << YAML::Key << "DirLight" << YAML::BeginMap;
@@ -671,7 +757,6 @@ namespace ORNG {
 		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
 		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
 		out << YAML::EndMap;
-
 
 		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		out << YAML::Key << "HDR filepath" << YAML::Value << scene.skybox.m_hdr_tex_filepath;
@@ -682,7 +767,6 @@ namespace ORNG {
 		out << YAML::Key << "Knee" << YAML::Value << scene.post_processing.bloom.knee;
 		out << YAML::Key << "Threshold" << YAML::Value << scene.post_processing.bloom.threshold;
 		out << YAML::EndMap;
-
 
 		out << YAML::EndMap;
 
@@ -718,8 +802,6 @@ namespace ORNG {
 		std::string scene_name = data["Scene"].as<std::string>();
 		ORNG_CORE_TRACE("Deserializing scene '{0}'", scene_name);
 
-
-		// Entities
 		auto entities = data["Entities"];
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
 		for (auto entity_node : entities) {
@@ -727,6 +809,11 @@ namespace ORNG {
 		}
 		for (auto entity_node : entities) {
 			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
+		}
+
+		// Resolve/connect any node refs now scene tree is fully built
+		for (auto* p_entity : scene.m_entities) {
+			ResolveEntityNodeRefs(scene, *p_entity);
 		}
 
 		// Directional light

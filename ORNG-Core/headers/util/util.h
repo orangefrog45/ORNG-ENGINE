@@ -20,6 +20,26 @@ namespace ORNG {
 	constexpr bool SHADER_DEBUG_MODE = false; // true = CreateUniform throws error if uniform doesn't exist
 
 
+	namespace detail {
+		template<typename T>
+		concept HasConvertToBytesOverride = requires(T t) {
+			t.ConvertSelfToBytes(std::declval<std::byte*&>());
+		};
+
+		template<typename T>
+		void ConvertToBytes(std::byte*& byte, T&& val) {
+			if constexpr (HasConvertToBytesOverride<T>) {
+				val.ConvertSelfToBytes(byte);
+			}
+			else {
+				std::memcpy(byte, &val, sizeof(T));
+				byte += sizeof(T);
+			}
+
+		}
+
+	}
+
 	template<typename T>
 	concept Vec2Type = requires(T vec) {
 		{ vec.x };
@@ -36,18 +56,18 @@ namespace ORNG {
 		{ vec.w };
 	};
 
-	template<Vec4Type SourceType, Vec4Type DestType>
-	DestType ConvertVec4(SourceType vec) {
+	template<Vec4Type DestType, Vec4Type SourceType>
+	DestType ConvertVec4(SourceType&& vec) {
 		return DestType{ vec.x, vec.y, vec.z, vec.w };
 	}
 
-	template<Vec3Type SourceType, Vec3Type DestType>
-	DestType ConvertVec3(SourceType vec) {
+	template<Vec3Type DestType, Vec3Type SourceType>
+	DestType ConvertVec3(SourceType&& vec) {
 		return DestType{ vec.x, vec.y, vec.z };
 	}
 
-	template<Vec2Type SourceType, Vec2Type DestType>
-	DestType ConvertVec2(SourceType vec) {
+	template<Vec2Type DestType, Vec2Type SrcType>
+	DestType ConvertVec2(SrcType&& vec) {
 		return DestType{ vec.x, vec.y };
 	}
 
@@ -81,7 +101,6 @@ namespace ORNG {
 	/*
 	MISC UTILS
 	*/
-	void PushMatrixIntoArray(const glm::mat4& m, float* array_ptr);
 
 	template<typename T>
 	bool VectorContains(const std::vector<T>& vec, const T& value) {
@@ -95,18 +114,32 @@ namespace ORNG {
 	// Modifies "input" string directly, returns number of replacement operations
 	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
 
-	// Copies raw bytes of matrix into array of std::byte, this will increment the ptr provided by sizeof(mat4)
-	void PushMatrixIntoArrayBytes(const glm::mat4& m, std::byte*& array_ptr);
-
-	template <typename T>
-	// Copies raw bytes of type into array of std::byte, this will increment the ptr provided by sizeof(T)
-	void ConvertToBytes(const T& value, std::byte*& bytes) {
-		std::memcpy(bytes, &value, sizeof(T));
-		bytes += sizeof(T);
+	// Copies raw bytes of types into array of std::byte, this will increment the ptr provided by sizeof(T)
+	template<typename... Args>
+	void ConvertToBytes(std::byte*& byte, Args&&... args) {
+		(detail::ConvertToBytes(byte, std::forward<Args>(args)), ...);
 	}
 
 	// E.g converts '9' to integer value 9, not ascii code
 	inline int CharToInt(char c) {
 		return c - '0';
 	}
+
+	template<typename T>
+	concept HasPushBack = requires(T t) {
+		t.push_back(std::declval<typename T::value_type>());
+	};
+
+
+	template<HasPushBack T, typename... Args>
+		requires((std::is_convertible_v<Args, typename T::value_type>, ...))
+	void PushBackMultiple(T& container, Args&&... args) {
+		(container.push_back(std::forward<Args>(args)), ...);
+	};
+
+	template<typename T>
+	size_t VectorFindIndex(const std::vector<T>& v, const T& search_for) {
+		return std::distance(v.begin(), std::ranges::find(v, search_for));
+	}
+
 }
