@@ -1,3 +1,9 @@
+18/3/24:
+-Large rewrite of joint components, joint components now support any number of joints with tracked references for quick access
+-Joint editor tools, joint maker and joint transform editor with gizmos
+-EntityNodeRefs can now reference entities not related to eachother through parent/child relationships
+-Some editor code restructuring
+
 16/3/24:
 -Physx D6 joint components with debug rendering, editor integration and serialization
 -EntityNodeRef's that can be used for relatively referencing entities from paths

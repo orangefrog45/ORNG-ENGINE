@@ -191,6 +191,9 @@ namespace ORNG {
 		void RemoveComponent(JointComponent* p_comp);
 		void RemoveComponent(VehicleComponent* p_comp);
 
+		void ConnectJoint(const JointComponent::ConnectionData& connection);
+		void BreakJoint(JointComponent::Joint* p_joint);
+
 
 		void InitVehicleSimulationContext();
 
@@ -221,6 +224,14 @@ namespace ORNG {
 		// Quick way to find an entity from its corresponding phys comps PxRigidActor
 		std::unordered_map<const physx::PxActor*, std::pair<SceneEntity*, ActorType>> m_entity_lookup;
 
+		std::unordered_map<physx::PxD6Joint*, JointComponent::Joint*> m_joint_lookup;
+
+		// Joints that have been broken during the simulation and logged with onConstraintBreak are stored here to disconnect them from entities after simulate() has finished
+		std::vector<JointComponent::Joint*> m_joints_to_break;
+
+		// Need to store joint currently being processed by BreakJoint() as it will trigger onConstraintBreak which will call BreakJoint() again if this isn't checked
+		JointComponent::Joint* mp_currently_breaking_joint = nullptr;
+
 		// Queue of entities that need OnCollision script events (if they have one) to fire, has to be done outside of simulation due to restrictions with rigidbody modification during simulation, processed each frame in OnUpdate
 		std::vector<std::pair<SceneEntity*, SceneEntity*>> m_entity_collision_queue;
 
@@ -234,13 +245,14 @@ namespace ORNG {
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		float m_step_size = (1.f / 120.f);
+		float m_step_size = (1.f / 60.f);
 		float m_accumulator = 0.f;
 
 		class PhysCollisionCallback : public physx::PxSimulationEventCallback {
 		public:
 			PhysCollisionCallback(PhysicsSystem* p_system) : mp_system(p_system) {};
-			virtual void onConstraintBreak([[maybe_unused]] PxConstraintInfo* constraints, [[maybe_unused]] PxU32 count) override {};
+
+			virtual void onConstraintBreak([[maybe_unused]] PxConstraintInfo* constraints, [[maybe_unused]] PxU32 count) override;
 
 			virtual void onWake([[maybe_unused]] PxActor** actors, [[maybe_unused]] PxU32 count) override {};
 

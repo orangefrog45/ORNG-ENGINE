@@ -392,29 +392,75 @@ namespace ORNG {
 		if (auto* p_joint = entity.GetComponent<JointComponent>()) {
 			Out(out, "JointComp", YAML::BeginMap);
 
-			Out(out, "Motion", YAML::Flow);
-			out << YAML::BeginSeq;
-			for (int i = 0; i < 6; i++) {
-				out << (uint32_t)p_joint->motion[(PxD6Axis::Enum)i];
+			Out(out, "Joints", YAML::BeginSeq);
+
+			for (auto& [j, attachment] : p_joint->attachments) {
+				if (attachment.p_joint->p_a0 != p_joint->GetEntity())
+					continue;
+
+				auto ref = entity.GetScene()->GenEntityNodeRef(&entity, attachment.p_joint->p_a1);
+
+				out << YAML::BeginMap;
+
+				Out(out, "LP0", attachment.p_joint->poses[0]);
+				Out(out, "LP1", attachment.p_joint->poses[1]);
+
+				out << "TargetRef";
+				SerializeEntityNodeRef(out, ref);
+
+				Out(out, "Motion", YAML::Flow);
+				out << YAML::BeginSeq;
+				for (int i = 0; i < 6; i++) {
+					out << (uint32_t)attachment.p_joint->motion[(PxD6Axis::Enum)i];
+				}
+				out << YAML::EndSeq;
+
+				Out(out, "ForceThreshold", attachment.p_joint->force_threshold);
+				Out(out, "TorqueThreshold", attachment.p_joint->torque_threshold);
+				out << YAML::EndMap;
 			}
 
 			out << YAML::EndSeq;
-
-			Out(out, "LP0", p_joint->poses[0]);
-			Out(out, "LP1", p_joint->poses[1]);
-
-			out << "Ref0";
-			SerializeEntityNodeRef(out, p_joint->attachment_ref0);
-
-			out << "Ref1";
-			SerializeEntityNodeRef(out, p_joint->attachment_ref1);
-
 			out << YAML::EndMap;
 		}
-
 		out << YAML::EndMap;
 	}
 
+	void SceneSerializer::DeserializeJointComp(const YAML::Node& node, SceneEntity& entity) {
+		auto* p_joint_comp = entity.AddComponent<JointComponent>();
+		auto& joint_map = node["Joints"];
+
+		for (auto& joint_node : joint_map) {
+			auto& attachment = p_joint_comp->CreateJoint();
+			auto* p_joint = attachment.p_joint;
+
+			auto motion_node = joint_node["Motion"];
+			for (int i = 0; i < 6; i++) {
+				auto motion = (PxD6Motion::Enum)motion_node[i].as<uint32_t>();
+				p_joint->motion[(PxD6Axis::Enum)i] = motion;
+			}
+
+			p_joint->SetLocalPose(0, joint_node["LP0"].as<glm::vec3>());
+			p_joint->SetLocalPose(1, joint_node["LP1"].as<glm::vec3>());
+
+			DeserializeEntityNodeRef(joint_node["TargetRef"], attachment.m_target_ref);
+			attachment.m_target_ref.mp_src = &entity;
+
+			p_joint->SetBreakForce(joint_node["ForceThreshold"].as<float>(), joint_node["TorqueThreshold"].as<float>());
+		}
+	}
+
+	void SceneSerializer::ConnectJointComp(Scene& scene, JointComponent& joint) {
+		bool err = false;
+
+		for (auto& [p_joint, attachment] : joint.attachments) {
+			auto* p_target_ent = scene.TryFindEntity(attachment.m_target_ref);
+
+			if (p_target_ent) {
+				attachment.p_joint->Connect(p_target_ent->AddComponent<JointComponent>()); // AddComponent will add a JointComp if one doesn't already exist or just return the existing one
+			}
+		}
+	}
 
 
 	void SceneSerializer::DeserializePointlightComp(const YAML::Node& light_node, SceneEntity& entity) {
@@ -571,45 +617,6 @@ namespace ORNG {
 		PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
 		p_capsule->setRadius(node["Radius"].as<float>());
 		p_capsule->setHeight(node["Height"].as<float>());
-	}
-
-	void SceneSerializer::DeserializeJointComp(const YAML::Node& node, SceneEntity& entity) {
-		auto* p_joint = entity.AddComponent<JointComponent>();
-		auto motion_node = node["Motion"];
-		for (int i = 0; i < 6; i++) {
-			auto motion = (PxD6Motion::Enum)motion_node[i].as<uint32_t>();
-			//p_joint->p_joint->setMotion((PxD6Axis::Enum)i, motion);
-			p_joint->motion[(PxD6Axis::Enum)i] = motion;
-		}
-
-		p_joint->SetLocalPose(0, node["LP0"].as<glm::vec3>());
-		p_joint->SetLocalPose(1, node["LP1"].as<glm::vec3>());
-
-		DeserializeEntityNodeRef(node["Ref0"], p_joint->attachment_ref0);
-		DeserializeEntityNodeRef(node["Ref1"], p_joint->attachment_ref1);
-	}
-
-	void SceneSerializer::ConnectJointComp(Scene& scene, JointComponent& joint) {
-		bool err = false;
-
-		auto* p_ent_0 = scene.TryFindEntity(joint.attachment_ref0);
-		auto* p_ent_1 = scene.TryFindEntity(joint.attachment_ref1);
-
-		err = !(p_ent_0 && p_ent_1);
-
-		if (!err) {
-			auto* p_phys_0 = p_ent_0->GetComponent<PhysicsComponent>();
-			auto* p_phys_1 = p_ent_1->GetComponent<PhysicsComponent>();
-
-			err = !(p_phys_0 && p_phys_1);
-
-			if (!err)
-				joint.Connect(p_phys_0, p_phys_1, true);
-		}
-
-		if (err) {
-			ORNG_CORE_ERROR("Failed to resolve entity node references for joint component on entity, '{}', uuid: '{}'", joint.GetEntityName(), joint.GetEntityUUID());
-		}
 	}
 
 

@@ -11,7 +11,6 @@ namespace ORNG {
 	struct Prefab;
 	class SceneEntity;
 
-
 	class Scene {
 	public:
 		friend class EditorLayer;
@@ -43,19 +42,17 @@ namespace ORNG {
 		// This instantiation method is what scripts will use, it calls the OnCreate method on the script component of the prefab if it has one
 		SceneEntity& InstantiatePrefabCallScript(const std::string& serialized_data);
 
-		// Internal method
-		SceneEntity& DuplicateEntity(SceneEntity& original);
-
 		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
 		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
 
 		// Uses a noderef to attempt to find an entity, returns nullptr if none found
 		SceneEntity* TryFindEntity(const EntityNodeRef& ref);
 
+		// Searches only root entities (entities without a parent), returns nullptr if none found
+		SceneEntity* TryFindRootEntityByName(const std::string& name);
+
 		// Generates a node ref that can be used to locally reference an entity from src "p_src".
-		// Only use on two entities that share a common parent somewhere (can be multiple parents up) or where p_target is a child of p_src (can be multiple children down) 
-		// Returns nullopt if no path can be formed
-		std::optional<EntityNodeRef> GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target);
+		EntityNodeRef GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target);
 
 		static void SortEntitiesNumParents(Scene* p_scene, std::vector<uint64_t>& entity_uuids, bool descending);
 		static void SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending);
@@ -102,10 +99,14 @@ namespace ORNG {
 		bool m_is_loaded = false;
 		bool active = false;
 
+		SceneEntity& DuplicateEntity(SceneEntity& original);
 
 		std::vector<SceneEntity*> m_entities;
 		std::vector<SceneEntity*> m_entity_deletion_queue;
 
+		// Entities without a parent, stored so they can be quickly iterated through when a noderef path is being formed
+		std::unordered_set<entt::entity> m_root_entities;
+		Events::ECS_EventListener<RelationshipComponent> m_hierarchy_modification_listener;
 
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
 		CameraSystem m_camera_system{ &m_registry, uuid() };

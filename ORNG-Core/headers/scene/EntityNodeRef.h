@@ -14,7 +14,7 @@ namespace ORNG {
 
 		// Path should work like a filepath where entity/entity_1 searches for src_entity -> entity (child of src_entity) -> entity_1 (child of entity_1)
 		// ../ traverses up the hierarchy, e.g ../../ searches for src_entity -> src_entity_parent -> src_entity_parent_parent
-		// References can only be generated to entities that can be accessed through series of GetParent()/GetChild() calls, if the target shares no relationship with src these instructions will be invalid
+		// If path starts with '::' it is absolute
 		void GenAndCacheInstructionsFromStringPath(const std::string& path) {
 			std::string current_ent_name = "";
 

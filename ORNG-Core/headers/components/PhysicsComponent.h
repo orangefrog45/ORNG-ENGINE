@@ -4,6 +4,7 @@
 #include "Component.h"
 #include "physx/extensions/PxD6Joint.h"
 #include "scene/EntityNodeRef.h"
+#include "util/UUID.h"
 
 namespace physx {
 	class PxRigidDynamic;
@@ -97,40 +98,109 @@ namespace ORNG {
 
 	struct JointComponent : public Component {
 
-		struct ConnectionData {
-			ConnectionData(PhysicsComponent* _0, PhysicsComponent* _1, bool _use_comp_poses) : first(_0), second(_1), use_component_poses(_use_comp_poses) {};
+		class Joint {
+			friend class SceneSerializer;
+			friend class PhysicsSystem;
+			friend class EditorLayer;
+		public:
+			Joint(SceneEntity* _owner) : p_a0(_owner) {};
 
-			PhysicsComponent* first = nullptr;
-			PhysicsComponent* second = nullptr;
+			inline void SetMotion(physx::PxD6Axis::Enum axis, physx::PxD6Motion::Enum _motion) {
+				if (p_joint)
+					p_joint->setMotion(axis, _motion);
 
-			// If false, physics system will place the joint in the middle of the two components instead of using the poses in this->poses
-			bool use_component_poses = false;
+				motion[axis] = _motion;
+			}
+
+			inline void SetLocalPose(unsigned actor_idx, glm::vec3 p) {
+				if (p_joint)
+					p_joint->setLocalPose((physx::PxJointActorIndex::Enum)actor_idx, physx::PxTransform{ physx::PxVec3(p.x, p.y, p.z) });
+
+				poses[actor_idx] = p;
+			}
+
+			inline void SetBreakForce(float _force_threshold, float _torque_threshold) {
+				force_threshold = _force_threshold;
+				torque_threshold = _torque_threshold;
+
+				if (p_joint) {
+					p_joint->setBreakForce(force_threshold, torque_threshold);
+				}
+			}
+
+			// A0 = attachment point 0 (idx 0 on physx joint), this is the owning entity of the joint
+			SceneEntity* GetA0() {
+				return p_a0;
+			}
+
+			// A1 = attachment point 1 (idx 1 on physx joint), does not own joint
+			SceneEntity* GetA1() {
+				return p_a1;
+			}
+
+			// Connects attachment point 1 to p_target, does nothing if either doesn't have a physics component
+			// p_target must be related to this->p_owner, e.g it can be reached soley with GetParent()/GetChild() calls
+			void Connect(JointComponent* p_target, bool use_stored_poses = false);
+
+			void Break();
+
+			physx::PxD6Joint* p_joint = nullptr;
+
+			std::array<glm::vec3, 2> poses = { glm::vec3(0) };
+			std::unordered_map<physx::PxD6Axis::Enum, physx::PxD6Motion::Enum> motion;
+
+			float force_threshold = PX_MAX_F32;
+			float torque_threshold = PX_MAX_F32;
+
+		private:
+			// Owner of the joint, the joint cannot be detached from this entity unless the joint itself breaks and is deleted
+			// Will never be nullptr or invalid, if this entity dies the joint will be broken
+			SceneEntity* p_a0 = nullptr;
+
+			// Attachment 1, non-owning, Can be detached from entity if Connect() is called with a different p_target
+			// Can be nullptr if joint hasn't been connected yet
+			SceneEntity* p_a1 = nullptr;
 		};
 
-		void Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1, bool use_comp_poses = false);
-		void Break();
+		struct ConnectionData {
+			ConnectionData(SceneEntity* _src, JointComponent* _target, Joint* _joint, bool _use_poses) : p_src(_src), p_target(_target), p_joint(_joint), use_stored_poses(_use_poses) {};
 
-		void SetMotion(physx::PxD6Axis::Enum axis, physx::PxD6Motion::Enum _motion) {
-			if (p_joint)
-				p_joint->setMotion(axis, _motion);
+			SceneEntity* p_src = nullptr;
+			JointComponent* p_target = nullptr;
 
-			motion[axis] = _motion;
+			Joint* p_joint = nullptr;
+
+			bool use_stored_poses = false;
+		};
+
+		class JointAttachment {
+			friend class SceneSerializer;
+		public:
+			JointAttachment() = default;
+			JointAttachment(const EntityNodeRef& target_ref, Joint* _p_data) : m_target_ref(target_ref), p_joint(_p_data) {}
+
+			Joint* p_joint = nullptr;
+
+			const EntityNodeRef& GetTargetRef() const noexcept {
+				return m_target_ref;
+			}
+
+		private:
+			// Empty if p_joint is not owned by entity this is attached to
+			// Also empty if the joint isn't connected to anything yet
+			EntityNodeRef m_target_ref{ nullptr };
+		};
+
+		// Returns an uninitialized joint, Pose/Motion can be set up with SetMotion/LocalPose before or after joint is connected
+		// The memory for this is deallocated automatically by PhysicsSystem when the joint breaks or the JointComponent it belongs to is destroyed, and if it's attached to another JointComponent it is removed from it
+		JointAttachment& CreateJoint() {
+			auto* p_joint = new Joint(GetEntity());
+			attachments[p_joint].p_joint = p_joint;
+
+			return attachments[p_joint];
 		}
 
-		void SetLocalPose(unsigned actor_idx, glm::vec3 p) {
-			if (p_joint)
-				p_joint->setLocalPose((physx::PxJointActorIndex::Enum)actor_idx, physx::PxTransform{ physx::PxVec3(p.x, p.y, p.z) });
-
-			poses[actor_idx] = p;
-		}
-
-		EntityNodeRef attachment_ref0{ GetEntity() };
-		EntityNodeRef attachment_ref1{ GetEntity() };
-
-		std::array<glm::vec3, 2> poses;
-
-		std::unordered_map<physx::PxD6Axis::Enum, physx::PxD6Motion::Enum> motion;
-		physx::PxD6Joint* p_joint = nullptr;
+		std::unordered_map<Joint*, JointAttachment> attachments;
 	};
 
 }

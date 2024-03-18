@@ -42,7 +42,6 @@ namespace ORNG {
 	}
 
 	void GL_StateManager::I_InitGL() {
-
 		glEnable(GL_CULL_FACE);
 		glFrontFace(GL_CCW);
 		glCullFace(GL_BACK);
@@ -53,10 +52,8 @@ namespace ORNG {
 		glLineWidth(3.f);
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-
 		glDebugMessageCallback(GL_LogMessage, nullptr);
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-
 	}
 }

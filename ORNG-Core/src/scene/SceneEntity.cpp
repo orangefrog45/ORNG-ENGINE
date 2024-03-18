@@ -39,6 +39,8 @@ namespace ORNG {
 		auto* p_transform = GetComponent<TransformComponent>();
 		p_transform->m_parent_handle = p_parent_comp->GetEnttHandle();
 		p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
+
+		Events::EventManager::DispatchEvent(Events::ECS_Event<RelationshipComponent>{ Events::ECS_EventType::COMP_UPDATED, p_comp });
 	}
 
 	void SceneEntity::RemoveParent() {
@@ -66,6 +68,8 @@ namespace ORNG {
 		p_comp->parent = entt::null;
 
 		GetComponent<TransformComponent>()->m_parent_handle = entt::null;
+
+		Events::EventManager::DispatchEvent(Events::ECS_Event<RelationshipComponent>{ Events::ECS_EventType::COMP_UPDATED, p_comp });
 	}
 
 

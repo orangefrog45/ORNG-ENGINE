@@ -65,6 +65,10 @@ namespace ORNG {
 
 		auto it = std::ranges::find(m_entities, p_entity);
 		ASSERT(it != m_entities.end());
+
+		if (m_root_entities.contains(p_entity->m_entt_handle))
+			m_root_entities.erase(p_entity->m_entt_handle);
+
 		delete p_entity;
 		m_entities.erase(it);
 	}
@@ -123,6 +127,7 @@ namespace ORNG {
 				SceneSerializer::ResolveEntityNodeRefs(*this, *GetEntity(e));
 			}
 		);
+		SceneSerializer::ResolveEntityNodeRefs(*this, new_entity);
 
 		return new_entity;
 	}
@@ -152,35 +157,55 @@ namespace ORNG {
 		});
 	}
 
+	SceneEntity* Scene::TryFindRootEntityByName(const std::string& name) {
+		for (auto handle : m_root_entities) {
+			auto* p_ent = GetEntity(handle);
+			if (p_ent->name == name)
+				return p_ent;
+		}
+
+		return nullptr;
+	}
+
+
 	SceneEntity* Scene::TryFindEntity(const EntityNodeRef& ref) {
-		SceneEntity* p_current_ent = ref.GetSrc();
-		
-		for (const auto& ent_name : ref.GetInstructions()) {
+		SceneEntity* p_current_ent = nullptr;
+		unsigned start_index = 0;
+
+		auto& instructions = ref.GetInstructions();
+
+		if (instructions.empty())
+			return nullptr;
+
+		if (instructions[0] == "::") { // Path is absolute
+			p_current_ent = TryFindRootEntityByName(instructions[1]);
+			start_index = 2;
+		}
+		else { // Path is relative to src
+			p_current_ent = ref.GetSrc();
+		}
+
+		for (int i = start_index; i < instructions.size(); i++) {
 			if (p_current_ent == nullptr)
 				return p_current_ent;
 
-			if (ent_name == "..") {
+			if (instructions[i] == "..") {
 				p_current_ent = GetEntity(p_current_ent->GetParent());
 			}
 			else {
-				p_current_ent = p_current_ent->GetChild(ent_name);
+				p_current_ent = p_current_ent->GetChild(instructions[i]);
 			}
-
 		}
 
 		return p_current_ent;
 	}
 
 
-	std::optional<EntityNodeRef> Scene::GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target) {
+	EntityNodeRef Scene::GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target) {
 		std::vector<std::string> instructions = { p_target->name };
 
 		std::set<SceneEntity*> src_parents;
 		std::vector<SceneEntity*> ordered_src_parents;
-
-		// Find highest parents for comparison and faster lookup
-		entt::entity highest_parent_src = p_src->GetParent();
-		src_parents.insert(GetEntity(highest_parent_src));
 
 		SceneEntity* p_highest_shared_parent = nullptr;
 
@@ -196,18 +221,14 @@ namespace ORNG {
 
 			p_current_parent = GetEntity(p_target->GetParent());
 
-			// Traverse all parents of target entity, this results in either finding either: 
-			// A common parent among target and src 
-			// Finding that target is a child of src
+			// Traverse all parents of target entity to check if p_target and p_src are related (parent/child)
 			while (p_current_parent) {
-				if (!p_current_parent) // No common parents, entities are unrelated and therefore a path can't be formed
-					return std::nullopt;
-
 				if (src_parents.contains(p_current_parent)) {
 					p_highest_shared_parent = p_current_parent;
 					break;
 				}
 				else if (p_current_parent == p_src) {
+					// Instructions are already relative to p_src as p_target is a child of p_src
 					break;
 				}
 				else {
@@ -218,24 +239,30 @@ namespace ORNG {
 			}
 		}
 
-		// 0 by default if no common parent is found as then target is assumed to be a child of src
-		// This idx is also how many layers up needed to move until common parent is found
-		unsigned idx = 0;
 
-		if (p_highest_shared_parent)
-			idx = VectorFindIndex(ordered_src_parents, p_highest_shared_parent) + 1;
+		// This idx is how many layers up needed to move until common parent is found
 
-		// Get path relative to the first common parent
-		for (int i = 0; i < idx; i++) {
-			instructions.push_back("..");
+		if (p_highest_shared_parent) {
+			unsigned idx = VectorFindIndex(ordered_src_parents, p_highest_shared_parent) + 1;
+
+			// Get path relative to the first common parent
+			for (int i = 0; i < idx; i++) {
+				instructions.push_back("..");
+			}
+
 		}
+		else {
+			// Entities are unrelated so use an absolute path
+			instructions.push_back("::");
+		}
+		
 
 		// Instruction set is generated in reverse, so reverse here to correct it
 		std::ranges::reverse(instructions);
 
 		EntityNodeRef ref{ p_src, instructions };
 
-		return std::make_optional(ref);
+		return ref;
 	}
 
 
@@ -255,6 +282,18 @@ namespace ORNG {
 		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
 		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
 
+		m_hierarchy_modification_listener.scene_id = uuid();
+		m_hierarchy_modification_listener.OnEvent = [&](const Events::ECS_Event<RelationshipComponent>& _event) {
+			entt::entity entity = _event.affected_components[0]->GetEnttHandle();
+			entt::entity parent = _event.affected_components[0]->GetEntity()->GetParent();
+
+			if (parent != entt::null && m_root_entities.contains(entity))
+				m_root_entities.erase(entity);
+			else if (parent == entt::null && !m_root_entities.contains(entity))
+				m_root_entities.insert(entity);
+			};
+
+		Events::EventManager::RegisterListener(m_hierarchy_modification_listener);
 
 		post_processing.global_fog.SetNoise(noise);
 		terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
@@ -369,6 +408,8 @@ namespace ORNG {
 			DeleteEntity(m_entities[0]);
 		}
 
+		Events::EventManager::DeregisterListener(m_hierarchy_modification_listener.GetRegisterID());
+
 		m_registry.clear();
 		m_transform_system.OnUnload();
 		physics_system.OnUnload();
@@ -378,6 +419,7 @@ namespace ORNG {
 		m_particle_system.OnUnload();
 
 		m_entities.clear();
+		m_root_entities.clear();
 		ORNG_CORE_INFO("Scene unloaded");
 		m_is_loaded = false;
 	}
@@ -389,6 +431,9 @@ namespace ORNG {
 		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent, &m_registry, this->uuid()) : new SceneEntity(uuid, reg_ent, this, &m_registry, this->uuid());
 		ent->name = name;
 		m_entities.push_back(ent);
+
+		// Entity initially has no parent so insert it here
+		m_root_entities.insert(ent->GetEnttHandle());
 
 		return *ent;
 	}

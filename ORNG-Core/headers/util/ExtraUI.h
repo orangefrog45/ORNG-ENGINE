@@ -33,6 +33,11 @@ namespace ORNG {
 		static bool InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator);
 		static bool InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator);
 
+		inline static void TooltipOnHover(const std::string& content) {
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+				ImGui::SetTooltip(content.c_str());
+		}
+
 		template<IsVec2 T1, IsVec2 T2>
 		static bool DoBoxesIntersect(T1 a_min, T1 a_max, T2 b_min, T2 b_max) {
 			float b_width = b_max.x - b_min.x;

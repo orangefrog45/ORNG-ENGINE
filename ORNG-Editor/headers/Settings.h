@@ -11,11 +11,15 @@ namespace ORNG {
 	};
 
 	struct EditorWindowSettings {
+		bool display_settings_window = false;
+
 		bool display_directional_light_editor = false;
 		bool display_skybox_editor = false;
 		bool display_global_fog_editor = false;
 		bool display_terrain_editor = false;
 		bool display_bloom_editor = false;
+
+		bool display_joint_maker = false;
 	};
 
 	enum class VoxelRenderFace {

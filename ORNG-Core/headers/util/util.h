@@ -142,4 +142,13 @@ namespace ORNG {
 		return std::distance(v.begin(), std::ranges::find(v, search_for));
 	}
 
+	template<typename T>
+	T* VectorFind(const std::vector<T>& v, const T& search_for) {
+		if (auto it = std::ranges::find(v, search_for); it != v.end())
+			return &(*it);
+		else
+			return nullptr;
+	}
+
+
 }

@@ -105,8 +105,8 @@ namespace ORNG {
 			glBindBuffer(buffer_type, buffer_handle);
 		}
 
-		inline static void ClearBitsUnsignedInt() {
-			static unsigned int clear_color[] = { 0, 0, 0, 0 };
+		inline static void ClearBitsUnsignedInt(unsigned r = 0, unsigned g = 0, unsigned b = 0, unsigned a = 0) {
+			static unsigned int clear_color[] = { r, g, b, a };
 			glClearBufferuiv(GL_COLOR, 0, clear_color);
 		}
 

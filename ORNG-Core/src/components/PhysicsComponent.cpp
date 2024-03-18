@@ -3,6 +3,7 @@
 #include "events/EventManager.h"
 #include "physics/Physics.h"
 #include "assets/PhysXMaterialAsset.h"
+#include "scene/SceneEntity.h"
 
 namespace ORNG {
 	using namespace physx;
@@ -93,10 +94,15 @@ namespace ORNG {
 		moved_during_frame = true;
 	}
 
+	void JointComponent::Joint::Break() {
+		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, p_a0->GetComponent<JointComponent>(), JointEventType::BREAK };
+		joint_event.data_payload = this;
+		Events::EventManager::DispatchEvent(joint_event);
+	}
 
-	void JointComponent::Connect(PhysicsComponent* t_a0, PhysicsComponent* t_a1, bool use_comp_poses) {
-		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, this, JointEventType::CONNECT };
-		joint_event.data_payload = ConnectionData(t_a0, t_a1, use_comp_poses);
+	void JointComponent::Joint::Connect(JointComponent* p_target, bool use_stored_poses) {
+		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, p_target, JointEventType::CONNECT };
+		joint_event.data_payload = JointComponent::ConnectionData(p_a0, p_target, this, use_stored_poses);
 		Events::EventManager::DispatchEvent(joint_event);
 	}
 }

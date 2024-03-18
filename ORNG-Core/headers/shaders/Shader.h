@@ -87,6 +87,9 @@ namespace ORNG {
 			else if constexpr (std::is_same<T, glm::uvec2>::value) {
 				glUniform2ui(m_uniforms[name], value.x, value.y);
 			}
+			else if constexpr (std::is_same<T, glm::uvec3>::value) {
+				glUniform3ui(m_uniforms[name], value.x, value.y, value.z);
+			}
 			else if constexpr (std::is_same<T, glm::ivec3>::value) {
 				glUniform3i(m_uniforms[name], value.x, value.y, value.z);
 			}

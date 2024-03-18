@@ -79,7 +79,7 @@ namespace ORNG {
 	}
 
 // TODO: add in-editor option for this
-#define GPU_PHYSICS_ENABLED false
+#define GPU_PHYSICS_ENABLED true
 
 	void PhysicsSystem::OnLoad() {
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
@@ -99,7 +99,7 @@ namespace ORNG {
 
 
 		if constexpr (GPU_PHYSICS_ENABLED) {
-			scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
+			scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 			scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
 		}
 		else {
@@ -405,49 +405,97 @@ namespace ORNG {
 
 
 	void PhysicsSystem::RemoveComponent(JointComponent* p_comp) {
-		if (p_comp->p_joint)
-			p_comp->p_joint->release();
+		while (!p_comp->attachments.empty())
+			p_comp->attachments.begin()->first->Break();
+	}
+
+	void PhysicsSystem::BreakJoint(JointComponent::Joint* p_joint) {
+		mp_currently_breaking_joint = p_joint;
+
+		if (p_joint->p_joint)
+			p_joint->p_joint->release();
+
+		auto* p_a0 = p_joint->GetA0();
+		auto* p_a1 = p_joint->GetA1();
+
+		auto* p_joint_comp_src = p_a0->GetComponent<JointComponent>();
+		p_joint_comp_src->attachments.erase(p_joint);
+
+		if (p_a1) {
+			auto* p_joint_comp_target = p_a1->GetComponent<JointComponent>();
+			p_joint_comp_target->attachments.erase(p_joint);
+		}
+
+		m_joint_lookup.erase(p_joint->p_joint);
+
+		mp_currently_breaking_joint = nullptr;
+
+		delete p_joint;
+	}
+
+	void PhysicsSystem::ConnectJoint(const JointComponent::ConnectionData& connection) {
+		auto* p_phys = Physics::GetPhysics();
+
+		auto* p_phys_0 = connection.p_src->GetComponent<PhysicsComponent>();
+		auto* p_phys_1 = connection.p_target->GetEntity()->GetComponent<PhysicsComponent>();
+
+		if (!p_phys_0 || !p_phys_1) {
+			ORNG_CORE_ERROR("Joint connection failed between entities '{}', '{}' failed, physics components not found", connection.p_src->name, connection.p_target->GetEntityName());
+			return;
+		}
+		
+		// Disconnect A1 if it exists
+		if (auto* p_a1 = connection.p_joint->GetA1()) {
+			auto* p_comp = p_a1->GetComponent<JointComponent>();
+			p_comp->attachments.erase(connection.p_joint);
+		}
+
+		if (connection.use_stored_poses) {
+			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(connection.p_joint->poses[0])),
+				p_phys_1->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(connection.p_joint->poses[1])));
+		}
+		else {
+			// Position joint at middle of entities
+			auto middle = (p_phys_0->p_rigid_actor->getGlobalPose().p + p_phys_1->p_rigid_actor->getGlobalPose().p) * 0.5f;
+			PxTransform m0(middle - p_phys_0->p_rigid_actor->getGlobalPose().p);
+			PxTransform m1(middle - p_phys_1->p_rigid_actor->getGlobalPose().p);
+			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, m0, p_phys_1->p_rigid_actor, m1);
+
+			// Update stored state
+			connection.p_joint->poses[0] = ConvertVec3<glm::vec3>(m0.p);
+			connection.p_joint->poses[1] = ConvertVec3<glm::vec3>(m1.p);
+		}
+
+		for (int i = 0; i < 6; i++) {
+			// Set joint state, deserialized component has it cached else it's defaults
+			connection.p_joint->p_joint->setMotion((PxD6Axis::Enum)i, connection.p_joint->motion[(PxD6Axis::Enum)i]);
+		}
+
+		// Cache A1
+		connection.p_joint->p_a1 = connection.p_target->GetEntity();
+
+		// Set attachment data for A0
+		connection.p_src->GetComponent<JointComponent>()->attachments[connection.p_joint].p_joint = connection.p_joint;
+
+		// Set attachment data for A1
+		JointComponent::JointAttachment a;
+		a.p_joint = connection.p_joint;
+		connection.p_target->attachments[connection.p_joint] = a;
+
+		// Store in joint lookup map for quick retrieval of the corresponding JointComponent::Joint from a PxD6Joint
+		m_joint_lookup[connection.p_joint->p_joint] = connection.p_joint;
 	}
 
 	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<JointComponent>& t_event) {
 		switch (t_event.sub_event_type) {
 		case JointEventType::CONNECT:
-			JointComponent::ConnectionData connection = std::any_cast<JointComponent::ConnectionData>(t_event.data_payload);
-
-
-			auto* p_phys = Physics::GetPhysics();
-
-			if (connection.use_component_poses) {
-				t_event.affected_components[0]->p_joint = PxD6JointCreate(*p_phys, connection.first->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(t_event.affected_components[0]->poses[0])), 
-					connection.second->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(t_event.affected_components[0]->poses[1])));
-			}
-			else {
-				// Position joint at middle of entities
-				auto middle = (connection.first->p_rigid_actor->getGlobalPose().p + connection.second->p_rigid_actor->getGlobalPose().p) * 0.5f;
-				PxTransform m0(middle - connection.first->p_rigid_actor->getGlobalPose().p);
-				PxTransform m1(middle - connection.second->p_rigid_actor->getGlobalPose().p);
-				t_event.affected_components[0]->p_joint = PxD6JointCreate(*p_phys, connection.first->p_rigid_actor, m0, connection.second->p_rigid_actor, m1);
-
-				// Update stored state
-				t_event.affected_components[0]->poses[0] = ConvertVec3<glm::vec3>(m0.p);
-				t_event.affected_components[0]->poses[1] = ConvertVec3<glm::vec3>(m1.p);
-			}
-
-			for (int i = 0; i < 6; i++) {
-				// Set joint state, deserialized component has it cached else it's defaults
-				t_event.affected_components[0]->p_joint->setMotion((PxD6Axis::Enum)i, t_event.affected_components[0]->motion[(PxD6Axis::Enum)i]);
-			}
-
-			auto* p_ent = t_event.affected_components[0]->GetEntity();
-			auto ref0 = mp_scene->GenEntityNodeRef(p_ent, connection.first->GetEntity());
-			auto ref1 = mp_scene->GenEntityNodeRef(p_ent, connection.second->GetEntity());
-			ASSERT(ref0.has_value());
-			ASSERT(ref1.has_value());
-			t_event.affected_components[0]->attachment_ref0 = ref0.value();
-			t_event.affected_components[0]->attachment_ref1 = ref1.value();
-
+			ConnectJoint(std::any_cast<JointComponent::ConnectionData>(t_event.data_payload));
+			break;
+		case JointEventType::BREAK:
+			BreakJoint(std::any_cast<JointComponent::Joint*>(t_event.data_payload));
 			break;
 		}
+
 	}
 
 	void PhysicsSystem::InitComponent(JointComponent* p_comp) {
@@ -622,6 +670,15 @@ namespace ORNG {
 
 		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
 		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
+
+		// Reconnect any broken joints caused by recreating the actor
+		if (auto* p_joint_comp = p_comp->GetEntity()->GetComponent<JointComponent>()) {
+			for (auto [p_joint, attachment] : p_joint_comp->attachments) {
+				if (p_joint->GetA1()) {
+					p_joint->p_joint->setActors(p_joint->GetA0()->GetComponent<PhysicsComponent>()->p_rigid_actor, p_joint->GetA1()->GetComponent<PhysicsComponent>()->p_rigid_actor);
+				}
+			}
+		}
 	}
 
 
@@ -667,7 +724,6 @@ namespace ORNG {
 		glm::quat phys_quat = glm::quat(phys_rot.w, phys_rot.x, phys_rot.y, phys_rot.z);
 		glm::vec3 orientation = glm::degrees(glm::eulerAngles(phys_quat));
 
-
 		transform.SetAbsolutePosition(glm::vec3(phys_pos.x, phys_pos.y, phys_pos.z));
 
 		// Only set orientation from normal rigid bodies (character controllers causing bugs)
@@ -695,14 +751,14 @@ namespace ORNG {
 		}
 
 
-		ORNG_PROFILE_FUNC();
+		//ORNG_PROFILE_FUNC();
 		m_accumulator -= m_step_size * 1000.f;
 		mp_phys_scene->simulate(m_step_size);
 		mp_phys_scene->fetchResults(true);
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
 
-
+		ORNG_PROFILE_FUNC();
 		for (int i = 0; i < num_active_actors; i++) {
 			if (auto ret = TryGetEntityAndTypeFromPxActor(active_actors[i]); ret.has_value()) {
 				auto& [p_ent, type] = ret.value();
@@ -747,14 +803,21 @@ namespace ORNG {
 			}
 		}
 
+		for (auto* p_joint : m_joints_to_break) {
+			BreakJoint(p_joint);
+		}
 
 		unsigned size = m_entity_collision_queue.size();
 		unsigned size_trigger = m_entity_collision_queue.size();
+		unsigned size_broken_joints = m_joints_to_break.size();
 
 		m_entity_collision_queue.clear();
 		m_trigger_event_queue.clear();
+		m_joints_to_break.clear();
+
 		m_entity_collision_queue.reserve(size);
 		m_trigger_event_queue.reserve(size_trigger);
+		m_joints_to_break.reserve(size_broken_joints);
 	}
 
 
@@ -797,6 +860,20 @@ namespace ORNG {
 
 		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent, p_second_ent));
 	}
+
+	void PhysicsSystem::PhysCollisionCallback::onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) {
+		for (PxU32 i = 0; i < count; i++)
+		{
+			if (PxConstraintExtIDs::eJOINT == constraints[i].type)
+			{
+				PxD6Joint* joint = reinterpret_cast<PxD6Joint*>(constraints[i].externalReference);
+
+				// Remove the joint from any entities it is connected to
+				mp_system->m_joints_to_break.push_back(mp_system->m_joint_lookup[joint]);
+			}
+		}
+	};
+
 	void PhysicsSystem::PhysCollisionCallback::onTrigger(PxTriggerPair* pairs, PxU32 count) {
 		for (int i = 0; i < count; i++) {
 			// ignore pairs when shapes have been deleted
