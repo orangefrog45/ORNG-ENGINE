@@ -113,13 +113,13 @@ namespace ORNG {
 		std::unordered_map<uint32_t, uint32_t> node_id_lookup;
 
 		std::vector<SceneEntity*> duplicates;
-		for (auto* p_ent : group) {
-			duplicates.push_back(&DuplicateEntity(*p_ent, true));
-		}
-
+	
 		for (int i = 0; i < group.size(); i++) {
-			duplicates[i]->node_id = UUID<uint32_t>(); // Randomize to avoid conflicts
-			node_id_lookup[group[i]->node_id()] = duplicates[i]->node_id();
+			auto& ent = DuplicateEntity(*group[i], true);
+			duplicates.push_back(&ent);
+
+			ent.node_id = UUID<uint32_t>();
+			node_id_lookup[group[i]->node_id()] = ent.node_id();
 		}
 
 		// Re-map EntityNodeRefs to newly duplicated entities

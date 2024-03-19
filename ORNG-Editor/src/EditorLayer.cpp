@@ -1290,8 +1290,6 @@ namespace ORNG {
 	}
 
 
-
-
 	void EditorLayer::RenderGrid() {
 		m_res.grid_mesh->CheckBoundary(mp_editor_camera->GetComponent<TransformComponent>()->GetPosition());
 		GL_StateManager::BindSSBO(m_res.grid_mesh->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);

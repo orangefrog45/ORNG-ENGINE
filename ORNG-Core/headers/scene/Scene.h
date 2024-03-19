@@ -119,8 +119,8 @@ namespace ORNG {
 		std::vector<SceneEntity*> m_entities;
 		std::vector<SceneEntity*> m_entity_deletion_queue;
 
-		// Entities without a parent, stored so they can be quickly iterated through when a noderef path is being formed
-		std::set<entt::entity> m_root_entities;
+		// Entities without a parent, stored so they can be quickly found when a noderef path is being formed
+		std::unordered_set<entt::entity> m_root_entities;
 		Events::ECS_EventListener<RelationshipComponent> m_hierarchy_modification_listener;
 
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
