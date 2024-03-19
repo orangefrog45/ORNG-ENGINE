@@ -18,6 +18,7 @@ namespace ORNG {
 
 				auto& ent = *(*mp_scene_context)->GetEntity(e.affected_entities[i]);
 
+				RemoveIfContains(*mp_editor_selected_entities, ent.GetUUID());
 				(*mp_scene_context)->DeleteEntity(&ent);
 			}
 		}
@@ -82,6 +83,7 @@ namespace ORNG {
 		else if (e.event_type == ENTITY_DELETE) {
 			for (int i = 0; i < e.serialized_entities_after.size(); i++) {
 				auto& ent = *(*mp_scene_context)->GetEntity(std::stoull(e.serialized_entities_after[i]));
+				RemoveIfContains(*mp_editor_selected_entities, ent.GetUUID());
 				(*mp_scene_context)->DeleteEntity(&ent);
 			}
 		}

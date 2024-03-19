@@ -57,7 +57,7 @@ extern "C" {
 		ScriptInterface::World::Raycast = func;
 	}
 
-	__declspec(dllexport) void SetOverlapQueryCallback(std::function <ORNG::OverlapQueryResults(physx::PxGeometry&, glm::vec3)> func) {
+	__declspec(dllexport) void SetOverlapQueryCallback(std::function <ORNG::OverlapQueryResults(physx::PxGeometry&, glm::vec3, unsigned)> func) {
 		ScriptInterface::World::OverlapQuery = func;
 	}
 

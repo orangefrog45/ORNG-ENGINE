@@ -28,6 +28,9 @@ namespace ORNG {
 		static bool ColoredButton(const char* content, ImVec4 col, ImVec2 size = { 0, 0 });
 		static bool RightClickPopup(const char* id);
 
+		// Returns true if button clicked this frame
+		static bool SwitchButton(const std::string& content, bool active, ImVec4 inactive_col, ImVec4 active_col);
+
 		static bool InputUint(const char* name, unsigned& val);
 
 		static bool InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator);

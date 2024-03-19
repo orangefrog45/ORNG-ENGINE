@@ -45,22 +45,25 @@ namespace ORNG {
 		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
 		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
 
+		// Duplicates entities as a group and calls OnCreate() on them
+		SceneEntity& DuplicateEntityGroupCallScript(const std::vector<SceneEntity*> group);
+
 		// Uses a noderef to attempt to find an entity, returns nullptr if none found
+		// Begins searching last layer starting from child at index "child_start"
 		SceneEntity* TryFindEntity(const EntityNodeRef& ref);
 
 		// Searches only root entities (entities without a parent), returns nullptr if none found
 		SceneEntity* TryFindRootEntityByName(const std::string& name);
 
+		// Searches only root entities (entities without a parent), returns nullptr if none found
+		SceneEntity* TryFindRootEntityByNodeID(uint32_t node_id);
+
 		// Generates a node ref that can be used to locally reference an entity from src "p_src".
 		EntityNodeRef GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target);
 
 		static void SortEntitiesNumParents(Scene* p_scene, std::vector<uint64_t>& entity_uuids, bool descending);
-		static void SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending);
 
-		Skybox skybox;
-		Terrain terrain;
-		PostProcessing post_processing;
-		DirectionalLight directional_light;
+		static void SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending);
 
 		void ClearAllEntities() {
 			unsigned int max_iters = 10'000'000;
@@ -78,9 +81,11 @@ namespace ORNG {
 
 			m_registry.clear();
 			ASSERT(m_entities.empty());
+			ASSERT(m_root_entities.empty());
 		}
 
 		void LoadScene(const std::string& filepath);
+
 		void UnloadScene();
 
 		entt::registry& GetRegistry() {
@@ -91,7 +96,12 @@ namespace ORNG {
 			return m_is_loaded;
 		}
 
-		UUID uuid;
+		UUID<uint64_t> uuid;
+
+		Skybox skybox;
+		Terrain terrain;
+		PostProcessing post_processing;
+		DirectionalLight directional_light;
 
 		PhysicsSystem physics_system{ &m_registry, uuid(), this };
 	private:
@@ -99,13 +109,18 @@ namespace ORNG {
 		bool m_is_loaded = false;
 		bool active = false;
 
-		SceneEntity& DuplicateEntity(SceneEntity& original);
+		SceneEntity& DuplicateEntity(SceneEntity& original, bool duplicating_as_part_of_group);
+
+		// Resolves any EntityNodeRefs locally in the group if possible, so things like joints stay connected properly
+		// This only needs to be used over DuplicateEntity when duplicating sets of entities that reference entities that may share the same parent
+		// For performance, it's better to store the duplicates as children of some other entity and just call DuplicateEntity() on that one entity, refs get resolved locally quickly this way
+		std::vector<SceneEntity*> DuplicateEntityGroup(const std::vector<SceneEntity*> group);
 
 		std::vector<SceneEntity*> m_entities;
 		std::vector<SceneEntity*> m_entity_deletion_queue;
 
 		// Entities without a parent, stored so they can be quickly iterated through when a noderef path is being formed
-		std::unordered_set<entt::entity> m_root_entities;
+		std::set<entt::entity> m_root_entities;
 		Events::ECS_EventListener<RelationshipComponent> m_hierarchy_modification_listener;
 
 		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };

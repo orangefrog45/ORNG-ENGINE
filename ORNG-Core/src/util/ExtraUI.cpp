@@ -286,6 +286,24 @@ namespace ORNG {
 		}
 	}
 
+	bool ExtraUI::SwitchButton(const std::string& content, bool active, ImVec4 inactive_col, ImVec4 active_col) {
+		bool state_before = active;
+		
+		if (state_before) {
+			ImGui::PushStyleColor(ImGuiCol_Border, active_col);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2);
+		}
+
+		bool ret = ImGui::Button(content.c_str());
+
+		if (state_before) {
+			ImGui::PopStyleVar();
+			ImGui::PopStyleColor();
+		}
+
+		return ret;
+	}
+
 	bool ExtraUI::InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator) {
 		ImGui::PushID(p_interpolator);
 

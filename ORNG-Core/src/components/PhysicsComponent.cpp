@@ -27,7 +27,7 @@ namespace ORNG {
 
 	void PhysicsComponent::AddForce(glm::vec3 force) {
 		if (m_body_type == DYNAMIC)
-			((PxRigidDynamic*)p_rigid_actor)->addForce(PxVec3(force.x, force.y, force.z));
+			((PxRigidDynamic*)p_rigid_actor)->addForce(PxVec3(force.x, force.y, force.z), PxForceMode::eIMPULSE);
 	}
 
 	void PhysicsComponent::ToggleGravity(bool on) {

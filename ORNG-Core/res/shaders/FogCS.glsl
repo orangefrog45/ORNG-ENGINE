@@ -20,7 +20,7 @@ layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 
 ORNG_INCLUDE "ShadowsINCL.glsl"
 
-uniform float u_scattering_anistropy;
+uniform float u_scattering_anisotropy;
 uniform float u_absorption_coef;
 uniform float u_scattering_coef;
 uniform float u_density_coef;
@@ -88,7 +88,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 
 float phase(vec3 march_dir, vec3 light_dir) {
 	float cos_theta = dot(normalize(march_dir), normalize(light_dir));
-	return (1.0 - u_scattering_anistropy * u_scattering_anistropy) / (4.0 * PI * pow(1.0 - u_scattering_anistropy * cos_theta, 2.0));
+	return (1.0 - u_scattering_anisotropy * u_scattering_anisotropy) / (4.0 * PI * pow(1.0 - u_scattering_anisotropy * cos_theta, 2.0));
 }
 
 

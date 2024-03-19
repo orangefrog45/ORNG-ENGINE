@@ -320,7 +320,7 @@ namespace ORNG {
 		m_fog_shader->AddUniforms({
 			"u_fog_color",
 			"u_time",
-			"u_scattering_anistropy",
+			"u_scattering_anisotropy",
 			"u_absorption_coef",
 			"u_scattering_coef",
 			"u_density_coef",
@@ -1106,7 +1106,7 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_scattering_coef", mp_scene->post_processing.global_fog.scattering_coef);
 		m_fog_shader->SetUniform("u_absorption_coef", mp_scene->post_processing.global_fog.absorption_coef);
 		m_fog_shader->SetUniform("u_density_coef", mp_scene->post_processing.global_fog.density_coef);
-		m_fog_shader->SetUniform("u_scattering_anistropy", mp_scene->post_processing.global_fog.scattering_anistropy);
+		m_fog_shader->SetUniform("u_scattering_anisotropy", mp_scene->post_processing.global_fog.scattering_anisotropy);
 		m_fog_shader->SetUniform("u_fog_color", mp_scene->post_processing.global_fog.color);
 		m_fog_shader->SetUniform("u_step_count", mp_scene->post_processing.global_fog.step_count);
 		m_fog_shader->SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));

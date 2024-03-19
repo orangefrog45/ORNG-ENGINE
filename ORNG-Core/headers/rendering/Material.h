@@ -50,7 +50,7 @@ namespace ORNG {
 		explicit Material(const std::string& filepath) : Asset(filepath) {};
 
 		// Set ID explicitly, this is only to be used in rare scenarios (e.g the base replacement material in-engine)
-		explicit Material(uint64_t id) : Asset("") { uuid = UUID(id); };
+		explicit Material(uint64_t id) : Asset("") { uuid = UUID<uint64_t>(id); };
 
 
 		Material(const Material& other) = default;

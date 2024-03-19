@@ -130,6 +130,21 @@ namespace ORNG {
 		t.push_back(std::declval<typename T::value_type>());
 	};
 
+	template<typename T>
+	concept HasBegin = requires(T t) {
+		t.begin();
+	};
+
+	template<typename T>
+	concept HasEnd = requires(T t) {
+		t.end();
+	};
+
+	template<typename T>
+	concept HasEraseMethod = requires(T t) {
+		t.erase(std::declval<typename T::iterator>());
+	};
+
 
 	template<HasPushBack T, typename... Args>
 		requires((std::is_convertible_v<Args, typename T::value_type>, ...))
@@ -150,5 +165,13 @@ namespace ORNG {
 			return nullptr;
 	}
 
+	template<typename Container>
+	requires(HasBegin<Container>, HasEnd<Container>, HasEraseMethod<Container>)
+	void RemoveIfContains(Container container, typename Container::value_type find) {
+		auto it = std::ranges::find(container, find);
+		if (it != container.end()) {
+			container.erase(it);
+		}
+	}
 
 }

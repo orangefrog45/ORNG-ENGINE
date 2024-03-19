@@ -99,6 +99,8 @@ namespace ORNG {
 
 		void RenderPhysxDebug();
 
+		void UpdateSceneDisplayRect();
+
 		/*
 			Editor tools
 		*/
@@ -106,6 +108,8 @@ namespace ORNG {
 		void MultiSelectDisplay();
 
 		void RenderJointMaker();
+
+		void PollKeybinds();
 
 		void RenderJointEditor(JointComponent::Joint* p_joint);
 
@@ -265,15 +269,16 @@ namespace ORNG {
 			ImFont* p_l_font = nullptr;
 			ImFont* p_m_font = nullptr;
 
-			const float opacity = 1.f;
-			const ImVec4 orange_color = ImVec4(0.9f, 0.2f, 0.05f, opacity);
-			const ImVec4 orange_color_dark = ImVec4(0.5f, 0.1f, 0.025f, opacity);
-			const ImVec4 orange_color_bright = ImVec4(0.9f, 0.2f, 0.0f, opacity);
-			const ImVec4 orange_color_brightest = ImVec4(0.9f, 0.2f, 0.0f, opacity);
-			const ImVec4 dark_grey_color = ImVec4(0.1f, 0.1f, 0.1f, opacity);
-			const ImVec4 lighter_grey_color = ImVec4(0.2f, 0.2f, 0.2f, opacity);
-			const ImVec4 lightest_grey_color = ImVec4(0.3f, 0.3f, 0.3f, opacity);
-			inline static constexpr float toolbar_height = 40;
+			static constexpr float opacity = 1.f;
+			static constexpr ImVec4 orange_color = ImVec4(0.9f, 0.2f, 0.05f, opacity);
+			static constexpr ImVec4 orange_color_dark = ImVec4(0.5f, 0.1f, 0.025f, opacity);
+			static constexpr ImVec4 orange_color_bright = ImVec4(0.9f, 0.2f, 0.0f, opacity);
+			static constexpr ImVec4 orange_color_brightest = ImVec4(0.9f, 0.2f, 0.0f, opacity);
+			static constexpr ImVec4 dark_grey_color = ImVec4(0.1f, 0.1f, 0.1f, opacity);
+			static constexpr ImVec4 lighter_grey_color = ImVec4(0.2f, 0.2f, 0.2f, opacity);
+			static constexpr ImVec4 lightest_grey_color = ImVec4(0.3f, 0.3f, 0.3f, opacity);
+			static constexpr ImVec4 blue_col = ImVec4(0, 100, 255, 1);
+			static constexpr float toolbar_height = 40;
 			glm::vec2 file_explorer_window_size = { 750, 750 };
 		};
 

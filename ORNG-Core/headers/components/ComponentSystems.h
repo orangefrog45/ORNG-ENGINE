@@ -149,7 +149,7 @@ namespace ORNG {
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
-		OverlapQueryResults OverlapQuery(PxGeometry& geom, glm::vec3 pos);
+		OverlapQueryResults OverlapQuery(PxGeometry& geom, glm::vec3 pos, unsigned max_hits);
 
 		enum class ActorType : uint8_t {
 			RIGID_BODY,

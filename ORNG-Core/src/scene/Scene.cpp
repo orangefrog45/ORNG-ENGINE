@@ -63,11 +63,11 @@ namespace ORNG {
 		}
 
 
-		auto it = std::ranges::find(m_entities, p_entity);
-		ASSERT(it != m_entities.end());
-
 		if (m_root_entities.contains(p_entity->m_entt_handle))
 			m_root_entities.erase(p_entity->m_entt_handle);
+
+		auto it = std::ranges::find(m_entities, p_entity);
+		ASSERT(it != m_entities.end());
 
 		delete p_entity;
 		m_entities.erase(it);
@@ -108,9 +108,37 @@ namespace ORNG {
 		return *vec[0];
 	}
 
+	std::vector<SceneEntity*> Scene::DuplicateEntityGroup(const std::vector<SceneEntity*> group) {
+		// Key = old node id, value = new node id
+		std::unordered_map<uint32_t, uint32_t> node_id_lookup;
+
+		std::vector<SceneEntity*> duplicates;
+		for (auto* p_ent : group) {
+			duplicates.push_back(&DuplicateEntity(*p_ent, true));
+		}
+
+		for (int i = 0; i < group.size(); i++) {
+			duplicates[i]->node_id = UUID<uint32_t>(); // Randomize to avoid conflicts
+			node_id_lookup[group[i]->node_id()] = duplicates[i]->node_id();
+		}
+
+		// Re-map EntityNodeRefs to newly duplicated entities
+		for (auto* p_dup : duplicates) {
+			for (auto& attachment : p_dup->GetComponent<JointComponent>()->attachments) {
+				if (node_id_lookup.contains(attachment.second.m_target_ref.m_target_node_id))
+					attachment.second.m_target_ref.m_target_node_id = node_id_lookup[attachment.second.m_target_ref.m_target_node_id];
+			}
+		}
+
+		for (auto* p_dup : duplicates) {
+			SceneSerializer::ResolveEntityNodeRefs(*this, *p_dup);
+		}
+
+		return duplicates;
+	}
 
 
-	SceneEntity& Scene::DuplicateEntity(SceneEntity& original) {
+	SceneEntity& Scene::DuplicateEntity(SceneEntity& original, bool duplicating_as_part_of_group) {
 		SceneEntity& new_entity = CreateEntity(original.name + " - Duplicate");
 		std::string str = SceneSerializer::SerializeEntityIntoString(original);
 		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity);
@@ -118,16 +146,22 @@ namespace ORNG {
 		auto* p_relation_comp = original.GetComponent<RelationshipComponent>();
 		SceneEntity* p_current_child = GetEntity(p_relation_comp->first);
 		while (p_current_child) {
-			DuplicateEntity(*p_current_child).SetParent(new_entity);
+			auto& child = DuplicateEntity(*p_current_child, true);
+			child.SetParent(new_entity, true);
 			p_current_child = GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
 		}
 
-		new_entity.ForEachChildRecursive(
-			[&](entt::entity e) {
-				SceneSerializer::ResolveEntityNodeRefs(*this, *GetEntity(e));
-			}
-		);
-		SceneSerializer::ResolveEntityNodeRefs(*this, new_entity);
+
+		if (!duplicating_as_part_of_group) { // Done by DuplicateEntityGroup otherwise
+			new_entity.ForEachChildRecursive(
+				[&](entt::entity e) {
+					SceneSerializer::ResolveEntityNodeRefs(*this, *GetEntity(e));
+				}
+			);
+
+			SceneSerializer::ResolveEntityNodeRefs(*this, new_entity);
+			new_entity.node_id = UUID<uint32_t>();
+		}
 
 		return new_entity;
 	}
@@ -167,6 +201,20 @@ namespace ORNG {
 		return nullptr;
 	}
 
+	SceneEntity* Scene::TryFindRootEntityByNodeID(uint32_t node_id) {
+		auto it = m_root_entities.begin();
+
+		while (it != m_root_entities.end()) {
+			auto* p_ent = GetEntity(*it);
+			if (p_ent->node_id() == node_id)
+				return p_ent;
+
+			it++;
+		}
+
+		return nullptr;
+	}
+
 
 	SceneEntity* Scene::TryFindEntity(const EntityNodeRef& ref) {
 		SceneEntity* p_current_ent = nullptr;
@@ -178,7 +226,7 @@ namespace ORNG {
 			return nullptr;
 
 		if (instructions[0] == "::") { // Path is absolute
-			p_current_ent = TryFindRootEntityByName(instructions[1]);
+			p_current_ent = ref.GetTargetNodeID() == EntityNodeRef::INVALID_NODE_ID ? TryFindRootEntityByName(instructions[1]) : TryFindRootEntityByNodeID(ref.GetTargetNodeID());
 			start_index = 2;
 		}
 		else { // Path is relative to src
@@ -193,7 +241,11 @@ namespace ORNG {
 				p_current_ent = GetEntity(p_current_ent->GetParent());
 			}
 			else {
-				p_current_ent = p_current_ent->GetChild(instructions[i]);
+				if (i == instructions.size() - 1 && ref.GetTargetNodeID() != EntityNodeRef::INVALID_NODE_ID) {
+					p_current_ent = p_current_ent->GetChildWithNodeID(ref.GetTargetNodeID());
+				}
+				else
+					p_current_ent = p_current_ent->GetChild(instructions[i]);
 			}
 		}
 
@@ -260,14 +312,14 @@ namespace ORNG {
 		// Instruction set is generated in reverse, so reverse here to correct it
 		std::ranges::reverse(instructions);
 
-		EntityNodeRef ref{ p_src, instructions };
+		EntityNodeRef ref{ p_src, instructions, p_target->node_id() };
 
 		return ref;
 	}
 
 
 	SceneEntity& Scene::DuplicateEntityCallScript(SceneEntity& original) {
-		auto& ent = DuplicateEntity(original);
+		auto& ent = DuplicateEntity(original, false);
 		if (auto* p_script = ent.GetComponent<ScriptComponent>())
 			p_script->p_instance->OnCreate();
 
@@ -287,9 +339,9 @@ namespace ORNG {
 			entt::entity entity = _event.affected_components[0]->GetEnttHandle();
 			entt::entity parent = _event.affected_components[0]->GetEntity()->GetParent();
 
-			if (parent != entt::null && m_root_entities.contains(entity))
+			if (parent == entt::null && m_root_entities.contains(entity))
 				m_root_entities.erase(entity);
-			else if (parent == entt::null && !m_root_entities.contains(entity))
+			else if (parent != entt::null && !m_root_entities.contains(entity))
 				m_root_entities.insert(entity);
 			};
 
@@ -389,8 +441,8 @@ namespace ORNG {
 				return *p_ent;
 				});
 
-			p_script_asset->symbols.SceneOverlapQuerySetter([this](PxGeometry& geom, glm::vec3 pos) -> OverlapQueryResults {
-				return physics_system.OverlapQuery(geom, pos);
+			p_script_asset->symbols.SceneOverlapQuerySetter([this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
+				return physics_system.OverlapQuery(geom, pos, max_hits);
 				});
 		}
 	}

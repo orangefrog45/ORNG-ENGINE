@@ -3,8 +3,8 @@
 
 namespace ORNG {
 
-	void SceneEntity::SetParent(SceneEntity& parent_entity) {
-		RemoveParent();
+	void SceneEntity::SetParent(SceneEntity& parent_entity, bool retain_node_id) {
+		RemoveParent(retain_node_id);
 		auto* p_comp = AddComponent<RelationshipComponent>();
 		auto* p_parent_comp = parent_entity.GetComponent<RelationshipComponent>();
 
@@ -43,7 +43,7 @@ namespace ORNG {
 		Events::EventManager::DispatchEvent(Events::ECS_Event<RelationshipComponent>{ Events::ECS_EventType::COMP_UPDATED, p_comp });
 	}
 
-	void SceneEntity::RemoveParent() {
+	void SceneEntity::RemoveParent(bool retain_node_id) {
 		auto* p_comp = AddComponent<RelationshipComponent>();
 
 		if (p_comp->parent == entt::null)
@@ -54,7 +54,6 @@ namespace ORNG {
 
 		if (parent_comp.first == m_entt_handle)
 			parent_comp.first = p_comp->next;
-
 
 		// Patch hole in linked list
 		if (auto* prev = mp_registry->try_get<RelationshipComponent>(p_comp->prev))
@@ -68,6 +67,10 @@ namespace ORNG {
 		p_comp->parent = entt::null;
 
 		GetComponent<TransformComponent>()->m_parent_handle = entt::null;
+
+		// Re-randomize node_id to prevent collisions between duplicated child entities
+		if (!retain_node_id)
+			node_id = UUID<uint32_t>();
 
 		Events::EventManager::DispatchEvent(Events::ECS_Event<RelationshipComponent>{ Events::ECS_EventType::COMP_UPDATED, p_comp });
 	}

@@ -18,7 +18,7 @@ namespace ORNG {
 	public:
 		SceneEntity() = delete;
 		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
 			AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>();
 		};
 
@@ -87,6 +87,22 @@ namespace ORNG {
 			return nullptr;
 		}
 
+		SceneEntity* GetChildWithNodeID(uint32_t node_id) {
+			auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
+			entt::entity current_entity = rel_comp.first;
+
+			for (int i = 0; i < rel_comp.num_children; i++) {
+				auto* p_ent = mp_registry->get<TransformComponent>(current_entity).GetEntity();
+
+				if (p_ent->node_id() == node_id)
+					return p_ent;
+
+				current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+			}
+
+			return nullptr;
+		}
+
 		entt::registry* GetRegistry() {
 			return mp_registry;
 		}
@@ -95,8 +111,8 @@ namespace ORNG {
 			return mp_scene;
 		}
 
-		void SetParent(SceneEntity& parent_entity);
-		void RemoveParent();
+		void SetParent(SceneEntity& parent_entity, bool retain_node_id = false);
+		void RemoveParent(bool retain_node_id = false);
 
 
 		// Returns a new duplicate entity in the scene
@@ -104,23 +120,29 @@ namespace ORNG {
 #ifdef ORNG_SCRIPT_ENV
 			return ScriptInterface::World::DuplicateEntity(*this);
 #else
-			return mp_scene->DuplicateEntity(*this);
+			return mp_scene->DuplicateEntity(*this, false);
 #endif
 	}
 
 
-		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
+		uint64_t GetUUID() const { return static_cast<uint64_t>(uuid); };
 		//uint64_t GetSceneUUID() const { return m_scene_uuid; };
 		entt::entity GetEnttHandle() const { return m_entt_handle; };
 
 		std::string name = "Entity";
+
+		UUID<uint64_t> uuid;
+
+		// NOT a globally unique identifier
+		// Unique only to its neighbour entities (entities that share the same immediate parent, including nullptr)
+		// Used to give a unique identifier between children of the same entity, this allows EntityNodeRefs to reference identical paths and still resolve into a predictable entity
+		UUID<uint32_t> node_id;
 	private:
 
 		void ForEachChildRecursiveInternal(std::function<void(entt::entity)> func_ptr, entt::entity search_entity);
 
-		void RecursiveChildSearch();
 		entt::entity m_entt_handle;
-		UUID m_uuid;
+
 		Scene* mp_scene = nullptr;
 		entt::registry* mp_registry = nullptr;
 		uint64_t m_scene_uuid; // Stored seperately for faster access

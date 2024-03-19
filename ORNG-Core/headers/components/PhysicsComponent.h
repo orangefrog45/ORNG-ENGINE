@@ -3,6 +3,7 @@
 
 #include "Component.h"
 #include "physx/extensions/PxD6Joint.h"
+
 #include "scene/EntityNodeRef.h"
 #include "util/UUID.h"
 
@@ -113,8 +114,8 @@ namespace ORNG {
 			}
 
 			inline void SetLocalPose(unsigned actor_idx, glm::vec3 p) {
-				if (p_joint)
-					p_joint->setLocalPose((physx::PxJointActorIndex::Enum)actor_idx, physx::PxTransform{ physx::PxVec3(p.x, p.y, p.z) });
+				if (p_joint) 
+					p_joint->setLocalPose((physx::PxJointActorIndex::Enum)actor_idx, physx::PxTransform{ physx::PxVec3(p.x, p.y, p.z), p_joint->getLocalPose((physx::PxJointActorIndex::Enum)actor_idx).q });
 
 				poses[actor_idx] = p;
 			}
@@ -175,6 +176,7 @@ namespace ORNG {
 
 		class JointAttachment {
 			friend class SceneSerializer;
+			friend class Scene;
 		public:
 			JointAttachment() = default;
 			JointAttachment(const EntityNodeRef& target_ref, Joint* _p_data) : m_target_ref(target_ref), p_joint(_p_data) {}

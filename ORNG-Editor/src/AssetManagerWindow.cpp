@@ -570,7 +570,7 @@ namespace ORNG {
 			auto* p_new_material = new Material();
 			*p_new_material = *p_material;
 			// Give clone a unique UUID
-			p_new_material->uuid = UUID();
+			p_new_material->uuid = UUID<uint64_t>();
 			AssetManager::AddAsset(p_new_material);
 			// Render a preview for material
 			m_materials_to_gen_previews.push_back(p_new_material);

@@ -43,6 +43,7 @@ namespace ORNG {
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
 
 		// Called on each entity after the scene tree is fully built, resolves any EntityNodeRefs into actual entities and connects them appropiately (e.g joint connections)
+		// Any references to neighbour entities (same parent) that are before "neighbour_start" aren't resolved unless a duplicate is found after it, this allows entity duplication to work nicely with EntityNodeRefs
 		static void ResolveEntityNodeRefs(Scene& scene, SceneEntity& entity);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
@@ -128,7 +129,7 @@ namespace ORNG {
 
 
 		template <typename S>
-		void serialize(S& s, UUID& o) {
+		void serialize(S& s, UUID<uint64_t>& o) {
 			s.value8b(o.m_uuid);
 		}
 

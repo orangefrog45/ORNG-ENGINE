@@ -88,6 +88,8 @@ namespace ORNG {
 				spec.width = t_event.new_window_size.x;
 				spec.height = t_event.new_window_size.y;
 				m_res.p_scene_display_texture->SetSpec(spec);
+
+				UpdateSceneDisplayRect();
 			}
 			};
 
@@ -107,13 +109,12 @@ namespace ORNG {
 
 		SceneRenderer::SetActiveScene(&*SCENE);
 		static auto s = &*SCENE;
-		m_event_stack.SetContext(s);
+		m_event_stack.SetContext(s, &m_state.selected_entity_ids);
 
 		m_res.p_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
 		m_res.p_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
 		m_res.p_editor_pass_fb->AddShared2DTexture("Editor scene display", *m_res.p_scene_display_texture, GL_COLOR_ATTACHMENT0);
 		m_res.p_editor_pass_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
-
 
 		std::string base_proj_dir = m_state.executable_directory + "\\projects\\base-project";
 		if (!std::filesystem::exists(base_proj_dir)) {
@@ -122,15 +123,24 @@ namespace ORNG {
 
 		MakeProjectActive(m_start_filepath);
 
+		UpdateSceneDisplayRect();
+
 		ORNG_CORE_INFO("Editor layer initialized");
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_INITIALIZATION));
 
 		m_asset_manager_window.p_extern_scene = mp_scene_context->get();
 		m_asset_manager_window.Init();
-
 	}
 
 
+	void EditorLayer::UpdateSceneDisplayRect() {
+		if (m_state.fullscreen_scene_display)
+			m_state.scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - m_res.toolbar_height) };
+		else
+			m_state.scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - m_res.toolbar_height) };
+
+		mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_state.scene_display_rect.x / m_state.scene_display_rect.y;
+	}
 
 
 	void EditorLayer::BeginPlayScene() {
@@ -140,6 +150,8 @@ namespace ORNG {
 		// Set to fullscreen so mouse coordinate and gui operations in scripts work correctly as they would in a runtime layer
 		m_state.fullscreen_scene_display = true;
 		SCENE->OnStart();
+
+		UpdateSceneDisplayRect();
 
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_START_SIMULATION));
 	}
@@ -168,6 +180,8 @@ namespace ORNG {
 
 		m_state.simulate_mode_active = false;
 		m_state.fullscreen_scene_display = false;
+
+		UpdateSceneDisplayRect();
 
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_END_SIMULATION));
 	}
@@ -223,48 +237,37 @@ namespace ORNG {
 		ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = m_res.lighter_grey_color;
 	}
 
-
-
-	void EditorLayer::Update() {
-		ORNG_PROFILE_FUNC();
-
-		m_state.item_selected_this_frame = false;
-
-		// Update camera pos variable for lua console
-		auto pos = mp_editor_camera->GetComponent<TransformComponent>()->GetPosition();
-		m_lua_cli.GetLua().script(std::format("pos = vec3.new({}, {}, {})", pos.x, pos.y, pos.z));
-
-		for (int i = 0; i < m_state.selected_entity_ids.size(); i++) {
-			auto id = m_state.selected_entity_ids[i];
-			if (!SCENE->GetEntity(id)) {
-				ORNG_CORE_WARN("Invalid entity ID {0} selected", id);
-				m_state.selected_entity_ids.erase(m_state.selected_entity_ids.begin() + i);
-				i--;
-			}
-		}
-
-		if (m_state.fullscreen_scene_display)
-			m_state.scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - m_res.toolbar_height) };
-		else
-			m_state.scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - m_res.toolbar_height) };
-
+	void EditorLayer::PollKeybinds() {
 		if (!ImGui::GetIO().WantCaptureKeyboard && !Input::IsMouseDown(1)) {
-			// Show/hide ui in simulation mode
+			// Tab - Show/hide ui in simulation mode
 			if (Input::IsKeyPressed(Key::Tab)) {
 				m_state.render_ui_in_simulation = !m_state.render_ui_in_simulation;
 			}
 
-
-			// Duplicate entity keybind
-			if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
-				auto vec = DuplicateEntitiesTracked(m_state.selected_entity_ids);
-				std::vector<uint64_t> duplicate_ids;
-				for (auto* p_ent : vec) {
-					duplicate_ids.push_back(p_ent->m_uuid());
+			if (m_state.selection_mode == SelectionMode::ENTITY) {
+				// Ctrl+D - Duplicate entity
+				if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
+					auto vec = DuplicateEntitiesTracked(m_state.selected_entity_ids);
+					std::vector<uint64_t> duplicate_ids;
+					for (auto* p_ent : vec) {
+						duplicate_ids.push_back(p_ent->uuid());
+					}
+					m_state.selected_entity_ids = duplicate_ids;
 				}
-				m_state.selected_entity_ids = duplicate_ids;
+
+				// Ctrl+x - Delete entity
+				if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::X)) {
+					DeleteEntitiesTracked(m_state.selected_entity_ids);
+				}
+			}
+			else if (m_state.selection_mode == SelectionMode::JOINT) {
+				if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::X)) {
+					m_state.p_selected_joint->Break();
+					m_state.p_selected_joint = nullptr;
+				}
 			}
 
+			// Ctrl+z / Ctrl+shift+z undo/redo
 			if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('z') && !m_state.simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
 				if (Input::IsKeyDown(Key::Shift))
 					m_event_stack.Redo();
@@ -272,10 +275,11 @@ namespace ORNG {
 					m_event_stack.Undo();
 			}
 
-
+			// K - Make editor cam active
 			if (Input::IsKeyDown(Key::K))
 				mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
+			// F - Focus on entity
 			if (Input::IsKeyDown(Key::F) && !m_state.selected_entity_ids.empty()) {
 				auto* p_entity_transform = SCENE->GetEntity(m_state.selected_entity_ids[0])->GetComponent<TransformComponent>();
 				auto* p_editor_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
@@ -289,22 +293,18 @@ namespace ORNG {
 				p_editor_cam_transform->LookAt(pos);
 			}
 
-			if (m_state.simulate_mode_active) {
-				mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = (float)Window::GetWidth() / (float)Window::GetHeight();
-				if (Input::IsKeyDown(Key::Escape))
-					EndPlayScene();
-				else
-					mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_state.scene_display_rect.x / m_state.scene_display_rect.y;
+			// Escape - exit simulation mode
+			if (m_state.simulate_mode_active && Input::IsKeyDown(Key::Escape)) {
+				EndPlayScene();
 			}
-
 		}
 
+		// Drag state tracking
 		static bool dragging = false;
 		if (Input::IsMouseClicked(0)) {
 			m_state.mouse_drag_data.start = Input::GetMousePos();
 			if (!m_state.fullscreen_scene_display) m_state.mouse_drag_data.start = ConvertFullscreenMouseToDisplayMouse(m_state.mouse_drag_data.start);
 		}
-
 
 		if (dragging) {
 			m_state.mouse_drag_data.end = Input::GetMousePos();
@@ -313,22 +313,25 @@ namespace ORNG {
 		}
 
 		dragging = ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse;
+	}
 
 
-		float ts = FrameTiming::GetTimeStep();
+	void EditorLayer::Update() {
+		ORNG_PROFILE_FUNC();
+		m_state.item_selected_this_frame = false;
+
+		PollKeybinds();
+
 		UpdateEditorCam();
 
-
-
 		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)
-			SCENE->Update(ts);
+			SCENE->Update(FrameTiming::GetTimeStep());
 		else {
 			SCENE->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
 			SCENE->m_particle_system.OnUpdate(); // Continue simulating particles for visual feedback
 			SCENE->m_audio_system.OnUpdate(); // For accurate audio playback
 			SCENE->terrain.UpdateTerrainQuadtree(SCENE->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
-
 	}
 
 	void EditorLayer::MultiSelectDisplay() {
@@ -391,14 +394,14 @@ namespace ORNG {
 
 				if (!m_state.general_settings.selection_settings.select_all) {
 					if (m_state.general_settings.selection_settings.select_light_objects && (p_entity->HasComponent<PointLightComponent>() || p_entity->HasComponent<SpotLightComponent>()))
-						SelectEntity(SCENE->GetEntity(entity)->m_uuid());
+						SelectEntity(SCENE->GetEntity(entity)->uuid());
 					else if (m_state.general_settings.selection_settings.select_mesh_objects && p_entity->HasComponent<MeshComponent>())
-						SelectEntity(SCENE->GetEntity(entity)->m_uuid());
+						SelectEntity(SCENE->GetEntity(entity)->uuid());
 					else if (m_state.general_settings.selection_settings.select_physics_objects && p_entity->HasComponent<PhysicsComponent>())
-						SelectEntity(SCENE->GetEntity(entity)->m_uuid());
+						SelectEntity(SCENE->GetEntity(entity)->uuid());
 				}
 				else {
-					SelectEntity(SCENE->GetEntity(entity)->m_uuid());
+					SelectEntity(SCENE->GetEntity(entity)->uuid());
 				}
 			}
 		}
@@ -460,6 +463,10 @@ namespace ORNG {
 		}
 
 		p_cam->UpdateFrustum();
+
+		// Update camera pos variable for lua console
+		auto pos = mp_editor_camera->GetComponent<TransformComponent>()->GetPosition();
+		m_lua_cli.GetLua().script(std::format("pos = vec3.new({}, {}, {})", pos.x, pos.y, pos.z));
 	}
 
 
@@ -748,24 +755,17 @@ namespace ORNG {
 			// Transform gizmos
 			ImGui::Dummy({ 100, 0 });
 			ImGui::SameLine();
-			if (m_state.current_gizmo_operation == ImGuizmo::TRANSLATE) ImGui::PushStyleColor(ImGuiCol_Button, m_res.lightest_grey_color);
-			if (ImGui::Button(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT))
+			if (ExtraUI::SwitchButton(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT, m_state.current_gizmo_operation == ImGuizmo::TRANSLATE, m_res.lighter_grey_color, m_res.blue_col))
 				m_state.current_gizmo_operation = ImGuizmo::TRANSLATE;
-			if (m_state.current_gizmo_operation == ImGuizmo::TRANSLATE) ImGui::PopStyleColor();
 			ImGui::SameLine();
 
-			if (m_state.current_gizmo_operation == ImGuizmo::SCALE) ImGui::PushStyleColor(ImGuiCol_Button, m_res.lightest_grey_color);
-			if (ImGui::Button(ICON_FA_COMPRESS))
+			if (ExtraUI::SwitchButton(ICON_FA_COMPRESS, m_state.current_gizmo_operation == ImGuizmo::SCALE, m_res.lighter_grey_color, m_res.blue_col))
 				m_state.current_gizmo_operation = ImGuizmo::SCALE;
-			if (m_state.current_gizmo_operation == ImGuizmo::SCALE) ImGui::PopStyleColor();
 			ImGui::SameLine();
 
-			if (m_state.current_gizmo_operation == ImGuizmo::ROTATE) ImGui::PushStyleColor(ImGuiCol_Button, m_res.lightest_grey_color);
-			if (ImGui::Button(ICON_FA_ROTATE_RIGHT))
+			if (ExtraUI::SwitchButton(ICON_FA_ROTATE_RIGHT, m_state.current_gizmo_operation == ImGuizmo::ROTATE, m_res.lighter_grey_color, m_res.blue_col))
 				m_state.current_gizmo_operation = ImGuizmo::ROTATE;
-			if (m_state.current_gizmo_operation == ImGuizmo::ROTATE) ImGui::PopStyleColor();
 			ImGui::SameLine();
-
 
 			if (!ImGui::GetIO().WantCaptureMouse) {
 				if (Input::IsKeyPressed(GLFW_KEY_1))
@@ -776,7 +776,7 @@ namespace ORNG {
 					m_state.current_gizmo_operation = ImGuizmo::ROTATE;
 			}
 
-			
+
 			if (ImGui::Button("Transform mode")) {
 				ImGui::OpenPopup("##transform mode");
 			}
@@ -801,11 +801,16 @@ namespace ORNG {
 			ImGui::SameLine();
 			ImGui::Dummy({ 100, 0 });
 			ImGui::SameLine();
-			if (m_state.general_settings.editor_window_settings.display_joint_maker) ImGui::PushStyleColor(ImGuiCol_Button, m_res.lightest_grey_color);
-			if (ImGui::Button(ICON_FA_DIAGRAM_PROJECT))
+			if (ExtraUI::SwitchButton(ICON_FA_DIAGRAM_PROJECT, m_state.general_settings.editor_window_settings.display_joint_maker, m_res.lighter_grey_color, m_res.blue_col)) {
 				m_state.general_settings.editor_window_settings.display_joint_maker = !m_state.general_settings.editor_window_settings.display_joint_maker;
-			if (m_state.general_settings.editor_window_settings.display_joint_maker) ImGui::PopStyleColor();
+			}
 			ExtraUI::TooltipOnHover("Joint maker");
+			ImGui::SameLine();
+
+			if (ExtraUI::SwitchButton(ICON_FA_P, m_state.general_settings.debug_render_settings.render_physx_debug, m_res.lighter_grey_color, m_res.blue_col)) {
+				m_state.general_settings.debug_render_settings.render_physx_debug = !m_state.general_settings.debug_render_settings.render_physx_debug;
+			}
+			ExtraUI::TooltipOnHover("Debug physx rendering");
 			ImGui::SameLine();
 
 			/*ImGui::Text("Gizmo rendering");
@@ -1163,7 +1168,7 @@ namespace ORNG {
 		for (auto [entity, mesh] : view.each()) {
 			//Split uint64 into two uint32's for texture storage
 			uint64_t full_id = mesh.GetEntityUUID();
-			glm::uvec3 id_vec{ (uint32_t)(full_id >> 32), (uint32_t)(full_id), 0 };
+			glm::uvec3 id_vec{ (uint32_t)(full_id >> 32), (uint32_t)(full_id), UINT_MAX };
 
 			m_res.p_picking_shader->SetUniform("comp_id", id_vec);
 			m_res.p_picking_shader->SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
@@ -1172,6 +1177,7 @@ namespace ORNG {
 		}
 
 		// Joint picking
+		m_state.p_selected_joint = nullptr;
 		if (m_state.general_settings.debug_render_settings.render_physx_debug) {
 			for (auto [entity, joint] : SCENE->m_registry.view<JointComponent>().each()) {
 				for (auto it = joint.attachments.begin(); it != joint.attachments.end(); it++) {
@@ -1686,9 +1692,9 @@ namespace ORNG {
 
 		if (node_selection_active) {
 			if (ExtraUI::DoBoxesIntersect(ret.node_screen_min, ret.node_screen_max, selection_box.min, selection_box.max))
-				SelectEntity(p_entity->m_uuid());
+				SelectEntity(p_entity->uuid());
 			else if (!Input::IsKeyDown(Key::LeftControl))
-				DeselectEntity(p_entity->m_uuid());
+				DeselectEntity(p_entity->uuid());
 		}
 
 		if (ImGui::IsItemToggledOpen()) {
@@ -2791,7 +2797,7 @@ namespace ORNG {
 			ImGui::Text("Density");
 			ImGui::SliderFloat("##density", &SCENE->post_processing.global_fog.density_coef, 0.f, 1.f);
 			ImGui::Text("Scattering anistropy");
-			ImGui::SliderFloat("##scattering anistropy", &SCENE->post_processing.global_fog.scattering_anistropy, -1.f, 1.f);
+			ImGui::SliderFloat("##scattering anistropy", &SCENE->post_processing.global_fog.scattering_anisotropy, -1.f, 1.f);
 			ImGui::Text("Emissive factor");
 			ImGui::SliderFloat("##emissive", &SCENE->post_processing.global_fog.emissive_factor, 0.f, 2.f);
 			ImGui::Text("Step count");
@@ -2901,23 +2907,23 @@ namespace ORNG {
 	}
 
 	std::vector<SceneEntity*> EditorLayer::DuplicateEntitiesTracked(std::vector<uint64_t> entities) {
-		SceneEntity* p_dup_ent = nullptr;
 		EditorEntityEvent e;
 
 		std::vector<SceneEntity*> ret;
+		if (entities.size() == 1) {
+			SceneEntity* p_dup_ent = nullptr;
 
-		for (auto id : entities) {
-			auto* p_original_ent = SCENE->GetEntity(id);
+			auto* p_original_ent = SCENE->GetEntity(entities[0]);
 
 			if (!p_original_ent)
-				continue;
+				return ret;
 
 			if (m_state.simulate_mode_active)
 				p_dup_ent = &SCENE->DuplicateEntityCallScript(*p_original_ent);
 			else
 				p_dup_ent = &p_original_ent->Duplicate();
 
-			e.affected_entities.push_back(p_dup_ent->m_uuid());
+			e.affected_entities.push_back(p_dup_ent->uuid());
 
 			p_dup_ent->ForEachChildRecursive([&](entt::entity ent) {
 				auto* p_current_ent = SCENE->GetEntity(ent);
@@ -2925,6 +2931,26 @@ namespace ORNG {
 				});
 
 			ret.push_back(p_dup_ent);
+
+		}
+		else {
+			std::vector<SceneEntity*> ents;
+			for (auto id : entities) {
+				ents.push_back(SCENE->GetEntity(id));
+			}
+
+			auto dups = SCENE->DuplicateEntityGroup(ents);
+
+			for (auto* p_ent : dups) {
+				e.affected_entities.push_back(p_ent->uuid());
+
+				p_ent->ForEachChildRecursive([&](entt::entity ent) {
+					auto* p_current_ent = SCENE->GetEntity(ent);
+					e.affected_entities.push_back(p_current_ent->GetUUID());
+					});
+
+				ret.push_back(p_ent);
+			}
 		}
 
 		// Remove any duplicate child entities that were added from the above child search
@@ -2937,7 +2963,6 @@ namespace ORNG {
 		for (auto id : e.affected_entities) {
 			e.serialized_entities_before.push_back(SceneSerializer::SerializeEntityIntoString(*SCENE->GetEntity(id)));
 		}
-
 
 		e.event_type = ENTITY_CREATE;
 		m_event_stack.PushEvent(e);
@@ -3002,8 +3027,8 @@ namespace ORNG {
 		auto* p_current_parent = SCENE->GetEntity(SCENE->GetEntity(id)->GetParent());
 
 		while (p_current_parent) {
-			if (!VectorContains(m_state.open_tree_nodes_entities, p_current_parent->m_uuid()))
-				m_state.open_tree_nodes_entities.push_back(p_current_parent->m_uuid());
+			if (!VectorContains(m_state.open_tree_nodes_entities, p_current_parent->uuid()))
+				m_state.open_tree_nodes_entities.push_back(p_current_parent->uuid());
 
 			p_current_parent = SCENE->GetEntity(p_current_parent->GetParent());
 		}

@@ -26,7 +26,7 @@ namespace ORNG {
 	class EditorEventStack {
 	public:
 		EditorEventStack() = default;
-		void SetContext(Scene*& p_context) { mp_scene_context = &p_context; };
+		void SetContext(Scene*& p_context, std::vector<uint64_t>* editor_selected_entities) { mp_scene_context = &p_context; mp_editor_selected_entities = editor_selected_entities; };
 		void PushEvent(const EditorEntityEvent& e) {
 
 			if (m_active_index != 0)
@@ -49,12 +49,12 @@ namespace ORNG {
 		void Redo();
 
 	private:
-
 		std::optional<EditorEntityEvent> GetMostRecentEvent() { return m_events.empty() ? std::nullopt : std::make_optional(m_events[m_events.size() - 1]); };
 
 		int m_active_index = -1;
 		std::deque<EditorEntityEvent> m_events;
 
 		Scene** mp_scene_context = nullptr;
+		std::vector<uint64_t>* mp_editor_selected_entities;
 	};
 }

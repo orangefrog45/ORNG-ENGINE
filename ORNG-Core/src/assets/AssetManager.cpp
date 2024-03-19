@@ -262,7 +262,7 @@ namespace ORNG {
 		if (!GetAsset<SoundAsset>(ORNG_BASE_SOUND_ID)) {
 			m_assets.erase(ORNG_BASE_SOUND_ID);
 			mp_base_sound = std::make_unique<SoundAsset>(project_dir + "\\res\\core-res\\audio\\mouse-click.mp3");
-			mp_base_sound->uuid = UUID(ORNG_BASE_SOUND_ID);
+			mp_base_sound->uuid = UUID<uint64_t>(ORNG_BASE_SOUND_ID);
 			AddAsset(&*mp_base_sound);
 			mp_base_sound->source_filepath = mp_base_sound->filepath;
 			mp_base_sound->CreateSound();
@@ -275,7 +275,7 @@ namespace ORNG {
 			DeserializeAssetBinary("res/core-res/meshes/Sphere.obj.bin", *mp_base_sphere);
 			mp_base_sphere->PopulateBuffers();
 			mp_base_sphere->m_is_loaded = true;
-			mp_base_sphere->uuid = UUID(ORNG_BASE_SPHERE_ID);
+			mp_base_sphere->uuid = UUID<uint64_t>(ORNG_BASE_SPHERE_ID);
 			AddAsset(&*mp_base_sphere);
 		}
 	}
@@ -443,10 +443,10 @@ namespace ORNG {
 
 		auto symbols = ScriptSymbols("");
 		mp_base_script = std::make_unique<ScriptAsset>(symbols);
-		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
-		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
-		mp_base_material->uuid = UUID(ORNG_BASE_MATERIAL_ID);
-		mp_base_script->uuid = UUID(ORNG_BASE_SCRIPT_ID);
+		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
+		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);
+		mp_base_material->uuid = UUID<uint64_t>(ORNG_BASE_MATERIAL_ID);
+		mp_base_script->uuid = UUID<uint64_t>(ORNG_BASE_SCRIPT_ID);
 
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
@@ -455,7 +455,7 @@ namespace ORNG {
 		AddAsset(&*mp_base_quad);
 
 		mp_base_physx_material = std::make_unique<PhysXMaterialAsset>("BASE");
-		mp_base_physx_material->uuid = UUID(ORNG_BASE_PHYSX_MATERIAL_ID);
+		mp_base_physx_material->uuid = UUID<uint64_t>(ORNG_BASE_PHYSX_MATERIAL_ID);
 		mp_base_physx_material->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
 		AddAsset(&*mp_base_physx_material);
 	}
@@ -596,7 +596,7 @@ namespace ORNG {
 			0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23
 		};
 
-		mp_base_cube->uuid = UUID(ORNG_BASE_MESH_ID);
+		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
 		mp_base_cube->m_vao.FillBuffers();
 		mp_base_cube->m_aabb.max = { 0.5, 0.5, 0.5 };
 		mp_base_cube->m_aabb.min = { -0.5, -0.5, -0.5 };
@@ -653,14 +653,14 @@ namespace ORNG {
 
 		mp_base_quad->m_submeshes.push_back(entry);
 		mp_base_quad->m_is_loaded = true;
-		mp_base_quad->uuid = UUID(ORNG_BASE_QUAD_ID);
+		mp_base_quad->uuid = UUID<uint64_t>(ORNG_BASE_QUAD_ID);
 
 		mp_base_quad->m_vao.FillBuffers();
 	}
 
 	void AssetManager::InitBaseTexture() {
 		mp_base_tex = std::make_unique<Texture2D>("Base coded texture", 0);
-		mp_base_tex->uuid = UUID(ORNG_BASE_TEX_ID);
+		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);
 		Texture2DSpec spec;
 		spec.format = GL_RGB;
 		spec.internal_format = GL_RGB8;

@@ -166,11 +166,14 @@ namespace ORNG {
 			if (serialized_parent_uuid != 0) {
 				auto* p_parent = scene.GetEntity(id_mappings[serialized_parent_uuid]);
 				ASSERT(p_parent);
-				p_ent->SetParent(*p_parent);
+				p_ent->SetParent(*p_parent, true);
 			}
 
 			DeserializeEntity(scene, entity_node, *p_ent);
 		}
+
+		auto* p_top_parent = ents[0];
+		p_top_parent->node_id = UUID<uint32_t>(); // Randomize top parents node id to prevent conflicts with other node id's on the top parents level
 
 		for (auto* p_ent : ents) {
 			ResolveEntityNodeRefs(scene, *p_ent);
@@ -193,6 +196,7 @@ namespace ORNG {
 		out << YAML::Key << "Name" << YAML::Value << entity.name;
 		auto* p_parent = entity.GetScene()->GetEntity(entity.GetParent());
 		out << YAML::Key << "ParentID" << YAML::Value << (p_parent ? p_parent->GetUUID() : 0);
+		out << YAML::Key << "NodeID" << YAML::Value << entity.node_id();
 
 		const auto* p_transform = entity.GetComponent<TransformComponent>();
 
@@ -395,7 +399,7 @@ namespace ORNG {
 			Out(out, "Joints", YAML::BeginSeq);
 
 			for (auto& [j, attachment] : p_joint->attachments) {
-				if (attachment.p_joint->p_a0 != p_joint->GetEntity())
+				if (attachment.p_joint->p_a0 != p_joint->GetEntity() || !attachment.p_joint->p_a1)
 					continue;
 
 				auto ref = entity.GetScene()->GenEntityNodeRef(&entity, attachment.p_joint->p_a1);
@@ -457,7 +461,7 @@ namespace ORNG {
 			auto* p_target_ent = scene.TryFindEntity(attachment.m_target_ref);
 
 			if (p_target_ent) {
-				attachment.p_joint->Connect(p_target_ent->AddComponent<JointComponent>()); // AddComponent will add a JointComp if one doesn't already exist or just return the existing one
+				attachment.p_joint->Connect(p_target_ent->AddComponent<JointComponent>(), true); // AddComponent will add a JointComp if one doesn't already exist or just return the existing one
 			}
 		}
 	}
@@ -627,13 +631,19 @@ namespace ORNG {
 		for (const auto& instruction : ref.GetInstructions()) {
 			out << instruction;
 		}
-		out << YAML::EndSeq << YAML::EndMap;
+		out << YAML::EndSeq;
+
+		Out(out, "TargetNodeID", ref.m_target_node_id);
+
+		out << YAML::EndMap;
 	}
 
 	void SceneSerializer::DeserializeEntityNodeRef(const YAML::Node& node, EntityNodeRef& ref) {
 		for (auto instruction : node["Instructions"]) {
 			ref.m_instructions.push_back(instruction.as<std::string>());
 		}
+
+		ref.m_target_node_id = node["TargetNodeID"].as<uint32_t>();
 	}
 
 
@@ -669,6 +679,7 @@ namespace ORNG {
 			entity.SetParent(*scene.GetEntity(parent_id));
 
 		entity.name = entity_node["Name"].as<std::string>();
+		entity.node_id = UUID(entity_node["NodeID"].as<uint32_t>());
 
 		std::unordered_map <std::string, std::function<void()>> deserializers = {
 			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }},
@@ -688,7 +699,7 @@ namespace ORNG {
 
 		auto it = entity_node.begin();
 		// Skip the non-component fields
-		it++; it++; it++;
+		std::advance(it, 4);
 		for (it; it != entity_node.end(); it++) {
 			std::string tag = (*it).first.as<std::string>();
 			deserializers[tag]();

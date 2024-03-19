@@ -70,7 +70,7 @@ namespace ORNG {
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
 	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* RaycastSetter)(std::function<RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>);
-	typedef void(__cdecl* OverlapQuerySetter)(std::function<OverlapQueryResults(physx::PxGeometry&, glm::vec3 pos)>);
+	typedef void(__cdecl* OverlapQuerySetter)(std::function<OverlapQueryResults(physx::PxGeometry&, glm::vec3 pos, unsigned)>);
 	typedef ScriptBase* (__cdecl* InstanceCreator)();
 	typedef void(__cdecl* InstanceDestroyer)(ScriptBase*);
 
@@ -95,7 +95,7 @@ namespace ORNG {
 		RaycastSetter SceneRaycastSetter = [](std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>) {};
 		GetEntityEnttHandleSetter SceneGetEntityEnttHandleSetter = [](std::function<SceneEntity& (entt::entity entity_uuid)>) {};
 		GetEntitySetter SceneGetEntitySetter = [](std::function<SceneEntity& (uint64_t)>) {};
-		OverlapQuerySetter SceneOverlapQuerySetter = [](std::function<OverlapQueryResults (physx::PxGeometry&, glm::vec3)>) {};
+		OverlapQuerySetter SceneOverlapQuerySetter = [](std::function<OverlapQueryResults (physx::PxGeometry&, glm::vec3, unsigned)>) {};
 		GetEntityByNameSetter SceneGetEntityByNameSetter = [](std::function<SceneEntity& (const std::string&)>) {};
 	};
 

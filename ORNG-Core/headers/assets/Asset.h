@@ -22,7 +22,7 @@ namespace ORNG {
 		}
 
 		std::string filepath = "";
-		UUID uuid;
+		UUID<uint64_t> uuid;
 
 
 

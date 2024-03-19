@@ -15,7 +15,7 @@ namespace ORNG {
 		float density_coef = 0.0f;
 		int step_count = 32;
 		float emissive_factor = 0.5f;
-		float scattering_anistropy = 0.85f;
+		float scattering_anisotropy = 0.85f;
 	};
 
 	struct Bloom {

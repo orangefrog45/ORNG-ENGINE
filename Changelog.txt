@@ -1,3 +1,9 @@
+19/3/24:
+-EntityNodeRefs can now reference a path shared by multiple entities (same name, parent etc) but retain uniqueness using new entity NodeIDs
+-EntityNodeRef bugfixes, now stable when duplicating entities
+-Editor joint tooling improved
+-Crash/stability fixes
+
 18/3/24:
 -Large rewrite of joint components, joint components now support any number of joints with tracked references for quick access
 -Joint editor tools, joint maker and joint transform editor with gizmos

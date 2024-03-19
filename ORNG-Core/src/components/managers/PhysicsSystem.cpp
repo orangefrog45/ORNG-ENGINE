@@ -450,20 +450,31 @@ namespace ORNG {
 			p_comp->attachments.erase(connection.p_joint);
 		}
 
+		auto* p_transform_0 = connection.p_src->GetComponent<TransformComponent>();
+		auto* p_transform_1 = connection.p_target->GetEntity()->GetComponent<TransformComponent>();
+
+		auto gq0 = glm::inverse(glm::quat(radians(p_transform_0->GetAbsOrientation())));
+		auto gq1 = glm::inverse(glm::quat(radians(p_transform_1->GetAbsOrientation())));
+
+		PxQuat quat0{ gq0.x, gq0.y, gq0.z, gq0.w };
+		PxQuat quat1{ gq1.x, gq1.y, gq1.z, gq1.w };
+
 		if (connection.use_stored_poses) {
-			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(connection.p_joint->poses[0])),
-				p_phys_1->p_rigid_actor, PxTransform(ConvertVec3<PxVec3>(connection.p_joint->poses[1])));
+			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, { ConvertVec3<PxVec3>(connection.p_joint->poses[0]), quat0 },
+				p_phys_1->p_rigid_actor, { ConvertVec3<PxVec3>(connection.p_joint->poses[1]), quat1 });
 		}
 		else {
 			// Position joint at middle of entities
-			auto middle = (p_phys_0->p_rigid_actor->getGlobalPose().p + p_phys_1->p_rigid_actor->getGlobalPose().p) * 0.5f;
-			PxTransform m0(middle - p_phys_0->p_rigid_actor->getGlobalPose().p);
-			PxTransform m1(middle - p_phys_1->p_rigid_actor->getGlobalPose().p);
-			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, m0, p_phys_1->p_rigid_actor, m1);
+			auto middle = ConvertVec3<glm::vec3>(p_phys_0->p_rigid_actor->getGlobalPose().p + p_phys_1->p_rigid_actor->getGlobalPose().p) * 0.5f;
+
+			PxVec3 pos0{ ConvertVec3<PxVec3>(gq0 * (middle - ConvertVec3<glm::vec3>(p_phys_0->p_rigid_actor->getGlobalPose().p))) };
+			PxVec3 pos1{ ConvertVec3<PxVec3>(gq1 * (middle - ConvertVec3<glm::vec3>(p_phys_1->p_rigid_actor->getGlobalPose().p))) };
+
+			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, { pos0, quat0 }, p_phys_1->p_rigid_actor, { pos1, quat1 });
 
 			// Update stored state
-			connection.p_joint->poses[0] = ConvertVec3<glm::vec3>(m0.p);
-			connection.p_joint->poses[1] = ConvertVec3<glm::vec3>(m1.p);
+			connection.p_joint->poses[0] = ConvertVec3<glm::vec3>(pos0);
+			connection.p_joint->poses[1] = ConvertVec3<glm::vec3>(pos1);
 		}
 
 		for (int i = 0; i < 6; i++) {
@@ -922,9 +933,9 @@ namespace ORNG {
 		return ret;
 	};
 
-	OverlapQueryResults PhysicsSystem::OverlapQuery(PxGeometry& geom, glm::vec3 pos) {
-		PxOverlapHit overlap_hits[256];
-		PxOverlapBuffer overlap_buffer{ overlap_hits, 256 };
+	OverlapQueryResults PhysicsSystem::OverlapQuery(PxGeometry& geom, glm::vec3 pos, unsigned max_hits) {
+		std::vector<PxOverlapHit> overlap_hits(max_hits);
+		PxOverlapBuffer overlap_buffer{ overlap_hits.data(), max_hits};
 		OverlapQueryResults ret;
 
 		if (mp_phys_scene->overlap(geom, PxTransform(ConvertVec3<PxVec3>(pos)), overlap_buffer)) {
