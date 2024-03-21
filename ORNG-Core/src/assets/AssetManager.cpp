@@ -7,6 +7,7 @@
 #include "core/GLStateManager.h"
 #include "scene/SceneSerializer.h"
 #include "physics/Physics.h" // for material initialization
+#include "yaml-cpp/yaml.h"
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -358,6 +359,8 @@ namespace ORNG {
 				auto* p_prefab = new Prefab(rel_path);
 				DeserializeAssetBinary(rel_path, *p_prefab);
 				AddAsset(p_prefab);
+
+				p_prefab->node = YAML::Load(p_prefab->serialized_content);
 			}
 		}
 
@@ -596,6 +599,7 @@ namespace ORNG {
 			0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23
 		};
 
+		mp_base_cube->num_indices = mp_base_cube->m_vao.vertex_data.indices.size();
 		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
 		mp_base_cube->m_vao.FillBuffers();
 		mp_base_cube->m_aabb.max = { 0.5, 0.5, 0.5 };

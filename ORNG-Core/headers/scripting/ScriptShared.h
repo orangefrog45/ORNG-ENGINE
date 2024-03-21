@@ -68,7 +68,7 @@ namespace ORNG {
 	typedef void(__cdecl* GetEntityByNameSetter)(std::function<SceneEntity& (const std::string&)>);
 	typedef void(__cdecl* GetEntityEnttHandleSetter)(std::function<SceneEntity& (entt::entity entity_uuid)>);
 	typedef void(__cdecl* DuplicateEntitySetter)(std::function<SceneEntity& (SceneEntity& p_entity)>);
-	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (const std::string&)>);
+	typedef void(__cdecl* InstantiatePrefabSetter)(std::function<SceneEntity& (uint64_t)>);
 	typedef void(__cdecl* RaycastSetter)(std::function<RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>);
 	typedef void(__cdecl* OverlapQuerySetter)(std::function<OverlapQueryResults(physx::PxGeometry&, glm::vec3 pos, unsigned)>);
 	typedef ScriptBase* (__cdecl* InstanceCreator)();
@@ -91,7 +91,7 @@ namespace ORNG {
 		CreateEntitySetter SceneEntityCreationSetter = [](std::function<SceneEntity& (const std::string&)>) {};
 		DeleteEntitySetter SceneEntityDeletionSetter = [](std::function<void(SceneEntity* p_entity)>) {};
 		DuplicateEntitySetter SceneEntityDuplicationSetter = [](std::function<SceneEntity& (SceneEntity& p_entity)>) {};
-		InstantiatePrefabSetter ScenePrefabInstantSetter = [](std::function<SceneEntity& (const std::string&)>) {};
+		InstantiatePrefabSetter ScenePrefabInstantSetter = [](std::function<SceneEntity& (uint64_t)>) {};
 		RaycastSetter SceneRaycastSetter = [](std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)>) {};
 		GetEntityEnttHandleSetter SceneGetEntityEnttHandleSetter = [](std::function<SceneEntity& (entt::entity entity_uuid)>) {};
 		GetEntitySetter SceneGetEntitySetter = [](std::function<SceneEntity& (uint64_t)>) {};

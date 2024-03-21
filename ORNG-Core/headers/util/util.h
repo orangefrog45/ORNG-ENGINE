@@ -15,6 +15,17 @@
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 
 
+#ifdef ORNG_ENABLE_TRACY_PROFILE
+#include "Tracy.hpp"
+#include "TracyOpenGL.hpp"
+#define ORNG_TRACY_PROFILE ZoneScoped
+#define ORNG_TRACY_PROFILEN(x) ZoneScopedN(x)
+#else
+#define ORNG_TRACY_PROFILE
+#define ORNG_TRACY_PROFILEN
+#endif
+
+
 namespace ORNG {
 
 	constexpr bool SHADER_DEBUG_MODE = false; // true = CreateUniform throws error if uniform doesn't exist

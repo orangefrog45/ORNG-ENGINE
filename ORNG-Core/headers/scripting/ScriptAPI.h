@@ -5,6 +5,10 @@
 * All of these includes the script will still compile without (including the core engine headers instead of these copies), however they are needed for correct intellisense
 */
 
+#ifdef ORNG_ENABLE_TRACY_PROFILE
+#undef ORNG_ENABLE_TRACY_PROFILE
+#endif
+
 #include <any>
 #include <chrono>
 #include <filesystem> // TODO: what is using this?

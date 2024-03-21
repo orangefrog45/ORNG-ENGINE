@@ -16,7 +16,7 @@ namespace ScriptInterface {
 		inline static std::function<ORNG::SceneEntity& (const entt::entity)> GetEntityByEnttHandle = nullptr;
 		inline static std::function<void(ORNG::SceneEntity*)> DeleteEntity = nullptr;
 		inline static std::function<ORNG::SceneEntity& (ORNG::SceneEntity&)> DuplicateEntity = nullptr;
-		inline static std::function<ORNG::SceneEntity& (const std::string&)> InstantiatePrefab = nullptr;
+		inline static std::function<ORNG::SceneEntity& (uint64_t)> InstantiatePrefab = nullptr;
 		inline static std::function<ORNG::RaycastResults(glm::vec3 origin, glm::vec3 unit_dir, float max_distance)> Raycast = nullptr;
 		inline static std::function<ORNG::OverlapQueryResults(physx::PxGeometry&, glm::vec3 origin, unsigned max_hits)> OverlapQuery = nullptr;
 	}

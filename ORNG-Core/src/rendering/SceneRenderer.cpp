@@ -864,12 +864,12 @@ namespace ORNG {
 
 	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data(), mat_flags, primitive_type);
+		IDrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetRenderCount(), group->m_materials.data(), mat_flags, primitive_type);
 	}
 
 	void SceneRenderer::DrawInstanceGroupGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group, MaterialFlags mat_flags, GLenum primitive_type) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
-		IDrawMeshGBufferWithoutStateChanges(p_shader, group->m_mesh_asset, render_group, group->GetInstanceCount(), group->m_materials.data(), mat_flags, primitive_type);
+		IDrawMeshGBufferWithoutStateChanges(p_shader, group->m_mesh_asset, render_group, group->GetRenderCount(), group->m_materials.data(), mat_flags, primitive_type);
 	}
 
 
@@ -1300,7 +1300,7 @@ namespace ORNG {
 
 				bool state_changed = SetGL_StateFromMatFlags(p_material->flags);
 
-				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetInstanceCount(), i, GL_TRIANGLES);
+				Renderer::DrawSubMeshInstanced(group->m_mesh_asset, group->GetRenderCount(), i, GL_TRIANGLES);
 
 				if (state_changed)
 					UndoGL_StateModificationsFromMatFlags(p_material->flags);

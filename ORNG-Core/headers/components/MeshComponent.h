@@ -19,6 +19,7 @@ namespace ORNG {
 
 		explicit MeshComponent(SceneEntity* p_entity);
 		MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset);
+		MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset, std::vector<const Material*>&& materials);
 		MeshComponent(const MeshComponent& other) = delete;
 
 		void SetMaterialID(unsigned int index, const Material* p_material);

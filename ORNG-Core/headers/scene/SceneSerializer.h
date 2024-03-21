@@ -24,7 +24,7 @@ namespace ORNG {
 	class VehicleComponent;
 	class MeshComponent;
 	struct JointComponent;
-
+	struct Prefab;
 
 	class SceneSerializer {
 	public:
@@ -54,7 +54,7 @@ namespace ORNG {
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);
 
 		// Entities created by this function
-		static std::vector<SceneEntity*> DeserializePrefabFromString(Scene& scene, const std::string& str);
+		static std::vector<SceneEntity*> DeserializePrefabFromString(Scene& scene, const Prefab& prefab);
 
 		static SceneEntity& DeserializeEntityUUIDFromString(Scene& scene, const std::string& str);
 
@@ -62,12 +62,11 @@ namespace ORNG {
 
 		static void DeserializeEntityNodeRef(const YAML::Node& node, EntityNodeRef& ref);
 
-
 		/* 
 			Component deserializers 
 		*/
 
-		static MeshComponent* DeserializeMeshComp(const YAML::Node& node, SceneEntity& entity);
+		static void DeserializeMeshComp(const YAML::Node& node, SceneEntity& entity);
 
 		static void DeserializePointlightComp(const YAML::Node& node, SceneEntity& entity);
 

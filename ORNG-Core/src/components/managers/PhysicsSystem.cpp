@@ -15,18 +15,14 @@
 namespace ORNG {
 	using namespace physx;
 	using namespace physx::vehicle2;
-	// Conversion from glm::vec3 to PxVec3
-
 
 	inline static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
 
-
 	inline static void OnPhysComponentDestroy(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
-
 
 	inline static void OnCharacterControllerComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<CharacterControllerComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
@@ -79,7 +75,7 @@ namespace ORNG {
 	}
 
 // TODO: add in-editor option for this
-#define GPU_PHYSICS_ENABLED true
+#define GPU_PHYSICS_ENABLED false
 
 	void PhysicsSystem::OnLoad() {
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
@@ -465,10 +461,10 @@ namespace ORNG {
 		}
 		else {
 			// Position joint at middle of entities
-			auto middle = ConvertVec3<glm::vec3>(p_phys_0->p_rigid_actor->getGlobalPose().p + p_phys_1->p_rigid_actor->getGlobalPose().p) * 0.5f;
+			auto middle = (p_transform_0->GetAbsPosition() + p_transform_1->GetAbsPosition()) * 0.5f;
 
-			PxVec3 pos0{ ConvertVec3<PxVec3>(gq0 * (middle - ConvertVec3<glm::vec3>(p_phys_0->p_rigid_actor->getGlobalPose().p))) };
-			PxVec3 pos1{ ConvertVec3<PxVec3>(gq1 * (middle - ConvertVec3<glm::vec3>(p_phys_1->p_rigid_actor->getGlobalPose().p))) };
+			PxVec3 pos0{ ConvertVec3<PxVec3>(gq0 * (middle - p_transform_0->GetAbsPosition())) };
+			PxVec3 pos1{ ConvertVec3<PxVec3>(gq1 * (middle - p_transform_1->GetAbsPosition())) };
 
 			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, { pos0, quat0 }, p_phys_1->p_rigid_actor, { pos1, quat1 });
 
@@ -626,30 +622,44 @@ namespace ORNG {
 
 
 	void PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
-		// Update component geometry
+		ORNG_TRACY_PROFILE;
+
 		auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
+		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
 		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
 
 		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
 		glm::vec3 scaled_extents = aabb.max * scale_factor;
 
-		switch (p_comp->m_geometry_type) {
-		case PhysicsComponent::SPHERE:
-			p_comp->p_shape->release();
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material->p_material, p_comp->IsTrigger());
-			break;
-		case PhysicsComponent::BOX:
-			p_comp->p_shape->release();
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material->p_material, p_comp->IsTrigger());
-			break;
-		case PhysicsComponent::TRIANGLE_MESH:
-			if (!p_mesh_comp)
-				return;
+		const bool was_previously_initialized = static_cast<bool>(p_comp->p_shape);
+		PxTransform current_transform = TransformComponentToPxTransform(*p_transform);
 
+		if (was_previously_initialized) {
 			p_comp->p_shape->release();
-			PxTriangleMesh* aTriangleMesh = GetOrCreateTriangleMesh(p_mesh_comp->GetMeshData());
-			p_comp->p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_comp->p_material->p_material, p_comp->IsTrigger());
-			break;
+			p_comp->p_rigid_actor->release();
+			m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_rigid_actor));
+		}
+		else {
+			p_comp->p_material = p_comp->p_material ? p_comp->p_material : AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID);
+		}
+
+		{
+			ORNG_TRACY_PROFILEN("Physx create shape");
+			switch (p_comp->m_geometry_type) {
+			case PhysicsComponent::SPHERE:
+				p_comp->p_shape = Physics::GetPhysics()->createShape(PxSphereGeometry(glm::max(glm::max(scaled_extents.x, scaled_extents.y), scaled_extents.z)), *p_comp->p_material->p_material, p_comp->IsTrigger());
+				break;
+			case PhysicsComponent::BOX:
+				p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(scaled_extents.x, scaled_extents.y, scaled_extents.z), *p_comp->p_material->p_material, p_comp->IsTrigger());
+				break;
+			case PhysicsComponent::TRIANGLE_MESH:
+				if (!p_mesh_comp)
+					return;
+
+				PxTriangleMesh* aTriangleMesh = GetOrCreateTriangleMesh(p_mesh_comp->GetMeshData());
+				p_comp->p_shape = Physics::GetPhysics()->createShape(PxTriangleMeshGeometry(aTriangleMesh, PxMeshScale(PxVec3(scale_factor.x, scale_factor.y, scale_factor.z))), *p_comp->p_material->p_material, p_comp->IsTrigger());
+				break;
+			}
 		}
 
 
@@ -665,22 +675,20 @@ namespace ORNG {
 
 		p_comp->p_shape->acquireReference();
 
-		// Update rigid body type
-		PxTransform current_transform = p_comp->p_rigid_actor->getGlobalPose();
-		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_rigid_actor));
+		{
+			ORNG_TRACY_PROFILEN("Physx create actor");
 
-		p_comp->p_rigid_actor->release();
+			if (p_comp->m_body_type == PhysicsComponent::STATIC) {
+				p_comp->p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape);
+			}
+			else if (p_comp->m_body_type == PhysicsComponent::DYNAMIC) {
+				p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
+			}
 
-
-		if (p_comp->m_body_type == PhysicsComponent::STATIC) {
-			p_comp->p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape);
+			m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
+			mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 		}
-		else if (p_comp->m_body_type == PhysicsComponent::DYNAMIC) {
-			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
-		}
 
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
-		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 
 		// Reconnect any broken joints caused by recreating the actor
 		if (auto* p_joint_comp = p_comp->GetEntity()->GetComponent<JointComponent>()) {
@@ -694,37 +702,9 @@ namespace ORNG {
 
 
 
-
-
 	void PhysicsSystem::InitComponent(PhysicsComponent* p_comp) {
-		auto* p_meshc = p_comp->GetEntity()->GetComponent<MeshComponent>();
-		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
-		auto [pos, scale, rot] = p_transform->GetAbsoluteTransforms();
-		glm::vec3 extents = p_transform->GetScale() * (p_meshc ? p_meshc->GetMeshData()->GetAABB().max : glm::vec3(1));
-
-		glm::quat quat = glm::quat(glm::radians(rot));
-		PxQuat px_quat{ quat.x, quat.y, quat.z, quat.w };
-
-		p_comp->p_material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID);
-		p_comp->p_material->p_material->acquireReference();
-
-		// Setup shape based on mesh AABB if available
-		p_comp->p_shape = Physics::GetPhysics()->createShape(PxBoxGeometry(extents.x, extents.y, extents.z), *p_comp->p_material->p_material);
-		p_comp->p_shape->acquireReference();
-
-		if (p_comp->m_body_type == PhysicsComponent::STATIC) {
-			p_comp->p_rigid_actor = PxCreateStatic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_comp->p_shape);
-		}
-		else if (p_comp->m_body_type == PhysicsComponent::DYNAMIC) {
-			p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), PxTransform(PxVec3(pos.x, pos.y, pos.z), px_quat), *p_comp->p_shape, 1.f);
-		}
-
-		mp_phys_scene->addActor(*p_comp->p_rigid_actor);
-
-		// Store in entity lookup map for fast retrieval
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
+		UpdateComponentState(p_comp);
 	}
-
 
 
 
@@ -747,7 +727,7 @@ namespace ORNG {
 	void PhysicsSystem::OnUpdate(float ts) {
 		m_accumulator += ts;
 
-		if (m_accumulator < m_step_size)
+		if (m_accumulator < m_step_size * 1000.0)
 			return;
 
 

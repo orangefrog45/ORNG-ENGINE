@@ -37,7 +37,7 @@ extern "C" {
 		ScriptInterface::World::DuplicateEntity = func;
 	}
 
-	__declspec(dllexport) void SetInstantiatePrefabCallback(std::function<ORNG::SceneEntity& (const std::string&)> func) {
+	__declspec(dllexport) void SetInstantiatePrefabCallback(std::function<ORNG::SceneEntity& (uint64_t)> func) {
 		ScriptInterface::World::InstantiatePrefab = func;
 	}
 
@@ -48,7 +48,6 @@ extern "C" {
 	__declspec(dllexport) void SetGetEntityByEnttHandleCallback(std::function<ORNG::SceneEntity& (entt::entity)> func) {
 		ScriptInterface::World::GetEntityByEnttHandle = func;
 	}
-
 
 	__declspec(dllexport) void SetGetEntityCallback(std::function<ORNG::SceneEntity& (uint64_t)> func) {
 		ScriptInterface::World::GetEntity = func;

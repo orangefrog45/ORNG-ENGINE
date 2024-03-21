@@ -7,6 +7,7 @@
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
 #include "physics/Physics.h"
+
 /*
 	struct VertexData {
 			std::vector<glm::vec3> positions;
@@ -139,9 +140,11 @@ namespace ORNG {
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
 		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
 	}
-
-	std::vector<SceneEntity*> SceneSerializer::DeserializePrefabFromString(Scene& scene, const std::string& str) {
-		YAML::Node data = YAML::Load(str);
+	std::vector<SceneEntity*> SceneSerializer::DeserializePrefabFromString(Scene& scene, const Prefab& prefab) {
+#ifdef ORNG_ENABLE_TRACY_PROFILE
+		ZoneScoped;
+#endif
+		const YAML::Node& data = prefab.node;
 
 		std::vector<SceneEntity*> ents;
 
@@ -518,14 +521,12 @@ namespace ORNG {
 	}
 
 	void SceneSerializer::DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity) {
-		auto* p_physics_comp = entity.AddComponent<PhysicsComponent>();
-
-		p_physics_comp->UpdateGeometry(static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>()));
-		p_physics_comp->SetBodyType(static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>()));
-		p_physics_comp->SetTrigger(node["IsTrigger"].as<bool>());
+		auto geometry_type = static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>());
+		auto body_type = static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>());
+		auto is_trigger = node["IsTrigger"].as<bool>();
 
 		auto* p_material = AssetManager::GetAsset<PhysXMaterialAsset>(node["MaterialUUID"].as<uint64_t>());
-		p_physics_comp->SetMaterial(p_material ? *p_material : *AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID));
+		auto* p_physics_comp = entity.AddComponent<PhysicsComponent>(is_trigger, geometry_type, body_type, p_material);
 	}
 
 	void SceneSerializer::DeserializeParticleEmitterComp(const YAML::Node& emitter_node, SceneEntity& entity) {
@@ -566,10 +567,11 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity) {
 		auto* p_transform = entity.GetComponent<TransformComponent>();
-		p_transform->SetPosition(node["Pos"].as<glm::vec3>());
-		p_transform->SetScale(node["Scale"].as<glm::vec3>());
-		p_transform->SetOrientation(node["Orientation"].as<glm::vec3>());
-		p_transform->SetAbsoluteMode(node["Absolute"].as<bool>());
+		p_transform->m_pos = node["Pos"].as<glm::vec3>();
+		p_transform->m_scale = node["Scale"].as<glm::vec3>();
+		p_transform->m_orientation = node["Orientation"].as<glm::vec3>();
+		p_transform->m_is_absolute = node["Absolute"].as<bool>();
+		p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 	}
 
 	void SceneSerializer::DeserializeParticleBufferComp(const YAML::Node& node, SceneEntity& entity) {
@@ -648,21 +650,23 @@ namespace ORNG {
 
 
 
-	MeshComponent* SceneSerializer::DeserializeMeshComp(const YAML::Node& mesh_node, SceneEntity& entity) {
+	void SceneSerializer::DeserializeMeshComp(const YAML::Node& mesh_node, SceneEntity& entity) {
+#ifdef ORNG_ENABLE_TRACY_PROFILE
+		ZoneScoped;
+#endif
 		uint64_t mesh_asset_id = mesh_node["MeshAssetID"].as<uint64_t>();
 		auto* p_mesh_asset = AssetManager::GetAsset<MeshAsset>(mesh_asset_id);
-		auto* p_mesh_comp = entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 
-		auto materials = mesh_node["Materials"];
-		std::vector<uint64_t> ids = materials.as<std::vector<uint64_t>>();
-		p_mesh_comp->m_materials.resize(ids.size());
+		auto& materials = mesh_node["Materials"];
+		std::vector<const Material*> material_vec;
+		material_vec.resize(materials.size());
 
-		for (int i = 0; i < ids.size(); i++) { // Material slots automatical;ly allocated for mesh asset through AddComponent<MeshComponent>, keep it within this range
-			auto* p_mat = AssetManager::GetAsset<Material>(ids[i]);
-			p_mesh_comp->m_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+		for (int i = 0; i < materials.size(); i++) { 
+			auto* p_mat = AssetManager::GetAsset<Material>(materials[i].as<uint64_t>());
+			material_vec[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 		}
 
-		return p_mesh_comp;
+		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), std::move(material_vec));
 	}
 
 	void SceneSerializer::ResolveEntityNodeRefs(Scene& scene, SceneEntity& entity) {
@@ -672,19 +676,22 @@ namespace ORNG {
 
 
 	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity) {
+#ifdef ORNG_ENABLE_TRACY_PROFILE
+		ZoneScoped;
+#endif
 		auto* p_replacement_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
 		if (parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
-			entity.SetParent(*scene.GetEntity(parent_id));
+			entity.SetParent(*scene.GetEntity(parent_id)); 
 
 		entity.name = entity_node["Name"].as<std::string>();
 		entity.node_id = UUID(entity_node["NodeID"].as<uint32_t>());
 
 		std::unordered_map <std::string, std::function<void()>> deserializers = {
-			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }},
-			{"MeshComp",[&] { scene.m_mesh_component_manager.SortMeshIntoInstanceGroup(DeserializeMeshComp(entity_node["MeshComp"], entity)); }},
-			{"PhysicsComp",[&] { DeserializePhysicsComp(entity_node["PhysicsComp"], entity); }},
+			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }}, 
+			{"MeshComp",[&] { DeserializeMeshComp(entity_node["MeshComp"], entity); }},
+			{"PhysicsComp",[&] { DeserializePhysicsComp(entity_node["PhysicsComp"], entity); }}, 
 			{"PointlightComp",[&] { DeserializePointlightComp(entity_node["PointlightComp"], entity); }},
 			{"SpotlightComp",[&] { DeserializeSpotlightComp(entity_node["SpotlightComp"], entity); }},
 			{"CameraComp",[&] { DeserializeCameraComp(entity_node["CameraComp"], entity); }},
@@ -733,13 +740,11 @@ namespace ORNG {
 		fout << "};"; // namespace Entities
 
 		fout << "namespace Prefabs {\n";
-		for (auto [uuid, p_asset] : AssetManager::Get().m_assets) {
-			if (auto* p_prefab = dynamic_cast<Prefab*>(p_asset)) {
-				std::string prefab_name = p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1);
-				prefab_name = prefab_name.substr(0, prefab_name.find(".opfb"));
-				std::ranges::for_each(prefab_name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
-				fout << "inline static const std::string " << prefab_name << " = R\"(" << p_prefab->serialized_content << ")\"; \n";
-			}
+		for (auto* p_prefab : AssetManager::GetView<Prefab>()) {
+			std::string prefab_name = p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1);
+			prefab_name = prefab_name.substr(0, prefab_name.find(".opfb"));
+			std::ranges::for_each(prefab_name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
+			fout << "constexpr uint64_t " << prefab_name << " = " << p_prefab->uuid() << ";\n";
 		}
 		fout << "};"; // namespace Prefabs
 
@@ -748,7 +753,7 @@ namespace ORNG {
 			std::string name = p_asset->filepath.substr(p_asset->filepath.rfind("\\") + 1);
 			name = name.substr(0, name.rfind("."));
 			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
-			fout << "inline static const uint64_t " << name << " = " << p_asset->uuid() << "; \n";
+			fout << "constexpr uint64_t " << name << " = " << p_asset->uuid() << "; \n";
 		}
 		fout << "};"; // namespace Sounds
 

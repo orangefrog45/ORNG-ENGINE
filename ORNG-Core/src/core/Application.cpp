@@ -20,7 +20,6 @@
 
 namespace ORNG {
 
-
 	void Application::Shutdown() {
 		layer_stack.Shutdown();
 		Physics::Shutdown();
@@ -52,6 +51,7 @@ namespace ORNG {
 		SceneRenderer::Init();
 		AssetManager::Init();
 
+		TracyGpuContext(Window::GetGLFWwindow());
 
 		ORNG_CORE_INFO("Core engine initialized, intializing layers");
 		layer_stack.Init();
@@ -75,6 +75,7 @@ namespace ORNG {
 			// Render
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
+			TracyGpuCollect;
 
 			FrameTiming::Update();
 		}

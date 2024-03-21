@@ -15,6 +15,7 @@
 #include "core/Input.h"
 #include "util/ExtraUI.h"
 #include "components/ParticleBufferComponent.h"
+#include "tracy/public/tracy/Tracy.hpp"
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
@@ -144,6 +145,7 @@ namespace ORNG {
 
 
 	void EditorLayer::BeginPlayScene() {
+		ORNG_TRACY_PROFILE;
 		SceneSerializer::SerializeScene(*SCENE, m_state.temp_scene_serialization, true);
 		m_state.simulate_mode_active = true;
 
@@ -157,6 +159,8 @@ namespace ORNG {
 	}
 
 	void EditorLayer::EndPlayScene() {
+		ORNG_TRACY_PROFILE;
+
 		// Reset mouse state as scripts may have modified it
 		Input::SetCursorVisible(true);
 
@@ -317,6 +321,8 @@ namespace ORNG {
 
 
 	void EditorLayer::Update() {
+		ORNG_TRACY_PROFILE;
+
 		ORNG_PROFILE_FUNC();
 		m_state.item_selected_this_frame = false;
 
@@ -2637,7 +2643,7 @@ namespace ORNG {
 
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
-			// The origin of the transform (e.g rotate about this space)
+			// The origin of the transform (rotate about this point)
 			auto [base_abs_translation, base_abs_scale, base_abs_orientation] = transforms[0]->GetAbsoluteTransforms();
 
 			glm::vec3 delta_translation = matrix_translation;
@@ -2745,7 +2751,7 @@ namespace ORNG {
 
 	void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
 		ImGui::PushID(comp);
-
+		
 		std::function<void(MeshAsset* p_new)> OnMeshDrop = [comp](MeshAsset* p_new) {
 			comp->SetMeshAsset(p_new);
 			};

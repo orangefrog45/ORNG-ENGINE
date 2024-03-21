@@ -34,6 +34,19 @@ namespace ORNG {
 	public:
 		PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
 
+		enum GeometryType {
+			BOX = 0,
+			SPHERE = 1,
+			TRIANGLE_MESH = 2,
+		};
+		enum RigidBodyType {
+			STATIC = 0,
+			DYNAMIC = 1,
+		};
+
+		PhysicsComponent(SceneEntity* p_entity, bool is_trigger, GeometryType geom_type, RigidBodyType body_type, PhysXMaterialAsset* _material) : Component(p_entity), m_is_trigger(is_trigger),
+			m_geometry_type(geom_type), m_body_type(body_type), p_material(_material) {};
+
 		void SetVelocity(glm::vec3 v);
 		void SetAngularVelocity(glm::vec3 v);
 		glm::vec3 GetVelocity() const;
@@ -44,16 +57,6 @@ namespace ORNG {
 		void AddForce(glm::vec3 force);
 		void ToggleGravity(bool on);
 		void SetMass(float mass);
-
-		enum GeometryType {
-			BOX = 0,
-			SPHERE = 1,
-			TRIANGLE_MESH = 2,
-		};
-		enum RigidBodyType {
-			STATIC = 0,
-			DYNAMIC = 1,
-		};
 
 		void UpdateGeometry(GeometryType type);
 		void SetBodyType(RigidBodyType type);
@@ -66,15 +69,16 @@ namespace ORNG {
 		}
 
 
+		physx::PxRigidActor* p_rigid_actor = nullptr;
 	private:
 		void SendUpdateEvent();
 
-		bool m_is_trigger = false;
 		physx::PxShape* p_shape = nullptr;
+
 		PhysXMaterialAsset* p_material = nullptr;
-		physx::PxRigidActor* p_rigid_actor = nullptr;
 		GeometryType m_geometry_type = BOX;
 		RigidBodyType m_body_type = STATIC;
+		bool m_is_trigger = false;
 	};
 
 

@@ -7,6 +7,8 @@
 #else
 #define FUNC_NAME __PRETTY_FUNCTION__
 #endif
+#define ORNG_ENABLE_TRACY_PROFILE
+
 #include <Windows.h>
 #include <commdlg.h>
 #include <locale>

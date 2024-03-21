@@ -1,3 +1,8 @@
+21/3/24:
+-Tracy profiler integration
+-Optimizations to MeshInstanceGroups, tombstone transforms now used to avoid frequent re-allocations
+-Optimizations to entity deserialization and prefab instantiation
+
 19/3/24:
 -EntityNodeRefs can now reference a path shared by multiple entities (same name, parent etc) but retain uniqueness using new entity NodeIDs
 -EntityNodeRef bugfixes, now stable when duplicating entities

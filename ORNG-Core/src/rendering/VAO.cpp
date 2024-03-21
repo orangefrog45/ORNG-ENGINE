@@ -108,6 +108,7 @@ namespace ORNG {
 	}
 
 	void BufferBase::PushBack(std::byte* bytes, size_t size) {
+		ORNG_TRACY_PROFILE;
 		ASSERT(m_is_mutable);
 
 		int old_size = GetGPU_BufferSize();

@@ -24,7 +24,9 @@ namespace ORNG {
 
 
 	void MeshInstancingSystem::SortMeshIntoInstanceGroup(MeshComponent* comp) {
-
+#ifdef ORNG_ENABLE_TRACY_PROFILE
+		ZoneScoped;
+#endif
 		if (comp->mp_instance_group) { // Remove first if it has an instance group
 			comp->mp_instance_group->RemoveInstance(comp->GetEntity());
 			comp->mp_instance_group = nullptr;

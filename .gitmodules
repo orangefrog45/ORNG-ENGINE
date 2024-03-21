@@ -40,3 +40,6 @@
 [submodule "ORNG-Editor/extern/lua"]
 	path = ORNG-Editor/extern/lua
 	url = https://github.com/marovira/lua
+[submodule "ORNG-Core/extern/tracy"]
+	path = ORNG-Core/extern/tracy
+	url = https://github.com/wolfpld/tracy

@@ -9,6 +9,7 @@
 #include <bitsery/traits/vector.h>
 #include <bitsery/adapter/stream.h>
 #include "bitsery/traits/string.h"
+#include "yaml-cpp/node/node.h"
 
 #define ORNG_BASE_MATERIAL_ID 0
 #define ORNG_BASE_SOUND_ID 1
@@ -92,6 +93,9 @@ namespace ORNG {
 		Prefab(const std::string& filepath) : Asset(filepath) {};
 		// Yaml string that can be deserialized into entity
 		std::string serialized_content;
+
+		// Parsed version of "serialized_content"
+		YAML::Node node;
 
 		template<typename S>
 		void serialize(S& s) {

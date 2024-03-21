@@ -9,6 +9,7 @@
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
 #include "core/FrameTiming.h"
+#include "Tracy.hpp"
 
 
 namespace ORNG {
@@ -93,16 +94,16 @@ namespace ORNG {
 	}
 
 
-	SceneEntity& Scene::InstantiatePrefabCallScript(const std::string& serialized_data) {
-		auto& ent = InstantiatePrefab(serialized_data);
+	SceneEntity& Scene::InstantiatePrefabCallScript(const Prefab& prefab) {
+		auto& ent = InstantiatePrefab(prefab);
 		if (auto* p_script = ent.GetComponent<ScriptComponent>())
 			p_script->p_instance->OnCreate();
 
 		return ent;
 	}
 
-	SceneEntity& Scene::InstantiatePrefab(const std::string& serialized_data) {
-		auto vec = SceneSerializer::DeserializePrefabFromString(*this, serialized_data);
+	SceneEntity& Scene::InstantiatePrefab(const Prefab& prefab) {
+		auto vec = SceneSerializer::DeserializePrefabFromString(*this, prefab);
 		
 		// Prefab entities are serialized so that the root/top-parent is first
 		return *vec[0];
@@ -139,6 +140,8 @@ namespace ORNG {
 
 
 	SceneEntity& Scene::DuplicateEntity(SceneEntity& original, bool duplicating_as_part_of_group) {
+		ZoneScoped;
+
 		SceneEntity& new_entity = CreateEntity(original.name + " - Duplicate");
 		std::string str = SceneSerializer::SerializeEntityIntoString(original);
 		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity);
@@ -150,7 +153,6 @@ namespace ORNG {
 			child.SetParent(new_entity, true);
 			p_current_child = GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
 		}
-
 
 		if (!duplicating_as_part_of_group) { // Done by DuplicateEntityGroup otherwise
 			new_entity.ForEachChildRecursive(
@@ -379,6 +381,7 @@ namespace ORNG {
 
 
 	void Scene::OnStart() {
+		TimeStep s{ TimeStep::TimeUnits::MILLISECONDS };
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
@@ -388,7 +391,6 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Script execution error for entity '{0}' : '{1}'", GetEntity(entity)->name, e.what());
 			}
 		}
-		ORNG_CORE_TRACE("FRAMETIMING : {0}", FrameTiming::GetTotalElapsedTime());
 	}
 
 	void Scene::SetScriptState() {
@@ -415,8 +417,12 @@ namespace ORNG {
 				return DuplicateEntityCallScript(ent);
 				});
 
-			p_script_asset->symbols.ScenePrefabInstantSetter([this](const std::string& str) -> SceneEntity& {
-				return InstantiatePrefabCallScript(str);
+			p_script_asset->symbols.ScenePrefabInstantSetter([this](uint64_t uuid) -> SceneEntity& {
+				auto* p_prefab = AssetManager::GetAsset<Prefab>(uuid);
+				if (!p_prefab)
+					throw std::runtime_error(std::format("InstantiatePrefab failed, UUID '{}' does not match any prefab asset", uuid));
+
+				return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
 				});
 
 			p_script_asset->symbols.SceneRaycastSetter([this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {

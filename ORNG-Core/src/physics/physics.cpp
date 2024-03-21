@@ -26,9 +26,9 @@ namespace ORNG {
 		}
 
 
-		bool record_memory_allocations = true;
-
+		bool record_memory_allocations = false;
 #ifdef PHYSX_DEBUG
+		record_memory_allocations = true;
 		mp_pvd = PxCreatePvd(*mp_foundation);
 		mp_transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
 

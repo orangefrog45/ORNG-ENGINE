@@ -39,12 +39,12 @@ namespace ORNG {
 	}
 
 
-	bool MeshAsset::InitFromScene(const aiScene* pScene) {
-		m_submeshes.resize(pScene->mNumMeshes);
+	bool MeshAsset::InitFromScene(const aiScene* p_scene) {
+		m_submeshes.resize(p_scene->mNumMeshes);
 
 		unsigned int num_vertices = 0;
 
-		CountVerticesAndIndices(pScene, num_vertices, num_indices);
+		CountVerticesAndIndices(p_scene, num_vertices, num_indices);
 
 		if (num_vertices > ORNG_MAX_MESH_INDICES || num_indices > ORNG_MAX_MESH_INDICES) {
 			ORNG_CORE_ERROR("Mesh asset '{0}' exceeds maximum number of vertices, limit is {1}", filepath, ORNG_MAX_MESH_INDICES);
@@ -54,24 +54,23 @@ namespace ORNG {
 
 		ReserveSpace(num_vertices, num_indices);
 
-		InitAllMeshes(pScene);
+		InitAllMeshes(p_scene);
 
 		return true;
 	}
 
-	void MeshAsset::CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices) {
+	void MeshAsset::CountVerticesAndIndices(const aiScene* pScene, unsigned int& num_vertices, unsigned int& num_indices) {
 
 		for (unsigned int i = 0; i < m_submeshes.size(); i++) {
 
 			m_submeshes[i].material_index = pScene->mMeshes[i]->mMaterialIndex;
 			m_submeshes[i].num_indices = pScene->mMeshes[i]->mNumFaces * 3;
-			m_submeshes[i].base_vertex = NumVertices;
-			m_submeshes[i].base_index = NumIndices;
+			m_submeshes[i].base_vertex = num_vertices;
+			m_submeshes[i].base_index = num_indices;
 
-			NumVertices += pScene->mMeshes[i]->mNumVertices;
-			NumIndices += m_submeshes[i].num_indices;
+			num_vertices += pScene->mMeshes[i]->mNumVertices;
+			num_indices += m_submeshes[i].num_indices;
 		}
-
 
 	}
 

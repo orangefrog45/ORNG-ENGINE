@@ -78,6 +78,17 @@ find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
 
 
+# Optional: import the defined target to copy over the GPU acceleration libraries (3rd party provided by NVIDIA)
+if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
+	add_custom_command(TARGET ORNG_CORE POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy_if_different
+					$<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
+					$<TARGET_FILE_DIR:ORNG_CORE>)
+else()
+    message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
+endif()
+
+
 set(ASSIMP_BUILD_STATIC_LIB ON)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
@@ -86,6 +97,8 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
+option(TRACY_ENABLE "" ON)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
 
 target_compile_options(glfw PRIVATE /MD$<$<CONFIG:Debug>:d>)
 
@@ -95,7 +108,6 @@ extern/glfw/include
 )
 
 find_package(OpenGL REQUIRED)
-
 
 
 
@@ -121,15 +133,13 @@ extern/implot
 
 
 
-
-
-
 target_include_directories(ORNG_CORE
 	PUBLIC 
 	"physx-complete/physx/physx/include/" 
 	"physx-complete/physx/pxshared/include/" 
 	"physx-complete/physx/physx/snippets/"
 	"${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc"
+	"extern/tracy/public/tracy"
 )
 
 
@@ -144,6 +154,7 @@ ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_
 ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}
+Tracy::TracyClient
 )
 
 target_precompile_headers(ORNG_CORE PUBLIC
@@ -154,9 +165,6 @@ headers/pch/pch.h
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
 
-
-get_target_property(GPU_DEVICE_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-device-library LOCATION)
-get_target_property(GPU_LIBRARY_LOCATION unofficial::omniverse-physx-sdk::gpu-library LOCATION)
 
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
