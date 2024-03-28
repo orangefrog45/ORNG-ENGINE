@@ -103,67 +103,77 @@ namespace ORNG {
 	}
 
 	SceneEntity& Scene::InstantiatePrefab(const Prefab& prefab) {
-		auto vec = SceneSerializer::DeserializePrefabFromString(*this, prefab);
+		auto vec = SceneSerializer::DeserializePrefab(*this, prefab);
 		
 		// Prefab entities are serialized so that the root/top-parent is first
 		return *vec[0];
 	}
 
 	std::vector<SceneEntity*> Scene::DuplicateEntityGroup(const std::vector<SceneEntity*> group) {
-		// Key = old node id, value = new node id
-		std::unordered_map<uint32_t, uint32_t> node_id_lookup;
+		// Any UUID's of entities that are in "group" will be mapped to the new UUIDs of the duplicate entities, 
+		// this means things like joint connections will connect to the new duplicates if found instead of the old entities
+		std::unordered_map<uint64_t, uint64_t> uuid_lookup;
 
 		std::vector<SceneEntity*> duplicates;
 	
 		for (int i = 0; i < group.size(); i++) {
-			auto& ent = DuplicateEntity(*group[i], true);
+			auto& ent = DuplicateEntityAsPartOfGroup(*group[i], uuid_lookup);
+			ent.SetParent(*GetEntity(group[i]->GetComponent<RelationshipComponent>()->parent));
 			duplicates.push_back(&ent);
-
-			ent.node_id = UUID<uint32_t>();
-			node_id_lookup[group[i]->node_id()] = ent.node_id();
 		}
 
-		// Re-map EntityNodeRefs to newly duplicated entities
-		for (auto* p_dup : duplicates) {
-			for (auto& attachment : p_dup->GetComponent<JointComponent>()->attachments) {
-				if (node_id_lookup.contains(attachment.second.m_target_ref.m_target_node_id))
-					attachment.second.m_target_ref.m_target_node_id = node_id_lookup[attachment.second.m_target_ref.m_target_node_id];
-			}
-		}
+		// Re-map connections to newly duplicated entities
+		SceneSerializer::RemapEntityReferences(uuid_lookup, duplicates);
 
 		for (auto* p_dup : duplicates) {
-			SceneSerializer::ResolveEntityNodeRefs(*this, *p_dup);
+			SceneSerializer::ResolveEntityRefs(*this, *p_dup);
 		}
 
 		return duplicates;
 	}
 
+	SceneEntity& Scene::DuplicateEntityAsPartOfGroup(SceneEntity& original, std::unordered_map<uint64_t, uint64_t>& uuid_map) {
+		SceneEntity& new_entity = CreateEntity(original.name + " - Duplicate");
+		uuid_map[original.uuid()] = new_entity.uuid();
+		std::string str = SceneSerializer::SerializeEntityIntoString(original);
+		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity, true);
 
-	SceneEntity& Scene::DuplicateEntity(SceneEntity& original, bool duplicating_as_part_of_group) {
-		ZoneScoped;
+		original.ForEachLevelOneChild(
+			[&](entt::entity e) {
+				auto& child = DuplicateEntityAsPartOfGroup(*GetEntity(e), uuid_map);
+				child.SetParent(new_entity);
+			}
+		);
 
+		return new_entity;
+	}
+
+	SceneEntity& Scene::DuplicateEntity(SceneEntity& original) {
 		SceneEntity& new_entity = CreateEntity(original.name + " - Duplicate");
 		std::string str = SceneSerializer::SerializeEntityIntoString(original);
 		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity);
 
-		auto* p_relation_comp = original.GetComponent<RelationshipComponent>();
-		SceneEntity* p_current_child = GetEntity(p_relation_comp->first);
-		while (p_current_child) {
-			auto& child = DuplicateEntity(*p_current_child, true);
-			child.SetParent(new_entity, true);
-			p_current_child = GetEntity(p_current_child->GetComponent<RelationshipComponent>()->next);
-		}
+		std::unordered_map<uint64_t, uint64_t> uuid_map;
+		uuid_map[original.uuid()] = new_entity.uuid();
 
-		if (!duplicating_as_part_of_group) { // Done by DuplicateEntityGroup otherwise
-			new_entity.ForEachChildRecursive(
-				[&](entt::entity e) {
-					SceneSerializer::ResolveEntityNodeRefs(*this, *GetEntity(e));
-				}
-			);
+		original.ForEachLevelOneChild(
+			[&](entt::entity e) {
+				auto& child = DuplicateEntityAsPartOfGroup(*GetEntity(e), uuid_map);
+				child.SetParent(new_entity);
+			}
+		);
 
-			SceneSerializer::ResolveEntityNodeRefs(*this, new_entity);
-			new_entity.node_id = UUID<uint32_t>();
-		}
+		new_entity.ForEachChildRecursive(
+			[&](entt::entity e) {
+				auto* p_child = GetEntity(e);
+				SceneSerializer::RemapEntityReferences(uuid_map, *p_child);
+				SceneSerializer::ResolveEntityRefs(*this, *p_child);
+			}
+			
+		);
+
+		SceneSerializer::RemapEntityReferences(uuid_map, new_entity);
+		SceneSerializer::ResolveEntityRefs(*this, new_entity);
 
 		return new_entity;
 	}
@@ -203,20 +213,6 @@ namespace ORNG {
 		return nullptr;
 	}
 
-	SceneEntity* Scene::TryFindRootEntityByNodeID(uint32_t node_id) {
-		auto it = m_root_entities.begin();
-
-		while (it != m_root_entities.end()) {
-			auto* p_ent = GetEntity(*it);
-			if (p_ent->node_id() == node_id)
-				return p_ent;
-
-			it++;
-		}
-
-		return nullptr;
-	}
-
 
 	SceneEntity* Scene::TryFindEntity(const EntityNodeRef& ref) {
 		SceneEntity* p_current_ent = nullptr;
@@ -228,7 +224,7 @@ namespace ORNG {
 			return nullptr;
 
 		if (instructions[0] == "::") { // Path is absolute
-			p_current_ent = ref.GetTargetNodeID() == EntityNodeRef::INVALID_NODE_ID ? TryFindRootEntityByName(instructions[1]) : TryFindRootEntityByNodeID(ref.GetTargetNodeID());
+			p_current_ent = TryFindRootEntityByName(instructions[1]);
 			start_index = 2;
 		}
 		else { // Path is relative to src
@@ -243,11 +239,7 @@ namespace ORNG {
 				p_current_ent = GetEntity(p_current_ent->GetParent());
 			}
 			else {
-				if (i == instructions.size() - 1 && ref.GetTargetNodeID() != EntityNodeRef::INVALID_NODE_ID) {
-					p_current_ent = p_current_ent->GetChildWithNodeID(ref.GetTargetNodeID());
-				}
-				else
-					p_current_ent = p_current_ent->GetChild(instructions[i]);
+				p_current_ent = p_current_ent->GetChild(instructions[i]);
 			}
 		}
 
@@ -295,7 +287,6 @@ namespace ORNG {
 
 
 		// This idx is how many layers up needed to move until common parent is found
-
 		if (p_highest_shared_parent) {
 			unsigned idx = VectorFindIndex(ordered_src_parents, p_highest_shared_parent) + 1;
 
@@ -314,14 +305,14 @@ namespace ORNG {
 		// Instruction set is generated in reverse, so reverse here to correct it
 		std::ranges::reverse(instructions);
 
-		EntityNodeRef ref{ p_src, instructions, p_target->node_id() };
+		EntityNodeRef ref{ p_src, instructions, p_target->uuid() };
 
 		return ref;
 	}
 
 
 	SceneEntity& Scene::DuplicateEntityCallScript(SceneEntity& original) {
-		auto& ent = DuplicateEntity(original, false);
+		auto& ent = DuplicateEntity(original);
 		if (auto* p_script = ent.GetComponent<ScriptComponent>())
 			p_script->p_instance->OnCreate();
 

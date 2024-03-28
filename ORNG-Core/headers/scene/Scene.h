@@ -55,9 +55,6 @@ namespace ORNG {
 		// Searches only root entities (entities without a parent), returns nullptr if none found
 		SceneEntity* TryFindRootEntityByName(const std::string& name);
 
-		// Searches only root entities (entities without a parent), returns nullptr if none found
-		SceneEntity* TryFindRootEntityByNodeID(uint32_t node_id);
-
 		// Generates a node ref that can be used to locally reference an entity from src "p_src".
 		EntityNodeRef GenEntityNodeRef(SceneEntity* p_src, SceneEntity* p_target);
 
@@ -109,7 +106,10 @@ namespace ORNG {
 		bool m_is_loaded = false;
 		bool active = false;
 
-		SceneEntity& DuplicateEntity(SceneEntity& original, bool duplicating_as_part_of_group);
+		// Favour using a prefab instead of duplicating entities for performance
+		SceneEntity& DuplicateEntity(SceneEntity& original);
+
+		SceneEntity& DuplicateEntityAsPartOfGroup(SceneEntity& original, std::unordered_map<uint64_t, uint64_t>& uuid_lookup);
 
 		// Resolves any EntityNodeRefs locally in the group if possible, so things like joints stay connected properly
 		// This only needs to be used over DuplicateEntity when duplicating sets of entities that reference entities that may share the same parent

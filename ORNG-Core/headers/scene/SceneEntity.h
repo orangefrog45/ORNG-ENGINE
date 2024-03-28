@@ -63,8 +63,10 @@ namespace ORNG {
 			mp_registry->erase<T>(m_entt_handle);
 		}
 
+		// Do not delete children or rearrange them in the scene graph in the callback function
 		void ForEachChildRecursive(std::function<void(entt::entity)> func_ptr);
 
+		// Do not delete children or rearrange them in the scene graph in the callback function
 		void ForEachLevelOneChild(std::function<void(entt::entity)> func_ptr);
 
 		entt::entity GetParent() {
@@ -87,22 +89,6 @@ namespace ORNG {
 			return nullptr;
 		}
 
-		SceneEntity* GetChildWithNodeID(uint32_t node_id) {
-			auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
-			entt::entity current_entity = rel_comp.first;
-
-			for (int i = 0; i < rel_comp.num_children; i++) {
-				auto* p_ent = mp_registry->get<TransformComponent>(current_entity).GetEntity();
-
-				if (p_ent->node_id() == node_id)
-					return p_ent;
-
-				current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
-			}
-
-			return nullptr;
-		}
-
 		entt::registry* GetRegistry() {
 			return mp_registry;
 		}
@@ -111,8 +97,8 @@ namespace ORNG {
 			return mp_scene;
 		}
 
-		void SetParent(SceneEntity& parent_entity, bool retain_node_id = false);
-		void RemoveParent(bool retain_node_id = false);
+		void SetParent(SceneEntity& parent_entity);
+		void RemoveParent();
 
 
 		// Returns a new duplicate entity in the scene
@@ -120,23 +106,18 @@ namespace ORNG {
 #ifdef ORNG_SCRIPT_ENV
 			return ScriptInterface::World::DuplicateEntity(*this);
 #else
-			return mp_scene->DuplicateEntity(*this, false);
+			return mp_scene->DuplicateEntity(*this);
 #endif
 	}
 
-
 		uint64_t GetUUID() const { return static_cast<uint64_t>(uuid); };
-		//uint64_t GetSceneUUID() const { return m_scene_uuid; };
+
 		entt::entity GetEnttHandle() const { return m_entt_handle; };
 
 		std::string name = "Entity";
 
 		UUID<uint64_t> uuid;
 
-		// NOT a globally unique identifier
-		// Unique only to its neighbour entities (entities that share the same immediate parent, including nullptr)
-		// Used to give a unique identifier between children of the same entity, this allows EntityNodeRefs to reference identical paths and still resolve into a predictable entity
-		UUID<uint32_t> node_id;
 	private:
 
 		void ForEachChildRecursiveInternal(std::function<void(entt::entity)> func_ptr, entt::entity search_entity);

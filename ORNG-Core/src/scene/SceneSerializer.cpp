@@ -134,13 +134,28 @@ namespace ORNG {
 		return out.c_str();
 	}
 
+	void SceneSerializer::RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, const std::vector<SceneEntity*>& entities) {
+		for (auto* p_ent : entities) {
+			RemapEntityReferences(uuid_lookup, *p_ent);
+		}
+	}
+
+	void SceneSerializer::RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, SceneEntity& entity) {
+		if (auto* p_joint_comp = entity.GetComponent<JointComponent>()) {
+			for (auto& attachment : p_joint_comp->attachments) {
+				if (uuid_lookup.contains(attachment.second.m_target_uuid))
+					attachment.second.m_target_uuid = uuid_lookup.at(attachment.second.m_target_uuid);
+			}
+		}
+	}
+
 
 	SceneEntity& SceneSerializer::DeserializeEntityUUIDFromString(Scene& scene, const std::string& str) {
 		YAML::Node data = YAML::Load(str);
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
 		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
 	}
-	std::vector<SceneEntity*> SceneSerializer::DeserializePrefabFromString(Scene& scene, const Prefab& prefab) {
+	std::vector<SceneEntity*> SceneSerializer::DeserializePrefab(Scene& scene, const Prefab& prefab) {
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 		ZoneScoped;
 #endif
@@ -169,26 +184,25 @@ namespace ORNG {
 			if (serialized_parent_uuid != 0) {
 				auto* p_parent = scene.GetEntity(id_mappings[serialized_parent_uuid]);
 				ASSERT(p_parent);
-				p_ent->SetParent(*p_parent, true);
+				p_ent->SetParent(*p_parent);
 			}
 
 			DeserializeEntity(scene, entity_node, *p_ent);
 		}
 
-		auto* p_top_parent = ents[0];
-		p_top_parent->node_id = UUID<uint32_t>(); // Randomize top parents node id to prevent conflicts with other node id's on the top parents level
+		RemapEntityReferences(id_mappings, ents);
 
 		for (auto* p_ent : ents) {
-			ResolveEntityNodeRefs(scene, *p_ent);
+			ResolveEntityRefs(scene, *p_ent);
 		}
 
 		return ents;
 	}
 
 
-	void SceneSerializer::DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity) {
+	void SceneSerializer::DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity, bool ignore_parent) {
 		YAML::Node data = YAML::Load(str);
-		DeserializeEntity(scene, data, entity);
+		DeserializeEntity(scene, data, entity, ignore_parent);
 	}
 
 
@@ -199,7 +213,6 @@ namespace ORNG {
 		out << YAML::Key << "Name" << YAML::Value << entity.name;
 		auto* p_parent = entity.GetScene()->GetEntity(entity.GetParent());
 		out << YAML::Key << "ParentID" << YAML::Value << (p_parent ? p_parent->GetUUID() : 0);
-		out << YAML::Key << "NodeID" << YAML::Value << entity.node_id();
 
 		const auto* p_transform = entity.GetComponent<TransformComponent>();
 
@@ -405,15 +418,12 @@ namespace ORNG {
 				if (attachment.p_joint->p_a0 != p_joint->GetEntity() || !attachment.p_joint->p_a1)
 					continue;
 
-				auto ref = entity.GetScene()->GenEntityNodeRef(&entity, attachment.p_joint->p_a1);
-
 				out << YAML::BeginMap;
 
 				Out(out, "LP0", attachment.p_joint->poses[0]);
 				Out(out, "LP1", attachment.p_joint->poses[1]);
 
-				out << "TargetRef";
-				SerializeEntityNodeRef(out, ref);
+				Out(out, "TargetUUID", attachment.p_joint->p_a1->uuid());
 
 				Out(out, "Motion", YAML::Flow);
 				out << YAML::BeginSeq;
@@ -450,8 +460,7 @@ namespace ORNG {
 			p_joint->SetLocalPose(0, joint_node["LP0"].as<glm::vec3>());
 			p_joint->SetLocalPose(1, joint_node["LP1"].as<glm::vec3>());
 
-			DeserializeEntityNodeRef(joint_node["TargetRef"], attachment.m_target_ref);
-			attachment.m_target_ref.mp_src = &entity;
+			attachment.m_target_uuid = joint_node["TargetUUID"].as<uint64_t>();
 
 			p_joint->SetBreakForce(joint_node["ForceThreshold"].as<float>(), joint_node["TorqueThreshold"].as<float>());
 		}
@@ -461,7 +470,7 @@ namespace ORNG {
 		bool err = false;
 
 		for (auto& [p_joint, attachment] : joint.attachments) {
-			auto* p_target_ent = scene.TryFindEntity(attachment.m_target_ref);
+			auto* p_target_ent = scene.GetEntity(attachment.m_target_uuid);
 
 			if (p_target_ent) {
 				attachment.p_joint->Connect(p_target_ent->AddComponent<JointComponent>(), true); // AddComponent will add a JointComp if one doesn't already exist or just return the existing one
@@ -633,11 +642,7 @@ namespace ORNG {
 		for (const auto& instruction : ref.GetInstructions()) {
 			out << instruction;
 		}
-		out << YAML::EndSeq;
-
-		Out(out, "TargetNodeID", ref.m_target_node_id);
-
-		out << YAML::EndMap;
+		out << YAML::EndSeq << YAML::EndMap;
 	}
 
 	void SceneSerializer::DeserializeEntityNodeRef(const YAML::Node& node, EntityNodeRef& ref) {
@@ -645,7 +650,7 @@ namespace ORNG {
 			ref.m_instructions.push_back(instruction.as<std::string>());
 		}
 
-		ref.m_target_node_id = node["TargetNodeID"].as<uint32_t>();
+		//ref.m_target_node_id = node["TargetNodeID"].as<uint32_t>();
 	}
 
 
@@ -669,26 +674,25 @@ namespace ORNG {
 		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), std::move(material_vec));
 	}
 
-	void SceneSerializer::ResolveEntityNodeRefs(Scene& scene, SceneEntity& entity) {
+	void SceneSerializer::ResolveEntityRefs(Scene& scene, SceneEntity& entity) {
 		if (auto* p_joint = entity.GetComponent<JointComponent>())
 			ConnectJointComp(scene, *p_joint);
 	}
 
 
-	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity) {
+	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent) {
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 		ZoneScoped;
 #endif
 		auto* p_replacement_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
-		if (parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
+		if (!ignore_parent && parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
 			entity.SetParent(*scene.GetEntity(parent_id)); 
 
 		entity.name = entity_node["Name"].as<std::string>();
-		entity.node_id = UUID(entity_node["NodeID"].as<uint32_t>());
 
-		std::unordered_map <std::string, std::function<void()>> deserializers = {
+		std::unordered_map<std::string, std::function<void()>> deserializers = {
 			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }}, 
 			{"MeshComp",[&] { DeserializeMeshComp(entity_node["MeshComp"], entity); }},
 			{"PhysicsComp",[&] { DeserializePhysicsComp(entity_node["PhysicsComp"], entity); }}, 
@@ -706,7 +710,7 @@ namespace ORNG {
 
 		auto it = entity_node.begin();
 		// Skip the non-component fields
-		std::advance(it, 4);
+		std::advance(it, 3);
 		for (it; it != entity_node.end(); it++) {
 			std::string tag = (*it).first.as<std::string>();
 			deserializers[tag]();
@@ -836,7 +840,7 @@ namespace ORNG {
 
 		// Resolve/connect any node refs now scene tree is fully built
 		for (auto* p_entity : scene.m_entities) {
-			ResolveEntityNodeRefs(scene, *p_entity);
+			ResolveEntityRefs(scene, *p_entity);
 		}
 
 		// Directional light

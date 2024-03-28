@@ -183,18 +183,17 @@ namespace ORNG {
 			friend class Scene;
 		public:
 			JointAttachment() = default;
-			JointAttachment(const EntityNodeRef& target_ref, Joint* _p_data) : m_target_ref(target_ref), p_joint(_p_data) {}
+			JointAttachment(uint64_t target_uuid, Joint* _p_data) : m_target_uuid(target_uuid), p_joint(_p_data) {}
 
 			Joint* p_joint = nullptr;
 
-			const EntityNodeRef& GetTargetRef() const noexcept {
-				return m_target_ref;
+			uint64_t GetTargetUUID() const noexcept {
+				return m_target_uuid;
 			}
 
 		private:
-			// Empty if p_joint is not owned by entity this is attached to
-			// Also empty if the joint isn't connected to anything yet
-			EntityNodeRef m_target_ref{ nullptr };
+			static constexpr uint64_t INVALID_UUID = 0;
+			uint64_t m_target_uuid = INVALID_UUID;
 		};
 
 		// Returns an uninitialized joint, Pose/Motion can be set up with SetMotion/LocalPose before or after joint is connected

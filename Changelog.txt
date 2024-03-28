@@ -1,3 +1,6 @@
+28/3/24:
+-Reworked and optimized entity references, NodeIDs removed
+
 21/3/24:
 -Tracy profiler integration
 -Optimizations to MeshInstanceGroups, tombstone transforms now used to avoid frequent re-allocations

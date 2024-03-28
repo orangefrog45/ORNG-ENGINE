@@ -3,8 +3,7 @@
 
 namespace ORNG {
 
-	void SceneEntity::SetParent(SceneEntity& parent_entity, bool retain_node_id) {
-		RemoveParent(retain_node_id);
+	void SceneEntity::SetParent(SceneEntity& parent_entity) {
 		auto* p_comp = AddComponent<RelationshipComponent>();
 		auto* p_parent_comp = parent_entity.GetComponent<RelationshipComponent>();
 
@@ -43,7 +42,7 @@ namespace ORNG {
 		Events::EventManager::DispatchEvent(Events::ECS_Event<RelationshipComponent>{ Events::ECS_EventType::COMP_UPDATED, p_comp });
 	}
 
-	void SceneEntity::RemoveParent(bool retain_node_id) {
+	void SceneEntity::RemoveParent() {
 		auto* p_comp = AddComponent<RelationshipComponent>();
 
 		if (p_comp->parent == entt::null)
@@ -68,10 +67,6 @@ namespace ORNG {
 
 		GetComponent<TransformComponent>()->m_parent_handle = entt::null;
 
-		// Re-randomize node_id to prevent collisions between duplicated child entities
-		if (!retain_node_id)
-			node_id = UUID<uint32_t>();
-
 		Events::EventManager::DispatchEvent(Events::ECS_Event<RelationshipComponent>{ Events::ECS_EventType::COMP_UPDATED, p_comp });
 	}
 
@@ -82,9 +77,11 @@ namespace ORNG {
 		entt::entity current_entity = rel_comp.first;
 
 		for (int i = 0; i < rel_comp.num_children; i++) {
+			// Store 'next' up here in case func_ptr ends up changing it which can cause this loop to jump between entities
+			auto next = mp_registry->get<RelationshipComponent>(current_entity).next;
 			func_ptr(current_entity);
 			ForEachChildRecursiveInternal(func_ptr, current_entity);
-			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+			current_entity = next;
 		}
 	}
 
@@ -93,8 +90,10 @@ namespace ORNG {
 		entt::entity current_entity = rel_comp.first;
 
 		for (int i = 0; i < rel_comp.num_children; i++) {
+			// Store 'next' up here in case func_ptr ends up changing it which can cause this loop to jump between entities
+			auto next = mp_registry->get<RelationshipComponent>(current_entity).next;
 			func_ptr(current_entity);
-			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+			current_entity = next;
 		}
 	}
 
@@ -104,9 +103,11 @@ namespace ORNG {
 		entt::entity current_entity = rel_comp.first;
 
 		for (int i = 0; i < rel_comp.num_children; i++) {
+			// Store 'next' up here in case func_ptr ends up changing it which can cause this loop to jump between entities
+			auto next = mp_registry->get<RelationshipComponent>(current_entity).next;
 			func_ptr(current_entity);
 			ForEachChildRecursiveInternal(func_ptr, current_entity);
-			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+			current_entity = next;
 		}
 	}
 

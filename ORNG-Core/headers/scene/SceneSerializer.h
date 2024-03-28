@@ -40,21 +40,28 @@ namespace ORNG {
 		static void SerializeEntity(SceneEntity& entity, YAML::Emitter& out);
 
 		// Entity argument is the entity that the data will be loaded into
-		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity);
+		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent = false);
 
 		// Called on each entity after the scene tree is fully built, resolves any EntityNodeRefs into actual entities and connects them appropiately (e.g joint connections)
 		// Any references to neighbour entities (same parent) that are before "neighbour_start" aren't resolved unless a duplicate is found after it, this allows entity duplication to work nicely with EntityNodeRefs
-		static void ResolveEntityNodeRefs(Scene& scene, SceneEntity& entity);
+		static void ResolveEntityRefs(Scene& scene, SceneEntity& entity);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 
 		static std::string SerializeEntityArrayIntoString(const std::vector<SceneEntity*>& entities);
 
 		// Entity argument is the entity that the data will be loaded into
-		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity);
+		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity, bool ignore_parent = false);
 
 		// Entities created by this function
-		static std::vector<SceneEntity*> DeserializePrefabFromString(Scene& scene, const Prefab& prefab);
+		static std::vector<SceneEntity*> DeserializePrefab(Scene& scene, const Prefab& prefab);
+
+		// Any entities which have components that reference other entities via UUID (e.g joints) have these references switched to point to an entity in the lookup map if a valid UUID mapping exists for it
+		// Any references that point to entities not contained in the lookup map will not be affected
+		// UUID lookup should be {k: old_uuid, v: new_uuid}
+		static void RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, const std::vector<SceneEntity*>& entities);
+
+		static void RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, SceneEntity& entity);
 
 		static SceneEntity& DeserializeEntityUUIDFromString(Scene& scene, const std::string& str);
 

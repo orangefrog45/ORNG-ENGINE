@@ -28,7 +28,7 @@ Cloning this repo recursively and opening it with VS2022 should allow you to com
 
 ### Currently, features include:
 * Visual editor with a state-preserving simulation mode and lua console, uses ImGui for UI
-* Deferred PBR-based 3D renderer
+* Deferred PBR 3D renderer
 * Cascaded voxel cone traced global illumination
 * C++ scripting (supports runtime editing/reloading)
 * 3D GPU Physics using Nvidia Physx
