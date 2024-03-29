@@ -2666,10 +2666,13 @@ namespace ORNG {
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_state.selected_entity_ids[0] as origin
 					if (auto* p_parent_transform = p_transform->GetParent()) {
 						glm::vec3 s = p_parent_transform->GetAbsScale();
-						//glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z));
-						//glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
-						//glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
-						//p_transform->SetOrientation(glm::degrees(total));
+						glm::mat4 rot = glm::mat4(glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)));
+						rot[3][3] = 1.0;
+
+						glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * rot;
+						glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
+						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
+						p_transform->SetOrientation(glm::degrees(total));
 					}
 					else {
 						auto orientation = glm::degrees(glm::eulerAngles(glm::quat(glm::radians(delta_rotation)) * glm::quat(glm::radians(p_transform->m_orientation))));
