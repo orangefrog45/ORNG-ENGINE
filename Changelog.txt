@@ -1,3 +1,10 @@
+29/3/24:
+-Improved way engine functions are exposed to scripts to reduce boilerplate
+-Scene elapsed time
+-Switched to sphere mesh for material previews and added an environment map
+-Rewriting and optimizing PhysicsSystem
+-Further optimization to RebuildMatrix
+
 28/3/24:
 -Reworked and optimized entity references, NodeIDs removed
 -Halved MeshInstanceGroups memory costs and optimized memory access, 2-3x speedup

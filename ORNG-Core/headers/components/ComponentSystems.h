@@ -157,26 +157,13 @@ namespace ORNG {
 			VEHICLE
 		};
 
-		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
-		SceneEntity* TryGetEntityFromPxActor(const physx::PxActor* p_actor) {
-			if (m_entity_lookup.contains(p_actor))
-				return m_entity_lookup[p_actor].first;
-			else
-				return nullptr;
-		}
-
-		// Returns ptr to entity containing the physics component that has p_actor or nullptr if no matches found
-		std::optional<std::pair<SceneEntity*, ActorType>> TryGetEntityAndTypeFromPxActor(const physx::PxActor* p_actor) {
-			if (m_entity_lookup.contains(p_actor))
-				return m_entity_lookup[p_actor];
-			else
-				return std::nullopt;
-		}
 
 		bool InitVehicle(VehicleComponent* p_comp);
 
 
 	private:
+		static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type);
+
 		void InitComponent(PhysicsComponent* p_comp);
 		void InitComponent(CharacterControllerComponent* p_comp);
 		void InitComponent(VehicleComponent* p_comp);
@@ -220,12 +207,6 @@ namespace ORNG {
 
 		std::unordered_map<const MeshAsset*, physx::PxTriangleMesh*> m_triangle_meshes;
 
-
-		// Quick way to find an entity from its corresponding phys comps PxRigidActor
-		std::unordered_map<const physx::PxActor*, std::pair<SceneEntity*, ActorType>> m_entity_lookup;
-
-		std::unordered_map<physx::PxD6Joint*, JointComponent::Joint*> m_joint_lookup;
-
 		// Joints that have been broken during the simulation and logged with onConstraintBreak are stored here to disconnect them from entities after simulate() has finished
 		std::vector<JointComponent::Joint*> m_joints_to_break;
 
@@ -233,14 +214,14 @@ namespace ORNG {
 		JointComponent::Joint* mp_currently_breaking_joint = nullptr;
 
 		// Queue of entities that need OnCollision script events (if they have one) to fire, has to be done outside of simulation due to restrictions with rigidbody modification during simulation, processed each frame in OnUpdate
-		std::vector<std::pair<SceneEntity*, SceneEntity*>> m_entity_collision_queue;
+		std::vector<std::pair<entt::entity, entt::entity>> m_entity_collision_queue;
 
 		enum TriggerEvent {
 			ENTERED,
 			EXITED
 		};
 
-		std::vector<std::tuple<TriggerEvent, SceneEntity*, SceneEntity*>> m_trigger_event_queue;
+		std::vector<std::tuple<TriggerEvent, entt::entity, entt::entity>> m_trigger_event_queue;
 
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;

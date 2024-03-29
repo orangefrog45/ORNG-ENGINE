@@ -260,6 +260,8 @@ namespace ORNG {
 		}
 		vehicle.step(FLT_MIN, m_vehicle_context);
 
+		vehicle.mPhysXState.physxActor.rigidBody->userData = p_comp->GetEntity();
+
 		return result;
 	}
 
@@ -422,8 +424,6 @@ namespace ORNG {
 			p_joint_comp_target->attachments.erase(p_joint);
 		}
 
-		m_joint_lookup.erase(p_joint->p_joint);
-
 		mp_currently_breaking_joint = nullptr;
 
 		delete p_joint;
@@ -478,6 +478,9 @@ namespace ORNG {
 			connection.p_joint->p_joint->setMotion((PxD6Axis::Enum)i, connection.p_joint->motion[(PxD6Axis::Enum)i]);
 		}
 
+		// Store JointComponent::Joint*
+		connection.p_joint->p_joint->userData = connection.p_joint;
+
 		// Cache A1
 		connection.p_joint->p_a1 = connection.p_target->GetEntity();
 
@@ -488,9 +491,6 @@ namespace ORNG {
 		JointComponent::JointAttachment a;
 		a.p_joint = connection.p_joint;
 		connection.p_target->attachments[connection.p_joint] = a;
-
-		// Store in joint lookup map for quick retrieval of the corresponding JointComponent::Joint from a PxD6Joint
-		m_joint_lookup[connection.p_joint->p_joint] = connection.p_joint;
 	}
 
 	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<JointComponent>& t_event) {
@@ -515,8 +515,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::RemoveComponent(PhysicsComponent* p_comp) {
-		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_rigid_actor));
-
 		mp_phys_scene->removeActor(*p_comp->p_rigid_actor);
 		p_comp->p_rigid_actor->release();
 
@@ -637,7 +635,6 @@ namespace ORNG {
 		if (was_previously_initialized) {
 			p_comp->p_shape->release();
 			p_comp->p_rigid_actor->release();
-			m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_rigid_actor));
 		}
 		else {
 			p_comp->p_material = p_comp->p_material ? p_comp->p_material : AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID);
@@ -685,7 +682,8 @@ namespace ORNG {
 				p_comp->p_rigid_actor = PxCreateDynamic(*Physics::GetPhysics(), current_transform, *p_comp->p_shape, 1.f);
 			}
 
-			m_entity_lookup[static_cast<const PxActor*>(p_comp->p_rigid_actor)] = std::make_pair(p_comp->GetEntity(), ActorType::RIGID_BODY);
+			p_comp->p_rigid_actor->userData = p_comp->GetEntity();
+
 			mp_phys_scene->addActor(*p_comp->p_rigid_actor);
 		}
 
@@ -708,18 +706,18 @@ namespace ORNG {
 
 
 
-	static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type) {
+	void PhysicsSystem::UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type) {
 		PxVec3 phys_pos = pose.p;
 		PxQuatT phys_rot = pose.q;
 
 		glm::quat phys_quat = glm::quat(phys_rot.w, phys_rot.x, phys_rot.y, phys_rot.z);
 		glm::vec3 orientation = glm::degrees(glm::eulerAngles(phys_quat));
 
-		transform.SetAbsolutePosition(glm::vec3(phys_pos.x, phys_pos.y, phys_pos.z));
-
 		// Only set orientation from normal rigid bodies (character controllers causing bugs)
 		if (type == PhysicsSystem::ActorType::RIGID_BODY) [[likely]]
-			transform.SetAbsoluteOrientation(orientation);
+			transform.m_orientation = orientation - (transform.m_abs_orientation - transform.m_orientation);
+
+		transform.SetAbsolutePosition(glm::vec3(phys_pos.x, phys_pos.y, phys_pos.z));
 	}
 
 
@@ -748,40 +746,39 @@ namespace ORNG {
 		mp_phys_scene->fetchResults(true);
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
+		ORNG_TRACY_PROFILE;
 
 		for (int i = 0; i < num_active_actors; i++) {
-			if (auto ret = TryGetEntityAndTypeFromPxActor(active_actors[i]); ret.has_value()) {
-				auto& [p_ent, type] = ret.value();
-				auto* p_transform = p_ent->GetComponent<TransformComponent>();
-				mp_currently_updating_transform = p_transform;
-				UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform, type);
-				mp_currently_updating_transform = nullptr;
-			}
+			SceneEntity* p_ent = static_cast<SceneEntity*>(active_actors[i]->userData);
+			auto* p_transform = p_ent->GetComponent<TransformComponent>();
+			mp_currently_updating_transform = p_transform;
+			UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform, ActorType::RIGID_BODY);
+			mp_currently_updating_transform = nullptr;
 		}
 
 
 		// Process OnCollision callbacks
 		for (auto& pair : m_entity_collision_queue) {
-			auto* p_first_script = pair.first->GetComponent<ScriptComponent>();
-			auto* p_second_script = pair.second->GetComponent<ScriptComponent>();
+			auto* p_first_script = mp_registry->try_get<ScriptComponent>(pair.first);
+			auto* p_second_script = mp_registry->try_get<ScriptComponent>(pair.second);
 			try {
 				if (p_first_script)
-					p_first_script->p_instance->OnCollide(pair.second);
+					p_first_script->p_instance->OnCollide(mp_registry->get<TransformComponent>(pair.second).GetEntity());
 
 				if (p_second_script)
-					p_second_script->p_instance->OnCollide(pair.first);
+					p_second_script->p_instance->OnCollide(mp_registry->get<TransformComponent>(pair.first).GetEntity());
 			}
 			catch (std::exception e) {
-				ORNG_CORE_ERROR("Script OnCollision err for collision pair '{0}', '{1}' : '{2}'", pair.first->name, pair.second->name, e.what());
+				ORNG_CORE_ERROR("Script OnCollision err for collision pair '{0}', '{1}' : '{2}'", p_first_script->GetEntity()->name, p_second_script->GetEntity()->name, e.what());
 			}
 		}
 #
-		for (auto& tuple : m_trigger_event_queue) {
-			auto [event_type, p_ent, p_trigger] = tuple;
-			auto* p_script = p_trigger->GetComponent<ScriptComponent>();
+		for (auto& [event_type, ent, trigger] : m_trigger_event_queue) {
+			auto* p_script = mp_registry->try_get<ScriptComponent>(trigger);
 			if (!p_script)
 				continue;
 
+			auto* p_ent = mp_registry->try_get<TransformComponent>(ent)->GetEntity();
 			try {
 				if (event_type == ENTERED)
 					p_script->p_instance->OnTriggerEnter(p_ent);
@@ -789,7 +786,7 @@ namespace ORNG {
 					p_script->p_instance->OnTriggerLeave(p_ent);
 			}
 			catch (std::exception e) {
-				ORNG_CORE_ERROR("Script trigger event err for pair '{0}', trigger: '{1}' : '{2}'", p_ent->name, p_trigger->name, e.what());
+				ORNG_CORE_ERROR("Script trigger event err for pair '{0}', trigger: '{1}' : '{2}'", p_ent->name, p_script->GetEntity()->name, e.what());
 			}
 		}
 
@@ -813,9 +810,6 @@ namespace ORNG {
 
 
 	void PhysicsSystem::RemoveComponent(CharacterControllerComponent* p_comp) {
-		// Remove from cache
-		m_entity_lookup.erase(static_cast<const PxActor*>(p_comp->p_controller->getActor()));
-
 		p_comp->p_controller->release();
 	};
 
@@ -828,9 +822,7 @@ namespace ORNG {
 		desc.stepOffset = 1.8f;
 		p_comp->p_controller = mp_controller_manager->createController(desc);
 
-		// Cache entity
-		m_entity_lookup[static_cast<const PxActor*>(p_comp->p_controller->getActor())] = std::make_pair(p_comp->GetEntity(), ActorType::CHARACTER_CONTROLLER);
-
+		static_cast<PxCapsuleController*>(p_comp->p_controller)->getActor()->userData = p_comp->GetEntity();
 		p_comp->p_controller->getActor()->setGlobalPose(TransformComponentToPxTransform(*p_comp->GetEntity()->GetComponent<TransformComponent>()));
 	}
 
@@ -840,15 +832,15 @@ namespace ORNG {
 
 	void PhysicsSystem::PhysCollisionCallback::onContact(const PxContactPairHeader& pairHeader, const PxContactPair* pairs, PxU32 nbPairs)
 	{
-		SceneEntity* p_first_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[0]);
-		SceneEntity* p_second_ent = mp_system->TryGetEntityFromPxActor(pairHeader.actors[1]);
+		SceneEntity* p_first_ent = static_cast<SceneEntity*>(pairHeader.actors[0]->userData);
+		SceneEntity* p_second_ent = static_cast<SceneEntity*>(pairHeader.actors[1]->userData);
 
 		if (!p_first_ent || !p_second_ent) {
 			ORNG_CORE_ERROR("PhysCollisionCallback failed to find entities from collision event");
 			return;
 		}
 
-		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent, p_second_ent));
+		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent->GetEnttHandle(), p_second_ent->GetEnttHandle()));
 	}
 
 	void PhysicsSystem::PhysCollisionCallback::onConstraintBreak(PxConstraintInfo* constraints, PxU32 count) {
@@ -859,7 +851,7 @@ namespace ORNG {
 				PxD6Joint* joint = reinterpret_cast<PxD6Joint*>(constraints[i].externalReference);
 
 				// Remove the joint from any entities it is connected to
-				mp_system->m_joints_to_break.push_back(mp_system->m_joint_lookup[joint]);
+				mp_system->m_joints_to_break.push_back(static_cast<JointComponent::Joint*>(joint->userData));
 			}
 		}
 	};
@@ -870,16 +862,16 @@ namespace ORNG {
 			if (pairs[i].flags & (PxTriggerPairFlag::eREMOVED_SHAPE_TRIGGER | PxTriggerPairFlag::eREMOVED_SHAPE_OTHER))
 				continue;
 
-			auto* p_ent = mp_system->TryGetEntityFromPxActor(pairs[i].otherActor);
-			if (auto* p_trigger = mp_system->TryGetEntityFromPxActor(pairs[i].triggerActor); p_trigger && p_ent) {
+			auto* p_ent = static_cast<SceneEntity*>(pairs[i].otherActor->userData);
+			if (auto* p_trigger = static_cast<SceneEntity*>(pairs[i].triggerActor->userData); p_trigger && p_ent) {
 				if (auto* p_script = p_trigger->GetComponent<ScriptComponent>()) {
 					if (pairs[i].status == PxPairFlag::eNOTIFY_TOUCH_FOUND) {
 						// Object entered the trigger
-						mp_system->m_trigger_event_queue.push_back(std::make_tuple(ENTERED, p_ent, p_trigger));
+						mp_system->m_trigger_event_queue.push_back(std::make_tuple(ENTERED, p_ent->GetEnttHandle(), p_trigger->GetEnttHandle()));
 					}
 					else if (pairs[i].status == PxPairFlag::eNOTIFY_TOUCH_LOST) {
 						// Object left the trigger
-						mp_system->m_trigger_event_queue.push_back(std::make_tuple(EXITED, p_ent, p_trigger));
+						mp_system->m_trigger_event_queue.push_back(std::make_tuple(EXITED, p_ent->GetEnttHandle(), p_trigger->GetEnttHandle()));
 					}
 				}
 			}
@@ -895,7 +887,7 @@ namespace ORNG {
 		if (mp_phys_scene->raycast(ConvertVec3<PxVec3>(origin), ConvertVec3<PxVec3>(unit_dir), max_distance, ray_buffer)) {
 			PxRigidActor* p_closest_actor = ray_buffer.block.actor;
 
-			ret.p_entity = TryGetEntityFromPxActor(static_cast<const PxActor*>(p_closest_actor));
+			ret.p_entity = static_cast<SceneEntity*>(p_closest_actor->userData);
 			if (!ret.p_entity) {
 				ORNG_CORE_ERROR("Failed to find entity from raycast results");
 				ret.p_entity = nullptr;
@@ -919,7 +911,7 @@ namespace ORNG {
 
 		if (mp_phys_scene->overlap(geom, PxTransform(ConvertVec3<PxVec3>(pos)), overlap_buffer)) {
 			for (int i = 0; i < overlap_buffer.getNbAnyHits(); i++) {
-				auto* p_ent = TryGetEntityFromPxActor(static_cast<const PxActor*>(overlap_hits[i].actor));
+				auto* p_ent = static_cast<SceneEntity*>(overlap_hits[i].actor->userData);
 
 				if (!p_ent) {
 					ORNG_CORE_ERROR("Failed to find entity from overlap result");

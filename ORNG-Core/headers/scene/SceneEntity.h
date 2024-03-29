@@ -3,18 +3,19 @@
 
 #ifndef ORNG_SCRIPT_ENV
 #include "Scene.h"
+#else
+#include "SI.h"
 #endif
+
 #include "util/UUID.h"
 #include "util/util.h"
-#include "scripting/SceneScriptInterface.h"
-
-/* Using the horrible template type restriction method instead of std::derived_from to support intellisense in scripts, doesn't work with concepts */
 namespace ORNG {
 
 	class SceneEntity {
 		friend class EditorLayer;
 		friend class Scene;
 		friend class SceneSerializer;
+		friend class PhysicsSystem;
 	public:
 		SceneEntity() = delete;
 		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
@@ -104,7 +105,7 @@ namespace ORNG {
 		// Returns a new duplicate entity in the scene
 		SceneEntity& Duplicate() {
 #ifdef ORNG_SCRIPT_ENV
-			return ScriptInterface::World::DuplicateEntity(*this);
+			return si->DuplicateEntity(*this);
 #else
 			return mp_scene->DuplicateEntity(*this);
 #endif

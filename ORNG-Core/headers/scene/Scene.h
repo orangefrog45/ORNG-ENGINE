@@ -18,7 +18,7 @@ namespace ORNG {
 		friend class SceneSerializer;
 		friend class SceneEntity;
 		friend class AssetManagerWindow;
-		Scene() = default;
+		Scene();
 		~Scene();
 
 		void Update(float ts);
@@ -89,8 +89,12 @@ namespace ORNG {
 			return m_registry;
 		}
 
-		bool IsLoaded() {
+		bool IsLoaded() const noexcept {
 			return m_is_loaded;
+		}
+
+		double GetTimeElapsed() const noexcept {
+			return m_time_elapsed;
 		}
 
 		UUID<uint64_t> uuid;
@@ -105,6 +109,11 @@ namespace ORNG {
 		void SetScriptState();
 		bool m_is_loaded = false;
 		bool active = false;
+
+		// Delta time accumulated over each call to Update(), different from application time
+		double m_time_elapsed = 0.0;
+
+		SI m_si;
 
 		// Favour using a prefab instead of duplicating entities for performance
 		SceneEntity& DuplicateEntity(SceneEntity& original);

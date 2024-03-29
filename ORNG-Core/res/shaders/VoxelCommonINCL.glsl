@@ -17,3 +17,5 @@ uint convVec4ToRGBA8(vec4 val) {
 ivec3 ApplyMipFaceTexCoordOffset(ivec3 coord, uint face, uint mip_dim) {
     return coord + ivec3(0, 0, face * mip_dim);
 }
+
+

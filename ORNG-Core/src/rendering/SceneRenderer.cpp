@@ -19,7 +19,6 @@
 #include "scene/MeshInstanceGroup.h"
 // Material flags that can go through the normal gbuffer/shader pipeline with just the fragment/vertex (no tessellation) shaders
 #define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
-#define VOXEL_GI
 
 
 namespace ORNG {
@@ -56,7 +55,7 @@ namespace ORNG {
 		POINTLIGHT
 	};
 
-
+#define VOXEL_MIP_RES 128
 	void SceneRenderer::I_Init() {
 		mp_shader_library = &Renderer::GetShaderLibrary();
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
@@ -408,9 +407,9 @@ namespace ORNG {
 		m_scene_voxel_tex_c1_normals.SetSpec(voxel_spec_r32ui);
 
 		Texture3DSpec voxel_mip_spec = voxel_spec_rgbaf;
-		voxel_mip_spec.width = 128;
-		voxel_mip_spec.height = 128;
-		voxel_mip_spec.layer_count = 128 * 6; // Each face starts at z = face_index * 128
+		voxel_mip_spec.width = VOXEL_MIP_RES;
+		voxel_mip_spec.height = VOXEL_MIP_RES;
+		voxel_mip_spec.layer_count = VOXEL_MIP_RES * 6; // Each face starts at z = face_index * 256
 		voxel_mip_spec.generate_mipmaps = true;
 		voxel_mip_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		voxel_mip_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -458,7 +457,12 @@ namespace ORNG {
 	}
 
 	glm::mat4 PxTransformToGlmMat4(PxTransform t) {
-		return ExtraMath::Init3DTranslationTransform(t.p.x, t.p.y, t.p.z) * glm::mat4_cast(glm::quat(t.q.w, t.q.x, t.q.y, t.q.z));
+		auto mat = glm::mat4_cast(glm::quat(t.q.w, t.q.x, t.q.y, t.q.z));
+		mat[3][0] = t.p.x;
+		mat[3][1] = t.p.y;
+		mat[3][2] = t.p.z;
+		mat[3][3] = 1.0;
+		return mat;
 	}
 
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
@@ -466,6 +470,8 @@ namespace ORNG {
 		glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
 		glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
 		glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
+
+#ifdef VOXEL_GI
 
 		// Only one cascade updated per frame
 		m_active_voxel_cascade_idx = FrameTiming::GetFrameCount() % 2;
@@ -486,14 +492,16 @@ namespace ORNG {
 			}
 			break;
 		}
-	
+#endif
 		// Update lighting
 		UpdateLightSpaceMatrices(p_cam);
 		m_pointlight_system.OnUpdate(&mp_scene->m_registry);
 		m_spotlight_system.OnUpdate(&mp_scene->m_registry);
 		mp_shader_library->SetGlobalLighting(mp_scene->directional_light);
 
-		mp_shader_library->SetCommonUBO(cam_pos, p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, p_cam->zNear, m_voxel_aligned_cam_positions[0], m_voxel_aligned_cam_positions[1]);
+		mp_shader_library->SetCommonUBO(cam_pos, p_cam_transform->forward, p_cam_transform->right, p_cam_transform->up, p_output_tex->GetSpec().width, p_output_tex->GetSpec().height, p_cam->zFar, 
+			p_cam->zNear, m_voxel_aligned_cam_positions[0], m_voxel_aligned_cam_positions[1], mp_scene->GetTimeElapsed());
+
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 
 		CheckResizeScreenSizeTextures(p_output_tex);
@@ -558,11 +566,12 @@ namespace ORNG {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
 
+#ifdef VOXEL_GI
 			if (m_active_voxel_cascade_idx == 0)
 				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::MAIN, m_voxel_aligned_cam_positions[0]);
 			else
 				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::MAIN, m_voxel_aligned_cam_positions[1]);
-
+#endif
 			DoGBufferPass(p_cam, settings);
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 			DoLightingPass(settings.p_output_tex);
@@ -1168,6 +1177,8 @@ namespace ORNG {
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces_c0.GetTextureHandle(), GL_TEXTURE5, false);
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_voxel_mip_faces_c1.GetTextureHandle(), GL_TEXTURE6, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex_c0.GetTextureHandle(), GL_TEXTURE8, false);
+		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_scene_voxel_tex_c1.GetTextureHandle(), GL_TEXTURE9, false);
 
 		m_lighting_shader->ActivateProgram();
 

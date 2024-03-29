@@ -29,6 +29,8 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class SceneEntity;
 		friend class TransformHierarchySystem;
+		friend class PhysicsSystem;
+
 		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
 
 

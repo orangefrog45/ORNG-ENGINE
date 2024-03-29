@@ -18,7 +18,86 @@ namespace ORNG {
 			UnloadScene();
 	}
 
+	Scene::Scene() {
+
+		m_si.CreateEntity = 
+			[this](const std::string& str) -> SceneEntity& {
+				return CreateEntity(str);
+			};
+
+		m_si.GetEntityByEnttHandle = 
+			[this](entt::entity id) -> SceneEntity& {
+				auto* p_ent = GetEntity(id);
+
+				if (!p_ent)
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with entt handle {} not found", (uint32_t)id)); // Caught in Scene::Update
+
+				return *p_ent;
+			};
+
+		m_si.GetEntityByName = 
+			[this](const std::string& name) -> SceneEntity& {
+				auto* p_ent = GetEntity(name);
+
+				if (!p_ent)
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with name {} not found", name)); // Caught in Scene::Update
+
+				return *p_ent;
+			};
+
+		m_si.DeleteEntity = 
+			[this](SceneEntity* p_entity) {
+				if (!VectorContains(m_entity_deletion_queue, p_entity))
+					m_entity_deletion_queue.push_back(p_entity);
+			};
+
+		m_si.DuplicateEntity = 
+			[this](SceneEntity& ent) -> SceneEntity& {
+				return DuplicateEntityCallScript(ent);
+			};
+
+		m_si.InstantiatePrefab =
+			[this](uint64_t uuid) -> SceneEntity& {
+				auto* p_prefab = AssetManager::GetAsset<Prefab>(uuid);
+				if (!p_prefab)
+					throw std::runtime_error(std::format("InstantiatePrefab failed, UUID '{}' does not match any prefab asset", uuid));
+
+				return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
+			};
+		m_si.Raycast =
+			[this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
+				return physics_system.Raycast(origin, unit_dir, max_distance);
+			};
+
+		m_si.GetEntityByUUID =
+			[this](uint64_t id) -> SceneEntity& {
+				auto* p_ent = GetEntity(id);
+
+				if (!p_ent)
+					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with uuid {} not found", id)); // Caught in Scene::Update
+
+				return *p_ent;
+			};
+
+		m_si.OverlapQuery =
+			[this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
+				return physics_system.OverlapQuery(geom, pos, max_hits);
+			};
+
+		m_si.GetSceneTimeElapsed =
+			[this]() {
+				return m_time_elapsed;
+			};
+
+		m_si.GetActiveCamera =
+			[this] {
+			return m_camera_system.GetActiveCamera();
+			};
+
+	}
+
 	void Scene::Update(float ts) {
+		m_time_elapsed += ts;
 
 		m_camera_system.OnUpdate();
 		m_audio_system.OnUpdate();
@@ -386,61 +465,8 @@ namespace ORNG {
 
 	void Scene::SetScriptState() {
 		for (auto* p_script_asset : AssetManager::GetView<ScriptAsset>()) {
-			p_script_asset->symbols.SceneGetEntityByNameSetter([this](const std::string& name) -> SceneEntity& {
-				auto* p_ent = GetEntity(name);
-
-				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with name {} not found", name)); // Caught in Scene::Update
-
-				return *p_ent;
-				});
-
-			p_script_asset->symbols.SceneEntityCreationSetter([this](const std::string& str) -> SceneEntity& {
-				return CreateEntity(str);
-				});
-
-			p_script_asset->symbols.SceneEntityDeletionSetter([this](SceneEntity* p_entity) {
-				if (!VectorContains(m_entity_deletion_queue, p_entity))
-					m_entity_deletion_queue.push_back(p_entity);
-				});
-
-			p_script_asset->symbols.SceneEntityDuplicationSetter([this](SceneEntity& ent) -> SceneEntity& {
-				return DuplicateEntityCallScript(ent);
-				});
-
-			p_script_asset->symbols.ScenePrefabInstantSetter([this](uint64_t uuid) -> SceneEntity& {
-				auto* p_prefab = AssetManager::GetAsset<Prefab>(uuid);
-				if (!p_prefab)
-					throw std::runtime_error(std::format("InstantiatePrefab failed, UUID '{}' does not match any prefab asset", uuid));
-
-				return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
-				});
-
-			p_script_asset->symbols.SceneRaycastSetter([this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
-				return physics_system.Raycast(origin, unit_dir, max_distance);
-				});
-
-			p_script_asset->symbols.SceneGetEntitySetter([this](uint64_t id) -> SceneEntity& {
-				auto* p_ent = GetEntity(id);
-
-				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with uuid {} not found", id)); // Caught in Scene::Update
-
-				return *p_ent;
-				});
-
-			p_script_asset->symbols.SceneGetEntityEnttHandleSetter([this](entt::entity id) -> SceneEntity& {
-				auto* p_ent = GetEntity(id);
-
-				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with entt handle {} not found", (uint32_t)id)); // Caught in Scene::Update
-
-				return *p_ent;
-				});
-
-			p_script_asset->symbols.SceneOverlapQuerySetter([this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
-				return physics_system.OverlapQuery(geom, pos, max_hits);
-				});
+			if (p_script_asset->symbols._SI_Setter)
+				p_script_asset->symbols._SI_Setter(&m_si);
 		}
 	}
 
@@ -450,6 +476,7 @@ namespace ORNG {
 			return;
 		}
 		ORNG_CORE_INFO("Unloading scene...");
+		m_time_elapsed = 0.0;
 
 
 		while (!m_entities.empty()) {

@@ -25,7 +25,7 @@ layout(std140, binding = 2) uniform commons{
 	float cam_zfar;
 	float cam_znear;
 	float delta_time;
-	double time_elapsed_precise;
+	float time_elapsed_scene;
 } ubo_common;
 
 layout(std140, binding = 0) uniform Matrices{

@@ -162,6 +162,8 @@ namespace ORNG {
 	void EditorLayer::EndPlayScene() {
 		ORNG_TRACY_PROFILE;
 
+		SCENE->m_time_elapsed = 0.0;
+
 		// Reset mouse state as scripts may have modified it
 		Input::SetCursorVisible(true);
 
@@ -912,6 +914,7 @@ namespace ORNG {
 		FileDelete("./res/scripts/includes/VehicleComponent.h");
 		FileDelete("./res/scripts/includes/ParticleEmitterComponent.h");
 		FileDelete("./res/scripts/includes/ScriptAPIImpl.h");
+		FileDelete("./res/scripts/includes/SI.h");
 
 
 
@@ -927,13 +930,13 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SceneScriptInterface.h", "./res/scripts/includes/SceneScriptInterface.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/VehicleComponent.h", "./res/scripts/includes/VehicleComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ParticleEmitterComponent.h", "./res/scripts/includes/ParticleEmitterComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
+		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SI.h", "./res/scripts/includes/SI.h");
 
 		if (!FileExists(ORNG_CORE_MAIN_DIR "/../extern/vcpkg/installed/x64-windows/include")) {
 			ORNG_CORE_ERROR("Physx include dir not found, scripts referencing the physx API will not compile");

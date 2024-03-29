@@ -29,11 +29,11 @@ namespace ORNG {
 	}
 
 	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y,
-		float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1) {
+		float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1, float scene_time_elapsed) {
 		std::array<std::byte, m_common_ubo_size> data;
 		std::byte* p_byte = data.data();
 
-		// Any 0's are padding, most vec3 types are defined as vec4's in the shader for easier alignment.
+		// Any 0's are padding, all vec3 types are defined as vec4's in the shader for easier alignment.
 		ConvertToBytes(p_byte,
 			camera_pos, 0,
 			camera_target, 0,
@@ -49,10 +49,8 @@ namespace ORNG {
 			cam_zfar,
 			cam_znear,
 			static_cast<float>(FrameTiming::GetTimeStep()),
-			static_cast<float>(FrameTiming::GetTotalElapsedTime())
+			scene_time_elapsed
 		);
-
-
 
 		m_common_ubo.BufferSubData(0, m_common_ubo_size, data.data());
 	}

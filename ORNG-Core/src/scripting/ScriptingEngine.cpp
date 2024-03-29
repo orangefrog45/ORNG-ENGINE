@@ -40,7 +40,6 @@ namespace ORNG {
 			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_COREd.lib";
 #endif
 			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
-				return false;
 				return true; // Core engine library has changed so recompilation needed
 			}
 		}
@@ -261,23 +260,16 @@ namespace ORNG {
 
 		ScriptSymbols symbols{ relative_path };
 
-		symbols.SceneEntityCreationSetter = (CreateEntitySetter)(GetProcAddress(script_dll, "SetCreateEntityCallback"));
-		symbols.SceneEntityDeletionSetter = (DeleteEntitySetter)(GetProcAddress(script_dll, "SetDeleteEntityCallback"));
-		symbols.SceneEntityDuplicationSetter = (DuplicateEntitySetter)(GetProcAddress(script_dll, "SetDuplicateEntityCallback"));
-		symbols.ScenePrefabInstantSetter = (InstantiatePrefabSetter)(GetProcAddress(script_dll, "SetInstantiatePrefabCallback"));
-		symbols.SceneGetEntitySetter = (GetEntitySetter)(GetProcAddress(script_dll, "SetGetEntityCallback"));
-		symbols.SceneRaycastSetter = (RaycastSetter)(GetProcAddress(script_dll, "SetRaycastCallback"));
-		symbols.SceneOverlapQuerySetter = (OverlapQuerySetter)(GetProcAddress(script_dll, "SetOverlapQueryCallback"));
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
-		symbols.SceneGetEntityByNameSetter = (GetEntityByNameSetter)(GetProcAddress(script_dll, "SetGetEntityByNameCallback"));
-		symbols.SceneGetEntityEnttHandleSetter = (GetEntityEnttHandleSetter)(GetProcAddress(script_dll, "SetGetEntityByEnttHandleCallback"));
 		symbols.loaded = true;
 		symbols.DestroyInstance(symbols.CreateInstance());
+		symbols._SI_Setter = (SI_Setter)(GetProcAddress(script_dll, "SetSI"));
 
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
 		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));
 		FrameTimingSetter frame_timing_setter = (FrameTimingSetter)(GetProcAddress(script_dll, "SetFrameTimingPtr"));
+		ASSERT(symbols._SI_Setter);
 		// Set input class ptr in dll for shared state - used to get key/mouse inputs
 		setter(&Input::Get());
 		event_setter(&Events::EventManager::Get());

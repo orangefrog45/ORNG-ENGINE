@@ -361,6 +361,7 @@ namespace ORNG {
 				AddAsset(p_prefab);
 
 				p_prefab->node = YAML::Load(p_prefab->serialized_content);
+				p_prefab->serialized_content.clear();
 			}
 		}
 

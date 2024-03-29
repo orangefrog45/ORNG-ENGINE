@@ -8,6 +8,9 @@ layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
 layout(binding = 5) uniform sampler3D voxel_mip_sampler;
 layout(binding = 6) uniform sampler3D voxel_mip_sampler_cascade_1;
 layout(binding = 7) uniform sampler2D normal_sampler;
+layout(binding = 8) uniform usampler3D voxel_sampler_base_0;
+layout(binding = 9) uniform usampler3D voxel_sampler_base_1;
+
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 12) uniform usampler2D shader_id_sampler;
 layout(binding = 16) uniform sampler2D view_depth_sampler;
@@ -58,7 +61,7 @@ const vec3 diffuse_cone_dirs[] =
 #define DIFFUSE_APERTURE_MAX PI / 3.0
 #define DIFFUSE_APERTURE_MIN PI / 6.0
 
-#define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal.xyz * 0.2  ; \
+#define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal.xyz * 1.  ; \
 		\
 		vec3 coord = vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz) / (0.4 * (current_cascade + 1)) + vec3(64)) / 128.0); \
 		if (any(greaterThan(coord, vec3(1.0))) || any(lessThan(coord, vec3(0.0)))) { \
@@ -67,7 +70,7 @@ const vec3 diffuse_cone_dirs[] =
 		} \
 		coord.z /= 6.0; \
 		\
-		float diam = 2.0 * tan_half_angle * d;\
+		float diam = 2.0 * tan_half_angle * (d);\
 		vec4 mip_col = vec4(0);\
 		x \
 		vec4 voxel = mip_col;\
@@ -78,7 +81,7 @@ const vec3 diffuse_cone_dirs[] =
 			col.a += a * voxel.a;\
 		}\
 		\
-		d += diam * step_length ;
+		d += diam * step_length * (1.0 - voxel.a) * 0.5 ;
 
 
 
@@ -100,14 +103,14 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 
 	vec3 start_coord = vec3((((sampled_world_pos + cone_dir * d + sampled_normal.xyz * 0.2 ) - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz) / 0.4 + vec3(64)) / 128.0); 
 
-	// TODO: Fix this disaster of a loop
 	while (col.a < 0.95 && current_cascade == 0 ) {
 		CONE_TRACE_SKELETON(
-		float mip = clamp(log2(diam / mip_scaling ), 0.0, 4.0);
-		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), mip) * weight.x;
-		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), mip) * weight.y;
-		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), mip) * weight.z;
+		float mip = clamp(log2(diam / mip_scaling ), 0.0, 5.0);
+		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip - 1, 0)) * weight.x;
+		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip - 1, 0)) * weight.y;
+		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip - 1, 0)) * weight.z;
 		float cam_dist = length(ubo_common.voxel_aligned_cam_positions[0].xyz - step_pos);
+
 		// Interpolate between cascade borders
 		if (cam_dist > 20.f) {
 			float mip2 = clamp(log2(diam / mip_scaling ) - 1.0, 0.0, 4.0);
@@ -132,6 +135,7 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 		mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip, 0.0)) * weight.x * 0.5;
 		mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip, 0.0)) * weight.y * 0.5;
 		mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip, 0.0)) * weight.z * 0.5;
+
 		)
 
 		if (any(greaterThan(coord, vec3(0.8)))) {
@@ -154,15 +158,16 @@ vec4 CalculateIndirectDiffuseLighting() {
 	vec3 up = cross(right, avg_normal);
 
 
-	float aperture = max(DIFFUSE_APERTURE_MAX, DIFFUSE_APERTURE_MIN) ;
+	float aperture = mix(DIFFUSE_APERTURE_MIN, DIFFUSE_APERTURE_MAX, roughness_metallic_ao.r);
 	for (int i = 0; i < 6; i++) {
 		vec3 cone_dir = normalize(avg_normal + diffuse_cone_dirs[i].x * right + diffuse_cone_dirs[i].z * up);
 		col += ConeTrace(cone_dir, aperture, 0.2, 0.25);
 	}
 	//col.rgb *= (1.0 - roughness_metallic_ao.g * roughness_metallic_ao.g);
 	col /= 6.0;
+	col *= 1.0 - roughness_metallic_ao.g;
 
-	//col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), avg_normal)), clamp(roughness_metallic_ao.r * PI * 0.5 , 0.3, PI ), 0.3, 0.4) * (1.0 - roughness_metallic_ao.r) ;
+	//col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), avg_normal)), clamp(roughness_metallic_ao.r * PI * 0.25 , 0.3, PI ), 1.0, 1.5) * (1.0 - roughness_metallic_ao.r) ;
 	return col ;
 }
 

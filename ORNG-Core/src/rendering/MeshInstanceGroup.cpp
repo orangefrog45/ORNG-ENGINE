@@ -12,7 +12,6 @@ namespace ORNG {
 	{
 		// Setup a transform matrix ssbo for this instance group
 		m_transform_ssbo.Init();
-		m_transform_index_offset_ssbo.Init();
 
 		// Max of 10k wasted vertices rendered (unlikely unless frequently removing instances)
 		// Check the vertex data too in case the mesh hasn't fully loaded yet (GetIndicesCount will return 0)

@@ -89,8 +89,5 @@ namespace ORNG {
 
 		SSBO<float> m_transform_ssbo{ true, 0};
 
-		// Each transform lines up with a "transform index offset" which is how much it should move forward in the buffer to get the correct transform
-		// This is needed to allow tombstones to exist and avoid tons of reallocations when erasing transforms
-		SSBO<uint8_t> m_transform_index_offset_ssbo{ true, 0};
 	};
 }

@@ -5,10 +5,10 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 
 #ifdef ANISOTROPIC_MIPMAP
 layout(binding = 0, r32ui) readonly uniform uimage3D input_image;
-layout(binding = 1, rgba16f) writeonly uniform image3D output_mips; // [pos_x, pos_y, pos_z, neg_x, neg_y, neg_z], each face starts at z = face_index * 128
+layout(binding = 1, rgba16f) writeonly uniform image3D output_mips; // [pos_x, pos_y, pos_z, neg_x, neg_y, neg_z], each face starts at z = face_index * voxel_tex_resolution
 layout(binding = 2, r32ui) readonly uniform uimage3D input_normals;
 #elif defined(ANISOTROPIC_MIPMAP_CHAIN)
-layout(binding = 0, rgba16f) writeonly uniform image3D output_mips; // [pos_x, pos_y, pos_z, neg_x, neg_y, neg_z], each face starts at z = face_index * 128
+layout(binding = 0, rgba16f) writeonly uniform image3D output_mips; // [pos_x, pos_y, pos_z, neg_x, neg_y, neg_z], each face starts at z = face_index * voxel_tex_resolution
 layout(binding = 0) uniform sampler3D input_mips;
 
 uniform int u_mip_level;
@@ -106,48 +106,56 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
 
     for (int i = 0; i < 8; i++) {
         if (values_normals[i].x < 0) {
-            sum++;
-            final += values[i];
+            sum += abs(values_normals[i].x);
+            final.rgb += values[i].rgb *  abs(values_normals[i].x);
         }
+
+        final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 128), final / max(sum, 1.f));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
 
     sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
         if (values_normals[i].y < 0) {
-            sum++;
-            final += values[i];
+            sum += abs(values_normals[i].y);
+            final.rgb += values[i].rgb * abs(values_normals[i].y);
         }
+
+        final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 128), final / max(sum, 1.f));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
 
     sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
         if (values_normals[i].z < 0) {
-            sum++;
-            final += values[i];
+            sum += abs(values_normals[i].z);
+            final.rgb += values[i].rgb * abs(values_normals[i].z);
         }
+
+        final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 128), final / max(sum, 1.f));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
 
         sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
         if (values_normals[i].x > 0) {
-            sum++;
-            final += values[i];
+            sum += values_normals[i].x;
+            final.rgb += values[i].rgb * values_normals[i].x;
         }
+
+        final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 128), final / max(sum, 1.f));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
 
 
         sum = 0.f;
@@ -155,26 +163,45 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
 
      for (int i = 0; i < 8; i++) {
         if (values_normals[i].y > 0) {
-            sum++;
-            final += values[i];
+            sum += values_normals[i].y;
+            final.rgb += values[i].rgb * values_normals[i].y;
         }
+
+        final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 128), final / max(sum, 1.f));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
 
     
-        sum = 0.f;
+    sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
         if (values_normals[i].z > 0) {
-            sum++;
-            final += values[i];
+            sum += values_normals[i].z;
+            final.rgb += values[i].rgb * values_normals[i].z;
         }
+
+        final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 128), final / max(sum, 1.f));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
 
+  
+    // vec4 val = convRGBA8ToVec4(imageLoad(input_image, sample_coord / 2).r) / 255.;
+    // // Scale colour by emissive factor stored in alpha component
+    // val.rgb *= (val.a * 25.5); 
+    
+    // // Alpha stores emissive component, switch it back to an actual opacity value here (1.0 for full voxel, 0 for empty, no inbetween)
+    // val.a = val.a > 0.01 ? 1.0 : 0.0;
+    // vec4 norm = normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord / 2)).r) - 127));
+
+    // imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 256), val * (norm.x < 0 ? 1.0 : 0.0) );
+    // imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 256), val * (norm.y < 0 ? 1.0 : 0.0) );
+    // imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 256), val * (norm.z < 0 ? 1.0 : 0.0) );
+    // imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 256), val * (norm.x > 0 ? 1.0 : 0.0) );
+    // imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 256), val * (norm.y > 0 ? 1.0 : 0.0) );
+    // imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 256), val * (norm.z > 0 ? 1.0 : 0.0) );
 
     
 #elif defined(ANISOTROPIC_MIPMAP_CHAIN)

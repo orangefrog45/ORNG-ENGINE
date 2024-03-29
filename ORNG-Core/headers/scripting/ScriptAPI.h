@@ -5,9 +5,6 @@
 * All of these includes the script will still compile without (including the core engine headers instead of these copies), however they are needed for correct intellisense
 */
 
-#ifdef ORNG_ENABLE_TRACY_PROFILE
-#undef ORNG_ENABLE_TRACY_PROFILE
-#endif
 
 #include <any>
 #include <chrono>
@@ -28,8 +25,8 @@
 #include "ParticleEmitterComponent.h"
 #include "SceneEntity.h"
 #include "VehicleComponent.h"
-#include "./SceneScriptInterface.h"
 #include "ScriptShared.h"
+#include "SI.h"
 #include "./uuids.h" // Generated through editor on save
 
 #define O_PROPERTY
@@ -58,12 +55,14 @@
 #endif
 
 
+
 extern "C" {
 
 	namespace ORNG {
 		enum Key;
 		enum MouseButton;
 	}
+
 
 	namespace ScriptInterface {
 		class Input {

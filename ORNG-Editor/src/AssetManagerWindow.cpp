@@ -13,6 +13,7 @@
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "scene/SceneEntity.h"
 #include "physics/Physics.h"
+#include "yaml-cpp/yaml.h"
 
 namespace ORNG {
 
@@ -38,9 +39,11 @@ namespace ORNG {
 		mp_preview_scene->m_mesh_component_manager.OnLoad();
 		mp_preview_scene->m_camera_system.OnLoad();
 		mp_preview_scene->m_transform_system.OnLoad();
+		mp_preview_scene->skybox.LoadEnvironmentMap(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr");
+
 
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
-		auto& cube_entity = mp_preview_scene->CreateEntity("Cube");
+		auto& cube_entity = mp_preview_scene->CreateEntity("Sphere");
 		cube_entity.AddComponent<MeshComponent>();
 
 
@@ -164,7 +167,7 @@ namespace ORNG {
 		Scene::SortEntitiesNumParents(entities, false);
 
 		Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
-		prefab->serialized_content = SceneSerializer::SerializeEntityArrayIntoString(entities);
+		prefab->node = YAML::Load(SceneSerializer::SerializeEntityArrayIntoString(entities));
 		SceneSerializer::SerializeBinary(fp, *prefab);
 
 		return true;
@@ -780,11 +783,10 @@ namespace ORNG {
 		float largest_extent = glm::max(glm::max(extents.x, extents.y), extents.z);
 		glm::vec3 scale_factor = glm::vec3(1.0, 1.0, 1.0) / largest_extent;
 
-		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(scale_factor);
-		mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
+		mp_preview_scene->GetEntity("Sphere")->GetComponent<TransformComponent>()->SetScale(scale_factor);
+		mp_preview_scene->GetEntity("Sphere")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
@@ -807,12 +809,12 @@ namespace ORNG {
 
 		m_material_preview_textures[p_material] = p_tex;
 
-		auto* p_mesh = mp_preview_scene->GetEntity("Cube")->GetComponent<MeshComponent>();
-		if (auto* p_cube_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID); p_mesh->GetMeshData() != p_cube_mesh)
-			p_mesh->SetMeshAsset(p_cube_mesh);
+		auto* p_mesh = mp_preview_scene->GetEntity("Sphere")->GetComponent<MeshComponent>();
+		if (auto* p_sphere_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_SPHERE_ID); p_mesh->GetMeshData() != p_sphere_mesh)
+			p_mesh->SetMeshAsset(p_sphere_mesh);
 
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-		mp_preview_scene->GetEntity("Cube")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
+		mp_preview_scene->GetEntity("Sphere")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
 
 		p_mesh->SetMaterialID(0, p_material);
 

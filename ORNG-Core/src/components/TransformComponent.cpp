@@ -37,11 +37,8 @@ namespace ORNG {
 
 		m_abs_scale = m_scale;
 		m_abs_orientation = m_orientation;
+		m_abs_pos = glm::vec3(m_transform[3][0], m_transform[3][1], m_transform[3][2]);
 
-		if (!p_parent_transform || m_is_absolute) {
-			m_abs_pos = m_pos;
-			return;
-		}
 
 		while (p_parent_transform) {
 			m_abs_orientation += p_parent_transform->m_orientation;
@@ -49,40 +46,36 @@ namespace ORNG {
 
 			p_parent_transform = p_parent_transform->GetParent();
 		}
-
-		m_abs_pos = GetParent()->GetMatrix() * glm::vec4(m_pos, 1.0);
 	}
 
 
 	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up, glm::vec3 t_right) {
-		glm::vec3 t_target = glm::normalize(t_pos - m_abs_pos);
-		t_target = glm::normalize(t_target);
-		t_right = glm::normalize(glm::cross(t_target, up));
-		g_up = t_up;
-		t_up = glm::normalize(glm::cross(t_right, t_target));
-
-		glm::mat3 rotation_matrix = {
-			t_right.x, t_right.y, t_right.z,
-			t_up.x, t_up.y, t_up.z,
-			-t_target.x, -t_target.y, -t_target.z };
-
-		glm::vec3 euler_angles = glm::degrees(glm::eulerAngles(glm::quat_cast(rotation_matrix)));
+		glm::vec3 euler_angles = glm::degrees(glm::eulerAngles(glm::quatLookAt(glm::normalize(t_pos - m_abs_pos), glm::normalize(t_up))));
 		SetAbsoluteOrientation(euler_angles);
 	}
 
 
 	TransformComponent* TransformComponent::GetParent() {
-		return m_parent_handle == entt::null ? nullptr : GetEntity()->GetRegistry()->try_get<TransformComponent>(m_parent_handle);
+		return m_parent_handle == entt::null ? nullptr : &GetEntity()->GetRegistry()->get<TransformComponent>(m_parent_handle);
 	}
 
 	void TransformComponent::RebuildMatrix(UpdateType type) {
-		ORNG_TRACY_PROFILE;
+		//ORNG_TRACY_PROFILE;
 
 		auto* p_parent = GetParent();
-		glm::mat3 rot_mat = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
 		if (m_is_absolute || !p_parent) {
-			glm::mat3 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x, m_scale.y, m_scale.z);
-			m_transform = glm::mat4(rot_mat * scale_mat);
+			m_transform = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
+			m_transform[0][0] *= m_scale.x;
+			m_transform[0][1] *= m_scale.x;
+			m_transform[0][2] *= m_scale.x;
+
+			m_transform[1][0] *= m_scale.y;
+			m_transform[1][1] *= m_scale.y;
+			m_transform[1][2] *= m_scale.y;
+
+			m_transform[2][0] *= m_scale.z;
+			m_transform[2][1] *= m_scale.z;
+			m_transform[2][2] *= m_scale.z;
 
 			m_transform[3][0] = m_pos.x;
 			m_transform[3][1] = m_pos.y;
@@ -90,21 +83,34 @@ namespace ORNG {
 			m_transform[3][3] = 1.0;
 		}
 		else {
-			auto p_s = p_parent->GetAbsScale();
-			// Apply parent scaling to the position and scale to make up for not using the scale transform below
-			glm::mat3 scale_mat = ExtraMath::Init3DScaleTransform(m_scale.x * p_s.x, m_scale.y * p_s.y, m_scale.z * p_s.z);
+			glm::vec3 p_s = p_parent->GetAbsScale();
+			float inv_parent_scale_det = 1.f / (p_s.x * p_s.y * p_s.z);
+			glm::vec3 total_scale = m_scale * p_s;
+			glm::vec3 inv_scale{ p_s.y * p_s.z * inv_parent_scale_det, p_s.x * p_s.z * inv_parent_scale_det, p_s.y * p_s.x * inv_parent_scale_det };
 
-			// Undo scaling to prevent shearing
-			glm::mat4 m1 = glm::mat3(glm::inverse(ExtraMath::Init3DScaleTransform(p_s.x, p_s.y, p_s.z)) * (rot_mat * scale_mat));
-			m1[3][0] = m_pos.x;
-			m1[3][1] = m_pos.y;
-			m1[3][2] = m_pos.z;
-			m1[3][3] = 1.0;
+			m_transform = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
+			// Apply total_scale whilst undoing parent scaling transforms to prevent shearing
+			m_transform[0][0] *= total_scale.x * inv_scale.x;
+			m_transform[0][1] *= total_scale.x * inv_scale.y;
+			m_transform[0][2] *= total_scale.x * inv_scale.z;
 
-			m_transform = p_parent->GetMatrix() * m1;
+			m_transform[1][0] *= total_scale.y * inv_scale.x;
+			m_transform[1][1] *= total_scale.y * inv_scale.y;
+			m_transform[1][2] *= total_scale.y * inv_scale.z;
+
+			m_transform[2][0] *= total_scale.z * inv_scale.x;
+			m_transform[2][1] *= total_scale.z * inv_scale.y;
+			m_transform[2][2] *= total_scale.z * inv_scale.z;
+
+			m_transform[3][0] = m_pos.x;
+			m_transform[3][1] = m_pos.y;
+			m_transform[3][2] = m_pos.z;
+			m_transform[3][3] = 1.0;
+
+			m_transform = p_parent->GetMatrix() * m_transform;
 		}
 
-		forward = glm::normalize(glm::mat3(m_transform) * glm::vec3(0.0, 0.0, -1.0));
+		forward = glm::normalize(glm::vec3(-m_transform[2][0], -m_transform[2][1], -m_transform[2][2]));
 		right = glm::normalize(glm::cross(forward, g_up));
 		up = glm::normalize(glm::cross(right, forward));
 
