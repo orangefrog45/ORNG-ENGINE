@@ -156,9 +156,8 @@ namespace ORNG {
 		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
 	}
 	std::vector<SceneEntity*> SceneSerializer::DeserializePrefab(Scene& scene, const Prefab& prefab) {
-#ifdef ORNG_ENABLE_TRACY_PROFILE
-		ZoneScoped;
-#endif
+		ORNG_TRACY_PROFILE;
+
 		const YAML::Node& data = prefab.node;
 
 		std::vector<SceneEntity*> ents;
@@ -530,6 +529,8 @@ namespace ORNG {
 	}
 
 	void SceneSerializer::DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity) {
+		ORNG_TRACY_PROFILE;
+
 		auto geometry_type = static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>());
 		auto body_type = static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>());
 		auto is_trigger = node["IsTrigger"].as<bool>();
@@ -575,6 +576,7 @@ namespace ORNG {
 	}
 
 	void SceneSerializer::DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity) {
+		ORNG_TRACY_PROFILE;
 		auto* p_transform = entity.GetComponent<TransformComponent>();
 		p_transform->m_pos = node["Pos"].as<glm::vec3>();
 		p_transform->m_scale = node["Scale"].as<glm::vec3>();

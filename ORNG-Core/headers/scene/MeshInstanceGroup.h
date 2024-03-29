@@ -28,11 +28,11 @@ namespace ORNG {
 		friend class SceneRenderer;
 
 		// Constructor for mesh component instance groups
-		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& materials);
+		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& materials, entt::registry& registry);
 
 		// Constructor for billboard instance groups
-		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const Material* p_material) :
-			m_mesh_asset(t_mesh_data)
+		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const Material* p_material, entt::registry& registry) :
+			m_mesh_asset(t_mesh_data), m_registry(registry)
 		{
 			m_materials.push_back(p_material);
 			// Setup a transform matrix ssbo for this instance group
@@ -67,16 +67,18 @@ namespace ORNG {
 		void ReallocateInstances();
 
 		// Key = entity, Val = transform buffer index
-		std::map<SceneEntity*, unsigned> m_instances;
+		std::unordered_map<entt::entity, unsigned> m_instances;
 
 		//ID's of materials associated with each submesh of the mesh asset
 		std::vector<const Material*> m_materials;
 		MeshAsset* m_mesh_asset;
 
-		std::vector<SceneEntity*> m_instances_to_update;
+		std::vector<entt::entity> m_instances_to_update;
 
 		// These two vectors line up, m_entities_to_instance[2] has a transform at m_transforms_to_allocate[2 * sizeof(glm::mat4)]
-		std::vector<SceneEntity*> m_entities_to_instance;
+		std::vector<entt::entity> m_entities_to_instance;
+
+		entt::registry& m_registry;
 
 		unsigned m_tombstone_count = 0;
 

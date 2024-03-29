@@ -27,7 +27,6 @@ namespace ORNG {
 		physics_system.OnUpdate(ts);
 
 		SetScriptState();
-		ORNG_PROFILE_FUNC();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
 				script.p_instance->OnUpdate();
@@ -36,6 +35,7 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.GetSymbols()->script_path, e.what());
 			}
 		}
+		ORNG_PROFILE_FUNC();
 
 		m_mesh_component_manager.OnUpdate();
 		//if (m_camera_system.GetActiveCamera())
@@ -305,7 +305,7 @@ namespace ORNG {
 		// Instruction set is generated in reverse, so reverse here to correct it
 		std::ranges::reverse(instructions);
 
-		EntityNodeRef ref{ p_src, instructions, p_target->uuid() };
+		EntityNodeRef ref{ p_src, instructions };
 
 		return ref;
 	}

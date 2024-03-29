@@ -38,8 +38,8 @@ namespace ORNG {
 		static glm::vec3 AngleAxisRotateAroundPoint(glm::vec3 rotation_center, glm::vec3 point_to_rotate, glm::vec3 axis, float angle);
 
 		static std::array<glm::vec4, 8> GetFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view);
-		static glm::mat4x4 Init3DRotateTransform(float rotX, float rotY, float rotZ);
-		static glm::mat4x4 Init3DScaleTransform(float scaleX, float scaleY, float scaleZ);
+		static glm::mat3 Init3DRotateTransform(float rotX, float rotY, float rotZ);
+		static glm::mat3 Init3DScaleTransform(float scaleX, float scaleY, float scaleZ);
 		static glm::mat4x4 Init3DTranslationTransform(float tranX, float tranY, float tranZ);
 		static glm::mat3 Init2DScaleTransform(float x, float y);
 		static glm::mat3 Init2DRotateTransform(float rot);

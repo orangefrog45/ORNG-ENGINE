@@ -54,7 +54,7 @@ namespace ORNG {
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
 
-			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials);
+			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials, *mp_registry);
 			m_instance_groups.push_back(group);
 			group->AddInstance(comp->GetEntity());
 
@@ -90,7 +90,7 @@ namespace ORNG {
 			m_billboard_instance_groups[group_index]->AddInstance(p_comp->GetEntity());
 		}
 		else {
-			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID), this, p_comp->p_material);
+			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID), this, p_comp->p_material, *mp_registry);
 			p_group->m_materials.push_back(p_comp->p_material);
 			m_billboard_instance_groups.push_back(p_group);
 			p_group->AddInstance(p_comp->GetEntity());
@@ -229,8 +229,8 @@ namespace ORNG {
 
 				if (group->m_mesh_asset == p_asset) {
 					group->ClearMeshes();
-					for (auto [p_ent, index] : group->m_instances) {
-						p_ent->GetComponent<MeshComponent>()->mp_mesh_asset = nullptr;
+					for (auto [entt_handle, index] : group->m_instances) {
+						mp_registry->get<MeshComponent>(entt_handle).mp_mesh_asset = nullptr;
 					}
 
 					// Delete all mesh instance groups using the asset as they cannot function without it
@@ -260,9 +260,9 @@ namespace ORNG {
 				continue;
 
 			// Replace material in mesh if it contains it
-			for (auto [p_ent, index] : group->m_instances) {
+			for (auto [entt_handle, index] : group->m_instances) {
 				for (auto valid_replacement_index : material_indices) {
-					p_ent->GetComponent<MeshComponent>()->m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					mp_registry->get<MeshComponent>(entt_handle).m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 				}
 			}
 		}

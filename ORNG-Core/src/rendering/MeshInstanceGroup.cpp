@@ -7,8 +7,8 @@
 #include "rendering/MeshAsset.h"
 
 namespace ORNG {
-	MeshInstanceGroup::MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& materials) :
-		m_mesh_asset(t_mesh_data), m_materials(materials)
+	MeshInstanceGroup::MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& materials, entt::registry& registry) :
+		m_mesh_asset(t_mesh_data), m_materials(materials), m_registry(registry)
 	{
 		// Setup a transform matrix ssbo for this instance group
 		m_transform_ssbo.Init();
@@ -20,16 +20,18 @@ namespace ORNG {
 	};
 
 	void MeshInstanceGroup::RemoveInstance(SceneEntity* ptr) {
-		if (!m_instances.contains(ptr)) {
-			auto idx = VectorFindIndex(m_entities_to_instance, ptr);
+		auto entt_handle = ptr->GetEnttHandle();
+
+		if (!m_instances.contains(entt_handle)) {
+			auto idx = VectorFindIndex(m_entities_to_instance, entt_handle);
 			m_entities_to_instance.erase(m_entities_to_instance.begin() + idx);
 			return;
 		}
 
 		glm::mat4 tombstone_transform = glm::scale(glm::vec3(0));
-		glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances[ptr] * sizeof(glm::mat4), sizeof(glm::mat4), &tombstone_transform[0][0]);
-		m_instances.erase(ptr);
-		std::erase_if(m_instances_to_update, [ptr](SceneEntity* p_entity) {return ptr == p_entity; });
+		glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances[entt_handle] * sizeof(glm::mat4), sizeof(glm::mat4), &tombstone_transform[0][0]);
+		m_instances.erase(entt_handle);
+		std::erase_if(m_instances_to_update, [entt_handle](entt::entity entity) {return entt_handle == entity; });
 		m_tombstone_count++;
 
 		if (m_tombstone_count >= m_tombstone_limit) {
@@ -47,7 +49,7 @@ namespace ORNG {
 
 
 	void MeshInstanceGroup::FlagInstanceTransformUpdate(SceneEntity* p_instance) {
-		m_instances_to_update.push_back(p_instance);
+		m_instances_to_update.push_back(p_instance->GetEnttHandle());
 	}
 
 
@@ -72,10 +74,10 @@ namespace ORNG {
 				std::byte* p_byte = transform_buf.data();
 
 				auto prev_used_transform_memory_end_idx = m_used_transform_memory_end_idx;
-				for (auto* p_ent : m_entities_to_instance) {
-					m_instances[p_ent] = m_used_transform_memory_end_idx;
+				for (auto entt_handle : m_entities_to_instance) {
+					m_instances[entt_handle] = m_used_transform_memory_end_idx;
 					m_used_transform_memory_end_idx++; // m_used_transform_memory_end_idx will only decrease when the buffer is reallocated
-					ConvertToBytes(p_byte, p_ent->GetComponent<TransformComponent>()->GetMatrix());
+					ConvertToBytes(p_byte, m_registry.get<TransformComponent>(entt_handle).GetMatrix());
 				}
 
 				glNamedBufferSubData(m_transform_ssbo.GetHandle(), prev_used_transform_memory_end_idx * sizeof(glm::mat4), transform_buf.size(),
@@ -97,40 +99,40 @@ namespace ORNG {
 		m_instances_to_update.erase(std::unique(m_instances_to_update.begin(), m_instances_to_update.end()), m_instances_to_update.end());
 
 		std::vector<glm::mat4> transforms;
-		
+		transforms.reserve(m_instances_to_update.size());
+
 		// Used for saving the first position of a "chunk" of transforms to be updated, so they can be more efficiently updated with fewer buffersubdata calls
 		int first_index_of_chunk = -1;
 
 		// Below loop can't cover index 0 (first check puts it out of range) so handle separately here
-		transforms.push_back(m_instances_to_update[0]->GetComponent<TransformComponent>()->GetMatrix());
-		glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances.at(m_instances_to_update[0]) * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
+		transforms.push_back(m_registry.get<TransformComponent>(m_instances_to_update[0]).GetMatrix());
+		glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances[m_instances_to_update[0]] * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
 		transforms.clear();
 		
 		for (int i = 1; i < m_instances_to_update.size(); i++) {
-			if (m_instances.at(m_instances_to_update[i]) == m_instances.at(m_instances_to_update[i - 1]) + 1) // Check if indices are sequential in the gpu transform buffer
+			if (m_instances[m_instances_to_update[i]] == m_instances[m_instances_to_update[i - 1]] + 1) // Check if indices are sequential in the gpu transform buffer
 			{
 				if (first_index_of_chunk == -1) {
-					transforms.push_back(m_instances_to_update[i - 1]->GetComponent<TransformComponent>()->GetMatrix());
-					transforms.push_back(m_instances_to_update[i]->GetComponent<TransformComponent>()->GetMatrix());
-					first_index_of_chunk = m_instances.at(m_instances_to_update[i - 1]);
+					transforms.push_back(m_registry.get<TransformComponent>(m_instances_to_update[i - 1]).GetMatrix());
+					transforms.push_back(m_registry.get<TransformComponent>(m_instances_to_update[i]).GetMatrix());
+					first_index_of_chunk = m_instances[m_instances_to_update[i - 1]];
 				}
 				else {
-					transforms.push_back(m_instances_to_update[i]->GetComponent<TransformComponent>()->GetMatrix());
+					transforms.push_back(m_registry.get<TransformComponent>(m_instances_to_update[i]).GetMatrix());
 				}
 			}
 			else if (first_index_of_chunk != -1) // This is the end of the chunk, so update for this chunk
 			{
 				glNamedBufferSubData(m_transform_ssbo.GetHandle(), first_index_of_chunk * sizeof(glm::mat4), transforms.size() * sizeof(glm::mat4), &transforms[0]);
 				transforms.clear();
-				transforms.reserve((m_instances_to_update.size() - i) * 0.1);
 				first_index_of_chunk = -1;
 
 				// Update current transform (i) separately as it's not a part of the chunk
-				glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances.at(m_instances_to_update[i]) * sizeof(glm::mat4), sizeof(glm::mat4), &m_instances_to_update[i]->GetComponent<TransformComponent>()->GetMatrix()[0][0]);
+				glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances[m_instances_to_update[i]] * sizeof(glm::mat4), sizeof(glm::mat4), &m_registry.get<TransformComponent>(m_instances_to_update[i]).GetMatrix()[0][0]);
 			}
 			else {
 				// Ensure no transforms get skipped
-				glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances.at(m_instances_to_update[i]) * sizeof(glm::mat4), sizeof(glm::mat4), &m_instances_to_update[i]->GetComponent<TransformComponent>()->GetMatrix()[0][0]);
+				glNamedBufferSubData(m_transform_ssbo.GetHandle(), m_instances[m_instances_to_update[i]] * sizeof(glm::mat4), sizeof(glm::mat4), &m_registry.get<TransformComponent>(m_instances_to_update[i]).GetMatrix()[0][0]);
 			}
 		}
 
@@ -147,9 +149,9 @@ namespace ORNG {
 		std::byte* p_byte = reinterpret_cast<std::byte*>(m_transform_ssbo.data.data());
 
 		unsigned current_idx = 0;
-		for (auto& [instance, transform_idx] : m_instances) {
+		for (auto& [instance_handle, transform_idx] : m_instances) {
 			transform_idx = current_idx++;
-			ConvertToBytes(p_byte, instance->GetComponent<TransformComponent>()->GetMatrix());
+			ConvertToBytes(p_byte, m_registry.get<TransformComponent>(instance_handle).GetMatrix());
 		}
 
 		m_transform_ssbo.FillBuffer();
@@ -164,6 +166,6 @@ namespace ORNG {
 		std::byte* p_byte = &transform_bytes[0];
 		ConvertToBytes(p_byte, ptr->GetComponent<TransformComponent>()->GetMatrix());
 
-		m_entities_to_instance.push_back(ptr);
+		m_entities_to_instance.push_back(ptr->GetEnttHandle());
 	}
 }

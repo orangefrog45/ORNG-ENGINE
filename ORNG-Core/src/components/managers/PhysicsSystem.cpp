@@ -725,6 +725,8 @@ namespace ORNG {
 
 
 	void PhysicsSystem::OnUpdate(float ts) {
+		ORNG_PROFILE_FUNC();
+
 		m_accumulator += ts;
 
 		if (m_accumulator < m_step_size * 1000.0)
@@ -741,15 +743,12 @@ namespace ORNG {
 			mp_currently_updating_transform = nullptr;
 		}
 
-
-		//ORNG_PROFILE_FUNC();
-		m_accumulator -= m_step_size * 1000.f;
+		m_accumulator = 0;
 		mp_phys_scene->simulate(m_step_size);
 		mp_phys_scene->fetchResults(true);
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);
 
-		ORNG_PROFILE_FUNC();
 		for (int i = 0; i < num_active_actors; i++) {
 			if (auto ret = TryGetEntityAndTypeFromPxActor(active_actors[i]); ret.has_value()) {
 				auto& [p_ent, type] = ret.value();

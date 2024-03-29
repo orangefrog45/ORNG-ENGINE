@@ -129,20 +129,17 @@ namespace ORNG {
 		return corners;
 	}
 
-	glm::mat4x4 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
+	glm::mat3 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
 		glm::quat quat(glm::radians(glm::vec3(rotX, rotY, rotZ)));
-		return glm::mat4_cast(quat);
+		return glm::mat3_cast(quat);
 	}
 
-	glm::mat4x4 ExtraMath::Init3DScaleTransform(float scaleX, float scaleY, float scaleZ) {
-		glm::mat4x4 scaleMatrix(
-			scaleX, 0.0f, 0.0f, 0.0f,
-			0.0f, scaleY, 0.0f, 0.0f,
-			0.0f, 0.0f, scaleZ, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-
-		return scaleMatrix;
+	glm::mat3 ExtraMath::Init3DScaleTransform(float scaleX, float scaleY, float scaleZ) {
+		return glm::mat3{
+			scaleX, 0.0f, 0.0f,
+			0.0f, scaleY, 0.0f,
+			0.0f, 0.0f, scaleZ,
+		};
 	}
 
 	glm::mat4x4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, float tranZ) {

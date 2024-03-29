@@ -1,5 +1,7 @@
 28/3/24:
 -Reworked and optimized entity references, NodeIDs removed
+-Halved MeshInstanceGroups memory costs and optimized memory access, 2-3x speedup
+-Optimized RebuildMatrix for transforms, ~20% speedup
 
 21/3/24:
 -Tracy profiler integration

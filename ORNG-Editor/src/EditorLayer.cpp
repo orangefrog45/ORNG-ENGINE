@@ -94,6 +94,7 @@ namespace ORNG {
 			}
 			};
 
+
 		Events::EventManager::RegisterListener(m_window_event_listener);
 
 		Texture2DSpec picking_spec;
@@ -336,7 +337,7 @@ namespace ORNG {
 			SCENE->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
 			SCENE->m_particle_system.OnUpdate(); // Continue simulating particles for visual feedback
 			SCENE->m_audio_system.OnUpdate(); // For accurate audio playback
-			SCENE->terrain.UpdateTerrainQuadtree(SCENE->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
+			//SCENE->terrain.UpdateTerrainQuadtree(SCENE->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
 	}
 
@@ -511,8 +512,8 @@ namespace ORNG {
 				}
 				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
 					if (p_payload->DataSize == sizeof(Prefab*)) {
-						std::string prefab_data = (*static_cast<Prefab**>(p_payload->Data))->serialized_content;
-						auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefabCallScript(prefab_data) : SCENE->InstantiatePrefab(prefab_data);
+						Prefab* prefab_data = (*static_cast<Prefab**>(p_payload->Data));
+						auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefabCallScript(*prefab_data) : SCENE->InstantiatePrefab(*prefab_data);
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 						glm::vec3 pos;
 						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
@@ -1583,7 +1584,7 @@ namespace ORNG {
 					// Apply parent scaling to the position and scale to make up for not using the scale transform below
 					glm::mat4x4 scale_mat = ExtraMath::Init3DScaleTransform(sf, sf, sf);
 					glm::mat4x4 trans_mat = ExtraMath::Init3DTranslationTransform(transform.m_pos.x * s.x, transform.m_pos.y * s.y, transform.m_pos.z * s.z);
-					m = transform.GetParent()->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
+					//m = transform.GetParent()->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)) * (trans_mat * rot_mat * scale_mat);
 				}
 
 				// Undo scaling to prevent shearing
@@ -2665,10 +2666,10 @@ namespace ORNG {
 				case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_state.selected_entity_ids[0] as origin
 					if (auto* p_parent_transform = p_transform->GetParent()) {
 						glm::vec3 s = p_parent_transform->GetAbsScale();
-						glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z));
-						glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
-						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
-						p_transform->SetOrientation(glm::degrees(total));
+						//glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z));
+						//glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
+						//glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
+						//p_transform->SetOrientation(glm::degrees(total));
 					}
 					else {
 						auto orientation = glm::degrees(glm::eulerAngles(glm::quat(glm::radians(delta_rotation)) * glm::quat(glm::radians(p_transform->m_orientation))));

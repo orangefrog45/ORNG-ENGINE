@@ -458,8 +458,7 @@ namespace ORNG {
 	}
 
 	glm::mat4 PxTransformToGlmMat4(PxTransform t) {
-		auto euler = glm::degrees(glm::eulerAngles(glm::quat(t.q.w, t.q.x, t.q.y, t.q.z)));
-		return ExtraMath::Init3DTranslationTransform(t.p.x, t.p.y, t.p.z) * ExtraMath::Init3DRotateTransform(euler.x, euler.y, euler.z);
+		return ExtraMath::Init3DTranslationTransform(t.p.x, t.p.y, t.p.z) * glm::mat4_cast(glm::quat(t.q.w, t.q.x, t.q.y, t.q.z));
 	}
 
 	void SceneRenderer::PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex) {
