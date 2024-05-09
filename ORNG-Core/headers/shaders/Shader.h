@@ -13,7 +13,7 @@ namespace ORNG {
 		friend class Renderer;
 		friend class SceneRenderer;
 		Shader() = default;
-		Shader(const std::string& name, unsigned int id) : m_id(id), m_name(name) {};
+		Shader(const std::string& name) :  m_name(name) {};
 		~Shader();
 
 		enum class ShaderType {
@@ -37,7 +37,10 @@ namespace ORNG {
 
 		inline void AddUniform(const std::string& name) {
 			ActivateProgram();
-			m_uniforms[name] = CreateUniform(name);
+			auto handle = CreateUniform(name);
+
+			if (handle != -1)
+				m_uniforms[name] = CreateUniform(name);
 		};
 
 		template<typename... Args>
@@ -49,14 +52,15 @@ namespace ORNG {
 		inline void AddUniforms(const std::vector<std::string>& names) {
 			ActivateProgram();
 			for (auto& uname : names) {
-				m_uniforms[uname] = CreateUniform(uname);
+				AddUniform(uname);
 			}
 		};
 
 		template<typename T>
 		void SetUniform(const std::string& name, T value) {
 			if (!m_uniforms.contains(name)) {
-				ORNG_CORE_ERROR("Uniform '{0}' not found in shader '{1}'", name, m_name);
+				//ORNG_CORE_ERROR("Uniform '{0}' not found in shader '{1}'", name, m_name);
+				return;
 			}
 
 
@@ -97,12 +101,6 @@ namespace ORNG {
 				ORNG_CORE_ERROR("Unsupported uniform type used in shader, uniform name: '{}', shader name '{}'", name, m_name);
 			}
 		};
-
-		unsigned int GetID() const {
-			return m_id;
-		}
-
-
 	private:
 
 		struct StageData {
@@ -115,7 +113,7 @@ namespace ORNG {
 		std::unordered_map<GLenum, StageData> m_stages;
 
 
-		unsigned int CreateUniform(const std::string& name);
+		int CreateUniform(const std::string& name);
 
 		void CompileShader(unsigned int type, const std::string& source, unsigned int& shaderID);
 
@@ -132,8 +130,6 @@ namespace ORNG {
 		void ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
 
 		void ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& shader_str, size_t directive_pos, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
-
-		unsigned int m_id;
 
 		unsigned int m_program_id = 0;
 

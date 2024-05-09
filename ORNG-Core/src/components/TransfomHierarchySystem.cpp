@@ -9,7 +9,12 @@ namespace ORNG {
 		entt::entity current_entity = p_relationship_comp->first;
 
 		for (int i = 0; i < p_relationship_comp->num_children; i++) {
-			mp_registry->get<TransformComponent>(current_entity).RebuildMatrix(static_cast<TransformComponent::UpdateType>(t_event.sub_event_type));
+			auto& transform = mp_registry->get<TransformComponent>(current_entity);
+
+			if (transform.m_is_absolute)
+				continue;
+
+			transform.RebuildMatrix(static_cast<TransformComponent::UpdateType>(t_event.sub_event_type));
 			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
 		}
 	}

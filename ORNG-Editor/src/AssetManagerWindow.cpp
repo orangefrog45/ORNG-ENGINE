@@ -39,13 +39,11 @@ namespace ORNG {
 		mp_preview_scene->m_mesh_component_manager.OnLoad();
 		mp_preview_scene->m_camera_system.OnLoad();
 		mp_preview_scene->m_transform_system.OnLoad();
-		mp_preview_scene->skybox.LoadEnvironmentMap(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr");
-
+		mp_preview_scene->skybox.Load(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr", 512, true);
 
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
 		auto& cube_entity = mp_preview_scene->CreateEntity("Sphere");
 		cube_entity.AddComponent<MeshComponent>();
-
 
 		auto& cam_entity = mp_preview_scene->CreateEntity("Cam");
 		auto* p_cam = cam_entity.AddComponent<CameraComponent>();
@@ -59,9 +57,7 @@ namespace ORNG {
 		p_cam->MakeActive();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
-
 		//mp_preview_scene->skybox.LoadEnvironmentMap(di + "/res/textures/AdobeStock_247957406.jpeg");
-
 	}
 
 
@@ -167,7 +163,8 @@ namespace ORNG {
 		Scene::SortEntitiesNumParents(entities, false);
 
 		Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
-		prefab->node = YAML::Load(SceneSerializer::SerializeEntityArrayIntoString(entities));
+		prefab->serialized_content = SceneSerializer::SerializeEntityArrayIntoString(entities);
+		prefab->node = YAML::Load(prefab->serialized_content);
 		SceneSerializer::SerializeBinary(fp, *prefab);
 
 		return true;

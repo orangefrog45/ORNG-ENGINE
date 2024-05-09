@@ -41,10 +41,10 @@ void main() {
     ts_instance_id = vs_instance_id[gl_InvocationID];
     //float steps = length(ubo_common.camera_pos.xyz - in_vert_data[gl_InvocationID].position.xyz) / 20.0;
     float steps = 1.0;
-    gl_TessLevelOuter[0] = 10.0 / max(steps, 1.0);
-    gl_TessLevelOuter[1] = 10.0 / max(steps, 1.0);
-    gl_TessLevelOuter[2] = 10.0 / max(steps, 1.0);
+    gl_TessLevelOuter[0] = 20.0;
+    gl_TessLevelOuter[1] = 20.0;
+    gl_TessLevelOuter[2] = 20.0;
 
-    gl_TessLevelInner[0] = 10.0 / max(steps, 1.0);
-    gl_TessLevelInner[1] = 10.0 / max(steps, 1.0);
+    gl_TessLevelInner[0] = 20.0;
+    gl_TessLevelInner[1] = 20.0;
 }

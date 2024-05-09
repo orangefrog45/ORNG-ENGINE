@@ -219,7 +219,7 @@ namespace ORNG {
 			comp.m_num_particles, 
 			comp.m_spread * 2.0f * glm::pi<float>(),
 			comp.m_velocity_min_max_scalar.x,
-			ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z),
+			glm::mat4(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z)),
 			comp.m_spawn_extents,
 			comp.m_velocity_min_max_scalar.y,
 			comp.m_particle_lifespan_ms, 

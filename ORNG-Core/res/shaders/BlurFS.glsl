@@ -15,10 +15,11 @@ float gauss(float x, float y, float sigma)
 	return  1.0f / (2.0f * PI * sigma * sigma) * exp(-(x * x + y * y) / (2.0f * sigma * sigma));
 }
 
+float kernel[5] = {0.0607, 0.1253, 0.1974, 0.1253, 0.0607};
 
 
 void main() {
-	const int KERNEL_SIZE = 8;
+	const int KERNEL_SIZE = 4;
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
 	vec4 result = vec4(0);
@@ -26,9 +27,9 @@ void main() {
 
 	float original_depth = texelFetch(depth_sampler, tex_coords, 0).r;
 
-	for (int i = -KERNEL_SIZE / 2; i < KERNEL_SIZE / 2; i++) {
+	for (int i = -KERNEL_SIZE / 2; i <= KERNEL_SIZE / 2; i++) {
 		ivec2 offset_coords = tex_coords + ivec2(i * int(u_horizontal), i * int(!u_horizontal)); // If u_horizontal, will sample horizontally (i * 1), vice versa for vertical
-		float g_weight_1 = gauss(i * int(u_horizontal),  i* int(!u_horizontal), 2);
+		float g_weight_1 = kernel[i + 2];
 		vec4 sampled_offset = texelFetch(in_tex, offset_coords, 0);
 		float density_dif = abs(texelFetch(depth_sampler, offset_coords, 0).r - original_depth);
 

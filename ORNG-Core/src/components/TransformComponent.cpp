@@ -39,6 +39,8 @@ namespace ORNG {
 		m_abs_orientation = m_orientation;
 		m_abs_pos = glm::vec3(m_transform[3][0], m_transform[3][1], m_transform[3][2]);
 
+		if (m_is_absolute)
+			return;
 
 		while (p_parent_transform) {
 			m_abs_orientation += p_parent_transform->m_orientation;
@@ -49,7 +51,7 @@ namespace ORNG {
 	}
 
 
-	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up, glm::vec3 t_right) {
+	void TransformComponent::LookAt(glm::vec3 t_pos, glm::vec3 t_up) {
 		glm::vec3 euler_angles = glm::degrees(glm::eulerAngles(glm::quatLookAt(glm::normalize(t_pos - m_abs_pos), glm::normalize(t_up))));
 		SetAbsoluteOrientation(euler_angles);
 	}

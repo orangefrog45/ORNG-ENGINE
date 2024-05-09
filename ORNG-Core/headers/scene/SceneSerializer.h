@@ -35,7 +35,7 @@ namespace ORNG {
 		static void SerializeSceneUUIDs(const Scene& scene, std::string& output);
 
 		// Deserializes from filepath at "input" if input_is_filepath = true, else deserializes from the string itself assuming it contains valid yaml data
-		static bool DeserializeScene(Scene& scene, const std::string& input, bool load_env_map, bool input_is_filepath = true);
+		static bool DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath = true);
 
 		static void SerializeEntity(SceneEntity& entity, YAML::Emitter& out);
 

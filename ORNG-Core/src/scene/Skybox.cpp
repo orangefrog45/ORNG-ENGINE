@@ -5,16 +5,16 @@
 namespace ORNG {
 
 
-	void Skybox::LoadEnvironmentMap(const std::string& filepath) {
-		EnvMapLoader::LoadEnvironmentMap(filepath, *this, 4096);
+	void Skybox::Load(const std::string& filepath, unsigned cubemap_resolution, bool using_ibl) {
+		EnvMapLoader::LoadSkybox(filepath, *this, cubemap_resolution, using_ibl);
 		m_hdr_tex_filepath = filepath;
+		using_env_map = using_ibl;
+		m_resolution = cubemap_resolution;
+
+		if (!using_ibl) {
+			m_diffuse_prefilter_map = nullptr;
+			m_specular_prefilter_map = nullptr;
+		}
 	}
 
-	const TextureCubemap& Skybox::GetSkyboxTexture() const {
-		return m_skybox_tex;
-	}
-
-	const TextureCubemap& Skybox::GetIrradianceTexture() const {
-		return m_diffuse_prefilter_map;
-	}
 }

@@ -269,12 +269,15 @@ namespace ORNG {
 	}
 
 
-	unsigned int Shader::CreateUniform(const std::string& name) {
+	int Shader::CreateUniform(const std::string& name) {
+		constexpr bool SHADER_DEBUG_MODE = true;
+
 		int location = glGetUniformLocation(m_program_id, name.c_str());
 		if (location == -1 && SHADER_DEBUG_MODE == true) {
 			ORNG_CORE_ERROR("Could not find uniform '{0}'", name);
-			BREAKPOINT;
+			//BREAKPOINT;
 		}
+
 		return location;
 	}
 
@@ -349,7 +352,7 @@ namespace ORNG {
 	Shader* ShaderVariants::AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms) {
 		ASSERT(!m_shaders.contains(id));
 		//m_shaders.try_emplace(id, std::format("{} - {}", name, id), UUID()()) ;
-		m_shaders[id] = Shader(std::format("{} - {}", m_name, id), UUID<uint64_t>()());
+		m_shaders[id] = Shader(std::format("{}", m_name));
 		for (auto& [type, path] : m_shader_paths) {
 			m_shaders[id].AddStage(type, path, defines);
 		}

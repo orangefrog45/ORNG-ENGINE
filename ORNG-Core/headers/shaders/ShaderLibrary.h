@@ -14,7 +14,7 @@ namespace ORNG {
 		void Init();
 
 		// Create a shader, optionally with an ID (currently only used with in-built shaders)
-		Shader& CreateShader(const char* name, unsigned int id = 0);
+		Shader& CreateShader(const char* name);
 		ShaderVariants& CreateShaderVariants(const char* name);
 
 		void SetMatrixUBOs(glm::mat4& proj, glm::mat4& view);
@@ -31,11 +31,6 @@ namespace ORNG {
 		}
 
 		void ReloadShaders();
-
-		[[nodiscard]] inline unsigned int CreateIncrementalShaderID() const { // This can be incremental as these id's don't need to stay the same between
-			static unsigned int last_id = 2;								  // different invocations of this program except the hard-coded ones
-			return last_id++;
-		}
 
 		inline static const uint64_t LIGHTING_SHADER_ID = 1;
 		inline static const uint64_t INVALID_SHADER_ID = 0; //useful for rendering things that should not have any shader applied to them (e.g skybox), only default gbuffer albedo

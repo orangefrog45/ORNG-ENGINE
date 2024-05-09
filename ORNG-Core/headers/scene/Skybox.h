@@ -12,18 +12,33 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class EnvMapLoader;
 		Skybox() = default;
-		void LoadEnvironmentMap(const std::string& filepath);
-		const TextureCubemap& GetSkyboxTexture() const;
-		const TextureCubemap& GetIrradianceTexture() const;
-		const TextureCubemap& GetSpecularPrefilter() {
+		void Load(const std::string& filepath, unsigned cubemap_resolution, bool using_ibl);
+
+		const TextureCubemap& GetSkyboxTexture() const noexcept {
+			return m_skybox_tex;
+		}
+
+		const std::unique_ptr<TextureCubemap>& GetIrradianceTexture() const noexcept {
+			return m_diffuse_prefilter_map;
+		}
+
+		const std::unique_ptr<TextureCubemap>& GetSpecularPrefilter() const noexcept {
 			return m_specular_prefilter_map;
 		}
+
+		const std::string& GetSrcFilepath() const noexcept {
+			return m_hdr_tex_filepath;
+		}
+
+		// If false LoadEnvironmentMap will only load a cubemap image but no IBL textures.
+		bool using_env_map = false;
 	private:
 		std::string m_hdr_tex_filepath = "";
 		unsigned int m_resolution = 4096;
-		Texture2D m_brdf_convolution_lut{ "env_brdf_convolution" };
-		TextureCubemap m_diffuse_prefilter_map{ "env_diffuse_prefilter" };
-		TextureCubemap m_specular_prefilter_map{ "env_specular_prefilter" };
+
+		std::unique_ptr<TextureCubemap> m_diffuse_prefilter_map{ nullptr };
+		std::unique_ptr<TextureCubemap> m_specular_prefilter_map{ nullptr };
+
 		TextureCubemap m_skybox_tex{ "env_skybox" };
 	};
 }

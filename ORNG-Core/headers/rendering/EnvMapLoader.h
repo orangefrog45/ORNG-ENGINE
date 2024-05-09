@@ -13,13 +13,13 @@ namespace ORNG {
 	class EnvMapLoader {
 	public:
 		static void Init();
-		static bool LoadEnvironmentMap(const std::string& filepath, Skybox& skybox, unsigned int resolution);
+		static bool LoadSkybox(const std::string& filepath, Skybox& skybox, unsigned int resolution, bool gen_ibl_textures);
+		static void LoadBRDFConvolution(Texture2D& output_tex);
 	private:
 
 		static void LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
 		static void GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
 		static void ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
-		static void LoadBRDFConvolution(Texture2D& output_tex, Texture2DSpec& spec);
 
 		inline static Framebuffer* mp_output_fb = nullptr;
 		inline static Shader* mp_hdr_converter_shader = nullptr;

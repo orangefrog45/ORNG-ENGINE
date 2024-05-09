@@ -81,6 +81,8 @@ void main() {
         
     }
 
+    if(u_displacement_sampler_active)
+        pos.xyz += n * texture(displacement_sampler, tex_coord * u_material.tile_scale).r * u_material.displacement_scale ;
 
     out_vert_data.normal = n;
     out_vert_data.tangent = normalize(u * in_vert_data[0].tangent + v * in_vert_data[1].tangent + w * in_vert_data[2].tangent  ) ;
@@ -88,8 +90,6 @@ void main() {
 
     ts_instance_id_out = ts_instance_id;
     
-    if(u_displacement_sampler_active)
-        pos.xyz += n * texture(displacement_sampler, tex_coord * u_material.tile_scale).r * u_material.displacement_scale ;
 
     gl_Position = PVMatrices.proj_view * pos ;
 }

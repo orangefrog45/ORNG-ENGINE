@@ -15,7 +15,7 @@ namespace ORNG {
 
 		// Max of 10k wasted vertices rendered (unlikely unless frequently removing instances)
 		// Check the vertex data too in case the mesh hasn't fully loaded yet (GetIndicesCount will return 0)
-		m_tombstone_limit = glm::max(10000 / (int)glm::max(m_mesh_asset->GetIndicesCount(), (unsigned)m_mesh_asset->m_vao.vertex_data.indices.size()), 1); 
+		m_tombstone_limit = 10000 / glm::max(glm::max((int)m_mesh_asset->GetIndicesCount(), (int)m_mesh_asset->m_vao.vertex_data.indices.size()), 1); 
 	};
 
 	void MeshInstanceGroup::RemoveInstance(SceneEntity* ptr) {

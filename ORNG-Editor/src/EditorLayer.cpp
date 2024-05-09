@@ -16,6 +16,7 @@
 #include "util/ExtraUI.h"
 #include "components/ParticleBufferComponent.h"
 #include "tracy/public/tracy/Tracy.hpp"
+#include "imgui/imgui_internal.h"
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
@@ -177,7 +178,7 @@ namespace ORNG {
 		mp_editor_camera = nullptr;
 
 		SCENE->ClearAllEntities();
-		SceneSerializer::DeserializeScene(*SCENE, m_state.temp_scene_serialization, false, false);
+		SceneSerializer::DeserializeScene(*SCENE, m_state.temp_scene_serialization, false);
 
 		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -1626,13 +1627,16 @@ namespace ORNG {
 		if (ExtraUI::H1TreeNode("Skybox")) {
 			wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
+			static bool using_env_maps = true;
+			static unsigned resolution = 4096;
+
 			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
 				// Check if texture is an asset or not, if not, add it
 				std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("\\") + 1);
 				if (!std::filesystem::exists(new_filepath)) {
 					FileCopy(filepath, new_filepath);
 				}
-				SCENE->skybox.LoadEnvironmentMap(new_filepath);
+				SCENE->skybox.Load(new_filepath, resolution, using_env_maps);
 				};
 
 			if (ImGui::Button("Load skybox texture")) {
@@ -1643,6 +1647,12 @@ namespace ORNG {
 			if (ImGui::BeginItemTooltip()) {
 				ImGui::Text("Converts an equirectangular image into a cubemap for use in a skybox. For best results, use HDRI's!");
 				ImGui::EndTooltip();
+			}
+
+			ExtraUI::InputUint("Resolution", resolution);
+
+			if (ImGui::Checkbox("Gen IBL textures", &using_env_maps) || ImGui::Button("Reload")) {
+				SCENE->skybox.Load(SCENE->skybox.GetSrcFilepath(), resolution, using_env_maps);
 			}
 		}
 	}

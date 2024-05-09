@@ -113,7 +113,26 @@ vec4 Accumulate(vec3 accum_light, float accum_transmittance, vec3 slice_light, f
 	return vec4(accum_light, accum_transmittance);
 }
 
-
+//-------------------------------------------------------------------------------------
+// otaviogood's noise from https://www.shadertoy.com/view/ld2SzK
+//--------------------------------------------------------------
+// This spiral noise works by successively adding and rotating sin waves while increasing frequency.
+// It should work the same on all computers since it's not based on a hash function like some other noises.
+// It can be much faster than other noise functions if you're ok with some repetition.
+const float nudge = 2000.;	// size of perpendicular vector
+float normalizer = 1.0 / sqrt(1.0 + nudge*nudge);	// pythagorean theorem on that perpendicular to maintain scale
+float SpiralNoiseC(vec3 p, vec4 id) {
+    float iter = 2., n = 2.-id.x; // noise amount
+    for (int i = 0; i < 6; i++) {
+        n += -abs(sin(p.y*iter) + cos(p.x*iter)) / iter; // add sin and cos scaled inverse with the frequency (abs for a ridged look)
+        p.xy += vec2(p.y, -p.x) * nudge; // rotate by adding perpendicular and scaling down
+        p.xy *= normalizer;
+        p.xz += vec2(p.z, -p.x) * nudge; // rotate on other axis
+        p.xz *= normalizer;  
+        iter *= id.y + .733733;          // increase the frequency
+    }
+    return n;
+}
 
 void main() {
 	// Tex coords in range (0, 0), (screen width, screen height) / 2
@@ -124,7 +143,7 @@ void main() {
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
 	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / (vec2(imageSize(fog_texture))));
 	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float cam_to_frag_dist = min(length(cam_to_frag), 1000.0);
+	float cam_to_frag_dist = min(length(cam_to_frag), 10000.0);
 	float step_distance = cam_to_frag_dist / float(u_step_count);
 
 
@@ -134,14 +153,12 @@ void main() {
 
 	vec4 accum = vec4(0, 0, 0, 1);
 
-
-	// Raymarching
+		// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = vec3(step_pos.x, step_pos.y, step_pos.z) / 2000.f;
+		vec3 fog_sampling_coords = step_pos / 2000.f;
 		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
 		//float fog_density = 0;
 		fog_density += u_density_coef * 0.5 ;
-
 
 		vec3 slice_light = vec3(0);
 
@@ -150,7 +167,7 @@ void main() {
 		}
 
 		for (unsigned int i = 0; i < ubo_spot_lights.lights.length(); i++) {
-			slice_light += CalcSpotLight(ubo_spot_lights.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights.lights[i].dir.xyz);
+			//slice_light += CalcSpotLight(ubo_spot_lights.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights.lights[i].dir.xyz);
 		}
 
 		float dir_shadow = CheapShadowCalculationDirectional(step_pos);
@@ -158,6 +175,7 @@ void main() {
 		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, u_absorption_coef + u_scattering_coef);
 		step_pos += ray_dir * step_distance;
 	}
+	
 
 	vec4 fog_color = vec4(u_fog_color * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 4).rgb * u_emissive, 1.0 - accum.a );
 	imageStore(fog_texture, tex_coords, fog_color);

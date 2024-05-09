@@ -789,6 +789,18 @@ namespace ORNG {
 
 		out << YAML::Key << "Skybox" << YAML::BeginMap;
 		out << YAML::Key << "HDR filepath" << YAML::Value << scene.skybox.m_hdr_tex_filepath;
+		out << YAML::Key << "IBL" << YAML::Value << scene.skybox.using_env_map;
+		out << YAML::Key << "Resolution" << YAML::Value << scene.skybox.m_resolution;
+		out << YAML::EndMap;
+
+		out << YAML::Key << "Fog" << YAML::BeginMap;
+		Out(out, "Density", scene.post_processing.global_fog.density_coef);
+		Out(out, "Absorption", scene.post_processing.global_fog.absorption_coef);
+		Out(out, "Scattering", scene.post_processing.global_fog.scattering_coef);
+		Out(out, "Anisotropy", scene.post_processing.global_fog.scattering_anisotropy);
+		Out(out, "Colour", scene.post_processing.global_fog.color);
+		Out(out, "Steps", scene.post_processing.global_fog.step_count);
+		Out(out, "Emission", scene.post_processing.global_fog.emissive_factor);
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Bloom" << YAML::BeginMap;
@@ -811,7 +823,7 @@ namespace ORNG {
 
 
 
-	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool load_env_map, bool input_is_filepath) {
+	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {
 		YAML::Node data;
 
 		// Load yaml from either file or string itself
@@ -846,24 +858,43 @@ namespace ORNG {
 		}
 
 		// Directional light
-		auto dir_light = data["DirLight"];
-		scene.directional_light.color = dir_light["Colour"].as<glm::vec3>();
-		scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
-		glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
-		scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
-		glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
-		scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
-
-		// Skybox/Env map
-		if (load_env_map) {
-			auto skybox = data["Skybox"];
-			scene.skybox.LoadEnvironmentMap(skybox["HDR filepath"].as<std::string>());
+		{
+			auto dir_light = data["DirLight"];
+			scene.directional_light.color = dir_light["Colour"].as<glm::vec3>();
+			scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
+			glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
+			scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
+			glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
+			scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 		}
 
-		auto bloom = data["Bloom"];
-		scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
-		scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
-		scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
+		// Skybox/Env map
+		{
+			auto skybox = data["Skybox"];
+			bool using_env_maps = skybox["IBL"].as<bool>();
+			float res = skybox["Resolution"].as<float>();
+			scene.skybox.Load(skybox["HDR filepath"].as<std::string>(), 4096, using_env_maps);
+		}
+
+		// Bloom
+		{
+			auto bloom = data["Bloom"];
+			scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
+			scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
+			scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
+		}
+
+		// Fog
+		{
+			auto fog = data["Fog"];
+			scene.post_processing.global_fog.density_coef = fog["Density"].as<float>();
+			scene.post_processing.global_fog.absorption_coef = fog["Absorption"].as<float>();
+			scene.post_processing.global_fog.scattering_coef = fog["Scattering"].as<float>();
+			scene.post_processing.global_fog.scattering_anisotropy = fog["Anisotropy"].as<float>();
+			scene.post_processing.global_fog.emissive_factor = fog["Emission"].as<float>();
+			scene.post_processing.global_fog.color = fog["Colour"].as<glm::vec3>();
+			scene.post_processing.global_fog.step_count = fog["Steps"].as<int>();
+		}
 
 		return true;
 	}

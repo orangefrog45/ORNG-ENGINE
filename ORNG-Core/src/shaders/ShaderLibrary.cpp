@@ -83,15 +83,12 @@ namespace ORNG {
 		m_global_lighting_ubo.BufferSubData(0, buffer_size, light_data.data());
 	};
 
-	Shader& ShaderLibrary::CreateShader(const char* name, unsigned int id) {
+	Shader& ShaderLibrary::CreateShader(const char* name) {
 		if (m_shaders.contains(name)) {
 			ORNG_CORE_ERROR("Shader name '{0}' already exists! Pick another name.", name);
 			BREAKPOINT;
 		}
-		if (id == 0)
-			m_shaders.try_emplace(name, name, CreateIncrementalShaderID());
-		else
-			m_shaders.try_emplace(name, name, id);
+		m_shaders.try_emplace(name, name);
 
 		ORNG_CORE_INFO("Shader '{0}' created", name);
 		return m_shaders[name];

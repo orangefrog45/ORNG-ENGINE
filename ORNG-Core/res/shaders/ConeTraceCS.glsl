@@ -61,7 +61,7 @@ const vec3 diffuse_cone_dirs[] =
 #define DIFFUSE_APERTURE_MAX PI / 3.0
 #define DIFFUSE_APERTURE_MIN PI / 6.0
 
-#define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d + sampled_normal.xyz * 1.  ; \
+#define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d   ; \
 		\
 		vec3 coord = vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz) / (0.4 * (current_cascade + 1)) + vec3(64)) / 128.0); \
 		if (any(greaterThan(coord, vec3(1.0))) || any(lessThan(coord, vec3(0.0)))) { \
@@ -101,14 +101,14 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, float step_modi
 	vec3 weight = cone_dir * cone_dir;
 	uint current_cascade = 0;
 
-	vec3 start_coord = vec3((((sampled_world_pos + cone_dir * d + sampled_normal.xyz * 0.2 ) - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz) / 0.4 + vec3(64)) / 128.0); 
+	vec3 start_coord = vec3((((sampled_world_pos + cone_dir * d   ) - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz) / 0.4 + vec3(64)) / 128.0); 
 
 	while (col.a < 0.95 && current_cascade == 0 ) {
 		CONE_TRACE_SKELETON(
 		float mip = clamp(log2(diam / mip_scaling ), 0.0, 5.0);
-		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip - 1, 0)) * weight.x;
-		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip - 1, 0)) * weight.y;
-		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip - 1, 0)) * weight.z;
+		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip, 0)) * weight.x;
+		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip, 0)) * weight.y;
+		mip_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip, 0)) * weight.z;
 		float cam_dist = length(ubo_common.voxel_aligned_cam_positions[0].xyz - step_pos);
 
 		// Interpolate between cascade borders
@@ -167,7 +167,7 @@ vec4 CalculateIndirectDiffuseLighting() {
 	col /= 6.0;
 	col *= 1.0 - roughness_metallic_ao.g;
 
-	//col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), avg_normal)), clamp(roughness_metallic_ao.r * PI * 0.25 , 0.3, PI ), 1.0, 1.5) * (1.0 - roughness_metallic_ao.r) ;
+	col += ConeTrace(normalize(reflect(-(ubo_common.camera_pos.xyz - sampled_world_pos), avg_normal)), clamp(roughness_metallic_ao.r * PI * 0.5 , 0.1, PI * 0.25 ), 1.0, 1.5) * (1.0 - roughness_metallic_ao.r) ;
 	return col ;
 }
 

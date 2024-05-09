@@ -68,7 +68,7 @@ namespace ORNG {
 			return m_is_absolute;
 		}
 
-		void LookAt(glm::vec3 t_pos, glm::vec3 t_up = { 0.0, 1.0,0.0 }, glm::vec3 t_right = { 1.0, 0.0, 0.0 });
+		void LookAt(glm::vec3 t_pos, glm::vec3 t_up = { 0.0, 1.0,0.0 });
 
 		inline void SetPosition(const glm::vec3 pos) {
 			m_pos = pos;

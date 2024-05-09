@@ -70,7 +70,6 @@ ORNG_INCLUDE "CommonINCL.glsl"
 	uniform bool u_skybox_mode;
 	uniform float u_parallax_height_scale;
 	uniform uint u_num_parallax_layers;
-	uniform float u_bloom_threshold;
 	uniform Material u_material;
 
 vec2 ParallaxMap()

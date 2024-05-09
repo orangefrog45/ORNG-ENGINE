@@ -8,6 +8,7 @@
 #include "scene/SceneSerializer.h"
 #include "physics/Physics.h" // for material initialization
 #include "yaml-cpp/yaml.h"
+#include "rendering/EnvMapLoader.h"
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -359,9 +360,13 @@ namespace ORNG {
 				auto* p_prefab = new Prefab(rel_path);
 				DeserializeAssetBinary(rel_path, *p_prefab);
 				AddAsset(p_prefab);
+				
 
 				p_prefab->node = YAML::Load(p_prefab->serialized_content);
+
+#ifndef ORNG_EDITOR_LAYER 
 				p_prefab->serialized_content.clear();
+#endif
 			}
 		}
 
@@ -450,7 +455,10 @@ namespace ORNG {
 		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
 		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);
 		mp_base_material->uuid = UUID<uint64_t>(ORNG_BASE_MATERIAL_ID);
-		mp_base_script->uuid = UUID<uint64_t>(ORNG_BASE_SCRIPT_ID);
+		mp_base_brdf_lut = std::make_unique<Texture2D>("Base BRDF LUT");
+		mp_base_brdf_lut->uuid = UUID<uint64_t>(ORNG_BASE_BRDF_LUT_ID);
+
+		EnvMapLoader::LoadBRDFConvolution(*mp_base_brdf_lut);
 
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);

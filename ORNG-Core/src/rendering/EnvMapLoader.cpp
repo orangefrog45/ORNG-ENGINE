@@ -80,7 +80,7 @@ namespace ORNG {
 				continue;
 
 			mp_diffuse_prefilter_shader->SetUniform("view", view_matrices[i]);
-			mp_output_fb->BindTexture2D(skybox.m_diffuse_prefilter_map.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+			mp_output_fb->BindTexture2D(skybox.m_diffuse_prefilter_map->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
 			GL_StateManager::DefaultClearBits();
 			Renderer::DrawCube();
 			float* pixels = new float[tex_spec.width * tex_spec.height * 3];
@@ -91,7 +91,7 @@ namespace ORNG {
 
 			delete[] pixels;
 		}
-		skybox.m_diffuse_prefilter_map.LoadFromFile();
+		skybox.m_diffuse_prefilter_map->LoadFromFile();
 	}
 
 
@@ -116,18 +116,29 @@ namespace ORNG {
 			for (unsigned int i = 0; i < 6; i++) {
 				// Texture data not saved to disk here as this operation is less expensive
 				mp_specular_prefilter_shader->SetUniform("view", view_matrices[i]);
-				mp_output_fb->BindTexture2D(skybox.m_specular_prefilter_map.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mip);
+				mp_output_fb->BindTexture2D(skybox.m_specular_prefilter_map->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, mip);
 				GL_StateManager::DefaultClearBits();
 				Renderer::DrawCube();
 			}
 		}
 
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_specular_prefilter_map.GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_specular_prefilter_map->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER);
 	}
 
 
 
-	void EnvMapLoader::LoadBRDFConvolution(Texture2D& output_tex, Texture2DSpec& spec) {
+	void EnvMapLoader::LoadBRDFConvolution(Texture2D& output_tex) {
+		Texture2DSpec spec;
+		spec.width = 512;
+		spec.height = 512;
+		spec.internal_format = GL_RG16F;
+		spec.format = GL_RG;
+		spec.storage_type = GL_FLOAT;
+		spec.min_filter = GL_LINEAR;
+		spec.mag_filter = GL_LINEAR;
+		spec.wrap_params = GL_CLAMP_TO_EDGE;
+		output_tex.SetSpec(spec);
+
 		mp_brdf_convolution_shader->ActivateProgram();
 		mp_output_fb->SetRenderBufferDimensions(spec.width, spec.height);
 		glViewport(0, 0, spec.width, spec.height);
@@ -136,13 +147,11 @@ namespace ORNG {
 		Renderer::DrawQuad();
 		mp_output_fb->BindTexture2D(0, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 
-
-
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BRDF_LUT);
 	}
 
 
-	bool EnvMapLoader::LoadEnvironmentMap(const std::string& filepath, Skybox& skybox, unsigned int resolution) {
+	bool EnvMapLoader::LoadSkybox(const std::string& filepath, Skybox& skybox, unsigned int resolution, bool gen_ibl_textures) {
 		Texture2DSpec hdr_spec;
 		hdr_spec.generate_mipmaps = false;
 		hdr_spec.internal_format = GL_RGB16F;
@@ -179,16 +188,6 @@ namespace ORNG {
 		specular_prefilter_spec.mag_filter = GL_LINEAR;
 
 
-		Texture2DSpec brdf_convolution_spec;
-		brdf_convolution_spec.width = 512;
-		brdf_convolution_spec.height = 512;
-		brdf_convolution_spec.internal_format = GL_RG16F;
-		brdf_convolution_spec.format = GL_RG;
-		brdf_convolution_spec.storage_type = GL_FLOAT;
-		brdf_convolution_spec.min_filter = GL_LINEAR;
-		brdf_convolution_spec.mag_filter = GL_LINEAR;
-		brdf_convolution_spec.wrap_params = GL_CLAMP_TO_EDGE;
-
 		TextureCubemapSpec diffuse_prefilter_spec = hdr_cubemap_spec;
 		diffuse_prefilter_spec.width = 256;
 		diffuse_prefilter_spec.min_filter = GL_LINEAR;
@@ -201,16 +200,13 @@ namespace ORNG {
 			std::format("res/textures/env_map/diffuse_prefilter_{}_4.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
 			std::format("res/textures/env_map/diffuse_prefilter_{}_5.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
 		};
-		skybox.m_diffuse_prefilter_map.SetSpec(diffuse_prefilter_spec);
-		skybox.m_specular_prefilter_map.SetSpec(specular_prefilter_spec);
+
+
 		skybox.m_skybox_tex.SetSpec(hdr_cubemap_spec);
-		skybox.m_brdf_convolution_lut.SetSpec(brdf_convolution_spec);
-
-
 
 		// Matrices for rendering the different cube faces
-		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-		std::array<glm::mat4, 6> captureViews =
+		glm::mat4 cube_proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		std::array<glm::mat4, 6> cube_view_mats =
 		{
 		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
 		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
@@ -223,15 +219,20 @@ namespace ORNG {
 
 		glDisable(GL_CULL_FACE);
 
-		ConvertHDR_ToSkybox(hdr_texture, skybox.m_skybox_tex, captureViews, captureProjection);
-		LoadDiffusePrefilter(skybox, diffuse_prefilter_spec, captureViews, captureProjection);
-		GenSpecularPrefilter(skybox, specular_prefilter_spec, captureViews, captureProjection);
-		LoadBRDFConvolution(skybox.m_brdf_convolution_lut, brdf_convolution_spec);
+		ConvertHDR_ToSkybox(hdr_texture, skybox.m_skybox_tex, cube_view_mats, cube_proj);
+
+		if (gen_ibl_textures) {
+			skybox.m_diffuse_prefilter_map = std::make_unique<TextureCubemap>("Skybox diffuse prefilter");
+			skybox.m_specular_prefilter_map = std::make_unique<TextureCubemap>("Skybox specular prefilter");
+			skybox.m_diffuse_prefilter_map->SetSpec(diffuse_prefilter_spec);
+			skybox.m_specular_prefilter_map->SetSpec(specular_prefilter_spec);
+			LoadDiffusePrefilter(skybox, diffuse_prefilter_spec, cube_view_mats, cube_proj);
+			GenSpecularPrefilter(skybox, specular_prefilter_spec, cube_view_mats, cube_proj);
+		}
 
 		glEnable(GL_CULL_FACE);
 
 		glViewport(0, 0, Window::GetWidth(), Window::GetHeight());
-
 
 		return true;
 	}

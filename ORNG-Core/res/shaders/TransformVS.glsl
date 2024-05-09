@@ -15,6 +15,9 @@ uniform float u_scale;
 #endif
 
 uniform mat4 transform;
+
+out vec3 vs_world_pos;
+
 void main() {
 #ifdef COLOR
 	col = icol;
@@ -28,6 +31,7 @@ void main() {
 	gl_Position = PVMatrices.proj_view *( transform * vec4(pos, 1.f) + vec4(normal, 0) *  (u_scale * 0.1));
 
 #else
-	gl_Position = PVMatrices.proj_view * transform * vec4(pos, 1.f);
+	vs_world_pos = vec3(transform * vec4(pos, 1.f));
+	gl_Position = PVMatrices.proj_view * vec4(vs_world_pos, 1.f);
 #endif
 }
