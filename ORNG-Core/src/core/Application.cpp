@@ -83,7 +83,6 @@ namespace ORNG {
 		// Cleanup
 		Shutdown();
 
-
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}

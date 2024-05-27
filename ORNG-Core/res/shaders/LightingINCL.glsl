@@ -59,7 +59,7 @@ vec3 FresnelSchlickRoughness(float cos_theta, vec3 F0, float roughness)
 
 
 
-vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0, int index, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
+vec3 CalcPointLight(in PointLight light, vec3 v, vec3 f0, int index, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
 	vec3 frag_to_light = light.pos.xyz - world_pos.xyz;
 
 	float distance = length(frag_to_light);
@@ -77,15 +77,16 @@ vec3 CalcPointLight(PointLight light, vec3 v, vec3 f0, int index, vec3 world_pos
 	float ndf = DistributionGGX(h, n, roughness);
 	float g = GeometrySmith(v, l, n, roughness);
 
+	float n_dot_l = max(dot(n, l), 0.0);
+
 	vec3 num = ndf * g * f;
-	float denom = 4.0 * max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+	float denom = 4.0 * max(dot(n, v), 0.0) * max(n_dot_l, 0.0) + 0.0001;
 	vec3 specular = num / denom;
 
 
 	vec3 kd = vec3(1.0) - f;
 	kd *= 1.0 - metallic;
 
-	float n_dot_l = max(dot(n, l), 0.0);
 
 
 	return (kd * albedo / PI + specular) * n_dot_l * (light.color.xyz / attenuation);
@@ -158,8 +159,12 @@ vec3 CalcDirectionalLight(vec3 v, vec3 f0, vec3 n, float roughness, float metall
 vec3 CalculateDirectLightContribution(vec3 v, vec3 f0, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
 	vec3 total_light = vec3(0);
 	// Directional light
-	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz), world_pos);
-	total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo) * (1.0 - shadow);
+	if (ubo_global_lighting.directional_light.shadows_enabled == 1) {
+		float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz), world_pos);
+		total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo) * (1.0 - shadow);
+	} else {
+		total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo);
+	}
 
 		// Pointlights
 	for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
@@ -168,7 +173,6 @@ vec3 CalculateDirectLightContribution(vec3 v, vec3 f0, vec3 world_pos, vec3 n, f
 		else
 			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) ;
 	}
-
 
 	//Spotlights
 	for (int i = 0; i < ubo_spot_lights.lights.length(); i++) {

@@ -273,7 +273,7 @@ namespace ORNG {
 		constexpr bool SHADER_DEBUG_MODE = true;
 
 		int location = glGetUniformLocation(m_program_id, name.c_str());
-		if (location == -1 && SHADER_DEBUG_MODE == true) {
+		if (location == -1 && SHADER_DEBUG_MODE) {
 			ORNG_CORE_ERROR("Could not find uniform '{0}'", name);
 			//BREAKPOINT;
 		}

@@ -781,6 +781,7 @@ namespace ORNG {
 		out << YAML::EndSeq;
 
 		out << YAML::Key << "DirLight" << YAML::BeginMap;
+		out << YAML::Key << "Shadows" << YAML::Value << scene.directional_light.shadows_enabled;
 		out << YAML::Key << "Colour" << YAML::Value << scene.directional_light.color;
 		out << YAML::Key << "Direction" << YAML::Value << scene.directional_light.GetLightDirection();
 		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
@@ -861,6 +862,7 @@ namespace ORNG {
 		{
 			auto dir_light = data["DirLight"];
 			scene.directional_light.color = dir_light["Colour"].as<glm::vec3>();
+			scene.directional_light.shadows_enabled = dir_light["Shadows"].as<bool>();
 			scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
 			glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
 			scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};

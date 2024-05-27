@@ -25,6 +25,13 @@ namespace ORNG {
 			return m_current_allocated_particles;
 		}
 
+		void SetNumAllocatedParticles(unsigned amount) {
+			m_current_allocated_particles = amount;
+			m_min_allocated_particles = amount;
+
+			DispatchUpdateEvent();
+		}
+
 		SSBO<float> m_particle_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };
 	private:
 
@@ -36,10 +43,8 @@ namespace ORNG {
 		// Used in EmitParticle calls in shaders to assign a particle to this specific buffer
 		uint32_t m_buffer_id = 0;
 
-		unsigned m_min_allocated_particles = 1'000'000;
-
-
 		unsigned m_current_allocated_particles = 1'000'000;
+		unsigned m_min_allocated_particles = 1'000'000;
 
 	};
 

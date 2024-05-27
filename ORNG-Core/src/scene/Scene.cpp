@@ -475,9 +475,9 @@ namespace ORNG {
 		if (!m_is_loaded) {
 			return;
 		}
+
 		ORNG_CORE_INFO("Unloading scene...");
 		m_time_elapsed = 0.0;
-
 
 		while (!m_entities.empty()) {
 			// Safe deletion method

@@ -156,7 +156,7 @@ void main() {
 		// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
 		vec3 fog_sampling_coords = step_pos / 2000.f;
-		float fog_density = NoiseFog(fog_sampling_coords) * u_density_coef;
+		float fog_density = u_density_coef;
 		//float fog_density = 0;
 		fog_density += u_density_coef * 0.5 ;
 
@@ -167,11 +167,11 @@ void main() {
 		}
 
 		for (unsigned int i = 0; i < ubo_spot_lights.lights.length(); i++) {
-			//slice_light += CalcSpotLight(ubo_spot_lights.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights.lights[i].dir.xyz);
+			slice_light += CalcSpotLight(ubo_spot_lights.lights[i], step_pos, i) * phase(ray_dir, -ubo_spot_lights.lights[i].dir.xyz);
 		}
 
 		float dir_shadow = CheapShadowCalculationDirectional(step_pos);
-		slice_light += ubo_global_lighting.directional_light.color.xyz * (1.0 - dir_shadow) * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
+		slice_light += ubo_global_lighting.directional_light.color.xyz  * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
 		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, u_absorption_coef + u_scattering_coef);
 		step_pos += ray_dir * step_distance;
 	}

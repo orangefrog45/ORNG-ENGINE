@@ -81,7 +81,7 @@ namespace ORNG {
 		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 		glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-		p_window = glfwCreateWindow(m_window_width, m_window_height, "ORANGE ENGINE", nullptr, nullptr);
+		p_window = glfwCreateWindow(m_window_width, m_window_height, "ORNG ENGINE", nullptr, nullptr);
 		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
 		glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
 		glfwSetCursorPosCallback(p_window, CursorPosCallback);

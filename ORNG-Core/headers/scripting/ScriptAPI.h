@@ -29,8 +29,9 @@
 #include "SI.h"
 #include "./uuids.h" // Generated through editor on save
 
-#define O_PROPERTY
 #define O_CONSTRUCTOR
+#define O_PROPERTY
+#define O_LINK(x) ;
 
 /* TODO: Provide interface override for logging macros */
 #ifdef ORNG_CORE_TRACE

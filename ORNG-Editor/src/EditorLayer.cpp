@@ -216,7 +216,6 @@ namespace ORNG {
 		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-regular-400.ttf", 18.0f, &config, icon_ranges);
 		io.Fonts->AddFontFromFileTTF("./res/fonts/fa-solid-900.ttf", 18.0f, &config, icon_ranges);
 
-
 		m_res.p_xl_font = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 36.0f);
 		m_res.p_l_font = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 26.0f);
 		m_res.p_m_font = io.Fonts->AddFontFromFileTTF(".\\res\\fonts\\Uniform.ttf", 20.0f);

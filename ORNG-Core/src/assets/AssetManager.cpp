@@ -483,6 +483,7 @@ namespace ORNG {
 		Get().mp_base_physx_material->p_material->release();
 		Get().mp_base_physx_material.release();
 		Get().mp_base_quad.release();
+		Get().mp_base_script.release();
 	};
 
 

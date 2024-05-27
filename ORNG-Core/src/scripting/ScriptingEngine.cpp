@@ -81,7 +81,7 @@ namespace ORNG {
 
 
 
-	void GenBatFile(std::ofstream& bat_stream, const std::string& filename, const std::string& filename_no_ext, const std::string& dll_path, const std::string& temp_fp) {
+	void GenBatFile(std::ofstream& bat_stream, const std::string& filename, const std::string& filename_no_ext, const std::string& dll_path, const std::string& temp_fp, const std::string& library_cmd) {
 #ifdef _MSC_VER
 		bat_stream << "call " + ("\"" + GetVS_InstallDir(ORNG_CORE_MAIN_DIR "\\extern\\vswhere.exe") + "\\VC\\Auxiliary\\Build\\vcvars64.bat" + "\"\n");
 
@@ -102,7 +102,7 @@ namespace ORNG {
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
 			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
-			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib " << physx_lib_dir + "\\PhysXVehicle2_static_64.lib";
+			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib " << physx_lib_dir + "\\PhysXVehicle2_static_64.lib" << library_cmd;
 #else
 		std::string physx_lib_dir = ORNG_CORE_LIB_DIR "..\\vcpkg_installed\\x64-windows\\debug\\lib";
 
@@ -120,7 +120,7 @@ namespace ORNG {
 			<< physx_lib_dir + "\\PhysXFoundation_64.lib " << physx_lib_dir + "\\PhysXExtensions_static_64.lib "
 			<< physx_lib_dir + "\\PhysX_64.lib " << physx_lib_dir + "\\PhysXCharacterKinematic_static_64.lib "
 			<< physx_lib_dir + "\\PhysXCommon_64.lib " << physx_lib_dir + "\\PhysXCooking_64.lib "
-			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib " << physx_lib_dir + "\\PhysXVehicle2_static_64.lib";
+			<< physx_lib_dir + "\\PhysXPvdSDK_static_64.lib " << physx_lib_dir + "\\PhysXVehicle_static_64.lib " << physx_lib_dir + "\\PhysXVehicle2_static_64.lib" << library_cmd;
 #endif // ifdef NDEBUG
 	}
 
@@ -134,62 +134,32 @@ namespace ORNG {
 #endif
 	}
 
-	std::string PreParseScript(const std::string& cpp_path) {
+	struct PreParsedScriptResults {
+		std::string temp_script_filepath;
+		std::string library_link_cmd;
+	};
+
+	static PreParsedScriptResults PreParseScript(const std::string& cpp_path) {
+		PreParsedScriptResults ret;
+
 		std::ifstream ifstream{ cpp_path };
 		std::stringstream ss;
 		std::string line;
 		std::string constructor_code;
 
-		unsigned line_num = 0;
 		while (getline(ifstream, line)) {
-			line_num++;
-			if (line.find("O_PROPERTY") != std::string::npos) {
-				std::string name;
-				auto equals_pos = line.find("=");
-				// Between name and = e.g nameSPACE_1_POS=
-				int name_end_pos = -1;
-				// Between type and name e.g intSPACE_2_POSname
-				int name_start_pos = -1;
-
-				if (equals_pos != std::string::npos) {
-					for (int i = equals_pos; i >= 0; i--) {
-						if (line[i] == ' ') {
-							if (name_end_pos != -1) {
-								name_start_pos = i;
-								break;
-							}
-							else
-								name_end_pos = i - 1;
-						}
-					}
-				}
-				else if (auto semicolon_pos = line.find(";"); semicolon_pos != std::string::npos) {
-					auto search_pos = line.find('{');
-					if (search_pos == std::string::npos)
-						search_pos = semicolon_pos;
-
-
-					for (int i = search_pos; i >= 0; i--) {
-						if ((std::isalnum(line[i]) || line[i] == '_') && name_end_pos == -1) {
-							name_end_pos = i;
-						}
-						else if (line[i] == ' ' && name_end_pos != -1) {
-							name_start_pos = i;
-							break;
-						}
-					}
-				}
-				if (name_end_pos != -1 && name_start_pos != -1) {
-					name = line.substr(name_start_pos + 1, name_end_pos - name_start_pos);
-					constructor_code += "m_member_addresses[\"" + name + "\"] = &" + name + ";\n";
-				}
-				else {
-					ORNG_CORE_ERROR("Parsing error for script '{0}', property at line '{1}' declared improperly", cpp_path, line_num);
-				}
+			if (auto property_pos = line.find("O_PROPERTY("); property_pos != std::string::npos) {
+				std::string name = line.substr(property_pos + 11, line.find(')', property_pos + 11) - property_pos - 11);
+				constructor_code += "m_member_addresses[\"" + name + "\"] = &" + name + ";\n";
 			}
+
+			if (auto library_declare_pos = line.find("O_LINK(\""); library_declare_pos != std::string::npos) {
+				std::string library_path = line.substr(library_declare_pos + 8, line.find('\")', library_declare_pos + 8) - library_declare_pos - 8);
+				ret.library_link_cmd += " " + library_path;
+			}
+
 			ss << line << "\n";
 		}
-
 
 		std::string output = ss.str();
 		auto constructor_pos = output.find("O_CONSTRUCTOR");
@@ -201,12 +171,12 @@ namespace ORNG {
 			output.insert(constructor_pos, constructor_code);
 		}
 
-		std::string output_path = cpp_path;
-		output_path.insert(output_path.rfind('.'), "TEMP");
-		std::ofstream ofstream{ output_path };
+		ret.temp_script_filepath = cpp_path;
+		ret.temp_script_filepath.insert(ret.temp_script_filepath.rfind('.'), "TEMP");
+		std::ofstream ofstream{ ret.temp_script_filepath };
 		ofstream << output;
 
-		return output_path;
+		return ret;
 	}
 
 	void ScriptingEngine::OnDeleteScript(const std::string& script_filepath) {
@@ -329,14 +299,14 @@ namespace ORNG {
 					std::filesystem::remove(entry);
 				}
 
-				std::string temp_fp = PreParseScript(filepath);
+				PreParsedScriptResults res = PreParseScript(filepath);
 				std::ofstream bat_stream("res/scripts/gen_scripts.bat");
-				GenBatFile(bat_stream, filename, filename_no_ext, dll_path, temp_fp);
+				GenBatFile(bat_stream, filename, filename_no_ext, dll_path, res.temp_script_filepath, res.library_link_cmd);
 				bat_stream.close();
 
 				// Run bat file
 				int dev_env_result = system(".\\res\\scripts\\gen_scripts.bat");
-				FileDelete(temp_fp);
+				FileDelete(res.temp_script_filepath);
 				if (dev_env_result != 0) {
 					ORNG_CORE_ERROR("Script compilation/linking error for script '{0}', {1}", relative_path, dev_env_result);
 					return ScriptSymbols(relative_path);
