@@ -108,7 +108,6 @@ namespace ORNG {
 	private:
 		void SetScriptState();
 		bool m_is_loaded = false;
-		bool active = false;
 
 		// Delta time accumulated over each call to Update(), different from application time
 		double m_time_elapsed = 0.0;

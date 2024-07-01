@@ -64,10 +64,11 @@ namespace ORNG {
 	struct SI {
 		std::function<SceneEntity& (const std::string&)> CreateEntity = nullptr;
 		std::function<void(SceneEntity* p_entity)> DeleteEntity = nullptr;
+		std::function<void(SceneEntity* p_entity)> DeleteEntityAtEndOfFrame = nullptr;
 		std::function<SceneEntity&(SceneEntity& p_entity)> DuplicateEntity = nullptr;
-		std::function<SceneEntity& (entt::entity entity_handle)> GetEntityByEnttHandle = nullptr;
-		std::function<SceneEntity& (uint64_t)> GetEntityByUUID = nullptr;
-		std::function<SceneEntity& (const std::string&)> GetEntityByName = nullptr;
+		std::function<SceneEntity* (entt::entity entity_handle)> GetEntityByEnttHandle = nullptr;
+		std::function<SceneEntity* (uint64_t)> GetEntityByUUID = nullptr;
+		std::function<SceneEntity* (const std::string&)> GetEntityByName = nullptr;
 		std::function<SceneEntity& (uint64_t)> InstantiatePrefab = nullptr;
 
 		std::function<float()> GetSceneTimeElapsed = nullptr;

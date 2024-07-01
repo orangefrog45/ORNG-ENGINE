@@ -163,7 +163,7 @@ void main() {
 		vec3 slice_light = vec3(0);
 
 		for (unsigned int i = 0; i < ubo_point_lights.lights.length(); i++) {
-			slice_light += CalcPointLight(ubo_point_lights.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights.lights[i].pos.xyz - step_pos));
+			slice_light += CalcPointLight(ubo_point_lights.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights.lights[i].pos.xyz - step_pos)) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], int(i), step_pos));
 		}
 
 		for (unsigned int i = 0; i < ubo_spot_lights.lights.length(); i++) {

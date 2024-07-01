@@ -42,6 +42,18 @@ namespace ORNG {
 	}
 	
 
+	glm::quat ExtraMath::MapVectorTransform(const glm::vec3& v, const glm::vec3& w, float interp) {
+		glm::vec3 u = glm::normalize(v);
+		glm::vec3 t = glm::normalize(w);
+
+		glm::vec3 a = glm::cross(u, t);
+
+		float theta = acos(glm::dot(u, t));
+
+		glm::quat q = glm::angleAxis(theta * interp, glm::normalize(a));
+
+		return q;
+	}
 
 	glm::mat4 ExtraMath::CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, glm::vec3 light_dir, float z_mult, float shadow_map_size)
 	{

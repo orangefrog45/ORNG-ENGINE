@@ -18,8 +18,8 @@ namespace ORNG {
 		pointlight_depth_spec.mag_filter = GL_LINEAR;
 		pointlight_depth_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		pointlight_depth_spec.layer_count = 8;
-		pointlight_depth_spec.width = 512;
-		pointlight_depth_spec.height = 512;
+		pointlight_depth_spec.width = POINTLIGHT_SHADOW_MAP_RES;
+		pointlight_depth_spec.height = POINTLIGHT_SHADOW_MAP_RES;
 		m_pointlight_depth_tex.SetSpec(pointlight_depth_spec);
 	}
 

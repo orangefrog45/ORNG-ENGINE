@@ -11,6 +11,8 @@ namespace ORNG {
 		glm::vec2 max;
 	};
 
+
+
 	class ExtraMath
 	{
 	public:
@@ -32,6 +34,9 @@ namespace ORNG {
 			Plane near_plane;
 		};
 
+
+		// Returns a quaternion that rotates v onto w by factor "interp" (0-1)
+		static glm::quat MapVectorTransform(const glm::vec3& v, const glm::vec3& w, float interp = 1.f);
 
 		static glm::mat4 CalculateLightSpaceMatrix(const glm::mat4& proj, const glm::mat4& view, glm::vec3 light_dir, float z_mult, float shadow_map_size);
 

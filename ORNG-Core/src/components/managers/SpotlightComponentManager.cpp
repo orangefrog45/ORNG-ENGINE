@@ -19,8 +19,8 @@ namespace ORNG {
 
 		Texture2DArraySpec spotlight_depth_spec;
 		spotlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
-		spotlight_depth_spec.width = 512;
-		spotlight_depth_spec.height = 512;
+		spotlight_depth_spec.width = 1024;
+		spotlight_depth_spec.height = 1024;
 		spotlight_depth_spec.layer_count = 8;
 		spotlight_depth_spec.format = GL_DEPTH_COMPONENT;
 		spotlight_depth_spec.storage_type = GL_FLOAT;

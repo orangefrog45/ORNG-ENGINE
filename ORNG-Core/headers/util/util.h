@@ -119,6 +119,23 @@ namespace ORNG {
 	MISC UTILS
 	*/
 
+	template<Vec2Type T>
+	glm::vec2 xy(T vec) {
+		return { vec.x, vec.y };
+	}
+
+	template<Vec3Type T>
+	glm::vec2 xz(T vec) {
+		return { vec.x, vec.z };
+	}
+
+
+	template<Vec3Type T>
+	glm::vec3 xyz(T vec) {
+		return { vec.x, vec.y, vec.z };
+	}
+
+
 	template<typename T>
 	bool VectorContains(const std::vector<T>& vec, const T& value) {
 		if (vec.empty())

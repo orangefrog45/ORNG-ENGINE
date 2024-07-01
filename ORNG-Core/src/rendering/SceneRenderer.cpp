@@ -1037,7 +1037,7 @@ namespace ORNG {
 
 		// Pointlights
 		index = 0;
-		glViewport(0, 0, 512, 512);
+		glViewport(0, 0, PointlightSystem::POINTLIGHT_SHADOW_MAP_RES, PointlightSystem::POINTLIGHT_SHADOW_MAP_RES);
 		mp_depth_sv->Activate((unsigned)DepthSV::POINTLIGHT);
 		auto pointlights = mp_scene->m_registry.view<PointLightComponent, TransformComponent>();
 

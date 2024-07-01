@@ -1,3 +1,6 @@
+1/7/24:
+-Some bugfixes
+
 26/5/24:
 -Scripts can now link to user-provided precompiled libraries
 -Simplified how O_PROPERTYs are exposed in scripts and picked up in the preparse stage

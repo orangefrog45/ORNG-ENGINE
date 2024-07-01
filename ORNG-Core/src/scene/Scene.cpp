@@ -26,30 +26,26 @@ namespace ORNG {
 			};
 
 		m_si.GetEntityByEnttHandle = 
-			[this](entt::entity id) -> SceneEntity& {
-				auto* p_ent = GetEntity(id);
-
-				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with entt handle {} not found", (uint32_t)id)); // Caught in Scene::Update
-
-				return *p_ent;
+			[this](entt::entity id) -> SceneEntity* {
+				return GetEntity(id);
 			};
 
 		m_si.GetEntityByName = 
-			[this](const std::string& name) -> SceneEntity& {
-				auto* p_ent = GetEntity(name);
-
-				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with name {} not found", name)); // Caught in Scene::Update
-
-				return *p_ent;
+			[this](const std::string& name) -> SceneEntity* {
+				return GetEntity(name);
 			};
 
 		m_si.DeleteEntity = 
 			[this](SceneEntity* p_entity) {
-				if (!VectorContains(m_entity_deletion_queue, p_entity))
-					m_entity_deletion_queue.push_back(p_entity);
+			DeleteEntity(p_entity);
 			};
+
+		m_si.DeleteEntityAtEndOfFrame =
+			[this](SceneEntity* p_entity) {
+			if (!VectorContains(m_entity_deletion_queue, p_entity))
+				m_entity_deletion_queue.push_back(p_entity);
+			};
+
 
 		m_si.DuplicateEntity = 
 			[this](SceneEntity& ent) -> SceneEntity& {
@@ -70,14 +66,10 @@ namespace ORNG {
 			};
 
 		m_si.GetEntityByUUID =
-			[this](uint64_t id) -> SceneEntity& {
-				auto* p_ent = GetEntity(id);
-
-				if (!p_ent)
-					throw std::runtime_error(std::format("Scene::GetEntity failed, entity with uuid {} not found", id)); // Caught in Scene::Update
-
-				return *p_ent;
+			[this](uint64_t id) -> SceneEntity* {
+				return GetEntity(id);
 			};
+
 
 		m_si.OverlapQuery =
 			[this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
@@ -134,18 +126,23 @@ namespace ORNG {
 	void Scene::DeleteEntity(SceneEntity* p_entity) {
 		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 
+		if (auto* p_script = p_entity->GetComponent<ScriptComponent>(); p_script && p_script->p_instance) {
+			p_script->p_instance->OnDestroy();
+		}
+
 		auto current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
 		while (current_child_entity != entt::null) {
 			auto* p_child_ent = GetEntity(current_child_entity);
+
 			entt::entity next = p_child_ent->GetComponent<RelationshipComponent>()->next;
 			DeleteEntity(p_child_ent);
 			current_child_entity = next;
 		}
 
-
+		
 		if (m_root_entities.contains(p_entity->m_entt_handle))
 			m_root_entities.erase(p_entity->m_entt_handle);
-
+		
 		auto it = std::ranges::find(m_entities, p_entity);
 		ASSERT(it != m_entities.end());
 

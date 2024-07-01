@@ -28,6 +28,7 @@ void main() {
 	float bias = clamp(0.0005 * tan(acos(clamp(dot(n, ubo_global_lighting.directional_light.direction.xyz), 0.0, 1.0))), 0.0, 0.01); // slope bias
 #elif defined SPOTLIGHT
 	float bias = clamp(0.000025 * tan(acos(clamp(dot(n, normalize(u_light_pos - world_pos)), 0.0, 1.0))), 0.0, 0.01); // slope bias
+	
 #elif defined POINTLIGHT
 	float bias = 0;
 #endif
@@ -36,7 +37,7 @@ void main() {
 	float distance = length(world_pos - u_light_pos);
 	bias = (1.0 - abs(dot(n, normalize(world_pos - u_light_pos)))) * 0.3;
 	distance += bias;
-	distance /= u_light_zfar;
+	distance /= u_light_zfar; // map to 0-1, linear
 	gl_FragDepth = distance;
 #else
 	gl_FragDepth = gl_FragCoord.z + bias;

@@ -287,6 +287,9 @@ namespace ORNG {
 
 		// Checks if the depth map array needs to grow/shrink
 		void OnDepthMapUpdate();
+
+		static constexpr unsigned POINTLIGHT_SHADOW_MAP_RES = 2048;
+
 	private:
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
 		SSBO<float> m_pointlight_ssbo{ true, 0 };

@@ -1629,6 +1629,9 @@ namespace ORNG {
 			static bool using_env_maps = true;
 			static unsigned resolution = 4096;
 
+			using_env_maps = SCENE->skybox.using_env_map;
+			resolution = SCENE->skybox.m_resolution;
+
 			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
 				// Check if texture is an asset or not, if not, add it
 				std::string new_filepath = "./res/textures/" + filepath.substr(filepath.find_last_of("\\") + 1);

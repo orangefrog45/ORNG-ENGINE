@@ -875,7 +875,7 @@ namespace ORNG {
 			auto skybox = data["Skybox"];
 			bool using_env_maps = skybox["IBL"].as<bool>();
 			float res = skybox["Resolution"].as<float>();
-			scene.skybox.Load(skybox["HDR filepath"].as<std::string>(), 4096, using_env_maps);
+			scene.skybox.Load(skybox["HDR filepath"].as<std::string>(), res, using_env_maps);
 		}
 
 		// Bloom
