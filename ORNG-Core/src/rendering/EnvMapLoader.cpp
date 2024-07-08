@@ -92,6 +92,7 @@ namespace ORNG {
 			delete[] pixels;
 		}
 		skybox.m_diffuse_prefilter_map->LoadFromFile();
+		skybox.m_diffuse_prefilter_map->GenerateMips();
 	}
 
 
@@ -122,6 +123,7 @@ namespace ORNG {
 			}
 		}
 
+		skybox.m_specular_prefilter_map->GenerateMips();
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_specular_prefilter_map->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER);
 	}
 

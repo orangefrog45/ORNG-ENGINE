@@ -36,6 +36,10 @@ namespace ORNG {
 			return m_camera_system.GetActiveCamera();
 		}
 
+		const SI& GetSI() {
+			return m_si;
+		}
+
 		// Instantiates prefab without calling OnCreate, used for instantiation while the scene is paused e.g in the editor
 		SceneEntity& InstantiatePrefab(const Prefab& prefab);
 

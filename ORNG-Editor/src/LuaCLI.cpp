@@ -48,8 +48,6 @@ namespace ORNG {
 			return;
 
 		static std::vector<LuaOutput> output_stack;
-		static unsigned command_index = 0;
-		static std::vector<std::string> prev_command_stack;
 
 		lua.set_function("print", [](const std::string& s) {
 			output_stack.push_back({ s, false });
@@ -58,9 +56,7 @@ namespace ORNG {
 		ImGui::SetNextWindowPos({ render_pos.x, render_pos.y});
 		ImGui::SetNextWindowSize({ size.x, size.y });
 		if (ImGui::Begin("Util console")) {
-			static std::string lua_input_1;
-			static std::string lua_input_2;
-			static std::string* p_active_string = &lua_input_1;
+			static std::string lua_input;
 
 			if (ImGui::BeginChild(1232, { 0, size.y * 0.7f }, true)) {
 				for (const auto& output : output_stack) {
@@ -76,15 +72,7 @@ namespace ORNG {
 				reselect = false;
 			}
 
-			lua_input_1 = "HI";
-
-			ImGui::InputText("##input", p_active_string, enable_typing ? 0 : ImGuiInputTextFlags_ReadOnly );
-
-			if (Input::IsKeyPressed(Key::ArrowUp) && command_index > 0) {
-				p_active_string = p_active_string == &lua_input_1 ? &lua_input_2 : &lua_input_1;
-				command_index--;
-				*p_active_string = prev_command_stack[command_index];
-			}
+			ImGui::InputText("##input", &lua_input, enable_typing ? 0 : ImGuiInputTextFlags_ReadOnly );
 
 
 			if (ImGui::IsItemFocused()) {
@@ -92,17 +80,14 @@ namespace ORNG {
 				if (Input::IsKeyPressed(Key::Enter)) {
 					try {
 						std::ranges::for_each(input_callbacks, [](const auto& p_func) {p_func(); });
-						output_stack.push_back({ *p_active_string, false });
-						prev_command_stack.push_back(*p_active_string);
-						command_index = prev_command_stack.size();
-						lua.script(*p_active_string);
+						lua.script(lua_input);
 					}
 					catch (std::exception& e) {
 						output_stack.push_back({ e.what(), true });
 					}
 
-					reselect = !(*p_active_string).empty();
-					p_active_string->clear();
+					reselect = !lua_input.empty();
+					lua_input.clear();
 				}
 
 			}

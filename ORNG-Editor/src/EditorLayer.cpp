@@ -1651,7 +1651,7 @@ namespace ORNG {
 				ImGui::EndTooltip();
 			}
 
-			ExtraUI::InputUint("Resolution", resolution);
+			ExtraUI::InputUint("Resolution", SCENE->skybox.m_resolution);
 
 			if (ImGui::Checkbox("Gen IBL textures", &using_env_maps) || ImGui::Button("Reload")) {
 				SCENE->skybox.Load(SCENE->skybox.GetSrcFilepath(), resolution, using_env_maps);

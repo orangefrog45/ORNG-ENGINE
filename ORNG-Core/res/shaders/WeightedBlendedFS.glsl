@@ -19,13 +19,15 @@ layout(binding = 22) uniform sampler2D brdf_lut_sampler;
 layout(binding = 25) uniform sampler2D emissive_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
 
-in vec4 vs_position;
-in vec3 vs_normal;
-in vec3 vs_tex_coord;
-in vec3 vs_tangent;
-in mat4 vs_transform;
-in vec3 vs_original_normal;
-in vec3 vs_view_dir_tangent_space;
+
+in VSVertData {
+    vec4 position;
+    vec3 normal;
+    vec2 tex_coord;
+    vec3 tangent;
+    vec3 original_normal;
+    vec3 view_dir_tangent_space;
+} vert_data;
 
 ORNG_INCLUDE "CommonINCL.glsl"
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
@@ -86,27 +88,27 @@ const float EPSILON = 0.00001f;
 void main() {
 
     vec3 total_light = vec3(0.0, 0.0, 0.0);
-    vec3 n = normalize(vs_normal);
-	vec3 v = normalize(ubo_common.camera_pos.xyz - vs_position.xyz);
+    vec3 n = normalize(vert_data.normal);
+	vec3 v = normalize(ubo_common.camera_pos.xyz - vert_data.position.xyz);
 	vec3 r = reflect(-v, n);
 	float n_dot_v = max(dot(n, v), 0.0);
 
 	vec3 f0 = mix( vec3(0.03), u_material.base_color.rgb, u_material.metallic);
 
-	float roughness = texture(roughness_sampler, vs_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
-	float metallic = texture(metallic_sampler, vs_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
-	float ao  = texture(ao_sampler, vs_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
-    vec4 albedo = CalculateAlbedoAndEmissive(vs_tex_coord.xy);
+	float roughness = texture(roughness_sampler, vert_data.tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
+	float metallic = texture(metallic_sampler, vert_data.tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
+	float ao  = texture(ao_sampler, vert_data.tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
+    vec4 albedo = CalculateAlbedoAndEmissive(vert_data.tex_coord.xy);
 
-	total_light += CalculateDirectLightContributionCheap(v, f0, vs_position.xyz, n, roughness, metallic, albedo.rgb);
-	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
+	total_light += CalculateDirectLightContribution(v, f0, vert_data.position.xyz, n, roughness, metallic, albedo.rgb);
+	
+	//total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
     vec4 color = vec4(total_light, u_material.base_color.a * albedo.w);
 
     float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 
                          pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
 
     accum = vec4(color.rgb * color.a, color.a) * weight;
-        
 
     reveal = color.a;
 }

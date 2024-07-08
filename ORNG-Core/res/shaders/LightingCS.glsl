@@ -11,22 +11,15 @@ ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
-layout(binding = 5) uniform sampler3D pos_x_voxel_mip_sampler;
-layout(binding = 6) uniform sampler3D pos_y_voxel_mip_sampler;
 layout(binding = 7) uniform sampler2D normal_sampler;
-layout(binding = 8) uniform sampler3D pos_z_voxel_mip_sampler;
-layout(binding = 9) uniform sampler3D neg_x_voxel_mip_sampler;
-layout(binding = 10) uniform sampler3D neg_y_voxel_mip_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
 layout(binding = 12) uniform usampler2D shader_id_sampler;
-layout(binding = 13) uniform sampler3D neg_z_voxel_mip_sampler;
 layout(binding = 16) uniform sampler2D view_depth_sampler;
 layout(binding = 19) uniform sampler2D roughness_metallic_ao_sampler;
 layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
 layout(binding = 21) uniform samplerCube specular_prefilter_sampler;
 layout(binding = 22) uniform sampler2D brdf_lut_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
-layout(binding = 27) uniform usampler3D voxel_grid_sampler;
 
 layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 
