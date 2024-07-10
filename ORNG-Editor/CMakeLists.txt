@@ -64,7 +64,7 @@ lua::lua
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 #Get res folder with shaders etc
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/../ORNG-Core/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
+file(COPY ${CMAKE_CURRENT_BINARY_DIR}/../ORNG-Core/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
 
 
 

@@ -215,9 +215,12 @@ namespace ORNG {
 
 		static void HandleAssetDeletion(Asset* p_asset);
 		static void HandleAssetAddition(Asset* p_asset);
+
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		static void LoadTexture2D(Texture2D* p_tex);
+
 		static void LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts);
+
 		static void SerializeAssets() {
 			Get().ISerializeAssets();
 		}
@@ -228,8 +231,16 @@ namespace ORNG {
 		// Stalls program and waits for meshes to load - this will cause the program to freeze
 		inline static void StallUntilMeshesLoaded() { Get().IStallUntilMeshesLoaded(); }
 
+		static bool DeserializeTexture2D(const std::string& filepath, Texture2D& tex, std::vector<std::byte>& raw_data);
+		static void SerializeTexture2D(Texture2D& tex, const std::string& output_filepath, std::optional<bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>> s = std::nullopt);
+
+		static bool DeserializeSoundAsset(SoundAsset& sound, const std::string& filepath, std::vector<std::byte>& raw_data);
+		static void SerializeSoundAsset(SoundAsset& sound, const std::string& output_filepath);
+
 		template <std::derived_from<Asset> T>
 		static void DeserializeAssetBinary(const std::string& filepath, T& data) {
+			static_assert(!std::is_same_v<T, Texture2D>, "Use the dedicated DeserializeTexture2D function to deserialize textures");
+
 			std::ifstream s{ filepath, std::ios::binary };
 			if (!s.is_open()) {
 				ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
@@ -307,17 +318,16 @@ namespace ORNG {
 			else {
 				des.object(data);
 			}
-
-			if constexpr (std::is_same_v<T, Texture2D>) {
-				// Needed to get the state to update properly with opengl
-				data.SetSpec(data.GetSpec());
-			}
 		}
 
-
+		static void CreateBinaryAssetPackage(const std::string& output_path) {
+			Get().ICreateBinaryAssetPackage(output_path);
+		}
 
 	private:
 		void I_Init();
+
+		void ICreateBinaryAssetPackage(const std::string& output_path);
 
 		// Loads all base assets (assets the engine runtime requires) that require an external file, e.g the sphere mesh needs to be loaded from a binary file. These files are always present in the "res/core-res" folder of a project
 		void LoadExternalBaseAssets(const std::string& project_dir);

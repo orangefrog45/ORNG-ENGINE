@@ -10,7 +10,7 @@ x64/
 PhysXGpu_64.dll
 Game/
 NetGame/
-
+vcpkg_installed/
 
 CMakeLists.txt.user
 CMakeCache.txt

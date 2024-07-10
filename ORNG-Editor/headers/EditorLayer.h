@@ -298,14 +298,25 @@ namespace ORNG {
 Entities:
   []
 DirLight:
+  Shadows: true
   Colour: [4.61000013, 4.92500019, 4.375]
   Direction: [0, 0.707106829, 0.707106829]
   CascadeRanges: [20, 75, 200]
   Zmults: [5, 5, 5]
 Skybox:
   HDR filepath: ""
+  IBL: false
+  Resolution: 1
+Fog:
+  Density: 0.0
+  Absorption: 0.00300000003
+  Scattering: 0.0399999991
+  Anisotropy: 0.508000016
+  Colour: [0.300000012, 0.300000012, 0.400000006]
+  Steps: 23
+  Emission: 0
 Bloom:
-  Intensity: 1
+  Intensity: 0.333000004
   Knee: 0.100000001
   Threshold: 1)"
 }

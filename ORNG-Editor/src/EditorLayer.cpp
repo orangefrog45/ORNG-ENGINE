@@ -40,7 +40,7 @@ namespace ORNG {
 		m_res.line_vao.Init();
 
 		m_res.p_raymarch_shader = &Renderer::GetShaderLibrary().CreateShaderVariants("Editor raymarch");
-		m_res.p_raymarch_shader->SetPath(GL_VERTEX_SHADER, m_state.executable_directory + "/res/shaders/QuadVS.glsl");
+		m_res.p_raymarch_shader->SetPath(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl");
 		m_res.p_raymarch_shader->SetPath(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/RaymarchFS.glsl");
 		m_res.p_raymarch_shader->AddVariant((unsigned)EditorResources::RaymarchSV::CAPSULE, { "CAPSULE" }, {"u_capsule_pos", "u_capsule_height", "u_capsule_radius"});
 
@@ -53,20 +53,20 @@ namespace ORNG {
 
 
 		m_res.p_quad_col_shader = &Renderer::GetShaderLibrary().CreateShader("quad_col");
-		m_res.p_quad_col_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/../ORNG-Core/res/shaders/QuadVS.glsl", { "TRANSFORM" });
-		m_res.p_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/../ORNG-Core/res/shaders/ColorFS.glsl");
+		m_res.p_quad_col_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl", { "TRANSFORM" });
+		m_res.p_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColorFS.glsl");
 		m_res.p_quad_col_shader->Init();
 		m_res.p_quad_col_shader->AddUniforms("u_scale", "u_translation", "u_color");
 
 		m_res.p_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		m_res.p_picking_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl");
+		m_res.p_picking_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl");
 		m_res.p_picking_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/PickingFS.glsl");
 		m_res.p_picking_shader->Init();
 		m_res.p_picking_shader->AddUniforms("comp_id", "transform");
 
 		m_res.p_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		m_res.p_highlight_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/../ORNG-Core/res/shaders/TransformVS.glsl", {"OUTLINE"});
-		m_res.p_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/ColorFS.glsl");
+		m_res.p_highlight_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl", {"OUTLINE"});
+		m_res.p_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColorFS.glsl");
 		m_res.p_highlight_shader->Init();
 		m_res.p_highlight_shader->AddUniforms("transform", "u_color", "u_scale");
 
@@ -871,7 +871,7 @@ namespace ORNG {
 			ImGui::PopFont();
 			ImGui::Text("Path");
 			ImGui::InputText("#pdir", &project_dir);
-
+			
 			static std::string err_msg = "";
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
 			ImGui::TextWrapped(err_msg.c_str());
@@ -896,28 +896,6 @@ namespace ORNG {
 
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
 	void RefreshScriptIncludes() {
-		FileDelete("./res/scripts/includes/SceneEntity.h");
-		FileDelete("./res/scripts/includes/Scene.h");
-		FileDelete("./res/scripts/includes/ScriptAPI.h");
-		FileDelete("./res/scripts/includes/Component.h");
-		FileDelete("./res/scripts/includes/MeshComponent.h");
-		FileDelete("./res/scripts/includes/ScriptComponent.h");
-		FileDelete("./res/scripts/includes/Lights.h");
-		FileDelete("./res/scripts/includes/TransformComponent.h");
-		FileDelete("./res/scripts/includes/PhysicsComponent.h");
-		FileDelete("./res/scripts/includes/CameraComponent.h");
-		FileDelete("./res/scripts/includes/EnttSingleInclude.h");
-		FileDelete("./res/scripts/includes/SceneScriptInterface.h");
-		FileDelete("./res/scripts/includes/AudioComponent.h");
-		FileDelete("./res/scripts/includes/ScriptShared.h");
-		FileDelete("./res/scripts/includes/ScriptInstancer.h");
-		FileDelete("./res/scripts/includes/VehicleComponent.h");
-		FileDelete("./res/scripts/includes/ParticleEmitterComponent.h");
-		FileDelete("./res/scripts/includes/ScriptAPIImpl.h");
-		FileDelete("./res/scripts/includes/SI.h");
-
-
-
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
@@ -938,11 +916,11 @@ namespace ORNG {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SI.h", "./res/scripts/includes/SI.h");
 
-		if (!FileExists(ORNG_CORE_MAIN_DIR "/../extern/vcpkg/installed/x64-windows/include")) {
+		if (!FileExists(ORNG_CORE_LIB_DIR "../vcpkg_installed/x64-windows/include")) {
 			ORNG_CORE_ERROR("Physx include dir not found, scripts referencing the physx API will not compile");
 		}
 		else {
-			FileCopy(ORNG_CORE_MAIN_DIR "/../extern/vcpkg/installed/x64-windows/include/physx/", "./res/scripts/includes/physx/", true);
+			FileCopy(ORNG_CORE_LIB_DIR "../vcpkg_installed/x64-windows/include/physx/", "./res/scripts/includes/physx/", true);
 		}
 
 	}
@@ -978,11 +956,6 @@ namespace ORNG {
 		std::filesystem::create_directory(project_path + "/res/prefabs");
 		std::filesystem::create_directory(project_path + "/res/materials");
 		std::filesystem::create_directory(project_path + "/res/physx-materials");
-
-		// Update engine resources
-		FileDelete("./res/core-res");
-		FileCopy(GetApplicationExecutableDirectory() + "/res", "./res/core-res/", true);
-		RefreshScriptIncludes();
 
 		return true;
 	}
@@ -1050,9 +1023,7 @@ namespace ORNG {
 			std::filesystem::current_path(folder_path);
 
 			// Update resources
-			FileDelete("./res/core-res");
-			Create_Directory("res/core-res");
-			FileCopy(GetApplicationExecutableDirectory() + "/res", "res/core-res", true);
+			FileCopy(GetApplicationExecutableDirectory() + "/res/", m_state.current_project_directory + "/res/", true);
 			RefreshScriptIncludes();
 
 			// Deselect material and texture that's about to be deleted

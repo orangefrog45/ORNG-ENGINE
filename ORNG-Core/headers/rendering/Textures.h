@@ -130,6 +130,8 @@ namespace ORNG {
 	public:
 		friend class EditorLayer;
 		friend class Scene;
+		friend class AssetManager;
+
 		Texture2D(const std::string& filepath);
 		Texture2D(const std::string& filepath, uint64_t t_uuid);
 		// Allocates a new texture object and copies texture data from other
@@ -138,14 +140,8 @@ namespace ORNG {
 
 		bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();
+		bool LoadFromBinary(const std::vector<std::byte>& data);
 		const Texture2DSpec& GetSpec() const { return m_spec; }
-
-		template <typename S>
-		void serialize(S& s) {
-			s.object(m_spec);
-			s.object(uuid);
-			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
-		}
 
 	private:
 		Texture2DSpec m_spec;

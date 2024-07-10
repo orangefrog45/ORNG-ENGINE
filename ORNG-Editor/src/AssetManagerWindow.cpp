@@ -21,10 +21,6 @@ namespace ORNG {
 		return ".\\res\\meshes\\" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("\\") + 1) + ".bin";
 	}
 
-	inline static std::string GenerateAudioFileClonePath(std::string og_path) {
-		return ".\\res\\audio\\" + og_path.substr(og_path.rfind("\\") + 1);
-	}
-
 	void AssetManagerWindow::InitPreviewScene() {
 		mp_preview_scene = std::make_unique<Scene>();
 
@@ -56,8 +52,6 @@ namespace ORNG {
 		p_cam->aspect_ratio = 1.f;
 		p_cam->MakeActive();
 		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-
-		//mp_preview_scene->skybox.LoadEnvironmentMap(di + "/res/textures/AdobeStock_247957406.jpeg");
 	}
 
 
@@ -419,17 +413,19 @@ namespace ORNG {
 				wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					// Copy file so asset can be saved with project and accessed relatively
-					std::string new_filepath = ".\\res\\textures\\" + filepath.substr(filepath.find_last_of("\\") + 1);
+					// Filepath of about-to-be serialized texture
+					std::string new_filepath = ".\\res\\textures\\" + ReplaceFileExtension(filepath.substr(filepath.find_last_of("\\") + 1), ".otex");
 					if (!std::filesystem::exists(new_filepath)) {
-						FileCopy(filepath, new_filepath);
-						m_current_2d_tex_spec.filepath = new_filepath;
+						m_current_2d_tex_spec.filepath = filepath;
 						m_current_2d_tex_spec.generate_mipmaps = true;
 						m_current_2d_tex_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 
 						Texture2D* p_new_tex = new Texture2D(filepath);
 						p_new_tex->SetSpec(m_current_2d_tex_spec);
 						AssetManager::LoadTexture2D(AssetManager::AddAsset(p_new_tex));
+						p_new_tex->filepath = new_filepath;
+
+						// Set filepath to the new path from the serialized texture
 						AssetManager::SerializeAssets();
 					}
 					else {
@@ -593,12 +589,10 @@ namespace ORNG {
 				//setting up file explorer callbacks
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					// Give relative path to current project directory
-					std::string new_filepath{ GenerateAudioFileClonePath(filepath) };
-					FileCopy(filepath, new_filepath);
-					auto* p_sound = new SoundAsset(new_filepath);
-					p_sound->source_filepath = new_filepath.substr(0, new_filepath.rfind(".osound"));
+					auto* p_sound = new SoundAsset(filepath);
+					p_sound->source_filepath = filepath;
 					AssetManager::AddAsset(p_sound);
-					p_sound->CreateSound();
+					p_sound->CreateSoundFromFile();
 					};
 
 

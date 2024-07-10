@@ -89,15 +89,15 @@ namespace ORNG {
 		ptcl_uniforms.push_back("u_transform_start_index");
 
 		mp_gbuffer_displacement_sv = &mp_shader_library->CreateShaderVariants("SR gbuffer displaced");
-		mp_gbuffer_displacement_sv->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
-		mp_gbuffer_displacement_sv->SetPath(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
-		mp_gbuffer_displacement_sv->SetPath(GL_TESS_CONTROL_SHADER, "res/shaders/GBufferTCS.glsl");
-		mp_gbuffer_displacement_sv->SetPath(GL_TESS_EVALUATION_SHADER, "res/shaders/GBufferTES.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/GBufferFS.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_TESS_CONTROL_SHADER, "res/core-res/shaders/GBufferTCS.glsl");
+		mp_gbuffer_displacement_sv->SetPath(GL_TESS_EVALUATION_SHADER, "res/core-res/shaders/GBufferTES.glsl");
 		mp_gbuffer_displacement_sv->AddVariant(0, {"TESSELLATE"}, gbuffer_uniforms);
 
 		mp_gbuffer_shader_variants = &mp_shader_library->CreateShaderVariants("gbuffer");
-		mp_gbuffer_shader_variants->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
-		mp_gbuffer_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/shaders/GBufferFS.glsl");
+		mp_gbuffer_shader_variants->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
+		mp_gbuffer_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/GBufferFS.glsl");
 		{
 			using enum GBufferVariants;
 			mp_gbuffer_shader_variants->AddVariant((unsigned)TERRAIN, { "TERRAIN_MODE" }, gbuffer_uniforms);
@@ -114,8 +114,8 @@ namespace ORNG {
 
 
 		mp_transparency_shader_variants = &mp_shader_library->CreateShaderVariants("transparency");
-		mp_transparency_shader_variants->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
-		mp_transparency_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/shaders/WeightedBlendedFS.glsl");
+		mp_transparency_shader_variants->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
+		mp_transparency_shader_variants->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/WeightedBlendedFS.glsl");
 		{
 			using enum TransparencyShaderVariants;
 			mp_transparency_shader_variants->AddVariant((unsigned)DEFAULT, { }, gbuffer_uniforms);
@@ -126,37 +126,37 @@ namespace ORNG {
 		auto voxel_uniforms = gbuffer_uniforms;
 		PushBackMultiple(voxel_uniforms, "u_orth_proj_view_matrix", "u_voxel_size", "u_cascade_idx");
 		mp_scene_voxelization_shader = &mp_shader_library->CreateShaderVariants("scene-voxelizer");
-		mp_scene_voxelization_shader->SetPath(GL_VERTEX_SHADER, "res/shaders/GBufferVS.glsl");
-		mp_scene_voxelization_shader->SetPath(GL_FRAGMENT_SHADER, "res/shaders/SceneVoxelizationFS.glsl");
+		mp_scene_voxelization_shader->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
+		mp_scene_voxelization_shader->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/SceneVoxelizationFS.glsl");
 		mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::MAIN, {"VOXELIZE"}, voxel_uniforms);
 		
 		//mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::CASCADE_1, {"VOXELIZE", "CASCADE_1", "PREV_CASCADE_WORLD_SIZE 51.2", "CURRENT_CASCADE_TEX_SIZE 256", "VOXEL_SIZE 0.4" }, voxel_uniforms);
 
 		mp_voxel_debug_shader = &mp_shader_library->CreateShader("voxel_debug");
-		mp_voxel_debug_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/VoxelDebugViewVS.glsl");
-		mp_voxel_debug_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/ColorFS.glsl", {"VOXELIZATION"});
+		mp_voxel_debug_shader->AddStage(GL_VERTEX_SHADER, "res/core-res/shaders/VoxelDebugViewVS.glsl");
+		mp_voxel_debug_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/ColorFS.glsl", {"VOXELIZATION"});
 		mp_voxel_debug_shader->Init();
 
 		mp_voxel_compute_sv = &mp_shader_library->CreateShaderVariants("SR voxel decrement");
-		mp_voxel_compute_sv->SetPath(GL_COMPUTE_SHADER, "res/shaders/VoxelDecrementCS.glsl");
+		mp_voxel_compute_sv->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/VoxelDecrementCS.glsl");
 		mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE, { "DECREMENT_LUMINANCE" }, {});
 		mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE, { "ON_CAM_POS_UPDATE" }, {"u_delta_tex_coords"});
 		mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::BLIT, { "BLIT" }, {});
 
 		mp_3d_mipmap_shader = &mp_shader_library->CreateShaderVariants("3d-mipmap");
-		mp_3d_mipmap_shader->SetPath(GL_COMPUTE_SHADER, "res/shaders/MipMap3D.glsl");
+		mp_3d_mipmap_shader->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/MipMap3D.glsl");
 		mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
 		mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC, {"ANISOTROPIC_MIPMAP"}, {});
 		mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, {"u_mip_level"});
 
 
 		mp_transparency_composite_shader = &mp_shader_library->CreateShader("transparency_composite");
-		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/TransparentCompositeFS.glsl");
-		mp_transparency_composite_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
+		mp_transparency_composite_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/TransparentCompositeFS.glsl");
+		mp_transparency_composite_shader->AddStage(GL_VERTEX_SHADER, "res/core-res/shaders/QuadVS.glsl");
 		mp_transparency_composite_shader->Init();
 
 		m_lighting_shader = &mp_shader_library->CreateShader("lighting");
-		m_lighting_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/LightingCS.glsl");
+		m_lighting_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/LightingCS.glsl");
 		m_lighting_shader->Init();
 		m_lighting_shader->AddUniform("u_ibl_active");
 
@@ -164,7 +164,7 @@ namespace ORNG {
 
 		// Render quad
 		m_post_process_shader = &mp_shader_library->CreateShader("post_process");
-		m_post_process_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/PostProcessCS.glsl");
+		m_post_process_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/PostProcessCS.glsl");
 		m_post_process_shader->Init();
 		m_post_process_shader->AddUniforms("exposure", "u_bloom_intensity");
 
@@ -179,7 +179,7 @@ namespace ORNG {
 
 		// blue noise for post-processing effects in quad
 		Texture2DSpec noise_spec;
-		noise_spec.filepath = "res/textures/BlueNoise64Tiled.png";
+		noise_spec.filepath = "res/core-res/textures/BlueNoise64Tiled.png";
 		noise_spec.min_filter = GL_NEAREST;
 		noise_spec.mag_filter = GL_NEAREST;
 		noise_spec.wrap_params = GL_REPEAT;
@@ -190,20 +190,20 @@ namespace ORNG {
 		m_blue_noise_tex.LoadFromFile();
 
 		mp_depth_sv = &mp_shader_library->CreateShaderVariants("SR Depth");
-		mp_depth_sv->SetPath(GL_VERTEX_SHADER, "res/shaders/DepthVS.glsl");
-		mp_depth_sv->SetPath(GL_FRAGMENT_SHADER, "res/shaders/DepthFS.glsl");
+		mp_depth_sv->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/DepthVS.glsl");
+		mp_depth_sv->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/DepthFS.glsl");
 		mp_depth_sv->AddVariant((unsigned)DepthSV::DIRECTIONAL, { "ORTHOGRAPHIC" }, { "u_alpha_test", "u_light_pv_matrix" });
 		mp_depth_sv->AddVariant((unsigned)DepthSV::SPOTLIGHT, { "PERSPECTIVE", "SPOTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos"});
 		mp_depth_sv->AddVariant((unsigned)DepthSV::POINTLIGHT, { "PERSPECTIVE", "POINTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos", "u_light_zfar"});
 
 
 		m_blur_shader = &mp_shader_library->CreateShader("SR Blur");
-		m_blur_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BlurFS.glsl");
+		m_blur_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BlurFS.glsl");
 		m_blur_shader->Init();
 		m_blur_shader->AddUniform("u_horizontal");
 
 		mp_depth_aware_upsample_sv = &mp_shader_library->CreateShaderVariants("SR depth aware upsample");
-		mp_depth_aware_upsample_sv->SetPath(GL_COMPUTE_SHADER, "res/shaders/DepthAwareUpsampleCS.glsl");
+		mp_depth_aware_upsample_sv->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/DepthAwareUpsampleCS.glsl");
 		mp_depth_aware_upsample_sv->AddVariant((unsigned)DepthAwareUpsampleSV::DEFAULT, {}, {});
 		// Cone trace upsample pass is also normal-aware as well as depth-aware
 		mp_depth_aware_upsample_sv->AddVariant((unsigned)DepthAwareUpsampleSV::CONE_TRACE, {"CONE_TRACE_UPSAMPLE"}, {});
@@ -314,7 +314,7 @@ namespace ORNG {
 
 		// Fog
 		m_fog_shader = &mp_shader_library->CreateShader("fog");
-		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/FogCS.glsl");
+		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/FogCS.glsl");
 		m_fog_shader->Init();
 		m_fog_shader->AddUniforms({
 			"u_fog_color",
@@ -367,17 +367,17 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(resize_listener);
 
 		mp_bloom_downsample_shader = &mp_shader_library->CreateShader("bloom downsample");
-		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BloomDownsampleCS.glsl");
+		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomDownsampleCS.glsl");
 		mp_bloom_downsample_shader->Init();
 		mp_bloom_downsample_shader->AddUniform("u_mip_level");
 
 		mp_bloom_upsample_shader = &mp_shader_library->CreateShader("bloom upsample");
-		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BloomUpsampleCS.glsl");
+		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomUpsampleCS.glsl");
 		mp_bloom_upsample_shader->Init();
 		mp_bloom_upsample_shader->AddUniform("u_mip_level");
 
 		mp_bloom_threshold_shader = &mp_shader_library->CreateShader("bloom threshold");
-		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/BloomThresholdCS.glsl");
+		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomThresholdCS.glsl");
 		mp_bloom_threshold_shader->Init();
 		mp_bloom_threshold_shader->AddUniforms("u_threshold", "u_knee");
 
@@ -423,7 +423,7 @@ namespace ORNG {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_blue_noise_tex.GetTarget(), m_blue_noise_tex.GetTextureHandle(), 0);
 
 		mp_cone_trace_shader = &Renderer::GetShaderLibrary().CreateShader("SR cone trace");
-		mp_cone_trace_shader->AddStage(GL_COMPUTE_SHADER, "res/shaders/ConeTraceCS.glsl");
+		mp_cone_trace_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ConeTraceCS.glsl");
 		mp_cone_trace_shader->Init();
 
 		Texture2DSpec cone_trace_spec = low_pres_spec;

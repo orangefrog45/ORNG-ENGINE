@@ -3,9 +3,9 @@ namespace ORNG {
 	bool FileCopy(const std::string& file_to_copy, const std::string& copy_location, bool recursive) {
 		try {
 			if (recursive)
-				std::filesystem::copy(file_to_copy, copy_location, std::filesystem::copy_options::recursive);
+				std::filesystem::copy(file_to_copy, copy_location, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing);
 			else
-				std::filesystem::copy_file(file_to_copy, copy_location);
+				std::filesystem::copy_file(file_to_copy, copy_location, std::filesystem::copy_options::overwrite_existing);
 
 			return true;
 		}
@@ -54,7 +54,7 @@ namespace ORNG {
 			return std::filesystem::exists(filepath);
 		}
 		catch (std::exception& e) {
-			ORNG_CORE_ERROR("std::filesystem::remove error, '{0}'", e.what());
+			ORNG_CORE_ERROR("std::filesystem::exists error, '{0}'", e.what());
 			return false;
 		}
 	}
@@ -161,5 +161,35 @@ namespace ORNG {
 
 		return formatted;
 	}
+
+	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension) {
+		auto extension = filepath.substr(filepath.rfind('.'));
+		std::string ret = filepath;
+		StringReplace(ret, extension, new_extension);
+		return ret;
+	}
+
+	bool ReadBinaryFile(const std::string& filepath, std::vector<std::byte>& output) {
+
+		std::ifstream file{ filepath, std::ios::binary | std::ios::ate };
+
+		if (!file.is_open()) {
+			ORNG_CORE_ERROR("Failed to open binary file '{0}' for reading", filepath);
+			return false;
+		}
+
+		auto file_size = file.tellg();
+
+		output.resize(file_size);
+		file.seekg(0, std::ios::beg);
+
+		if (!file.read(reinterpret_cast<char*>(output.data()), file_size)) {
+			ORNG_CORE_ERROR("Failed to read binary file '{0}' after opening successfully", filepath);
+			return false;
+		}
+
+		return true;
+	}
+
 
 }

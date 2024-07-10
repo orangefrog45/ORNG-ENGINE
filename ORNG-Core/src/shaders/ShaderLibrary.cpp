@@ -23,8 +23,8 @@ namespace ORNG {
 
 		ORNG_CORE_TRACE(std::filesystem::current_path().string());
 		mp_quad_shader = &CreateShader("SL quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.glsl");
+		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/core-res/shaders/QuadVS.glsl");
+		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/QuadFS.glsl");
 		mp_quad_shader->Init();
 	}
 

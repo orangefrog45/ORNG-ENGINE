@@ -10,15 +10,11 @@ namespace ORNG {
 		~SoundAsset();
 
 		FMOD::Sound* p_sound = nullptr;
-		// Filepath of audio data, separate from the filepath of this asset (.osound file)
+
 		std::string source_filepath;
 
-		template<typename S>
-		void serialize(S& s) {
-			s.object(uuid);
-			s.text1b(source_filepath, ORNG_MAX_FILEPATH_SIZE);
-		}
+		void CreateSoundFromFile();
+		void CreateSoundFromBinary(const std::vector<std::byte>& data);
 
-		void CreateSound();
 	};
 }

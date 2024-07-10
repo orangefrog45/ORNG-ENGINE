@@ -13,8 +13,9 @@
 
 #define VEC_PUSH_VEC3(vector, vec3) vector.push_back(vec3.x); vector.push_back(vec3.y); vector.push_back(vec3.z)
 #define VEC_PUSH_VEC2(vector, vec2) vector.push_back(vec2.x); vector.push_back(vec2.y)
-#define ORNG_MAX_FILEPATH_SIZE 500
-#define ORNG_MAX_NAME_SIZE 500
+
+constexpr unsigned ORNG_MAX_FILEPATH_SIZE = 500;
+constexpr unsigned ORNG_MAX_NAME_SIZE = 500;
 
 #define CONCAT(x, y) CONCAT_IMPL(x, y)
 #define CONCAT_IMPL(x, y) x##y
@@ -114,6 +115,10 @@ namespace ORNG {
 
 	bool IsEntryAFile(const std::filesystem::directory_entry& entry);
 
+	bool ReadBinaryFile(const std::string& filepath, std::vector<std::byte>& output);
+
+	// Returns filepath with modified extension, "new_extension" should include the '.', e.g ".png", ".jpg"
+	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension);
 
 	/*
 	MISC UTILS

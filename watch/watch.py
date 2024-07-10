@@ -12,6 +12,12 @@ release_dir_game = "..\\out\\build\\x64-Release-2\\Game\\res\\shaders\\"
 debug_dir_net_game = "..\\out\\build\\x64-Debug-2\\NetGame\\res\\shaders\\"
 release_dir_net_game = "..\\out\\build\\x64-Release-2\\NetGame\\res\\shaders\\"
 
+def TryCopy(original, copy_location):
+    try:
+        shutil.copy(original, copy_location);
+    except:
+        return
+    
 
 class Handler(FileSystemEventHandler):
     def on_modified(self, event):
@@ -23,14 +29,14 @@ class Handler(FileSystemEventHandler):
 
         print(f'File {event.src_path} has been modified.')
         filename = filename.split("\\").pop()
-        shutil.copy(event.src_path, debug_dir_core + filename);
-        shutil.copy(event.src_path, release_dir_core+ filename);
-        shutil.copy(event.src_path, debug_dir_editor + filename);
-        shutil.copy(event.src_path, release_dir_editor + filename);
-        shutil.copy(event.src_path, debug_dir_game+ filename);
-        shutil.copy(event.src_path, release_dir_game+ filename);
-        shutil.copy(event.src_path, debug_dir_net_game+ filename);
-        shutil.copy(event.src_path, release_dir_net_game+ filename);
+        TryCopy(event.src_path, debug_dir_core + filename);
+        TryCopy(event.src_path, release_dir_core+ filename);
+        TryCopy(event.src_path, debug_dir_editor + filename);
+        TryCopy(event.src_path, release_dir_editor + filename);
+        TryCopy(event.src_path, debug_dir_game+ filename);
+        TryCopy(event.src_path, release_dir_game+ filename);
+        TryCopy(event.src_path, debug_dir_net_game+ filename);
+        TryCopy(event.src_path, release_dir_net_game+ filename);
 
 if __name__ == "__main__":
     path = "..\\" 

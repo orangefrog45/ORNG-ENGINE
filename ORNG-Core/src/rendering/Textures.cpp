@@ -35,8 +35,8 @@ namespace ORNG {
 		glDeleteTextures(1, &m_texture_obj); 
 	};
 
-	Texture2D::Texture2D(const std::string& name) : TextureBase(GL_TEXTURE_2D, name) {};
-	Texture2D::Texture2D(const std::string& name, uint64_t t_uuid) : TextureBase(GL_TEXTURE_2D, name, t_uuid) {};
+	Texture2D::Texture2D(const std::string& filepath) : TextureBase(GL_TEXTURE_2D, filepath) {};
+	Texture2D::Texture2D(const std::string& filepath, uint64_t t_uuid) : TextureBase(GL_TEXTURE_2D, filepath, t_uuid) {};
 	Texture3D::Texture3D(const std::string& name) : TextureBase(GL_TEXTURE_3D, name) {};
 	Texture2DArray::Texture2DArray(const std::string& name) : TextureBase(GL_TEXTURE_2D_ARRAY, name) {};
 	TextureCubemap::TextureCubemap(const char* name) : TextureBase(GL_TEXTURE_CUBE_MAP, name) {};
@@ -137,8 +137,6 @@ namespace ORNG {
 		GLenum internal_format;
 		GLenum format;
 
-		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
-
 		switch (bpp) {
 		case 1:
 			internal_format = GL_R8;
@@ -170,6 +168,8 @@ namespace ORNG {
 			return false;
 		}
 
+		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
+
 		glTexImage2D(target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
 
 		if (base_spec->generate_mipmaps)
@@ -187,11 +187,71 @@ namespace ORNG {
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 	}
 
+	bool Texture2D::LoadFromBinary(const std::vector<std::byte>& data) {
+		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
+			ORNG_CORE_ERROR("2D Texture failed loading from binary: Invalid spec");
+			return false;
+		}
+		bool ret = false;
+
+		int width, height, bpp;
+		
+		unsigned char* image_data = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(data.data()), data.size(), &width, &height, &bpp, 0);
+
+		if (image_data == nullptr || data.empty()) {
+			ORNG_CORE_ERROR("Can't load binary texture data, - '{0}'", stbi_failure_reason());
+			return  false;
+		}
+
+		unsigned internal_format, format;
+
+		switch (bpp) {
+		case 1:
+			internal_format = GL_R8;
+			format = GL_RED;
+			break;
+		case 2:
+			internal_format = GL_RG8;
+			format = GL_RG;
+			break;
+		case 3:
+			if (m_spec.srgb_space)
+				internal_format = GL_SRGB8;
+			else
+				internal_format = GL_RGB8;
+
+			format = GL_RGB;
+			break;
+		case 4:
+			if (m_spec.srgb_space)
+				internal_format = GL_SRGB8_ALPHA8;
+			else
+				internal_format = GL_RGBA8;
+
+			format = GL_RGBA;
+			break;
+		default:
+			ORNG_CORE_ERROR("Failed loading binary texture', unsupported number of channels");
+			stbi_image_free(image_data);
+			return false;
+		}
+
+		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
+
+		glTexImage2D(m_texture_target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+
+		if (m_spec.generate_mipmaps)
+			glGenerateMipmap(m_texture_target);
+		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
+
+		stbi_image_free(image_data);
+
+	}
 
 	bool Texture2D::LoadFromFile() {
 
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
-			ORNG_CORE_ERROR("2D Texture failed loading: Invalid spec");
+			ORNG_CORE_ERROR("2D Texture failed loading from file: Invalid spec");
 			return false;
 		}
 		bool ret = false;

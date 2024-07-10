@@ -45,19 +45,19 @@ namespace ORNG {
 	ParticleSystem::ParticleSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
 		if (!mp_particle_cs) {
 			mp_particle_cs = &Renderer::GetShaderLibrary().CreateShader("particle update");
-			mp_particle_cs->AddStage(GL_COMPUTE_SHADER, "res/shaders/ParticleCS.glsl");
+			mp_particle_cs->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleCS.glsl");
 			mp_particle_cs->Init();
 
 
 			mp_particle_initializer_cs = &Renderer::GetShaderLibrary().CreateShaderVariants("particle initializer");
-			mp_particle_initializer_cs->SetPath(GL_COMPUTE_SHADER, "res/shaders/ParticleInitializerCS.glsl");
+			mp_particle_initializer_cs->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleInitializerCS.glsl");
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::DEFAULT, {}, { "u_start_index", "u_emitter_index" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index", "u_num_emitters" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index", "u_num_particles" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
 
 			mp_append_buffer_transfer_cs = &Renderer::GetShaderLibrary().CreateShader("particle append buffer transfer");
-			mp_append_buffer_transfer_cs->AddStage(GL_COMPUTE_SHADER, "res/shaders/ParticleAppendTransferCS.glsl");
+			mp_append_buffer_transfer_cs->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleAppendTransferCS.glsl");
 			mp_append_buffer_transfer_cs->Init();
 			mp_append_buffer_transfer_cs->AddUniform("u_buffer_index");
 		}

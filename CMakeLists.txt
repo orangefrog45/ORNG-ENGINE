@@ -4,7 +4,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(VCPKG_TARGET_TRIPLET x64-windows)
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_LIST_DIR}/extern/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 project(ORNG_CORE)
 project(ORNG_EDITOR)
@@ -23,6 +22,8 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     message(FATAL_ERROR "Compilation only supported with MSVC")
 endif()
+
+
 
 
 add_subdirectory("ORNG-Core")

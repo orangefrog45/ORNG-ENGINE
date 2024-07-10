@@ -31,9 +31,6 @@
 [submodule "ORNG-Core/extern/fmod"]
 	path = ORNG-Core/extern/fmod
 	url = https://github.com/orangefrog45/fmod-module
-[submodule "extern/vcpkg"]
-	path = extern/vcpkg
-	url = https://github.com/Microsoft/vcpkg.git
 [submodule "ORNG-Core/extern/implot"]
 	path = ORNG-Core/extern/implot
 	url = https://github.com/epezent/implot
@@ -43,3 +40,6 @@
 [submodule "ORNG-Core/extern/tracy"]
 	path = ORNG-Core/extern/tracy
 	url = https://github.com/wolfpld/tracy
+[submodule "extern/vcpkg"]
+	path = extern/vcpkg
+	url = https://github.com/microsoft/vcpkg

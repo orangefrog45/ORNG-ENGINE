@@ -42,17 +42,22 @@ namespace ORNG {
 
 
 	std::string FindShaderIncludePath(const std::string& filepath) {
-		std::string include_dir = GetFileDirectory(filepath) + "\\";
-		std::string filename = filepath.substr(include_dir.size());
+		std::string file_directory = GetFileDirectory(filepath) + "\\";
+		std::string filename = filepath.substr(file_directory.size());
 
-		if (!FileExists(include_dir + filename)) {
-			include_dir = "\\res\\shaders\\";
-			if (!FileExists(include_dir + filename)) {
-				return "";
+		std::array<std::string, 3> include_directories = {
+			file_directory,
+			"res\\core-res\\shaders\\",
+			"res\\shaders\\",
+		};
+
+		for (size_t i = 0; i < include_directories.size(); i++) {
+			if (auto found_filepath = include_directories[i] + filename; FileExists(found_filepath)) {
+				return found_filepath;
 			}
 		}
 
-		return include_dir + filename;
+		return "";
 	}
 
 	void Shader::ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree, unsigned& line_count,
@@ -270,7 +275,7 @@ namespace ORNG {
 
 
 	int Shader::CreateUniform(const std::string& name) {
-		constexpr bool SHADER_DEBUG_MODE = true;
+		constexpr bool SHADER_DEBUG_MODE = false;
 
 		int location = glGetUniformLocation(m_program_id, name.c_str());
 		if (location == -1 && SHADER_DEBUG_MODE) {

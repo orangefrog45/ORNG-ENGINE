@@ -164,6 +164,8 @@ headers/pch/pch.h
 
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
+target_compile_definitions(ORNG_CORE PUBLIC GLM_ENABLE_EXPERIMENTAL)
+
 
 
 
@@ -191,7 +193,7 @@ endif()
 
 
 
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/")
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/res/core-res")
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/extern/vswhere.exe DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/extern/")
 
 
