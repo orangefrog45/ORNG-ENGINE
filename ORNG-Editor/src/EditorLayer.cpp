@@ -333,6 +333,15 @@ namespace ORNG {
 
 		UpdateEditorCam();
 
+		if (Input::IsKeyPressed('c')) {
+			AssetManager::CreateBinaryAssetPackage("PACKAGE.bin");
+		}
+
+		if (Input::IsKeyPressed('v')) {
+			AssetManager::ClearAll();
+			AssetManager::DeserializeAssetsFromBinaryPackage("PACKAGE.bin");
+		}
+
 		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)
 			SCENE->Update(FrameTiming::GetTimeStep());
 		else {

@@ -18,7 +18,7 @@
 namespace ORNG {
 
 	inline static std::string GenerateMeshBinaryPath(MeshAsset* p_mesh) {
-		return ".\\res\\meshes\\" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("\\") + 1) + ".bin";
+		return ".\\res\\meshes\\" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("\\") + 1) + ".omesh";
 	}
 
 	void AssetManagerWindow::InitPreviewScene() {
@@ -716,9 +716,9 @@ namespace ORNG {
 				return;
 
 			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
-			if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
+			if (!FileExists(filepath) && !FileExists(p_mesh->filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
-				SceneSerializer::SerializeBinary(filepath, *p_mesh);
+				AssetManager::SerializeAssetToBinaryFile(*p_mesh, filepath);
 			}
 
 			// Update the mesh filepath from the source file initially loaded to the generated binary file

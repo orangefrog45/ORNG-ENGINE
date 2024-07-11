@@ -70,6 +70,7 @@ namespace ORNG {
 			}
 			s.value1b((uint8_t)num_materials);
 			s.object(uuid);
+			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 
 	private:
@@ -79,15 +80,15 @@ namespace ORNG {
 		void OnLoadIntoGL();
 
 
-		bool InitFromScene(const aiScene* pScene);
+		bool InitFromScene(const aiScene* p_scene);
 
-		void ReserveSpace(unsigned int NumVertices, unsigned int NumIndices);
+		void ReserveSpace(unsigned int num_verts, unsigned int num_indices);
 
-		void InitAllMeshes(const aiScene* pScene);
+		void InitAllMeshes(const aiScene* p_scene);
 
-		void InitSingleMesh(const aiMesh* paiMesh);
+		void InitSingleMesh(const aiMesh* p_ai_mesh);
 
-		void CountVerticesAndIndices(const aiScene* pScene, unsigned int& NumVertices, unsigned int& NumIndices);
+		void CountVerticesAndIndices(const aiScene* p_scene, unsigned int& num_verts, unsigned int& num_indices);
 
 		void PopulateBuffers();
 

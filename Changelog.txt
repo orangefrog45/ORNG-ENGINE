@@ -1,3 +1,6 @@
+11/7/24:
+-Single-file binary asset packages for runtime distribution, currently supports meshes, textures and audio assets
+
 10/7/24:
 -Raw texture/audio data now serialized in same binary file as metadata
 -Improvements/fixes to runtime build system and file management for core assets

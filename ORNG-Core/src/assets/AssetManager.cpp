@@ -91,6 +91,47 @@ namespace ORNG {
 		}
 	}
 
+	void AssetManager::IDeserializeAssetsFromBinaryPackage(const std::string& package_filepath) {
+		std::ifstream s{ package_filepath, std::ios::binary };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Package file deserialization error: Cannot open {0} for reading", package_filepath);
+			return;
+		}
+
+		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
+
+		uint32_t num_textures, num_meshes, num_sounds;
+		des.value4b(num_textures);
+		des.value4b(num_meshes);
+		des.value4b(num_sounds);
+
+		std::vector<std::byte> bin_data;
+
+		for (uint32_t i = 0; i < num_textures; i++) {
+			Texture2D* p_tex = new Texture2D("");
+
+			DeserializeTexture2D(*p_tex, bin_data, des);
+			p_tex->LoadFromBinary(bin_data);
+			AddAsset(p_tex);
+		}
+
+		for (uint32_t i = 0; i < num_meshes; i++) {
+			MeshAsset* p_mesh = new MeshAsset("");
+
+			DeserializeMeshAsset(*p_mesh, des);
+			AssetManager::LoadMeshAsset(p_mesh);
+			AddAsset(p_mesh);
+		}
+
+		for (uint32_t i = 0; i < num_sounds; i++) {
+			SoundAsset* p_sound = new SoundAsset("");
+
+			DeserializeSoundAsset(*p_sound, bin_data, des);
+			p_sound->CreateSoundFromBinary(bin_data);
+			AddAsset(p_sound);
+		}
+	}
+
 	void AssetManager::ICreateBinaryAssetPackage(const std::string& output_path) {
 		std::ofstream s{ output_path, s.binary | s.trunc | s.out };
 
@@ -99,7 +140,7 @@ namespace ORNG {
 			return;
 		}
 
-		bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
+		bitsery::Serializer<bitsery::OutputStreamAdapter> ser{ s };
 
 		auto texture_view = GetView<Texture2D>();
 		auto mesh_view = GetView<MeshAsset>();
@@ -112,13 +153,13 @@ namespace ORNG {
 		
 		// Serialize asset specs
 		for (auto* p_texture : texture_view) {
-			ser.object(*p_texture);
+			SerializeTexture2D(*p_texture, p_texture->filepath, ser);
 		}
 		for (auto* p_mesh : mesh_view) {
 			ser.object(*p_mesh);
 		}
 		for (auto* p_sound : sound_view) {
-			ser.object(*p_sound);
+			SerializeSoundAsset(*p_sound, p_sound->filepath, ser);
 		}
 
 		// flush to writer
@@ -225,7 +266,6 @@ namespace ORNG {
 		asset->OnLoadIntoGL();
 
 		asset->m_is_loaded = true;
-		DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(asset));
 	}
 
 	void AssetManager::LoadMeshAsset(MeshAsset* p_asset) {
@@ -234,8 +274,6 @@ namespace ORNG {
 			return p_asset;
 			}));
 	};
-
-
 
 
 
@@ -300,9 +338,9 @@ namespace ORNG {
 		m_assets.erase(ORNG_BASE_SOUND_ID);
 		mp_base_sound = std::make_unique<SoundAsset>(project_dir + "res\\core-res\\audio\\mouse-click.mp3");
 		mp_base_sound->uuid = UUID<uint64_t>(ORNG_BASE_SOUND_ID);
-		AddAsset(&*mp_base_sound);
 		mp_base_sound->source_filepath = project_dir + "res\\core-res\\audio\\mouse-click.mp3";
 		mp_base_sound->CreateSoundFromFile();
+		AddAsset(&*mp_base_sound);
 
 		m_assets.erase(ORNG_BASE_SPHERE_ID);
 		mp_base_sphere.release();
@@ -311,27 +349,11 @@ namespace ORNG {
 		mp_base_sphere->PopulateBuffers();
 		mp_base_sphere->m_is_loaded = true;
 		mp_base_sphere->uuid = UUID<uint64_t>(ORNG_BASE_SPHERE_ID);
+		AddAsset(&*mp_base_sphere);
 	}
 
-	
-	void AssetManager::SerializeTexture2D(Texture2D& tex, const std::string& output_filepath, std::optional<bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>> ser) {
-		bool ser_passed_as_arg = ser.has_value();
 
-		bool is_previously_serialized = FileExists(output_filepath);
-		if (is_previously_serialized) {
-			std::filesystem::rename(output_filepath, output_filepath + ".OLD");
-		}
-		
-		std::optional<std::ofstream> s;
-
-		if (!ser_passed_as_arg) {
-			s = std::ofstream{ output_filepath, s->binary | s->trunc | s->out };
-			if (!s->is_open()) {
-				ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", output_filepath);
-				return;
-			}
-			ser = bitsery::Serializer<bitsery::OutputBufferedStreamAdapter>{ s.value()};
-		}
+	void AssetManager::SerializeTexture2D(Texture2D& tex, const std::string& output_filepath, bitsery::Serializer<bitsery::OutputStreamAdapter>& ser) {
 
 		std::vector<std::byte> texture_data;
 
@@ -340,88 +362,113 @@ namespace ORNG {
 		}
 		else if (FileExists(output_filepath)) { // Texture has been previously serialized into a binary file and data resides there
 			Texture2D dummy{ "", 0 };
-			DeserializeTexture2D(output_filepath + ".OLD", dummy, texture_data); // Grab raw data from old file
-			FileDelete(output_filepath + ".OLD");
+			DeserializeAssetBinary(output_filepath, tex, &texture_data);
 			tex.m_spec.filepath = ""; // No longer need to store reference to first asset path as data will be available from this branch
 		}
 
-		ser->object(tex.m_spec);
-		ser->object(tex.uuid);
-		ser->container1b(texture_data, UINT64_MAX);
-
-		if (!ser_passed_as_arg) {
-			// flush to writer
-			ser->adapter().flush();
-			s->close();
-		}
-
+		ser.object(tex.m_spec);
+		ser.object(tex.uuid);
+		ser.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
+		ser.container1b(texture_data, UINT64_MAX);
 	 }
 
 
-	bool AssetManager::DeserializeTexture2D(const std::string& filepath, Texture2D& tex, std::vector<std::byte>& data) {
-		std::ifstream s{ filepath, std::ios::binary };
-
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
-			return false;
-		}
-
-		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
-
-		tex.filepath = filepath;
+	void AssetManager::DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
 		des.object(tex.m_spec);
 		des.object(tex.uuid);
+		des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 		des.container1b(data, UINT64_MAX);
-
-		return true;
 	}
 
-	bool AssetManager::DeserializeSoundAsset(SoundAsset& sound, const std::string& filepath, std::vector<std::byte>& raw_data) {
-		std::ifstream s{ filepath, std::ios::binary };
-
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
-			return false;
-		}
-
-		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
-
+	void AssetManager::DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
 		des.object(sound.uuid);
+		des.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 		des.container1b(raw_data, UINT64_MAX);
-
-		return true;
 	}
 
-	void AssetManager::SerializeSoundAsset(SoundAsset& sound, const std::string& output_filepath) {
-		bool is_previously_serialized = FileExists(output_filepath);
-		if (is_previously_serialized) {
-			std::filesystem::rename(output_filepath, output_filepath + ".OLD");
-		}
-
-		std::ofstream s{ output_filepath, s.binary | s.trunc | s.out };
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", output_filepath);
-			return;
-		}
-		bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
+	void AssetManager::SerializeSoundAsset(SoundAsset& sound, const std::string& output_filepath, bitsery::Serializer<bitsery::OutputStreamAdapter>& ser) {
 		std::vector<std::byte> sound_data;
 
 		if (FileExists(sound.source_filepath)) { // Data still on disk, read from this
 			ReadBinaryFile(sound.source_filepath, sound_data);
 		}
-		else if (FileExists(output_filepath)) { // Texture has been previously serialized into a binary file and data resides there
+		else if (FileExists(output_filepath)) { // Sound has been previously serialized into a binary file and data resides there
 			SoundAsset dummy{ "" };
-			DeserializeSoundAsset(dummy, output_filepath + ".OLD", sound_data); // Grab raw data from old file
-			FileDelete(output_filepath + ".OLD");
+			DeserializeAssetBinary(output_filepath, sound, &sound_data);
 		}
 
 		ser.object(sound.uuid);
+		ser.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 		ser.container1b(sound_data, UINT64_MAX);
-
-		// flush to writer
-		ser.adapter().flush();
-		s.close();
 	}
+
+	void AssetManager::DeserializeMeshAsset(MeshAsset& mesh, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+		des.object(mesh.m_vao);
+		des.object(mesh.m_aabb);
+		uint32_t size;
+		des.value4b(size);
+		mesh.m_submeshes.resize(size);
+		for (int i = 0; i < size; i++) {
+			des.object(mesh.m_submeshes[i]);
+		}
+		des.value1b(mesh.num_materials);
+		des.object(mesh.uuid);
+		des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
+	}
+
+	void AssetManager::DeserializeMaterialAsset(Material& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+		des.object(data.base_color);
+		des.value1b(data.render_group);
+		des.value4b(data.roughness);
+		des.value4b(data.metallic);
+		des.value4b(data.ao);
+		des.value4b(data.emissive_strength);
+		uint64_t texid;
+		des.value8b(texid);
+		if (texid != 0) data.base_color_texture = GetAsset<Texture2D>(texid);
+		des.value8b(texid);
+		if (texid != 0) data.normal_map_texture = GetAsset<Texture2D>(texid);
+		des.value8b(texid);
+		if (texid != 0) data.metallic_texture = GetAsset<Texture2D>(texid);
+		des.value8b(texid);
+		if (texid != 0) data.roughness_texture = GetAsset<Texture2D>(texid);
+		des.value8b(texid);
+		if (texid != 0) data.ao_texture = GetAsset<Texture2D>(texid);
+		des.value8b(texid);
+		if (texid != 0) data.displacement_texture = GetAsset<Texture2D>(texid);
+		des.value8b(texid);
+		if (texid != 0) data.emissive_texture = GetAsset<Texture2D>(texid);
+
+		des.value4b(data.parallax_layers);
+		des.object(data.tile_scale);
+		des.text1b(data.name, ORNG_MAX_NAME_SIZE);
+		des.object(data.uuid);
+		des.object(data.spritesheet_data);
+
+		uint32_t flags;
+		des.value4b(flags);
+		data.flags = (MaterialFlags)flags;
+		des.value4b(data.displacement_scale);
+	}
+
+	void AssetManager::DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+		des.object(data.uuid);
+		des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
+
+		float sf;
+		float df;
+		float r;
+
+		des.value4b(sf);
+		des.value4b(df);
+		des.value4b(r);
+
+		InitPhysXMaterialAsset(data);
+		data.p_material->setDynamicFriction(df);
+		data.p_material->setStaticFriction(sf);
+		data.p_material->setRestitution(r);
+	}
+
 
 	void AssetManager::LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts) {
 		std::string texture_folder = project_dir + "\\res\\textures\\";
@@ -445,25 +492,28 @@ namespace ORNG {
 			if (entry.is_directory() || path.find("diffuse_prefilter") != std::string::npos || entry.path().extension() != ".otex") // Skip serialized diffuse prefilter
 				continue;
 
-			default_spec.filepath = path.substr(path.rfind("\\res\\") + 1);
+			auto rel_path = path.substr(path.rfind("\\res\\") + 1);
+			default_spec.filepath = rel_path;
 			auto* p_tex = new Texture2D(path);
 			std::vector<std::byte> binary_data;
 			auto& spec = p_tex->GetSpec();
 
-			DeserializeTexture2D(path, *p_tex, binary_data);
+			DeserializeAssetBinary(path, *p_tex, &binary_data);
+			p_tex->filepath = rel_path;
 			AddAsset(p_tex);
 			p_tex->LoadFromBinary(binary_data);
 			DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
 		}
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
-			if (entry.is_directory() || entry.path().extension() != ".bin")
+			if (entry.is_directory() || entry.path().extension() != ".omesh")
 				continue;
 
 			std::string str_path = entry.path().string();
 			std::string rel_path = ".\\" + str_path.substr(str_path.rfind("res\\meshes"));
 			auto* p_mesh = new MeshAsset(rel_path);
 			DeserializeAssetBinary(rel_path, *p_mesh);
+			p_mesh->filepath = rel_path;
 			AddAsset(p_mesh);
 			LoadMeshAssetIntoGL(p_mesh);
 		}
@@ -477,7 +527,8 @@ namespace ORNG {
 				std::string rel_path = ".\\" + path.substr(path.rfind("res\\audio"));
 				auto* p_sound = new SoundAsset(path);
 				std::vector<std::byte> raw_sound_data;
-				DeserializeSoundAsset(*p_sound, path, raw_sound_data);
+				DeserializeAssetBinary(path, *p_sound, &raw_sound_data);
+				p_sound->filepath = rel_path;
 				p_sound->CreateSoundFromBinary(raw_sound_data);
 				AddAsset(p_sound);
 			}
@@ -562,7 +613,7 @@ namespace ORNG {
 		// Serialize all assets currently loaded into asset manager
 		// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
 		for (auto* p_texture : GetView<Texture2D>()) {
-			SerializeTexture2D(*p_texture, ".\\res\\textures\\" + p_texture->filepath.substr(p_texture->filepath.rfind("\\") + 1));
+			SerializeAssetToBinaryFile(*p_texture, ".\\res\\textures\\" + p_texture->filepath.substr(p_texture->filepath.rfind("\\") + 1));
 		}
 
 		for (auto* p_mat : GetView<Material>()) {
@@ -572,7 +623,7 @@ namespace ORNG {
 		for (auto* p_sound : GetView<SoundAsset>()) {
 			std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
 			fn = ".\\res\\audio\\" + ReplaceFileExtension(fn, ".osound");
-			SerializeSoundAsset(*p_sound, fn);
+			SerializeAssetToBinaryFile(*p_sound, fn);
 		}
 
 		for (auto* p_mat : GetView<PhysXMaterialAsset>()) {
