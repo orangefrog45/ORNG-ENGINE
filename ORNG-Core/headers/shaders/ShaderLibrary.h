@@ -13,9 +13,19 @@ namespace ORNG {
 		ShaderLibrary() = default;
 		void Init();
 
-		// Create a shader, optionally with an ID (currently only used with in-built shaders)
 		Shader& CreateShader(const char* name);
 		ShaderVariants& CreateShaderVariants(const char* name);
+
+		bool GenerateShaderPackage(const std::string& output_filepath);
+
+		/* 
+		Loads a shader package and stores shader code in a structure that can be referenced with the same filepaths used to create the package
+		Shaders will look in this structure first when being created and prioritize using that code over searching the filesystem
+		Default and expected behaviour during game runtime
+		*/
+		bool LoadShaderPackage(const std::string& package_filepath);
+
+		std::string PopShaderCodeFromCache(const ShaderData& key);
 
 		void SetMatrixUBOs(glm::mat4& proj, glm::mat4& view);
 		void SetGlobalLighting(const DirectionalLight& dir_light);
@@ -36,7 +46,7 @@ namespace ORNG {
 		inline static const uint64_t INVALID_SHADER_ID = 0; //useful for rendering things that should not have any shader applied to them (e.g skybox), only default gbuffer albedo
 	private:
 
-		Shader* mp_quad_shader = nullptr;
+		std::unordered_map<ShaderData, std::string, ShaderData::Hash> m_shader_package_cache;
 
 		std::unordered_map<std::string, Shader> m_shaders;
 		std::unordered_map<std::string, ShaderVariants> m_shader_variants;

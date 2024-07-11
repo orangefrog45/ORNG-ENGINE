@@ -188,7 +188,7 @@ namespace ORNG {
 	}
 
 	bool Texture2D::LoadFromBinary(const std::vector<std::byte>& data) {
-		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
+		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec))) {
 			ORNG_CORE_ERROR("2D Texture failed loading from binary: Invalid spec");
 			return false;
 		}

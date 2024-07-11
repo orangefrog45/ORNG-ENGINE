@@ -5,7 +5,11 @@
 #include "core/GLStateManager.h"
 #include "core/FrameTiming.h"
 #include "components/Lights.h"
-
+#include <bitsery/traits/vector.h>
+#include "bitsery/traits/string.h"
+#include <bitsery/bitsery.h>
+#include <snappy.h>
+#include <snappy-sinksource.h>
 
 namespace ORNG {
 	void ShaderLibrary::Init() {
@@ -22,11 +26,135 @@ namespace ORNG {
 		glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo.GetHandle());
 
 		ORNG_CORE_TRACE(std::filesystem::current_path().string());
-		mp_quad_shader = &CreateShader("SL quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/core-res/shaders/QuadVS.glsl");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/QuadFS.glsl");
-		mp_quad_shader->Init();
+		auto p_quad_shader = &CreateShader("SL quad");
+		p_quad_shader->AddStage(GL_VERTEX_SHADER, "res/core-res/shaders/QuadVS.glsl");
+		p_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/QuadFS.glsl");
+		p_quad_shader->Init();
 	}
+
+	bool ShaderLibrary::GenerateShaderPackage(const std::string& output_filepath) {
+		std::ofstream s{ output_filepath, s.binary | s.trunc | s.out };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Shader package generation error: Cannot open {0} for writing", output_filepath);
+			return false;
+		}
+		std::vector<std::byte> data;
+		bitsery::Serializer<bitsery::OutputBufferAdapter<std::vector<std::byte>>> ser{ data };
+
+		uint32_t num_shaders = 0;
+		uint32_t num_shader_variants = 0;
+
+		for (auto& [shader_name, shader] : m_shaders) {
+			num_shaders += shader.m_stages.size();
+		}
+
+		for (auto& [shader_name, shader] : m_shader_variants) {
+			num_shader_variants += shader.m_shaders.size() * shader.m_shaders[0].m_stages.size();
+		}
+		
+		ser.value4b(num_shaders);
+		ser.value4b(num_shader_variants);
+
+		std::vector<const std::string*> include_tree;
+
+		for (auto& [shader_name, shader] : m_shaders) {
+			for (auto& [shader_stage, stage_data] : shader.m_stages) {
+				include_tree.clear();
+				Shader::ParsedShaderData content = Shader::ParseShader(stage_data.filepath, stage_data.defines, include_tree, shader_stage);
+				
+				ser.text1b(shader_name, UINT64_MAX);
+				ser.value4b((uint32_t)shader_stage);
+
+				ser.text1b(content.shader_code, UINT64_MAX);
+			}
+		}
+
+		for (auto& [shader_name, shader_variant] : m_shader_variants) {
+			for (auto& [shader_id, shader] : shader_variant.m_shaders) {
+				for (auto& [shader_stage, stage_data] : shader.m_stages) {
+					include_tree.clear();
+					Shader::ParsedShaderData content = Shader::ParseShader(stage_data.filepath, stage_data.defines, include_tree, shader_stage);
+
+					ser.text1b(shader_name, UINT64_MAX);
+					uint32_t id = shader_id;
+					ser.value4b(id);
+					ser.value4b((uint32_t)shader_stage);
+
+					ser.text1b(content.shader_code, UINT64_MAX);
+				}
+			}
+		}
+
+		std::string compressed_output;
+		snappy::Compress(reinterpret_cast<const char*>(data.data()), data.size(), &compressed_output);
+
+		s.write(reinterpret_cast<const char*>(compressed_output.data()), compressed_output.size());
+		s.close();
+
+		return true;
+	}
+
+	std::string ShaderLibrary::PopShaderCodeFromCache(const ShaderData& key) {
+		std::string code = m_shader_package_cache[key];
+		m_shader_package_cache.erase(key);
+		return code;
+	}
+
+	bool ShaderLibrary::LoadShaderPackage(const std::string& package_filepath) {
+		std::vector<std::byte> compressed_data;
+		ReadBinaryFile(package_filepath, compressed_data);
+
+		size_t uncompressed_size;
+		snappy::GetUncompressedLength(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size(), &uncompressed_size);
+
+		std::vector<std::byte> decompressed_data{ uncompressed_size };
+
+		snappy::ByteArraySource input(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size());
+		snappy::UncheckedByteArraySink output(reinterpret_cast<char*>(decompressed_data.data()));
+
+		if (!snappy::Uncompress(dynamic_cast<snappy::Source*>(&input), dynamic_cast<snappy::Sink*>(&output))) {
+			ORNG_CORE_CRITICAL("Failed to decompress shader package '{0}', exiting", package_filepath);
+			BREAKPOINT;
+		}
+
+		m_shaders.clear();
+
+		bitsery::Deserializer<bitsery::InputBufferAdapter<std::vector<std::byte>>> des{ decompressed_data.begin(), decompressed_data.end()};
+		uint32_t num_shaders;
+		uint32_t num_shader_variants;
+		des.value4b(num_shaders);
+		des.value4b(num_shader_variants);
+
+		for (int i = 0; i < num_shaders; i++) {
+			std::string shader_name;
+			uint32_t shader_stage;
+
+			des.text1b(shader_name, UINT64_MAX);
+			des.value4b(shader_stage);
+
+			ShaderData shader_data{ .name = shader_name, .stage = shader_stage, .id = 0 };
+			ASSERT(!m_shader_package_cache.contains(shader_data));
+
+			des.text1b(m_shader_package_cache[shader_data], UINT64_MAX);
+		}
+
+		for (int i = 0; i < num_shader_variants; i++) {
+			std::string shader_name;
+			uint32_t shader_stage, shader_id;
+
+			des.text1b(shader_name, UINT64_MAX);
+			des.value4b(shader_id);
+			des.value4b(shader_stage);
+
+			ShaderData shader_data{ .name = shader_name, .stage = shader_stage, .id = shader_id};
+			ASSERT(!m_shader_package_cache.contains(shader_data));
+
+			des.text1b(m_shader_package_cache[shader_data], UINT64_MAX);
+		}
+
+		ORNG_CORE_INFO("Loaded {0} shaders from shader package", num_shaders + num_shader_variants);
+	}
+
 
 	void ShaderLibrary::SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y,
 		float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1, float scene_time_elapsed) {
@@ -85,7 +213,7 @@ namespace ORNG {
 
 	Shader& ShaderLibrary::CreateShader(const char* name) {
 		if (m_shaders.contains(name)) {
-			ORNG_CORE_ERROR("Shader name '{0}' already exists! Pick another name.", name);
+			ORNG_CORE_ERROR("Shader name conflict detected '{0}', pick another name.", name);
 			BREAKPOINT;
 		}
 		m_shaders.try_emplace(name, name);

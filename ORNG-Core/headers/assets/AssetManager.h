@@ -102,10 +102,13 @@ namespace ORNG {
 		void serialize(S& s) {
 			s.text1b(serialized_content, 10000);
 			s.object(uuid);
+			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 	};
 
 
+	using BufferDeserializer = bitsery::Deserializer<bitsery::InputStreamAdapter>;
+	using BufferSerializer = bitsery::Serializer<bitsery::OutputStreamAdapter>;
 
 	class AssetManager {
 	public:
@@ -245,10 +248,10 @@ namespace ORNG {
 			bitsery::Serializer<bitsery::OutputStreamAdapter> ser{ s };
 
 			if constexpr (std::is_same_v<T, Texture2D>) {
-				SerializeTexture2D(asset, filepath, ser);
+				SerializeTexture2D(asset, ser);
 			}
 			else if constexpr (std::is_same_v<T, SoundAsset>) {
-				SerializeSoundAsset(asset, filepath, ser);
+				SerializeSoundAsset(asset, ser);
 			}
 			else {
 				ser.object(asset);
@@ -266,7 +269,6 @@ namespace ORNG {
 				return;
 			}
 
-			// Use buffered stream adapter
 			bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
 
 			if constexpr (std::is_same_v<T, MeshAsset>) {
@@ -305,14 +307,39 @@ namespace ORNG {
 		void ICreateBinaryAssetPackage(const std::string& output_path);
 		void IDeserializeAssetsFromBinaryPackage(const std::string& package_filepath);
 
-		static void SerializeTexture2D(Texture2D& tex, const std::string& output_filepath, bitsery::Serializer<bitsery::OutputStreamAdapter>& ser);
-		static void SerializeSoundAsset(SoundAsset& sound, const std::string& output_filepath, bitsery::Serializer<bitsery::OutputStreamAdapter>& ser);
+		static bool TryFetchRawTextureData(Texture2D& tex, std::vector<std::byte>& output);
+		static bool TryFetchRawSoundData(SoundAsset& sound, std::vector<std::byte>& output);
 
-		static void DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& raw_data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des);
-		static void DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des);
-		static void DeserializeMeshAsset(MeshAsset& mesh, bitsery::Deserializer<bitsery::InputStreamAdapter>& des);
-		static void DeserializeMaterialAsset(Material& material, bitsery::Deserializer<bitsery::InputStreamAdapter>& des);
-		static void DeserializePhysxMaterialAsset(PhysXMaterialAsset& material, bitsery::Deserializer<bitsery::InputStreamAdapter>& des);
+		template<typename SerializerType>
+		static void SerializeTexture2D(Texture2D& tex, SerializerType& ser) {
+			std::vector<std::byte> texture_data;
+			TryFetchRawTextureData(tex, texture_data);
+
+			ser.object(tex.m_spec);
+			ser.object(tex.uuid);
+			ser.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
+			ser.container1b(texture_data, UINT64_MAX);
+		}
+
+		template<typename SerializerType>
+		static void SerializeSoundAsset(SoundAsset& sound, SerializerType& ser) {
+			std::vector<std::byte> sound_data;
+			TryFetchRawSoundData(sound, sound_data);
+			
+			ser.object(sound.uuid);
+			ser.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
+			ser.container1b(sound_data, UINT64_MAX);
+		}
+
+		static void DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& raw_data, BufferDeserializer& des);
+
+		static void DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, BufferDeserializer& des);
+
+		static void DeserializeMeshAsset(MeshAsset& mesh, BufferDeserializer& des);
+
+		static void DeserializeMaterialAsset(Material& material, BufferDeserializer& des);
+
+		static void DeserializePhysxMaterialAsset(PhysXMaterialAsset& material, BufferDeserializer& des);
 
 		// Loads all base assets (assets the engine runtime requires) that require an external file, e.g the sphere mesh needs to be loaded from a binary file. These files are always present in the "res/core-res" folder of a project
 		void LoadExternalBaseAssets(const std::string& project_dir);

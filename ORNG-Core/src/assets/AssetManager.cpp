@@ -9,6 +9,8 @@
 #include "physics/Physics.h" // for material initialization
 #include "yaml-cpp/yaml.h"
 #include "rendering/EnvMapLoader.h"
+#include <snappy.h>
+#include <snappy-sinksource.h>
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -91,6 +93,33 @@ namespace ORNG {
 		}
 	}
 
+	bool AssetManager::TryFetchRawSoundData(SoundAsset& sound, std::vector<std::byte>& output) {
+		if (FileExists(sound.source_filepath)) { // Data still on disk, read from this
+			ReadBinaryFile(sound.source_filepath, output);
+		}
+		else if (FileExists(sound.filepath)) { // Sound has been previously serialized into a binary file and data resides there
+			SoundAsset dummy{ "" };
+			DeserializeAssetBinary(sound.filepath, dummy, &output);
+		}
+
+		return false;
+	}
+
+	bool AssetManager::TryFetchRawTextureData(Texture2D& tex, std::vector<std::byte>& output) {
+		if (FileExists(tex.m_spec.filepath)) { // Texture data still on disk, read from this
+			ReadBinaryFile(tex.m_spec.filepath, output);
+			return true;
+		}
+		else if (FileExists(tex.filepath)) { // Texture has been previously serialized into a binary file and data resides there
+			Texture2D dummy{ "", 0 };
+			DeserializeAssetBinary(tex.filepath, tex, &output);
+			tex.m_spec.filepath = ""; // No longer need to store reference to first asset path as data will be available from this branch
+			return true;
+		}
+
+		return false;
+	}
+
 	void AssetManager::IDeserializeAssetsFromBinaryPackage(const std::string& package_filepath) {
 		std::ifstream s{ package_filepath, std::ios::binary };
 		if (!s.is_open()) {
@@ -100,10 +129,14 @@ namespace ORNG {
 
 		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
 
-		uint32_t num_textures, num_meshes, num_sounds;
+		uint32_t num_textures, num_meshes, num_sounds, num_prefabs, num_materials, num_phys_materials;
 		des.value4b(num_textures);
 		des.value4b(num_meshes);
 		des.value4b(num_sounds);
+		des.value4b(num_prefabs);
+		des.value4b(num_materials);
+		des.value4b(num_phys_materials);
+		
 
 		std::vector<std::byte> bin_data;
 
@@ -113,13 +146,14 @@ namespace ORNG {
 			DeserializeTexture2D(*p_tex, bin_data, des);
 			p_tex->LoadFromBinary(bin_data);
 			AddAsset(p_tex);
+			bin_data.clear();
 		}
 
 		for (uint32_t i = 0; i < num_meshes; i++) {
 			MeshAsset* p_mesh = new MeshAsset("");
 
 			DeserializeMeshAsset(*p_mesh, des);
-			AssetManager::LoadMeshAsset(p_mesh);
+			LoadMeshAssetIntoGL(p_mesh);
 			AddAsset(p_mesh);
 		}
 
@@ -129,6 +163,29 @@ namespace ORNG {
 			DeserializeSoundAsset(*p_sound, bin_data, des);
 			p_sound->CreateSoundFromBinary(bin_data);
 			AddAsset(p_sound);
+			bin_data.clear();
+		}
+
+		for (uint32_t i = 0; i < num_prefabs; i++) {
+			Prefab* p_prefab = new Prefab("");
+
+			des.object(*p_prefab);
+			p_prefab->node = YAML::Load(p_prefab->serialized_content);
+			AddAsset(p_prefab);
+		}
+
+		for (uint32_t i = 0; i < num_materials; i++) {
+			auto* p_mat = new Material("");
+
+			DeserializeMaterialAsset(*p_mat, des);
+			AddAsset(p_mat);
+		}
+
+		for (uint32_t i = 0; i < num_phys_materials; i++) {
+			auto* p_mat = new PhysXMaterialAsset("");
+
+			DeserializePhysxMaterialAsset(*p_mat, des);
+			AddAsset(p_mat);
 		}
 	}
 
@@ -142,28 +199,60 @@ namespace ORNG {
 
 		bitsery::Serializer<bitsery::OutputStreamAdapter> ser{ s };
 
-		auto texture_view = GetView<Texture2D>();
-		auto mesh_view = GetView<MeshAsset>();
-		auto sound_view = GetView<SoundAsset>();
+		auto texture_view = std::vector<Texture2D*>();
+		auto mesh_view = std::vector<MeshAsset*>();
+		auto sound_view = std::vector<SoundAsset*>();
+		auto prefab_view = std::vector<Prefab*>();
+		auto mat_view = std::vector<Material*>();
+		auto phys_mat_view = std::vector<PhysXMaterialAsset*>();
+
+		for (auto& [uuid, p_asset] : m_assets) {
+			if (p_asset->uuid() < ORNG_NUM_BASE_ASSETS)
+				continue;
+
+			if (auto* p_casted = dynamic_cast<Texture2D*>(p_asset))
+				texture_view.push_back(p_casted);
+			else if (auto* p_casted = dynamic_cast<MeshAsset*>(p_asset))
+				mesh_view.push_back(p_casted);
+			else if (auto* p_casted = dynamic_cast<SoundAsset*>(p_asset))
+				sound_view.push_back(p_casted);
+			else if (auto* p_casted = dynamic_cast<Prefab*>(p_asset))
+				prefab_view.push_back(p_casted);
+			else if (auto* p_casted = dynamic_cast<Material*>(p_asset))
+				mat_view.push_back(p_casted);
+			else if (auto* p_casted = dynamic_cast<PhysXMaterialAsset*>(p_asset))
+				phys_mat_view.push_back(p_casted);
+		}
 		
 		// Begin layout with number of assets
 		ser.value4b(static_cast<uint32_t>(texture_view.size()));
 		ser.value4b(static_cast<uint32_t>(mesh_view.size()));
 		ser.value4b(static_cast<uint32_t>(sound_view.size()));
+		ser.value4b(static_cast<uint32_t>(prefab_view.size()));
+		ser.value4b(static_cast<uint32_t>(mat_view.size()));
+		ser.value4b(static_cast<uint32_t>(phys_mat_view.size()));
 		
-		// Serialize asset specs
 		for (auto* p_texture : texture_view) {
-			SerializeTexture2D(*p_texture, p_texture->filepath, ser);
+			p_texture->m_spec.filepath = ""; // Remove links to filepaths that would be on local disk (useless for distribution)
+			SerializeTexture2D(*p_texture, ser);
 		}
 		for (auto* p_mesh : mesh_view) {
 			ser.object(*p_mesh);
 		}
 		for (auto* p_sound : sound_view) {
-			SerializeSoundAsset(*p_sound, p_sound->filepath, ser);
+			p_sound->source_filepath = ""; // Remove links to filepaths that would be on local disk (useless for distribution)
+			SerializeSoundAsset(*p_sound, ser);
+		}
+		for (auto* p_prefab : prefab_view) {
+			ser.object(*p_prefab);
+		}
+		for (auto* p_mat : mat_view) {
+			ser.object(*p_mat);
+		}
+		for (auto* p_mat : phys_mat_view) {
+			ser.object(*p_mat);
 		}
 
-		// flush to writer
-		ser.adapter().flush();
 		s.close();
 	}
 
@@ -353,56 +442,21 @@ namespace ORNG {
 	}
 
 
-	void AssetManager::SerializeTexture2D(Texture2D& tex, const std::string& output_filepath, bitsery::Serializer<bitsery::OutputStreamAdapter>& ser) {
-
-		std::vector<std::byte> texture_data;
-
-		if (FileExists(tex.m_spec.filepath)) { // Texture data still on disk, read from this
-			ReadBinaryFile(tex.m_spec.filepath, texture_data);
-		}
-		else if (FileExists(output_filepath)) { // Texture has been previously serialized into a binary file and data resides there
-			Texture2D dummy{ "", 0 };
-			DeserializeAssetBinary(output_filepath, tex, &texture_data);
-			tex.m_spec.filepath = ""; // No longer need to store reference to first asset path as data will be available from this branch
-		}
-
-		ser.object(tex.m_spec);
-		ser.object(tex.uuid);
-		ser.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
-		ser.container1b(texture_data, UINT64_MAX);
-	 }
-
-
-	void AssetManager::DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+	void AssetManager::DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& data, BufferDeserializer& des) {
 		des.object(tex.m_spec);
 		des.object(tex.uuid);
 		des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 		des.container1b(data, UINT64_MAX);
 	}
 
-	void AssetManager::DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+	void AssetManager::DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, BufferDeserializer& des) {
 		des.object(sound.uuid);
 		des.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 		des.container1b(raw_data, UINT64_MAX);
 	}
 
-	void AssetManager::SerializeSoundAsset(SoundAsset& sound, const std::string& output_filepath, bitsery::Serializer<bitsery::OutputStreamAdapter>& ser) {
-		std::vector<std::byte> sound_data;
 
-		if (FileExists(sound.source_filepath)) { // Data still on disk, read from this
-			ReadBinaryFile(sound.source_filepath, sound_data);
-		}
-		else if (FileExists(output_filepath)) { // Sound has been previously serialized into a binary file and data resides there
-			SoundAsset dummy{ "" };
-			DeserializeAssetBinary(output_filepath, sound, &sound_data);
-		}
-
-		ser.object(sound.uuid);
-		ser.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
-		ser.container1b(sound_data, UINT64_MAX);
-	}
-
-	void AssetManager::DeserializeMeshAsset(MeshAsset& mesh, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+	void AssetManager::DeserializeMeshAsset(MeshAsset& mesh, BufferDeserializer& des) {
 		des.object(mesh.m_vao);
 		des.object(mesh.m_aabb);
 		uint32_t size;
@@ -416,7 +470,7 @@ namespace ORNG {
 		des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
 	}
 
-	void AssetManager::DeserializeMaterialAsset(Material& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+	void AssetManager::DeserializeMaterialAsset(Material& data, BufferDeserializer& des) {
 		des.object(data.base_color);
 		des.value1b(data.render_group);
 		des.value4b(data.roughness);
@@ -451,13 +505,11 @@ namespace ORNG {
 		des.value4b(data.displacement_scale);
 	}
 
-	void AssetManager::DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
+	void AssetManager::DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, BufferDeserializer& des) {
 		des.object(data.uuid);
 		des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
 
-		float sf;
-		float df;
-		float r;
+		float sf, df, r;
 
 		des.value4b(sf);
 		des.value4b(df);

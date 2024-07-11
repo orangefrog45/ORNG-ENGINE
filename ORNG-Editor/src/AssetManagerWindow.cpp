@@ -716,7 +716,7 @@ namespace ORNG {
 				return;
 
 			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
-			if (!FileExists(filepath) && !FileExists(p_mesh->filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
+			if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
 				AssetManager::SerializeAssetToBinaryFile(*p_mesh, filepath);
 			}

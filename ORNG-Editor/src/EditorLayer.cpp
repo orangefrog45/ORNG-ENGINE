@@ -335,11 +335,14 @@ namespace ORNG {
 
 		if (Input::IsKeyPressed('c')) {
 			AssetManager::CreateBinaryAssetPackage("PACKAGE.bin");
+			Renderer::GetShaderLibrary().GenerateShaderPackage("shaderpkg.bin");
 		}
+
 
 		if (Input::IsKeyPressed('v')) {
 			AssetManager::ClearAll();
 			AssetManager::DeserializeAssetsFromBinaryPackage("PACKAGE.bin");
+			//Renderer::GetShaderLibrary().LoadShaderPackage("shaderpkg.bin");
 		}
 
 		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)

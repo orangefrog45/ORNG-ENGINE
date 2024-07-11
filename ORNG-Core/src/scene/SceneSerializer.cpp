@@ -525,7 +525,11 @@ namespace ORNG {
 	}
 
 	void SceneSerializer::DeserializeAudioComp(const YAML::Node& node, SceneEntity& entity) {
-
+		AudioComponent* p_audio = entity.AddComponent<AudioComponent>();
+		p_audio->SetVolume(node["Volume"].as<float>());
+		p_audio->SetPitch(node["Pitch"].as<float>());
+		p_audio->SetSoundAssetUUID(node["AudioUUID"].as<uint64_t>());
+		p_audio->SetMinMaxRange(node["MinRange"].as<float>(), node["MaxRange"].as<float>());
 	}
 
 	void SceneSerializer::DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity) {

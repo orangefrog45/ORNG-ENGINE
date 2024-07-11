@@ -7,11 +7,31 @@
 namespace ORNG {
 	class Material;
 
+	struct ShaderData {
+		std::string name;
+		uint32_t stage;
+
+		// ID given to shader if it was a shader contained within ShaderVariants, if not this is 0
+		uint32_t id;
+
+		bool operator==(const ShaderData& other) const {
+			return this->name == other.name && this->stage == other.stage && this->id == other.id;
+		}
+
+		struct Hash {
+			size_t operator()(const ShaderData& data) const {
+				return std::hash<std::string>()(data.name) ^ std::hash<uint32_t>()(data.stage) + std::hash<uint32_t>()(data.id);
+			}
+		};
+	};
+
 	class Shader {
 	public:
 		friend class ShaderLibrary;
 		friend class Renderer;
 		friend class SceneRenderer;
+		friend class ShaderVariants;
+
 		Shader() = default;
 		Shader(const std::string& name) :  m_name(name) {};
 		~Shader();
@@ -102,16 +122,12 @@ namespace ORNG {
 			}
 		};
 	private:
-
 		struct StageData {
 			StageData() = default;
 			StageData(const std::string& fp, const std::vector<std::string>& dfn) : filepath(fp), defines(dfn) { }
 			std::string filepath;
 			std::vector<std::string> defines;
 		};
-
-		std::unordered_map<GLenum, StageData> m_stages;
-
 
 		int CreateUniform(const std::string& name);
 
@@ -125,14 +141,14 @@ namespace ORNG {
 			unsigned line_count;
 		};
 
-		ParsedShaderData ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree, GLenum shader_type, unsigned line_count = 0);
+		static ParsedShaderData ParseShader(const std::string& filepath, std::vector<std::string>& defines, std::vector<const std::string*>& include_tree, GLenum shader_type, unsigned line_count = 0);
 
-		void ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
+		static void ParseShaderInclude(const std::string& filepath, std::vector<std::string>& defines, std::stringstream& stream, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
 
-		void ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& shader_str, size_t directive_pos, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
+		static void ParseShaderIncludeString(const std::string& filepath, std::vector<std::string>& defines, std::string& shader_str, size_t directive_pos, std::vector<const std::string*>& include_tree, unsigned& line_count, GLenum shader_type);
 
 		unsigned int m_program_id = 0;
-
+		std::unordered_map<GLenum, StageData> m_stages;
 		std::unordered_map<std::string, unsigned int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;
 		std::string m_name = "Unnamed shader";

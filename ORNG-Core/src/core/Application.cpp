@@ -28,7 +28,7 @@ namespace ORNG {
 		//ImGui::DestroyContext();
 	}
 
-	void Application::Init() {
+	void Application::Init(const ApplicationData& data) {
 
 		Events::EventManager::Init();
 		Log::Init();
@@ -45,6 +45,9 @@ namespace ORNG {
 		AudioEngine::Init();
 		Input::Init();
 		CodedAssets::Init();
+#ifdef ORNG_RUNTIME
+		Renderer::GetShaderLibrary().LoadShaderPackage(data.shader_package_file);
+#endif
 		Renderer::Init();
 		Physics::Init();
 		EnvMapLoader::Init();

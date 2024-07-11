@@ -1,3 +1,8 @@
+12/7/24:
+-Compressed shader package file generation for loading at runtime
+-Binary asset packages now support all asset types except scripts
+-Added snappy submodule for compression
+
 11/7/24:
 -Single-file binary asset packages for runtime distribution, currently supports meshes, textures and audio assets
 

@@ -91,12 +91,14 @@ endif()
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
 
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/snappy)
 option(TRACY_ENABLE "" ON)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
 
@@ -129,6 +131,7 @@ extern/yaml/include
 extern/plog/include
 extern/bitsery/include
 extern/implot
+extern/snappy
 )
 
 
@@ -155,6 +158,7 @@ ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}
 Tracy::TracyClient
+snappy
 )
 
 target_precompile_headers(ORNG_CORE PUBLIC

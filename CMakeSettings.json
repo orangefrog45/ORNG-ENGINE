@@ -43,6 +43,16 @@
           "name": "VCPKG_TARGET_TRIPLET",
           "value": "x64-windows",
           "type": "STRING"
+        },
+        {
+          "name": "SNAPPY_BUILD_BENCHMARKS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "SNAPPY_BUILD_TESTS",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     },

@@ -5,6 +5,9 @@
 #include "util/Log.h"
 #include <regex>
 
+#ifdef ORNG_RUNTIME
+#include "rendering/Renderer.h"
+#endif
 
 namespace ORNG {
 	Shader::~Shader() {
@@ -88,7 +91,7 @@ namespace ORNG {
 					ParseShaderInclude(inc_fp, defines, stream, include_tree, line_count, shader_type);
 				}
 				else
-					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_fp);
+					ORNG_CORE_ERROR("Shader include directive for file '{0}' failed, file not found", include_fp);
 			}
 			else {
 				stream << line << "\n";
@@ -159,7 +162,7 @@ namespace ORNG {
 				if (std::string inc_fp = FindShaderIncludePath(shader_dir + include_filename); !inc_fp.empty())
 					ParseShaderInclude(inc_fp, defines, ss, include_tree, line_count, shader_type);
 				else
-					ORNG_CORE_ERROR("Shader '{0}' include directive for file '{1}' failed, file not found", m_name, include_filename);
+					ORNG_CORE_ERROR("Shader include directive for file '{0}' failed, file not found", include_filename);
 			}
 			else {
 				ss << line << "\n";
@@ -171,8 +174,15 @@ namespace ORNG {
 	}
 
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines) {
-		ASSERT(FileExists(filepath));
 		unsigned int shader_handle = 0;
+
+#ifdef ORNG_RUNTIME
+		// Shaders will be deserialized and loaded from a shader package
+		ShaderData data{ .name = m_name, .stage = (uint32_t)shader_type, .id = 0 };
+		CompileShader(shader_type, Renderer::GetShaderLibrary().PopShaderCodeFromCache(data), shader_handle);
+		m_shader_handles.push_back(shader_handle);
+#else
+		ASSERT(FileExists(filepath));
 		std::vector<const std::string*> include_tree;
 
 		m_stages[shader_type] = { std::filesystem::absolute(filepath).string(), defines }; // Store absolute path as the working directory will change to fit the project
@@ -180,9 +190,14 @@ namespace ORNG {
 		CompileShader(shader_type, result.shader_code, shader_handle);
 
 		m_shader_handles.push_back(shader_handle);
+#endif
 	}
 
 	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines) {
+#ifdef ORNG_RUNTIME
+		// Shaders will be deserialized and loaded from a shader package, so this behaviour can be scrapped
+		return;
+#endif
 		// Copy needs to be made so the includes can be written to it
 		std::string shader_code_copy = shader_code;
 
@@ -356,10 +371,17 @@ namespace ORNG {
 
 	Shader* ShaderVariants::AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms) {
 		ASSERT(!m_shaders.contains(id));
-		//m_shaders.try_emplace(id, std::format("{} - {}", name, id), UUID()()) ;
 		m_shaders[id] = Shader(std::format("{}", m_name));
 		for (auto& [type, path] : m_shader_paths) {
+#ifdef ORNG_RUNTIME
+			// Shaders will be deserialized and loaded from a shader package
+			ShaderData data{ .name = m_name, .stage = (uint32_t)type, .id = id };
+			unsigned shader_handle;
+			m_shaders[id].CompileShader(type, Renderer::GetShaderLibrary().PopShaderCodeFromCache(data), shader_handle);
+			m_shaders[id].m_shader_handles.push_back(shader_handle);
+#else
 			m_shaders[id].AddStage(type, path, defines);
+#endif
 		}
 
 		m_shaders[id].Init();

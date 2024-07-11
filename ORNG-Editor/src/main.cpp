@@ -19,7 +19,10 @@ void main() {
 	InitializationLayer il{};
 	ORNG::EditorLayer editor_layer{&il.scene, "projects/base-project" };
 	ORNG::Application application;
+
 	application.layer_stack.PushLayer(&il);
 	application.layer_stack.PushLayer(static_cast<ORNG::Layer*>(&editor_layer));
-	application.Init();
+
+	ORNG::ApplicationData data{ .shader_package_file = "projects/base-project/shaderpkg.bin" };
+	application.Init(data);
 }
