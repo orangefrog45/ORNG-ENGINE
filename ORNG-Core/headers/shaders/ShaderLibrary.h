@@ -23,7 +23,7 @@ namespace ORNG {
 		Shaders will look in this structure first when being created and prioritize using that code over searching the filesystem
 		Default and expected behaviour during game runtime
 		*/
-		bool LoadShaderPackage(const std::string& package_filepath);
+		void LoadShaderPackage(const std::string& package_filepath);
 
 		std::string PopShaderCodeFromCache(const ShaderData& key);
 
@@ -33,8 +33,9 @@ namespace ORNG {
 			float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1, float scene_time_elapsed
 		);
 
-		Shader& GetShader(const char* name);
-		void DeleteShader(const char* name);
+		Shader& GetShader(const std::string& name);
+
+		void DeleteShader(const std::string& name);
 
 		Shader& GetQuadShader() {
 			return GetShader("SL quad");

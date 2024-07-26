@@ -10,7 +10,6 @@
 #include "core/FrameTiming.h"
 #include "physics/Physics.h"
 #include "rendering/EnvMapLoader.h"
-#include "core/CodedAssets.h"
 #include "assets/AssetManager.h"
 #include "core/Input.h"
 #include "audio/AudioEngine.h"
@@ -22,39 +21,55 @@ namespace ORNG {
 
 	void Application::Shutdown() {
 		layer_stack.Shutdown();
-		Physics::Shutdown();
-		AssetManager::OnShutdown();
+
+		if (!(m_settings.disabled_modules & ApplicationModulesFlags::PHYSICS))
+			Physics::Shutdown();
+
+		if (!(m_settings.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER))
+			AssetManager::OnShutdown();
+
 		Log::Flush();
 		//ImGui::DestroyContext();
 	}
 
 	void Application::Init(const ApplicationData& data) {
+		m_settings = data;
 
 		Events::EventManager::Init();
 		Log::Init();
 
 		ORNG_CORE_INFO("Initializing core engine");
 		Log::Flush();
-
-		Window::Init();
+		Window::Init(data.initial_window_dimensions, data.window_name, data.initial_window_display_monitor_idx, data.window_iconified, data.window_decorated);
 		GLFWwindow* window = Window::GetGLFWwindow();
 
 		GL_StateManager::InitGlew();
 		layer_stack.m_imgui_layer.OnInit();
 		GL_StateManager::InitGL();
-		AudioEngine::Init();
-		Input::Init();
-		CodedAssets::Init();
+
+		if (!(data.disabled_modules & ApplicationModulesFlags::AUDIO))
+			AudioEngine::Init();
+
+		if (!(data.disabled_modules & ApplicationModulesFlags::INPUT))
+			Input::Init();
+
 #ifdef ORNG_RUNTIME
 		Renderer::GetShaderLibrary().LoadShaderPackage(data.shader_package_file);
 #endif
 		Renderer::Init();
-		Physics::Init();
-		EnvMapLoader::Init();
-		SceneRenderer::Init();
-		AssetManager::Init();
 
+		if (!(data.disabled_modules & ApplicationModulesFlags::PHYSICS))
+			Physics::Init();
+
+		if (!(data.disabled_modules & ApplicationModulesFlags::SCENE_RENDERER))
+			SceneRenderer::Init();
+
+		if (!(data.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER))
+			AssetManager::Init();
+
+#ifdef ORNG_ENABLE_TRACY_PROFILE
 		TracyGpuContext(Window::GetGLFWwindow());
+#endif
 
 		ORNG_CORE_INFO("Core engine initialized, intializing layers");
 		layer_stack.Init();
@@ -78,7 +93,10 @@ namespace ORNG {
 			// Render
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
+
+#ifdef ORNG_ENABLE_TRACY_PROFILE
 			TracyGpuCollect;
+#endif
 
 			FrameTiming::Update();
 		}

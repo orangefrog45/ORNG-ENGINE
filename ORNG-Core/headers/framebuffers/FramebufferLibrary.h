@@ -7,9 +7,15 @@ namespace ORNG {
 	class FramebufferLibrary {
 	public:
 		FramebufferLibrary() = default;
+
 		void Init();
+
 		Framebuffer& CreateFramebuffer(const char* name, bool scale_with_window);
+
 		Framebuffer& GetFramebuffer(const char* name);
+
+		void DeleteFramebuffer(Framebuffer* p_framebuffer);
+
 		void UnbindAllFramebuffers() { glBindFramebuffer(GL_FRAMEBUFFER, 0); };
 	private:
 		[[nodiscard]] unsigned int CreateFramebufferID() { return m_last_id++; };

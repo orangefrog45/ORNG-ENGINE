@@ -7,6 +7,7 @@
 #include "scripting/ScriptShared.h"
 #include "rendering/VAO.h"
 #include "components/ParticleBufferComponent.h"
+#include "scene/Scene.h"
 
 namespace physx {
 	class PxScene;
@@ -29,7 +30,7 @@ namespace ORNG {
 
 	class ComponentSystem {
 	public:
-		explicit ComponentSystem(entt::registry* p_registry, uint64_t scene_uuid) : mp_registry(p_registry), m_scene_uuid(scene_uuid) {};
+		explicit ComponentSystem(Scene* p_scene) : mp_scene(p_scene) {};
 		// Dispatches event attached to single component, used for connections with entt::registry::on_construct etc
 		template<std::derived_from<Component> T>
 		static void DispatchComponentEvent(entt::registry& registry, entt::entity entity, Events::ECS_EventType type) {
@@ -37,17 +38,22 @@ namespace ORNG {
 			Events::EventManager::DispatchEvent(e_event);
 		}
 
-		inline uint64_t GetSceneUUID() const { return m_scene_uuid; }
+		virtual void OnUpdate() {};
+
+		virtual void OnLoad() {};
+
+		virtual void OnUnload() {};
+
+		inline uint64_t GetSceneUUID() const { return mp_scene->uuid(); }
 	protected:
-		entt::registry* mp_registry = nullptr;
-		uint64_t m_scene_uuid = 0;
+		Scene* mp_scene = nullptr;
 	};
 
 
 
 	class AudioSystem : public ComponentSystem {
 	public:
-		AudioSystem(entt::registry* p_registry, uint64_t scene_uuid, entt::entity* p_active_cam_id) : ComponentSystem(p_registry, scene_uuid), mp_active_cam_id(p_active_cam_id) {};
+		AudioSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
 		void OnLoad();
 		void OnUnload();
 		void OnUpdate();
@@ -71,10 +77,10 @@ namespace ORNG {
 
 	class TransformHierarchySystem : public ComponentSystem {
 	public:
-		TransformHierarchySystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {};
-		void OnLoad();
+		TransformHierarchySystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+		void OnLoad() override;
 
-		void OnUnload() {
+		void OnUnload() override {
 			Events::EventManager::DeregisterListener((entt::entity)m_transform_event_listener.GetRegisterID());
 		}
 	private:
@@ -86,7 +92,7 @@ namespace ORNG {
 	class CameraSystem : public ComponentSystem {
 		friend class Scene;
 	public:
-		CameraSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
+		CameraSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
 				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
 					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
@@ -98,11 +104,7 @@ namespace ORNG {
 		};
 		virtual ~CameraSystem() = default;
 
-		void OnUnload() {};
-		void OnLoad() {
-		}
-
-		void OnUpdate() {
+		void OnUpdate() override {
 			auto* p_active_cam = GetActiveCamera();
 			if (p_active_cam)
 				p_active_cam->Update();
@@ -110,7 +112,7 @@ namespace ORNG {
 
 		void SetActiveCamera(entt::entity entity_handle) {
 			m_active_cam_entity_handle = entity_handle;
-			auto view = mp_registry->view<CameraComponent>();
+			auto view = mp_scene->GetRegistry().view<CameraComponent>();
 
 			// Make all other cameras inactive
 			for (auto [entity, camera] : view.each()) {
@@ -121,8 +123,10 @@ namespace ORNG {
 
 		// Returns ptr to active camera or nullptr if no camera is active.
 		CameraComponent* GetActiveCamera() {
-			if (mp_registry->all_of<CameraComponent>((entt::entity)m_active_cam_entity_handle))
-				return &mp_registry->get<CameraComponent>((entt::entity)m_active_cam_entity_handle);
+			auto& reg = mp_scene->GetRegistry();
+
+			if (reg.all_of<CameraComponent>((entt::entity)m_active_cam_entity_handle))
+				return &reg.get<CameraComponent>((entt::entity)m_active_cam_entity_handle);
 			else
 				return nullptr;
 		}
@@ -135,17 +139,15 @@ namespace ORNG {
 
 
 
-
-
 	class PhysicsSystem : public ComponentSystem {
 		friend class EditorLayer;
 	public:
-		PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene);
+		PhysicsSystem(Scene* p_scene);
 		virtual ~PhysicsSystem() = default;
 
-		void OnUpdate(float ts);
-		void OnUnload();
-		void OnLoad();
+		void OnUpdate() override;
+		void OnUnload() override;
+		void OnLoad() override;
 		physx::PxTriangleMesh* GetOrCreateTriangleMesh(const MeshAsset* p_mesh_data);
 
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
@@ -159,7 +161,6 @@ namespace ORNG {
 
 
 		bool InitVehicle(VehicleComponent* p_comp);
-
 
 	private:
 		static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type);
@@ -190,8 +191,6 @@ namespace ORNG {
 		void InitListeners();
 		void DeinitListeners();
 
-
-		Scene* mp_scene = nullptr;
 
 		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
 		Events::ECS_EventListener<JointComponent> m_joint_listener;
@@ -255,57 +254,14 @@ namespace ORNG {
 	};
 
 
-	class SpotlightSystem {
-		friend class SceneRenderer;
-	public:
-		SpotlightSystem() = default;
-		virtual ~SpotlightSystem() = default;
-
-		void OnLoad();
-		void OnUpdate(entt::registry* p_registry);
-		void OnUnload();
-	private:
-
-		void WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index);
-		Texture2DArray m_spotlight_depth_tex{
-		"Spotlight depth"
-		}; // Used for shadow maps
-		SSBO<float> m_spotlight_ssbo{true, 0};
-	};
-
-
-
-	class PointlightSystem {
-		friend class SceneRenderer;
-	public:
-		PointlightSystem() = default;
-		~PointlightSystem() = default;
-		void OnLoad();
-		void OnUpdate(entt::registry* p_registry);
-		void OnUnload();
-		void WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, int& index);
-
-		// Checks if the depth map array needs to grow/shrink
-		void OnDepthMapUpdate();
-
-		static constexpr unsigned POINTLIGHT_SHADOW_MAP_RES = 2048;
-
-	private:
-		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
-		SSBO<float> m_pointlight_ssbo{ true, 0 };
-
-	};
-
-
 	class MeshInstancingSystem : public ComponentSystem {
 	public:
-
-		MeshInstancingSystem(entt::registry* p_registry, uint64_t scene_uuid);
+		MeshInstancingSystem(Scene* p_scene);
 		virtual ~MeshInstancingSystem() = default;
 		void SortMeshIntoInstanceGroup(MeshComponent* comp);
-		void OnLoad();
-		void OnUnload();
-		void OnUpdate();
+		void OnLoad() override;
+		void OnUnload() override;
+		void OnUpdate() override;
 		void OnMeshEvent(const Events::ECS_Event<MeshComponent>& t_event);
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event);
 
@@ -341,10 +297,10 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class SceneRenderer;
 	public:
-		ParticleSystem(entt::registry* p_registry, uint64_t scene_uuid);
-		void OnLoad();
-		void OnUnload();
-		void OnUpdate();
+		ParticleSystem(Scene* p_scene);
+		void OnLoad() override;
+		void OnUnload() override;
+		void OnUpdate() override;
 	private:
 		void InitEmitter(ParticleEmitterComponent* p_comp);
 		void OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event);

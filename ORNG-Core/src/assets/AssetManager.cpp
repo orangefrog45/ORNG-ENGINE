@@ -113,7 +113,6 @@ namespace ORNG {
 		else if (FileExists(tex.filepath)) { // Texture has been previously serialized into a binary file and data resides there
 			Texture2D dummy{ "", 0 };
 			DeserializeAssetBinary(tex.filepath, tex, &output);
-			tex.m_spec.filepath = ""; // No longer need to store reference to first asset path as data will be available from this branch
 			return true;
 		}
 
@@ -121,13 +120,33 @@ namespace ORNG {
 	}
 
 	void AssetManager::IDeserializeAssetsFromBinaryPackage(const std::string& package_filepath) {
-		std::ifstream s{ package_filepath, std::ios::binary };
+		std::ifstream s{ package_filepath, std::ios::binary | std::ios::ate };
 		if (!s.is_open()) {
 			ORNG_CORE_ERROR("Package file deserialization error: Cannot open {0} for reading", package_filepath);
 			return;
 		}
 
-		bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
+		std::vector<std::byte> file_data;
+
+		ReadBinaryFile(package_filepath, file_data);
+
+		snappy::ByteArraySource compressed_source(reinterpret_cast<const char*>(file_data.data()), file_data.size());
+
+		uint32_t uncompressed_size;
+		snappy::GetUncompressedLength(&compressed_source, &uncompressed_size);
+
+		std::vector<std::byte> decompressed_data{ uncompressed_size };
+		snappy::UncheckedByteArraySink decompressed_sink(reinterpret_cast<char*>(decompressed_data.data()));
+
+		// Re-read file as GetUncompressedLength can modify the data
+		file_data.clear();
+		ReadBinaryFile(package_filepath, file_data);
+
+		auto new_compressed_source = snappy::ByteArraySource{ reinterpret_cast<const char*>(file_data.data()), file_data.size() };
+
+		snappy::Uncompress(&new_compressed_source, &decompressed_sink);
+
+		BufferDeserializer des{ decompressed_data.begin(), decompressed_data.end()};
 
 		uint32_t num_textures, num_meshes, num_sounds, num_prefabs, num_materials, num_phys_materials;
 		des.value4b(num_textures);
@@ -184,20 +203,15 @@ namespace ORNG {
 		for (uint32_t i = 0; i < num_phys_materials; i++) {
 			auto* p_mat = new PhysXMaterialAsset("");
 
+			InitPhysXMaterialAsset(*p_mat);
 			DeserializePhysxMaterialAsset(*p_mat, des);
 			AddAsset(p_mat);
 		}
 	}
 
 	void AssetManager::ICreateBinaryAssetPackage(const std::string& output_path) {
-		std::ofstream s{ output_path, s.binary | s.trunc | s.out };
-
-		if (!s.is_open()) {
-			ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", output_path);
-			return;
-		}
-
-		bitsery::Serializer<bitsery::OutputStreamAdapter> ser{ s };
+		std::vector<std::byte> ser_buffer;
+		BufferSerializer ser{ ser_buffer };
 
 		auto texture_view = std::vector<Texture2D*>();
 		auto mesh_view = std::vector<MeshAsset*>();
@@ -237,22 +251,39 @@ namespace ORNG {
 			SerializeTexture2D(*p_texture, ser);
 		}
 		for (auto* p_mesh : mesh_view) {
+			p_mesh->filepath = "";
 			ser.object(*p_mesh);
 		}
 		for (auto* p_sound : sound_view) {
-			p_sound->source_filepath = ""; // Remove links to filepaths that would be on local disk (useless for distribution)
+			p_sound->source_filepath = "";
 			SerializeSoundAsset(*p_sound, ser);
 		}
 		for (auto* p_prefab : prefab_view) {
+			p_prefab->filepath = "";
 			ser.object(*p_prefab);
 		}
 		for (auto* p_mat : mat_view) {
+			p_mat->filepath = "";
 			ser.object(*p_mat);
 		}
 		for (auto* p_mat : phys_mat_view) {
+			p_mat->filepath = "";
 			ser.object(*p_mat);
 		}
 
+		std::string compressed_data;
+
+		if (!snappy::Compress(reinterpret_cast<const char*>(ser_buffer.data()), ser_buffer.size(), &compressed_data)) {
+			ORNG_CORE_ERROR("Failed to compress serialized data for asset package");
+			return;
+		}
+
+		std::ofstream s{ output_path, s.binary | s.trunc | s.out };
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", output_path);
+			return;
+		}
+		s.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size());
 		s.close();
 	}
 
@@ -442,85 +473,6 @@ namespace ORNG {
 	}
 
 
-	void AssetManager::DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& data, BufferDeserializer& des) {
-		des.object(tex.m_spec);
-		des.object(tex.uuid);
-		des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
-		des.container1b(data, UINT64_MAX);
-	}
-
-	void AssetManager::DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, BufferDeserializer& des) {
-		des.object(sound.uuid);
-		des.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
-		des.container1b(raw_data, UINT64_MAX);
-	}
-
-
-	void AssetManager::DeserializeMeshAsset(MeshAsset& mesh, BufferDeserializer& des) {
-		des.object(mesh.m_vao);
-		des.object(mesh.m_aabb);
-		uint32_t size;
-		des.value4b(size);
-		mesh.m_submeshes.resize(size);
-		for (int i = 0; i < size; i++) {
-			des.object(mesh.m_submeshes[i]);
-		}
-		des.value1b(mesh.num_materials);
-		des.object(mesh.uuid);
-		des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
-	}
-
-	void AssetManager::DeserializeMaterialAsset(Material& data, BufferDeserializer& des) {
-		des.object(data.base_color);
-		des.value1b(data.render_group);
-		des.value4b(data.roughness);
-		des.value4b(data.metallic);
-		des.value4b(data.ao);
-		des.value4b(data.emissive_strength);
-		uint64_t texid;
-		des.value8b(texid);
-		if (texid != 0) data.base_color_texture = GetAsset<Texture2D>(texid);
-		des.value8b(texid);
-		if (texid != 0) data.normal_map_texture = GetAsset<Texture2D>(texid);
-		des.value8b(texid);
-		if (texid != 0) data.metallic_texture = GetAsset<Texture2D>(texid);
-		des.value8b(texid);
-		if (texid != 0) data.roughness_texture = GetAsset<Texture2D>(texid);
-		des.value8b(texid);
-		if (texid != 0) data.ao_texture = GetAsset<Texture2D>(texid);
-		des.value8b(texid);
-		if (texid != 0) data.displacement_texture = GetAsset<Texture2D>(texid);
-		des.value8b(texid);
-		if (texid != 0) data.emissive_texture = GetAsset<Texture2D>(texid);
-
-		des.value4b(data.parallax_layers);
-		des.object(data.tile_scale);
-		des.text1b(data.name, ORNG_MAX_NAME_SIZE);
-		des.object(data.uuid);
-		des.object(data.spritesheet_data);
-
-		uint32_t flags;
-		des.value4b(flags);
-		data.flags = (MaterialFlags)flags;
-		des.value4b(data.displacement_scale);
-	}
-
-	void AssetManager::DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, BufferDeserializer& des) {
-		des.object(data.uuid);
-		des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
-
-		float sf, df, r;
-
-		des.value4b(sf);
-		des.value4b(df);
-		des.value4b(r);
-
-		InitPhysXMaterialAsset(data);
-		data.p_material->setDynamicFriction(df);
-		data.p_material->setStaticFriction(sf);
-		data.p_material->setRestitution(r);
-	}
-
 
 	void AssetManager::LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts) {
 		std::string texture_folder = project_dir + "\\res\\textures\\";
@@ -593,6 +545,7 @@ namespace ORNG {
 			else {
 				std::string rel_path = ".\\" + entry.path().string().substr(path.string().rfind("res\\materials"));
 				auto* p_mat = new Material(rel_path);
+				p_mat->filepath = rel_path;
 				DeserializeAssetBinary(rel_path, *p_mat);
 				AddAsset(p_mat);
 			}
@@ -606,11 +559,9 @@ namespace ORNG {
 				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\prefabs"));
 				auto* p_prefab = new Prefab(rel_path);
 				DeserializeAssetBinary(rel_path, *p_prefab);
+				p_prefab->filepath = rel_path;
 				AddAsset(p_prefab);
-				
-
 				p_prefab->node = YAML::Load(p_prefab->serialized_content);
-
 #ifndef ORNG_EDITOR_LAYER 
 				p_prefab->serialized_content.clear();
 #endif
@@ -654,6 +605,7 @@ namespace ORNG {
 			else {
 				std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\physx-materials"));
 				auto* p_mat = new PhysXMaterialAsset(rel_path);
+				InitPhysXMaterialAsset(*p_mat);
 				DeserializeAssetBinary(rel_path, *p_mat);
 				AddAsset(p_mat);
 			}
@@ -707,7 +659,8 @@ namespace ORNG {
 		mp_base_brdf_lut = std::make_unique<Texture2D>("Base BRDF LUT");
 		mp_base_brdf_lut->uuid = UUID<uint64_t>(ORNG_BASE_BRDF_LUT_ID);
 
-		EnvMapLoader::LoadBRDFConvolution(*mp_base_brdf_lut);
+		EnvMapLoader loader{};
+		loader.LoadBRDFConvolution(*mp_base_brdf_lut);
 
 		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
@@ -715,10 +668,13 @@ namespace ORNG {
 		AddAsset(&*mp_base_script);
 		AddAsset(&*mp_base_quad);
 
-		mp_base_physx_material = std::make_unique<PhysXMaterialAsset>("BASE");
-		mp_base_physx_material->uuid = UUID<uint64_t>(ORNG_BASE_PHYSX_MATERIAL_ID);
-		mp_base_physx_material->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
-		AddAsset(&*mp_base_physx_material);
+		if (bool physics_module_active = Physics::GetPhysics()) {
+			mp_base_physx_material = std::make_unique<PhysXMaterialAsset>("BASE");
+			mp_base_physx_material->uuid = UUID<uint64_t>(ORNG_BASE_PHYSX_MATERIAL_ID);
+			mp_base_physx_material->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
+			AddAsset(&*mp_base_physx_material);
+		}
+
 	}
 
 
@@ -729,10 +685,12 @@ namespace ORNG {
 		Get().mp_base_tex.release();
 		Get().mp_base_cube.release();
 		Get().mp_base_sphere.release();
-		Get().mp_base_physx_material->p_material->release();
 		Get().mp_base_physx_material.release();
 		Get().mp_base_quad.release();
 		Get().mp_base_script.release();
+
+		if (bool physics_module_active = Physics::GetPhysics())
+			Get().mp_base_physx_material->p_material->release();
 	};
 
 
@@ -861,8 +819,7 @@ namespace ORNG {
 		mp_base_cube->num_indices = mp_base_cube->m_vao.vertex_data.indices.size();
 		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
 		mp_base_cube->m_vao.FillBuffers();
-		mp_base_cube->m_aabb.max = { 0.5, 0.5, 0.5 };
-		mp_base_cube->m_aabb.min = { -0.5, -0.5, -0.5 };
+		mp_base_cube->m_aabb.extents = { 0.5, 0.5, 0.5 };
 		MeshAsset::MeshEntry entry;
 		entry.base_index = 0;
 		entry.base_vertex = 0;

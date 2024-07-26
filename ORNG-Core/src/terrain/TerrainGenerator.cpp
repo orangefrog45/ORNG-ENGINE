@@ -7,6 +7,13 @@ namespace ORNG {
 	void TerrainGenerator::GenNoiseChunk(unsigned int seed, int width, unsigned int resolution,
 		float height_scale, glm::vec3 bot_left_coord, VertexData3D& output_data, AABB& bounding_box)
 	{
+		const float height_exponent = 5.f;
+		/*Rounding will cause shelves*/
+		const float height_factor = glm::pow(height_scale, height_exponent);
+
+		bounding_box.center = bot_left_coord + glm::vec3(width * 0.5f, 0, width * 0.5f);
+		bounding_box.extents = glm::vec3(width * 0.5f, height_factor, width * 0.5f);
+
 		VertexData3D& terrain_data = output_data;
 
 		static FastNoiseLite noise;
@@ -34,28 +41,12 @@ namespace ORNG {
 		terrain_data.tex_coords.reserve(terrain_data.tex_coords.size() + ((width) / resolution) * ((width) / resolution) * 4);
 		terrain_data.indices.reserve(terrain_data.indices.size() + ((width) / resolution) * ((width) / resolution) * 4);
 
-		bounding_box.max = bot_left_coord;
-		bounding_box.min = bot_left_coord;
 		for (float x = bot_left_coord.x; x < bot_left_coord.x + width; x += resolution) {
 			for (float z = bot_left_coord.z; z < bot_left_coord.z + width; z += resolution) {
 				const float noise1 = noise2.GetNoise(x, z) * 0.15f
 					+ 3.5f * noise.GetNoise(x, z);
 
-				const float height_exponent = 5.f;
-
-				/*Rounding will cause shelves*/
-				const float height_factor = glm::pow(height_scale, height_exponent);
 				glm::vec3 vert = { x, noise1 * height_factor, z };
-
-				// Form bounding box for chunk
-				bounding_box.max.x = bounding_box.max.x < x ? x : bounding_box.max.x;
-				bounding_box.max.y = bounding_box.max.y < vert.y ? vert.y : bounding_box.max.y;
-				bounding_box.max.z = bounding_box.max.z < z ? z : bounding_box.max.z;
-
-				bounding_box.min.x = bounding_box.min.x > x ? x : bounding_box.min.x;
-				bounding_box.min.y = bounding_box.min.y > vert.y ? vert.y : bounding_box.min.y;
-				bounding_box.min.z = bounding_box.min.z > z ? z : bounding_box.min.z;
-
 				VEC_PUSH_VEC3(terrain_data.positions, vert);
 			}
 		}
@@ -123,7 +114,6 @@ namespace ORNG {
 			}
 		}
 
-		bounding_box.center = (bounding_box.max + bounding_box.min) * 0.5f;
 	}
 
 

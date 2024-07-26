@@ -5,6 +5,7 @@
 #include "util/util.h"
 #include "scene/SceneEntity.h"
 #include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
+#include "components/ComponentSystems.h"
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
 #include "util/Timers.h"
@@ -62,7 +63,7 @@ namespace ORNG {
 			};
 		m_si.Raycast =
 			[this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
-				return physics_system.Raycast(origin, unit_dir, max_distance);
+				return GetSystem<PhysicsSystem>().Raycast(origin, unit_dir, max_distance);
 			};
 
 		m_si.GetEntityByUUID =
@@ -73,7 +74,7 @@ namespace ORNG {
 
 		m_si.OverlapQuery =
 			[this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
-				return physics_system.OverlapQuery(geom, pos, max_hits);
+				return GetSystem<PhysicsSystem>().OverlapQuery(geom, pos, max_hits);
 			};
 
 		m_si.GetSceneTimeElapsed =
@@ -83,19 +84,23 @@ namespace ORNG {
 
 		m_si.GetActiveCamera =
 			[this] {
-			return m_camera_system.GetActiveCamera();
+			return GetSystem<CameraSystem>().GetActiveCamera();
 			};
 
 	}
 
+
+	void Scene::AddDefaultSystems() {
+		AddSystem(new CameraSystem{ this });
+		AddSystem(new AudioSystem{ this });
+		AddSystem(new ParticleSystem{ this });
+		AddSystem(new PhysicsSystem{ this });
+		AddSystem(new MeshInstancingSystem{ this });
+		AddSystem(new TransformHierarchySystem{ this });
+	}
+
 	void Scene::Update(float ts) {
 		m_time_elapsed += ts;
-
-		m_camera_system.OnUpdate();
-		m_audio_system.OnUpdate();
-
-		m_particle_system.OnUpdate();
-		physics_system.OnUpdate(ts);
 
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
@@ -108,10 +113,12 @@ namespace ORNG {
 		}
 		ORNG_PROFILE_FUNC();
 
-		m_mesh_component_manager.OnUpdate();
+		for (auto [id, p_system] : systems) {
+			p_system->OnUpdate();
+		}
+
 		//if (m_camera_system.GetActiveCamera())
 			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
-
 
 		for (auto* p_entity : m_entity_deletion_queue) {
 			DeleteEntity(p_entity);
@@ -127,7 +134,12 @@ namespace ORNG {
 		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 
 		if (auto* p_script = p_entity->GetComponent<ScriptComponent>(); p_script && p_script->p_instance) {
-			p_script->p_instance->OnDestroy();
+			try {
+				p_script->p_instance->OnDestroy();
+			}
+			catch (std::exception& e) {
+				ORNG_CORE_ERROR("OnDestroy script error for entity '{0}': '{1}'", p_entity->name, e.what());
+			}
 		}
 
 		auto current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
@@ -395,13 +407,8 @@ namespace ORNG {
 		return ent;
 	}
 
-	void Scene::LoadScene(const std::string& filepath) {
+	void Scene::LoadScene() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
-
-		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
-		noise->SetFrequency(0.05f);
-		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
-		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
 
 		m_hierarchy_modification_listener.scene_id = uuid();
 		m_hierarchy_modification_listener.OnEvent = [&](const Events::ECS_Event<RelationshipComponent>& _event) {
@@ -416,14 +423,9 @@ namespace ORNG {
 
 		Events::EventManager::RegisterListener(m_hierarchy_modification_listener);
 
-		post_processing.global_fog.SetNoise(noise);
-		terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
-		physics_system.OnLoad();
-		m_mesh_component_manager.OnLoad();
-		m_camera_system.OnLoad();
-		m_transform_system.OnLoad();
-		m_audio_system.OnLoad();
-		m_particle_system.OnLoad();
+		for (auto [id, p_sys] : systems) {
+			p_sys->OnLoad();
+		}
 
 		// Allocate storage for components on this side of the boundary
 		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
@@ -467,6 +469,9 @@ namespace ORNG {
 		}
 	}
 
+	CameraComponent* Scene::GetActiveCamera() {
+		return GetSystem<CameraSystem>().GetActiveCamera();
+	}
 
 	void Scene::UnloadScene() {
 		if (!m_is_loaded) {
@@ -484,12 +489,10 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_hierarchy_modification_listener.GetRegisterID());
 
 		m_registry.clear();
-		m_transform_system.OnUnload();
-		physics_system.OnUnload();
-		m_mesh_component_manager.OnUnload();
-		m_camera_system.OnUnload();
-		m_audio_system.OnUnload();
-		m_particle_system.OnUnload();
+
+		for (auto [id, p_sys] : systems) {
+			p_sys->OnUnload();
+		}
 
 		m_entities.clear();
 		m_root_entities.clear();

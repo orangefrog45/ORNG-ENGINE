@@ -10,10 +10,14 @@ namespace ORNG {
 	}
 
 	/* TODO - MOVE TO CAMERASYSTEM */
+
 	void CameraComponent::UpdateFrustum() {
+		UpdateFrustum(GetEntity()->GetComponent<TransformComponent>());
+	}
+
+	void CameraComponent::UpdateFrustum(TransformComponent* p_transform) {
 		const float half_far_plane_height = tanf(glm::radians(fov * 0.5f)) * zFar;
 		const float half_far_plane_width = half_far_plane_height * aspect_ratio;
-		auto* p_transform = GetEntity()->GetComponent<TransformComponent>();
 		glm::vec3 target = p_transform->forward;
 
 		const glm::vec3 up = p_transform->up;

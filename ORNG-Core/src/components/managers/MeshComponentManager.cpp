@@ -2,8 +2,8 @@
 #include "components/ComponentSystems.h"
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
-#include "core/CodedAssets.h"
 #include "scene/MeshInstanceGroup.h"
+#include "scene/Scene.h"
 
 namespace ORNG {
 	static void OnMeshComponentAdd(entt::registry& registry, entt::entity entity) {
@@ -54,7 +54,7 @@ namespace ORNG {
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
 
-			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials, *mp_registry);
+			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials, mp_scene->GetRegistry());
 			m_instance_groups.push_back(group);
 			group->AddInstance(comp->GetEntity());
 
@@ -90,7 +90,7 @@ namespace ORNG {
 			m_billboard_instance_groups[group_index]->AddInstance(p_comp->GetEntity());
 		}
 		else {
-			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID), this, p_comp->p_material, *mp_registry);
+			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID), this, p_comp->p_material, mp_scene->GetRegistry());
 			p_group->m_materials.push_back(p_comp->p_material);
 			m_billboard_instance_groups.push_back(p_group);
 			p_group->AddInstance(p_comp->GetEntity());
@@ -101,16 +101,16 @@ namespace ORNG {
 	}
 
 
-	MeshInstancingSystem::MeshInstancingSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
+	MeshInstancingSystem::MeshInstancingSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 		// Setup event listeners
-		m_transform_listener.scene_id = scene_uuid;
-		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& t_event) {
-			if (mp_registry->valid(entt::entity(t_event.affected_components[0]->GetEntity()->GetEnttHandle())))
+		m_transform_listener.scene_id = p_scene->uuid();
+		m_transform_listener.OnEvent = [this, p_scene](const Events::ECS_Event<TransformComponent>& t_event) {
+			if (p_scene->GetRegistry().valid(entt::entity(t_event.affected_components[0]->GetEntity()->GetEnttHandle())))
 				OnTransformEvent(t_event);
 			};
 
 		// Instance group handling
-		m_mesh_listener.scene_id = scene_uuid;
+		m_mesh_listener.scene_id = p_scene->uuid();
 		m_mesh_listener.OnEvent = [this](const Events::ECS_Event<MeshComponent>& t_event) {
 			OnMeshEvent(t_event);
 			};
@@ -124,7 +124,7 @@ namespace ORNG {
 			}
 			};
 
-		m_billboard_listener.scene_id = scene_uuid;
+		m_billboard_listener.scene_id = p_scene->uuid();
 		m_billboard_listener.OnEvent = [this](const Events::ECS_Event<BillboardComponent>& t_event) {
 			switch (t_event.event_type) {
 			case Events::ECS_EventType::COMP_ADDED:
@@ -193,12 +193,13 @@ namespace ORNG {
 
 
 	void MeshInstancingSystem::OnLoad() {
-		mp_registry->on_construct<MeshComponent>().connect<&OnMeshComponentAdd>();
-		mp_registry->on_destroy<MeshComponent>().connect<&OnMeshComponentDestroy>();
+		auto& reg = mp_scene->GetRegistry();
 
-		mp_registry->on_construct<BillboardComponent>().connect<&OnBillboardComponentAdd>();
-		mp_registry->on_destroy<BillboardComponent>().connect<&OnBillboardComponentDestroy>();
+		reg.on_construct<MeshComponent>().connect<&OnMeshComponentAdd>();
+		reg.on_destroy<MeshComponent>().connect<&OnMeshComponentDestroy>();
 
+		reg.on_construct<BillboardComponent>().connect<&OnBillboardComponentAdd>();
+		reg.on_destroy<BillboardComponent>().connect<&OnBillboardComponentDestroy>();
 	}
 
 
@@ -215,8 +216,10 @@ namespace ORNG {
 
 
 	void MeshInstancingSystem::OnMeshAssetDeletion(MeshAsset* p_asset) {
+		auto& reg = mp_scene->GetRegistry();
+
 		// Remove asset from all components using it
-		for (auto [entity, mesh] : mp_registry->view<MeshComponent>().each()) {
+		for (auto [entity, mesh] : reg.view<MeshComponent>().each()) {
 			if (mesh.GetMeshData() == p_asset)
 				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
 		}
@@ -230,7 +233,7 @@ namespace ORNG {
 				if (group->m_mesh_asset == p_asset) {
 					group->ClearMeshes();
 					for (auto [entt_handle, index] : group->m_instances) {
-						mp_registry->get<MeshComponent>(entt_handle).mp_mesh_asset = nullptr;
+						reg.get<MeshComponent>(entt_handle).mp_mesh_asset = nullptr;
 					}
 
 					// Delete all mesh instance groups using the asset as they cannot function without it
@@ -262,7 +265,7 @@ namespace ORNG {
 			// Replace material in mesh if it contains it
 			for (auto [entt_handle, index] : group->m_instances) {
 				for (auto valid_replacement_index : material_indices) {
-					mp_registry->get<MeshComponent>(entt_handle).m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					mp_scene->GetRegistry().get<MeshComponent>(entt_handle).m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 				}
 			}
 		}

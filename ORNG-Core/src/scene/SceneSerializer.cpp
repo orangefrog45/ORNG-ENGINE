@@ -3,6 +3,7 @@
 
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
+#include "components/ComponentSystems.h"
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
@@ -707,7 +708,7 @@ namespace ORNG {
 			{"CameraComp",[&] { DeserializeCameraComp(entity_node["CameraComp"], entity); }},
 			{"ScriptComp",[&] { DeserializeScriptComp(entity_node["ScriptComp"], entity); }},
 			{"AudioComp",[&] { DeserializeAudioComp(entity_node["AudioComp"], entity); }},
-			{"VehicleComp",[&] { scene.physics_system.InitVehicle(DeserializeVehicleComp(entity_node["VehicleComp"], entity)); }},
+			{"VehicleComp",[&] { scene.GetSystem<PhysicsSystem>().InitVehicle(DeserializeVehicleComp(entity_node["VehicleComp"], entity)); }},
 			{"ParticleEmitterComp",[&] { DeserializeParticleEmitterComp(entity_node["ParticleEmitterComp"], entity); }},
 			{"ParticleBufferComp",[&] { DeserializeParticleBufferComp(entity_node["ParticleBufferComp"], entity); }},
 			{"CharacterControllerComp",[&] { DeserializeCharacterControllerComp(entity_node["CharacterControllerComp"], entity); }},

@@ -8,6 +8,9 @@
 
 namespace ORNG {
 	void EnvMapLoader::Init() {
+		if (bool is_already_initialized = mp_output_fb)
+			return;
+
 		mp_output_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("env_hdr_converter", false);
 		mp_output_fb->AddRenderbuffer(4096, 4096);
 
@@ -202,7 +205,6 @@ namespace ORNG {
 			std::format("res/textures/env_map/diffuse_prefilter_{}_4.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
 			std::format("res/textures/env_map/diffuse_prefilter_{}_5.hdr", filepath.substr(filepath.find_last_of("/") + 1)),
 		};
-
 
 		skybox.m_skybox_tex.SetSpec(hdr_cubemap_spec);
 

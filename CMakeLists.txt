@@ -7,7 +7,6 @@ set(VCPKG_TARGET_TRIPLET x64-windows)
 
 project(ORNG_CORE)
 project(ORNG_EDITOR)
-project(FRACTAL_GAME)
 project(ORNG_RUNTIME)
 
 
@@ -28,9 +27,12 @@ endif()
 
 add_subdirectory("ORNG-Core")
 add_subdirectory("ORNG-Editor")
-add_subdirectory("Game")
 add_subdirectory("ORNG-Runtime")
-add_subdirectory("NetGame")
+
+# EXTERNAL PROJECTS NOT IN ENGINE REPO - COMMENT OUT IF CAUSING ERRORS
+add_subdirectory("Game")
+add_subdirectory("HW-Monitor")
+
 
 
 

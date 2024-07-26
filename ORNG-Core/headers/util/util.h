@@ -22,6 +22,7 @@ constexpr unsigned ORNG_MAX_NAME_SIZE = 500;
 
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 
+#undef ORNG_ENABLE_TRACY_PROFILE
 
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 #include "Tracy.hpp"
@@ -36,6 +37,15 @@ constexpr unsigned ORNG_MAX_NAME_SIZE = 500;
 
 namespace ORNG {
 
+	/* Type ID Stuff */
+	inline uint16_t type_id_seq = 0;
+	template< typename T > inline const uint16_t type_id = type_id_seq++;
+
+	template<typename T>
+	uint16_t GetTypeID() {
+		return type_id<T>;
+	}
+	/*----------------*/
 
 
 	namespace detail {
@@ -116,6 +126,10 @@ namespace ORNG {
 	bool IsEntryAFile(const std::filesystem::directory_entry& entry);
 
 	bool ReadBinaryFile(const std::string& filepath, std::vector<std::byte>& output);
+
+	std::string ReadTextFile(const std::string& filepath);
+
+	bool WriteTextFile(const std::string& filepath, const std::string& content);
 
 	// Returns filepath with modified extension, "new_extension" should include the '.', e.g ".png", ".jpg"
 	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension);

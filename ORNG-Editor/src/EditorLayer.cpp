@@ -17,6 +17,7 @@
 #include "components/ParticleBufferComponent.h"
 #include "tracy/public/tracy/Tracy.hpp"
 #include "imgui/imgui_internal.h"
+#include "components/ComponentSystems.h"
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
@@ -111,6 +112,7 @@ namespace ORNG {
 		m_res.p_picking_fb->Add2DTexture("component_ids_split", GL_COLOR_ATTACHMENT0, picking_spec);
 
 		SceneRenderer::SetActiveScene(&*SCENE);
+		SCENE->AddDefaultSystems();
 		static auto s = &*SCENE;
 		m_event_stack.SetContext(s, &m_state.selected_entity_ids);
 
@@ -348,9 +350,9 @@ namespace ORNG {
 		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)
 			SCENE->Update(FrameTiming::GetTimeStep());
 		else {
-			SCENE->m_mesh_component_manager.OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
-			SCENE->m_particle_system.OnUpdate(); // Continue simulating particles for visual feedback
-			SCENE->m_audio_system.OnUpdate(); // For accurate audio playback
+			SCENE->GetSystem<MeshInstancingSystem>().OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
+			SCENE->GetSystem<ParticleSystem>().OnUpdate(); // Continue simulating particles for visual feedback
+			SCENE->GetSystem<AudioSystem>().OnUpdate(); // For accurate audio playback
 			//SCENE->terrain.UpdateTerrainQuadtree(SCENE->m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition()); // Needed for terrain LOD updates
 		}
 	}
@@ -520,7 +522,7 @@ namespace ORNG {
 						ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_payload->Data));
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 						auto& mesh_aabb = ent.GetComponent<MeshComponent>()->GetMeshData()->m_aabb;
-						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f));
+						ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f));
 						SelectEntity(ent.GetUUID());
 					}
 				}
@@ -532,7 +534,7 @@ namespace ORNG {
 						glm::vec3 pos;
 						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
 							auto& mesh_aabb = p_mesh->GetMeshData()->m_aabb;
-							pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.max.x, mesh_aabb.max.y), mesh_aabb.max.z) + 5.f);
+							pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f);
 						}
 						else {
 							pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * 5.f;
@@ -1047,13 +1049,12 @@ namespace ORNG {
 			glm::vec3 cam_pos = mp_editor_camera ? mp_editor_camera->GetComponent<TransformComponent>()->GetAbsPosition() : glm::vec3{0, 0, 0};
 			mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
 
-
 			if (SCENE->m_is_loaded)
 				SCENE->UnloadScene();
 
 			AssetManager::ClearAll();
 			AssetManager::LoadAssetsFromProjectPath(m_state.current_project_directory, false);
-			SCENE->LoadScene(m_state.current_project_directory + "\\scene.yml");
+			SCENE->LoadScene();
 			SceneSerializer::DeserializeScene(*SCENE, m_state.current_project_directory + "\\scene.yml", true);
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
@@ -1523,7 +1524,7 @@ namespace ORNG {
 			auto dir = ExtraMath::ScreenCoordsToRayDir(p_cam_comp->GetProjectionMatrix(), coords,
 				p_cam_transform->GetAbsPosition(), p_cam_transform->forward, p_cam_transform->up, Window::GetWidth(), Window::GetHeight());
 
-			auto res = SCENE->physics_system.Raycast(p_cam_transform->GetAbsPosition(), dir, p_cam_comp->zFar);
+			auto res = SCENE->GetSystem<PhysicsSystem>().Raycast(p_cam_transform->GetAbsPosition(), dir, p_cam_comp->zFar);
 
 			if (auto* p_ent = res.p_entity) {
 				PushBackMultiple(p_line_pos_buf->data, p_ent->GetComponent<TransformComponent>()->GetAbsPosition(),
@@ -1545,7 +1546,7 @@ namespace ORNG {
 		for (auto [entity, phys, transform] : SCENE->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::BOX) {
 				if (auto* p_mesh = phys.GetEntity()->GetComponent<MeshComponent>())
-					m_res.p_highlight_shader->SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().max * 2.f));
+					m_res.p_highlight_shader->SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().extents * 2.f));
 				else
 					m_res.p_highlight_shader->SetUniform("transform", transform.GetMatrix());
 
@@ -2084,7 +2085,7 @@ namespace ORNG {
 		for (int i = 0; i < 4; i++) {
 			ImGui::PushID(i);
 			if (ImGui::DragFloat3("##pos", &p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p[0])) {
-				SCENE->physics_system.InitVehicle(p_comp);
+				SCENE->GetSystem<PhysicsSystem>().InitVehicle(p_comp);
 			}
 			ImGui::PopID();
 		}
@@ -2619,7 +2620,7 @@ namespace ORNG {
 
 		glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
-		CameraComponent* p_cam = SCENE->m_camera_system.GetActiveCamera();
+		CameraComponent* p_cam = SCENE->GetSystem<CameraSystem>().GetActiveCamera();
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
 		glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);

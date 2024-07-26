@@ -40,4 +40,11 @@ namespace ORNG {
 			return m_framebuffers[name];
 		}
 	}
+
+	void FramebufferLibrary::DeleteFramebuffer(Framebuffer* p_framebuffer) {
+		if (m_framebuffers.contains(p_framebuffer->m_name))
+			m_framebuffers.erase(p_framebuffer->m_name);
+		else
+			ORNG_CORE_ERROR("Failed to delete framebuffer '{0}', not found in FramebufferLibrary", p_framebuffer->m_name);
+	}
 }

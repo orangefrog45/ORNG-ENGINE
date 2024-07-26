@@ -10,6 +10,7 @@
 #include "physics/vehicles/DirectDrive.h"
 #include "assets/AssetManager.h"
 #include "physx/extensions/PxParticleExt.h"
+#include "core/FrameTiming.h"
 
 
 namespace ORNG {
@@ -48,9 +49,7 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
-
-
-	PhysicsSystem::PhysicsSystem(entt::registry* p_registry, uint64_t scene_uuid, Scene* p_scene) : ComponentSystem(p_registry, scene_uuid), mp_scene(p_scene) {
+	PhysicsSystem::PhysicsSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 	};
 
 	PxFilterFlags FilterShader(
@@ -113,18 +112,18 @@ namespace ORNG {
 
 		InitListeners();
 
+		auto& reg = mp_scene->GetRegistry();
+		reg.on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
+		reg.on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
 
-		mp_registry->on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
-		mp_registry->on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
+		reg.on_construct<JointComponent>().connect<&OnJointAdd>();
+		reg.on_destroy<JointComponent>().connect<&OnJointDestroy>();
 
-		mp_registry->on_construct<JointComponent>().connect<&OnJointAdd>();
-		mp_registry->on_destroy<JointComponent>().connect<&OnJointDestroy>();
+		reg.on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
+		reg.on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
 
-		mp_registry->on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
-		mp_registry->on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
-
-		mp_registry->on_destroy<VehicleComponent>().connect<&OnVehicleComponentDestroy>();
-		mp_registry->on_construct<VehicleComponent>().connect<&OnVehicleComponentAdd>();
+		reg.on_destroy<VehicleComponent>().connect<&OnVehicleComponentDestroy>();
+		reg.on_construct<VehicleComponent>().connect<&OnVehicleComponentAdd>();
 
 
 		InitVehicleSimulationContext();
@@ -624,10 +623,10 @@ namespace ORNG {
 
 		auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
-		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(-1), glm::vec3(1));
+		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(0.5f));
 
 		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
-		glm::vec3 scaled_extents = aabb.max * scale_factor;
+		glm::vec3 scaled_extents = aabb.extents * scale_factor;
 
 		const bool was_previously_initialized = static_cast<bool>(p_comp->p_shape);
 		PxTransform current_transform = TransformComponentToPxTransform(*p_transform);
@@ -720,18 +719,18 @@ namespace ORNG {
 		transform.SetAbsolutePosition(glm::vec3(phys_pos.x, phys_pos.y, phys_pos.z));
 	}
 
-
-
-	void PhysicsSystem::OnUpdate(float ts) {
+	void PhysicsSystem::OnUpdate() {
 		ORNG_PROFILE_FUNC();
+		auto& reg = mp_scene->GetRegistry();
+
+		float ts = FrameTiming::GetTimeStep();
 
 		m_accumulator += ts;
 
 		if (m_accumulator < m_step_size * 1000.0)
 			return;
 
-
-		for (auto [entity, vehicle, transform] : mp_registry->view<VehicleComponent, TransformComponent>().each()) {
+		for (auto [entity, vehicle, transform] : reg.view<VehicleComponent, TransformComponent>().each()) {
 			vehicle.m_vehicle.step(m_step_size, m_vehicle_context);
 			PxShape* shape[1];
 			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shape[0], 1);
@@ -759,14 +758,14 @@ namespace ORNG {
 
 		// Process OnCollision callbacks
 		for (auto& pair : m_entity_collision_queue) {
-			auto* p_first_script = mp_registry->try_get<ScriptComponent>(pair.first);
-			auto* p_second_script = mp_registry->try_get<ScriptComponent>(pair.second);
+			auto* p_first_script = reg.try_get<ScriptComponent>(pair.first);
+			auto* p_second_script = reg.try_get<ScriptComponent>(pair.second);
 			try {
 				if (p_first_script)
-					p_first_script->p_instance->OnCollide(mp_registry->get<TransformComponent>(pair.second).GetEntity());
+					p_first_script->p_instance->OnCollide(reg.get<TransformComponent>(pair.second).GetEntity());
 
 				if (p_second_script)
-					p_second_script->p_instance->OnCollide(mp_registry->get<TransformComponent>(pair.first).GetEntity());
+					p_second_script->p_instance->OnCollide(reg.get<TransformComponent>(pair.first).GetEntity());
 			}
 			catch (std::exception e) {
 				ORNG_CORE_ERROR("Script OnCollision err for collision pair '{0}', '{1}' : '{2}'", p_first_script->GetEntity()->name, p_second_script->GetEntity()->name, e.what());
@@ -774,11 +773,11 @@ namespace ORNG {
 		}
 #
 		for (auto& [event_type, ent, trigger] : m_trigger_event_queue) {
-			auto* p_script = mp_registry->try_get<ScriptComponent>(trigger);
+			auto* p_script = reg.try_get<ScriptComponent>(trigger);
 			if (!p_script)
 				continue;
 
-			auto* p_ent = mp_registry->try_get<TransformComponent>(ent)->GetEntity();
+			auto* p_ent = reg.try_get<TransformComponent>(ent)->GetEntity();
 			try {
 				if (event_type == ENTERED)
 					p_script->p_instance->OnTriggerEnter(p_ent);

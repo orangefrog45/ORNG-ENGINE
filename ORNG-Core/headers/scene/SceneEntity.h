@@ -9,6 +9,9 @@
 
 #include "util/UUID.h"
 #include "util/util.h"
+#include "components/Component.h"
+#include "components/TransformComponent.h"
+
 namespace ORNG {
 
 	class SceneEntity {

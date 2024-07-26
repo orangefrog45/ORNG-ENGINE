@@ -66,8 +66,7 @@ namespace bitsery {
 
 	template <typename S>
 	void serialize(S& s, AABB& o) {
-		s.object(o.max);
-		s.object(o.min);
+		s.object(o.extents);
 		s.object(o.center);
 	}
 
@@ -107,8 +106,8 @@ namespace ORNG {
 	};
 
 
-	using BufferDeserializer = bitsery::Deserializer<bitsery::InputStreamAdapter>;
-	using BufferSerializer = bitsery::Serializer<bitsery::OutputStreamAdapter>;
+	using BufferDeserializer = bitsery::Deserializer<bitsery::InputBufferAdapter<std::vector<std::byte>>>;
+	using BufferSerializer = bitsery::Serializer<bitsery::OutputBufferAdapter<std::vector<std::byte>>>;
 
 	class AssetManager {
 	public:
@@ -331,15 +330,88 @@ namespace ORNG {
 			ser.container1b(sound_data, UINT64_MAX);
 		}
 
-		static void DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& raw_data, BufferDeserializer& des);
+		template<typename S>
+		static void DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& raw_data, S& des) {
+			des.object(tex.m_spec);
+			des.object(tex.uuid);
+			des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
+			des.container1b(raw_data, UINT64_MAX);
+		}
 
-		static void DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, BufferDeserializer& des);
+		template<typename S>
+		static void DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, S& des) {
+			des.object(sound.uuid);
+			des.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
+			des.container1b(raw_data, UINT64_MAX);
+		}
 
-		static void DeserializeMeshAsset(MeshAsset& mesh, BufferDeserializer& des);
+		template<typename S>
+		static void DeserializeMeshAsset(MeshAsset& mesh, S& des) {
+			des.object(mesh.m_vao);
+			des.object(mesh.m_aabb);
+			uint32_t size;
+			des.value4b(size);
+			mesh.m_submeshes.resize(size);
+			for (int i = 0; i < size; i++) {
+				des.object(mesh.m_submeshes[i]);
+			}
+			des.value1b(mesh.num_materials);
+			des.object(mesh.uuid);
+			des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
+		}
 
-		static void DeserializeMaterialAsset(Material& material, BufferDeserializer& des);
+		template<typename S>
+		static void DeserializeMaterialAsset(Material& data, S& des) {
+			des.object(data.base_color);
+			des.value1b(data.render_group);
+			des.value4b(data.roughness);
+			des.value4b(data.metallic);
+			des.value4b(data.ao);
+			des.value4b(data.emissive_strength);
+			uint64_t texid;
+			des.value8b(texid);
+			if (texid != 0) data.base_color_texture = GetAsset<Texture2D>(texid);
+			des.value8b(texid);
+			if (texid != 0) data.normal_map_texture = GetAsset<Texture2D>(texid);
+			des.value8b(texid);
+			if (texid != 0) data.metallic_texture = GetAsset<Texture2D>(texid);
+			des.value8b(texid);
+			if (texid != 0) data.roughness_texture = GetAsset<Texture2D>(texid);
+			des.value8b(texid);
+			if (texid != 0) data.ao_texture = GetAsset<Texture2D>(texid);
+			des.value8b(texid);
+			if (texid != 0) data.displacement_texture = GetAsset<Texture2D>(texid);
+			des.value8b(texid);
+			if (texid != 0) data.emissive_texture = GetAsset<Texture2D>(texid);
 
-		static void DeserializePhysxMaterialAsset(PhysXMaterialAsset& material, BufferDeserializer& des);
+			des.value4b(data.parallax_layers);
+			des.object(data.tile_scale);
+			des.text1b(data.name, ORNG_MAX_NAME_SIZE);
+			des.object(data.uuid);
+			des.object(data.spritesheet_data);
+
+			uint32_t flags;
+			des.value4b(flags);
+			data.flags = (MaterialFlags)flags;
+			des.value4b(data.displacement_scale);
+		}
+
+		template<typename S>
+		static void DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, S& des) {
+			des.object(data.uuid);
+			des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
+
+			float sf, df, r;
+
+			des.value4b(sf);
+			des.value4b(df);
+			des.value4b(r);
+
+
+			data.p_material->setDynamicFriction(df);
+			data.p_material->setStaticFriction(sf);
+			data.p_material->setRestitution(r);
+		}
 
 		// Loads all base assets (assets the engine runtime requires) that require an external file, e.g the sphere mesh needs to be loaded from a binary file. These files are always present in the "res/core-res" folder of a project
 		void LoadExternalBaseAssets(const std::string& project_dir);

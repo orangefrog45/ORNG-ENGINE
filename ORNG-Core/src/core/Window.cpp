@@ -5,11 +5,11 @@
 
 namespace ORNG {
 	void Window::ISetWindowDimensions(int width, int height) {
-		if (width <= 750 || height <= 750) {
-			// too small
-			glfwSetWindowSize(p_window, m_window_width, m_window_height);
-			return;
+		if (width < 10 || height < 10) {
+			return; // Too small
 		}
+
+		glfwSetWindowSize(p_window, m_window_width, m_window_height);
 
 		Events::WindowEvent window_event;
 		window_event.event_type = Events::Event::WINDOW_RESIZE;
@@ -68,7 +68,7 @@ namespace ORNG {
 	}
 
 
-	void Window::I_Init() {
+	void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
 		if (!glfwInit()) {
 			ORNG_CORE_CRITICAL("GLFW Failed to initialize");
 			exit(1);
@@ -81,7 +81,29 @@ namespace ORNG {
 		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 		glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
-		p_window = glfwCreateWindow(m_window_width, m_window_height, "ORNG ENGINE", nullptr, nullptr);
+		if (!decorated)
+			glfwWindowHint(GLFW_DECORATED, false);
+
+		if (!iconified)
+			glfwWindowHint(GLFW_AUTO_ICONIFY, false);
+
+		m_window_width = initial_dimensions.x;
+		m_window_height = initial_dimensions.y;
+
+		int count;
+		GLFWmonitor** monitors = glfwGetMonitors(&count);
+		if (initial_window_display_monitor_idx == -1) {
+			p_window = glfwCreateWindow(m_window_width, m_window_height, name, nullptr, nullptr);
+		}
+		else if (initial_window_display_monitor_idx < count) {
+			p_window = glfwCreateWindow(m_window_width, m_window_height, name, monitors[initial_window_display_monitor_idx], nullptr);
+		}
+		else {
+			ORNG_CORE_ERROR("Initial window display monitor index too large, total monitors '{0}', received index '{1}'", count, initial_window_display_monitor_idx);
+			p_window = glfwCreateWindow(m_window_width, m_window_height, name, nullptr, nullptr);
+		}
+
+
 		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
 		glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
 		glfwSetCursorPosCallback(p_window, CursorPosCallback);
@@ -91,7 +113,6 @@ namespace ORNG {
 			}
 		);
 
-
 		if (!p_window)
 		{
 			glfwTerminate();
@@ -100,6 +121,7 @@ namespace ORNG {
 
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);
+
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
 		m_mouse_listener.OnEvent = [this](const Events::MouseEvent& t_event) {
 			if (t_event.event_type != Events::MouseEventType::SET)

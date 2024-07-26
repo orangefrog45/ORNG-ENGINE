@@ -50,7 +50,7 @@ namespace ORNG {
 		//}
 
 
-		const PxU32 num_threads = 8;
+		const PxU32 num_threads = 16;
 		mp_dispatcher = PxDefaultCpuDispatcherCreate(num_threads);
 
 		if (!PxInitExtensions(*mp_physics, mp_pvd)) {

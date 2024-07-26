@@ -14,6 +14,7 @@
 #include "scene/SceneEntity.h"
 #include "physics/Physics.h"
 #include "yaml-cpp/yaml.h"
+#include "components/ComponentSystems.h"
 
 namespace ORNG {
 
@@ -24,17 +25,9 @@ namespace ORNG {
 	void AssetManagerWindow::InitPreviewScene() {
 		mp_preview_scene = std::make_unique<Scene>();
 
-		// Setup preview scene used for viewing materials on meshes
-		FastNoiseSIMD* noise = FastNoiseSIMD::NewFastNoiseSIMD();
-		noise->SetFrequency(0.05f);
-		noise->SetCellularReturnType(FastNoiseSIMD::Distance);
-		noise->SetNoiseType(FastNoiseSIMD::PerlinFractal);
-
 		mp_preview_scene->terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
-		mp_preview_scene->post_processing.global_fog.SetNoise(noise);
-		mp_preview_scene->m_mesh_component_manager.OnLoad();
-		mp_preview_scene->m_camera_system.OnLoad();
-		mp_preview_scene->m_transform_system.OnLoad();
+		mp_preview_scene->AddSystem(new MeshInstancingSystem(&*mp_preview_scene))->OnLoad();
+		mp_preview_scene->AddSystem(new CameraSystem(&*mp_preview_scene))->OnLoad();
 		mp_preview_scene->skybox.Load(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr", 512, true);
 
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
@@ -51,7 +44,8 @@ namespace ORNG {
 
 		p_cam->aspect_ratio = 1.f;
 		p_cam->MakeActive();
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+
+		mp_preview_scene->GetSystem<MeshInstancingSystem>().OnUpdate();
 	}
 
 
@@ -262,7 +256,9 @@ namespace ORNG {
 			if (ImGui::Button("Create script")) {
 				std::string script_path = *mp_active_project_dir + "\\res\\scripts\\" + new_script_name + ".cpp";
 				if (!AssetManager::GetAsset<ScriptAsset>(script_path)) {
-					FileCopy(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp", script_path);
+					std::string script_template_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp");
+					StringReplace(script_template_content, "ScriptClassExample", new_script_name);
+					WriteTextFile(script_path, script_template_content);
 					ShellExecute(NULL, "open", script_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 					AssetManager::AddAsset(new ScriptAsset(script_path, false));
 				}
@@ -770,14 +766,14 @@ namespace ORNG {
 		m_mesh_preview_textures[p_asset] = p_tex;
 
 		// Scale mesh so it always fits in camera frustum
-		glm::vec3 extents = p_asset->GetAABB().max - p_asset->GetAABB().center;
+		glm::vec3 extents = p_asset->GetAABB().extents;
 		float largest_extent = glm::max(glm::max(extents.x, extents.y), extents.z);
 		glm::vec3 scale_factor = glm::vec3(1.0, 1.0, 1.0) / largest_extent;
 
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<TransformComponent>()->SetScale(scale_factor);
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		mp_preview_scene->GetSystem<MeshInstancingSystem>().OnUpdate();
+		//mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);
@@ -804,13 +800,14 @@ namespace ORNG {
 		if (auto* p_sphere_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_SPHERE_ID); p_mesh->GetMeshData() != p_sphere_mesh)
 			p_mesh->SetMeshAsset(p_sphere_mesh);
 
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		auto& mesh_sys = mp_preview_scene->GetSystem<MeshInstancingSystem>();
+		mesh_sys.OnUpdate();
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
 
 		p_mesh->SetMaterialID(0, p_material);
 
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
-		mp_preview_scene->m_mesh_component_manager.OnUpdate();
+		mesh_sys.OnUpdate();
+		mesh_sys.OnUpdate();
 
 		SceneRenderer::SceneRenderingSettings settings;
 		SceneRenderer::SetActiveScene(&*mp_preview_scene);

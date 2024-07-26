@@ -169,6 +169,35 @@ namespace ORNG {
 		return ret;
 	}
 
+	bool WriteTextFile(const std::string& filepath, const std::string& content) {
+		std::ofstream out{ filepath };
+
+		if (!out.is_open()) {
+			ORNG_CORE_ERROR("Failed to open text file '{0}' for reading", filepath);
+			return false;
+		}
+
+		out << content;
+		out.close();
+	}
+
+	std::string ReadTextFile(const std::string& filepath) {
+		std::stringstream stream;
+		std::string line;
+		std::ifstream file{ filepath };
+
+		if (!file.is_open()) {
+			ORNG_CORE_ERROR("Failed to open text file '{0}' for reading", filepath);
+			return "";
+		}
+
+		while (std::getline(file, line)) {
+			stream << line << "\n";
+		}
+
+		return stream.str();
+	}
+
 	bool ReadBinaryFile(const std::string& filepath, std::vector<std::byte>& output) {
 
 		std::ifstream file{ filepath, std::ios::binary | std::ios::ate };

@@ -13,13 +13,12 @@
 #include "core/FrameTiming.h"
 #include "rendering/Material.h"
 #include "assets/AssetManager.h"
+#include "components/ComponentSystems.h"
 #include "glm/glm/gtc/round.hpp"
-#include <glm/glm/gtc/integer.hpp>
 
 #include "scene/MeshInstanceGroup.h"
 // Material flags that can go through the normal gbuffer/shader pipeline with just the fragment/vertex (no tessellation) shaders
 #define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
-
 
 namespace ORNG {
 	enum class GBufferVariants {
@@ -88,12 +87,13 @@ namespace ORNG {
 		std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
 		ptcl_uniforms.push_back("u_transform_start_index");
 
+
 		mp_gbuffer_displacement_sv = &mp_shader_library->CreateShaderVariants("SR gbuffer displaced");
 		mp_gbuffer_displacement_sv->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
 		mp_gbuffer_displacement_sv->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/GBufferFS.glsl");
 		mp_gbuffer_displacement_sv->SetPath(GL_TESS_CONTROL_SHADER, "res/core-res/shaders/GBufferTCS.glsl");
 		mp_gbuffer_displacement_sv->SetPath(GL_TESS_EVALUATION_SHADER, "res/core-res/shaders/GBufferTES.glsl");
-		mp_gbuffer_displacement_sv->AddVariant(0, {"TESSELLATE"}, gbuffer_uniforms);
+		mp_gbuffer_displacement_sv->AddVariant(0, { "TESSELLATE" }, gbuffer_uniforms);
 
 		mp_gbuffer_shader_variants = &mp_shader_library->CreateShaderVariants("gbuffer");
 		mp_gbuffer_shader_variants->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
@@ -545,7 +545,7 @@ namespace ORNG {
 
 	SceneRenderer::SceneRenderingOutput SceneRenderer::IRenderScene(const SceneRenderingSettings& settings) {
 		SceneRenderer::SceneRenderingOutput output;
-		auto* p_cam = settings.p_cam_override ? settings.p_cam_override : mp_scene->m_camera_system.GetActiveCamera();
+		auto* p_cam = settings.p_cam_override ? settings.p_cam_override : mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
 		if (!p_cam) {
 			ORNG_CORE_ERROR("No camera found for scene renderer to render from");
 			return output;
@@ -767,7 +767,7 @@ namespace ORNG {
 		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
-			for (auto* p_group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+			for (auto* p_group : mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
 				DrawInstanceGroupGBufferWithoutStateChanges(mp_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, ORNG_MatFlags_INVALID, GL_TRIANGLES);
 			}
 			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -810,7 +810,6 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height) {
-		GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 		mp_transparency_fb->Bind();
 		mp_transparency_fb->BindTexture2D(m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
@@ -828,25 +827,30 @@ namespace ORNG {
 
 		mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::DEFAULT);
 		mp_transparency_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
+
+		auto& mesh_system = mp_scene->GetSystem<MeshInstancingSystem>();
+
 		//Draw all meshes in scene (instanced)
-		for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+		for (const auto* group : mesh_system.GetInstanceGroups()) {
 			DrawInstanceGroupGBuffer(mp_transparency_shader_variants, group, RenderGroup::ALPHA_TESTED, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
 		}
 
-		mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE);
-		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
-			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-			IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
+		if (mp_scene->HasSystem<ParticleSystem>()) {
+			GL_StateManager::BindSSBO(mp_scene->GetSystem<ParticleSystem>().m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
+			mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE);
+			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
+				mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+				IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
+			}
+
+			mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE_BILLBOARD);
+			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
+			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
+				mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+
+				IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
+			}
 		}
-
-		mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE_BILLBOARD);
-		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
-		for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
-			mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-
-			IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
-		}
-
 
 		//RenderVehicles(mp_transparency_shader_variants, RenderGroup::ALPHA_TESTED);
 
@@ -927,34 +931,38 @@ namespace ORNG {
 
 		using enum GBufferVariants;
 
+		auto& mesh_sys = mp_scene->GetSystem<MeshInstancingSystem>();
+
 		if (settings.render_meshes) {
 			// Draw tessellated meshes
 			mp_gbuffer_displacement_sv->Activate(0);
 			mp_gbuffer_displacement_sv->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 			glPatchParameteri(GL_PATCH_VERTICES, 3);
-			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+			for (const auto* group : mesh_sys.GetInstanceGroups()) {
 				DrawInstanceGroupGBuffer(mp_gbuffer_displacement_sv, group, SOLID, ORNG_MatFlags_TESSELLATED, ORNG_MatFlags_INVALID, GL_PATCHES);
 			}
 
 			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::MESH);
 			mp_gbuffer_shader_variants->SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 			//Draw all meshes in scene (instanced)
-			for (const auto* group : mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+			for (const auto* group : mesh_sys.GetInstanceGroups()) {
 				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED);
 			}
 
 
 			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::BILLBOARD);
-			for (const auto* group : mp_scene->m_mesh_component_manager.GetBillboardInstanceGroups()) {
+			for (const auto* group : mesh_sys.GetBillboardInstanceGroups()) {
 				DrawInstanceGroupGBuffer(mp_gbuffer_shader_variants, group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED);
 			}
 
 			//RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
-			GL_StateManager::BindSSBO(mp_scene->m_particle_system.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
-			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE);
-			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
-				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-				IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED);
+			if (mp_scene->HasSystem<ParticleSystem>()) {
+				GL_StateManager::BindSSBO(mp_scene->GetSystem<ParticleSystem>().m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
+				mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE);
+				for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
+					mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
+					IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED);
+				}
 			}
 
 			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE_BILLBOARD);
@@ -986,10 +994,10 @@ namespace ORNG {
 
 
 		/* uniforms */
-		mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::TERRAIN);
-		SetGBufferMaterial(mp_gbuffer_shader_variants, mp_scene->terrain.mp_material);
-		mp_gbuffer_shader_variants->SetUniform<unsigned int>("u_shader_id", ShaderLibrary::LIGHTING_SHADER_ID);
-		DrawTerrain(p_cam);
+		//mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::TERRAIN);
+		//SetGBufferMaterial(mp_gbuffer_shader_variants, mp_scene->terrain.mp_material);
+		//mp_gbuffer_shader_variants->SetUniform<unsigned int>("u_shader_id", ShaderLibrary::LIGHTING_SHADER_ID);
+		//DrawTerrain(p_cam);
 
 		mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::SKYBOX);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSkyboxTexture().GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
@@ -1120,7 +1128,6 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));
 		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
 
-		GL_StateManager::BindTexture(GL_TEXTURE_3D, mp_scene->post_processing.global_fog.fog_noise->GetTextureHandle(), GL_StateManager::TextureUnits::DATA_3D);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 
 
@@ -1295,7 +1302,7 @@ namespace ORNG {
 	}
 
 	void SceneRenderer::DrawAllMeshesDepth(RenderGroup render_group) {
-		for (const auto* group : Get().mp_scene->m_mesh_component_manager.GetInstanceGroups()) {
+		for (const auto* group : Get().mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
 			GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
 			for (unsigned int i = 0; i < group->m_mesh_asset->m_submeshes.size(); i++) {

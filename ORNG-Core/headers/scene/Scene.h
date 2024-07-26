@@ -1,15 +1,17 @@
 #pragma once
 #include "scene/Skybox.h"
-#include "terrain/Terrain.h"
-#include "components/ComponentSystems.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
 #include "EntityNodeRef.h"
+#include "events/EventManager.h"
+#include "components/ComponentAPI.h"
+#include "terrain/Terrain.h"
 
 
 namespace ORNG {
 	struct Prefab;
 	class SceneEntity;
+	class ComponentSystem;
 
 	class Scene {
 	public:
@@ -18,10 +20,41 @@ namespace ORNG {
 		friend class SceneSerializer;
 		friend class SceneEntity;
 		friend class AssetManagerWindow;
+
 		Scene();
 		~Scene();
 
+		// Adds a system to be managed by this scene, should be a heap-allocated ptr to the system
+		// Memory for the system is freed when the scene is deleted
+		template<typename SystemType>
+		SystemType* AddSystem(SystemType* p_system) {
+			ASSERT(!systems.contains(type_id<SystemType>));
+			systems[type_id<SystemType>] = p_system;
+			return p_system;
+		}
+
+		template<typename SystemType>
+		SystemType& GetSystem() {
+			ASSERT(systems.contains(type_id<SystemType>));
+			return *dynamic_cast<SystemType*>(systems[type_id<SystemType>]);
+		}
+
+		template<typename SystemType>
+		bool HasSystem() {
+			return systems.contains(type_id<SystemType>);
+		}
+
+		void AddDefaultSystems();
+
+		void OnStart();
+
 		void Update(float ts);
+
+		void LoadScene();
+
+		void UnloadScene();
+
+		CameraComponent* GetActiveCamera();
 
 		// Specify uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
@@ -30,11 +63,6 @@ namespace ORNG {
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
 
-		void OnStart();
-
-		CameraComponent* GetActiveCamera() {
-			return m_camera_system.GetActiveCamera();
-		}
 
 		const SI& GetSI() {
 			return m_si;
@@ -85,9 +113,6 @@ namespace ORNG {
 			ASSERT(m_root_entities.empty());
 		}
 
-		void LoadScene(const std::string& filepath);
-
-		void UnloadScene();
 
 		entt::registry& GetRegistry() {
 			return m_registry;
@@ -104,11 +129,12 @@ namespace ORNG {
 		UUID<uint64_t> uuid;
 
 		Skybox skybox;
-		Terrain terrain;
 		PostProcessing post_processing;
 		DirectionalLight directional_light;
+		Terrain terrain;
 
-		PhysicsSystem physics_system{ &m_registry, uuid(), this };
+		std::unordered_map<uint16_t, ComponentSystem*> systems;
+
 	private:
 		void SetScriptState();
 		bool m_is_loaded = false;
@@ -135,11 +161,6 @@ namespace ORNG {
 		std::unordered_set<entt::entity> m_root_entities;
 		Events::ECS_EventListener<RelationshipComponent> m_hierarchy_modification_listener;
 
-		MeshInstancingSystem m_mesh_component_manager{ &m_registry, uuid() };
-		CameraSystem m_camera_system{ &m_registry, uuid() };
-		TransformHierarchySystem m_transform_system{ &m_registry, uuid() };
-		AudioSystem m_audio_system{ &m_registry, uuid(), &m_camera_system.m_active_cam_entity_handle };
-		ParticleSystem m_particle_system{ &m_registry, uuid() };
 
 		entt::registry m_registry;
 

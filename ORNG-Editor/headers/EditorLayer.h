@@ -172,7 +172,7 @@ namespace ORNG {
 
 		void RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp);
 
-		void RenderParticleBufferComponentEditor(ParticleBufferComponent* p_comp);
+		void RenderParticleBufferComponentEditor(class ParticleBufferComponent* p_comp);
 
 		void RenderCharacterControllerComponentEditor(CharacterControllerComponent* p_comp);
 

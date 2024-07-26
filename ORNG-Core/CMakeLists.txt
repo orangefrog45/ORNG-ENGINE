@@ -99,7 +99,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/snappy)
-option(TRACY_ENABLE "" ON)
+option(TRACY_ENABLE "" OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
 
 target_compile_options(glfw PRIVATE /MD$<$<CONFIG:Debug>:d>)

@@ -1,5 +1,7 @@
 #include "pch/pch.h"
 #include "scene/SceneEntity.h"
+#include "components/TransformComponent.h"
+#include "events/EventManager.h"
 
 namespace ORNG {
 

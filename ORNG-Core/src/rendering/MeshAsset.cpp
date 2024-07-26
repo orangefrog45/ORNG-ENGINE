@@ -87,42 +87,6 @@ namespace ORNG {
 			const aiMesh* paiMesh = pScene->mMeshes[i];
 			InitSingleMesh(paiMesh);
 		}
-
-		/* Add on AABB visual to end of positions, doesn't need any normals etc as rendered with flat colour shading */
-		std::array<float, 72> aabb_positions = {
-			m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
-			m_aabb.min.x, m_aabb.min.y, m_aabb.max.z,
-			m_aabb.min.x, m_aabb.max.y, m_aabb.max.z,
-			m_aabb.min.x, m_aabb.max.y, m_aabb.min.z,
-
-			m_aabb.min.x, m_aabb.min.y, m_aabb.max.z,
-			m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
-			m_aabb.max.x, m_aabb.min.y, m_aabb.min.z,
-			m_aabb.max.x, m_aabb.min.y, m_aabb.max.z,
-
-			m_aabb.min.x, m_aabb.min.y, m_aabb.min.z,
-			m_aabb.min.x, m_aabb.max.y, m_aabb.min.z,
-			m_aabb.max.x, m_aabb.max.y, m_aabb.min.z,
-			m_aabb.max.x, m_aabb.min.y, m_aabb.min.z,
-
-			m_aabb.max.x, m_aabb.min.y, m_aabb.max.z,
-			m_aabb.max.x, m_aabb.min.y, m_aabb.min.z,
-			m_aabb.max.x, m_aabb.max.y, m_aabb.min.z,
-			m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
-
-			m_aabb.min.x, m_aabb.max.y, m_aabb.max.z,
-			m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
-			m_aabb.max.x, m_aabb.max.y, m_aabb.min.z,
-			m_aabb.min.x, m_aabb.max.y, m_aabb.min.z,
-
-			m_aabb.min.x, m_aabb.max.y, m_aabb.max.z,
-			m_aabb.min.x, m_aabb.min.y, m_aabb.max.z,
-			m_aabb.max.x, m_aabb.min.y, m_aabb.max.z,
-			m_aabb.max.x, m_aabb.max.y, m_aabb.max.z,
-		};
-
-		m_vao.vertex_data.positions.insert(m_vao.vertex_data.positions.end(), aabb_positions.begin(), aabb_positions.end());
-
 	}
 
 	void MeshAsset::InitSingleMesh(const aiMesh* paiMesh) {
@@ -137,23 +101,14 @@ namespace ORNG {
 			const aiVector3D& tangent = paiMesh->HasTangentsAndBitangents() ? paiMesh->mTangents[i] : zero3D;
 
 			/* AABB GENERATION */
-			if (m_aabb.max.x < pPos.x)
-				m_aabb.max.x = pPos.x;
+			if (m_aabb.extents.x < abs(pPos.x))
+				m_aabb.extents.x = abs(pPos.x);
 
-			if (m_aabb.max.y < pPos.y)
-				m_aabb.max.y = pPos.y;
+			if (m_aabb.extents.y < abs(pPos.y))
+				m_aabb.extents.y = abs(pPos.y);
 
-			if (m_aabb.max.z < pPos.z)
-				m_aabb.max.z = pPos.z;
-
-			if (m_aabb.min.x > pPos.x)
-				m_aabb.min.x = pPos.x;
-
-			if (m_aabb.min.y > pPos.y)
-				m_aabb.min.y = pPos.y;
-
-			if (m_aabb.min.z > pPos.z)
-				m_aabb.min.z = pPos.z;
+			if (m_aabb.extents.z < abs(pPos.z))
+				m_aabb.extents.z = abs(pPos.z);
 
 			m_vao.vertex_data.positions.push_back(pPos.x);
 			m_vao.vertex_data.positions.push_back(pPos.y);

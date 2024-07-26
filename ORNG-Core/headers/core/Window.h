@@ -9,8 +9,8 @@ namespace ORNG {
 
 	class Window {
 	public:
-		static void Init() {
-			Get().I_Init();
+		static void Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
+			Get().I_Init(initial_dimensions, name, initial_window_display_monitor_idx, iconified, decorated);
 		};
 
 		static GLFWwindow* GetGLFWwindow() {
@@ -28,8 +28,6 @@ namespace ORNG {
 		static unsigned int GetHeight() {
 			return Get().m_window_height;
 		}
-
-
 
 		static void SetCursorPos(int x, int y) {
 			Get().ISetCursorPos(x, y);
@@ -54,7 +52,7 @@ namespace ORNG {
 			return Get().m_scroll_data;
 		}
 	private:
-		void I_Init();
+		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated);
 
 		void ISetWindowDimensions(int width, int height);
 
@@ -74,8 +72,8 @@ namespace ORNG {
 		}
 
 		GLFWwindow* p_window = nullptr;
-		unsigned int m_window_width = 2560;
-		unsigned int m_window_height = 1440;
+		unsigned int m_window_width = 0;
+		unsigned int m_window_height = 0;
 	};
 
 }

@@ -42,7 +42,7 @@ namespace ORNG {
 		COPY_ALIVE_PARTICLES,
 	};
 
-	ParticleSystem::ParticleSystem(entt::registry* p_registry, uint64_t scene_uuid) : ComponentSystem(p_registry, scene_uuid) {
+	ParticleSystem::ParticleSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 		if (!mp_particle_cs) {
 			mp_particle_cs = &Renderer::GetShaderLibrary().CreateShader("particle update");
 			mp_particle_cs->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleCS.glsl");
@@ -85,7 +85,7 @@ namespace ORNG {
 		GL_StateManager::BindSSBO(m_particle_append_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_APPEND);
 
 
-		m_particle_listener.scene_id = m_scene_uuid;
+		m_particle_listener.scene_id = GetSceneUUID();
 		m_particle_listener.OnEvent = [this](const Events::ECS_Event<ParticleEmitterComponent>& e_event) {
 			switch (e_event.event_type) {
 				using enum Events::ECS_EventType;
@@ -101,7 +101,7 @@ namespace ORNG {
 			}
 			};
 
-		m_particle_buffer_listener.scene_id = m_scene_uuid;
+		m_particle_buffer_listener.scene_id = GetSceneUUID();
 		m_particle_buffer_listener.OnEvent = [this](const Events::ECS_Event<ParticleBufferComponent>& e_event) {
 			switch (e_event.event_type) {
 				using enum Events::ECS_EventType;
@@ -114,7 +114,7 @@ namespace ORNG {
 			}
 			};
 
-		m_transform_listener.scene_id = m_scene_uuid;
+		m_transform_listener.scene_id = GetSceneUUID();
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& e_event) {
 			if (e_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 				if (auto* p_emitter = e_event.affected_components[0]->GetEntity()->GetComponent<ParticleEmitterComponent>())
@@ -122,11 +122,13 @@ namespace ORNG {
 			}
 			};
 
-		mp_registry->on_destroy<ParticleEmitterComponent>().connect<&OnParticleEmitterDestroy>();
-		mp_registry->on_construct<ParticleEmitterComponent>().connect<&OnParticleEmitterAdd>();
+		auto& reg = mp_scene->GetRegistry();
 
-		mp_registry->on_destroy<ParticleBufferComponent>().connect<&OnParticleBufferDestroy>();
-		mp_registry->on_construct<ParticleBufferComponent>().connect<&OnParticleBufferAdd>();
+		reg.on_destroy<ParticleEmitterComponent>().connect<&OnParticleEmitterDestroy>();
+		reg.on_construct<ParticleEmitterComponent>().connect<&OnParticleEmitterAdd>();
+
+		reg.on_destroy<ParticleBufferComponent>().connect<&OnParticleBufferDestroy>();
+		reg.on_construct<ParticleBufferComponent>().connect<&OnParticleBufferAdd>();
 
 		Events::EventManager::RegisterListener(m_particle_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
@@ -154,7 +156,7 @@ namespace ORNG {
 		}
 
 		if (!m_emitter_entities.empty()) {
-			auto& comp = mp_registry->get<ParticleEmitterComponent>(m_emitter_entities[m_emitter_entities.size() - 1]);
+			auto& comp = mp_scene->GetRegistry().get<ParticleEmitterComponent>(m_emitter_entities[m_emitter_entities.size() - 1]);
 			p_comp->m_particle_start_index = comp.m_particle_start_index + comp.m_num_particles;
 		}
 		else {
@@ -205,7 +207,7 @@ namespace ORNG {
 	}
 
 	void ParticleSystem::UpdateEmitterBufferAtIndex(unsigned index) {
-		auto& comp = mp_registry->get<ParticleEmitterComponent>(m_emitter_entities[index]);
+		auto& comp = mp_scene->GetRegistry().get<ParticleEmitterComponent>(m_emitter_entities[index]);
 		auto* p_transform = comp.GetEntity()->GetComponent<TransformComponent>();
 		auto [pos, scale, rot] = p_transform->GetAbsoluteTransforms();
 		glm::vec3 forward = p_transform->forward;
@@ -303,7 +305,7 @@ namespace ORNG {
 		auto it = std::ranges::find(m_emitter_entities, p_comp->GetEnttHandle());
 
 		for (auto i = it + 1; i < m_emitter_entities.end(); i++) {
-			auto& em = mp_registry->get<ParticleEmitterComponent>(*i);
+			auto& em = mp_scene->GetRegistry().get<ParticleEmitterComponent>(*i);
 			em.m_particle_start_index -= old_nb_particles;
 			em.m_index--;
 		}
@@ -348,7 +350,7 @@ namespace ORNG {
 			return;
 
 
-		for (auto [entity, buf_comp] : mp_registry->view<ParticleBufferComponent>().each()) {
+		for (auto [entity, buf_comp] : mp_scene->GetRegistry().view<ParticleBufferComponent>().each()) {
 			GL_StateManager::BindSSBO(buf_comp.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 			mp_append_buffer_transfer_cs->ActivateProgram();

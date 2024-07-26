@@ -9,7 +9,6 @@ layout(binding = 1, rgba16f) writeonly uniform image2D fog_texture;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
 layout(binding = 11) uniform sampler2D blue_noise_sampler;
-layout(binding = 15) uniform sampler3D fog_noise_sampler;
 layout(binding = 16) uniform sampler2D gbuffer_depth_sampler;
 layout(binding = 21) uniform samplerCube diffuse_prefilter_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
@@ -90,15 +89,6 @@ float phase(vec3 march_dir, vec3 light_dir) {
 	float cos_theta = dot(normalize(march_dir), normalize(light_dir));
 	return (1.0 - u_scattering_anisotropy * u_scattering_anisotropy) / (4.0 * PI * pow(1.0 - u_scattering_anisotropy * cos_theta, 2.0));
 }
-
-
-
-float NoiseFog(vec3 pos) {
-	float f = max(texture(fog_noise_sampler, pos).r, 0.0f);
-
-	return f;
-}
-
 
 
 //https://github.com/Unity-Technologies/VolumetricLighting/blob/master/Assets/VolumetricFog/Shaders/Scatter.compute

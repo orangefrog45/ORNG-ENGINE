@@ -57,6 +57,47 @@ namespace ORNG {
 		BLIT,
 	};
 
+	class SpotlightSystem {
+		friend class SceneRenderer;
+	public:
+		SpotlightSystem() = default;
+		virtual ~SpotlightSystem() = default;
+
+		void OnLoad();
+		void OnUpdate(entt::registry* p_registry);
+		void OnUnload();
+	private:
+
+		void WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index);
+		Texture2DArray m_spotlight_depth_tex{
+		"Spotlight depth"
+		}; // Used for shadow maps
+		SSBO<float> m_spotlight_ssbo{ true, 0 };
+	};
+
+
+
+	class PointlightSystem {
+		friend class SceneRenderer;
+	public:
+		PointlightSystem() = default;
+		~PointlightSystem() = default;
+		void OnLoad();
+		void OnUpdate(entt::registry* p_registry);
+		void OnUnload();
+		void WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, int& index);
+
+		// Checks if the depth map array needs to grow/shrink
+		void OnDepthMapUpdate();
+
+		static constexpr unsigned POINTLIGHT_SHADOW_MAP_RES = 2048;
+
+	private:
+		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
+		SSBO<float> m_pointlight_ssbo{ true, 0 };
+
+	};
+
 
 	class SceneRenderer {
 		friend class EditorLayer;
@@ -220,7 +261,7 @@ namespace ORNG {
 		Scene* mp_scene = nullptr;
 		ShaderLibrary* mp_shader_library = nullptr;
 		FramebufferLibrary* mp_framebuffer_library = nullptr;
-
+		
 		Texture2D m_blue_noise_tex{ "SR blue noise" };
 		Texture2D m_fog_output_tex{ "SR fog output" };
 		Texture2D m_fog_blur_tex_1{ "SR fog blur 1" };

@@ -3,6 +3,7 @@
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 #include "core/GLStateManager.h"
+#include "rendering/SceneRenderer.h"
 
 
 namespace ORNG {

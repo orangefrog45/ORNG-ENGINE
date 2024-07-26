@@ -109,7 +109,6 @@ namespace ORNG {
 
 		const glm::mat4x4& GetMatrix() const { return m_transform; };
 
-
 		glm::vec3 GetPosition() const { return m_pos; };
 		glm::vec3 GetScale() const { return m_scale; };
 		glm::vec3 GetOrientation() const { return m_orientation; };
@@ -134,7 +133,6 @@ namespace ORNG {
 		entt::entity m_parent_handle = entt::null;
 		// If true, transform will not take parent transforms into account when building matrix.
 		bool m_is_absolute = false;
-
 
 		glm::mat4 m_transform = glm::mat4(1);
 

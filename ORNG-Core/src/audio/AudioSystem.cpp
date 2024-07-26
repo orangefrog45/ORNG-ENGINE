@@ -39,8 +39,9 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(m_audio_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 
-		mp_registry->on_construct<AudioComponent>().connect<&OnAudioComponentAdd>();
-		mp_registry->on_destroy<AudioComponent>().connect<&OnAudioComponentDestroy>();
+		auto& reg = mp_scene->GetRegistry();
+		reg.on_construct<AudioComponent>().connect<&OnAudioComponentAdd>();
+		reg.on_destroy<AudioComponent>().connect<&OnAudioComponentDestroy>();
 	}
 
 
@@ -61,8 +62,10 @@ namespace ORNG {
 
 
 	void AudioSystem::OnUpdate() {
-		if (auto* p_active_cam = mp_registry->try_get<CameraComponent>(*mp_active_cam_id)) {
-			auto& transform = mp_registry->get<TransformComponent>(*mp_active_cam_id);
+		auto& reg = mp_scene->GetRegistry();
+
+		if (auto* p_active_cam = mp_scene->GetActiveCamera()) {
+			auto& transform = *p_active_cam->GetEntity()->GetComponent<TransformComponent>();
 			auto pos = transform.GetAbsPosition();
 			static FMOD_VECTOR cam_pos;
 			cam_pos = { pos.x, pos.y, pos.z };

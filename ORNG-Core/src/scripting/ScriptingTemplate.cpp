@@ -12,16 +12,18 @@ extern "C" {
 	public:
 		ScriptClassExample() { O_CONSTRUCTOR; }
 
-		void OnUpdate() override {
-			m_experience += 1;
+		void OnCreate() override {
+
 		}
 
-	private:
-		// Not accessible through other scripts
-		unsigned m_experience = 0;
+		void OnUpdate() override {
 
-		// Accessible through other scripts with Get<unsigned>("m_level")
-		O_PROPERTY unsigned m_level = 0;
+		}
+
+		void OnDestroy() override {
+
+		}
+
 	};
 }
 

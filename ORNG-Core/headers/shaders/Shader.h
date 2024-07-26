@@ -48,6 +48,10 @@ namespace ORNG {
 
 		void Reload();
 
+		const std::string& GetName() const {
+			return m_name;
+		}
+
 		// Compiles a shader program from "shader_code" string with preprocessor definitions in "defines"
 		void AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines = {});
 

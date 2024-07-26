@@ -171,6 +171,7 @@ void main() {
 #elif defined SKYBOX_MODE
 	shader_id = uint(0);
 	albedo = vec4(texture(cube_color_sampler, normalize(vert_data.position.xyz)).rgb, 1.f);
+	gl_FragDepth = 1.0;
 #else
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
 	if (albedo.w < 0.25)

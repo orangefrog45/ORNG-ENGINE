@@ -1,5 +1,5 @@
 #include "pch/pch.h"
-#include "components/ComponentSystems.h"
+#include "rendering/SceneRenderer.h"
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 

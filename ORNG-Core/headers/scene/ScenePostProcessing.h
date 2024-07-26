@@ -6,9 +6,6 @@ namespace ORNG {
 	class Texture3D;
 
 	struct GlobalFog {
-		void SetNoise(FastNoiseSIMD* p_noise);
-
-		std::unique_ptr<Texture3D> fog_noise = nullptr;;
 		glm::vec3 color{ 1 };
 		float scattering_coef = 0.04f;
 		float absorption_coef = 0.003f;

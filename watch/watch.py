@@ -9,8 +9,8 @@ debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
 release_dir_editor = "..\\out\\build\\x64-Release-2\\ORNG-Editor\\res\\shaders\\"
 debug_dir_game = "..\\out\\build\\x64-Debug\\Game\\res\\shaders\\"
 release_dir_game = "..\\out\\build\\x64-Release-2\\Game\\res\\shaders\\"
-debug_dir_net_game = "..\\out\\build\\x64-Debug-2\\NetGame\\res\\shaders\\"
-release_dir_net_game = "..\\out\\build\\x64-Release-2\\NetGame\\res\\shaders\\"
+debug_dir_monitor = "..\\out\\build\\x64-Debug-2\\HW-Monitor\\res\\shaders\\"
+release_dir_monitor = "..\\out\\build\\x64-Release-2\\HW-Monitor\\res\\shaders\\"
 
 def TryCopy(original, copy_location):
     try:
@@ -23,12 +23,15 @@ def ConstructPath(path : str, is_core):
         path = path.replace("res\\", "res\\core-res\\")
     return path
 
+def IsShaderFile(filepath : str) -> bool:
+    return filepath.find(".glsl") != -1 or filepath.find(".vert") != -1 or filepath.find(".frag") != -1
+
 class Handler(FileSystemEventHandler):
     def on_modified(self, event):
         # Function to execute when a file is modified
         filepath : str = event.src_path;
 
-        if filepath.find("res\\shaders") == -1 or filepath.find("out\\") != -1 or filepath.find("build\\") != -1 or filepath.find(".glsl") == -1 or filepath.find("core-res") != -1:
+        if filepath.find("res\\shaders") == -1 or filepath.find("out\\") != -1 or filepath.find("build\\") != -1 or not IsShaderFile(filepath) or filepath.find("core-res") != -1:
             return;
 
         is_core = filepath.find("ORNG-Core") != -1
@@ -41,8 +44,8 @@ class Handler(FileSystemEventHandler):
         TryCopy(event.src_path, ConstructPath(release_dir_editor + filename, is_core));
         TryCopy(event.src_path, ConstructPath(debug_dir_game + filename, is_core));
         TryCopy(event.src_path, ConstructPath(release_dir_game + filename, is_core));
-        TryCopy(event.src_path, ConstructPath(debug_dir_net_game + filename, is_core));
-        TryCopy(event.src_path, ConstructPath(release_dir_net_game + filename, is_core));
+        TryCopy(event.src_path, ConstructPath(debug_dir_monitor + filename, is_core));
+        TryCopy(event.src_path, ConstructPath(release_dir_monitor + filename, is_core));
 
 if __name__ == "__main__":
     path = "..\\" 

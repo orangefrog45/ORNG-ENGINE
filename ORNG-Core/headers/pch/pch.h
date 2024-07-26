@@ -15,6 +15,8 @@
 #include <codecvt>
 
 #include <GL/glew.h>
+
+#define GLM_ENABLE_EMPERIMENTAL
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
 #include <glm/glm/gtx/matrix_major_storage.hpp>

@@ -8,14 +8,16 @@ namespace ORNG {
 		auto* p_relationship_comp = t_event.affected_components[0]->GetEntity()->GetComponent<RelationshipComponent>();
 		entt::entity current_entity = p_relationship_comp->first;
 
+		auto& reg = mp_scene->GetRegistry();
+
 		for (int i = 0; i < p_relationship_comp->num_children; i++) {
-			auto& transform = mp_registry->get<TransformComponent>(current_entity);
+			auto& transform = reg.get<TransformComponent>(current_entity);
 
 			if (transform.m_is_absolute)
 				continue;
 
 			transform.RebuildMatrix(static_cast<TransformComponent::UpdateType>(t_event.sub_event_type));
-			current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;
+			current_entity = reg.get<RelationshipComponent>(current_entity).next;
 		}
 	}
 
