@@ -9,7 +9,6 @@ namespace ORNG {
 			return; // Too small
 		}
 
-		glfwSetWindowSize(p_window, m_window_width, m_window_height);
 
 		Events::WindowEvent window_event;
 		window_event.event_type = Events::Event::WINDOW_RESIZE;
@@ -17,6 +16,8 @@ namespace ORNG {
 		window_event.new_window_size = glm::vec2(width, height);
 		m_window_width = width;
 		m_window_height = height;
+
+		glfwSetWindowSize(p_window, m_window_width, m_window_height);
 
 		Events::EventManager::DispatchEvent(window_event);
 	}

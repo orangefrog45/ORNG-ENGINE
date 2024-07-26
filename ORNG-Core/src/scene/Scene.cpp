@@ -17,6 +17,10 @@ namespace ORNG {
 	Scene::~Scene() {
 		if (m_is_loaded)
 			UnloadScene();
+
+		for (auto [id, p_sys] : systems) {
+			delete p_sys;
+		}
 	}
 
 	Scene::Scene() {
