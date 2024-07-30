@@ -6,11 +6,12 @@ add_executable(ORNG_EDITOR
 src/EditorLayer.cpp
 src/AssetManagerWindow.cpp
 src/main.cpp
- "headers/Settings.h" 
- "headers/EditorEventStack.h" 
- "src/EditorEventStack.cpp" 
-
-  "headers/LuaCLI.h" "src/LuaCLI.cpp")
+"headers/Settings.h"
+"headers/EditorEventStack.h"
+"src/EditorEventStack.cpp"
+"headers/LuaCLI.h"
+"src/LuaCLI.cpp"
+)
 
 
 target_include_directories(ORNG_EDITOR PUBLIC
@@ -27,14 +28,12 @@ target_include_directories(ORNG_EDITOR PUBLIC
 "../ORNG-Core/extern/yaml/include"
 "../ORNG-Core/extern/plog/include"
 "../ORNG-Core/extern/bitsery/include"
+"../ORNG-Core/extern/fmod/api/core/inc"
 headers
 extern
 extern/sol2/include
 extern/sol2/include/sol
 extern/lua/src
-
-
-
 )
 
 target_include_directories(ORNG_CORE PUBLIC headers)
@@ -44,10 +43,9 @@ set_property(TARGET ORNG_EDITOR PROPERTY SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/s
 target_compile_definitions(ORNG_EDITOR PUBLIC ORNG_EDITOR_LAYER=true)
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_EDITOR_LAYER=true)
 
-
-
 add_subdirectory(extern/imguizmo)
 add_subdirectory(extern/lua)
+
 target_include_directories(imguizmo PUBLIC 
 extern/imguizmo
 ../ORNG-Core/extern/imgui

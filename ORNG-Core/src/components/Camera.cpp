@@ -2,6 +2,7 @@
 
 #include "components/CameraComponent.h"
 #include "scene/SceneEntity.h"
+#include "core/Window.h"
 
 namespace ORNG {
 	inline static constexpr glm::vec3 CAM_TARGET_VEC{ 0.0, 0.0, -1.0 };
@@ -52,6 +53,6 @@ namespace ORNG {
 
 
 	glm::mat4x4 CameraComponent::GetProjectionMatrix() const {
-		return glm::perspective(glm::radians(fov / 2.0f), aspect_ratio, zNear, zFar);
+		return glm::perspective(glm::radians(fov * 0.5f), aspect_ratio, zNear, zFar);
 	}
 }

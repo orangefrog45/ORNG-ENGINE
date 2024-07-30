@@ -1,7 +1,5 @@
 {
-  "name": "orng-engine",
-  "version-string": "1.0.0",
-  "dependencies": [
-    "physx"
-  ]
+  "name" : "orng-engine",
+  "version-string" : "1.0.0",
+  "dependencies" : [ "physx" ]
 }

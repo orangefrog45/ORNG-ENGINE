@@ -1,9 +1,11 @@
 #include "pch/pch.h"
 #include "physics/Physics.h"
 #include "pvd/PxPvd.h"
+#include "physx/common/windows/PxWindowsDelayLoadHook.h"
 
 
 #define PHYSX_DEBUG
+
 
 namespace ORNG {
 	using namespace physx;
