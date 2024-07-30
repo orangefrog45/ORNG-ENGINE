@@ -11,8 +11,8 @@ project(ORNG_RUNTIME)
 
 
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd /MP /j12 /bigobj" CACHE INTERNAL "" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /MP /O2 /j12" CACHE INTERNAL "" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd /MP /bigobj" CACHE INTERNAL "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /MP /O2" CACHE INTERNAL "" FORCE)
 if(MSVC)
     add_compile_options(/WX- /W2)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
@@ -30,6 +30,8 @@ add_subdirectory("ORNG-Editor")
 add_subdirectory("ORNG-Runtime")
 
 # EXTERNAL PROJECTS NOT IN ENGINE REPO - COMMENT OUT IF CAUSING ERRORS
+project(FRACTAL_GAME)
+project(HW_MONITOR)
 add_subdirectory("Game")
 add_subdirectory("HW-Monitor")
 

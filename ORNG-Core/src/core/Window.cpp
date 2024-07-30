@@ -70,11 +70,6 @@ namespace ORNG {
 
 
 	void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
-		if (!glfwInit()) {
-			ORNG_CORE_CRITICAL("GLFW Failed to initialize");
-			exit(1);
-		}
-
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -122,8 +117,8 @@ namespace ORNG {
 
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);
-
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
+
 		m_mouse_listener.OnEvent = [this](const Events::MouseEvent& t_event) {
 			if (t_event.event_type != Events::MouseEventType::SET)
 				return;
@@ -136,6 +131,15 @@ namespace ORNG {
 			}
 
 			};
+
+		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
+			if (t_event.event_type == Events::Event::ENGINE_UPDATE) {
+				Update();
+			}
+
+		};
+
 		Events::EventManager::RegisterListener(m_mouse_listener);
+		Events::EventManager::RegisterListener(m_update_listener);
 	}
 }

@@ -264,7 +264,7 @@ namespace ORNG {
 		}
 	}
 
-	void ShaderLibrary::SetMatrixUBOs(glm::mat4& proj, glm::mat4& view) {
+	void ShaderLibrary::SetMatrixUBOs(const glm::mat4& proj, const glm::mat4& view) {
 		glm::mat4 proj_view = proj * view;
 		static std::vector<std::byte> matrices;
 		matrices.resize(m_matrix_ubo_size);

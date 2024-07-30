@@ -2,7 +2,7 @@
 #include "framebuffers/FramebufferLibrary.h"
 #include "shaders/ShaderLibrary.h"
 #include "scene/Scene.h"
-
+#include "rendering/Quad.h"
 
 namespace ORNG {
 	class Quad;
@@ -105,7 +105,7 @@ namespace ORNG {
 		void IDrawQuad() const;
 		void IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count);
 
-		Quad* mp_quad = nullptr;
+		std::unique_ptr<Quad> mp_quad = nullptr;
 		FramebufferLibrary m_framebuffer_library;
 		ShaderLibrary m_shader_library;
 	};

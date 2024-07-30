@@ -48,9 +48,6 @@ namespace ORNG {
 		};
 
 
-		static ScrollData GetScrollStatus() {
-			return Get().m_scroll_data;
-		}
 	private:
 		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated);
 
@@ -65,6 +62,7 @@ namespace ORNG {
 		// Handles events with event_type == SET to update window
 		Events::EventListener<Events::MouseEvent> m_mouse_listener;
 
+		Events::EventListener<Events::EngineCoreEvent> m_update_listener;
 
 		static Window& Get() {
 			static Window s_instance;

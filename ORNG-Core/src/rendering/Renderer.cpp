@@ -13,7 +13,7 @@ namespace ORNG {
 
 		m_framebuffer_library.Init();
 		m_shader_library.Init();
-		mp_quad = new Quad();
+		mp_quad = std::make_unique<Quad>();
 		mp_quad->Load();
 
 		ORNG_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());

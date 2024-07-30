@@ -15,11 +15,11 @@ namespace ORNG {
 			return s_instance;
 		}
 
-		static double GetTimeStep() {
+		static float GetTimeStep() {
 			return Get().IGetTimeStep();
 		}
 
-		static double GetTotalElapsedTime() {
+		static float GetTotalElapsedTime() {
 			return Get().total_elapsed_time;
 		}
 
@@ -48,7 +48,6 @@ namespace ORNG {
 		}
 
 		unsigned current_frame = 0;
-
 		double current_frame_time_step = 0;
 		double total_elapsed_time = 0;
 		std::chrono::steady_clock::time_point last_frame_time = std::chrono::steady_clock::now();

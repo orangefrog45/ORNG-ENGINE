@@ -27,12 +27,15 @@ namespace ORNG {
 			p_layer->OnRender();
 		}
 
-
 		m_imgui_layer.BeginFrame();
 		for (auto* p_layer : m_layers) {
 			p_layer->OnImGuiRender();
 		}
 		m_imgui_layer.OnImGuiRender();
+
+		for (auto* p_layer : m_layers) {
+			p_layer->PostImGuiRender();
+		}
 	}
 
 	void LayerStack::Init() {

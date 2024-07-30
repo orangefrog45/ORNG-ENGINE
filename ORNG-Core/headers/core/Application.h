@@ -4,6 +4,7 @@
 namespace ORNG {
 
 	enum ApplicationModulesFlags : uint32_t {
+		MODULE_NONE = 0,
 		PHYSICS = 1 << 0,
 		SCENE_RENDERER = 1 << 1,
 		AUDIO = 1 << 2,
@@ -16,7 +17,7 @@ namespace ORNG {
 		std::string shader_package_file;
 
 		// Modules specified here will not be initialized with the application, this will make them unusable
-		ApplicationModulesFlags disabled_modules;
+		ApplicationModulesFlags disabled_modules = MODULE_NONE;
 
 		// Leave as -1 to prevent fullscreening
 		int initial_window_display_monitor_idx = -1;

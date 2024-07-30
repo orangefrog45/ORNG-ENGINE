@@ -2,6 +2,9 @@
 
 #include "rendering/Renderer.h"
 #include "core/Application.h"
+
+#include <imgui_internal.h>
+
 #include "util/Log.h"
 #include "core/Window.h"
 #include "rendering/SceneRenderer.h"
@@ -20,6 +23,7 @@
 namespace ORNG {
 
 	void Application::Shutdown() {
+		ImGui::Shutdown();
 		layer_stack.Shutdown();
 
 		if (!(m_settings.disabled_modules & ApplicationModulesFlags::PHYSICS))
@@ -29,11 +33,15 @@ namespace ORNG {
 			AssetManager::OnShutdown();
 
 		Log::Flush();
-		//ImGui::DestroyContext();
 	}
 
 	void Application::Init(const ApplicationData& data) {
 		m_settings = data;
+
+		if (!glfwInit()) {
+			ORNG_CORE_CRITICAL("GLFW Failed to initialize");
+			exit(1);
+		}
 
 		Events::EventManager::Init();
 		Log::Init();
@@ -84,10 +92,9 @@ namespace ORNG {
 
 		while (!glfwWindowShouldClose(window))
 		{
-			Input::OnUpdate();
 			glfwPollEvents();
+			Input::OnUpdate();
 			Events::EventManager::DispatchEvent(update_event);
-			Window::Update();
 			ExtraUI::OnUpdate();
 
 			// Render
@@ -103,7 +110,6 @@ namespace ORNG {
 
 		// Cleanup
 		Shutdown();
-
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}

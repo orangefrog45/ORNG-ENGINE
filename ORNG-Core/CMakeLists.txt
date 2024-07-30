@@ -4,7 +4,6 @@ project(ORNG_CORE)
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 set(ORNG_LIB_SOURCES 
-
 src/stb_image.cpp
 src/components/Camera.cpp
 src/components/Component.cpp
@@ -17,7 +16,6 @@ src/components/managers/PhysicsSystem.cpp
 src/components/managers/PointlightComponentManager.cpp
 src/components/managers/SpotlightComponentManager.cpp
 src/core/Application.cpp
-
 src/core/GLStateManager.cpp
 src/core/Window.cpp
 src/events/EventManager.cpp
@@ -64,29 +62,37 @@ extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
 extern/implot/implot.cpp
 extern/implot/implot_items.cpp
 
-
+ "headers/components/ParticleBufferComponent.h"
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
  "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp" "src/physics/vehicles/BaseVehicle.cpp" "src/physics/vehicles/PhysXVehicleActor.cpp" 
  "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp" 
  "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h")
 
 add_library(ORNG_CORE STATIC
-${ORNG_LIB_SOURCES}
- "headers/components/ParticleBufferComponent.h")
+${ORNG_LIB_SOURCES})
 
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
 
+target_include_directories(ORNG_CORE PUBLIC
+		"physx-complete/physx/physx/include/"
+		"physx-complete/physx/pxshared/include/"
+		"physx-complete/physx/physx/snippets/"
+		${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
+		${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
+)
 
 # Optional: import the defined target to copy over the GPU acceleration libraries (3rd party provided by NVIDIA)
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
 	add_custom_command(TARGET ORNG_CORE POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy_if_different
-					$<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
-					$<TARGET_FILE_DIR:ORNG_CORE>)
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			$<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
+			$<TARGET_FILE_DIR:ORNG_CORE>)
 else()
-    message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
+	message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()
+
+
 
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
@@ -98,7 +104,11 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
+
+set(SNAPPY_BUILD_TESTS OFF CACHE BOOL "Snappy build tests" FORCE)
+set(SNAPPY_BUILD_BENCHMARKS OFF CACHE BOOL "Snappy build tests" FORCE)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/snappy)
+
 option(TRACY_ENABLE "" OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
 
@@ -112,7 +122,6 @@ extern/glfw/include
 find_package(OpenGL REQUIRED)
 
 
-
 target_include_directories(ORNG_CORE PUBLIC
 extern/spdlog/include
 extern/assimp/include
@@ -120,29 +129,16 @@ extern/assimp/build/include
 extern/glfw/include
 ${CMAKE_CURRENT_BINARY_DIR}/extern/assimp/include
 extern/glew-cmake/include
-extern/physx/physx/include
 extern
 extern/imgui
 headers
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
 extern/fastnoise2/include
 extern/yaml/include
 extern/plog/include
 extern/bitsery/include
 extern/implot
 extern/snappy
-)
-
-
-
-target_include_directories(ORNG_CORE
-	PUBLIC 
-	"physx-complete/physx/physx/include/" 
-	"physx-complete/physx/pxshared/include/" 
-	"physx-complete/physx/physx/snippets/"
-	"${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc"
-	"extern/tracy/public/tracy"
+"extern/tracy/public/tracy"
 )
 
 
@@ -153,7 +149,6 @@ libglew_static
 assimp
 spdlog::spdlog_header_only
 yaml-cpp
-${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib
 ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}
@@ -161,17 +156,18 @@ Tracy::TracyClient
 snappy
 )
 
+if (NOT ORNG_DISABLE_FMOD)
+	target_link_libraries(ORNG_CORE PRIVATE ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib)
+	target_include_directories(ORNG_CORE PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc")
+endif()
+
 target_precompile_headers(ORNG_CORE PUBLIC
 headers/pch/pch.h
 )
 
-
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
 target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
 target_compile_definitions(ORNG_CORE PUBLIC GLM_ENABLE_EXPERIMENTAL)
-
-
-
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
