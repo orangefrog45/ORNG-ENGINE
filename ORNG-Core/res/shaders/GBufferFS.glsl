@@ -9,7 +9,7 @@ layout(binding = 1) uniform sampler2D diffuse_sampler;
 layout(binding = 2) uniform sampler2D roughness_sampler;
 layout(binding = 7) uniform sampler2D normal_map_sampler;
 layout(binding = 9) uniform sampler2D displacement_sampler;
-layout(binding = 13) uniform samplerCube cube_color_sampler;
+layout(binding = 13) uniform samplerCube cube_colour_sampler;
 layout(binding = 17) uniform sampler2D metallic_sampler;
 layout(binding = 18) uniform sampler2D ao_sampler;
 layout(binding = 25) uniform sampler2D emissive_sampler;
@@ -132,7 +132,7 @@ mat3 CalculateTbnMatrix() {
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
-	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
+	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_colour.rgb, sampled_albedo.a);
 	albedo_col *= bool(u_material.flags & MAT_FLAG_EMISSIVE) ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 #ifdef PARTICLE
 #define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]
@@ -170,7 +170,7 @@ void main() {
 
 #elif defined SKYBOX_MODE
 	shader_id = uint(0);
-	albedo = vec4(texture(cube_color_sampler, normalize(vert_data.position.xyz)).rgb, 1.f);
+	albedo = vec4(texture(cube_colour_sampler, normalize(vert_data.position.xyz)).rgb, 1.f);
 	gl_FragDepth = 1.0;
 #else
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);

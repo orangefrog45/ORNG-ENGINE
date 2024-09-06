@@ -93,7 +93,6 @@ namespace ORNG {
 		while (!glfwWindowShouldClose(window))
 		{
 			glfwPollEvents();
-			Input::OnUpdate();
 			Events::EventManager::DispatchEvent(update_event);
 			ExtraUI::OnUpdate();
 
@@ -106,6 +105,7 @@ namespace ORNG {
 #endif
 
 			FrameTiming::Update();
+			Input::OnUpdate();
 		}
 
 		// Cleanup

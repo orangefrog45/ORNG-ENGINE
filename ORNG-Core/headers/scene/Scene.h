@@ -44,6 +44,15 @@ namespace ORNG {
 			return systems.contains(type_id<SystemType>);
 		}
 
+		// Allocates pool for component in main application instead of inside a script (needs to be called from main application)
+		// This allocation prevents crashes when the scripts memory is released
+		template<std::derived_from<Component> T>
+		void RegisterComponent() {
+			auto ent = m_registry.create();
+			m_registry.emplace<T>(ent, nullptr);
+			m_registry.destroy(ent);
+		}
+
 		void AddDefaultSystems();
 
 		void OnStart();

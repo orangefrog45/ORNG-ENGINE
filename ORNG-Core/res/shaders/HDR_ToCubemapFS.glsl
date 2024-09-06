@@ -1,5 +1,5 @@
 #version 430 core
-out vec4 FragColor;
+out vec4 Fragcolour;
 in vec3 vs_local_pos;
 
 uniform layout(binding = 1) sampler2D equirectangularMap;
@@ -16,7 +16,7 @@ vec2 SampleSphericalMap(vec3 v)
 void main()
 {
 	vec2 uv = SampleSphericalMap(normalize(vs_local_pos)); // make sure to normalize localPos
-	vec3 color = texture(equirectangularMap, uv).rgb;
+	vec3 colour = texture(equirectangularMap, uv).rgb;
 
-	FragColor = vec4(color, 1.0);
+	Fragcolour = vec4(colour, 1.0);
 }

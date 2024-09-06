@@ -309,7 +309,7 @@ namespace ORNG {
 			if (!p_material)
 				continue;
 
-			p_material->base_color_texture = p_material->base_color_texture == p_tex ? nullptr : p_material->base_color_texture;
+			p_material->base_colour_texture = p_material->base_colour_texture == p_tex ? nullptr : p_material->base_colour_texture;
 			p_material->normal_map_texture = p_material->normal_map_texture == p_tex ? nullptr : p_material->normal_map_texture;
 			p_material->emissive_texture = p_material->emissive_texture == p_tex ? nullptr : p_material->emissive_texture;
 			p_material->displacement_texture = p_material->displacement_texture == p_tex ? nullptr : p_material->displacement_texture;
@@ -352,7 +352,7 @@ namespace ORNG {
 				Material* p_new_material = Get().AddAsset(new Material());
 
 				// Load material textures
-				p_new_material->base_color_texture = CreateMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
+				p_new_material->base_colour_texture = CreateMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
 				p_new_material->normal_map_texture = CreateMeshAssetTexture(dir, aiTextureType_NORMALS, p_material);
 				p_new_material->roughness_texture = CreateMeshAssetTexture(dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
 				p_new_material->metallic_texture = CreateMeshAssetTexture(dir, aiTextureType_METALNESS, p_material);
@@ -361,9 +361,9 @@ namespace ORNG {
 				// Load material properties
 				aiColor3D base_color(0.0f, 0.0f, 0.0f);
 				if (p_material->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
-					p_new_material->base_color.r = base_color.r;
-					p_new_material->base_color.g = base_color.g;
-					p_new_material->base_color.b = base_color.b;
+					p_new_material->base_colour.r = base_color.r;
+					p_new_material->base_colour.g = base_color.g;
+					p_new_material->base_colour.b = base_color.b;
 				}
 
 				float roughness;
@@ -376,7 +376,7 @@ namespace ORNG {
 					p_new_material->metallic = metallic;
 
 				// Check if the material has had any properties actually set - if not then use the default material instead of creating a new one.
-				if (!p_new_material->base_color_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
+				if (!p_new_material->base_colour_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
 					&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
 					DeleteAsset(p_new_material);
 				}

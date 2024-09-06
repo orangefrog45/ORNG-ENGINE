@@ -60,7 +60,7 @@ vec3 InterpolateV3(float x, InterpolatorV3 interpolator) {
 
 struct DirectionalLight {
 	vec4 direction;
-	vec4 color;
+	vec4 colour;
 	vec4 cascade_ranges;
 	float size;
 	float blocker_search_size;
@@ -69,7 +69,7 @@ struct DirectionalLight {
 };
 
 struct PointLight {
-	vec4 color; //vec4s used to prevent implicit padding
+	vec4 colour; //vec4s used to prevent implicit padding
 	vec4 pos;
 
 	float shadow_distance;
@@ -81,7 +81,7 @@ struct PointLight {
 };
 
 struct SpotLight { //140 BYTES
-	vec4 color; //vec4s used to prevent implicit padding
+	vec4 colour; //vec4s used to prevent implicit padding
 	vec4 pos;
 	vec4 dir;
 	mat4 light_transform_matrix;
@@ -108,7 +108,7 @@ struct SpritesheetData {
 #define MAT_FLAG_TESSELLATED 1 << 1
 
 struct Material {
-	vec4 base_color;
+	vec4 base_colour;
 	float metallic;
 	float roughness;
 	float ao;

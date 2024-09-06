@@ -89,7 +89,7 @@ vec3 CalcPointLight(in PointLight light, vec3 v, vec3 f0, int index, vec3 world_
 
 
 
-	return (kd * albedo / PI + specular) * n_dot_l * (light.color.xyz / attenuation);
+	return (kd * albedo / PI + specular) * n_dot_l * (light.colour.xyz / attenuation);
 }
 
 
@@ -97,10 +97,10 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index, vec3 world_pos, 
 	vec3 frag_to_light = light.pos.xyz - world_pos;
 	float spot_factor = dot(normalize(frag_to_light), -light.dir.xyz);
 
-	vec3 color = vec3(0);
+	vec3 colour = vec3(0);
 
 	if (spot_factor < 0.0001 || spot_factor < light.aperture)
-		return color;
+		return colour;
 
 	float distance = length(frag_to_light);
 	float attenuation = light.constant +
@@ -129,7 +129,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index, vec3 world_pos, 
 
 
 	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / max((1.0 - light.aperture), 1e-5));
-	return max((kd * albedo / PI + specular) * n_dot_l * (light.color.xyz / attenuation) * spotlight_intensity, vec3(0.0, 0.0, 0.0));
+	return max((kd * albedo / PI + specular) * n_dot_l * (light.colour.xyz / attenuation) * spotlight_intensity, vec3(0.0, 0.0, 0.0));
 }
 
 
@@ -150,7 +150,7 @@ vec3 CalcDirectionalLight(vec3 v, vec3 f0, vec3 n, float roughness, float metall
 	kd *= 1.0 - metallic;
 
 	float n_dot_l = max(dot(n, l), 0.0);
-	return (kd * albedo / PI + specular) * n_dot_l * ubo_global_lighting.directional_light.color.xyz;
+	return (kd * albedo / PI + specular) * n_dot_l * ubo_global_lighting.directional_light.colour.xyz;
 }
 
 
@@ -219,17 +219,17 @@ vec3 CalcPointlightCheap(PointLight light, vec3 world_pos, vec3 normal) {
 		light.exp * pow(l, 2);
 
     const float r = max(dot(normalize(normal), dir), 0.f);
-    return r / attenuation * light.color.xyz;
+    return r / attenuation * light.colour.xyz;
 }
 
 vec3 CalcSpotlightCheap(SpotLight light, vec3 world_pos, vec3 normal) {
     vec3 dir = light.pos.xyz - world_pos.xyz;
 	float spot_factor = dot(normalize(dir), -light.dir.xyz);
 
-    vec3 color = vec3(0);
+    vec3 colour = vec3(0);
 
 	if (spot_factor < 0.0001 || spot_factor < light.aperture)
-		return color;
+		return colour;
 
     const float l = length(dir);
     dir = normalize(dir);
@@ -241,7 +241,7 @@ vec3 CalcSpotlightCheap(SpotLight light, vec3 world_pos, vec3 normal) {
 	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / max((1.0 - light.aperture), 1e-5));
     const float r = max(dot(normalize(normal), dir), 0.f);
 
-    return r * spotlight_intensity / attenuation * light.color.xyz;
+    return r * spotlight_intensity / attenuation * light.colour.xyz;
 }
 
 vec3 CalculateDirectLightContributionCheap(vec3 v, vec3 f0, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {

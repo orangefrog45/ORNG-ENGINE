@@ -44,12 +44,12 @@ namespace ORNG {
 	}
 
 	void SpotlightSystem::WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index) {
-		auto color = light.color;
-		output_vec[index++] = color.x;
-		output_vec[index++] = color.y;
-		output_vec[index++] = color.z;
+		auto colour = light.colour;
+		output_vec[index++] = colour.x;
+		output_vec[index++] = colour.y;
+		output_vec[index++] = colour.z;
 		output_vec[index++] = 0; //padding
-		//16 - END COLOR - START POS
+		//16 - END colour - START POS
 		auto pos = std::get<0>(light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms());
 		output_vec[index++] = pos.x;
 		output_vec[index++] = pos.y;

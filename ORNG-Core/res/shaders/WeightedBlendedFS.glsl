@@ -10,7 +10,7 @@ layout(binding = 4) uniform sampler2DArray spot_depth_sampler;
 layout(binding = 6) uniform sampler2D view_depth_sampler;
 layout(binding = 7) uniform sampler2D normal_map_sampler;
 layout(binding = 9) uniform sampler2D displacement_sampler;
-layout(binding = 13) uniform samplerCube cube_color_sampler;
+layout(binding = 13) uniform samplerCube cube_colour_sampler;
 layout(binding = 17) uniform sampler2D metallic_sampler;
 layout(binding = 18) uniform sampler2D ao_sampler;
 layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
@@ -62,7 +62,7 @@ flat in uint vs_particle_index;
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
-	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
+	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_colour.rgb, sampled_albedo.a);
 	albedo_col *= bool(u_material.flags & MAT_FLAG_EMISSIVE) ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 
 #ifdef PARTICLE
@@ -93,7 +93,7 @@ void main() {
 	vec3 r = reflect(-v, n);
 	float n_dot_v = max(dot(n, v), 0.0);
 
-	vec3 f0 = mix( vec3(0.03), u_material.base_color.rgb, u_material.metallic);
+	vec3 f0 = mix( vec3(0.03), u_material.base_colour.rgb, u_material.metallic);
 
 	float roughness = texture(roughness_sampler, vert_data.tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
 	float metallic = texture(metallic_sampler, vert_data.tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
@@ -103,12 +103,12 @@ void main() {
 	total_light += CalculateDirectLightContribution(v, f0, vert_data.position.xyz, n, roughness, metallic, albedo.rgb);
 	
 	//total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
-    vec4 color = vec4(total_light, u_material.base_color.a * albedo.w);
+    vec4 colour = vec4(total_light, u_material.base_colour.a * albedo.w);
 
-    float weight = clamp(pow(min(1.0, color.a * 10.0) + 0.01, 3.0) * 1e8 * 
+    float weight = clamp(pow(min(1.0, colour.a * 10.0) + 0.01, 3.0) * 1e8 * 
                          pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
 
-    accum = vec4(color.rgb * color.a, color.a) * weight;
+    accum = vec4(colour.rgb * colour.a, colour.a) * weight;
 
-    reveal = color.a;
+    reveal = colour.a;
 }

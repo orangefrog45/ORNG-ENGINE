@@ -362,7 +362,7 @@ namespace ORNG {
 
 		template<typename S>
 		static void DeserializeMaterialAsset(Material& data, S& des) {
-			des.object(data.base_color);
+			des.object(data.base_colour);
 			des.value1b(data.render_group);
 			des.value4b(data.roughness);
 			des.value4b(data.metallic);
@@ -370,7 +370,7 @@ namespace ORNG {
 			des.value4b(data.emissive_strength);
 			uint64_t texid;
 			des.value8b(texid);
-			if (texid != 0) data.base_color_texture = GetAsset<Texture2D>(texid);
+			if (texid != 0) data.base_colour_texture = GetAsset<Texture2D>(texid);
 			des.value8b(texid);
 			if (texid != 0) data.normal_map_texture = GetAsset<Texture2D>(texid);
 			des.value8b(texid);

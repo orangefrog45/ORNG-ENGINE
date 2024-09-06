@@ -10,7 +10,7 @@ namespace ORNG {
 	}
 
 	DirectionalLight::DirectionalLight() : BaseLight(0) {
-		color = glm::vec3(0.922f, 0.985f, 0.875f) * 5.f;
+		colour = glm::vec3(0.922f, 0.985f, 0.875f) * 5.f;
 		shadows_enabled = true;
 	}
 

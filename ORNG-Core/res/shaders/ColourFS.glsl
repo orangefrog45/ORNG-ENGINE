@@ -9,7 +9,7 @@ out layout(location = 3) uint shader_id;
 out vec4 o_col;
 #endif
 
-uniform vec4 u_color;
+uniform vec4 u_colour;
 
 ORNG_INCLUDE "BuffersINCL.glsl"
 
@@ -22,7 +22,7 @@ in flat ivec3 vs_lookup_coord;
 void main() {
 #ifdef PARTICLE
 	shader_id = 0;
-	albedo = u_color;
+	albedo = u_colour;
 	albedo.w = 1.0;
 #elif defined(VOXELIZATION)
 	albedo.xyzw = imageLoad(voxel_tex, vs_lookup_coord);
@@ -32,7 +32,7 @@ void main() {
 	shader_id = 0;
 
 #else
-	o_col = vec4(u_color.rgba);
+	o_col = vec4(u_colour.rgba);
 #endif
 
 }

@@ -4,14 +4,14 @@ from watchdog.events import FileSystemEventHandler
 import shutil
 import time
 
-debug_dir_core = "..\\cmake-build-debug-visual-studio\\ORNG-Core\\res\\shaders\\"
-release_dir_core = "..\\cmake-build-release-visual-studio\\ORNG-Core\\res\\shaders\\"
-debug_dir_editor = "..\\cmake-build-debug-visual-studio\\ORNG-Editor\\res\\shaders\\"
-release_dir_editor = "..\\cmake-build-release-visual-studio\\ORNG-Editor\\res\\shaders\\"
-debug_dir_game = "..\\cmake-build-debug-visual-studio\\Game\\res\\shaders\\"
-release_dir_game = "..\\cmake-build-release-visual-studio\\Game\\res\\shaders\\"
-debug_dir_monitor = "..\\cmake-build-debug-visual-studio\\HW-Monitor\\res\\shaders\\"
-release_dir_monitor = "..\\cmake-build-release-visual-studio\\HW-Monitor\\res\\shaders\\"
+debug_dir_core = "..\\out\\build\\x64-Debug-2\\ORNG-Core\\res\\shaders\\"
+release_dir_core = "..\\out\\build\\x64-Release-2\\ORNG-Core\\res\\shaders\\"
+debug_dir_editor = "..\\out\\build\\x64-Debug-2\\ORNG-Editor\\res\\shaders\\"
+release_dir_editor = "..\\out\\build\\x64-Release-2\\ORNG-Editor\\res\\shaders\\"
+debug_dir_game = "..\\out\\build\\x64-Debug-2\\Game\\res\\shaders\\"
+release_dir_game = "..\\out\\build\\x64-Release-2\\Game\\res\\shaders\\"
+debug_dir_monitor = "..\\out\\build\\x64-Debug-2\\HW-Monitor\\res\\shaders\\"
+release_dir_monitor = "..\\out\\build\\x64-Release-2\\HW-Monitor\\res\\shaders\\"
 
 def TryCopy(original, copy_location):
     try:
@@ -32,7 +32,7 @@ class Handler(FileSystemEventHandler):
         # Function to execute when a file is modified
         filepath : str = event.src_path;
 
-        if filepath.find("res\\shaders") == -1 or filepath.find("cmake-build") != -1 or filepath.find("build\\") != -1 or not IsShaderFile(filepath) or filepath.find("core-res") != -1:
+        if filepath.find("res\\shaders") == -1 or filepath.find("cmake-build") != -1 or filepath.find("out") != -1 or not IsShaderFile(filepath) or filepath.find("core-res") != -1:
             return;
 
         is_core = filepath.find("ORNG-Core") != -1

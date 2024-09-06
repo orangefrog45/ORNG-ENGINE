@@ -8,7 +8,7 @@ layout(binding = 1) uniform sampler2D sampler_input;
 uniform float u_threshold;
 uniform float u_knee;
 
-//https://github.com/Unity-Technologies/Graphics/blob/1e60cd5a0d89c55a887a1bff8344c4aea36a73ea/Packages/com.unity.render-pipelines.core/Runtime/Utilities/ColorUtils.cs#L203
+//https://github.com/Unity-Technologies/Graphics/blob/1e60cd5a0d89c55a887a1bff8344c4aea36a73ea/Packages/com.unity.render-pipelines.core/Runtime/Utilities/colorUtils.cs#L203
 float Luminance(vec3 colour) {
 	return (colour.r * 0.2126729f + colour.g * 0.7151522f + colour.b * 0.072175f);
 }

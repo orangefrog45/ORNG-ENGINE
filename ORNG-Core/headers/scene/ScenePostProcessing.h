@@ -6,7 +6,7 @@ namespace ORNG {
 	class Texture3D;
 
 	struct GlobalFog {
-		glm::vec3 color{ 1 };
+		glm::vec3 colour{ 1 };
 		float scattering_coef = 0.04f;
 		float absorption_coef = 0.003f;
 		float density_coef = 0.0f;

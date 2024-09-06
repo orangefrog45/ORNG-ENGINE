@@ -250,7 +250,7 @@ namespace ORNG {
 			out << YAML::Key << "PointlightComp";
 			out << YAML::BeginMap;
 
-			out << YAML::Key << "Colour" << YAML::Value << p_pointlight->color;
+			out << YAML::Key << "Colour" << YAML::Value << p_pointlight->colour;
 			out << YAML::Key << "AttenConstant" << YAML::Value << p_pointlight->attenuation.constant;
 			out << YAML::Key << "AttenLinear" << YAML::Value << p_pointlight->attenuation.linear;
 			out << YAML::Key << "AttenExp" << YAML::Value << p_pointlight->attenuation.exp;
@@ -266,7 +266,7 @@ namespace ORNG {
 			out << YAML::Key << "SpotlightComp";
 			out << YAML::BeginMap;
 
-			out << YAML::Key << "Colour" << YAML::Value << p_spotlight->color;
+			out << YAML::Key << "Colour" << YAML::Value << p_spotlight->colour;
 			out << YAML::Key << "AttenConstant" << YAML::Value << p_spotlight->attenuation.constant;
 			out << YAML::Key << "AttenLinear" << YAML::Value << p_spotlight->attenuation.linear;
 			out << YAML::Key << "AttenExp" << YAML::Value << p_spotlight->attenuation.exp;
@@ -481,7 +481,7 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializePointlightComp(const YAML::Node& light_node, SceneEntity& entity) {
 		auto* p_pointlight_comp = entity.AddComponent<PointLightComponent>();
-		p_pointlight_comp->color = light_node["Colour"].as<glm::vec3>();
+		p_pointlight_comp->colour = light_node["Colour"].as<glm::vec3>();
 		p_pointlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
 		p_pointlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
 		p_pointlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
@@ -491,7 +491,7 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeSpotlightComp(const YAML::Node& light_node, SceneEntity& entity) {
 		auto* p_spotlight_comp = entity.AddComponent<SpotLightComponent>();
-		p_spotlight_comp->color = light_node["Colour"].as<glm::vec3>();
+		p_spotlight_comp->colour = light_node["Colour"].as<glm::vec3>();
 		p_spotlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
 		p_spotlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
 		p_spotlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
@@ -787,7 +787,7 @@ namespace ORNG {
 
 		out << YAML::Key << "DirLight" << YAML::BeginMap;
 		out << YAML::Key << "Shadows" << YAML::Value << scene.directional_light.shadows_enabled;
-		out << YAML::Key << "Colour" << YAML::Value << scene.directional_light.color;
+		out << YAML::Key << "Colour" << YAML::Value << scene.directional_light.colour;
 		out << YAML::Key << "Direction" << YAML::Value << scene.directional_light.GetLightDirection();
 		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
 		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
@@ -804,7 +804,7 @@ namespace ORNG {
 		Out(out, "Absorption", scene.post_processing.global_fog.absorption_coef);
 		Out(out, "Scattering", scene.post_processing.global_fog.scattering_coef);
 		Out(out, "Anisotropy", scene.post_processing.global_fog.scattering_anisotropy);
-		Out(out, "Colour", scene.post_processing.global_fog.color);
+		Out(out, "Colour", scene.post_processing.global_fog.colour);
 		Out(out, "Steps", scene.post_processing.global_fog.step_count);
 		Out(out, "Emission", scene.post_processing.global_fog.emissive_factor);
 		out << YAML::EndMap;
@@ -866,7 +866,7 @@ namespace ORNG {
 		// Directional light
 		{
 			auto dir_light = data["DirLight"];
-			scene.directional_light.color = dir_light["Colour"].as<glm::vec3>();
+			scene.directional_light.colour = dir_light["Colour"].as<glm::vec3>();
 			scene.directional_light.shadows_enabled = dir_light["Shadows"].as<bool>();
 			scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
 			glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
@@ -899,7 +899,7 @@ namespace ORNG {
 			scene.post_processing.global_fog.scattering_coef = fog["Scattering"].as<float>();
 			scene.post_processing.global_fog.scattering_anisotropy = fog["Anisotropy"].as<float>();
 			scene.post_processing.global_fog.emissive_factor = fog["Emission"].as<float>();
-			scene.post_processing.global_fog.color = fog["Colour"].as<glm::vec3>();
+			scene.post_processing.global_fog.colour = fog["Colour"].as<glm::vec3>();
 			scene.post_processing.global_fog.step_count = fog["Steps"].as<int>();
 		}
 

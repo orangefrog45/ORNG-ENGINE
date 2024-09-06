@@ -1,3 +1,7 @@
+6/9/24:
+-Custom component registration in scenes
+-General fixes/minor changes
+
 26/7/24:
 -Changed how scene component systems work so they can now be added/removed in a modular way
 -Allowed disabling of specific engine modules on engine start

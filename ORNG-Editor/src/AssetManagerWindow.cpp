@@ -158,7 +158,7 @@ namespace ORNG {
 		return true;
 	}
 
-	void AssetManagerWindow::ReloadScript(const std::string& relative_path) {
+	void AssetManagerWindow::ReloadScript(const std::string& relative_path, bool force_recompilation) {
 		// Store all components that have this script as their symbols will need to be updated after the script reloads
 		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
 		std::vector<ScriptComponent*> components_to_reconnect;
@@ -174,13 +174,12 @@ namespace ORNG {
 		// Reload script and reconnect it to script components previously using it
 		if (ScriptingEngine::UnloadScriptDLL(relative_path)) {
 			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
-			std::optional<std::filesystem::file_status> existing_dll_status = std::filesystem::exists(dll_path) ? std::make_optional(std::filesystem::status(dll_path)) : std::nullopt;
 
-			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false, true);
-			if (!symbols.loaded || (existing_dll_status.has_value() && std::filesystem::status(dll_path) == *existing_dll_status)) {
+			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false, force_recompilation);
+			p_curr_asset->symbols = symbols;
+			if (!symbols.loaded) {
 				ORNG_CORE_ERROR("Failed to reload script");
 			}
-			p_curr_asset->symbols = symbols;
 
 			// Reconnect script components that were using this script
 			for (auto p_script : components_to_reconnect) {
@@ -225,7 +224,7 @@ namespace ORNG {
 		} else {
 		spec.popup_spec.options.push_back(std::make_pair("Reload",
 			[this, p_asset]() {
-				ReloadScript(p_asset->filepath);
+				ReloadScript(p_asset->filepath, true);
 			}));
 		};
 
@@ -263,6 +262,19 @@ namespace ORNG {
 					AssetManager::AddAsset(new ScriptAsset(script_path, false));
 				}
 			}
+
+			if (ImGui::Button("Force-reload all scripts")) {
+				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
+					ReloadScript(p_script->filepath, true);
+				}
+			}
+
+			if (ImGui::Button("Reload all modified scripts")) {
+				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
+					ReloadScript(p_script->filepath, false);
+				}
+			}
+
 			ExtraUI::AlphaNumTextInput(new_script_name);
 
 			if (ImGui::BeginTable("##script table", column_count)) {
@@ -889,7 +901,7 @@ namespace ORNG {
 			ImGui::InputText("##name input", &mp_selected_material->name);
 			ImGui::Spacing();
 
-			ret |= RenderMaterialTexture("Base", mp_selected_material->base_color_texture);
+			ret |= RenderMaterialTexture("Base", mp_selected_material->base_colour_texture);
 			ret |= RenderMaterialTexture("Normal", mp_selected_material->normal_map_texture);
 			ret |= RenderMaterialTexture("Roughness", mp_selected_material->roughness_texture);
 			ret |= RenderMaterialTexture("Metallic", mp_selected_material->metallic_texture);
@@ -899,9 +911,9 @@ namespace ORNG {
 
 			ImGui::Text("Colors");
 			ImGui::Spacing();
-			ret |= ExtraUI::ShowVec4Editor("Base color", mp_selected_material->base_color);
-			if (mp_selected_material->base_color.w < 0.0 || mp_selected_material->base_color.w > 1.0)
-				mp_selected_material->base_color.w = 1.0;
+			ret |= ExtraUI::ShowVec4Editor("Base color", mp_selected_material->base_colour);
+			if (mp_selected_material->base_colour.w < 0.0 || mp_selected_material->base_colour.w > 1.0)
+				mp_selected_material->base_colour.w = 1.0;
 
 			if (!mp_selected_material->roughness_texture)
 				ret |= ImGui::SliderFloat("Roughness", &mp_selected_material->roughness, 0.f, 1.f);

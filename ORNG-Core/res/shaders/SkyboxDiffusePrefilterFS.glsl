@@ -1,7 +1,7 @@
 #version 460 core
 
 #define PI 3.1415926538
-out vec4 frag_color;
+out vec4 frag_colour;
 in vec3 vs_local_pos;
 
 layout(binding = 1) uniform samplerCube environment_map_sampler;
@@ -44,5 +44,5 @@ vec3 DiffusePrefilter(vec3 normal) {
 
 void main() {
 	vec3 n = normalize(vs_local_pos);
-	frag_color = vec4(DiffusePrefilter(n), 1.0);
+	frag_colour = vec4(DiffusePrefilter(n), 1.0);
 }

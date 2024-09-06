@@ -1,7 +1,7 @@
 #version 460 core
 
 #define PI 3.1415926538
-out vec4 frag_color;
+out vec4 frag_colour;
 in vec3 vs_local_pos;
 
 layout(binding = 1) uniform samplerCube environment_map_sampler;
@@ -71,7 +71,7 @@ vec3 SpecularPrefilter(vec3 n) {
 
 	const uint sample_count = 1024u;
 	float total_weight = 0.0;
-	vec3 prefiltered_color = vec3(0.0);
+	vec3 prefiltered_colour = vec3(0.0);
 	
 	for (uint i = 0u; i < sample_count; i++) {
 		vec2 u = Hammersley(i, sample_count);
@@ -87,18 +87,18 @@ vec3 SpecularPrefilter(vec3 n) {
 			float sa_sample = 1.0 / (float(sample_count) * pdf + 0.0001);
 			float mip_level = u_roughness == 0.0 ? 0.0 : 0.5 * log2(sa_sample / sa_texel);
 
-			prefiltered_color += textureLod(environment_map_sampler, l, mip_level).rgb * n_dot_l;
+			prefiltered_colour += textureLod(environment_map_sampler, l, mip_level).rgb * n_dot_l;
 			total_weight += n_dot_l;
 		}
 	}
 
-	prefiltered_color /= total_weight;
-	return prefiltered_color;
+	prefiltered_colour /= total_weight;
+	return prefiltered_colour;
 
 }
 
 void main() {
 	vec3 n = normalize(vs_local_pos);
-	frag_color = vec4(SpecularPrefilter(n), 1.0);
+	frag_colour = vec4(SpecularPrefilter(n), 1.0);
 
 }

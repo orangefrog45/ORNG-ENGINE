@@ -26,7 +26,7 @@ uniform float u_density_coef;
 uniform float u_time;
 uniform float u_emissive;
 uniform int u_step_count;
-uniform vec3 u_fog_color;
+uniform vec3 u_fog_colour;
 
 
 
@@ -38,14 +38,14 @@ vec3 CalcPointLight(PointLight light, vec3 world_pos) {
 	if (distance > light.shadow_distance)
 		return vec3(0.0);
 
-	vec3 diffuse_color = light.color.xyz;
+	vec3 diffuse_colour = light.colour.xyz;
 
 	float attenuation = light.constant +
 		light.a_linear * distance +
 		light.exp * pow(distance, 2);
 
 
-	return diffuse_color / attenuation;
+	return diffuse_colour / attenuation;
 }
 
 
@@ -67,16 +67,16 @@ vec3 CalcSpotLight(SpotLight light, vec3 world_pos, uint index) {
 			return vec3(0); // early return as no light will reach this spot
 		}
 
-		vec3 diffuse_color = light.color.xyz;
+		vec3 diffuse_colour = light.colour.xyz;
 
 		float attenuation = light.constant +
 			light.a_linear * distance +
 			light.exp * pow(distance, 2);
 
-		diffuse_color /= attenuation;
+		diffuse_colour /= attenuation;
 
 		float spotlight_intensity = (1.0 - (1.0 - spot_factor) / (1.0 - light.aperture));
-		return diffuse_color * spotlight_intensity;
+		return diffuse_colour * spotlight_intensity;
 	}
 	else {
 		return vec3(0, 0, 0);
@@ -161,12 +161,12 @@ void main() {
 		}
 
 		float dir_shadow = CheapShadowCalculationDirectional(step_pos);
-		slice_light += ubo_global_lighting.directional_light.color.xyz  * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
+		slice_light += ubo_global_lighting.directional_light.colour.xyz  * phase(ray_dir, ubo_global_lighting.directional_light.direction.xyz);
 		accum = Accumulate(accum.rgb, accum.a, slice_light, fog_density, step_distance, u_absorption_coef + u_scattering_coef);
 		step_pos += ray_dir * step_distance;
 	}
 	
 
-	vec4 fog_color = vec4(u_fog_color * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 4).rgb * u_emissive, 1.0 - accum.a );
-	imageStore(fog_texture, tex_coords, fog_color);
+	vec4 fog_colour = vec4(u_fog_colour * accum.rgb + textureLod(diffuse_prefilter_sampler, ray_dir, 4).rgb * u_emissive, 1.0 - accum.a );
+	imageStore(fog_texture, tex_coords, fog_colour);
 }

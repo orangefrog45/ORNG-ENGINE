@@ -26,19 +26,19 @@ namespace ORNG {
 
 
 	void PointlightSystem::WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, int& index) {
-		// - START COLOR
-		auto color = light.color;
-		output_vec[index++] = color.x;
-		output_vec[index++] = color.y;
-		output_vec[index++] = color.z;
+		// - START colour
+		auto colour = light.colour;
+		output_vec[index++] = colour.x;
+		output_vec[index++] = colour.y;
+		output_vec[index++] = colour.z;
 		output_vec[index++] = 0; //padding
-		// - END COLOR +- START POS
+		// - END colour +- START POS
 		auto pos = std::get<0>(light.GetEntity()->GetComponent<TransformComponent>()->GetAbsoluteTransforms());
 		output_vec[index++] = pos.x;
 		output_vec[index++] = pos.y;
 		output_vec[index++] = pos.z;
 		output_vec[index++] = 0; //padding
-		// - END COLOR - START MAX_DISTANCE
+		// - END colour - START MAX_DISTANCE
 		output_vec[index++] = light.shadows_enabled ?  light.shadow_distance : -1.f;
 		// - END MAX_DISTANCE - START ATTENUATION
 		auto& atten = light.attenuation;

@@ -1,7 +1,7 @@
 #version 460 core
 
 #define PI 3.1415926538
-out vec4 frag_color;
+out vec4 frag_colour;
 
 in vec2 tex_coords;
 
@@ -101,5 +101,5 @@ vec2 IntegrateBDRF(float n_dot_v, float roughness) {
 }
 
 void main() {
-	frag_color = vec4(IntegrateBDRF(tex_coords.x, tex_coords.y), 1.0, 1.0);
+	frag_colour = vec4(IntegrateBDRF(tex_coords.x, tex_coords.y), 1.0, 1.0);
 }

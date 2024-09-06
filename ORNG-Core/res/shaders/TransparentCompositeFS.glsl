@@ -3,7 +3,7 @@ layout (binding = 0) uniform sampler2D accum_sampler;
 layout (binding = 1) uniform sampler2D reveal_sampler;
 
 in vec2 tex_coords;
-out vec4 color;
+out vec4 colour;
 
 const float EPSILON = 0.00001f;
 
@@ -26,5 +26,5 @@ void main() {
 
     vec3 average_colour = accum.rgb / max(accum.a, EPSILON);
 
-    color = vec4(average_colour, 1.0 - reveal);
+    colour = vec4(average_colour, 1.0 - reveal);
 }

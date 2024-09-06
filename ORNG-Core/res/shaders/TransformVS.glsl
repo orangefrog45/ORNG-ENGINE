@@ -3,7 +3,7 @@
 in layout(location = 0) vec3 pos;
 in layout(location = 2) vec3 normal;
 
-#ifdef COLOR
+#ifdef colour
 in layout(location = 1) vec3 icol;
 out vec3 col;
 #endif
@@ -19,7 +19,7 @@ uniform mat4 transform;
 out vec3 vs_world_pos;
 
 void main() {
-#ifdef COLOR
+#ifdef colour
 	col = icol;
 #endif
 

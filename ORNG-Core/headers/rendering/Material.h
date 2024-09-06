@@ -41,7 +41,7 @@ namespace ORNG {
 		friend class SceneRenderer;
 		friend class AssetManager;
 	public:
-		explicit Material(Texture2D* p_base_color_tex) : Asset(""), base_color_texture(p_base_color_tex) {};
+		explicit Material(Texture2D* p_base_colour_tex) : Asset(""), base_colour_texture(p_base_colour_tex) {};
 
 		// New material wont have a path until saved
 		Material() : Asset("") {};
@@ -57,13 +57,13 @@ namespace ORNG {
 
 		template<typename S>
 		void serialize(S& s) {
-			s.object(base_color);
+			s.object(base_colour);
 			s.value1b((uint8_t)render_group);
 			s.value4b(roughness);
 			s.value4b(metallic);
 			s.value4b(ao);
 			s.value4b(emissive_strength);
-			s.value8b(base_color_texture ? base_color_texture->uuid() : 0);
+			s.value8b(base_colour_texture ? base_colour_texture->uuid() : 0);
 			s.value8b(normal_map_texture ? normal_map_texture->uuid() : 0);
 			s.value8b(metallic_texture ? metallic_texture->uuid() : 0);
 			s.value8b(roughness_texture ? roughness_texture->uuid() : 0);
@@ -109,7 +109,7 @@ namespace ORNG {
 
 		RenderGroup render_group = SOLID;
 
-		glm::vec4 base_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		glm::vec4 base_colour = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		float roughness = 0.2f;
 		float metallic = 0.0f;
@@ -117,7 +117,7 @@ namespace ORNG {
 		float emissive_strength = 1.f;
 		float opacity = 1.0;
 
-		Texture2D* base_color_texture = nullptr;
+		Texture2D* base_colour_texture = nullptr;
 		Texture2D* normal_map_texture = nullptr;
 		Texture2D* metallic_texture = nullptr;
 		Texture2D* roughness_texture = nullptr;

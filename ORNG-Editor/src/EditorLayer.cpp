@@ -55,7 +55,7 @@ namespace ORNG {
 
 		m_res.p_quad_col_shader = &Renderer::GetShaderLibrary().CreateShader("quad_col");
 		m_res.p_quad_col_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl", { "TRANSFORM" });
-		m_res.p_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColorFS.glsl");
+		m_res.p_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
 		m_res.p_quad_col_shader->Init();
 		m_res.p_quad_col_shader->AddUniforms("u_scale", "u_translation", "u_color");
 
@@ -67,7 +67,7 @@ namespace ORNG {
 
 		m_res.p_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
 		m_res.p_highlight_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl", {"OUTLINE"});
-		m_res.p_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColorFS.glsl");
+		m_res.p_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
 		m_res.p_highlight_shader->Init();
 		m_res.p_highlight_shader->AddUniforms("transform", "u_color", "u_scale");
 
@@ -2787,7 +2787,7 @@ namespace ORNG {
 
 		ImGui::PopItemWidth();
 
-		ExtraUI::ShowColorVec3Editor("Color", light->color);
+		ExtraUI::ShowColorVec3Editor("Colour", light->colour);
 
 		light->SetAperture(aperture);
 	}
@@ -2809,7 +2809,7 @@ namespace ORNG {
 			ImGui::SliderFloat("##emissive", &SCENE->post_processing.global_fog.emissive_factor, 0.f, 2.f);
 			ImGui::Text("Step count");
 			ImGui::SliderInt("##step count", &SCENE->post_processing.global_fog.step_count, 0, 512);
-			ExtraUI::ShowColorVec3Editor("Color", SCENE->post_processing.global_fog.color);
+			ExtraUI::ShowColorVec3Editor("Colour", SCENE->post_processing.global_fog.colour);
 		}
 	}
 
@@ -2857,12 +2857,12 @@ namespace ORNG {
 			ImGui::Text("DIR LIGHT CONTROLS");
 
 			static glm::vec3 light_dir = SCENE->directional_light.m_light_direction;
-			static glm::vec3 light_color = SCENE->directional_light.color;
+			static glm::vec3 light_colour = SCENE->directional_light.colour;
 
 			ImGui::SliderFloat("X", &light_dir.x, -1.f, 1.f);
 			ImGui::SliderFloat("Y", &light_dir.y, -1.f, 1.f);
 			ImGui::SliderFloat("Z", &light_dir.z, -1.f, 1.f);
-			ExtraUI::ShowColorVec3Editor("Color", light_color);
+			ExtraUI::ShowColorVec3Editor("Color", light_colour);
 
 			ImGui::Text("Cascade ranges");
 			ImGui::SliderFloat("##c1", &SCENE->directional_light.cascade_ranges[0], 0.f, 50.f);
@@ -2878,7 +2878,7 @@ namespace ORNG {
 
 			ImGui::Checkbox("Shadows", &SCENE->directional_light.shadows_enabled);
 
-			SCENE->directional_light.color = glm::vec3(light_color.x, light_color.y, light_color.z);
+			SCENE->directional_light.colour = glm::vec3(light_colour.x, light_colour.y, light_colour.z);
 			SCENE->directional_light.SetLightDirection(light_dir);
 		}
 	}
@@ -2895,7 +2895,7 @@ namespace ORNG {
 		ImGui::SliderFloat("Shadow distance", &light->shadow_distance, 0.0f, 5000.0f);
 
 		ImGui::PopItemWidth();
-		ExtraUI::ShowColorVec3Editor("Color", light->color);
+		ExtraUI::ShowColorVec3Editor("Color", light->colour);
 	}
 
 

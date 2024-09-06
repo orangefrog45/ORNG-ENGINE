@@ -194,7 +194,7 @@ namespace ORNG {
 		ConvertToBytes(p_byte,
 			dir_light.GetLightDirection(),
 			0,
-			dir_light.color,
+			dir_light.colour,
 			0,
 			dir_light.cascade_ranges,
 			0,

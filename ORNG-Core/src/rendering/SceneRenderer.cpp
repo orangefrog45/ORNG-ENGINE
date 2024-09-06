@@ -69,7 +69,7 @@ namespace ORNG {
 				"u_ao_sampler_active",
 				"u_displacement_sampler_active",
 				"u_num_parallax_layers",
-				"u_material.base_color",
+				"u_material.base_colour",
 				"u_material.metallic",
 				"u_material.roughness",
 				"u_material.ao",
@@ -134,7 +134,7 @@ namespace ORNG {
 
 		mp_voxel_debug_shader = &mp_shader_library->CreateShader("voxel_debug");
 		mp_voxel_debug_shader->AddStage(GL_VERTEX_SHADER, "res/core-res/shaders/VoxelDebugViewVS.glsl");
-		mp_voxel_debug_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/ColorFS.glsl", {"VOXELIZATION"});
+		mp_voxel_debug_shader->AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/ColourFS.glsl", {"VOXELIZATION"});
 		mp_voxel_debug_shader->Init();
 
 		mp_voxel_compute_sv = &mp_shader_library->CreateShaderVariants("SR voxel decrement");
@@ -317,7 +317,7 @@ namespace ORNG {
 		m_fog_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/FogCS.glsl");
 		m_fog_shader->Init();
 		m_fog_shader->AddUniforms({
-			"u_fog_color",
+			"u_fog_colour",
 			"u_time",
 			"u_scattering_anisotropy",
 			"u_absorption_coef",
@@ -604,8 +604,8 @@ namespace ORNG {
 
 
 	void SceneRenderer::SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_material) {
-		if (p_material->base_color_texture) {
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+		if (p_material->base_colour_texture) {
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_colour_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 		else { // Replace with 1x1 white pixel texture
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
@@ -662,7 +662,7 @@ namespace ORNG {
 		}
 
 		p_shader->SetUniform("u_material.flags", (unsigned)p_material->flags);
-		p_shader->SetUniform("u_material.base_color", p_material->base_color);
+		p_shader->SetUniform("u_material.base_colour", p_material->base_colour);
 		p_shader->SetUniform("u_material.roughness", p_material->roughness);
 		p_shader->SetUniform("u_material.ao", p_material->ao);
 		p_shader->SetUniform("u_material.metallic", p_material->metallic);
@@ -818,7 +818,7 @@ namespace ORNG {
 		glEnable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 		glBlendFunci(0, GL_ONE, GL_ONE); // accumulation blend target
-		glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR); // revealge blend target#
+		glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR); // revealage blend target
 		glBlendEquation(GL_FUNC_ADD);
 
 		static auto filler_0 = glm::vec4(0); static auto filler_1 = glm::vec4(1);
@@ -1123,7 +1123,7 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_absorption_coef", mp_scene->post_processing.global_fog.absorption_coef);
 		m_fog_shader->SetUniform("u_density_coef", mp_scene->post_processing.global_fog.density_coef);
 		m_fog_shader->SetUniform("u_scattering_anisotropy", mp_scene->post_processing.global_fog.scattering_anisotropy);
-		m_fog_shader->SetUniform("u_fog_color", mp_scene->post_processing.global_fog.color);
+		m_fog_shader->SetUniform("u_fog_colour", mp_scene->post_processing.global_fog.colour);
 		m_fog_shader->SetUniform("u_step_count", mp_scene->post_processing.global_fog.step_count);
 		m_fog_shader->SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));
 		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
@@ -1311,9 +1311,9 @@ namespace ORNG {
 				if (p_material->render_group != render_group)
 					continue;
 
-				if (p_material->base_color_texture && p_material->base_color_texture->GetSpec().format == GL_RGBA) {
+				if (p_material->base_colour_texture && p_material->base_colour_texture->GetSpec().format == GL_RGBA) {
 					mp_depth_sv->SetUniform("u_alpha_test", true);
-					GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_color_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+					GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_colour_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 				}
 				else {
 					mp_depth_sv->SetUniform("u_alpha_test", false);

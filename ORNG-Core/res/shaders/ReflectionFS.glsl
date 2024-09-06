@@ -1,6 +1,6 @@
 
 #version 430 core
-out vec4 FragColor;
+out vec4 Fragcolour;
 
 in vec3 vs_position;
 in vec3 vs_normal;
@@ -11,5 +11,5 @@ layout(binding = 1) uniform samplerCube skybox;
 void main() {
 	vec3 I = normalize(vs_position - camera_pos);
 	vec3 R = reflect(I, normalize(vs_normal));
-	FragColor = vec4(texture(skybox, R).rgb, 1.0);
+	Fragcolour = vec4(texture(skybox, R).rgb, 1.0);
 }

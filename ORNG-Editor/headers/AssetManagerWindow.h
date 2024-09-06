@@ -100,7 +100,7 @@ namespace ORNG {
 
 		void RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec& display_spec);
 
-		void ReloadScript(const std::string& relative_path);
+		void ReloadScript(const std::string& relative_path, bool force_recompilation);
 		void RenderScriptAsset(ScriptAsset* p_asset);
 		void RenderScriptTab();
 

@@ -53,17 +53,17 @@ vec3 CalculatePointlight(PointLight light) {
 		light.exp * pow(l, 2);
 
     const float r = max(dot(normalize(vert_data.normal), dir), 0.f);
-    return r / attenuation * light.color.xyz;
+    return r / attenuation * light.colour.xyz;
 }
 
 vec3 CalculateSpotlight(SpotLight light) {
     vec3 dir = light.pos.xyz - vert_data.position.xyz;
 	float spot_factor = dot(normalize(dir), -light.dir.xyz);
 
-    vec3 color = vec3(0);
+    vec3 colour = vec3(0);
 
 	if (spot_factor < 0.0001 || spot_factor < light.aperture)
-		return color;
+		return colour;
 
     const float l = length(dir);
     dir = normalize(dir);
@@ -75,12 +75,12 @@ vec3 CalculateSpotlight(SpotLight light) {
 	float spotlight_intensity = (1.0 - (1.0 - spot_factor) / max((1.0 - light.aperture), 1e-5));
     const float r = max(dot(normalize(vert_data.normal), dir), 0.f);
 
-    return r * spotlight_intensity / attenuation * light.color.xyz;
+    return r * spotlight_intensity / attenuation * light.colour.xyz;
 }
 
 vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 	vec4 sampled_albedo = texture(diffuse_sampler, tex_coord.xy);
-	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_color.rgb, sampled_albedo.a);
+	vec4 albedo_col = vec4(sampled_albedo.rgb * u_material.base_colour.rgb, sampled_albedo.a);
 	albedo_col *= bool(u_material.flags & MAT_FLAG_EMISSIVE) ? vec4(vec3(u_material.emissive_strength), 1.0) : vec4(1.0);
 #ifdef PARTICLE
 #define EMITTER ssbo_particle_emitters.emitters[ssbo_particles.particles[vs_particle_index].emitter_index]
@@ -118,7 +118,7 @@ void main() {
         for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
             col += CalculatePointlight(ubo_point_lights.lights[i]) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, vert_data.position.xyz));
         }
-        col += ubo_global_lighting.directional_light.color.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vert_data.position.xyz));
+        col += ubo_global_lighting.directional_light.colour.xyz * max(dot(ubo_global_lighting.directional_light.direction.xyz, n), 0.0) * (1.0 - CheapShadowCalculationDirectional(vert_data.position.xyz));
         col *= CalculateAlbedoAndEmissive(vert_data.tex_coord.xy).rgb;
     }
 
