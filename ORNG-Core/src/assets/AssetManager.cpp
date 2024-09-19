@@ -680,17 +680,18 @@ namespace ORNG {
 
 	void AssetManager::IOnShutdown() {
 		ClearAll();
-		Get().mp_base_material.release();
-		Get().mp_base_sound.release();
-		Get().mp_base_tex.release();
-		Get().mp_base_cube.release();
-		Get().mp_base_sphere.release();
-		Get().mp_base_physx_material.release();
-		Get().mp_base_quad.release();
-		Get().mp_base_script.release();
+		auto& instance = Get();
+
+		instance.mp_base_material.release();
+		instance.mp_base_sound.release();
+		instance.mp_base_tex.release();
+		instance.mp_base_cube.release();
+		instance.mp_base_sphere.release();
+		instance.mp_base_quad.release();
+		instance.mp_base_script.release();
 
 		if (bool physics_module_active = Physics::GetPhysics())
-			Get().mp_base_physx_material->p_material->release();
+			instance.mp_base_physx_material->p_material->release();
 	};
 
 

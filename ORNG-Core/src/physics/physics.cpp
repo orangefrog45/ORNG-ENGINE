@@ -1,7 +1,6 @@
 #include "pch/pch.h"
 #include "physics/Physics.h"
 #include "pvd/PxPvd.h"
-#include "physx/common/windows/PxWindowsDelayLoadHook.h"
 
 
 #define PHYSX_DEBUG
@@ -60,11 +59,11 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-		if (PxGetSuggestedCudaDeviceOrdinal(mp_foundation->getErrorCallback()) >= 0)
-		{
-			PxCudaContextManagerDesc cudaContextManagerDesc;
-			mp_cuda_context_manager = PxCreateCudaContextManager(*Physics::GetFoundation(), cudaContextManagerDesc, PxGetProfilerCallback());
-			ASSERT(mp_cuda_context_manager && mp_cuda_context_manager->contextIsValid());
-		}
+		//if (PxGetSuggestedCudaDeviceOrdinal(mp_foundation->getErrorCallback()) >= 0)
+		//{
+		//	PxCudaContextManagerDesc cudaContextManagerDesc;
+		//	mp_cuda_context_manager = PxCreateCudaContextManager(*Physics::GetFoundation(), cudaContextManagerDesc, PxGetProfilerCallback());
+		//	ASSERT(mp_cuda_context_manager && mp_cuda_context_manager->contextIsValid());
+		//}
 	}
 }

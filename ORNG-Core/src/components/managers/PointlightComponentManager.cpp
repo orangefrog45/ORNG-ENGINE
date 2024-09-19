@@ -10,6 +10,9 @@ namespace ORNG {
 		if (!m_pointlight_ssbo.IsInitialized())
 			m_pointlight_ssbo.Init();
 
+		m_pointlight_ssbo.Resize(0);
+		GL_StateManager::BindSSBO(m_pointlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
+
 		TextureCubemapArraySpec pointlight_depth_spec;
 		pointlight_depth_spec.format = GL_DEPTH_COMPONENT;
 		pointlight_depth_spec.internal_format = GL_DEPTH_COMPONENT16;
@@ -51,7 +54,8 @@ namespace ORNG {
 	void PointlightSystem::OnUpdate(entt::registry* p_registry) {
 		auto view = p_registry->view<PointLightComponent>();
 		if (view.size() == 0) {
-			glNamedBufferData(m_pointlight_ssbo.GetHandle(), 0, nullptr, GL_STREAM_DRAW);
+			m_pointlight_ssbo.Resize(0);
+			GL_StateManager::BindSSBO(m_pointlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
 			return;
 		}
 		m_pointlight_ssbo.data.clear();

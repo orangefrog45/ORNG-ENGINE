@@ -1,11 +1,11 @@
 ORNG_INCLUDE "CommonINCL.glsl"
 
-layout(std140, binding = 1) buffer PointLights {
+layout(std140, binding = 1) readonly buffer PointLights {
 	PointLight lights[];
 } ubo_point_lights;
 
 
-layout(std140, binding = 2) buffer SpotLights {
+layout(std140, binding = 2) readonly buffer SpotLights {
 	SpotLight lights[];
 } ubo_spot_lights;
 

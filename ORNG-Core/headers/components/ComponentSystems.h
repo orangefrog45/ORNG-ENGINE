@@ -2,8 +2,10 @@
 #include "components/ComponentAPI.h"
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
+
 #include "physx/PxPhysicsAPI.h"
 #include "physx/vehicle2/PxVehicleAPI.h"
+
 #include "scripting/ScriptShared.h"
 #include "rendering/VAO.h"
 #include "components/ParticleBufferComponent.h"

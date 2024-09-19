@@ -80,10 +80,6 @@ mat3 CalculateTbnMatrix() {
 }
 
 
-vec3 roundToNearestMultiple(vec3 input, float multiple) {
-    return round(input / multiple) * multiple;
-}
-
 void main() {
 #ifdef TESSELLATE
 	vs_instance_id = gl_InstanceID;

@@ -1,10 +1,10 @@
-#version 430 core
+#version 460 core
 
 ORNG_INCLUDE "UtilINCL.glsl"
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-const unsigned int NUM_SHADOW_CASCADES = 3;
+const uint NUM_SHADOW_CASCADES = 3;
 ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
 
@@ -34,7 +34,7 @@ uniform bool u_ibl_active;
 
 ORNG_INCLUDE "LightingINCL.glsl"
 
-unsigned int shader_id = texelFetch(shader_id_sampler, tex_coords, 0).r;
+uint shader_id = texelFetch(shader_id_sampler, tex_coords, 0).r;
 vec3 sampled_world_pos = WorldPosFromDepth(texelFetch(view_depth_sampler, tex_coords, 0).r, tex_coords / vec2(imageSize(u_output_texture)));
 vec3 sampled_normal = normalize(texelFetch(normal_sampler, tex_coords, 0).xyz);
 vec3 sampled_albedo = texelFetch(albedo_sampler, tex_coords, 0).xyz;

@@ -1,29 +1,6 @@
 ﻿{
   "configurations": [
     {
-      "name": "x64-Debug",
-      "generator": "Ninja",
-      "configurationType": "Debug",
-      "inheritEnvironments": [ "msvc_x86" ],
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "variables": [
-        {
-          "name": "PUBLIC_RELEASE",
-          "value": "False",
-          "type": "BOOL"
-        },
-        {
-          "name": "PX_COPY_EXTERNAL_DLL",
-          "value": "True",
-          "type": "BOOL"
-        }
-      ]
-    },
-    {
       "name": "x64-Release-2",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",

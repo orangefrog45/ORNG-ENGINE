@@ -166,7 +166,7 @@ namespace ORNG {
 		m_post_process_shader = &mp_shader_library->CreateShader("post_process");
 		m_post_process_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/PostProcessCS.glsl");
 		m_post_process_shader->Init();
-		m_post_process_shader->AddUniforms("exposure", "u_bloom_intensity");
+		m_post_process_shader->AddUniforms("exposure", "u_bloom_intensity", "u_fog_enabled");
 
 		m_post_process_shader->AddUniforms({
 			"quad_sampler",
@@ -1103,18 +1103,9 @@ namespace ORNG {
 	void SceneRenderer::DoFogPass(unsigned int width, unsigned int height) {
 		ORNG_PROFILE_FUNC_GPU();
 
-		static bool clear_image = true;
-
 		if (mp_scene->post_processing.global_fog.density_coef < 0.001f || mp_scene->post_processing.global_fog.step_count == 0) {
-			if (clear_image) {
-				glClearTexImage(m_fog_blur_tex_1.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
-				clear_image = false;
-			}
-
 			return;
 		}
-
-		clear_image = true;
 
 		//draw fog texture
 		m_fog_shader->ActivateProgram();
@@ -1129,7 +1120,6 @@ namespace ORNG {
 		m_fog_shader->SetUniform("u_emissive", mp_scene->post_processing.global_fog.emissive_factor);
 
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_gbuffer_fb->GetTexture<Texture2D>("shared_depth").GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
-
 
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
@@ -1270,15 +1260,16 @@ namespace ORNG {
 
 
 	void SceneRenderer::DoPostProcessingPass(CameraComponent* p_cam, Texture2D* p_output_tex) {
+		ORNG_PROFILE_FUNC_GPU();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		auto& spec = p_output_tex->GetSpec();
 		DoBloomPass(spec.width, spec.height);
 
-		ORNG_PROFILE_FUNC_GPU();
 		m_post_process_shader->ActivateProgram();
 
 		m_post_process_shader->SetUniform("exposure", p_cam->exposure);
 		m_post_process_shader->SetUniform("u_bloom_intensity", mp_scene->post_processing.bloom.intensity);
+		m_post_process_shader->SetUniform("u_fog_enabled", mp_scene->post_processing.global_fog.density_coef >= 0.001f && mp_scene->post_processing.global_fog.step_count != 0);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_fog_blur_tex_1.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_2, false);
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 		glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);

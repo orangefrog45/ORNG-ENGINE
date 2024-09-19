@@ -22,19 +22,16 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     message(FATAL_ERROR "Compilation only supported with MSVC")
 endif()
 
-
-
-
 add_subdirectory("ORNG-Core")
 add_subdirectory("ORNG-Editor")
 add_subdirectory("ORNG-Runtime")
 
 # EXTERNAL PROJECTS NOT IN ENGINE REPO - COMMENT OUT IF CAUSING ERRORS
+if (EXISTS("Game"))
 project(FRACTAL_GAME)
 project(HW_MONITOR)
 add_subdirectory("Game")
 add_subdirectory("HW-Monitor")
-
-
+endif()
 
 

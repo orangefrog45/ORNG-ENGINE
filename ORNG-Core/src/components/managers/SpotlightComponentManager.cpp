@@ -16,6 +16,7 @@ namespace ORNG {
 		if (!m_spotlight_ssbo.IsInitialized())
 			m_spotlight_ssbo.Init();
 
+		m_spotlight_ssbo.Resize(0);
 		GL_StateManager::BindSSBO(m_spotlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
 
 		Texture2DArraySpec spotlight_depth_spec;
@@ -97,14 +98,15 @@ namespace ORNG {
 
 
 	void SpotlightSystem::OnUpdate(entt::registry* p_registry) {
-
 		auto view = p_registry->view<SpotLightComponent>();
-		m_spotlight_ssbo.data.clear();
 
 		if (view.empty()) {
-			glNamedBufferData(m_spotlight_ssbo.GetHandle(), 0, nullptr, GL_STREAM_DRAW);
+			m_spotlight_ssbo.Resize(0);
+			GL_StateManager::BindSSBO(m_spotlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
+			return;
 		}
 
+		m_spotlight_ssbo.data.clear();
 		unsigned num_shadow = 0;
 		unsigned num_shadowless = 0;
 

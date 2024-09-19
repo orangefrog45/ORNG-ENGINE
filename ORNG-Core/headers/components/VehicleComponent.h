@@ -1,6 +1,7 @@
+#pragma once
+
 #include "Component.h"
 #include "physics/vehicles/DirectDrive.h"
-
 
 namespace ORNG {
 	class MeshAsset;
@@ -31,3 +32,4 @@ namespace ORNG {
 		std::vector<Material*> m_wheel_materials;
 	};
 }
+

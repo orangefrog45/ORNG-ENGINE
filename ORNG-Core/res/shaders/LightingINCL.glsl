@@ -166,14 +166,6 @@ vec3 CalculateDirectLightContribution(vec3 v, vec3 f0, vec3 world_pos, vec3 n, f
 		total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo);
 	}
 
-		// Pointlights
-	for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
-		if (ubo_point_lights.lights[i].shadow_distance > 0.f)
-			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, world_pos));
-		else
-			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) ;
-	}
-
 	//Spotlights
 	for (int i = 0; i < ubo_spot_lights.lights.length(); i++) {
 		if (ubo_spot_lights.lights[i].shadow_distance > 0.f) {
@@ -187,6 +179,15 @@ vec3 CalculateDirectLightContribution(vec3 v, vec3 f0, vec3 world_pos, vec3 n, f
 			total_light += CalcSpotLight(ubo_spot_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo);
 		}
 	}
+
+		// Pointlights
+	for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
+		if (ubo_point_lights.lights[i].shadow_distance > 0.f)
+			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], i, world_pos));
+		else
+			total_light += CalcPointLight(ubo_point_lights.lights[i], v, f0, i, world_pos, n, roughness, metallic, albedo) ;
+	}
+
 
 	return total_light;
 }
@@ -249,7 +250,6 @@ vec3 CalculateDirectLightContributionCheap(vec3 v, vec3 f0, vec3 world_pos, vec3
 	// Directional light
 	float shadow = ShadowCalculationDirectional(normalize(ubo_global_lighting.directional_light.direction.xyz), world_pos);
 	total_light += CalcDirectionalLight(v, f0, n, roughness, metallic, albedo) * (1.0 - shadow);
-
 	// Pointlights
 	for (int i = 0; i < ubo_point_lights.lights.length(); i++) {
 		if (ubo_point_lights.lights[i].shadow_distance > 0.f)

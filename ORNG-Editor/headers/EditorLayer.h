@@ -304,9 +304,9 @@ DirLight:
   CascadeRanges: [20, 75, 200]
   Zmults: [5, 5, 5]
 Skybox:
-  HDR filepath: ""
-  IBL: false
-  Resolution: 1
+  HDR filepath: "res/textures/preview-sky.hdr"
+  IBL: true
+  Resolution: 2048
 Fog:
   Density: 0.0
   Absorption: 0.00300000003

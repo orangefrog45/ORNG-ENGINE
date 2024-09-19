@@ -15,7 +15,16 @@
 
 namespace ORNG {
 	using namespace physx;
+
 	using namespace physx::vehicle2;
+
+	inline static void OnVehicleComponentAdd(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
+	}
+
+	inline static void OnVehicleComponentDestroy(entt::registry& registry, entt::entity entity) {
+		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
+	}
 
 	inline static void OnPhysComponentAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<PhysicsComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
@@ -41,13 +50,6 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<JointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
-	inline static void OnVehicleComponentAdd(entt::registry& registry, entt::entity entity) {
-		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
-	}
-
-	inline static void OnVehicleComponentDestroy(entt::registry& registry, entt::entity entity) {
-		ComponentSystem::DispatchComponentEvent<VehicleComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
-	}
 
 	PhysicsSystem::PhysicsSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 	};

@@ -41,7 +41,7 @@ ORNG_INCLUDE "VoxelCommonINCL.glsl"
 
 ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy * 2);
 
-unsigned int shader_id = texelFetch(shader_id_sampler, tex_coords, 0).r;
+uint shader_id = texelFetch(shader_id_sampler, tex_coords, 0).r;
 vec3 sampled_world_pos = WorldPosFromDepth(texelFetch(view_depth_sampler, tex_coords, 0).r, (tex_coords / 2) / vec2(imageSize(u_output_texture) ));
 vec3 sampled_normal = normalize(texelFetch(normal_sampler, tex_coords, 0).xyz);
 vec3 sampled_albedo = texelFetch(albedo_sampler, tex_coords, 0).xyz;
