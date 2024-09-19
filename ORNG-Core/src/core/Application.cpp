@@ -26,11 +26,11 @@ namespace ORNG {
 		ImGui::Shutdown();
 		layer_stack.Shutdown();
 
-		if (!(m_settings.disabled_modules & ApplicationModulesFlags::PHYSICS))
-			Physics::Shutdown();
-
 		if (!(m_settings.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER))
 			AssetManager::OnShutdown();
+
+		if (!(m_settings.disabled_modules & ApplicationModulesFlags::PHYSICS))
+			Physics::Shutdown();
 
 		Log::Flush();
 	}

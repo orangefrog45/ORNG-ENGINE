@@ -75,9 +75,6 @@ namespace ORNG {
 		return PxFilterFlag::eDEFAULT;
 	}
 
-// TODO: add in-editor option for this
-#define GPU_PHYSICS_ENABLED false
-
 	void PhysicsSystem::OnLoad() {
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
 
@@ -94,17 +91,14 @@ namespace ORNG {
 		scene_desc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
 		scene_desc.solverType = PxSolverType::eTGS;
 
-
-		if constexpr (GPU_PHYSICS_ENABLED) {
+#ifdef PHYSX_GPU_ACCELERATION_AVAILABLE
 			scene_desc.flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
 			scene_desc.broadPhaseType = PxBroadPhaseType::eGPU;
-		}
-		else {
+#else
 			scene_desc.broadPhaseType = PxBroadPhaseType::ePABP;
-		}
+#endif
 
 		scene_desc.simulationEventCallback = &m_collision_callback;
-
 
 		mp_phys_scene = Physics::GetPhysics()->createScene(scene_desc);
 		mp_phys_scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);

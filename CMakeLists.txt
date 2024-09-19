@@ -27,7 +27,7 @@ add_subdirectory("ORNG-Editor")
 add_subdirectory("ORNG-Runtime")
 
 # EXTERNAL PROJECTS NOT IN ENGINE REPO - COMMENT OUT IF CAUSING ERRORS
-if (EXISTS("Game"))
+if (EXISTS "Game")
 project(FRACTAL_GAME)
 project(HW_MONITOR)
 add_subdirectory("Game")

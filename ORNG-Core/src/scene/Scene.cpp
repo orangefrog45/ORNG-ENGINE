@@ -485,6 +485,10 @@ namespace ORNG {
 		ORNG_CORE_INFO("Unloading scene...");
 		m_time_elapsed = 0.0;
 
+		for (auto [id, p_sys] : systems) {
+			p_sys->OnUnload();
+		}
+
 		while (!m_entities.empty()) {
 			// Safe deletion method
 			DeleteEntity(m_entities[0]);
@@ -492,14 +496,10 @@ namespace ORNG {
 
 		Events::EventManager::DeregisterListener(m_hierarchy_modification_listener.GetRegisterID());
 
-		m_registry.clear();
-
-		for (auto [id, p_sys] : systems) {
-			p_sys->OnUnload();
-		}
-
 		m_entities.clear();
 		m_root_entities.clear();
+		m_registry.clear();
+
 		ORNG_CORE_INFO("Scene unloaded");
 		m_is_loaded = false;
 	}

@@ -202,6 +202,7 @@ namespace ORNG {
 			EndPlayScene();
 
 		mp_editor_camera = nullptr;
+
 		SCENE->UnloadScene();
 		m_asset_manager_window.OnShutdown();
 	}

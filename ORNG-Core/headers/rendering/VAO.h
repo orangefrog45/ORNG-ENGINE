@@ -189,6 +189,8 @@ namespace ORNG {
 			for (auto it = m_buffers.begin(); it != m_buffers.end(); it++) {
 				delete it->second;
 				it = m_buffers.erase(it);
+				if (it == m_buffers.end())
+					return;
 			}
 		}
 

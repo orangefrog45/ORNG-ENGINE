@@ -88,6 +88,7 @@ if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
 			COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			$<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
 			$<TARGET_FILE_DIR:ORNG_CORE>)
+	target_compile_definitions(ORNG_CORE PUBLIC PHYSX_GPU_ACCELERATION_AVAILABLE)
 else()
 	message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()

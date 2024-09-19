@@ -81,9 +81,7 @@ namespace ORNG {
 		physx::PxDefaultAllocator g_default_allocator_callback;
 
 		physx::PxFoundation* mp_foundation = nullptr;
-		physx::PxPvd* mp_pvd = nullptr;
 		physx::PxPhysics* mp_physics = nullptr;
-		physx::PxPvdTransport* mp_transport = nullptr;
 		physx::PxCpuDispatcher* mp_dispatcher = nullptr;
 		physx::PxCudaContextManager* mp_cuda_context_manager = nullptr;
 
