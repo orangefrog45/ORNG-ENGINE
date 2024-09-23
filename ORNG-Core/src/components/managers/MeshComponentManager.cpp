@@ -206,6 +206,9 @@ namespace ORNG {
 
 
 	void MeshInstancingSystem::OnUnload() {
+		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_mesh_listener.GetRegisterID());
+
 		for (auto* group : m_instance_groups) {
 			delete group;
 		}

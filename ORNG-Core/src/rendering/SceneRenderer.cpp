@@ -399,8 +399,6 @@ namespace ORNG {
 		voxel_spec_r32ui.min_filter = GL_NEAREST;
 		voxel_spec_r32ui.mag_filter = GL_NEAREST;
 
-
-
 		m_scene_voxel_tex_c0_normals.SetSpec(voxel_spec_r32ui);
 		m_scene_voxel_tex_c0.SetSpec(voxel_spec_r32ui);
 		m_scene_voxel_tex_c1.SetSpec(voxel_spec_r32ui);
@@ -921,7 +919,7 @@ namespace ORNG {
 		}
 	}
 
-
+	// TODO: This pass taking abnormally long on some hardware, needs fixing
 	void SceneRenderer::DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings) {
 		ORNG_PROFILE_FUNC_GPU();
 		m_gbuffer_fb->Bind();
@@ -1227,7 +1225,6 @@ namespace ORNG {
 
 
 	void SceneRenderer::DoBloomPass(unsigned int width, unsigned int height) {
-		ORNG_PROFILE_FUNC_GPU();
 		mp_bloom_threshold_shader->ActivateProgram();
 		mp_bloom_threshold_shader->SetUniform("u_threshold", mp_scene->post_processing.bloom.threshold);
 		mp_bloom_threshold_shader->SetUniform("u_knee", mp_scene->post_processing.bloom.knee);

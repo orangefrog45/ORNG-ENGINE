@@ -25,7 +25,12 @@ def ConstructPath(path : str, is_core):
     return path
 
 def IsShaderFile(filepath : str) -> bool:
-    return filepath.find(".glsl") != -1 or filepath.find(".vert") != -1 or filepath.find(".frag") != -1
+    valid_shader_extensions = [".glsl", ".vert", ".frag", ".compute", ".tess"]
+    for extension in valid_shader_extensions:
+        if filepath.find(extension) != -1:
+            return True
+        
+    return False
 
 class Handler(FileSystemEventHandler):
     def on_modified(self, event):
