@@ -16,7 +16,7 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-		bool record_memory_allocations = false;
+		constexpr bool record_memory_allocations = false;
 		mp_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *mp_foundation, PxTolerancesScale(), record_memory_allocations, nullptr);
 
 		ASSERT(vehicle2::PxInitVehicleExtension(*mp_foundation));
@@ -25,7 +25,6 @@ namespace ORNG {
 			ORNG_CORE_CRITICAL("PxCreatePhysics failed");
 			BREAKPOINT;
 		}
-
 
 		const PxU32 num_threads = glm::max((int)std::thread::hardware_concurrency() - 2, 1);
 		mp_dispatcher = PxDefaultCpuDispatcherCreate(num_threads);

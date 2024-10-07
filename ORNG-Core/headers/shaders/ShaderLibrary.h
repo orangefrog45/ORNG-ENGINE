@@ -18,6 +18,10 @@ namespace ORNG {
 
 		bool GenerateShaderPackage(const std::string& output_filepath);
 
+		bool ShaderPackageIsLoaded() {
+			return !m_shader_package_cache.empty();
+		}
+
 		/* 
 		Loads a shader package and stores shader code in a structure that can be referenced with the same filepaths used to create the package
 		Shaders will look in this structure first when being created and prioritize using that code over searching the filesystem

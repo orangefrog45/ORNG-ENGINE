@@ -57,7 +57,7 @@ namespace ORNG {
 		m_res.p_quad_col_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl", { "TRANSFORM" });
 		m_res.p_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
 		m_res.p_quad_col_shader->Init();
-		m_res.p_quad_col_shader->AddUniforms("u_scale", "u_translation", "u_color");
+		m_res.p_quad_col_shader->AddUniforms("u_scale", "u_translation", "u_colour");
 
 		m_res.p_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
 		m_res.p_picking_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl");
@@ -69,7 +69,7 @@ namespace ORNG {
 		m_res.p_highlight_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl", {"OUTLINE"});
 		m_res.p_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
 		m_res.p_highlight_shader->Init();
-		m_res.p_highlight_shader->AddUniforms("transform", "u_color", "u_scale");
+		m_res.p_highlight_shader->AddUniforms("transform", "u_colour", "u_scale");
 
 		// Setting up the scene display texture
 		m_res.color_render_texture_spec.format = GL_RGBA;
@@ -625,25 +625,27 @@ namespace ORNG {
 		else {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
+
 		SceneRenderer::RenderScene(settings);
 
 		m_asset_manager_window.OnMainRender();
+
+		m_res.p_editor_pass_fb->Bind();
+		m_res.p_editor_pass_fb->BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		// Mouse drag selection quad
 		if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
 			m_res.p_quad_col_shader->ActivateProgram();
-			m_res.p_quad_col_shader->SetUniform("u_color", glm::vec4(0, 0, 1, 0.1));
+			m_res.p_quad_col_shader->SetUniform("u_colour", glm::vec4(0, 0, 1, 0.1));
 			glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
 			Renderer::DrawScaledQuad((glm::vec2(m_state.mouse_drag_data.start.x, Window::GetHeight() - m_state.mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_state.mouse_drag_data.end.x, Window::GetHeight() - m_state.mouse_drag_data.end.y) / w) * 2.f - 1.f);
 		}
 
-		m_res.p_editor_pass_fb->Bind();
-		RenderGrid();
+		//RenderGrid();
 		DoSelectedEntityHighlightPass();
 		if (m_state.general_settings.debug_render_settings.render_physx_debug)
 			RenderPhysxDebug();
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-		GL_StateManager::DefaultClearBits();
 
 		if (m_state.simulate_mode_active) {
 			Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
@@ -855,8 +857,9 @@ namespace ORNG {
 	void EditorLayer::BuildGameFromActiveProject() {
 		// Delete old build
 		TryFileDelete("build");
-
 		Create_Directory("build");
+
+		Renderer::GetShaderLibrary().GenerateShaderPackage("build/shaders.shaderpkg");
 		FileCopy(m_state.current_project_directory + "/scene.yml", "build/scene.yml");
 		FileCopy(m_state.current_project_directory + "/res", "build/res", true);
 		FileCopy(GetApplicationExecutableDirectory() + "/res/shaders", "build/res/shaders", true);
@@ -1213,10 +1216,10 @@ namespace ORNG {
 			m_state.selected_entity_ids.clear();
 
 		if (pixels[2] != UINT_MAX) { // Joint selected
-			SelectEntity(current_entity_id);
 			auto* p_ent = SCENE->GetEntity(current_entity_id);
 
 			if (p_ent) {
+				SelectEntity(current_entity_id);
 				if (auto* p_joint = p_ent->GetComponent<JointComponent>()) {
 					auto it  = p_ent->GetComponent<JointComponent>()->attachments.begin();
 					std::advance(it, pixels[2]);
@@ -1246,7 +1249,7 @@ namespace ORNG {
 
 		glDisable(GL_DEPTH_TEST);
 		m_res.p_highlight_shader->ActivateProgram();
-		m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(0.0, 1, 0, 0));
+		m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.0, 1, 0, 0));
 
 		for (auto id : m_state.selected_entity_ids) {
 			auto* current_entity = SCENE->GetEntity(id);
@@ -1266,7 +1269,7 @@ namespace ORNG {
 
 		for (auto id : m_state.selected_entity_ids) {
 			auto* current_entity = SCENE->GetEntity(id);
-			m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(1.0, 0.2, 0, 1));
+			m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(1.0, 0.2, 0, 1));
 
 			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
 				continue;
@@ -1442,7 +1445,7 @@ namespace ORNG {
 		m_res.p_highlight_shader->ActivateProgram();
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-		m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(0.0, 0.75, 0, 0.5));
+		m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.0, 0.75, 0, 0.5));
 
 		auto* p_line_pos_buf = m_res.line_vao.GetBuffer<VertexBufferGL<glm::vec3>>(0);
 		p_line_pos_buf->data.clear();
@@ -1469,34 +1472,34 @@ namespace ORNG {
 				glm::vec3 pos1 = abs_pos1 + glm::quat(glm::radians(p_transform1->GetAbsOrientation())) * ConvertVec3<glm::vec3>(pose1.p);
 
 				if (m_state.p_selected_joint == p_joint)
-					m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(0.1, 0.3, 1.0, 0.75));
+					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.1, 0.3, 1.0, 0.75));
 
-				m_res.p_highlight_shader->SetUniform("transform", glm::translate(abs_pos0) * glm::scale(glm::vec3{ 0.1, 0.1, 0.1 }));
+				m_res.p_highlight_shader->SetUniform("transform", glm::translate(abs_pos0) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
 				Renderer::DrawSphere();
-				m_res.p_highlight_shader->SetUniform("transform", glm::translate(abs_pos1) * glm::scale(glm::vec3{ 0.1, 0.1, 0.1 }));
+				m_res.p_highlight_shader->SetUniform("transform", glm::translate(abs_pos1) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
 				Renderer::DrawSphere();
-				m_res.p_highlight_shader->SetUniform("transform", glm::translate(pos0) * glm::scale(glm::vec3{ 0.1, 0.1, 0.1 }));
+				m_res.p_highlight_shader->SetUniform("transform", glm::translate(pos0) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
 				Renderer::DrawSphere();
 
 				if (m_state.p_selected_joint == p_joint) { // Highlight currently selected joint a different colour
-					m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(0, 0.75, 0, 0.5));
+					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0, 0.75, 0, 0.5));
 					// Draw accumulated lines so far
 					m_res.line_vao.FillBuffers();
-					glLineWidth(10.f);
+					glLineWidth(3.f);
 					m_res.p_highlight_shader->SetUniform("transform", glm::identity<glm::mat4>());
 					Renderer::DrawVAOArrays(m_res.line_vao, p_line_pos_buf->data.size(), GL_LINES);
 					p_line_pos_buf->data.clear();
 
 					PushBackMultiple(p_line_pos_buf->data, abs_pos0, pos0, abs_pos1, pos1);
 
-					m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(0.1, 0.3, 1.0, 0.75));
+					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.1, 0.3, 1.0, 0.75));
 					m_res.line_vao.FillBuffers();
-					glLineWidth(10.f);
+					glLineWidth(3.f);
 					m_res.p_highlight_shader->SetUniform("transform", glm::identity<glm::mat4>());
 					Renderer::DrawVAOArrays(m_res.line_vao, p_line_pos_buf->data.size(), GL_LINES);
 					p_line_pos_buf->data.clear();
 
-					m_res.p_highlight_shader->SetUniform("u_color", glm::vec4(0, 0.75, 0, 0.5));
+					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0, 0.75, 0, 0.5));
 					continue;
 				}
 
@@ -1505,7 +1508,7 @@ namespace ORNG {
 		}
 
 		m_res.line_vao.FillBuffers();
-		glLineWidth(10.f);
+		glLineWidth(3.f);
 		m_res.p_highlight_shader->SetUniform("transform", glm::identity<glm::mat4>());
 		Renderer::DrawVAOArrays(m_res.line_vao, p_line_pos_buf->data.size(), GL_LINES);
 		

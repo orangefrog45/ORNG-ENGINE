@@ -40,17 +40,7 @@ namespace ORNG {
 		// Returns ptr to component or nullptr if no component was found
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
 		T* GetComponent() {
-#ifdef ORNG_SCRIPT_ENV
-			auto* p_comp = mp_registry->try_get<T>(m_entt_handle);
-			if (!p_comp) {
-				throw std::runtime_error("GetComponent call failed, entity does not have specified component. Validate with HasComponent first!");
-			}
-			else {
-				return p_comp;
-			}
-#else
 			return mp_registry->try_get<T>(m_entt_handle);
-#endif
 		}
 
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
@@ -77,14 +67,14 @@ namespace ORNG {
 			return GetComponent<RelationshipComponent>()->parent;
 		}
 
-		SceneEntity* GetChild(const std::string& name) {
+		SceneEntity* GetChild(const std::string& _name) {
 			auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
 			entt::entity current_entity = rel_comp.first;
 
 			for (int i = 0; i < rel_comp.num_children; i++) {
 				auto* p_ent = mp_registry->get<TransformComponent>(current_entity).GetEntity();
 
-				if (p_ent->name == name)
+				if (p_ent->name == _name)
 					return p_ent;
 
 				current_entity = mp_registry->get<RelationshipComponent>(current_entity).next;

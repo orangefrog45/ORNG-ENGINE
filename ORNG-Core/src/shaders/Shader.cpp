@@ -5,9 +5,7 @@
 #include "util/Log.h"
 #include <regex>
 
-#ifdef ORNG_RUNTIME
 #include "rendering/Renderer.h"
-#endif
 
 namespace ORNG {
 	Shader::~Shader() {
@@ -176,28 +174,28 @@ namespace ORNG {
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines) {
 		unsigned int shader_handle = 0;
 
-#ifdef ORNG_RUNTIME
-		// Shaders will be deserialized and loaded from a shader package
-		ShaderData data{ .name = m_name, .stage = (uint32_t)shader_type, .id = 0 };
-		CompileShader(shader_type, Renderer::GetShaderLibrary().PopShaderCodeFromCache(data), shader_handle);
-		m_shader_handles.push_back(shader_handle);
-#else
-		ASSERT(FileExists(filepath));
-		std::vector<const std::string*> include_tree;
+		if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded()) {
+			// Shaders will be deserialized and loaded from a shader package
+			ShaderData data{ .name = m_name, .stage = (uint32_t)shader_type, .id = 0 };
+			CompileShader(shader_type, Renderer::GetShaderLibrary().PopShaderCodeFromCache(data), shader_handle);
+			m_shader_handles.push_back(shader_handle);
+		}
+		else {
+			ASSERT(FileExists(filepath));
+			std::vector<const std::string*> include_tree;
 
-		m_stages[shader_type] = { std::filesystem::absolute(filepath).string(), defines }; // Store absolute path as the working directory will change to fit the project
-		auto result = ParseShader(filepath, defines, include_tree, 0, shader_type);
-		CompileShader(shader_type, result.shader_code, shader_handle);
+			m_stages[shader_type] = { std::filesystem::absolute(filepath).string(), defines }; // Store absolute path as the working directory will change to fit the project
+			auto result = ParseShader(filepath, defines, include_tree, 0, shader_type);
+			CompileShader(shader_type, result.shader_code, shader_handle);
 
-		m_shader_handles.push_back(shader_handle);
-#endif
+			m_shader_handles.push_back(shader_handle);
+		}
 	}
 
 	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines) {
-#ifdef ORNG_RUNTIME
-		// Shaders will be deserialized and loaded from a shader package, so this behaviour can be scrapped
-		return;
-#endif
+		if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded())
+			return; // Shaders will be deserialized and loaded from a shader package, so this behaviour can be scrapped
+
 		// Copy needs to be made so the includes can be written to it
 		std::string shader_code_copy = shader_code;
 

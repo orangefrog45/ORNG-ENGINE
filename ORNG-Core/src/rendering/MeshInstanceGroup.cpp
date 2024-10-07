@@ -36,8 +36,6 @@ namespace ORNG {
 		if (m_tombstone_count >= m_tombstone_limit) {
 			ReallocateInstances();
 		}
-
-
 	}
 
 	void MeshInstanceGroup::ClearMeshes() {

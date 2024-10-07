@@ -124,36 +124,103 @@ float SpiralNoiseC(vec3 p, vec4 id) {
     return n;
 }
 
+float opSubtraction( float d1, float d2 )
+{
+    return max(-d1,d2);
+}
+
+
+// hash function              
+float hash(float n)
+{
+    return fract(cos(n) * 114514.1919);
+}
+
+// 3d noise function
+float noise(in vec3 x)
+{
+    vec3 p = floor(x);
+    vec3 f = smoothstep(0.0, 1.0, fract(x));
+        
+    float n = p.x + p.y * 10.0 + p.z * 100.0;
+    
+    return mix(
+        mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),
+            mix(hash(n + 10.0), hash(n + 11.0), f.x), f.y),
+        mix(mix(hash(n + 100.0), hash(n + 101.0), f.x),
+            mix(hash(n + 110.0), hash(n + 111.0), f.x), f.y), f.z);
+}
+
+mat3 m = mat3(0.00, 1.60, 1.20, -1.60, 0.72, -0.96, -1.20, -0.96, 1.28);
+
+float fbm(vec3 p)
+{
+    float f = 0.5000 * noise(p);
+    p = m * p;
+    f += 0.2500 * noise(p);
+    p = m * p;
+    f += 0.1666 * noise(p);
+    p = m * p;
+    f += 0.0834 * noise(p);
+    return f;
+}
+
+
+float FogDensityGyro(vec3 step_pos) {
+	float gyro_frequency = 0.01;
+	float o = sin(step_pos.x * 0.1+step_pos.y*0.05)*sin(step_pos.y * 0.01)*sin(step_pos.z * 0.031);
+	float gyro_d = dot(sin(step_pos*gyro_frequency), cos(step_pos.yzx*gyro_frequency));
+	return exp(-clamp(fbm(step_pos*0.01) + gyro_d*0.2, 0.0, 1.0)*40) * 300000;
+}
+
 void main() {
 	// Tex coords in range (0, 0), (screen width, screen height) / 2
-	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy) ;
+	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
 	float noise_offset = texelFetch(blue_noise_sampler, ivec2(tex_coords % textureSize(blue_noise_sampler, 0).xy), 0).r;
 
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
-	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / (vec2(imageSize(fog_texture))));
+	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / vec2(imageSize(fog_texture)));
 	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float cam_to_frag_dist = min(length(cam_to_frag), 10000.0);
+	float cam_to_frag_dist = min(length(cam_to_frag), 1000.0);
 	float step_distance = cam_to_frag_dist / float(u_step_count);
 
-
 	vec3 ray_dir = normalize(cam_to_frag);
-
 	vec3 step_pos = ubo_common.camera_pos.xyz + ray_dir * noise_offset * step_distance;
-
 	vec4 accum = vec4(0, 0, 0, 1);
-
+	
 		// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		vec3 fog_sampling_coords = step_pos / 2000.f;
 		float fog_density = u_density_coef;
-		//float fog_density = 0;
-		fog_density += u_density_coef * 0.5 ;
 
 		vec3 slice_light = vec3(0);
 
+		float d_min = 100000;
+		for (int i = 3; i < 6; i++) {
+			float theta = atan(step_pos.z, step_pos.x) + 2 * PI * i;
+			float theta_2 = atan(-step_pos.z, -step_pos.x) + 2 * PI * i;
+			vec3 p = vec3(cos(theta), 0, sin(theta));
+			vec3 p_neg = vec3(cos(theta_2), 0, sin(theta_2));
+			p *= pow(theta, 4.0)*0.00025;
+			p_neg *= pow(theta_2, 4.0)*0.00025;
+			d_min = min(length(step_pos - p), d_min);
+			d_min = min(length(-step_pos - p_neg), d_min);
+		}
+
+		float ns = fbm(step_pos*0.03);
+		float l = length(step_pos);
+		fog_density = exp(-d_min*0.09) * exp(-clamp(ns, 0.0, 1.0)*3)*3;	
+		slice_light += vec3(1.0, 0.2, 0.08) *  exp(-clamp(ns, 0.0, 1.0)*5)*fog_density*exp(-l * 0.02)*20;
+		slice_light += vec3(1.0, 0.3, 0.4) * exp(-clamp(noise(-step_pos*0.1), 0.0, 1.0)*500)*fog_density*1000;
+		slice_light += vec3(0.3, 0.5, 1.0) * exp(-l * 0.04);
+		//if (length(step_pos) > 4000 + sin(step_pos.z*0.001)*sin(step_pos.y*0.001)*100)
+			//fog_density = 0;
+
 		for (uint i = 0; i < ubo_point_lights.lights.length(); i++) {
-			slice_light += CalcPointLight(ubo_point_lights.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights.lights[i].pos.xyz - step_pos)) * (1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], int(i), step_pos));
+			vec3 point_to_light = ubo_point_lights.lights[i].pos.xyz - step_pos;
+			slice_light += 
+			CalcPointLight(ubo_point_lights.lights[i], step_pos) * phase(ray_dir, normalize(ubo_point_lights.lights[i].pos.xyz - step_pos)) * 
+			(1.0 - ShadowCalculationPointlight(ubo_point_lights.lights[i], int(i), step_pos));
 		}
 
 		for (uint i = 0; i < ubo_spot_lights.lights.length(); i++) {

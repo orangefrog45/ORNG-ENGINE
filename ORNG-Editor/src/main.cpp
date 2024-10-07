@@ -23,6 +23,6 @@ void main() {
 	application.layer_stack.PushLayer(&il);
 	application.layer_stack.PushLayer(static_cast<ORNG::Layer*>(&editor_layer));
 
-	ORNG::ApplicationData data{ .shader_package_file = "projects/base-project/shaderpkg.bin" };
+	ORNG::ApplicationData data{};
 	application.Init(data);
 }

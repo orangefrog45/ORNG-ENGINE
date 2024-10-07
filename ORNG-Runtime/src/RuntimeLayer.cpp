@@ -37,7 +37,7 @@ namespace ORNG {
 		mp_scene = std::make_unique<Scene>();
 		Events::EventManager::RegisterListener(m_window_event_listener);
 		AssetManager::LoadAssetsFromProjectPath("./", true);
-		mp_scene->LoadScene(".\\scene.yml");
+		mp_scene->LoadScene();
 		SceneSerializer::DeserializeScene(*mp_scene, ".\\scene.yml", true);
 		mp_scene->OnStart();
 	}

@@ -61,9 +61,9 @@ namespace ORNG {
 		if (!(data.disabled_modules & ApplicationModulesFlags::INPUT))
 			Input::Init();
 
-#ifdef ORNG_RUNTIME
-		Renderer::GetShaderLibrary().LoadShaderPackage(data.shader_package_file);
-#endif
+		if (!data.shader_package_file.empty())
+			Renderer::GetShaderLibrary().LoadShaderPackage(data.shader_package_file);
+
 		Renderer::Init();
 
 		if (!(data.disabled_modules & ApplicationModulesFlags::PHYSICS))

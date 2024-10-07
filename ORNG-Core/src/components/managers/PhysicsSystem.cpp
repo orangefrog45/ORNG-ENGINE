@@ -476,6 +476,9 @@ namespace ORNG {
 		// Store JointComponent::Joint*
 		connection.p_joint->p_joint->userData = connection.p_joint;
 
+		// Update break forces
+		connection.p_joint->SetBreakForce(connection.p_joint->force_threshold, connection.p_joint->torque_threshold);
+
 		// Cache A1
 		connection.p_joint->p_a1 = connection.p_target->GetEntity();
 
