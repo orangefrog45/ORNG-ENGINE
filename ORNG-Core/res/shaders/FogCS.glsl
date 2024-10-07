@@ -173,6 +173,32 @@ float FogDensityGyro(vec3 step_pos) {
 	return exp(-clamp(fbm(step_pos*0.01) + gyro_d*0.2, 0.0, 1.0)*40) * 300000;
 }
 
+vec4 Galaxy(vec3 step_pos) {
+	float fog_density = 0.0;
+	vec3 slice_light = vec3(0);
+
+	float d_min = 100000;
+	for (int i = 3; i < 6; i++) {
+		float theta = atan(step_pos.z, step_pos.x) + 2 * PI * i;
+		float theta_2 = atan(-step_pos.z, -step_pos.x) + 2 * PI * i;
+		vec3 p = vec3(cos(theta), 0, sin(theta));
+		vec3 p_neg = vec3(cos(theta_2), 0, sin(theta_2));
+		p *= pow(theta, 4.0)*0.00025;
+		p_neg *= pow(theta_2, 4.0)*0.00025;
+		d_min = min(length(step_pos - p), d_min);
+		d_min = min(length(-step_pos - p_neg), d_min);
+	}
+
+	float ns = fbm(step_pos*0.03);
+	float l = length(step_pos);
+	fog_density = exp(-d_min*0.09) * exp(-clamp(ns, 0.0, 1.0)*3)*3;	
+	slice_light += vec3(1.0, 0.2, 0.08) *  exp(-clamp(ns, 0.0, 1.0)*5)*fog_density*exp(-l * 0.02)*20;
+	slice_light += vec3(1.0, 0.3, 0.4) * exp(-clamp(noise(-step_pos*0.1), 0.0, 1.0)*500)*fog_density*1000;
+	slice_light += vec3(0.3, 0.5, 1.0) * exp(-l * 0.04);
+
+	return vec4(slice_light, fog_density);
+}
+
 void main() {
 	// Tex coords in range (0, 0), (screen width, screen height) / 2
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
@@ -194,27 +220,6 @@ void main() {
 		float fog_density = u_density_coef;
 
 		vec3 slice_light = vec3(0);
-
-		float d_min = 100000;
-		for (int i = 3; i < 6; i++) {
-			float theta = atan(step_pos.z, step_pos.x) + 2 * PI * i;
-			float theta_2 = atan(-step_pos.z, -step_pos.x) + 2 * PI * i;
-			vec3 p = vec3(cos(theta), 0, sin(theta));
-			vec3 p_neg = vec3(cos(theta_2), 0, sin(theta_2));
-			p *= pow(theta, 4.0)*0.00025;
-			p_neg *= pow(theta_2, 4.0)*0.00025;
-			d_min = min(length(step_pos - p), d_min);
-			d_min = min(length(-step_pos - p_neg), d_min);
-		}
-
-		float ns = fbm(step_pos*0.03);
-		float l = length(step_pos);
-		fog_density = exp(-d_min*0.09) * exp(-clamp(ns, 0.0, 1.0)*3)*3;	
-		slice_light += vec3(1.0, 0.2, 0.08) *  exp(-clamp(ns, 0.0, 1.0)*5)*fog_density*exp(-l * 0.02)*20;
-		slice_light += vec3(1.0, 0.3, 0.4) * exp(-clamp(noise(-step_pos*0.1), 0.0, 1.0)*500)*fog_density*1000;
-		slice_light += vec3(0.3, 0.5, 1.0) * exp(-l * 0.04);
-		//if (length(step_pos) > 4000 + sin(step_pos.z*0.001)*sin(step_pos.y*0.001)*100)
-			//fog_density = 0;
 
 		for (uint i = 0; i < ubo_point_lights.lights.length(); i++) {
 			vec3 point_to_light = ubo_point_lights.lights[i].pos.xyz - step_pos;
