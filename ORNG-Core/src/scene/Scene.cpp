@@ -106,6 +106,10 @@ namespace ORNG {
 	void Scene::Update(float ts) {
 		m_time_elapsed += ts;
 
+		for (auto [id, p_system] : systems) {
+			p_system->OnUpdate();
+		}
+		
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			try {
@@ -117,9 +121,6 @@ namespace ORNG {
 		}
 		ORNG_PROFILE_FUNC();
 
-		for (auto [id, p_system] : systems) {
-			p_system->OnUpdate();
-		}
 
 		//if (m_camera_system.GetActiveCamera())
 			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());

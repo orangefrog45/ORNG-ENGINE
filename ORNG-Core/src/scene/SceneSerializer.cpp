@@ -639,6 +639,7 @@ namespace ORNG {
 		PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
 		p_capsule->setRadius(node["Radius"].as<float>());
 		p_capsule->setHeight(node["Height"].as<float>());
+		p_capsule->setPosition(ConvertVec3<PxExtendedVec3>(entity.GetComponent<TransformComponent>()->GetAbsPosition()));
 	}
 
 

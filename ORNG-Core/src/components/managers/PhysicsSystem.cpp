@@ -50,7 +50,6 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<JointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
 
-
 	PhysicsSystem::PhysicsSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 	};
 
@@ -750,7 +749,7 @@ namespace ORNG {
 			SceneEntity* p_ent = static_cast<SceneEntity*>(active_actors[i]->userData);
 			auto* p_transform = p_ent->GetComponent<TransformComponent>();
 			mp_currently_updating_transform = p_transform;
-			UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform, ActorType::RIGID_BODY);
+			UpdateTransformCompFromGlobalPose(static_cast<PxRigidActor*>(active_actors[i])->getGlobalPose(), *p_transform, p_ent->HasComponent<CharacterControllerComponent>() ? ActorType::CHARACTER_CONTROLLER : ActorType::RIGID_BODY);
 			mp_currently_updating_transform = nullptr;
 		}
 
@@ -817,7 +816,7 @@ namespace ORNG {
 		desc.height = 1.8;
 		desc.radius = 0.1;
 		desc.material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
-		desc.stepOffset = 1.8f;
+		desc.stepOffset = 0.5f;
 		p_comp->p_controller = mp_controller_manager->createController(desc);
 
 		static_cast<PxCapsuleController*>(p_comp->p_controller)->getActor()->userData = p_comp->GetEntity();
