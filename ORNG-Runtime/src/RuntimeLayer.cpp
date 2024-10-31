@@ -5,10 +5,7 @@
 
 namespace ORNG {
 	void RuntimeLayer::OnInit() {
-		mp_quad_shader = &Renderer::GetShaderLibrary().CreateShader("runtime-quad");
-		mp_quad_shader->AddStage(GL_VERTEX_SHADER, "res/shaders/QuadVS.glsl");
-		mp_quad_shader->AddStage(GL_FRAGMENT_SHADER, "res/shaders/QuadFS.glsl");
-		mp_quad_shader->Init();
+		mp_quad_shader = &Renderer::GetShaderLibrary().GetShader("SL quad");
 
 		Texture2DSpec spec;
 		// Setting up the scene display texture

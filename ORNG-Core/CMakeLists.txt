@@ -106,10 +106,6 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
 
-set(SNAPPY_BUILD_TESTS OFF CACHE BOOL "Snappy build tests" FORCE)
-set(SNAPPY_BUILD_BENCHMARKS OFF CACHE BOOL "Snappy build tests" FORCE)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/snappy)
-
 option(TRACY_ENABLE "" OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
 
@@ -138,7 +134,6 @@ extern/yaml/include
 extern/plog/include
 extern/bitsery/include
 extern/implot
-extern/snappy
 "extern/tracy/public/tracy"
 )
 
@@ -154,7 +149,6 @@ ${YAML_CPP_LIBRARIES}
 ${ASSIMP_LIBRARY}
 ${PHYSX_LIBRARIES}
 Tracy::TracyClient
-snappy
 )
 
 if (NOT ORNG_DISABLE_FMOD)

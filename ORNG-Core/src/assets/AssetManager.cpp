@@ -9,8 +9,6 @@
 #include "physics/Physics.h" // for material initialization
 #include "yaml-cpp/yaml.h"
 #include "rendering/EnvMapLoader.h"
-#include <snappy.h>
-#include <snappy-sinksource.h>
 
 // For glfwmakecontextcurrent
 #include <GLFW/glfw3.h>
@@ -130,23 +128,7 @@ namespace ORNG {
 
 		ReadBinaryFile(package_filepath, file_data);
 
-		snappy::ByteArraySource compressed_source(reinterpret_cast<const char*>(file_data.data()), file_data.size());
-
-		uint32_t uncompressed_size;
-		snappy::GetUncompressedLength(&compressed_source, &uncompressed_size);
-
-		std::vector<std::byte> decompressed_data{ uncompressed_size };
-		snappy::UncheckedByteArraySink decompressed_sink(reinterpret_cast<char*>(decompressed_data.data()));
-
-		// Re-read file as GetUncompressedLength can modify the data
-		file_data.clear();
-		ReadBinaryFile(package_filepath, file_data);
-
-		auto new_compressed_source = snappy::ByteArraySource{ reinterpret_cast<const char*>(file_data.data()), file_data.size() };
-
-		snappy::Uncompress(&new_compressed_source, &decompressed_sink);
-
-		BufferDeserializer des{ decompressed_data.begin(), decompressed_data.end()};
+		BufferDeserializer des{ file_data.begin(), file_data.end()};
 
 		uint32_t num_textures, num_meshes, num_sounds, num_prefabs, num_materials, num_phys_materials;
 		des.value4b(num_textures);
@@ -271,19 +253,13 @@ namespace ORNG {
 			ser.object(*p_mat);
 		}
 
-		std::string compressed_data;
-
-		if (!snappy::Compress(reinterpret_cast<const char*>(ser_buffer.data()), ser_buffer.size(), &compressed_data)) {
-			ORNG_CORE_ERROR("Failed to compress serialized data for asset package");
-			return;
-		}
 
 		std::ofstream s{ output_path, s.binary | s.trunc | s.out };
 		if (!s.is_open()) {
 			ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", output_path);
 			return;
 		}
-		s.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size());
+		s.write(reinterpret_cast<const char*>(ser_buffer.data()), ser_buffer.size());
 		s.close();
 	}
 

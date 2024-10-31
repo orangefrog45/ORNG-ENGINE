@@ -365,7 +365,6 @@ namespace ORNG {
 		glm::vec2 max = { glm::max(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), glm::max(Window::GetHeight() - m_state.mouse_drag_data.start.y, Window::GetHeight() - m_state.mouse_drag_data.end.y) };
 		glm::vec2 n = glm::vec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y);
 
-
 		auto* p_cam = SCENE->GetActiveCamera();
 		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		auto pos = p_transform->GetAbsPosition();
@@ -389,7 +388,6 @@ namespace ORNG {
 		glm::vec3 right = p_transform->right;
 
 		glm::vec3 up = glm::normalize(glm::cross(right, target));
-
 
 		ExtraMath::Plane t = { glm::cross(right, pos - far_max), pos };
 
@@ -418,14 +416,14 @@ namespace ORNG {
 
 				if (!m_state.general_settings.selection_settings.select_all) {
 					if (m_state.general_settings.selection_settings.select_light_objects && (p_entity->HasComponent<PointLightComponent>() || p_entity->HasComponent<SpotLightComponent>()))
-						SelectEntity(SCENE->GetEntity(entity)->uuid());
+						SelectEntity(p_entity->uuid());
 					else if (m_state.general_settings.selection_settings.select_mesh_objects && p_entity->HasComponent<MeshComponent>())
-						SelectEntity(SCENE->GetEntity(entity)->uuid());
+						SelectEntity(p_entity->uuid());
 					else if (m_state.general_settings.selection_settings.select_physics_objects && p_entity->HasComponent<PhysicsComponent>())
-						SelectEntity(SCENE->GetEntity(entity)->uuid());
+						SelectEntity(p_entity->uuid());
 				}
 				else {
-					SelectEntity(SCENE->GetEntity(entity)->uuid());
+					SelectEntity(p_entity->uuid());
 				}
 			}
 		}

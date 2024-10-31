@@ -43,9 +43,6 @@
 [submodule "extern/vcpkg"]
 	path = extern/vcpkg
 	url = https://github.com/microsoft/vcpkg
-[submodule "ORNG-Core/extern/snappy"]
-	path = ORNG-Core/extern/snappy
-	url = https://github.com/google/snappy
 [submodule "ORNG-Editor/extern/sol2"]
 	path = ORNG-Editor/extern/sol2
 	url = https://github.com/ThePhD/sol2

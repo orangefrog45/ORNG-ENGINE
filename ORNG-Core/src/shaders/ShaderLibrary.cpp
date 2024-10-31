@@ -9,8 +9,6 @@
 #include <bitsery/traits/vector.h>
 #include "bitsery/traits/string.h"
 #include <bitsery/bitsery.h>
-#include <snappy.h>
-#include <snappy-sinksource.h>
 
 namespace ORNG {
 	void ShaderLibrary::Init() {
@@ -86,10 +84,7 @@ namespace ORNG {
 			}
 		}
 
-		std::string compressed_output;
-		snappy::Compress(reinterpret_cast<const char*>(data.data()), data.size(), &compressed_output);
-
-		s.write(reinterpret_cast<const char*>(compressed_output.data()), compressed_output.size());
+		s.write(reinterpret_cast<const char*>(data.data()), data.size());
 		s.close();
 
 		return true;
@@ -102,25 +97,13 @@ namespace ORNG {
 	}
 
 	void ShaderLibrary::LoadShaderPackage(const std::string& package_filepath) {
-		std::vector<std::byte> compressed_data;
-		ReadBinaryFile(package_filepath, compressed_data);
-
-		size_t uncompressed_size;
-		snappy::GetUncompressedLength(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size(), &uncompressed_size);
-
-		std::vector<std::byte> decompressed_data{ uncompressed_size };
-
-		snappy::ByteArraySource input(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size());
-		snappy::UncheckedByteArraySink output(reinterpret_cast<char*>(decompressed_data.data()));
-
-		if (!snappy::Uncompress(dynamic_cast<snappy::Source*>(&input), dynamic_cast<snappy::Sink*>(&output))) {
-			ORNG_CORE_CRITICAL("Failed to decompress shader package '{0}', exiting", package_filepath);
-			BREAKPOINT;
-		}
+		std::vector<std::byte> file_data;
+		if (!ReadBinaryFile(package_filepath, file_data))
+			return;
 
 		m_shaders.clear();
 
-		bitsery::Deserializer<bitsery::InputBufferAdapter<std::vector<std::byte>>> des{ decompressed_data.begin(), decompressed_data.end()};
+		bitsery::Deserializer<bitsery::InputBufferAdapter<std::vector<std::byte>>> des{ file_data.begin(), file_data.end()};
 		uint32_t num_shaders;
 		uint32_t num_shader_variants;
 		des.value4b(num_shaders);

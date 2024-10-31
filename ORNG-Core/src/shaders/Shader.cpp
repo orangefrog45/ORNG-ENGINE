@@ -371,15 +371,17 @@ namespace ORNG {
 		ASSERT(!m_shaders.contains(id));
 		m_shaders[id] = Shader(std::format("{}", m_name));
 		for (auto& [type, path] : m_shader_paths) {
-#ifdef ORNG_RUNTIME
-			// Shaders will be deserialized and loaded from a shader package
-			ShaderData data{ .name = m_name, .stage = (uint32_t)type, .id = id };
-			unsigned shader_handle;
-			m_shaders[id].CompileShader(type, Renderer::GetShaderLibrary().PopShaderCodeFromCache(data), shader_handle);
-			m_shaders[id].m_shader_handles.push_back(shader_handle);
-#else
-			m_shaders[id].AddStage(type, path, defines);
-#endif
+			if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded()) {
+				// Shaders will be deserialized and loaded from a shader package
+				ShaderData data{ .name = m_name, .stage = (uint32_t)type, .id = id };
+				unsigned shader_handle;
+				auto code = Renderer::GetShaderLibrary().PopShaderCodeFromCache(data);
+				m_shaders[id].CompileShader(type, code, shader_handle);
+				m_shaders[id].m_shader_handles.push_back(shader_handle);
+			}
+			else {
+				m_shaders[id].AddStage(type, path, defines);
+			}
 		}
 
 		m_shaders[id].Init();
