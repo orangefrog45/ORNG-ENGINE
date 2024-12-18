@@ -78,9 +78,9 @@ namespace ORNG {
 		std::function<class Material* (uint64_t uuid)> GetMaterialByUUID = nullptr;
 		std::function<class Material* ()> CreateMaterial = nullptr;
 		std::function<class Shader* (const std::string& name)> CreateShader = nullptr;
-		std::function<void(const std::string& name)> DeleteShader = nullptr;
+		std::function<void (const std::string& name)> DeleteShader = nullptr;
 		std::function<void(const struct Renderpass&)> AttachRenderpass = nullptr;
-		std::function<void(const std::string& renderpass_name)> DetachRenderpass = nullptr;
+		std::function<void(const std::string& renderpass_name)> DetachRenderpass  = nullptr;
 
 	};
 

@@ -17,6 +17,8 @@
 constexpr unsigned ORNG_MAX_FILEPATH_SIZE = 500;
 constexpr unsigned ORNG_MAX_NAME_SIZE = 500;
 
+#define FUNC_NAME __FUNCTION__ // or __FUNCSIG__
+
 #define CONCAT(x, y) CONCAT_IMPL(x, y)
 #define CONCAT_IMPL(x, y) x##y
 

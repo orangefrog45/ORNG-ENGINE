@@ -107,6 +107,7 @@ void main() {
 					vs_particle_index = u_transform_start_index + gl_InstanceID;
 					#define EMITTER ssbo_particle_emitters.emitters[PARTICLE_SSBO.particles[vs_particle_index].emitter_index]
 					float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
+					vec3 interpolated_scale = InterpolateV3(interpolation, EMITTER.scale_over_life);
 				#else
 					vs_particle_index = gl_InstanceID;
 				#endif
@@ -135,7 +136,6 @@ void main() {
 
 		#if defined PARTICLE && defined BILLBOARD
 			#ifndef PARTICLES_DETACHED
-				vec3 interpolated_scale = InterpolateV3(interpolation, EMITTER.scale_over_life);
 			#endif
 
 			#define TRANSFORM PARTICLE_SSBO.particles[vs_particle_index]
@@ -162,7 +162,7 @@ void main() {
 				#define TRANSFORM ssbo_particles.particles[vs_particle_index]
 			#endif
 
-			vert_data.position = vec4(qtransform(TRANSFORM.quat, (position * TRANSFORM.scale.xyz)) + TRANSFORM.pos.xyz, 1.0);
+			vert_data.position = vec4(qtransform(TRANSFORM.quat, (interpolated_scale * position * TRANSFORM.scale.xyz)) + TRANSFORM.pos.xyz, 1.0);
 			vert_data.normal = qtransform(vec4(TRANSFORM.quat.xyz, 1.0), vertex_normal);
 
 			#undef TRANSFORM

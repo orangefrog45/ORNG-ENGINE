@@ -837,6 +837,7 @@ namespace ORNG {
 			return;
 		}
 
+		Events::EventManager::DispatchEvent(PhysicsCollisionEvent{ p_first_ent, p_second_ent });
 		mp_system->m_entity_collision_queue.push_back(std::make_pair(p_first_ent->GetEnttHandle(), p_second_ent->GetEnttHandle()));
 	}
 

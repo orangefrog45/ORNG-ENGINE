@@ -2,7 +2,7 @@
 #include "scene/Skybox.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
-#include "EntityNodeRef.h"
+#include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"
 #include "components/ComponentAPI.h"
 #include "terrain/Terrain.h"
@@ -12,6 +12,12 @@ namespace ORNG {
 	struct Prefab;
 	class SceneEntity;
 	class ComponentSystem;
+
+	struct UUIDChangeEvent : public Events::Event {
+		UUIDChangeEvent(uint64_t _old, uint64_t _new) : old_uuid(_old), new_uuid(_new) {};
+		uint64_t old_uuid;
+		uint64_t new_uuid;
+	};
 
 	class Scene {
 	public:
@@ -59,6 +65,8 @@ namespace ORNG {
 
 		void Update(float ts);
 
+		void OnImGuiRender();
+
 		void LoadScene();
 
 		void UnloadScene();
@@ -68,6 +76,7 @@ namespace ORNG {
 		// Specify uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
 		void DeleteEntity(SceneEntity* p_entity);
+		void DeleteEntityAtEndOfFrame(SceneEntity* p_entity);
 		SceneEntity* GetEntity(uint64_t uuid);
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
@@ -143,6 +152,7 @@ namespace ORNG {
 		Terrain terrain;
 
 		std::unordered_map<uint16_t, ComponentSystem*> systems;
+		std::unordered_map<uint64_t, SceneEntity*> m_entity_uuid_lookup;
 
 	private:
 		void SetScriptState();
@@ -169,7 +179,7 @@ namespace ORNG {
 		// Entities without a parent, stored so they can be quickly found when a noderef path is being formed
 		std::unordered_set<entt::entity> m_root_entities;
 		Events::ECS_EventListener<RelationshipComponent> m_hierarchy_modification_listener;
-
+		Events::EventListener<UUIDChangeEvent> m_uuid_change_listener;
 
 		entt::registry m_registry;
 

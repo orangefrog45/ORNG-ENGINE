@@ -40,9 +40,9 @@ namespace ORNG {
 
 	void LayerStack::Init() {
 		m_core_listener.OnEvent = [this](const Events::EngineCoreEvent t_event) {
-			if (t_event.event_type == Events::Event::ENGINE_UPDATE)
+			if (t_event.event_type == Events::EngineCoreEvent::ENGINE_UPDATE)
 				UpdateLayers();
-			else if (t_event.event_type == Events::Event::ENGINE_RENDER)
+			else if (t_event.event_type == Events::EngineCoreEvent::ENGINE_RENDER)
 				OnRenderEvent();
 			};
 

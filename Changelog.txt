@@ -1,3 +1,13 @@
+18/12/24:
+-Scripting engine overhaul -------
+-- Now cmake based and compiling occurs outside editor (still hot-reloadable), allows for using external libraries
+-- ImGui and opengl rendering code can now be used inside scripts
+-- Changed how script class properties are exposed (faster, less memory usage)
+-- Scripts have access to much more of the engine
+
+-Fast entity UUID lookups
+-More general fixes/improvements
+
 19/9/24:
 -Many bugfixes, stability improvements with different hardware
 

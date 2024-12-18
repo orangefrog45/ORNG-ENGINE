@@ -74,14 +74,6 @@ namespace ORNG {
 			return ret;
 		}
 
-		inline static unsigned GetActiveShaderProgram() {
-			Get().m_current_active_shader_handle;
-		}
-
-		inline static void ActivateShaderProgram(unsigned int shader_handle) {
-			Get().IActivateShaderProgram(shader_handle);
-		}
-
 		inline static void DispatchCompute(int x, int y, int z) {
 			ASSERT(x < 48'000 && x > 0);
 			glDispatchCompute(x, y, z);
@@ -186,9 +178,7 @@ namespace ORNG {
 		};
 
 	private:
-
 		void I_InitGL();
-		void IActivateShaderProgram(unsigned int shader_handle);
 
 		void IBindVAO(unsigned int vao) {
 			if (m_current_bound_vao != vao) {

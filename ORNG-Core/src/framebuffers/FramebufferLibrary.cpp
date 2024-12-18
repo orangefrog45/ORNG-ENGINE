@@ -8,7 +8,7 @@ namespace ORNG {
 
 	void FramebufferLibrary::Init() {
 		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
-			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
+			if (t_event.event_type == Events::WindowEvent::WINDOW_RESIZE) {
 				for (auto& k_v : m_framebuffers) {
 					if (k_v.second.GetIsScalingWithWindow())
 						k_v.second.Resize();

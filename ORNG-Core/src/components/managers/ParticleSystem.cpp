@@ -239,7 +239,6 @@ namespace ORNG {
 
 		glNamedBufferSubData(m_emitter_ssbo.GetHandle(), index * emitter_struct_size, emitter_struct_size, &emitter_data[0]);
 		//std::memcpy(p_emitter_gpu_buffer + index * emitter_struct_size, &emitter_data[0], emitter_struct_size);
-
 	}
 
 

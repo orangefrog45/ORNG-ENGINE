@@ -7,7 +7,6 @@
 #include "physx/vehicle2/PxVehicleAPI.h"
 
 #include "scripting/ScriptShared.h"
-#include "rendering/VAO.h"
 #include "components/ParticleBufferComponent.h"
 #include "scene/Scene.h"
 
@@ -140,6 +139,11 @@ namespace ORNG {
 
 
 
+	struct PhysicsCollisionEvent : public Events::Event {
+		PhysicsCollisionEvent(SceneEntity* _p0, SceneEntity* _p1) : p0(_p0), p1(_p1) {};
+		SceneEntity* p0 = nullptr;
+		SceneEntity* p1 = nullptr;
+	};
 
 	class PhysicsSystem : public ComponentSystem {
 		friend class EditorLayer;

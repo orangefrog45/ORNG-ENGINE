@@ -30,8 +30,12 @@ add_subdirectory("ORNG-Runtime")
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/Game")
 project(FRACTAL_GAME)
 project(HW_MONITOR)
+project(GAME_LAYER)
+project(PHYS_GAME)
 add_subdirectory("Game")
 add_subdirectory("HW-Monitor")
+add_subdirectory("IFS-fractals")
+add_subdirectory("PhysicsGame")
 endif()
 
 

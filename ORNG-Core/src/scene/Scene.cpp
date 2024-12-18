@@ -11,6 +11,11 @@
 #include "util/Timers.h"
 #include "core/FrameTiming.h"
 #include "Tracy.hpp"
+#include "core/Window.h"
+
+// For SI funcs
+#include "rendering/Renderer.h"
+#include "rendering/SceneRenderer.h" 
 
 
 namespace ORNG {
@@ -24,7 +29,18 @@ namespace ORNG {
 	}
 
 	Scene::Scene() {
+		m_uuid_change_listener.OnEvent = [this](const UUIDChangeEvent& _event) {
+			auto* p_ent = m_entity_uuid_lookup[_event.old_uuid];
+			if (!p_ent) // Entity belongs to a different scene
+				return;
 
+			m_entity_uuid_lookup.erase(_event.old_uuid);
+			m_entity_uuid_lookup[_event.new_uuid] = p_ent;
+		};
+
+		Events::EventManager::RegisterListener(m_uuid_change_listener);
+
+		// Init script interface object
 		m_si.CreateEntity = 
 			[this](const std::string& str) -> SceneEntity& {
 				return CreateEntity(str);
@@ -47,8 +63,7 @@ namespace ORNG {
 
 		m_si.DeleteEntityAtEndOfFrame =
 			[this](SceneEntity* p_entity) {
-			if (!VectorContains(m_entity_deletion_queue, p_entity))
-				m_entity_deletion_queue.push_back(p_entity);
+			DeleteEntityAtEndOfFrame(p_entity);
 			};
 
 
@@ -65,6 +80,7 @@ namespace ORNG {
 
 				return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
 			};
+
 		m_si.Raycast =
 			[this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
 				return GetSystem<PhysicsSystem>().Raycast(origin, unit_dir, max_distance);
@@ -91,6 +107,33 @@ namespace ORNG {
 			return GetSystem<CameraSystem>().GetActiveCamera();
 			};
 
+		m_si.GetScreenDimensions = []() -> glm::ivec2 {
+			return glm::ivec2{ Window::GetWidth(), Window::GetHeight() };
+			};
+
+		m_si.GetMaterialByUUID = [](uint64_t uuid) -> Material* {
+			return AssetManager::GetAsset<Material>(uuid);
+			};
+
+		m_si.CreateMaterial = []() -> Material* {
+			return AssetManager::AddAsset(new Material());
+			};
+
+		m_si.CreateShader = [](const std::string& name) {
+			return &Renderer::GetShaderLibrary().CreateShader(name.c_str());
+			};
+
+		m_si.DeleteShader = [](const std::string& name) {
+			Renderer::GetShaderLibrary().DeleteShader(name);
+		};
+
+		m_si.AttachRenderpass = [](const Renderpass& rp) {
+			SceneRenderer::AttachRenderpassIntercept(rp);
+		};
+
+		m_si.DetachRenderpass = [](const std::string& name) {
+			SceneRenderer::DetachRenderpassIntercept(name);
+		};
 	}
 
 
@@ -121,7 +164,6 @@ namespace ORNG {
 		}
 		ORNG_PROFILE_FUNC();
 
-
 		//if (m_camera_system.GetActiveCamera())
 			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 
@@ -133,7 +175,17 @@ namespace ORNG {
 		m_entity_deletion_queue.clear();
 	}
 
+	void Scene::OnImGuiRender() {
+		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
+			script.p_instance->OnImGuiRender();
+		}
+	}
 
+
+	void Scene::DeleteEntityAtEndOfFrame(SceneEntity* p_entity) {
+		if (!VectorContains(m_entity_deletion_queue, p_entity))
+			m_entity_deletion_queue.push_back(p_entity);
+	}
 
 	void Scene::DeleteEntity(SceneEntity* p_entity) {
 		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
@@ -157,20 +209,20 @@ namespace ORNG {
 		}
 
 		
-		if (m_root_entities.contains(p_entity->m_entt_handle))
-			m_root_entities.erase(p_entity->m_entt_handle);
+		if (m_root_entities.contains(p_entity->GetEnttHandle()))
+			m_root_entities.erase(p_entity->GetEnttHandle());
 		
 		auto it = std::ranges::find(m_entities, p_entity);
 		ASSERT(it != m_entities.end());
 
+		m_entity_uuid_lookup.erase(p_entity->GetUUID());
 		delete p_entity;
 		m_entities.erase(it);
 	}
 
 
 	SceneEntity* Scene::GetEntity(uint64_t uuid) {
-		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->GetUUID() == uuid; });
-		return it == m_entities.end() ? nullptr : *it;
+		return m_entity_uuid_lookup[uuid];
 	}
 
 	SceneEntity* Scene::GetEntity(const std::string& name) {
@@ -227,7 +279,7 @@ namespace ORNG {
 
 	SceneEntity& Scene::DuplicateEntityAsPartOfGroup(SceneEntity& original, std::unordered_map<uint64_t, uint64_t>& uuid_map) {
 		SceneEntity& new_entity = CreateEntity(original.name + " - Duplicate");
-		uuid_map[original.uuid()] = new_entity.uuid();
+		uuid_map[original.GetUUID()] = new_entity.GetUUID();
 		std::string str = SceneSerializer::SerializeEntityIntoString(original);
 		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity, true);
 
@@ -247,7 +299,7 @@ namespace ORNG {
 		SceneSerializer::DeserializeEntityFromString(*this, str, new_entity);
 
 		std::unordered_map<uint64_t, uint64_t> uuid_map;
-		uuid_map[original.uuid()] = new_entity.uuid();
+		uuid_map[original.GetUUID()] = new_entity.GetUUID();
 
 		original.ForEachLevelOneChild(
 			[&](entt::entity e) {
@@ -432,7 +484,7 @@ namespace ORNG {
 			p_sys->OnLoad();
 		}
 
-		// Allocate storage for components on this side of the boundary
+		// Allocate storage for components from the main application
 		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
 		auto& ent = CreateEntity("allocator");
 		ent.AddComponent<MeshComponent>();
@@ -510,8 +562,11 @@ namespace ORNG {
 	SceneEntity& Scene::CreateEntity(const std::string& name, uint64_t uuid) {
 		auto reg_ent = m_registry.create();
 		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent, &m_registry, this->uuid()) : new SceneEntity(uuid, reg_ent, this, &m_registry, this->uuid());
+		uuid = ent->GetUUID();
 		ent->name = name;
 		m_entities.push_back(ent);
+		DEBUG_ASSERT(!m_entity_uuid_lookup.contains(uuid))
+		m_entity_uuid_lookup[uuid] = ent;
 
 		// Entity initially has no parent so insert it here
 		m_root_entities.insert(ent->GetEnttHandle());

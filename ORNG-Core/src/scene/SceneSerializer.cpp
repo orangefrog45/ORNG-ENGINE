@@ -423,7 +423,7 @@ namespace ORNG {
 				Out(out, "LP0", attachment.p_joint->poses[0]);
 				Out(out, "LP1", attachment.p_joint->poses[1]);
 
-				Out(out, "TargetUUID", attachment.p_joint->p_a1->uuid());
+				Out(out, "TargetUUID", attachment.p_joint->p_a1->GetUUID());
 
 				Out(out, "Motion", YAML::Flow);
 				out << YAML::BeginSeq;

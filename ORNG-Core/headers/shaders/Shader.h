@@ -1,7 +1,6 @@
 #pragma once
 #include "util/Log.h"
 #include "util/util.h"
-#include "core/GLStateManager.h"
 #include "util/UUID.h"
 
 namespace ORNG {
@@ -55,9 +54,7 @@ namespace ORNG {
 		// Compiles a shader program from "shader_code" string with preprocessor definitions in "defines"
 		void AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines = {});
 
-		inline void ActivateProgram() {
-			GL_StateManager::ActivateShaderProgram(m_program_id);
-		};
+		void ActivateProgram();
 
 		inline void AddUniform(const std::string& name) {
 			ActivateProgram();

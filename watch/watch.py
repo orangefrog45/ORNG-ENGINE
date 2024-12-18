@@ -12,6 +12,10 @@ debug_dir_game = "..\\out\\build\\x64-Debug-2\\Game\\res\\shaders\\"
 release_dir_game = "..\\out\\build\\x64-Release-2\\Game\\res\\shaders\\"
 debug_dir_monitor = "..\\out\\build\\x64-Debug-2\\HW-Monitor\\res\\shaders\\"
 release_dir_monitor = "..\\out\\build\\x64-Release-2\\HW-Monitor\\res\\shaders\\"
+debug_dir_ifs = "..\\out\\build\\x64-Debug-2\\IFS-fractals\\res\\shaders\\"
+release_dir_ifs = "..\\out\\build\\x64-Release-2\\IFS-fractals\\res\\shaders\\"
+debug_dir_phys_game = "..\\out\\build\\x64-Debug-2\\PhysicsGame\\res\\shaders\\"
+release_dir_phys_game = "..\\out\\build\\x64-Release-2\\PhysicsGame\\res\\shaders\\"
 
 def TryCopy(original, copy_location):
     try:
@@ -25,7 +29,7 @@ def ConstructPath(path : str, is_core):
     return path
 
 def IsShaderFile(filepath : str) -> bool:
-    valid_shader_extensions = [".glsl", ".vert", ".frag", ".compute", ".tess"]
+    valid_shader_extensions = [".glsl", ".vert", ".frag", ".compute", ".tess", ".comp"]
     for extension in valid_shader_extensions:
         if filepath.find(extension) != -1:
             return True
@@ -52,6 +56,10 @@ class Handler(FileSystemEventHandler):
         TryCopy(event.src_path, ConstructPath(release_dir_game + filename, is_core));
         TryCopy(event.src_path, ConstructPath(debug_dir_monitor + filename, is_core));
         TryCopy(event.src_path, ConstructPath(release_dir_monitor + filename, is_core));
+        TryCopy(event.src_path, ConstructPath(debug_dir_ifs + filename, is_core));
+        TryCopy(event.src_path, ConstructPath(release_dir_ifs + filename, is_core));
+        TryCopy(event.src_path, ConstructPath(debug_dir_phys_game + filename, is_core));
+        TryCopy(event.src_path, ConstructPath(release_dir_phys_game + filename, is_core));
 
 if __name__ == "__main__":
     path = "..\\" 

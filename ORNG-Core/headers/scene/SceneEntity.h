@@ -15,14 +15,10 @@
 namespace ORNG {
 
 	class SceneEntity {
-		friend class EditorLayer;
-		friend class Scene;
-		friend class SceneSerializer;
-		friend class PhysicsSystem;
 	public:
 		SceneEntity() = delete;
 		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
 			AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>();
 		};
 
@@ -104,15 +100,17 @@ namespace ORNG {
 #endif
 	}
 
-		uint64_t GetUUID() const { return static_cast<uint64_t>(uuid); };
+		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
+
+		void SetUUID(uint64_t new_uuid);
 
 		entt::entity GetEnttHandle() const { return m_entt_handle; };
 
 		std::string name = "Entity";
 
-		UUID<uint64_t> uuid;
 
 	private:
+		UUID<uint64_t> m_uuid;
 
 		void ForEachChildRecursiveInternal(std::function<void(entt::entity)> func_ptr, entt::entity search_entity);
 

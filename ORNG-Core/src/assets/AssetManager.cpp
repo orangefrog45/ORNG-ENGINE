@@ -567,7 +567,7 @@ namespace ORNG {
 				}
 				else {
 					std::string rel_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
-					ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path, precompiled_scripts);
+					ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
 					AddAsset(new ScriptAsset(symbols));
 				}
 			}

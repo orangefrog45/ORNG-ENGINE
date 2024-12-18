@@ -87,6 +87,12 @@ namespace ORNG {
 		}
 	}
 
+	void SceneEntity::SetUUID(uint64_t new_uuid) {
+		uint64_t old_uuid = m_uuid();
+		m_uuid = UUID{ new_uuid };
+		Events::EventManager::DispatchEvent(UUIDChangeEvent{ old_uuid, new_uuid });
+	}
+
 	void SceneEntity::ForEachLevelOneChild(std::function<void(entt::entity)> func_ptr) {
 		auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);
 		entt::entity current_entity = rel_comp.first;

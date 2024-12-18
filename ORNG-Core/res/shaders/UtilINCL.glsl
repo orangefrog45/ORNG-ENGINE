@@ -3,11 +3,11 @@ ORNG_INCLUDE "BuffersINCL.glsl"
 #define PI 3.14159265
 
 vec3 WorldPosFromDepth(float depth, vec2 normalized_tex_coords) {
-	vec4 clipSpacePosition = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
-	vec4 worldSpacePosition = PVMatrices.inv_view * PVMatrices.inv_projection * clipSpacePosition;
+	vec4 clip_space_position = vec4(normalized_tex_coords, depth, 1.0) * 2.0 - 1.0;
+	vec4 world_space_position = PVMatrices.inv_view * PVMatrices.inv_projection * clip_space_position;
 	// Perspective division
-	worldSpacePosition.xyz /= max(worldSpacePosition.w, 1e-6);
-	return worldSpacePosition.xyz;
+	world_space_position.xyz /= max(world_space_position.w, 1e-6);
+	return world_space_position.xyz;
 }
 
 

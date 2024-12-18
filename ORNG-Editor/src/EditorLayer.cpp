@@ -86,7 +86,7 @@ namespace ORNG {
 
 		// Adding a resize event listener so the scene display texture scales with the window
 		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
-			if (t_event.event_type == Events::Event::EventType::WINDOW_RESIZE) {
+			if (t_event.event_type == Events::WindowEvent::EventType::WINDOW_RESIZE) {
 				auto spec = m_res.p_scene_display_texture->GetSpec();
 				spec.width = t_event.new_window_size.x;
 				spec.height = t_event.new_window_size.y;
@@ -260,7 +260,7 @@ namespace ORNG {
 					auto vec = DuplicateEntitiesTracked(m_state.selected_entity_ids);
 					std::vector<uint64_t> duplicate_ids;
 					for (auto* p_ent : vec) {
-						duplicate_ids.push_back(p_ent->uuid());
+						duplicate_ids.push_back(p_ent->GetUUID());
 					}
 					m_state.selected_entity_ids = duplicate_ids;
 				}
@@ -336,18 +336,6 @@ namespace ORNG {
 
 		UpdateEditorCam();
 
-		if (Input::IsKeyPressed('c')) {
-			AssetManager::CreateBinaryAssetPackage("PACKAGE.bin");
-			Renderer::GetShaderLibrary().GenerateShaderPackage("shaderpkg.bin");
-		}
-
-
-		if (Input::IsKeyPressed('v')) {
-			AssetManager::ClearAll();
-			AssetManager::DeserializeAssetsFromBinaryPackage("PACKAGE.bin");
-			//Renderer::GetShaderLibrary().LoadShaderPackage("shaderpkg.bin");
-		}
-
 		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)
 			SCENE->Update(FrameTiming::GetTimeStep());
 		else {
@@ -416,14 +404,14 @@ namespace ORNG {
 
 				if (!m_state.general_settings.selection_settings.select_all) {
 					if (m_state.general_settings.selection_settings.select_light_objects && (p_entity->HasComponent<PointLightComponent>() || p_entity->HasComponent<SpotLightComponent>()))
-						SelectEntity(p_entity->uuid());
+						SelectEntity(p_entity->GetUUID());
 					else if (m_state.general_settings.selection_settings.select_mesh_objects && p_entity->HasComponent<MeshComponent>())
-						SelectEntity(p_entity->uuid());
+						SelectEntity(p_entity->GetUUID());
 					else if (m_state.general_settings.selection_settings.select_physics_objects && p_entity->HasComponent<PhysicsComponent>())
-						SelectEntity(p_entity->uuid());
+						SelectEntity(p_entity->GetUUID());
 				}
 				else {
-					SelectEntity(p_entity->uuid());
+					SelectEntity(p_entity->GetUUID());
 				}
 			}
 		}
@@ -551,9 +539,13 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderUI() {
-		if (m_state.simulate_mode_active && !m_state.render_ui_in_simulation) {
-			RenderToolbar();
-			return;
+		if (m_state.simulate_mode_active) {
+			SCENE->OnImGuiRender();
+
+			if (!m_state.render_ui_in_simulation) {
+				RenderToolbar();
+				return;
+			}
 		}
 
 		if (!m_state.simulate_mode_active)
@@ -913,32 +905,11 @@ namespace ORNG {
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
 	void RefreshScriptIncludes() {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/Scene.h", "./res/scripts/includes/Scene.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Component.h", "./res/scripts/includes/Component.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/MeshComponent.h", "./res/scripts/includes/MeshComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ScriptComponent.h", "./res/scripts/includes/ScriptComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/Lights.h", "./res/scripts/includes/Lights.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/extern/glm/glm/", "./res/scripts/includes/glm/", true);
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/TransformComponent.h", "./res/scripts/includes/TransformComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/PhysicsComponent.h", "./res/scripts/includes/PhysicsComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/CameraComponent.h", "./res/scripts/includes/CameraComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/extern/entt/EnttSingleInclude.h", "./res/scripts/includes/EnttSingleInclude.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/AudioComponent.h", "./res/scripts/includes/AudioComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/VehicleComponent.h", "./res/scripts/includes/VehicleComponent.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/components/ParticleEmitterComponent.h", "./res/scripts/includes/ParticleEmitterComponent.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SI.h", "./res/scripts/includes/SI.h");
-
-		if (!FileExists(ORNG_CORE_LIB_DIR "../vcpkg_installed/x64-windows/include")) {
-			ORNG_CORE_ERROR("Physx include dir not found, scripts referencing the physx API will not compile");
-		}
-		else {
-			FileCopy(ORNG_CORE_LIB_DIR "../vcpkg_installed/x64-windows/include/physx/", "./res/scripts/includes/physx/", true);
-		}
-
 	}
 
 
@@ -1310,7 +1281,7 @@ namespace ORNG {
 			auto scale = p_transform->GetScale();
 			auto rot = p_transform->GetOrientation();
 
-			std::string entity_push_script = std::format("entity_array[{0}] = entity.new(\"{1}\", {2}, vec3.new({3}, {4}, {5}),  vec3.new({6}, {7}, {8}), vec3.new({9}, {10}, {11}), {12})", i+1, p_ent->name, (unsigned)p_ent->m_entt_handle, pos.x, pos.y, pos.z, scale.x, scale.y, scale.z, rot.x, rot.y, rot.z, (unsigned)p_relation_comp->parent);
+			std::string entity_push_script = std::format("entity_array[{0}] = entity.new(\"{1}\", {2}, vec3.new({3}, {4}, {5}),  vec3.new({6}, {7}, {8}), vec3.new({9}, {10}, {11}), {12})", i+1, p_ent->name, (unsigned)p_ent->GetEnttHandle(), pos.x, pos.y, pos.z, scale.x, scale.y, scale.z, rot.x, rot.y, rot.z, (unsigned)p_relation_comp->parent);
 
 			m_lua_cli.GetLua().script(entity_push_script);
 		}
@@ -1698,9 +1669,9 @@ namespace ORNG {
 
 		if (node_selection_active) {
 			if (ExtraUI::DoBoxesIntersect(ret.node_screen_min, ret.node_screen_max, selection_box.min, selection_box.max))
-				SelectEntity(p_entity->uuid());
+				SelectEntity(p_entity->GetUUID());
 			else if (!Input::IsKeyDown(Key::LeftControl))
-				DeselectEntity(p_entity->uuid());
+				DeselectEntity(p_entity->GetUUID());
 		}
 
 		if (ImGui::IsItemToggledOpen()) {
@@ -1971,49 +1942,6 @@ namespace ORNG {
 
 	void EditorLayer::RenderScriptComponentEditor(ScriptComponent* p_script) {
 		ImGui::PushID(p_script);
-		if (p_script->p_instance) {
-			ImGui::PushItemWidth(275.f);
-
-			for (auto& [name, mem] : p_script->p_instance->m_member_addresses) {
-				ImGui::PushID(&mem);
-
-				if (auto* p_val = AnyCast<unsigned>(mem)) {
-					static int i = *p_val;
-					i = *p_val;
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					if (ImGui::InputInt("##sv", &i))
-						*p_val = i;
-				}
-				else if (auto* p_val = AnyCast<int>(mem)) {
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					ImGui::InputInt("##sv", p_val);
-				}
-				else if (auto* p_val = AnyCast<float>(mem)) {
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					ImGui::InputFloat("##sv", p_val);
-				}
-				else if (auto* p_val = AnyCast<bool>(mem)) {
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					ImGui::Checkbox("##sv", p_val);
-				}
-				else if (auto* p_val = AnyCast<glm::vec2>(mem)) {
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					ImGui::InputFloat2("##sv", &(*p_val)[0]);
-				}
-				else if (auto* p_val = AnyCast<glm::vec3>(mem)) {
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					ImGui::InputFloat3("##sv", &(*p_val)[0]);
-				}
-				else if (auto* p_val = AnyCast<glm::vec4>(mem)) {
-					ImGui::Text(name.c_str()); ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 285.f);
-					ImGui::InputFloat4("##sv", &(*p_val)[0]);
-				}
-				ImGui::PopID();
-			}
-			ImGui::PopItemWidth();
-		}
-
-
 
 		ExtraUI::NameWithTooltip(p_script->script_filepath.substr(p_script->script_filepath.find_last_of("\\") + 1).c_str());
 		ImGui::Button(ICON_FA_FILE, ImVec2(100, 100));
@@ -2932,7 +2860,7 @@ namespace ORNG {
 			else
 				p_dup_ent = &p_original_ent->Duplicate();
 
-			e.affected_entities.push_back(p_dup_ent->uuid());
+			e.affected_entities.push_back(p_dup_ent->GetUUID());
 
 			p_dup_ent->ForEachChildRecursive([&](entt::entity ent) {
 				auto* p_current_ent = SCENE->GetEntity(ent);
@@ -2951,7 +2879,7 @@ namespace ORNG {
 			auto dups = SCENE->DuplicateEntityGroup(ents);
 
 			for (auto* p_ent : dups) {
-				e.affected_entities.push_back(p_ent->uuid());
+				e.affected_entities.push_back(p_ent->GetUUID());
 
 				p_ent->ForEachChildRecursive([&](entt::entity ent) {
 					auto* p_current_ent = SCENE->GetEntity(ent);
@@ -3036,8 +2964,8 @@ namespace ORNG {
 		auto* p_current_parent = SCENE->GetEntity(SCENE->GetEntity(id)->GetParent());
 
 		while (p_current_parent) {
-			if (!VectorContains(m_state.open_tree_nodes_entities, p_current_parent->uuid()))
-				m_state.open_tree_nodes_entities.push_back(p_current_parent->uuid());
+			if (!VectorContains(m_state.open_tree_nodes_entities, p_current_parent->GetUUID()))
+				m_state.open_tree_nodes_entities.push_back(p_current_parent->GetUUID());
 
 			p_current_parent = SCENE->GetEntity(p_current_parent->GetParent());
 		}

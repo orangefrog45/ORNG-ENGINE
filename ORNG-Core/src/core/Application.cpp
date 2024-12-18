@@ -85,10 +85,10 @@ namespace ORNG {
 
 		// Engine loop
 		Events::EngineCoreEvent render_event;
-		render_event.event_type = Events::Event::ENGINE_RENDER;
+		render_event.event_type = Events::EngineCoreEvent::ENGINE_RENDER;
 
 		Events::EngineCoreEvent update_event;
-		update_event.event_type = Events::Event::ENGINE_UPDATE;
+		update_event.event_type = Events::EngineCoreEvent::ENGINE_UPDATE;
 
 		while (!glfwWindowShouldClose(window))
 		{

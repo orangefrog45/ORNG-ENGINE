@@ -2,38 +2,35 @@ cmake_minimum_required(VERSION 3.8)
 
 project(ORNG_EDITOR)
 
+set(ORNG_EDITOR_SRC_FILES 
+${CMAKE_CURRENT_LIST_DIR}/src/EditorLayer.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/AssetManagerWindow.cpp
+${CMAKE_CURRENT_LIST_DIR}/headers/Settings.h
+${CMAKE_CURRENT_LIST_DIR}/headers/EditorEventStack.h
+${CMAKE_CURRENT_LIST_DIR}/src/EditorEventStack.cpp
+${CMAKE_CURRENT_LIST_DIR}/headers/LuaCLI.h
+${CMAKE_CURRENT_LIST_DIR}/src/LuaCLI.cpp
+CACHE STRING "" FORCE
+)
+
 add_executable(ORNG_EDITOR 
-src/EditorLayer.cpp
-src/AssetManagerWindow.cpp
 src/main.cpp
-"headers/Settings.h"
-"headers/EditorEventStack.h"
-"src/EditorEventStack.cpp"
-"headers/LuaCLI.h"
-"src/LuaCLI.cpp"
+${ORNG_EDITOR_SRC_FILES}
 )
 
 
+set(ORNG_EDITOR_INCLUDE_DIRS 
+${CMAKE_CURRENT_LIST_DIR}/headers
+${CMAKE_CURRENT_LIST_DIR}/extern
+${CMAKE_CURRENT_LIST_DIR}/extern/sol2/include
+${CMAKE_CURRENT_LIST_DIR}/extern/sol2/include/sol
+${CMAKE_CURRENT_LIST_DIR}/extern/lua/src
+${CMAKE_CURRENT_LIST_DIR}/extern/imguizmo CACHE STRING "" FORCE
+)
+
 target_include_directories(ORNG_EDITOR PUBLIC
-"../ORNG-Core/extern/spdlog/include"
-"../ORNG-Core/extern/assimp/include"
-"../ORNG-Core/extern/assimp/build/include"
-"../ORNG-Core/extern/glfw/include"
-"../ORNG-Core/extern/glew-cmake/include"
-"../ORNG-Core/extern/physx/physx/include"
-"../ORNG-Core/extern"
-"../ORNG-Core/extern/imgui"
-"../ORNG-Core/headers"
-"../ORNG-Core/extern/fastnoise2/include"
-"../ORNG-Core/extern/yaml/include"
-"../ORNG-Core/extern/plog/include"
-"../ORNG-Core/extern/bitsery/include"
-"../ORNG-Core/extern/fmod/api/core/inc"
-headers
-extern
-extern/sol2/include
-extern/sol2/include/sol
-extern/lua/src
+${ORNG_CORE_INCLUDE_DIRS}
+${ORNG_EDITOR_INCLUDE_DIRS}
 )
 
 target_include_directories(ORNG_CORE PUBLIC headers)
@@ -51,12 +48,15 @@ extern/imguizmo
 ../ORNG-Core/extern/imgui
 )
 
+set(ORNG_EDITOR_LIBS
+imguizmo
+imgui
+lua::lua CACHE STRING "" FORCE
+)
 
 target_link_libraries(ORNG_EDITOR PUBLIC 
 ORNG_CORE
-imguizmo
-imgui
-lua::lua
+${ORNG_EDITOR_LIBS}
 )
 
 target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
@@ -64,14 +64,11 @@ target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
 file(COPY ${CMAKE_CURRENT_BINARY_DIR}/../ORNG-Core/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
 
-
-
-
 add_custom_command(TARGET ORNG_EDITOR POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:ORNG_EDITOR>)
 foreach(core_binary IN LISTS ORNG_CORE_BINARIES)
     add_custom_command(TARGET ORNG_EDITOR POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        COMMAND ${CMAKE_COMMAND} -E copy
         ${core_binary}
         $<TARGET_FILE_DIR:ORNG_EDITOR>)
 endforeach()

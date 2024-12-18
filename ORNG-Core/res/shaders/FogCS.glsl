@@ -208,7 +208,7 @@ void main() {
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
 	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / vec2(imageSize(fog_texture)));
 	vec3 cam_to_frag = frag_world_pos - ubo_common.camera_pos.xyz;
-	float cam_to_frag_dist = min(length(cam_to_frag), 1000.0);
+	float cam_to_frag_dist = min(length(cam_to_frag), 4000.0);
 	float step_distance = cam_to_frag_dist / float(u_step_count);
 
 	vec3 ray_dir = normalize(cam_to_frag);

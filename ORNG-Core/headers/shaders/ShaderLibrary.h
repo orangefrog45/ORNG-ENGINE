@@ -1,4 +1,5 @@
 #pragma once
+#include "rendering/VAO.h"
 #include "Shader.h"
 
 
@@ -11,9 +12,11 @@ namespace ORNG {
 	public:
 		friend class Renderer;
 		ShaderLibrary() = default;
+
 		void Init();
 
 		Shader& CreateShader(const char* name);
+
 		ShaderVariants& CreateShaderVariants(const char* name);
 
 		bool GenerateShaderPackage(const std::string& output_filepath);
@@ -32,7 +35,9 @@ namespace ORNG {
 		std::string PopShaderCodeFromCache(const ShaderData& key);
 
 		void SetMatrixUBOs(const glm::mat4& proj, const glm::mat4& view);
+
 		void SetGlobalLighting(const DirectionalLight& dir_light);
+
 		void SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, 
 			float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1, float scene_time_elapsed
 		);

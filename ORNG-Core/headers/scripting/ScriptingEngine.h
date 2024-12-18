@@ -31,28 +31,36 @@ namespace ORNG {
 
 	class ScriptingEngine {
 	public:
-		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath, bool precompiled, bool force_recompilation = false);
+		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath);
+
 		static ScriptSymbols LoadScriptDll(const std::string& dll_path, const std::string& relative_path);
 		
 		// Cleans up any binary files, cleanly handles deletion of a script asset
 		static void OnDeleteScript(const std::string& script_filepath);
+
+		static void GenerateScriptCmakeProject(const std::string& dir);
+
+		static void UpdateScriptCmakeProject(const std::string& dir);
 
 		// Returns script's state (is_loaded etc)
 		static ScriptStatusQueryResults GetScriptData(const std::string& script_filepath);
 
 		// Produces a path that a scripts dll will be stored in
 		static std::string GetDllPathFromScriptCpp(const std::string& script_filepath);
+
 		static bool UnloadScriptDLL(const std::string& filepath);
 	private:
+		static void ReplaceScriptCmakeEngineFilepaths(std::string& cmake_content);
 
 		inline static std::vector<ScriptData> sm_loaded_script_dll_handles;
 	};
 
 	struct ScriptAsset : public Asset {
 		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { };
+
 		ScriptAsset(const std::string& filepath, bool immediately_load = true) : Asset(filepath), symbols(filepath) { 
 			if (immediately_load)
-				symbols = ScriptingEngine::GetSymbolsFromScriptCpp(filepath, false);
+				symbols = ScriptingEngine::GetSymbolsFromScriptCpp(filepath);
 		};
 
 		ScriptSymbols symbols;

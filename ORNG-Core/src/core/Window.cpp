@@ -11,7 +11,7 @@ namespace ORNG {
 
 
 		Events::WindowEvent window_event;
-		window_event.event_type = Events::Event::WINDOW_RESIZE;
+		window_event.event_type = Events::WindowEvent::WINDOW_RESIZE;
 		window_event.old_window_size = glm::vec2(m_window_width, m_window_height);
 		window_event.new_window_size = glm::vec2(width, height);
 		m_window_width = width;
@@ -127,13 +127,12 @@ namespace ORNG {
 				SetCursorPos(t_event.mouse_pos_new.x, t_event.mouse_pos_new.y);
 			else if (t_event.mouse_action == TOGGLE_VISIBILITY) {
 				glfwSetInputMode(p_window, GLFW_CURSOR, (std::any_cast<bool>(t_event.data_payload) ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED));
-				ORNG_CORE_TRACE("TOGGLE VISIBLITY {0}", std::any_cast<bool>(t_event.data_payload));
 			}
 
 			};
 
 		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
-			if (t_event.event_type == Events::Event::ENGINE_UPDATE) {
+			if (t_event.event_type == Events::EngineCoreEvent::ENGINE_UPDATE) {
 				Update();
 			}
 

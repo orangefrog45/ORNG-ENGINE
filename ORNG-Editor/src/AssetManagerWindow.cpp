@@ -11,6 +11,7 @@
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
+#include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 #include "physics/Physics.h"
 #include "yaml-cpp/yaml.h"
@@ -50,7 +51,7 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::Init() {
-	
+
 		InitPreviewScene();
 
 		m_asset_preview_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -79,7 +80,7 @@ namespace ORNG {
 		if (!m_materials_to_gen_previews.empty()) {
 			CreateMaterialPreview(m_materials_to_gen_previews[0]);
 			m_materials_to_gen_previews.erase(m_materials_to_gen_previews.begin());
-		} 
+		}
 		else if (!m_meshes_to_gen_previews.empty()) {
 			CreateMeshPreview(m_meshes_to_gen_previews[0]);
 			m_meshes_to_gen_previews.erase(m_meshes_to_gen_previews.begin());
@@ -124,7 +125,7 @@ namespace ORNG {
 		m_asset_deletion_queue.clear();
 		RenderMainAssetWindow();
 
-		if (mp_selected_material && mp_selected_material->uuid() != ORNG_BASE_MATERIAL_ID &&  RenderMaterialEditorSection())
+		if (mp_selected_material && mp_selected_material->uuid() != ORNG_BASE_MATERIAL_ID && RenderMaterialEditorSection())
 			m_materials_to_gen_previews.push_back(mp_selected_material);
 
 		if (mp_selected_texture)
@@ -146,7 +147,7 @@ namespace ORNG {
 
 		entity.ForEachChildRecursive([&](entt::entity child_handle) {
 			entities.push_back((*mp_scene_context)->GetEntity(child_handle));
-		});
+			});
 
 		Scene::SortEntitiesNumParents(entities, false);
 
@@ -158,7 +159,29 @@ namespace ORNG {
 		return true;
 	}
 
-	void AssetManagerWindow::ReloadScript(const std::string& relative_path, bool force_recompilation) {
+	void AssetManagerWindow::UnloadScriptFromComponents(const std::string& relative_path) {
+		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
+		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+			if (auto* p_symbols = script_comp.GetSymbols(); p_symbols && p_curr_asset->PathEqualTo(script_comp.GetSymbols()->script_path)) {
+				// Free memory for instances that were allocated by the DLL
+				script_comp.GetSymbols()->DestroyInstance(script_comp.p_instance);
+				script_comp.p_instance = nullptr;
+			}
+		}
+	}
+
+	void AssetManagerWindow::LoadScript(ScriptAsset& asset, const std::string& relative_path) {
+		asset.filepath = relative_path;
+		asset.symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
+
+		for (auto [entity, script] : (*mp_scene_context)->GetRegistry().view<ScriptComponent>().each()) {
+			if (script.GetSymbols()->script_path == relative_path) {
+				script.SetSymbols(&asset.symbols);
+			}
+		}
+	}
+
+	void AssetManagerWindow::ReloadScript(const std::string& relative_path) {
 		// Store all components that have this script as their symbols will need to be updated after the script reloads
 		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
 		std::vector<ScriptComponent*> components_to_reconnect;
@@ -175,7 +198,7 @@ namespace ORNG {
 		if (ScriptingEngine::UnloadScriptDLL(relative_path)) {
 			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
 
-			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path, false, force_recompilation);
+			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
 			p_curr_asset->symbols = symbols;
 			if (!symbols.loaded) {
 				ORNG_CORE_ERROR("Failed to reload script");
@@ -207,6 +230,11 @@ namespace ORNG {
 
 		spec.on_drag = [p_asset]() {
 			static ScriptAsset* p_dragged_script = nullptr;
+			if (!p_asset->symbols.loaded) {
+				ImGui::EndDragDropSource();
+				return;
+			}
+
 			p_dragged_script = p_asset;
 			ImGui::SetDragDropPayload("SCRIPT", &p_dragged_script, sizeof(ScriptAsset*));
 			ImGui::EndDragDropSource();
@@ -218,13 +246,20 @@ namespace ORNG {
 
 		if (!p_asset->symbols.loaded) {
 			spec.popup_spec.options.push_back(std::make_pair("Load",
-				[p_asset]() {
-					p_asset->symbols = ScriptingEngine::GetSymbolsFromScriptCpp(p_asset->filepath, false);
+				[p_asset, this]() {
+					LoadScript(*p_asset, p_asset->filepath);
 				}));
 		} else {
 		spec.popup_spec.options.push_back(std::make_pair("Reload",
 			[this, p_asset]() {
-				ReloadScript(p_asset->filepath, true);
+				ReloadScript(p_asset->filepath);
+			}));
+
+		spec.popup_spec.options.push_back(std::make_pair("Unload",
+			[this, p_asset]() {
+				UnloadScriptFromComponents(p_asset->filepath);
+				ScriptingEngine::UnloadScriptDLL(p_asset->filepath);
+				p_asset->symbols.loaded = false;
 			}));
 		};
 
@@ -261,17 +296,19 @@ namespace ORNG {
 					ShellExecute(NULL, "open", script_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
 					AssetManager::AddAsset(new ScriptAsset(script_path, false));
 				}
+
+				ScriptingEngine::UpdateScriptCmakeProject(GetFileDirectory(script_path));
 			}
 
 			if (ImGui::Button("Force-reload all scripts")) {
 				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					ReloadScript(p_script->filepath, true);
+					ReloadScript(p_script->filepath);
 				}
 			}
 
 			if (ImGui::Button("Reload all modified scripts")) {
 				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					ReloadScript(p_script->filepath, false);
+					ReloadScript(p_script->filepath);
 				}
 			}
 

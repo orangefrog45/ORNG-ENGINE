@@ -340,7 +340,7 @@ namespace ORNG {
 		// Setting up event listener to resize the loose textures on window resize, these are rendered to through compute shaders and not part of a FB so will not be resized unless I do this
 		static Events::EventListener<Events::WindowEvent> resize_listener;
 		resize_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
-			if (t_event.event_type == Events::Event::WINDOW_RESIZE) {
+			if (t_event.event_type == Events::WindowEvent::WINDOW_RESIZE) {
 				Texture2DSpec resized_spec = m_fog_output_tex.GetSpec();
 				resized_spec.width = (uint32_t)t_event.new_window_size.x * 0.5;
 				resized_spec.height = (uint32_t)t_event.new_window_size.y * 0.5;
@@ -596,8 +596,8 @@ namespace ORNG {
 		return output;
 	}
 
-	void SceneRenderer::RunRenderpassIntercepts(RenderpassStage stage, const RenderResources& res) {
-		std::ranges::for_each(m_render_intercepts, [&](const auto rp) {if (rp.stage == stage) { rp.func(res); }; });
+	void SceneRenderer::RunRenderpassIntercepts(RenderpassStage stage, RenderResources& res) {
+		std::ranges::for_each(m_render_intercepts, [&](const auto& rp) {if (rp.stage == stage) { rp.func(res); }; });
 	}
 
 

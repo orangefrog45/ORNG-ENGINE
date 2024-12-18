@@ -28,22 +28,24 @@ namespace ORNG {
 }
 
 namespace ORNG::Events {
+
 	struct Event {
+
+	};
+
+	struct EngineCoreEvent : public Event {
 		enum EventType {
 			INVALID_TYPE = 0,
 			ENGINE_RENDER = 1,
 			ENGINE_UPDATE = 2,
-			WINDOW_RESIZE = 3,
-		};
-
-
-		EventType event_type = EventType::INVALID_TYPE;
-	};
-
-	struct EngineCoreEvent : public Event {
+		} event_type;
 	};
 
 	struct WindowEvent : public Event {
+		enum EventType {
+			WINDOW_RESIZE,
+		} event_type;
+
 		glm::ivec2 old_window_size;
 		glm::ivec2 new_window_size;
 	};

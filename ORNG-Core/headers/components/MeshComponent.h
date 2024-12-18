@@ -1,6 +1,7 @@
 #ifndef MESHCOMPONENT_H
 #define MESHCOMPONENT_H
 #include "components/Component.h"
+#include "rendering/Material.h"
 
 namespace ORNG {
 
@@ -25,9 +26,8 @@ namespace ORNG {
 		void SetMaterialID(unsigned int index, const Material* p_material);
 		void SetMeshAsset(MeshAsset* p_asset);
 
-		inline  MeshAsset* GetMeshData() { return mp_mesh_asset; }
+		inline MeshAsset* GetMeshData() { return mp_mesh_asset; }
 		auto& GetMaterials() { return m_materials; }
-
 
 	private:
 		void DispatchUpdateEvent();

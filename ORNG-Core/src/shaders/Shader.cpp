@@ -4,6 +4,7 @@
 #include "shaders/Shader.h"
 #include "util/Log.h"
 #include <regex>
+#include "core/GLStateManager.h"
 
 #include "rendering/Renderer.h"
 
@@ -193,8 +194,8 @@ namespace ORNG {
 	}
 
 	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines) {
-		if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded())
-			return; // Shaders will be deserialized and loaded from a shader package, so this behaviour can be scrapped
+		//if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded())
+			//return; // Shaders will be deserialized and loaded from a shader package, so this behaviour can be scrapped
 
 		// Copy needs to be made so the includes can be written to it
 		std::string shader_code_copy = shader_code;
@@ -254,6 +255,10 @@ namespace ORNG {
 			id = CreateUniform(name);
 		}
 	}
+
+	void Shader::ActivateProgram() {
+		glUseProgram(m_program_id);
+	};
 
 	void Shader::Init() {
 		unsigned int tprogramID = glCreateProgram();

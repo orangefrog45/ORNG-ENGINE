@@ -74,14 +74,6 @@ ${ORNG_LIB_SOURCES})
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
 
-target_include_directories(ORNG_CORE PUBLIC
-		"physx-complete/physx/physx/include/"
-		"physx-complete/physx/pxshared/include/"
-		"physx-complete/physx/physx/snippets/"
-		${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
-		${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
-)
-
 # Optional: import the defined target to copy over the GPU acceleration libraries (3rd party provided by NVIDIA)
 if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
 	add_custom_command(TARGET ORNG_CORE POST_BUILD
@@ -92,8 +84,6 @@ if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
 else()
 	message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
 endif()
-
-
 
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
@@ -118,30 +108,39 @@ extern/glfw/include
 
 find_package(OpenGL REQUIRED)
 
+set(ORNG_CORE_INCLUDE_DIRS 
+${CMAKE_CURRENT_LIST_DIR}/extern/spdlog/include
+${CMAKE_CURRENT_LIST_DIR}/extern/assimp/include
+${CMAKE_CURRENT_LIST_DIR}/extern/assimp/build/include
+${CMAKE_CURRENT_LIST_DIR}/extern/glfw/include
+${CMAKE_CURRENT_BINARY_DIR}/extern/assimp/include
+${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake/include
+${CMAKE_CURRENT_LIST_DIR}/extern
+${CMAKE_CURRENT_LIST_DIR}/extern/imgui
+${CMAKE_CURRENT_LIST_DIR}/headers
+${CMAKE_CURRENT_LIST_DIR}/extern/fastnoise2/include
+${CMAKE_CURRENT_LIST_DIR}/extern/yaml/include
+${CMAKE_CURRENT_LIST_DIR}/extern/plog/include
+${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
+${CMAKE_CURRENT_LIST_DIR}/extern/implot
+"${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy"
+"physx-complete/physx/physx/include/"
+"physx-complete/physx/pxshared/include/"
+"physx-complete/physx/physx/snippets/"
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
+CACHE STRING "" FORCE
+)
 
 target_include_directories(ORNG_CORE PUBLIC
-extern/spdlog/include
-extern/assimp/include
-extern/assimp/build/include
-extern/glfw/include
-${CMAKE_CURRENT_BINARY_DIR}/extern/assimp/include
-extern/glew-cmake/include
-extern
-extern/imgui
-headers
-extern/fastnoise2/include
-extern/yaml/include
-extern/plog/include
-extern/bitsery/include
-extern/implot
-"extern/tracy/public/tracy"
+${ORNG_CORE_INCLUDE_DIRS}
 )
 
 
 target_link_libraries(ORNG_CORE PRIVATE 
 OpenGL::GL
 glfw
-libglew_static
+libglew_shared
 assimp
 spdlog::spdlog_header_only
 yaml-cpp
@@ -160,30 +159,55 @@ target_precompile_headers(ORNG_CORE PUBLIC
 headers/pch/pch.h
 )
 
-target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}")
-target_compile_definitions(ORNG_CORE PUBLIC ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/")
-target_compile_definitions(ORNG_CORE PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
+# Required binaries for engine
 if (CMAKE_BUILD_TYPE MATCHES Debug)
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmodL.dll
+${CMAKE_BINARY_DIR}/ORNG-Core/extern/glew-cmake/bin/glew-sharedd.dll
 ${GPU_LIBRARY_LOCATION}
 ${GPU_DEVICE_LIBRARY_LOCATION}
 CACHE string "Copy these into your .exe directory"
 )
 endif()
 
+
 if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
+${CMAKE_BINARY_DIR}/ORNG-Core/extern/glew-cmake/bin/glew-shared.dll
 ${GPU_LIBRARY_LOCATION}
 ${GPU_DEVICE_LIBRARY_LOCATION}
-CACHE string "Copy these into your .exe directory"
+CACHE string "Copy these into your .exe directory" FORCE
 )
 elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     message(FATAL_ERROR "Only debug and release builds are supported")
+endif()
+
+
+
+target_compile_definitions(ORNG_CORE PUBLIC 
+ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
+ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
+GLM_ENABLE_EXPERIMENTAL
+ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
+ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
+)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+set_target_properties(${SCRIPT_TARGETS} PROPERTIES 
+LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
+ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
+RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
+)
+else()
+set_target_properties(${SCRIPT_TARGETS} PROPERTIES 
+LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
+ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
+RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
+)
 endif()
 
 

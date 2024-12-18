@@ -38,11 +38,11 @@ namespace ORNG {
 		TextureCubemapArray* p_pointlight_depth_tex;
 	};
 
-	typedef void(__cdecl* RenderpassFunc)(RenderResources);
+	typedef void(__cdecl* RenderpassFunc)(RenderResources&);
 
 	struct Renderpass {
 		RenderpassStage stage;
-		std::function<void(RenderResources)> func;
+		std::function<void(RenderResources&)> func;
 		std::string name;
 	};
 
@@ -150,7 +150,7 @@ namespace ORNG {
 		}
 
 		// Insert a custom renderpass during RenderScene
-		static void AttachRenderpassIntercept(Renderpass renderpass) {
+		static void AttachRenderpassIntercept(const Renderpass& renderpass) {
 			Get().IAttachRenderpassIntercept(renderpass);
 		}
 
@@ -191,7 +191,7 @@ namespace ORNG {
 
 		void DrawAllMeshesDepth(RenderGroup render_group);
 
-		void IAttachRenderpassIntercept(Renderpass renderpass) {
+		void IAttachRenderpassIntercept(const Renderpass& renderpass) {
 			ASSERT(std::ranges::find_if(m_render_intercepts, [&](const auto& pass) {return pass.name == renderpass.name; }) == m_render_intercepts.end());
 			m_render_intercepts.push_back(renderpass);
 		}
@@ -204,7 +204,7 @@ namespace ORNG {
 
 		void UpdateLightSpaceMatrices(CameraComponent* p_cam);
 
-		void RunRenderpassIntercepts(RenderpassStage stage, const RenderResources& res);
+		void RunRenderpassIntercepts(RenderpassStage stage, RenderResources& res);
 		void I_Init();
 		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
 		void DrawTerrain(CameraComponent* p_cam);

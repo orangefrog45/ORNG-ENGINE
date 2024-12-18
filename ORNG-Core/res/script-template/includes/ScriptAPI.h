@@ -21,7 +21,7 @@
 #include "scene/SceneEntity.h"
 #include "ScriptShared.h"
 #include "SI.h"
-#include "../includes/uuids.h" // Generated through editor on save
+#include "./uuids.h" // Generated through editor on save
 
 #define O_CONSTRUCTOR
 #define O_PROPERTY
