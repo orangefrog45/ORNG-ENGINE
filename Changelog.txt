@@ -2,6 +2,7 @@
 -Scripting engine overhaul -------
 -- Now cmake based and compiling occurs outside editor (still hot-reloadable), allows for using external libraries
 -- ImGui and opengl rendering code can now be used inside scripts
+-- Scripts split into header/implementation files so script classes can be referenced and used in other scripts
 -- Changed how script class properties are exposed (faster, less memory usage)
 -- Scripts have access to much more of the engine
 

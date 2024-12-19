@@ -162,7 +162,7 @@ namespace ORNG {
 	void AssetManagerWindow::UnloadScriptFromComponents(const std::string& relative_path) {
 		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
 		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-			if (auto* p_symbols = script_comp.GetSymbols(); p_symbols && p_curr_asset->PathEqualTo(script_comp.GetSymbols()->script_path)) {
+			if (auto* p_symbols = script_comp.GetSymbols(); p_symbols && p_curr_asset->symbols.script_name == script_comp.GetSymbols()->script_name) {
 				// Free memory for instances that were allocated by the DLL
 				script_comp.GetSymbols()->DestroyInstance(script_comp.p_instance);
 				script_comp.p_instance = nullptr;
@@ -175,47 +175,17 @@ namespace ORNG {
 		asset.symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
 
 		for (auto [entity, script] : (*mp_scene_context)->GetRegistry().view<ScriptComponent>().each()) {
-			if (script.GetSymbols()->script_path == relative_path) {
+			if (script.GetSymbols() && script.GetSymbols()->script_name == asset.symbols.script_name) {
 				script.SetSymbols(&asset.symbols);
 			}
 		}
 	}
 
-	void AssetManagerWindow::ReloadScript(const std::string& relative_path) {
-		// Store all components that have this script as their symbols will need to be updated after the script reloads
-		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
-		std::vector<ScriptComponent*> components_to_reconnect;
-		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
-			if (auto* p_symbols = script_comp.GetSymbols(); p_symbols && p_curr_asset->PathEqualTo(script_comp.GetSymbols()->script_path)) {
-				components_to_reconnect.push_back(&script_comp);
-				// Free memory for instances that were allocated by the DLL
-				script_comp.GetSymbols()->DestroyInstance(script_comp.p_instance);
-				script_comp.p_instance = nullptr;
-			}
-		}
-
-		// Reload script and reconnect it to script components previously using it
-		if (ScriptingEngine::UnloadScriptDLL(relative_path)) {
-			std::string dll_path = ScriptingEngine::GetDllPathFromScriptCpp(relative_path);
-
-			ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
-			p_curr_asset->symbols = symbols;
-			if (!symbols.loaded) {
-				ORNG_CORE_ERROR("Failed to reload script");
-			}
-
-			// Reconnect script components that were using this script
-			for (auto p_script : components_to_reconnect) {
-				p_script->SetSymbols(&p_curr_asset->symbols);
-			}
-		}
-		else {
-			ORNG_CORE_ERROR("Error deleting script '{0}'", p_curr_asset->filepath);
-		}
+	void AssetManagerWindow::UnloadScript(ScriptAsset& script) {
+		UnloadScriptFromComponents(script.filepath);
+		ScriptingEngine::UnloadScriptDLL(script.filepath);
+		script.symbols.loaded = false;
 	}
-
-
-
 
 	void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 		AssetDisplaySpec spec;
@@ -250,16 +220,10 @@ namespace ORNG {
 					LoadScript(*p_asset, p_asset->filepath);
 				}));
 		} else {
-		spec.popup_spec.options.push_back(std::make_pair("Reload",
-			[this, p_asset]() {
-				ReloadScript(p_asset->filepath);
-			}));
 
 		spec.popup_spec.options.push_back(std::make_pair("Unload",
 			[this, p_asset]() {
-				UnloadScriptFromComponents(p_asset->filepath);
-				ScriptingEngine::UnloadScriptDLL(p_asset->filepath);
-				p_asset->symbols.loaded = false;
+				UnloadScript(*p_asset);
 			}));
 		};
 
@@ -288,27 +252,40 @@ namespace ORNG {
 			static std::string new_script_name = "";
 
 			if (ImGui::Button("Create script")) {
-				std::string script_path = *mp_active_project_dir + "\\res\\scripts\\" + new_script_name + ".cpp";
-				if (!AssetManager::GetAsset<ScriptAsset>(script_path)) {
-					std::string script_template_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp");
-					StringReplace(script_template_content, "ScriptClassExample", new_script_name);
-					WriteTextFile(script_path, script_template_content);
-					ShellExecute(NULL, "open", script_path.c_str(), NULL, NULL, SW_SHOWDEFAULT);
-					AssetManager::AddAsset(new ScriptAsset(script_path, false));
+				// Update here as certain directories need to be initialized if this is the first script created
+				ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
+
+				std::string script_path_h = *mp_active_project_dir + "\\res\\scripts\\headers\\" + new_script_name + ".h";
+				std::string script_path_cpp = *mp_active_project_dir + "\\res\\scripts\\src\\" + new_script_name + ".cpp";
+				std::string script_path_instancer = *mp_active_project_dir + "\\res\\scripts\\instancers\\" + new_script_name + "Instancer.cpp";
+				if (!AssetManager::GetAsset<ScriptAsset>(script_path_cpp)) {
+					std::string script_template_h_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.h");
+					std::string script_template_cpp_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp");
+					std::string script_template_instancer_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\res\\script-template\\instancers\\ScriptInstancer.cpp");
+					StringReplace(script_template_h_content, "ScriptClassExample", new_script_name);
+					StringReplace(script_template_cpp_content, "ScriptClassExample", new_script_name);
+					StringReplace(script_template_instancer_content, "ScriptClassExample", new_script_name);
+					WriteTextFile(script_path_h, script_template_h_content);
+					WriteTextFile(script_path_cpp, script_template_cpp_content);
+					WriteTextFile(script_path_instancer, script_template_instancer_content);
+					AssetManager::AddAsset(new ScriptAsset(script_path_cpp, false));
 				}
 
-				ScriptingEngine::UpdateScriptCmakeProject(GetFileDirectory(script_path));
+				ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
 			}
 
-			if (ImGui::Button("Force-reload all scripts")) {
+
+			if (ImGui::Button("Unload all scripts")) {
 				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					ReloadScript(p_script->filepath);
+					if (p_script->symbols.loaded)
+						UnloadScript(*p_script);
 				}
 			}
 
-			if (ImGui::Button("Reload all modified scripts")) {
+			if (ImGui::Button("Load all scripts")) {
 				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					ReloadScript(p_script->filepath);
+					if (!p_script->symbols.loaded)
+						LoadScript(*p_script, p_script->filepath);
 				}
 			}
 

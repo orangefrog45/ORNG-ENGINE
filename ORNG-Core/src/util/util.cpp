@@ -109,6 +109,28 @@ namespace ORNG {
 			return filepath.substr(0, back_pos);
 	}
 
+	std::string GetFilename(const std::string& filepath) {
+		size_t forward_pos = filepath.rfind("/");
+		size_t back_pos = filepath.rfind("\\");
+
+		if (back_pos == std::string::npos) {
+			if (forward_pos == std::string::npos) {
+				// The filepath is already just the filename
+				return filepath;
+			}
+			return filepath.substr(forward_pos);
+		}
+		else if (forward_pos == std::string::npos) {
+			return filepath.substr(back_pos);
+		}
+
+
+		if (forward_pos > back_pos)
+			return filepath.substr(forward_pos);
+		else
+			return filepath.substr(back_pos);
+	}
+
 	bool PathEqualTo(const std::string& path1, const std::string& path2) {
 		if (path1.empty() || path2.empty())
 			return false;

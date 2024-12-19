@@ -426,7 +426,7 @@ namespace ORNG {
 		}
 		else if (auto* p_script = dynamic_cast<ScriptAsset*>(p_asset)) {
 			DispatchAssetEvent(Events::AssetEventType::SCRIPT_DELETED, reinterpret_cast<uint8_t*>(p_script));
-			ScriptingEngine::UnloadScriptDLL(p_script->symbols.script_path);
+			ScriptingEngine::UnloadScriptDLL("res/scripts/src/" + p_script->symbols.script_name + ".cpp");
 		}
 	}
 
@@ -458,7 +458,6 @@ namespace ORNG {
 		std::string prefab_folder = project_dir + "\\res\\prefabs\\";
 		std::string script_folder = project_dir + "\\res\\scripts\\";
 		std::string physx_mat_folder = project_dir + "\\res\\physx-materials\\";
-
 
 		Texture2DSpec default_spec;
 		default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -559,16 +558,18 @@ namespace ORNG {
 						continue;
 #endif
 					std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
-					auto first = dll_path.rfind("\\");
-					std::string rel_path = ".\\res\\scripts" + dll_path.substr(first, dll_path.rfind(".") - first) + ".cpp";
-					ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path);
+					std::string rel_path = ".\\res\\scripts\\src" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
 
-					AddAsset(new ScriptAsset(symbols));
+					ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
+
+					ORNG_CORE_CRITICAL("script path: {}", rel_path);
+					AddAsset(new ScriptAsset(rel_path, symbols));
+
 				}
 				else {
 					std::string rel_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
 					ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
-					AddAsset(new ScriptAsset(symbols));
+					AddAsset(new ScriptAsset(rel_path, symbols));
 				}
 			}
 		}
@@ -627,7 +628,7 @@ namespace ORNG {
 		mp_base_material->name = "Base material";
 
 		auto symbols = ScriptSymbols("");
-		mp_base_script = std::make_unique<ScriptAsset>(symbols);
+		mp_base_script = std::make_unique<ScriptAsset>("", symbols);
 		mp_base_script->uuid = UUID<uint64_t>(ORNG_BASE_SCRIPT_ID);
 		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
 		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);

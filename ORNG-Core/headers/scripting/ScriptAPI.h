@@ -20,7 +20,6 @@
 #include "components/ComponentAPI.h"
 #include "scene/SceneEntity.h"
 #include "ScriptShared.h"
-#include "SI.h"
 #include "../includes/uuids.h" // Generated through editor on save
 
 #define O_CONSTRUCTOR

@@ -849,14 +849,13 @@ namespace ORNG {
 		TryFileDelete("build");
 		Create_Directory("build");
 
-		Renderer::GetShaderLibrary().GenerateShaderPackage("build/shaders.shaderpkg");
 		FileCopy(m_state.current_project_directory + "/scene.yml", "build/scene.yml");
 		FileCopy(m_state.current_project_directory + "/res", "build/res", true);
 		FileCopy(GetApplicationExecutableDirectory() + "/res/shaders", "build/res/shaders", true);
 		FileCopy(GetApplicationExecutableDirectory() + "/../ORNG-Runtime/ORNG_RUNTIME.exe", "build/ORNG_RUNTIME.exe");
 
 		std::vector<std::string> dlls = {
-			"fmod.dll", "PhysX_64.dll", "PhysXCommon_64.dll", "PhysXCooking_64.dll", "PhysXFoundation_64.dll"
+			"fmod.dll", "PhysX_64.dll", "PhysXCommon_64.dll", "PhysXCooking_64.dll", "PhysXFoundation_64.dll", "glew-shared.dll"
 		};
 
 		for (const auto& path : dlls) {
@@ -1943,7 +1942,7 @@ namespace ORNG {
 	void EditorLayer::RenderScriptComponentEditor(ScriptComponent* p_script) {
 		ImGui::PushID(p_script);
 
-		ExtraUI::NameWithTooltip(p_script->script_filepath.substr(p_script->script_filepath.find_last_of("\\") + 1).c_str());
+		ExtraUI::NameWithTooltip(p_script->GetSymbols() ? p_script->GetSymbols()->script_name : "No script asset");
 		ImGui::Button(ICON_FA_FILE, ImVec2(100, 100));
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("SCRIPT")) {

@@ -309,7 +309,12 @@ namespace ORNG {
 		ScriptComponent* p_script_comp = entity.GetComponent<ScriptComponent>();
 		if (p_script_comp) {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
-			out << YAML::Key << "ScriptPath" << YAML::Value << p_script_comp->script_filepath;
+
+			if (p_script_comp->GetSymbols())
+				out << YAML::Key << "ScriptName" << YAML::Value << (p_script_comp->GetSymbols()->loaded ? p_script_comp->GetSymbols()->script_name : "");
+			else 
+				out << YAML::Key << "ScriptName" << YAML::Value << "";
+
 			out << YAML::EndMap;
 		}
 
@@ -510,18 +515,17 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity) {
 		auto* p_script_comp = entity.AddComponent<ScriptComponent>();
-		std::string script_filepath = node["ScriptPath"].as<std::string>();
-		p_script_comp->script_filepath = script_filepath;
+		std::string script_name = node["ScriptName"].as<std::string>();
 
-		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_filepath);
-		if (!p_asset)
-			p_asset = AssetManager::GetAsset< ScriptAsset>(ORNG_BASE_SCRIPT_ID);
+		auto* p_asset = AssetManager::GetAsset<ScriptAsset>("res/scripts/src/" + script_name + ".cpp");
 
 		if (p_asset) {
 			p_script_comp->SetSymbols(&p_asset->symbols);
 		}
 		else {
-			ORNG_CORE_ERROR("Scene deserialization error: no script file with filepath '{0}' found", script_filepath);
+			ORNG_CORE_ERROR("Scene deserialization error: no script file with name '{0}' found", script_name);
+			p_asset = AssetManager::GetAsset<ScriptAsset>(ORNG_BASE_SCRIPT_ID);
+			p_script_comp->SetSymbols(&p_asset->symbols);
 		}
 	}
 

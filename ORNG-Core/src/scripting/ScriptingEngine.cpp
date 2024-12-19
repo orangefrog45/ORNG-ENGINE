@@ -8,52 +8,6 @@
 
 
 namespace ORNG {
-	struct ScriptMetadata {
-		template <typename S>
-		void serialize(S& o) {
-			o.text1b(last_write_time, 1000);
-			o.text1b(orng_library_last_write_time, 1000);
-		}
-
-		std::string last_write_time;
-		std::string orng_library_last_write_time;
-	};
-
-
-
-
-#ifndef _MSC_VER
-#error Scripting engine only supports MSVC compilation with VS 2019+ currently
-#endif // !_MSC_VER
-
-	bool DoesScriptNeedRecompilation(const std::string& script_path, const std::string& metadata_path) {
-		if (std::filesystem::exists(metadata_path)) {
-			ScriptMetadata data;
-			SceneSerializer::DeserializeBinary(metadata_path, data);
-
-			if (GetFileLastWriteTime(script_path) != data.last_write_time)
-				return true; // Script CPP file has changed so needs recompiling
-
-			// Check if the build type matches
-#ifdef NDEBUG
-			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
-#else
-			std::string engine_lib_path = ORNG_CORE_LIB_DIR "\\ORNG_CORE.lib";
-#endif
-			if (GetFileLastWriteTime(engine_lib_path) != data.orng_library_last_write_time) {
-				return false;
-				return true; // Core engine library has changed so recompilation needed
-			}
-		}
-		else {
-			return true;
-		}
-
-		return false; // Everything matches, no need for recompilation
-	}
-
-
-
 
 #ifdef _MSC_VER
 	std::string GetVS_InstallDir(const std::string& vswhere_path) {
@@ -100,11 +54,17 @@ namespace ORNG {
 		// Insert commands to compile scripts into Cmake file
 		size_t cmake_script_append_location = cmake_content.find("SCRIPT START\n") + 13;
 		std::string target_str = "\nset(SCRIPT_TARGETS ";
-		for (auto& entry : std::filesystem::directory_iterator{ dir }) {
+		std::string script_src_directory = dir + "/src";
+		for (auto& entry : std::filesystem::directory_iterator{ script_src_directory }) {
 			if (auto path = entry.path().string(); path.ends_with(".cpp")) {
 				std::string filename = ReplaceFileExtension(path.substr(path.rfind("\\") + 1), "");
 				target_str += " " + filename;
-				std::string cmake_append_content = "add_library({0} SHARED {0}.cpp)\ntarget_include_directories({0} PUBLIC ${SCRIPT_INCLUDE_DIRS})\ntarget_link_libraries({0} PUBLIC ${SCRIPT_LIBS})\n";
+				std::string cmake_append_content = 
+					R"(add_library({0} SHARED src/{0}.cpp headers/ScriptAPIImpl.cpp instancers/{0}Instancer.cpp)
+						target_include_directories({0} PUBLIC ${SCRIPT_INCLUDE_DIRS})
+						target_link_libraries({0} PUBLIC ${SCRIPT_LIBS})
+						target_compile_definitions({0} PUBLIC ORNG_CLASS={0})
+)";
 				StringReplace(cmake_append_content, "{0}", filename);
 				cmake_content.insert(cmake_content.begin() + cmake_script_append_location, cmake_append_content.begin(), cmake_append_content.end());
 				cmake_script_append_location += cmake_append_content.length();
@@ -168,6 +128,7 @@ namespace ORNG {
 		}
 
 		FileDelete(script_filepath);
+		UpdateScriptCmakeProject("res/scripts");
 	}
 
 	ScriptStatusQueryResults ScriptingEngine::GetScriptData(const std::string& script_filepath) {
@@ -180,26 +141,24 @@ namespace ORNG {
 	}
 
 
-	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& relative_path) {
+	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& script_filepath, const std::string& script_name) {
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
 		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
 			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", dll_path);
-			return ScriptSymbols(relative_path);
+			return ScriptSymbols(script_name);
 		}
 		
-		ScriptSymbols symbols{ relative_path };
+		ScriptSymbols symbols{ script_name };
 
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
 		symbols.loaded = true;
-		symbols._SI_Setter = (SI_Setter)(GetProcAddress(script_dll, "SetSI"));
 
 		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
 		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));
 		FrameTimingSetter frame_timing_setter = (FrameTimingSetter)(GetProcAddress(script_dll, "SetFrameTimingPtr"));
 		ImGuiContextSetter imgui_context_setter = (ImGuiContextSetter)(GetProcAddress(script_dll, "SetImGuiContext"));
-		ASSERT(symbols._SI_Setter);
 		// Set input class ptr in dll for shared state - used to get key/mouse inputs
 		setter(&Input::Get());
 		event_setter(&Events::EventManager::Get());
@@ -211,7 +170,7 @@ namespace ORNG {
 		imgui_context_setter(ImGui::GetCurrentContext(), imgui_malloc, imgui_free);
 
 		// Keep record of loaded DLLs
-		sm_loaded_script_dll_handles.push_back({ relative_path, script_dll, symbols });
+		sm_loaded_script_dll_handles.push_back({ script_filepath, script_dll, symbols });
 
 		return symbols;
 	}
@@ -228,7 +187,7 @@ namespace ORNG {
 		std::string dll_path = GetDllPathFromScriptCpp(filepath);
 		std::string relative_path = ".\\" + filepath.substr(filepath.rfind("res\\scripts"));
 
-		ScriptSymbols symbols{ LoadScriptDll(dll_path, relative_path) };
+		ScriptSymbols symbols{ LoadScriptDll(dll_path, relative_path, filename_no_ext) };
 
 		return symbols;
 	}

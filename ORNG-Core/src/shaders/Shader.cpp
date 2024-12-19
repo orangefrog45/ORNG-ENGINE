@@ -121,6 +121,7 @@ namespace ORNG {
 			return { "", 0 };
 		}
 
+		std::string shader_code = ReadTextFile(filepath);
 
 		std::ifstream stream(filepath);
 		std::string line;
@@ -175,28 +176,17 @@ namespace ORNG {
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines) {
 		unsigned int shader_handle = 0;
 
-		if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded()) {
-			// Shaders will be deserialized and loaded from a shader package
-			ShaderData data{ .name = m_name, .stage = (uint32_t)shader_type, .id = 0 };
-			CompileShader(shader_type, Renderer::GetShaderLibrary().PopShaderCodeFromCache(data), shader_handle);
-			m_shader_handles.push_back(shader_handle);
-		}
-		else {
-			ASSERT(FileExists(filepath));
-			std::vector<const std::string*> include_tree;
+		ASSERT(FileExists(filepath));
+		std::vector<const std::string*> include_tree;
 
-			m_stages[shader_type] = { std::filesystem::absolute(filepath).string(), defines }; // Store absolute path as the working directory will change to fit the project
-			auto result = ParseShader(filepath, defines, include_tree, 0, shader_type);
-			CompileShader(shader_type, result.shader_code, shader_handle);
+		m_stages[shader_type] = { std::filesystem::absolute(filepath).string(), defines }; // Store absolute path as the working directory will change to fit the project
+		auto result = ParseShader(filepath, defines, include_tree, 0, shader_type);
+		CompileShader(shader_type, result.shader_code, shader_handle);
 
-			m_shader_handles.push_back(shader_handle);
-		}
+		m_shader_handles.push_back(shader_handle);
 	}
 
 	void Shader::AddStageFromString(GLenum shader_type, const std::string& shader_code, std::vector<std::string> defines) {
-		//if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded())
-			//return; // Shaders will be deserialized and loaded from a shader package, so this behaviour can be scrapped
-
 		// Copy needs to be made so the includes can be written to it
 		std::string shader_code_copy = shader_code;
 
@@ -376,17 +366,7 @@ namespace ORNG {
 		ASSERT(!m_shaders.contains(id));
 		m_shaders[id] = Shader(std::format("{}", m_name));
 		for (auto& [type, path] : m_shader_paths) {
-			if (Renderer::GetShaderLibrary().ShaderPackageIsLoaded()) {
-				// Shaders will be deserialized and loaded from a shader package
-				ShaderData data{ .name = m_name, .stage = (uint32_t)type, .id = id };
-				unsigned shader_handle;
-				auto code = Renderer::GetShaderLibrary().PopShaderCodeFromCache(data);
-				m_shaders[id].CompileShader(type, code, shader_handle);
-				m_shaders[id].m_shader_handles.push_back(shader_handle);
-			}
-			else {
-				m_shaders[id].AddStage(type, path, defines);
-			}
+			m_shaders[id].AddStage(type, path, defines);
 		}
 
 		m_shaders[id].Init();

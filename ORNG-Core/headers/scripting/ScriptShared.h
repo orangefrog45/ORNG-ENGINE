@@ -3,6 +3,7 @@
 #ifndef SCRIPT_SHARED_H
 #define SCRIPT_SHARED_H
 #include "entt/EnttSingleInclude.h"
+#include <iostream>
 
 class Instancer;
 namespace physx {
@@ -13,11 +14,12 @@ namespace ORNG {
 	class PhysicsComponent;
 	class SceneEntity;
 	class CameraComponent;
-
+	struct SI;
 
 	class ScriptBase {
 		friend class ScriptComponent;
 		friend class EditorLayer;
+		friend class Scene;
 		friend class ::Instancer;
 	public:
 		virtual ~ScriptBase() {};
@@ -34,8 +36,16 @@ namespace ORNG {
 			return static_cast<void*>(reinterpret_cast<std::byte*>(this) + properties[property_name]);
 		}
 
+		// DO NOT CALL - used by engine
+		virtual void SetSI(SI* _si) {
+			si = _si;
+		}
+
 	protected:
 		SceneEntity* p_entity = nullptr;
+
+		// DO NOT MODIFY VALUE, ONLY CALL METHODS
+		inline static SI* si = nullptr;
 
 		// DO NOT ACCESS
 		inline static std::unordered_map<std::string, uint32_t> properties;
@@ -87,19 +97,18 @@ namespace ORNG {
 	typedef void(__cdecl* InputSetter)(void*);
 	typedef void(__cdecl* EventInstanceSetter)(void*);
 	typedef void(__cdecl* FrameTimingSetter)(void*);
-	typedef void(__cdecl* SI_Setter)(void*);
 	typedef void(__cdecl* ImGuiContextSetter)(void*, void*, void*);
 
 	struct ScriptSymbols {
-		// Even if script fails to load, path must be preserved
-		ScriptSymbols(const std::string& path) : script_path(path) {};
+		// Even if script fails to load, name must be preserved
+		ScriptSymbols(const std::string& _script_name) : script_name(_script_name) {};
 
 		bool loaded = false;
-		std::string script_path;
+
+		std::string script_name;
+
 		InstanceCreator CreateInstance = [] {return new ScriptBase(); };
 		InstanceDestroyer DestroyInstance = [](ScriptBase* p_base) { delete p_base; };
-
-		SI_Setter _SI_Setter;
 	};
 
 }

@@ -1,5 +1,4 @@
-#include "RuntimeLayer.h"
-#include <GL/glew.h>
+#include "../headers/RuntimeLayer.h"
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
 
@@ -23,7 +22,7 @@ namespace ORNG {
 
 		// Adding a resize event listener so the scene display texture scales with the window
 		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
-			if (t_event.event_type == Events::Event::EventType::WINDOW_RESIZE) {
+			if (t_event.event_type == Events::WindowEvent::EventType::WINDOW_RESIZE) {
 				auto spec = mp_display_tex->GetSpec();
 				spec.width = t_event.new_window_size.x;
 				spec.height = t_event.new_window_size.y;
@@ -32,6 +31,7 @@ namespace ORNG {
 			};
 
 		mp_scene = std::make_unique<Scene>();
+		mp_scene->AddDefaultSystems();
 		Events::EventManager::RegisterListener(m_window_event_listener);
 		AssetManager::LoadAssetsFromProjectPath("./", true);
 		mp_scene->LoadScene();
@@ -61,5 +61,7 @@ namespace ORNG {
 
 	void RuntimeLayer::OnShutdown() {}
 
-	void RuntimeLayer::OnImGuiRender() {}
+	void RuntimeLayer::OnImGuiRender() {
+		mp_scene->OnImGuiRender();
+	}
 }

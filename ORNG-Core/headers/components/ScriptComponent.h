@@ -21,7 +21,6 @@ namespace ORNG {
 				p_symbols->DestroyInstance(p_instance);
 
 			p_symbols = t_symbols;
-			script_filepath = t_symbols->script_path;
 			p_instance = t_symbols->CreateInstance();
 			p_instance->p_entity = GetEntity();
 		}
@@ -34,7 +33,6 @@ namespace ORNG {
 
 	private:
 		const ScriptSymbols* p_symbols = nullptr;
-		std::string script_filepath = "";
 	};
 }
 

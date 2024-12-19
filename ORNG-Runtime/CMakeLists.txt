@@ -9,12 +9,12 @@ src/RuntimeLayer.cpp
 
 target_include_directories(ORNG_RUNTIME PUBLIC
 ${ORNG_CORE_INCLUDE_DIRS}
-${ORNG_EDITOR_INCLUDE_DIRS}
+headers
 )
 
 target_link_libraries(ORNG_RUNTIME PUBLIC 
 ORNG_CORE
-${ORNG_EDITOR_LIBS}
+imgui
 )
 
 target_precompile_headers(ORNG_RUNTIME REUSE_FROM ORNG_CORE)

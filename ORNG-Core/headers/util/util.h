@@ -117,6 +117,8 @@ namespace ORNG {
 
 	bool TryDirectoryDelete(const std::string& filepath);
 
+	std::string GetFilename(const std::string& filepath);
+
 	std::string GetFileDirectory(const std::string& filepath);
 
 	std::string GetFileLastWriteTime(const std::string& filepath);

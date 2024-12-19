@@ -33,7 +33,7 @@ namespace ORNG {
 	public:
 		static ScriptSymbols GetSymbolsFromScriptCpp(const std::string& filepath);
 
-		static ScriptSymbols LoadScriptDll(const std::string& dll_path, const std::string& relative_path);
+		static ScriptSymbols LoadScriptDll(const std::string& dll_path, const std::string& script_filepath, const std::string& script_name);
 		
 		// Cleans up any binary files, cleanly handles deletion of a script asset
 		static void OnDeleteScript(const std::string& script_filepath);
@@ -56,11 +56,12 @@ namespace ORNG {
 	};
 
 	struct ScriptAsset : public Asset {
-		ScriptAsset(ScriptSymbols& t_symbols) : Asset(t_symbols.script_path), symbols(t_symbols) { };
+		ScriptAsset(const std::string& cpp_filepath, ScriptSymbols& t_symbols) : Asset(cpp_filepath), symbols(t_symbols) { };
 
-		ScriptAsset(const std::string& filepath, bool immediately_load = true) : Asset(filepath), symbols(filepath) { 
+		ScriptAsset(const std::string& cpp_filepath, bool immediately_load = true) : Asset(cpp_filepath), symbols("") {
+			symbols.script_name = ReplaceFileExtension(GetFilename(cpp_filepath), "");
 			if (immediately_load)
-				symbols = ScriptingEngine::GetSymbolsFromScriptCpp(filepath);
+				symbols = ScriptingEngine::GetSymbolsFromScriptCpp(cpp_filepath);
 		};
 
 		ScriptSymbols symbols;

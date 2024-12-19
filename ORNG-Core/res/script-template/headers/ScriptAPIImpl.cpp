@@ -1,7 +1,7 @@
+#include "../includes/ScriptAPI.h"
 #include "core/FrameTiming.h"
 #include "events/EventManager.h"
 #include "core/Input.h"
-#include "ScriptAPI.h"
 #include "imgui/imgui.h"
 
 namespace physx {
@@ -9,7 +9,6 @@ namespace physx {
 }
 
 extern "C" {
-
 	// Connect main application's event system with dll
 	__declspec(dllexport) void SetEventManagerPtr(ORNG::Events::EventManager* p_instance) {
 		ORNG::Events::EventManager::SetInstance(p_instance);
@@ -20,26 +19,19 @@ extern "C" {
 		ScriptInterface::Input::SetInput(p_input);
 	}
 
-
 	// Connect main application's frametiming system with dll
 	__declspec(dllexport) void SetFrameTimingPtr(void* p_instance) {
 		ScriptInterface::FrameTiming::SetInstance(p_instance);
 	}
 
-	__declspec(dllexport) void SetSI(void* p_instance) {
-		si = (ORNG::SI*)(p_instance);
-	}
-
+	// Connect main application's ImGui context with dll
 	__declspec(dllexport) void SetImGuiContext(void* p_instance, void* mem_alloc_func, void* free_func) {
 		ImGui::SetCurrentContext(static_cast<ImGuiContext*>(p_instance));
 		ImGui::SetAllocatorFunctions(static_cast<ImGuiMemAllocFunc>(mem_alloc_func), static_cast<ImGuiMemFreeFunc>(free_func));
 	}
-
 }
 
 namespace ScriptInterface {
-
-
 	glm::vec2 Input::GetMouseDelta() {
 		return static_cast<ORNG::Input*>(mp_input)->m_mouse_position - static_cast<ORNG::Input*>(mp_input)->m_last_mouse_position;
 	}
@@ -97,7 +89,4 @@ namespace ScriptInterface {
 	float FrameTiming::GetDeltaTime() { return static_cast<ORNG::FrameTiming*>(mp_instance)->IGetTimeStep(); }
 
 	float FrameTiming::GetElapsedTime() { return static_cast<ORNG::FrameTiming*>(mp_instance)->total_elapsed_time; }
-
-
-
 }

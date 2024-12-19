@@ -159,7 +159,7 @@ namespace ORNG {
 				script.p_instance->OnUpdate();
 			}
 			catch (std::exception& e) {
-				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.GetSymbols()->script_path, e.what());
+				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.GetSymbols()->script_name, e.what());
 			}
 		}
 		ORNG_PROFILE_FUNC();
@@ -521,8 +521,12 @@ namespace ORNG {
 
 	void Scene::SetScriptState() {
 		for (auto* p_script_asset : AssetManager::GetView<ScriptAsset>()) {
-			if (p_script_asset->symbols._SI_Setter)
-				p_script_asset->symbols._SI_Setter(&m_si);
+			if (p_script_asset->symbols.loaded) {
+				auto* p_instance = p_script_asset->symbols.CreateInstance();
+				// Set static variable 'si', all instances will now have access to this
+				p_instance->SetSI(&m_si);
+				p_script_asset->symbols.DestroyInstance(p_instance);
+			}
 		}
 	}
 

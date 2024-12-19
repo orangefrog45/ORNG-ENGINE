@@ -5,7 +5,6 @@ void main() {
 	ORNG::RuntimeLayer rt;
 
 	ORNG::ApplicationData app_data{};
-	app_data.shader_package_file = "shaders.shaderpkg";
 
 	app.layer_stack.PushLayer(&rt);
 	app.Init(app_data);

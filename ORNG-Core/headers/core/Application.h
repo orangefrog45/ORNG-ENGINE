@@ -13,9 +13,6 @@ namespace ORNG {
 	};
 
 	struct ApplicationData {
-		// Only needed when building engine for runtime
-		std::string shader_package_file;
-
 		// Modules specified here will not be initialized with the application, this will make them unusable
 		ApplicationModulesFlags disabled_modules = MODULE_NONE;
 

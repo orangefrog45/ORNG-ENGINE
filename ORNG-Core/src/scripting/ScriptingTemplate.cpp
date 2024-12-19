@@ -1,12 +1,4 @@
-#include "./includes/ScriptAPI.h"
-
-/*
-	Apart from entity/scene methods, only use methods inside the "ScriptInterface" namespace
-	Attempting to use any singleton classes from the ORNG namespace will result in either undefined behaviour or runtime crashes
-*/
-
-// ORNG_CLASS must be defined as exported class
-#define ORNG_CLASS ScriptClassExample
+#include "../headers/ScriptClassExample.h"
 
 // EXPOSE_PROPERTY(x) means the property can be accessed as a void* by calling Get<type>(property_name) on a ScriptBase* ptr to this class
 // Put EXPOSE_PROPERTY calls in the exported class constructor
@@ -15,27 +7,17 @@
 extern "C" {
 	using namespace ORNG;
 
-	class ScriptClassExample : public ScriptBase {
-	public:
-		ScriptClassExample() {
-		
-		}
+	void ScriptClassExample::OnCreate() {
 
-		void OnCreate() override {
+	}
 
-		}
+	void ScriptClassExample::OnUpdate() {
 
-		void OnUpdate() override {
+	}
 
-		}
+	void ScriptClassExample::OnDestroy() {
 
-		void OnDestroy() override {
-
-		}
-
-	};
+	}
 }
 
 
-#include "includes/ScriptInstancer.h"
-#include "includes/ScriptAPIImpl.h"

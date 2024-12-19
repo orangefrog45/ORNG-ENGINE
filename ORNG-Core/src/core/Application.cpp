@@ -61,9 +61,6 @@ namespace ORNG {
 		if (!(data.disabled_modules & ApplicationModulesFlags::INPUT))
 			Input::Init();
 
-		if (!data.shader_package_file.empty())
-			Renderer::GetShaderLibrary().LoadShaderPackage(data.shader_package_file);
-
 		Renderer::Init();
 
 		if (!(data.disabled_modules & ApplicationModulesFlags::PHYSICS))
@@ -90,20 +87,17 @@ namespace ORNG {
 		Events::EngineCoreEvent update_event;
 		update_event.event_type = Events::EngineCoreEvent::ENGINE_UPDATE;
 
-		while (!glfwWindowShouldClose(window))
-		{
+		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 			Events::EventManager::DispatchEvent(update_event);
 			ExtraUI::OnUpdate();
-
-			// Render
+			
 			Events::EventManager::DispatchEvent(render_event);
 			glfwSwapBuffers(window);
 
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 			TracyGpuCollect;
 #endif
-
 			FrameTiming::Update();
 			Input::OnUpdate();
 		}

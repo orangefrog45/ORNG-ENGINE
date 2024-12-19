@@ -6,24 +6,6 @@
 namespace ORNG {
 	class Material;
 
-	struct ShaderData {
-		std::string name;
-		uint32_t stage;
-
-		// ID given to shader if it was a shader contained within ShaderVariants, if not this is 0
-		uint32_t id;
-
-		bool operator==(const ShaderData& other) const {
-			return this->name == other.name && this->stage == other.stage && this->id == other.id;
-		}
-
-		struct Hash {
-			size_t operator()(const ShaderData& data) const {
-				return std::hash<std::string>()(data.name) ^ std::hash<uint32_t>()(data.stage) + std::hash<uint32_t>()(data.id);
-			}
-		};
-	};
-
 	class Shader {
 	public:
 		friend class ShaderLibrary;
@@ -46,6 +28,7 @@ namespace ORNG {
 		void AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines = {});
 
 		void Reload();
+
 
 		const std::string& GetName() const {
 			return m_name;
