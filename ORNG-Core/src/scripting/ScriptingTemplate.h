@@ -16,7 +16,7 @@ extern "C" {
 
 		void OnCreate() override;
 
-		void OnUpdate() override;
+		void OnUpdate(float dt) override;
 
 		void OnDestroy() override;
 	};

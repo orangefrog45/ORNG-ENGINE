@@ -570,12 +570,12 @@ namespace ORNG {
 		ImGui::End();
 
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		RenderSceneGraph();
 
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, m_res.toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(RIGHT_WINDOW_WIDTH, Window::GetHeight() - m_res.toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
+			RenderSceneGraph();
 			DisplayEntityEditor();
 		}
 		ImGui::End();
@@ -1621,8 +1621,6 @@ namespace ORNG {
 	EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer, bool node_selection_active, const Box2D& selection_box) {
 		EntityNodeData ret{ EntityNodeEvent::E_NONE, {0, 0}, {0, 0} };
 
-		// Tree nodes that are open are stored here so their children are rendered with the logic below, independent of if the parent tree node is visible or not.
-
 		static std::string padding_str;
 		for (int i = 0; i < layer; i++) {
 			padding_str += " |--|";
@@ -1634,6 +1632,7 @@ namespace ORNG {
 		static std::string formatted_name; // Static to stop a new string being made every single call, only needed for c_str anyway
 		formatted_name.clear();
 
+		formatted_name = p_entity->name + " ";
 		if (ImGui::IsItemVisible()) {
 			formatted_name += p_entity->HasComponent<MeshComponent>() ? " " ICON_FA_BOX : "";
 			formatted_name += p_entity->HasComponent<PhysicsComponent>() || p_entity->HasComponent<PhysicsComponent>() ? " " ICON_FA_BEZIER_CURVE : "";
@@ -1644,8 +1643,6 @@ namespace ORNG {
 			formatted_name += p_entity->HasComponent<AudioComponent>() ? " " ICON_FA_VOLUME_HIGH : "";
 			formatted_name += p_entity->HasComponent<ScriptComponent>() ? " " ICON_FA_FILE_INVOICE : "";
 			formatted_name += p_entity->HasComponent<JointComponent>() ? " " ICON_FA_DIAGRAM_PROJECT : "";
-			formatted_name += " ";
-			formatted_name += p_entity->name;
 		}
 
 		auto* p_entity_relationship_comp = p_entity->GetComponent<RelationshipComponent>();
@@ -1764,11 +1761,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
-		static bool mouse_over_title = false;
-
-		if (ImGui::Begin("Scene graph", (bool*)0, ImGuiWindowFlags_NoNavInputs | (mouse_over_title ? 0 : ImGuiWindowFlags_NoMove))) {
-			if (!Input::IsMouseDown(0))
-				mouse_over_title = ImGui::IsItemHovered();
+		if (ImGui::BeginChild("Scene graph", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f })) {
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_state.selected_entity_ids.clear();
@@ -1844,9 +1837,8 @@ namespace ORNG {
 
 				m_state.selected_entities_are_dragged = false;
 			}
-		} // begin "scene graph"
-
-		ImGui::End();
+		}
+		ImGui::EndChild();
 	}
 
 
@@ -1867,12 +1859,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DisplayEntityEditor() {
-		static bool mouse_over_title = false;
-
-		if (ImGui::Begin("Properties", (bool*)0, ImGuiWindowFlags_NoNavInputs| ImGuiWindowFlags_AlwaysAutoResize | (mouse_over_title ? 0 : ImGuiWindowFlags_NoMove))) {
-			if (!Input::IsMouseDown(0))
-				mouse_over_title = ImGui::IsItemHovered();
-
+		if (ImGui::BeginChild("Entity editor", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f })) {
 			if (m_state.general_settings.editor_window_settings.display_directional_light_editor)
 				RenderDirectionalLightEditor();
 			if (m_state.general_settings.editor_window_settings.display_global_fog_editor)
@@ -1921,11 +1908,10 @@ namespace ORNG {
 			glm::vec2 button_size = { 200, 50 };
 			glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
 			ImGui::Dummy(ImVec2(padding_size.x, padding_size.y));
-
 		}
 
+		ImGui::EndChild();
 		ImGui::Dummy({ 0, 50 });
-		ImGui::End(); // end entity editor window
 	}
 
 
@@ -2221,6 +2207,7 @@ namespace ORNG {
 		const char* types[2] = { "BILLBOARD", "MESH" };
 		ParticleEmitterComponent::EmitterType emitter_types[2] = { ParticleEmitterComponent::EmitterType::BILLBOARD, ParticleEmitterComponent::EmitterType::MESH };
 		static int current_item = 0;
+		current_item = p_comp->m_type;
 
 		ImGui::Text("Render type"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##type selection", types[current_item])) {

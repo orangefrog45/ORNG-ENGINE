@@ -492,7 +492,7 @@ namespace ORNG {
 		if (ExtraUI::RightClickPopup("asset_popup"))
 		{
 			if (ImGui::Selectable("Delete"))
-				OnRequestDeleteAsset(p_asset, display_spec.delete_confirmation_str);
+				OnRequestDeleteAsset(p_asset, display_spec.delete_confirmation_str, display_spec.on_delete);
 
 			for (auto& pair : display_spec.popup_spec.options) {
 				if (ImGui::Selectable(pair.first))

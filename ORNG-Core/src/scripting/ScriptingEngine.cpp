@@ -46,10 +46,18 @@ namespace ORNG {
 		}
 
 		std::string cmake_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/res/script-template/CMakeLists.txt");
-		std::string user_content = cmake_content.substr(cmake_content.find("USER STUFF BELOW") + 16);
+		std::string existing_cmake_content = ReadTextFile(dir + "/CMakeLists.txt");
+		std::string user_content = existing_cmake_content.substr(existing_cmake_content.find("USER STUFF BELOW") + 16);
 
 		// Update engine directories for includes/libraries in Cmake file
 		ReplaceScriptCmakeEngineFilepaths(cmake_content);
+
+		{ // Copy over extra cpps section
+			size_t extra_cpps_start_pos = existing_cmake_content.find("EXTRA CPPS START") + 16;
+			std::string extra_cpps = existing_cmake_content.substr(extra_cpps_start_pos, existing_cmake_content.find("#E&CE") - extra_cpps_start_pos);
+			ORNG_CORE_CRITICAL(cmake_content.find("EXTRA CPPS START"));
+			cmake_content.insert(cmake_content.find("EXTRA CPPS START") + 16, extra_cpps);
+		}
 
 		// Insert commands to compile scripts into Cmake file
 		size_t cmake_script_append_location = cmake_content.find("SCRIPT START\n") + 13;
@@ -58,16 +66,25 @@ namespace ORNG {
 		for (auto& entry : std::filesystem::directory_iterator{ script_src_directory }) {
 			if (auto path = entry.path().string(); path.ends_with(".cpp")) {
 				std::string filename = ReplaceFileExtension(path.substr(path.rfind("\\") + 1), "");
+
+				// Create ExtraCpps variable for file if not found
+				if (cmake_content.find(filename + "_ExtraCpps") == std::string::npos) {
+					std::string var = "set(" + filename + "_ExtraCpps )\n";
+					cmake_content.insert(cmake_content.find("#E&CE") - 1, var);
+					cmake_script_append_location += var.length();
+				}
+
 				target_str += " " + filename;
-				std::string cmake_append_content = 
-					R"(add_library({0} SHARED src/{0}.cpp headers/ScriptAPIImpl.cpp instancers/{0}Instancer.cpp)
+				std::string command_append_content = 
+					R"(add_library({0} SHARED src/{0}.cpp headers/ScriptAPIImpl.cpp instancers/{0}Instancer.cpp ${{0}_ExtraCpps})
 						target_include_directories({0} PUBLIC ${SCRIPT_INCLUDE_DIRS})
 						target_link_libraries({0} PUBLIC ${SCRIPT_LIBS})
 						target_compile_definitions({0} PUBLIC ORNG_CLASS={0})
 )";
-				StringReplace(cmake_append_content, "{0}", filename);
-				cmake_content.insert(cmake_content.begin() + cmake_script_append_location, cmake_append_content.begin(), cmake_append_content.end());
-				cmake_script_append_location += cmake_append_content.length();
+				StringReplace(command_append_content, "{0}", filename);
+				cmake_content.insert(cmake_content.begin() + cmake_script_append_location, command_append_content.begin(), command_append_content.end());
+				cmake_script_append_location += command_append_content.length();
+
 			}
 		}
 
@@ -128,6 +145,10 @@ namespace ORNG {
 		}
 
 		FileDelete(script_filepath);
+		std::string script_dir = GetFileDirectory(script_filepath);
+		std::string script_name = ReplaceFileExtension(GetFilename(script_filepath), "");
+		FileDelete(script_dir + "/../instancers/" + script_name + "Instancer.cpp");
+		FileDelete(script_dir + "/../headers/" + script_name + ".h");
 		UpdateScriptCmakeProject("res/scripts");
 	}
 

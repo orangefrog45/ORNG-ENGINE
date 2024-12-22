@@ -556,18 +556,18 @@ namespace ORNG {
 		p_emitter->m_num_particles = emitter_node["Nb. particles"].as<unsigned>();
 		p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
 		p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
-		p_emitter->m_type = static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>());
 		p_emitter->acceleration = emitter_node["Acceleration"].as<glm::vec3>();
+		p_emitter->SetType(static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>()));
 
 		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Alpha over time"], p_emitter->m_life_alpha_interpolator);
 		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Colour over time"], p_emitter->m_life_colour_interpolator);
 		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
 		if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 			auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
-			entity.AddComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			entity.GetComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 		}
 		else {
-			auto* p_res = entity.AddComponent<ParticleMeshResources>();
+			auto* p_res = entity.GetComponent<ParticleMeshResources>();
 			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
 			p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
 

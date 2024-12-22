@@ -155,12 +155,7 @@ namespace ORNG {
 		
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			try {
-				script.p_instance->OnUpdate();
-			}
-			catch (std::exception& e) {
-				ORNG_CORE_ERROR("Script execution error with script '{0}' : '{1}'", script.GetSymbols()->script_name, e.what());
-			}
+			script.p_instance->OnUpdate(ts * 0.001f); // convert to seconds
 		}
 		ORNG_PROFILE_FUNC();
 
@@ -191,12 +186,7 @@ namespace ORNG {
 		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 
 		if (auto* p_script = p_entity->GetComponent<ScriptComponent>(); p_script && p_script->p_instance) {
-			try {
-				p_script->p_instance->OnDestroy();
-			}
-			catch (std::exception& e) {
-				ORNG_CORE_ERROR("OnDestroy script error for entity '{0}': '{1}'", p_entity->name, e.what());
-			}
+			p_script->p_instance->OnDestroy();
 		}
 
 		auto current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
@@ -229,6 +219,7 @@ namespace ORNG {
 		auto it = std::find_if(m_entities.begin(), m_entities.end(), [&](const auto* p_entity) {return p_entity->name == name; });
 		return it == m_entities.end() ? nullptr : *it;
 	}
+
 	SceneEntity* Scene::GetEntity(entt::entity handle) {
 		auto* p_transform = m_registry.try_get<TransformComponent>(handle);
 
@@ -510,12 +501,7 @@ namespace ORNG {
 		TimeStep s{ TimeStep::TimeUnits::MILLISECONDS };
 		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			try {
-				script.p_instance->OnCreate();
-			}
-			catch (std::exception e) {
-				ORNG_CORE_ERROR("Script execution error for entity '{0}' : '{1}'", GetEntity(entity)->name, e.what());
-			}
+			script.p_instance->OnCreate();
 		}
 	}
 

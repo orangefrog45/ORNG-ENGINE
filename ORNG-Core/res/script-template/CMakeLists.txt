@@ -41,6 +41,12 @@ ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imgui.lib
 )
 
+# DO NOT MODIFY OR DELETE THIS LINE - these are variables that allow compiling scripts with extra c++ files, you can modify the below lines - EXTRA CPPS START
+
+#E&CE DO NOT MODIFY OR DELETE THIS LINE - EXTRA CPPS END
+
+
+
 # DO NOT MODIFY OR DELETE THIS LINE - SCRIPT START
 
 # DO NOT MODIFY OR DELETE THIS LINE - SCRIPT END

@@ -456,7 +456,7 @@ namespace ORNG {
 		std::string audio_folder = project_dir + "\\res\\audio\\";
 		std::string material_folder = project_dir + "\\res\\materials\\";
 		std::string prefab_folder = project_dir + "\\res\\prefabs\\";
-		std::string script_folder = project_dir + "\\res\\scripts\\";
+		std::string script_folder = project_dir + "\\res\\scripts\\src\\";
 		std::string physx_mat_folder = project_dir + "\\res\\physx-materials\\";
 
 		Texture2DSpec default_spec;

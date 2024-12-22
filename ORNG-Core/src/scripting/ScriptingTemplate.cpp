@@ -11,7 +11,7 @@ extern "C" {
 
 	}
 
-	void ScriptClassExample::OnUpdate() {
+	void ScriptClassExample::OnUpdate(float dt) {
 
 	}
 
