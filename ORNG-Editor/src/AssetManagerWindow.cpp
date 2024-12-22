@@ -257,17 +257,13 @@ namespace ORNG {
 
 				std::string script_path_h = *mp_active_project_dir + "\\res\\scripts\\headers\\" + new_script_name + ".h";
 				std::string script_path_cpp = *mp_active_project_dir + "\\res\\scripts\\src\\" + new_script_name + ".cpp";
-				std::string script_path_instancer = *mp_active_project_dir + "\\res\\scripts\\instancers\\" + new_script_name + "Instancer.cpp";
 				if (!AssetManager::GetAsset<ScriptAsset>(script_path_cpp)) {
 					std::string script_template_h_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.h");
 					std::string script_template_cpp_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp");
-					std::string script_template_instancer_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\res\\script-template\\instancers\\ScriptInstancer.cpp");
 					StringReplace(script_template_h_content, "ScriptClassExample", new_script_name);
 					StringReplace(script_template_cpp_content, "ScriptClassExample", new_script_name);
-					StringReplace(script_template_instancer_content, "ScriptClassExample", new_script_name);
 					WriteTextFile(script_path_h, script_template_h_content);
 					WriteTextFile(script_path_cpp, script_template_cpp_content);
-					WriteTextFile(script_path_instancer, script_template_instancer_content);
 					AssetManager::AddAsset(new ScriptAsset(script_path_cpp, false));
 				}
 

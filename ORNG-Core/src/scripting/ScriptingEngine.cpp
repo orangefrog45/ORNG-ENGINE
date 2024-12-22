@@ -76,10 +76,10 @@ namespace ORNG {
 
 				target_str += " " + filename;
 				std::string command_append_content = 
-					R"(add_library({0} SHARED src/{0}.cpp headers/ScriptAPIImpl.cpp instancers/{0}Instancer.cpp ${{0}_ExtraCpps})
+					R"(add_library({0} SHARED src/{0}.cpp headers/ScriptAPIImpl.cpp instancers/ScriptInstancer.cpp ${{0}_ExtraCpps})
 						target_include_directories({0} PUBLIC ${SCRIPT_INCLUDE_DIRS})
 						target_link_libraries({0} PUBLIC ${SCRIPT_LIBS})
-						target_compile_definitions({0} PUBLIC ORNG_CLASS={0})
+						target_compile_definitions({0} PUBLIC ORNG_CLASS={0} SCRIPT_CLASS_HEADER_PATH="../headers/{0}.h")
 )";
 				StringReplace(command_append_content, "{0}", filename);
 				cmake_content.insert(cmake_content.begin() + cmake_script_append_location, command_append_content.begin(), command_append_content.end());
@@ -147,7 +147,6 @@ namespace ORNG {
 		FileDelete(script_filepath);
 		std::string script_dir = GetFileDirectory(script_filepath);
 		std::string script_name = ReplaceFileExtension(GetFilename(script_filepath), "");
-		FileDelete(script_dir + "/../instancers/" + script_name + "Instancer.cpp");
 		FileDelete(script_dir + "/../headers/" + script_name + ".h");
 		UpdateScriptCmakeProject("res/scripts");
 	}

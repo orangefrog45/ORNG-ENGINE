@@ -1,4 +1,4 @@
-#include "../headers/ScriptClassExample.h"
+#include SCRIPT_CLASS_HEADER_PATH
 
 extern "C" {
 #ifndef ORNG_CLASS
