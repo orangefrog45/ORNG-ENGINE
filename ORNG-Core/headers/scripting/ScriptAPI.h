@@ -61,8 +61,7 @@ extern "C" {
 	namespace ScriptInterface {
 		class Input {
 		public:
-
-			static glm::vec2 GetMouseDelta();
+			static glm::ivec2 GetMouseDelta();
 
 			static bool IsKeyDown(ORNG::Key key);
 
@@ -82,7 +81,7 @@ extern "C" {
 
 			static glm::ivec2 GetMousePos();
 
-			static void SetMousePos(float x, float y);
+			static void SetMousePos(glm::ivec2 pos);
 
 			static void SetInput(void* p_input);
 

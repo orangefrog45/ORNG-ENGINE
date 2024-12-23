@@ -420,8 +420,10 @@ namespace ORNG {
 
 
 	void EditorLayer::UpdateEditorCam() {
-		static float cam_speed = 0.01f;
+		if (SCENE->GetActiveCamera() != mp_editor_camera->GetComponent<CameraComponent>())
+			return;
 
+		static float cam_speed = 0.01f;
 		auto* p_cam = mp_editor_camera->GetComponent<CameraComponent>();
 		auto* p_transform = mp_editor_camera->GetComponent<TransformComponent>();
 		p_cam->aspect_ratio = m_state.scene_display_rect.x / m_state.scene_display_rect.y;
@@ -846,11 +848,26 @@ namespace ORNG {
 
 	void EditorLayer::BuildGameFromActiveProject() {
 		// Delete old build
-		TryFileDelete("build");
-		Create_Directory("build");
+		TryFileDelete("./build");
+		Create_Directory("./build");
+		Create_Directory("./build/res");
 
 		FileCopy(m_state.current_project_directory + "/scene.yml", "build/scene.yml");
-		FileCopy(m_state.current_project_directory + "/res", "build/res", true);
+
+		for (auto& file : std::filesystem::recursive_directory_iterator{ m_state.current_project_directory + "/res" }) {
+			auto path_str = file.path().generic_string();
+			if (path_str.find(".vs") != std::string::npos)
+				continue;
+
+			std::string rel_path = path_str.substr(path_str.find("/res"));
+			if (file.is_directory()) {
+				Create_Directory("./build" + rel_path);
+			}
+			else {
+				FileCopy(path_str, "./build" + rel_path);
+			}
+		}
+
 		FileCopy(GetApplicationExecutableDirectory() + "/res/shaders", "build/res/shaders", true);
 		FileCopy(GetApplicationExecutableDirectory() + "/../ORNG-Runtime/ORNG_RUNTIME.exe", "build/ORNG_RUNTIME.exe");
 

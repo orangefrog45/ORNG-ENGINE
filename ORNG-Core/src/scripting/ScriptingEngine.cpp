@@ -95,10 +95,10 @@ namespace ORNG {
 	}
 
 	void ScriptingEngine::GenerateScriptCmakeProject(const std::string& dir) {
-		FileCopy(ORNG_CORE_MAIN_DIR "/res/script-template", dir, true);
+		FileCopy(ORNG_CORE_MAIN_DIR "/script-template", dir, true);
 
 		// Create CMake file to compile scripts to DLL's, engine filepaths need to be set first
-		std::string cmake_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/res/script-template/CMakeLists.txt");
+		std::string cmake_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/script-template/CMakeLists.txt");
 		ReplaceScriptCmakeEngineFilepaths(cmake_content);
 
 		WriteTextFile(dir + "/CMakeLists.txt", cmake_content);

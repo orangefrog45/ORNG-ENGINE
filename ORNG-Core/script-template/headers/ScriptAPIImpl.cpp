@@ -32,7 +32,7 @@ extern "C" {
 }
 
 namespace ScriptInterface {
-	glm::vec2 Input::GetMouseDelta() {
+	glm::ivec2 Input::GetMouseDelta() {
 		return static_cast<ORNG::Input*>(mp_input)->m_mouse_position - static_cast<ORNG::Input*>(mp_input)->m_last_mouse_position;
 	}
 
@@ -74,8 +74,8 @@ namespace ScriptInterface {
 		return static_cast<ORNG::Input*>(mp_input)->m_mouse_position;
 	}
 
-	void Input::SetMousePos(float x, float y) {
-		static_cast<ORNG::Input*>(mp_input)->SetCursorPos(x, y);
+	void Input::SetMousePos(glm::ivec2 pos) {
+		static_cast<ORNG::Input*>(mp_input)->SetCursorPos(pos.x, pos.y);
 	}
 
 	void Input::SetInput(void* p_input) {

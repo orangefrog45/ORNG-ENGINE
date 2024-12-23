@@ -456,7 +456,7 @@ namespace ORNG {
 		std::string audio_folder = project_dir + "\\res\\audio\\";
 		std::string material_folder = project_dir + "\\res\\materials\\";
 		std::string prefab_folder = project_dir + "\\res\\prefabs\\";
-		std::string script_folder = project_dir + "\\res\\scripts\\src\\";
+		std::string script_folder = project_dir + "\\res\\scripts\\";
 		std::string physx_mat_folder = project_dir + "\\res\\physx-materials\\";
 
 		Texture2DSpec default_spec;
@@ -558,7 +558,7 @@ namespace ORNG {
 						continue;
 #endif
 					std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
-					std::string rel_path = ".\\res\\scripts\\src" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
+					std::string rel_path = ".\\res\\scripts\\src\\" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
 
 					ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
 
