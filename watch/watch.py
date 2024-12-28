@@ -4,18 +4,18 @@ from watchdog.events import FileSystemEventHandler
 import shutil
 import time
 
-debug_dir_core = "..\\out\\build\\x64-Debug-2\\ORNG-Core\\res\\shaders\\"
-release_dir_core = "..\\out\\build\\x64-Release-2\\ORNG-Core\\res\\shaders\\"
-debug_dir_editor = "..\\out\\build\\x64-Debug-2\\ORNG-Editor\\res\\shaders\\"
-release_dir_editor = "..\\out\\build\\x64-Release-2\\ORNG-Editor\\res\\shaders\\"
-debug_dir_game = "..\\out\\build\\x64-Debug-2\\Game\\res\\shaders\\"
-release_dir_game = "..\\out\\build\\x64-Release-2\\Game\\res\\shaders\\"
-debug_dir_monitor = "..\\out\\build\\x64-Debug-2\\HW-Monitor\\res\\shaders\\"
-release_dir_monitor = "..\\out\\build\\x64-Release-2\\HW-Monitor\\res\\shaders\\"
-debug_dir_ifs = "..\\out\\build\\x64-Debug-2\\IFS-fractals\\res\\shaders\\"
-release_dir_ifs = "..\\out\\build\\x64-Release-2\\IFS-fractals\\res\\shaders\\"
-debug_dir_phys_game = "..\\out\\build\\x64-Debug-2\\PhysicsGame\\res\\shaders\\"
-release_dir_phys_game = "..\\out\\build\\x64-Release-2\\PhysicsGame\\res\\shaders\\"
+debug_dir_core = "..\\out\\build\\x64-Debug\\ORNG-Core\\res\\shaders\\"
+release_dir_core = "..\\out\\build\\x64-Release\\ORNG-Core\\res\\shaders\\"
+debug_dir_editor = "..\\out\\build\\x64-Debug\\ORNG-Editor\\res\\shaders\\"
+release_dir_editor = "..\\out\\build\\x64-Release\\ORNG-Editor\\res\\shaders\\"
+debug_dir_game = "..\\out\\build\\x64-Debug\\Game\\res\\shaders\\"
+release_dir_game = "..\\out\\build\\x64-Release\\Game\\res\\shaders\\"
+debug_dir_monitor = "..\\out\\build\\x64-Debug\\HW-Monitor\\res\\shaders\\"
+release_dir_monitor = "..\\out\\build\\x64-Release\\HW-Monitor\\res\\shaders\\"
+debug_dir_ifs = "..\\out\\build\\x64-Debug\\IFS-fractals\\res\\shaders\\"
+release_dir_ifs = "..\\out\\build\\x64-Release\\IFS-fractals\\res\\shaders\\"
+debug_dir_phys_game = "..\\out\\build\\x64-Debug\\PhysicsGame\\res\\shaders\\"
+release_dir_phys_game = "..\\out\\build\\x64-Release\\PhysicsGame\\res\\shaders\\"
 
 def TryCopy(original, copy_location):
     try:

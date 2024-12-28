@@ -56,6 +56,7 @@ namespace ORNG {
 		}
 
 		void OnShutdown() {
+			mp_preview_scene->UnloadScene();
 			mp_preview_scene = nullptr;
 		}
 

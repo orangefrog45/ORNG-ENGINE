@@ -23,7 +23,7 @@ namespace ORNG {
 		void GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
 		void ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
 
-		// These need to live throughout whole application so are initialized and only deleted at the end
+		// These need to live throughout whole application so are initialized once and only deleted at the end
 		inline static Framebuffer* mp_output_fb = nullptr;
 		inline static Shader* mp_hdr_converter_shader = nullptr;
 		inline static Shader* mp_brdf_convolution_shader = nullptr;

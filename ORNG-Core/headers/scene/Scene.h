@@ -34,20 +34,20 @@ namespace ORNG {
 		// Memory for the system is freed when the scene is deleted
 		template<typename SystemType>
 		SystemType* AddSystem(SystemType* p_system) {
-			ASSERT(!systems.contains(type_id<SystemType>));
-			systems[type_id<SystemType>] = p_system;
+			ASSERT(!systems.contains(SystemType::GetSystemUUID()));
+			systems[SystemType::GetSystemUUID()] = p_system;
 			return p_system;
 		}
 
 		template<typename SystemType>
 		SystemType& GetSystem() {
-			ASSERT(systems.contains(type_id<SystemType>));
-			return *dynamic_cast<SystemType*>(systems[type_id<SystemType>]);
+			ASSERT(systems.contains(SystemType::GetSystemUUID()));
+			return *dynamic_cast<SystemType*>(systems[SystemType::GetSystemUUID()]);
 		}
 
 		template<typename SystemType>
 		bool HasSystem() {
-			return systems.contains(type_id<SystemType>);
+			return systems.contains(SystemType::GetSystemUUID());
 		}
 
 		// Allocates pool for component in main application instead of inside a script (needs to be called from main application)

@@ -126,7 +126,6 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Failed to delete shader '{0}', not found in ShaderLibrary", name);
 	}
 
-
 	void ShaderLibrary::ReloadShaders() {
 		for (auto& [name, shader] : m_shaders) {
 			shader.Reload();

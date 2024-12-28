@@ -1174,7 +1174,7 @@ namespace ORNG {
 					glm::uvec3 id_vec{ (uint32_t)(full_id >> 32), (uint32_t)(full_id), (uint32_t)std::distance(joint.attachments.begin(), it)};
 
 					auto* p_transform = p_joint->GetA0()->GetComponent<TransformComponent>();
-					auto pos = glm::quat(glm::radians(p_transform->GetAbsOrientation())) * p_joint->poses[0] + p_transform->GetAbsPosition();
+					auto pos = glm::quat(glm::radians(p_transform->GetAbsOrientation())) * p_joint->m_poses[0] + p_transform->GetAbsPosition();
 
 					m_res.p_picking_shader->SetUniform("comp_id", id_vec);
 					m_res.p_picking_shader->SetUniform("transform", glm::translate(pos) * glm::scale(glm::vec3(0.1)));
@@ -1890,7 +1890,7 @@ namespace ORNG {
 
 			auto entity = SCENE->GetEntity(m_state.selected_entity_ids.empty() ? 0 : m_state.selected_entity_ids[0]);
 			if (!entity) {
-				ImGui::End();
+				ImGui::EndChild();
 				return;
 			}
 
@@ -2102,18 +2102,18 @@ namespace ORNG {
 		std::array<const char*, 6> motion_strings = { "X", "Y", "Z", "TWIST", "SWING1", "SWING2" };
 		static std::array<float, 2> break_force;
 
-		break_force[0] = p_joint->force_threshold;
-		break_force[1] = p_joint->torque_threshold;
+		break_force[0] = p_joint->m_force_threshold;
+		break_force[1] = p_joint->m_torque_threshold;
 		for (int i = 0; i < 6; i++) {
 			auto axis = (PxD6Axis::Enum)i;
-			motion[axis] = (p_joint->motion[axis] == PxD6Motion::eFREE);
+			motion[axis] = (p_joint->m_motion[axis] == PxD6Motion::eFREE);
 		}
 
 		ImGui::SeparatorText("Motion freedom");
 		for (int i = 0; i < 6; i++) {
 			auto axis = (PxD6Axis::Enum)i;
 			if (ImGui::Checkbox(motion_strings[i], &motion[axis])) {
-				p_joint->SetMotion(axis, motion[axis] ? PxD6Motion::eFREE : PxD6Motion::eLOCKED);
+				p_joint->SetMotionCached(axis, motion[axis] ? PxD6Motion::eFREE : PxD6Motion::eLOCKED);
 			}
 
 			if (i != 2 && i != 5)
@@ -2128,19 +2128,19 @@ namespace ORNG {
 		break_force_changed |= ImGui::InputFloat("##t", &break_force[1]);
 
 		if (break_force_changed) {
-			p_joint->SetBreakForce(glm::max(break_force[0], 0.f), glm::max(break_force[1], 0.f));
+			p_joint->SetBreakForceCached(glm::max(break_force[0], 0.f), glm::max(break_force[1], 0.f));
 		}
 
 		static glm::vec3 vec0;
-		vec0 = p_joint->poses[0];
+		vec0 = p_joint->m_poses[0];
 		static glm::vec3 vec1;
-		vec1 = p_joint->poses[1];
+		vec1 = p_joint->m_poses[1];
 
 		if (ExtraUI::ShowVec3Editor("Local pose 0", vec0)) {
-			p_joint->SetLocalPose(0, vec0);
+			p_joint->SetLocalPoseCached(0, vec0);
 		}
 		if (ExtraUI::ShowVec3Editor("Local pose 1", vec1)) {
-			p_joint->SetLocalPose(1, vec1);
+			p_joint->SetLocalPoseCached(1, vec1);
 		}
 	}
 
@@ -2199,7 +2199,7 @@ namespace ORNG {
 		auto* p_transform1 = m_state.p_selected_joint->GetA1()->GetComponent<TransformComponent>();
 
 		glm::quat orientation_q0 = glm::quat(radians(p_transform0->GetAbsOrientation()));
-		glm::vec3 matrix_translation = p_transform0->GetAbsPosition() + glm::quat(radians(p_transform0->GetAbsOrientation())) * m_state.p_selected_joint->poses[0];
+		glm::vec3 matrix_translation = p_transform0->GetAbsPosition() + glm::quat(radians(p_transform0->GetAbsOrientation())) * m_state.p_selected_joint->m_poses[0];
 		glm::mat4 current_operation_matrix = glm::translate(matrix_translation);
 		
 		if (ImGuizmo::Manipulate(&view_mat[0][0], &mp_editor_camera->GetComponent<CameraComponent>()->GetProjectionMatrix()[0][0], ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::WORLD, &current_operation_matrix[0][0], nullptr, nullptr) && ImGuizmo::IsUsing()) {
@@ -2209,8 +2209,8 @@ namespace ORNG {
 			ImGuizmo::DecomposeMatrixToComponents(&current_operation_matrix[0][0], &manip_translation[0], &manip_scale[0], &manip_orientation[0]);
 			glm::vec3 new_center = manip_translation;
 
-			m_state.p_selected_joint->SetLocalPose(0, inverse(orientation_q0) * (new_center - p_transform0->GetAbsPosition()));
-			m_state.p_selected_joint->SetLocalPose(1, glm::inverse(glm::quat(radians(p_transform1->GetAbsOrientation()))) * (new_center - p_transform1->GetAbsPosition()));
+			m_state.p_selected_joint->SetLocalPoseCached(0, inverse(orientation_q0) * (new_center - p_transform0->GetAbsPosition()));
+			m_state.p_selected_joint->SetLocalPoseCached(1, glm::inverse(glm::quat(radians(p_transform1->GetAbsOrientation()))) * (new_center - p_transform1->GetAbsPosition()));
 		}
 
 		ImGui::PopID();
@@ -2761,6 +2761,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderTerrainEditor() {
+		return;
 		if (ExtraUI::H2TreeNode("Terrain")) {
 			ImGui::InputFloat("Height factor", &SCENE->terrain.m_height_scale);
 			static int terrain_width = 1000;

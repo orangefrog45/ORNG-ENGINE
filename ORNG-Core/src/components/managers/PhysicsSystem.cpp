@@ -108,17 +108,17 @@ namespace ORNG {
 		InitListeners();
 
 		auto& reg = mp_scene->GetRegistry();
-		reg.on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
-		reg.on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
+		m_connections[0] = reg.on_construct<PhysicsComponent>().connect<&OnPhysComponentAdd>();
+		m_connections[1] = reg.on_destroy<PhysicsComponent>().connect<&OnPhysComponentDestroy>();
 
-		reg.on_construct<JointComponent>().connect<&OnJointAdd>();
-		reg.on_destroy<JointComponent>().connect<&OnJointDestroy>();
+		m_connections[2] = reg.on_construct<JointComponent>().connect<&OnJointAdd>();
+		m_connections[3] = reg.on_destroy<JointComponent>().connect<&OnJointDestroy>();
 
-		reg.on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
-		reg.on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
+		m_connections[4] = reg.on_construct<CharacterControllerComponent>().connect<&OnCharacterControllerComponentAdd>();
+		m_connections[5] = reg.on_destroy<CharacterControllerComponent>().connect<&OnCharacterControllerComponentDestroy>();
 
-		reg.on_destroy<VehicleComponent>().connect<&OnVehicleComponentDestroy>();
-		reg.on_construct<VehicleComponent>().connect<&OnVehicleComponentAdd>();
+		m_connections[6] = reg.on_destroy<VehicleComponent>().connect<&OnVehicleComponentDestroy>();
+		m_connections[7] = reg.on_construct<VehicleComponent>().connect<&OnVehicleComponentAdd>();
 
 
 		InitVehicleSimulationContext();
@@ -151,13 +151,13 @@ namespace ORNG {
 			switch (t_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
-				InitComponent(t_event.affected_components[0]);
+				InitComponent(t_event.p_component);
 				break;
 			case COMP_UPDATED:
-				UpdateComponentState(t_event.affected_components[0]);
+				UpdateComponentState(t_event.p_component);
 				break;
 			case COMP_DELETED:
-				RemoveComponent(t_event.affected_components[0]);
+				RemoveComponent(t_event.p_component);
 				break;
 			};
 			};
@@ -170,13 +170,13 @@ namespace ORNG {
 			switch (t_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED:
-				InitComponent(t_event.affected_components[0]);
+				InitComponent(t_event.p_component);
 				break;
 			case COMP_UPDATED:
 				HandleComponentUpdate(t_event);
 				break;
 			case COMP_DELETED:
-				RemoveComponent(t_event.affected_components[0]);
+				RemoveComponent(t_event.p_component);
 				break;
 			}
 			};
@@ -186,13 +186,13 @@ namespace ORNG {
 			switch (t_event.event_type) {
 				using enum Events::ECS_EventType; 
 			case COMP_ADDED:
-				InitComponent(t_event.affected_components[0]);
+				InitComponent(t_event.p_component);
 				break;
 			case COMP_UPDATED:
 				//HandleComponentUpdate(t_event);
 				break;
 			case COMP_DELETED:
-				RemoveComponent(t_event.affected_components[0]);
+				RemoveComponent(t_event.p_component);
 				break;
 			}
 			};
@@ -203,10 +203,10 @@ namespace ORNG {
 			using enum Events::ECS_EventType;
 			switch (t_event.event_type) {
 			case COMP_ADDED: // Only doing index 0 because these events will only ever affect a single component currently
-				InitComponent(t_event.affected_components[0]);
+				InitComponent(t_event.p_component);
 				break;
 			case COMP_DELETED:
-				RemoveComponent(t_event.affected_components[0]);
+				RemoveComponent(t_event.p_component);
 				break;
 			}
 			};
@@ -263,7 +263,7 @@ namespace ORNG {
 	void PhysicsSystem::InitComponent(VehicleComponent* p_comp) {
 		auto& vehicle = p_comp->m_vehicle;
 
-		auto* p_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+		auto* p_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 		p_comp->p_body_mesh = p_asset;
 		p_comp->p_wheel_mesh = p_asset;
 		p_comp->m_wheel_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
@@ -450,8 +450,8 @@ namespace ORNG {
 		PxQuat quat1{ gq1.x, gq1.y, gq1.z, gq1.w };
 
 		if (connection.use_stored_poses) {
-			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, { ConvertVec3<PxVec3>(connection.p_joint->poses[0]), quat0 },
-				p_phys_1->p_rigid_actor, { ConvertVec3<PxVec3>(connection.p_joint->poses[1]), quat1 });
+			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, { ConvertVec3<PxVec3>(connection.p_joint->m_poses[0]), quat0 },
+				p_phys_1->p_rigid_actor, { ConvertVec3<PxVec3>(connection.p_joint->m_poses[1]), quat1 });
 		}
 		else {
 			// Position joint at middle of entities
@@ -463,20 +463,20 @@ namespace ORNG {
 			connection.p_joint->p_joint = PxD6JointCreate(*p_phys, p_phys_0->p_rigid_actor, { pos0, quat0 }, p_phys_1->p_rigid_actor, { pos1, quat1 });
 
 			// Update stored state
-			connection.p_joint->poses[0] = ConvertVec3<glm::vec3>(pos0);
-			connection.p_joint->poses[1] = ConvertVec3<glm::vec3>(pos1);
+			connection.p_joint->m_poses[0] = ConvertVec3<glm::vec3>(pos0);
+			connection.p_joint->m_poses[1] = ConvertVec3<glm::vec3>(pos1);
 		}
 
 		for (int i = 0; i < 6; i++) {
 			// Set joint state, deserialized component has it cached else it's defaults
-			connection.p_joint->p_joint->setMotion((PxD6Axis::Enum)i, connection.p_joint->motion[(PxD6Axis::Enum)i]);
+			connection.p_joint->p_joint->setMotion((PxD6Axis::Enum)i, connection.p_joint->m_motion[(PxD6Axis::Enum)i]);
 		}
 
 		// Store JointComponent::Joint*
 		connection.p_joint->p_joint->userData = connection.p_joint;
 
 		// Update break forces
-		connection.p_joint->SetBreakForce(connection.p_joint->force_threshold, connection.p_joint->torque_threshold);
+		connection.p_joint->p_joint->setBreakForce(connection.p_joint->m_force_threshold, connection.p_joint->m_torque_threshold);
 
 		// Cache A1
 		connection.p_joint->p_a1 = connection.p_target->GetEntity();
@@ -493,10 +493,10 @@ namespace ORNG {
 	void PhysicsSystem::HandleComponentUpdate(const Events::ECS_Event<JointComponent>& t_event) {
 		switch (t_event.sub_event_type) {
 		case JointEventType::CONNECT:
-			ConnectJoint(std::any_cast<JointComponent::ConnectionData>(t_event.data_payload));
+			ConnectJoint(*reinterpret_cast<JointComponent::ConnectionData*>(t_event.p_data));
 			break;
 		case JointEventType::BREAK:
-			BreakJoint(std::any_cast<JointComponent::Joint*>(t_event.data_payload));
+			BreakJoint(reinterpret_cast<JointComponent::Joint*>(t_event.p_data));
 			break;
 		}
 
@@ -522,6 +522,10 @@ namespace ORNG {
 
 
 	void PhysicsSystem::OnUnload() {
+		for (auto& connection : m_connections) {
+			connection.release();
+		}
+
 		PxVehicleUnitCylinderSweepMeshDestroy(mp_sweep_mesh);
 		DeinitListeners();
 
@@ -542,13 +546,13 @@ namespace ORNG {
 
 	void PhysicsSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event) {
 		if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
-			auto* p_transform = t_event.affected_components[0];
+			auto* p_transform = t_event.p_component;
 
 			if (p_transform == mp_currently_updating_transform) // Ignore transform event if it was updated by the physics engine, as the states are already synced
 				return;
 
 			// Check for both types of physics component
-			auto* p_ent = t_event.affected_components[0]->GetEntity();
+			auto* p_ent = t_event.p_component->GetEntity();
 			auto* p_phys_comp = p_ent->GetComponent<PhysicsComponent>();
 
 			if (auto* p_vehicle_comp = p_ent->GetComponent<VehicleComponent>()) {
@@ -718,6 +722,9 @@ namespace ORNG {
 	}
 
 	void PhysicsSystem::OnUpdate() {
+		if (!m_is_updating)
+			return;
+
 		ORNG_PROFILE_FUNC();
 		auto& reg = mp_scene->GetRegistry();
 
@@ -725,7 +732,7 @@ namespace ORNG {
 
 		m_accumulator += ts;
 
-		if (m_accumulator < m_step_size * 1000.0)
+		if (m_accumulator < m_step_size * 1000.f)
 			return;
 
 		for (auto [entity, vehicle, transform] : reg.view<VehicleComponent, TransformComponent>().each()) {

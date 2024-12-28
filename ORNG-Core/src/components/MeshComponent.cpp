@@ -22,8 +22,6 @@ namespace ORNG {
 	};
 
 
-
-
 	void MeshComponent::SetMaterialID(unsigned int index, const Material* p_material) {
 		if (index >= m_materials.size()) {
 			ORNG_CORE_ERROR("Material ID not set for mesh component, index out of range");

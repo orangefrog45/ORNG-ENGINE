@@ -22,10 +22,6 @@ namespace ORNG {
 	Scene::~Scene() {
 		if (m_is_loaded)
 			UnloadScene();
-
-		for (auto [id, p_sys] : systems) {
-			delete p_sys;
-		}
 	}
 
 	Scene::Scene() {
@@ -460,8 +456,8 @@ namespace ORNG {
 
 		m_hierarchy_modification_listener.scene_id = uuid();
 		m_hierarchy_modification_listener.OnEvent = [&](const Events::ECS_Event<RelationshipComponent>& _event) {
-			entt::entity entity = _event.affected_components[0]->GetEnttHandle();
-			entt::entity parent = _event.affected_components[0]->GetEntity()->GetParent();
+			entt::entity entity = _event.p_component->GetEnttHandle();
+			entt::entity parent = _event.p_component->GetEntity()->GetParent();
 
 			if (parent == entt::null && m_root_entities.contains(entity))
 				m_root_entities.erase(entity);
@@ -521,20 +517,17 @@ namespace ORNG {
 	}
 
 	void Scene::UnloadScene() {
-		if (!m_is_loaded) {
-			return;
-		}
-
 		ORNG_CORE_INFO("Unloading scene...");
 		m_time_elapsed = 0.0;
-
-		for (auto [id, p_sys] : systems) {
-			p_sys->OnUnload();
-		}
 
 		while (!m_entities.empty()) {
 			// Safe deletion method
 			DeleteEntity(m_entities[0]);
+		}
+
+		for (auto [id, p_sys] : systems) {
+			p_sys->OnUnload();
+			delete p_sys;
 		}
 
 		Events::EventManager::DeregisterListener(m_hierarchy_modification_listener.GetRegisterID());

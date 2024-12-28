@@ -1,6 +1,7 @@
 #ifndef AUDIOCOMP_H
 #define AUDIOCOMP_H
 #include "Component.h"
+#include "events/Events.h"
 
 namespace FMOD {
 	class Channel;
@@ -11,10 +12,6 @@ namespace ORNG {
 	constexpr uint64_t INVALID_SOUND_UUID = 0;
 
 	struct SoundAsset;
-
-	namespace Events {
-		enum class ECS_EventType;
-	}
 
 	class AudioComponent : public Component {
 		friend class AudioSystem;
@@ -65,7 +62,7 @@ namespace ORNG {
 		};
 
 	private:
-		void DispatchAudioEvent(std::any data, Events::ECS_EventType event_type, uint32_t sub_event_type);
+		void DispatchAudioEvent(void* p_data, Events::ECS_EventType event_type, uint8_t sub_event_type);
 
 		uint64_t m_sound_asset_uuid = INVALID_SOUND_UUID;
 		uint32_t mode;
@@ -78,7 +75,6 @@ namespace ORNG {
 
 		bool is_looped = false;
 		AudioRange m_range{ 0.1f, 10000.f };
-
 
 		// Memory managed by AudioSystem
 		FMOD_VECTOR* mp_fmod_pos = nullptr;

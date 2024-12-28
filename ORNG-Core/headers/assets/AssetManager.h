@@ -14,7 +14,7 @@
 #define ORNG_BASE_MATERIAL_ID 0
 #define ORNG_BASE_SOUND_ID 1
 #define ORNG_BASE_TEX_ID 2
-#define ORNG_BASE_MESH_ID 3
+#define ORNG_BASE_CUBE_ID 3
 #define ORNG_BASE_SCRIPT_ID	4
 #define ORNG_BASE_SPHERE_ID 5
 #define ORNG_BASE_PHYSX_MATERIAL_ID 6
@@ -26,9 +26,6 @@
 struct GLFWwindow;
 enum aiTextureType;
 struct aiMaterial;
-
-
-
 
 namespace bitsery {
 	using namespace ORNG;
@@ -218,6 +215,8 @@ namespace ORNG {
 
 		static void LoadMeshAsset(MeshAsset* p_asset);
 		static void LoadTexture2D(Texture2D* p_tex);
+		bool ProcessEmbeddedTexture(Texture2D* p_tex, const aiTexture* p_ai_tex);
+
 
 		static void LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts);
 
@@ -310,9 +309,15 @@ namespace ORNG {
 		static bool TryFetchRawSoundData(SoundAsset& sound, std::vector<std::byte>& output);
 
 		template<typename SerializerType>
-		static void SerializeTexture2D(Texture2D& tex, SerializerType& ser) {
+		static void SerializeTexture2D(Texture2D& tex, SerializerType& ser, std::byte* p_data = nullptr, size_t data_size = 0) {
 			std::vector<std::byte> texture_data;
-			TryFetchRawTextureData(tex, texture_data);
+			if (p_data) {
+				texture_data.resize(data_size);
+				memcpy(texture_data.data(), p_data, data_size);
+			}
+			else {
+				TryFetchRawTextureData(tex, texture_data);
+			}
 
 			ser.object(tex.m_spec);
 			ser.object(tex.uuid);
@@ -358,6 +363,7 @@ namespace ORNG {
 			des.value1b(mesh.num_materials);
 			des.object(mesh.uuid);
 			des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
+			des.container8b(mesh.m_material_uuids, 10000);
 		}
 
 		template<typename S>
@@ -425,7 +431,7 @@ namespace ORNG {
 		static void InitPhysXMaterialAsset(PhysXMaterialAsset& asset);
 
 		static void LoadMeshAssetIntoGL(MeshAsset* asset);
-		static Texture2D* CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
+		static Texture2D* CreateMeshAssetTexture(const aiScene* p_scene, const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 		void IStallUntilMeshesLoaded();
 
 		static void DispatchAssetEvent(Events::AssetEventType type, uint8_t* data_payload);
@@ -433,14 +439,12 @@ namespace ORNG {
 		void IClearAll();
 
 		void InitBaseAssets();
-		void InitBaseCube();
 		void InitBaseTexture();
 		void InitBase3DQuad();
 
-
 		std::unique_ptr<ScriptAsset> mp_base_script = nullptr;
-		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_sphere = nullptr;
+		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_quad = nullptr;
 		std::unique_ptr<Texture2D> mp_base_tex = nullptr;
 		std::unique_ptr<PhysXMaterialAsset> mp_base_physx_material = nullptr;

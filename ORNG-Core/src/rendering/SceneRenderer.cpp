@@ -170,10 +170,8 @@ namespace ORNG {
 
 		m_post_process_shader->AddUniforms({
 			"quad_sampler",
-			"u_bloom_intensity",
 			"world_position_sampler",
 			"camera_pos",
-			"u_show_depth_map"
 			});
 
 
@@ -285,6 +283,8 @@ namespace ORNG {
 		m_directional_light_depth_tex.SetSpec(depth_spec);
 
 		/* POST PROCESSING */
+		m_bloom_pass.Init();
+
 		Texture2DSpec rgba16_spec;
 		rgba16_spec.format = GL_RGBA;
 		rgba16_spec.internal_format = GL_RGBA16F;
@@ -295,22 +295,8 @@ namespace ORNG {
 		rgba16_spec.mag_filter = GL_NEAREST;
 		rgba16_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
-
 		m_fog_blur_tex_1.SetSpec(rgba16_spec);
 		m_fog_blur_tex_2.SetSpec(rgba16_spec);
-
-		Texture2DSpec bloom_rgb_spec;
-		bloom_rgb_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-		bloom_rgb_spec.mag_filter = GL_LINEAR;
-		bloom_rgb_spec.generate_mipmaps = true;
-		bloom_rgb_spec.width = Window::GetWidth() / 2;
-		bloom_rgb_spec.height = Window::GetHeight() / 2;
-		bloom_rgb_spec.format = GL_RGBA;
-		bloom_rgb_spec.internal_format = GL_RGBA16F;
-		bloom_rgb_spec.wrap_params = GL_CLAMP_TO_EDGE;
-		bloom_rgb_spec.storage_type = GL_FLOAT;
-
-		m_bloom_tex.SetSpec(bloom_rgb_spec);
 
 		// Fog
 		m_fog_shader = &mp_shader_library->CreateShader("fog");
@@ -351,11 +337,6 @@ namespace ORNG {
 				m_fog_blur_tex_1.SetSpec(resized_spec);
 				m_fog_blur_tex_2.SetSpec(resized_spec);
 
-				Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
-				resized_bloom_spec.width = (uint32_t)t_event.new_window_size.x * 0.5;
-				resized_bloom_spec.height = (uint32_t)t_event.new_window_size.y * 0.5;
-				m_bloom_tex.SetSpec(resized_bloom_spec);
-
 				Texture2DSpec resized_ct_spec = m_cone_trace_accum_tex.GetSpec();
 				resized_ct_spec.width = (uint32_t)t_event.new_window_size.x * 0.5;
 				resized_ct_spec.height = (uint32_t)t_event.new_window_size.y * 0.5;
@@ -365,21 +346,6 @@ namespace ORNG {
 
 
 		Events::EventManager::RegisterListener(resize_listener);
-
-		mp_bloom_downsample_shader = &mp_shader_library->CreateShader("bloom downsample");
-		mp_bloom_downsample_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomDownsampleCS.glsl");
-		mp_bloom_downsample_shader->Init();
-		mp_bloom_downsample_shader->AddUniform("u_mip_level");
-
-		mp_bloom_upsample_shader = &mp_shader_library->CreateShader("bloom upsample");
-		mp_bloom_upsample_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomUpsampleCS.glsl");
-		mp_bloom_upsample_shader->Init();
-		mp_bloom_upsample_shader->AddUniform("u_mip_level");
-
-		mp_bloom_threshold_shader = &mp_shader_library->CreateShader("bloom threshold");
-		mp_bloom_threshold_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomThresholdCS.glsl");
-		mp_bloom_threshold_shader->Init();
-		mp_bloom_threshold_shader->AddUniforms("u_threshold", "u_knee");
 
 		Texture3DSpec voxel_spec_rgbaf;
 		voxel_spec_rgbaf.format = GL_RGBA;
@@ -446,11 +412,6 @@ namespace ORNG {
 			fog_spec.height = spec.height;
 			m_fog_blur_tex_1.SetSpec(fog_spec);
 			m_fog_blur_tex_2.SetSpec(fog_spec);
-
-			Texture2DSpec resized_bloom_spec = m_bloom_tex.GetSpec();
-			resized_bloom_spec.width = spec.width / 2;
-			resized_bloom_spec.height = spec.height / 2;
-			m_bloom_tex.SetSpec(resized_bloom_spec);
 		}
 	}
 
@@ -503,7 +464,7 @@ namespace ORNG {
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 
 		CheckResizeScreenSizeTextures(p_output_tex);
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
 	}
 
 	void SceneRenderer::UpdateLightSpaceMatrices(CameraComponent* p_cam) {
@@ -541,12 +502,11 @@ namespace ORNG {
 
 
 
-	SceneRenderer::SceneRenderingOutput SceneRenderer::IRenderScene(const SceneRenderingSettings& settings) {
-		SceneRenderer::SceneRenderingOutput output;
+	void SceneRenderer::IRenderScene(const SceneRenderingSettings& settings) {
 		auto* p_cam = settings.p_cam_override ? settings.p_cam_override : mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
 		if (!p_cam) {
 			ORNG_CORE_ERROR("No camera found for scene renderer to render from");
-			return output;
+			return;
 		}
 
 		auto& spec = settings.p_output_tex->GetSpec();
@@ -591,9 +551,6 @@ namespace ORNG {
 			DoTransparencyPass(settings.p_output_tex, spec.width, spec.height);
 			DoPostProcessingPass(p_cam, settings.p_output_tex);
 		}
-
-
-		return output;
 	}
 
 	void SceneRenderer::RunRenderpassIntercepts(RenderpassStage stage, RenderResources& res) {
@@ -986,7 +943,7 @@ namespace ORNG {
 
 			mp_voxel_debug_shader->ActivateProgram();
 			mp_voxel_debug_shader->SetUniform("u_aligned_camera_pos", glm::roundMultiple(mp_scene->GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition(), glm::vec3(12.8f)));
-			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), (unsigned)glm::pow(256 / (settings.voxel_mip_layer + 1), 3));
+			Renderer::DrawMeshInstanced(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID), (unsigned)glm::pow(256 / (settings.voxel_mip_layer + 1), 3));
 		}
 #endif	
 
@@ -1224,34 +1181,9 @@ namespace ORNG {
 
 
 
-	void SceneRenderer::DoBloomPass(unsigned int width, unsigned int height) {
-		mp_bloom_threshold_shader->ActivateProgram();
-		mp_bloom_threshold_shader->SetUniform("u_threshold", mp_scene->post_processing.bloom.threshold);
-		mp_bloom_threshold_shader->SetUniform("u_knee", mp_scene->post_processing.bloom.knee);
-		// Isolate bright spots
-		glBindImageTexture(0, m_bloom_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-		// Downsample passes
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_bloom_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLOOM, true);
-		const int max_mip_layer = 6;
-		mp_bloom_downsample_shader->ActivateProgram();
-		for (int i = 1; i < max_mip_layer + 1; i++) {
-			mp_bloom_downsample_shader->SetUniform("u_mip_level", i);
-			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-			glDispatchCompute((GLuint)glm::ceil(((float)width / 32.f) / (float)i), (GLuint)glm::ceil(((float)height / 32.f) / (float)i), 1);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		}
-
-		// Upsample passes
-		mp_bloom_upsample_shader->ActivateProgram();
-		for (int i = max_mip_layer - 1; i >= 0; i--) {
-			mp_bloom_upsample_shader->SetUniform("u_mip_level", i);
-			glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-			glDispatchCompute((GLuint)glm::ceil(((float)width / 16.f) / (float)(i + 1)), (GLuint)glm::ceil(((float)height / 16.f) / (float)(i + 1)), 1);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
-		}
+	void SceneRenderer::DoBloomPass(Texture2D* p_input_and_output, unsigned int width, unsigned int height) {
+		m_bloom_pass.DoPass(p_input_and_output, p_input_and_output, mp_scene->post_processing.bloom.intensity,
+			mp_scene->post_processing.bloom.threshold, mp_scene->post_processing.bloom.knee);
 	}
 
 
@@ -1260,7 +1192,7 @@ namespace ORNG {
 		ORNG_PROFILE_FUNC_GPU();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		auto& spec = p_output_tex->GetSpec();
-		DoBloomPass(spec.width, spec.height);
+		DoBloomPass(p_output_tex, spec.width, spec.height);
 
 		m_post_process_shader->ActivateProgram();
 

@@ -122,9 +122,6 @@ namespace ORNG {
 			static const int SPOT_LIGHTS = 2;
 			static const int PARTICLE_EMITTERS = 5;
 			static const int PARTICLES = 6;
-			static const int PARTICLE_APPEND = 7;
-			static const int SECONDARY_PARTICLES = 8;
-
 		};
 
 		struct TextureUnits {

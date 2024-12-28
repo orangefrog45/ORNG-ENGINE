@@ -96,13 +96,14 @@ namespace ORNG {
 
 	void JointComponent::Joint::Break() {
 		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, p_a0->GetComponent<JointComponent>(), JointEventType::BREAK };
-		joint_event.data_payload = this;
+		joint_event.p_data = this;
 		Events::EventManager::DispatchEvent(joint_event);
 	}
 
 	void JointComponent::Joint::Connect(JointComponent* p_target, bool use_stored_poses) {
 		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, p_target, JointEventType::CONNECT };
-		joint_event.data_payload = JointComponent::ConnectionData(p_a0, p_target, this, use_stored_poses);
+		auto connection_data = JointComponent::ConnectionData{p_a0, p_target, this, use_stored_poses};
+		joint_event.p_data = &connection_data;
 		Events::EventManager::DispatchEvent(joint_event);
 	}
 }

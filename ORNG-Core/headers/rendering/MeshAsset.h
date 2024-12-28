@@ -71,14 +71,13 @@ namespace ORNG {
 			s.value1b((uint8_t)num_materials);
 			s.object(uuid);
 			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
+			s.container8b(m_material_uuids, 10000);
 		}
 
 	private:
-
 		// Callback for when this mesh has a VAO created for it and its materials set up by the AssetManager class
 		// This is split from "LoadMeshData" so vertex data can be loaded asynchronously, cannot create the VAO asynchronously due to opengl contexts
 		void OnLoadIntoGL();
-
 
 		bool InitFromScene(const aiScene* p_scene);
 
@@ -86,11 +85,9 @@ namespace ORNG {
 
 		void InitAllMeshes(const aiScene* p_scene);
 
-		void InitSingleMesh(const aiMesh* p_ai_mesh);
+		void InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_idx, unsigned current_vertex);
 
 		void CountVerticesAndIndices(const aiScene* p_scene, unsigned int& num_verts, unsigned int& num_indices);
-
-		void PopulateBuffers();
 
 		MeshVAO m_vao;
 
@@ -119,5 +116,8 @@ namespace ORNG {
 
 		std::vector<MeshEntry> m_submeshes;
 
+		// The UUIDs of the materials that got loaded in from this mesh
+		// If these materials are deleted, the base material will be used instead
+		std::vector<uint64_t> m_material_uuids;
 	};
 }

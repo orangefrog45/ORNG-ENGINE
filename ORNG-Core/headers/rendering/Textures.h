@@ -140,7 +140,7 @@ namespace ORNG {
 
 		bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();
-		bool LoadFromBinary(const std::vector<std::byte>& data);
+		bool LoadFromBinary(std::byte* p_data, size_t size, bool is_decompressed, int width = -1, int height = -1, int channels = -1);
 		const Texture2DSpec& GetSpec() const { return m_spec; }
 
 	private:

@@ -29,6 +29,7 @@ namespace ORNG {
 	class MeshInstanceGroup;
 	class ShaderVariants;
 
+	// Classes that inherit from this class MUST implement the function "static constexpr uint64_t GetSystemUUID()" which returns a UUID unique to that class
 	class ComponentSystem {
 	public:
 		explicit ComponentSystem(Scene* p_scene) : mp_scene(p_scene) {};
@@ -58,12 +59,13 @@ namespace ORNG {
 		void OnLoad();
 		void OnUnload();
 		void OnUpdate();
+		inline static constexpr uint64_t GetSystemUUID() { return 8881736346456; }
 	private:
-
 		void OnAudioDeleteEvent(const Events::ECS_Event<AudioComponent>& e_event);
 		void OnAudioUpdateEvent(const Events::ECS_Event<AudioComponent>& e_event);
 		void OnAudioAddEvent(const Events::ECS_Event<AudioComponent>& e_event);
 		void OnTransformEvent(const Events::ECS_Event<TransformComponent>& e_event);
+
 
 		Events::ECS_EventListener<AudioComponent> m_audio_listener;
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
@@ -84,6 +86,9 @@ namespace ORNG {
 		void OnUnload() override {
 			Events::EventManager::DeregisterListener((entt::entity)m_transform_event_listener.GetRegisterID());
 		}
+
+		inline static constexpr uint64_t GetSystemUUID() { return 934898474626; }
+
 	private:
 		void UpdateChildTransforms(const Events::ECS_Event<TransformComponent>&);
 		Events::ECS_EventListener<TransformComponent> m_transform_event_listener;
@@ -95,8 +100,8 @@ namespace ORNG {
 	public:
 		CameraSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
-				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.affected_components[0]->is_active) {
-					SetActiveCamera(t_event.affected_components[0]->GetEnttHandle());
+				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.p_component->is_active) {
+					SetActiveCamera(t_event.p_component->GetEnttHandle());
 				}
 				};
 
@@ -132,6 +137,9 @@ namespace ORNG {
 				return nullptr;
 		}
 
+		inline static constexpr uint64_t GetSystemUUID() { return 19394857567; }
+
+
 	private:
 		entt::entity m_active_cam_entity_handle;
 		Events::ECS_EventListener<CameraComponent> m_event_listener;
@@ -159,15 +167,19 @@ namespace ORNG {
 		RaycastResults Raycast(glm::vec3 origin, glm::vec3 unit_dir, float max_distance);
 		OverlapQueryResults OverlapQuery(PxGeometry& geom, glm::vec3 pos, unsigned max_hits);
 
+		bool InitVehicle(VehicleComponent* p_comp);
+
+		void SetIsUpdating(bool is_updating) {
+			m_is_updating = is_updating;
+		}
+
+		inline static constexpr uint64_t GetSystemUUID() { return 29348475677; }
+
 		enum class ActorType : uint8_t {
 			RIGID_BODY,
 			CHARACTER_CONTROLLER,
 			VEHICLE
 		};
-
-
-		bool InitVehicle(VehicleComponent* p_comp);
-
 	private:
 		static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type);
 
@@ -188,15 +200,17 @@ namespace ORNG {
 		void ConnectJoint(const JointComponent::ConnectionData& connection);
 		void BreakJoint(JointComponent::Joint* p_joint);
 
-
 		void InitVehicleSimulationContext();
-
-		physx::vehicle2::PxVehiclePhysXSimulationContext m_vehicle_context;
-		PxConvexMesh* mp_sweep_mesh = nullptr;
 
 		void InitListeners();
 		void DeinitListeners();
 
+		std::array<entt::connection, 8> m_connections;
+
+		physx::vehicle2::PxVehiclePhysXSimulationContext m_vehicle_context;
+		PxConvexMesh* mp_sweep_mesh = nullptr;
+
+		bool m_is_updating = true;
 
 		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
 		Events::ECS_EventListener<JointComponent> m_joint_listener;
@@ -273,6 +287,9 @@ namespace ORNG {
 
 		const auto& GetInstanceGroups() const { return m_instance_groups; }
 		const auto& GetBillboardInstanceGroups() const { return m_billboard_instance_groups; }
+
+		inline static constexpr uint64_t GetSystemUUID() { return 7828929347847; }
+
 	private:
 		void OnMeshAssetDeletion(MeshAsset* p_asset);
 		void OnMaterialDeletion(Material* p_material);
@@ -291,6 +308,11 @@ namespace ORNG {
 		Events::ECS_EventListener<BillboardComponent> m_billboard_listener;
 		std::vector<MeshInstanceGroup*> m_billboard_instance_groups;
 
+		entt::connection m_mesh_add_connection;
+		entt::connection m_mesh_remove_connection;
+		entt::connection m_billboard_add_connection;
+		entt::connection m_billboard_remove_connection;
+
 		unsigned m_default_group_end_index = 0;
 	};
 
@@ -307,13 +329,14 @@ namespace ORNG {
 		void OnLoad() override;
 		void OnUnload() override;
 		void OnUpdate() override;
+
+		inline static constexpr uint64_t GetSystemUUID() { return 1927773874672; }
+
 	private:
 		void InitEmitter(ParticleEmitterComponent* p_comp);
 		void OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event);
 		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
 		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif = 0);
-
-		void UpdateAppendBuffer();
 
 		void InitBuffer(ParticleBufferComponent* p_comp);
 		void OnBufferDestroy(ParticleBufferComponent* p_comp);
@@ -322,6 +345,8 @@ namespace ORNG {
 		void OnEmitterVisualTypeChange(ParticleEmitterComponent* p_comp);
 
 		void UpdateEmitterBufferAtIndex(unsigned index);
+
+		std::array<entt::connection, 4> m_connections;
 
 		Events::ECS_EventListener<ParticleEmitterComponent> m_particle_listener;
 		Events::ECS_EventListener<ParticleBufferComponent> m_particle_buffer_listener;
@@ -339,14 +364,9 @@ namespace ORNG {
 
 		SSBO<float> m_particle_ssbo{ false, 0 };
 		SSBO<float> m_emitter_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };
-		SSBO<float> m_particle_append_ssbo{ false, GL_MAP_WRITE_BIT | GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT };
-
-		SSBO<float> m_particle_copy_buffer{ false, 0 };
-
 
 		inline static Shader* mp_particle_cs;
 		inline static ShaderVariants* mp_particle_initializer_cs;
-		inline static Shader* mp_append_buffer_transfer_cs;
 	};
 
 

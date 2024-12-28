@@ -4,6 +4,7 @@
 #include "rendering/Textures.h"
 #include "scene/Scene.h"
 #include "rendering/Material.h"
+#include "rendering/renderpasses/BloomPass.h"
 
 #ifdef ORNG_EDITOR_LAYER
 #include "Settings.h"
@@ -112,7 +113,6 @@ namespace ORNG {
 			Get().I_Init();
 		}
 
-
 		struct SceneRenderingSettings {
 			// Will custom user renderpasses be executed
 			bool do_intercept_renderpasses = true;
@@ -130,12 +130,7 @@ namespace ORNG {
 			Texture2D* p_input_tex = nullptr;
 		};
 
-		struct SceneRenderingOutput {
-			unsigned int entity_on_mouse_pos = 0;
-			unsigned int final_color_texture_handle = 0; // the texture produced as the final product of rendering the scene
-		};
-
-		static SceneRenderingOutput RenderScene(const SceneRenderingSettings& settings) {
+		static void RenderScene(const SceneRenderingSettings& settings) {
 			return Get().IRenderScene(settings);
 		};
 
@@ -206,10 +201,10 @@ namespace ORNG {
 
 		void RunRenderpassIntercepts(RenderpassStage stage, RenderResources& res);
 		void I_Init();
-		SceneRenderingOutput IRenderScene(const SceneRenderingSettings& settings);
+		void IRenderScene(const SceneRenderingSettings& settings);
 		void DrawTerrain(CameraComponent* p_cam);
 		void DrawSkybox();
-		void DoBloomPass(unsigned int width, unsigned int height);
+		void DoBloomPass(Texture2D* p_input_and_output, unsigned int width, unsigned int height);
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 
@@ -222,6 +217,8 @@ namespace ORNG {
 
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
 		std::vector<Renderpass> m_render_intercepts;
+
+		BloomPass m_bloom_pass;
 
 #define NUM_VOXEL_CASCADES 2
 		// Camera position snapped to the voxel grid per cascade, index 0 = cascade 0 etc (prevents flickering when moving)
@@ -245,9 +242,6 @@ namespace ORNG {
 		Shader* m_blur_shader = nullptr;
 		Shader* m_fog_shader = nullptr;
 		Shader* m_lighting_shader = nullptr;
-		Shader* mp_bloom_downsample_shader = nullptr;
-		Shader* mp_bloom_upsample_shader = nullptr;
-		Shader* mp_bloom_threshold_shader = nullptr;
 		Shader* mp_cone_trace_shader = nullptr;
 		ShaderVariants* mp_transparency_shader_variants = nullptr;
 		Shader* mp_transparency_composite_shader = nullptr;
@@ -266,7 +260,6 @@ namespace ORNG {
 		Texture2D m_fog_output_tex{ "SR fog output" };
 		Texture2D m_fog_blur_tex_1{ "SR fog blur 1" };
 		Texture2D m_fog_blur_tex_2{ "SR fog blur 2 tex" };
-		Texture2D m_bloom_tex{ "SR fog blur 1" };
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
 
 		Texture2D m_cone_trace_accum_tex{ "SR cone trace accum" };

@@ -105,7 +105,7 @@ namespace ORNG {
 		// Setup event listeners
 		m_transform_listener.scene_id = p_scene->uuid();
 		m_transform_listener.OnEvent = [this, p_scene](const Events::ECS_Event<TransformComponent>& t_event) {
-			if (p_scene->GetRegistry().valid(entt::entity(t_event.affected_components[0]->GetEntity()->GetEnttHandle())))
+			if (p_scene->GetRegistry().valid(entt::entity(t_event.p_component->GetEntity()->GetEnttHandle())))
 				OnTransformEvent(t_event);
 			};
 
@@ -128,10 +128,10 @@ namespace ORNG {
 		m_billboard_listener.OnEvent = [this](const Events::ECS_Event<BillboardComponent>& t_event) {
 			switch (t_event.event_type) {
 			case Events::ECS_EventType::COMP_ADDED:
-				OnBillboardAdd(t_event.affected_components[0]);
+				OnBillboardAdd(t_event.p_component);
 				break;
 			case Events::ECS_EventType::COMP_DELETED:
-				OnBillboardRemove(t_event.affected_components[0]);
+				OnBillboardRemove(t_event.p_component);
 				break;
 			}
 			};
@@ -148,24 +148,38 @@ namespace ORNG {
 	void MeshInstancingSystem::OnMeshEvent(const Events::ECS_Event<MeshComponent>& t_event) {
 		switch (t_event.event_type) {
 		case Events::ECS_EventType::COMP_ADDED:
-			if (!t_event.affected_components[0]->mp_mesh_asset) {
-				t_event.affected_components[0]->mp_mesh_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+			if (!t_event.p_component->mp_mesh_asset) {
+				t_event.p_component->mp_mesh_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 			}
 
-			if (t_event.affected_components[0]->m_materials.empty())
-				t_event.affected_components[0]->m_materials = { t_event.affected_components[0]->mp_mesh_asset->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+			if (t_event.p_component->m_materials.empty()) {
+				t_event.p_component->m_materials.reserve(t_event.p_component->mp_mesh_asset->m_material_uuids.size());
+				auto* p_base_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				for (auto uuid : t_event.p_component->mp_mesh_asset->m_material_uuids) {
+					auto* p_mat = AssetManager::GetAsset<Material>(uuid);
+					p_mat = p_mat ? p_mat : p_base_mat;
+					t_event.p_component->m_materials.push_back(p_mat);
+				}
+			}
 
-			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
+			SortMeshIntoInstanceGroup(t_event.p_component);
 			break;
 		case Events::ECS_EventType::COMP_UPDATED:
 			// Materials will be empty if the mesh asset has been changed
-			if (t_event.affected_components[0]->m_materials.empty())
-				t_event.affected_components[0]->m_materials = { t_event.affected_components[0]->mp_mesh_asset->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+			if (t_event.p_component->m_materials.empty()) {
+				t_event.p_component->m_materials.reserve(t_event.p_component->mp_mesh_asset->m_material_uuids.size());
+				auto* p_base_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				for (auto uuid : t_event.p_component->mp_mesh_asset->m_material_uuids) {
+					auto* p_mat = AssetManager::GetAsset<Material>(uuid);
+					p_mat = p_mat ? p_mat : p_base_mat;
+					t_event.p_component->m_materials.push_back(p_mat);
+				}
+			}
 
-			SortMeshIntoInstanceGroup(t_event.affected_components[0]);
+			SortMeshIntoInstanceGroup(t_event.p_component);
 			break;
 		case Events::ECS_EventType::COMP_DELETED:
-			t_event.affected_components[0]->mp_instance_group->RemoveInstance(t_event.affected_components[0]->GetEntity());
+			t_event.p_component->mp_instance_group->RemoveInstance(t_event.p_component->GetEntity());
 			break;
 		}
 	}
@@ -174,7 +188,7 @@ namespace ORNG {
 
 	void MeshInstancingSystem::OnTransformEvent(const Events::ECS_Event<TransformComponent>& t_event) {
 		// Whenever a transform component changes, check if it has a mesh, if so then update the transform buffer of the instance group holding it.
-		auto* p_entity = t_event.affected_components[0]->GetEntity();
+		auto* p_entity = t_event.p_component->GetEntity();
 		if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
 
 			if (auto* meshc = p_entity->GetComponent<MeshComponent>()) {
@@ -185,29 +199,30 @@ namespace ORNG {
 				p_billboard->mp_instance_group->FlagInstanceTransformUpdate(p_entity);
 			}
 		} 
-
-	
 	}
-
-
 
 
 	void MeshInstancingSystem::OnLoad() {
 		auto& reg = mp_scene->GetRegistry();
 
-		reg.on_construct<MeshComponent>().connect<&OnMeshComponentAdd>();
-		reg.on_destroy<MeshComponent>().connect<&OnMeshComponentDestroy>();
+		m_mesh_add_connection = reg.on_construct<MeshComponent>().connect<&OnMeshComponentAdd>();
+		m_mesh_remove_connection = reg.on_destroy<MeshComponent>().connect<&OnMeshComponentDestroy>();
 
-		reg.on_construct<BillboardComponent>().connect<&OnBillboardComponentAdd>();
-		reg.on_destroy<BillboardComponent>().connect<&OnBillboardComponentDestroy>();
+		m_billboard_add_connection = reg.on_construct<BillboardComponent>().connect<&OnBillboardComponentAdd>();
+		m_billboard_remove_connection = reg.on_destroy<BillboardComponent>().connect<&OnBillboardComponentDestroy>();
 	}
-
-
 
 
 	void MeshInstancingSystem::OnUnload() {
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_mesh_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_billboard_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_asset_listener.GetRegisterID());
+
+		m_mesh_add_connection.release();
+		m_mesh_remove_connection.release();
+		m_billboard_add_connection.release();
+		m_billboard_remove_connection.release();
 
 		for (auto* group : m_instance_groups) {
 			delete group;
@@ -216,15 +231,13 @@ namespace ORNG {
 		m_instance_groups.clear();
 	}
 
-
-
 	void MeshInstancingSystem::OnMeshAssetDeletion(MeshAsset* p_asset) {
 		auto& reg = mp_scene->GetRegistry();
 
 		// Remove asset from all components using it
 		for (auto [entity, mesh] : reg.view<MeshComponent>().each()) {
 			if (mesh.GetMeshData() == p_asset)
-				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID));
+				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID));
 		}
 
 		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };

@@ -108,28 +108,33 @@ namespace ORNG {
 			friend class PhysicsSystem;
 			friend class EditorLayer;
 		public:
-			Joint(SceneEntity* _owner) : p_a0(_owner) {};
+			Joint(SceneEntity* _owner) : p_a0(_owner) {
+				std::fill_n(m_motion.data(), 6, physx::PxD6Motion::eLOCKED);
+			};
 
-			inline void SetMotion(physx::PxD6Axis::Enum axis, physx::PxD6Motion::Enum _motion) {
+			// Sets motion and caches it for serialization, this->p_joint->setMotion can be called directly if serialization isn't needed
+			inline void SetMotionCached(physx::PxD6Axis::Enum axis, physx::PxD6Motion::Enum _motion) {
 				if (p_joint)
 					p_joint->setMotion(axis, _motion);
 
-				motion[axis] = _motion;
+				m_motion[axis] = _motion;
 			}
 
-			inline void SetLocalPose(unsigned actor_idx, glm::vec3 p) {
+			// Sets local pose and caches it for serialization, this->p_joint->setLocalPose can be called directly if serialization isn't needed
+			inline void SetLocalPoseCached(unsigned actor_idx, glm::vec3 p) {
 				if (p_joint) 
 					p_joint->setLocalPose((physx::PxJointActorIndex::Enum)actor_idx, physx::PxTransform{ physx::PxVec3(p.x, p.y, p.z), p_joint->getLocalPose((physx::PxJointActorIndex::Enum)actor_idx).q });
 
-				poses[actor_idx] = p;
+				m_poses[actor_idx] = p;
 			}
 
-			inline void SetBreakForce(float _force_threshold, float _torque_threshold) {
-				force_threshold = _force_threshold;
-				torque_threshold = _torque_threshold;
+			// Sets break force and caches it for serialization, this->p_joint->setBreakForce can be called directly if serialization isn't needed
+			inline void SetBreakForceCached(float _force_threshold, float _torque_threshold) {
+				m_force_threshold = _force_threshold;
+				m_torque_threshold = _torque_threshold;
 
 				if (p_joint) {
-					p_joint->setBreakForce(force_threshold, torque_threshold);
+					p_joint->setBreakForce(m_force_threshold, m_torque_threshold);
 				}
 			}
 
@@ -151,12 +156,6 @@ namespace ORNG {
 
 			physx::PxD6Joint* p_joint = nullptr;
 
-			std::array<glm::vec3, 2> poses = { glm::vec3(0) };
-			std::unordered_map<physx::PxD6Axis::Enum, physx::PxD6Motion::Enum> motion;
-
-			float force_threshold = PX_MAX_F32;
-			float torque_threshold = PX_MAX_F32;
-
 		private:
 			// Owner of the joint, the joint cannot be detached from this entity unless the joint itself breaks and is deleted
 			// Will never be nullptr or invalid, if this entity dies the joint will be broken
@@ -165,6 +164,23 @@ namespace ORNG {
 			// Attachment 1, non-owning, Can be detached from entity if Connect() is called with a different p_target
 			// Can be nullptr if joint hasn't been connected yet
 			SceneEntity* p_a1 = nullptr;
+
+			/* The fields below are only used for serialization */
+			std::array<glm::vec3, 2> m_poses = { glm::vec3(0) };
+
+			/*
+				eX      = [0],
+				eY      = [1],
+				eZ      = [2],
+				eTWIST  = [3],
+				eSWING1 = [4],
+				eSWING2 = [5],
+				eCOUNT	= 6
+			*/
+			std::array<physx::PxD6Motion::Enum, 6> m_motion;
+
+			float m_force_threshold = PX_MAX_F32;
+			float m_torque_threshold = PX_MAX_F32;
 		};
 
 		struct ConnectionData {

@@ -45,7 +45,7 @@ namespace ORNG {
 			GenerateScriptCmakeProject(dir);
 		}
 
-		std::string cmake_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/res/script-template/CMakeLists.txt");
+		std::string cmake_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/script-template/CMakeLists.txt");
 		std::string existing_cmake_content = ReadTextFile(dir + "/CMakeLists.txt");
 		std::string user_content = existing_cmake_content.substr(existing_cmake_content.find("USER STUFF BELOW") + 16);
 

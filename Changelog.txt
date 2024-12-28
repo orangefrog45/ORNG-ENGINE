@@ -1,3 +1,9 @@
+28/12/24:
+-Support for loading embedded textures from meshes
+-Faster mesh loading, base material serialization
+-Separated bloom pass from scene renderer
+-Other fixes/improvements
+
 18/12/24:
 -Scripting engine overhaul -------
 -- Now cmake based and compiling occurs outside editor (still hot-reloadable), allows for using external libraries

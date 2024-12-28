@@ -59,17 +59,17 @@ namespace ORNG {
 				ORNG_CORE_ERROR("AudioComponent::Play failed, component does not have a valid sound uuid");
 				return;
 			}
-			DispatchAudioEvent(m_sound_asset_uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
+			DispatchAudioEvent(&m_sound_asset_uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
 		}
 		else {
-			DispatchAudioEvent(uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
+			DispatchAudioEvent(&uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
 			m_sound_asset_uuid = uuid;
 		}
 	}
 
-	void AudioComponent::DispatchAudioEvent(std::any data, Events::ECS_EventType event_type, uint32_t sub_event_type) {
+	void AudioComponent::DispatchAudioEvent(void* p_data, Events::ECS_EventType event_type, uint8_t sub_event_type) {
 		Events::ECS_Event<AudioComponent> e_event{ event_type, this, sub_event_type };
-		e_event.data_payload = data;
+		e_event.p_data = p_data;
 
 		Events::EventManager::DispatchEvent(e_event);
 	}

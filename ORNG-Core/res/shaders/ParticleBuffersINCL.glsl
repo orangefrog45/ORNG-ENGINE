@@ -30,13 +30,6 @@ struct ParticleEmitter {
 
 };
 
-struct ParticleBufferData {
-    uint buffer_id;
-
-
-};
-
-
 struct Particle {
     vec4 pos;
     vec4 quat;
@@ -55,63 +48,11 @@ layout(std140, binding = 5) buffer ParticleEmitters {
 } ssbo_particle_emitters;
 
 
-
-#ifndef PARTICLES_DETACHED
-
 layout(std140, binding = 6) buffer Particles {
     Particle particles[];
 } ssbo_particles;
 
 #define PARTICLE_SSBO ssbo_particles
-
-#else
-
-layout(std140, binding = 6) buffer ParticlesDetached {
-    uint current_index;
-    
-    // General data that can be used by an implementation for anything, will not be modified by the engine
-    vec4 data[8];
-    int data_int[8];
-
-    Particle particles[];
-} ssbo_particles_detached;
-
-#define PARTICLE_SSBO ssbo_particles_detached
-
-#endif
-
-// Used for copy operations
-layout(std140, binding = 7) buffer SecondaryParticles {
-    uint current_index;
-    Particle particles[];
-} ssbo_secondary_particles;
-
-
-
-layout(std140, binding = 7) buffer ParticleAppend {
-    coherent uint num_particles_appended;
-    Particle particles[];
-} ssbo_particle_append;
-
-#ifdef PARTICLES_DETACHED
-
-// Only use if particle buffer to emit to is currently bound
-// Particle buffers treated as ring buffers, particles might get overwritten
-void EmitParticleDirect(Particle p) {
-    ssbo_particles_detached.particles[atomicAdd(ssbo_particles_detached.current_index, 1) % ssbo_particles_detached.particles.length()] = p;
-}
-
-#endif
-
-// Slower, use if particle buffer is not bound, requires copying
-// Particle buffers treated as ring buffers, particles might get overwritten
-void EmitParticleAppend(Particle p, uint buffer_index) {
-    p.emitter_index = buffer_index;
-    ssbo_particle_append.particles[atomicAdd(ssbo_particle_append.num_particles_appended, 1)] = p;
-}
-
-
-
 
 #ifndef PARTICLES_DETACHED
 

@@ -145,7 +145,7 @@ namespace ORNG {
 			Texture2D* p_tex = new Texture2D("");
 
 			DeserializeTexture2D(*p_tex, bin_data, des);
-			p_tex->LoadFromBinary(bin_data);
+			p_tex->LoadFromBinary(bin_data.data(), bin_data.size(), false);
 			AddAsset(p_tex);
 			bin_data.clear();
 		}
@@ -298,41 +298,30 @@ namespace ORNG {
 
 
 
-	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* asset) {
-		if (asset->m_is_loaded) {
-			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", asset->filepath);
+	void AssetManager::LoadMeshAssetIntoGL(MeshAsset* p_asset) {
+		if (p_asset->m_is_loaded) {
+			ORNG_CORE_ERROR("Mesh '{0}' is already loaded", p_asset->filepath);
 			return;
 		}
 
-		GL_StateManager::BindVAO(asset->GetVAO().GetHandle());
+		GL_StateManager::BindVAO(p_asset->GetVAO().GetHandle());
 
 		// Get directory used for finding material textures
-		std::string::size_type slash_index = asset->filepath.find_last_of("\\");
-		std::string dir;
-
-		if (slash_index == std::string::npos) {
-			dir = ".";
-		}
-		else if (slash_index == 0) {
-			dir = "\\";
-		}
-		else {
-			dir = asset->filepath.substr(0, slash_index);
-		}
+		std::string dir = GetFileDirectory(p_asset->filepath);
 
 		// p_scene will be nullptr if the mesh was loaded from a binary file, then default materials will be provided
-		if (asset->p_scene) {
-			for (unsigned int i = 0; i < asset->p_scene->mNumMaterials; i++) {
-				asset->num_materials++;
-				const aiMaterial* p_material = asset->p_scene->mMaterials[i];
+		if (p_asset->p_scene) {
+			for (unsigned int i = 0; i < p_asset->p_scene->mNumMaterials; i++) {
+				p_asset->num_materials++;
+				const aiMaterial* p_material = p_asset->p_scene->mMaterials[i];
 				Material* p_new_material = Get().AddAsset(new Material());
 
 				// Load material textures
-				p_new_material->base_colour_texture = CreateMeshAssetTexture(dir, aiTextureType_BASE_COLOR, p_material);
-				p_new_material->normal_map_texture = CreateMeshAssetTexture(dir, aiTextureType_NORMALS, p_material);
-				p_new_material->roughness_texture = CreateMeshAssetTexture(dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
-				p_new_material->metallic_texture = CreateMeshAssetTexture(dir, aiTextureType_METALNESS, p_material);
-				p_new_material->ao_texture = CreateMeshAssetTexture(dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
+				p_new_material->base_colour_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_BASE_COLOR, p_material);
+				p_new_material->normal_map_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_NORMALS, p_material);
+				p_new_material->roughness_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
+				p_new_material->metallic_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_METALNESS, p_material);
+				p_new_material->ao_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
 
 				// Load material properties
 				aiColor3D base_color(0.0f, 0.0f, 0.0f);
@@ -355,13 +344,17 @@ namespace ORNG {
 				if (!p_new_material->base_colour_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
 					&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
 					DeleteAsset(p_new_material);
+					p_asset->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
+				}
+				else {
+					p_asset->m_material_uuids.push_back(p_new_material->uuid());
 				}
 			}
 		}
 
-		asset->OnLoadIntoGL();
+		p_asset->OnLoadIntoGL();
 
-		asset->m_is_loaded = true;
+		p_asset->m_is_loaded = true;
 	}
 
 	void AssetManager::LoadMeshAsset(MeshAsset* p_asset) {
@@ -371,35 +364,63 @@ namespace ORNG {
 			}));
 	};
 
+	bool AssetManager::ProcessEmbeddedTexture(Texture2D* p_tex, const aiTexture* p_ai_tex) {
+		int x, y, channels;
+		size_t size = glm::max(p_ai_tex->mHeight, 1u) * p_ai_tex->mWidth;
+		stbi_uc* p_data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(p_ai_tex->pcData), size, &x, &y, &channels, 0);
 
+		if (!p_data) {
+			ORNG_CORE_ERROR("Failed to load embedded texture");
+			return false;
+		}
 
-	Texture2D* AssetManager::CreateMeshAssetTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material) {
+		if (!p_tex->LoadFromBinary(reinterpret_cast<std::byte*>(p_data), size, true, x, y, channels)) {
+			ORNG_CORE_ERROR("Failed to load embedded texture");
+			return false;
+		}
+
+		// Embedded texture must be immediately serialized to a file while the image data is still available
+
+		std::ofstream s{ p_tex->filepath, s.binary | s.trunc | s.out};
+		if (!s.is_open()) {
+			ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", p_tex->filepath);
+			return false;
+		}
+
+		bitsery::Serializer<bitsery::OutputStreamAdapter> ser{ s };
+		
+		// Serializes the texture
+		SerializeTexture2D(*p_tex, ser, reinterpret_cast<std::byte*>(p_ai_tex->pcData), size);
+		stbi_image_free(p_data);
+		return true;
+	}
+
+	Texture2D* AssetManager::CreateMeshAssetTexture(const aiScene* p_scene, const std::string& dir, const aiTextureType& type, const aiMaterial* p_material) {
 		Texture2D* p_tex = nullptr;
-
 
 		if (p_material->GetTextureCount(type) > 0) {
 			aiString path;
-
 			if (p_material->GetTexture(type, 0, &path, NULL, NULL, NULL, NULL, NULL) == aiReturn_SUCCESS) {
-				std::string p(path.data);
-				std::string full_path;
-
-				if (p.starts_with(".\\"))
-					p = p.substr(2, p.size() - 2);
-
-				full_path = dir + "\\" + p;
-
+				std::string filename = GetFilename(path.data);
 				Texture2DSpec base_spec;
 				base_spec.generate_mipmaps = true;
 				base_spec.mag_filter = GL_LINEAR;
 				base_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-				base_spec.filepath = full_path;
+				base_spec.filepath = dir + "\\" + filename;
 				base_spec.srgb_space = type == aiTextureType_BASE_COLOR ? true : false;
 
-				p_tex = new Texture2D(full_path);
+				p_tex = new Texture2D{ filename };
 				p_tex->SetSpec(base_spec);
 				p_tex = AddAsset(p_tex);
-				Get().LoadTexture2D(p_tex);
+
+				if (auto* p_ai_tex = p_scene->GetEmbeddedTexture(path.C_Str())) {
+					StringReplace(filename, "*", "[E]_"); // * will appear if the texture is embedded but causes serialization errors with the filepath, so change here
+					p_tex->filepath = ".\\res\\textures\\" + filename + ".otex";
+					Get().ProcessEmbeddedTexture(p_tex, p_ai_tex);
+				}
+				else {
+					Get().LoadTexture2D(p_tex);
+				}
 			}
 		}
 
@@ -441,11 +462,22 @@ namespace ORNG {
 		m_assets.erase(ORNG_BASE_SPHERE_ID);
 		mp_base_sphere.release();
 		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.obj");
-		DeserializeAssetBinary("res/core-res/meshes/Sphere.obj.bin", *mp_base_sphere);
-		mp_base_sphere->PopulateBuffers();
+		DeserializeAssetBinary("res/core-res/meshes/Sphere.obj.omesh", *mp_base_sphere);
+		mp_base_sphere->m_vao.FillBuffers();
 		mp_base_sphere->m_is_loaded = true;
-		mp_base_sphere->uuid = UUID<uint64_t>(ORNG_BASE_SPHERE_ID);
+		mp_base_sphere->uuid = UUID<uint64_t>{ ORNG_BASE_SPHERE_ID };
+		mp_base_sphere->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
 		AddAsset(&*mp_base_sphere);
+
+		m_assets.erase(ORNG_BASE_CUBE_ID);
+		mp_base_cube.release();
+		mp_base_cube = std::make_unique<MeshAsset>("res/meshes/cube.glb");
+		DeserializeAssetBinary("res/core-res/meshes/cube.glb.omesh", *mp_base_cube);
+		mp_base_cube->m_vao.FillBuffers();
+		mp_base_cube->m_is_loaded = true;
+		mp_base_cube->uuid = UUID<uint64_t>{ ORNG_BASE_CUBE_ID };
+		mp_base_cube->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
+		AddAsset(&*mp_base_cube);
 	}
 
 
@@ -480,21 +512,8 @@ namespace ORNG {
 			DeserializeAssetBinary(path, *p_tex, &binary_data);
 			p_tex->filepath = rel_path;
 			AddAsset(p_tex);
-			p_tex->LoadFromBinary(binary_data);
+			p_tex->LoadFromBinary(binary_data.data(), binary_data.size(), false);
 			DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
-		}
-
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
-			if (entry.is_directory() || entry.path().extension() != ".omesh")
-				continue;
-
-			std::string str_path = entry.path().string();
-			std::string rel_path = ".\\" + str_path.substr(str_path.rfind("res\\meshes"));
-			auto* p_mesh = new MeshAsset(rel_path);
-			DeserializeAssetBinary(rel_path, *p_mesh);
-			p_mesh->filepath = rel_path;
-			AddAsset(p_mesh);
-			LoadMeshAssetIntoGL(p_mesh);
 		}
 
 
@@ -524,6 +543,19 @@ namespace ORNG {
 				DeserializeAssetBinary(rel_path, *p_mat);
 				AddAsset(p_mat);
 			}
+		}
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
+			if (entry.is_directory() || entry.path().extension() != ".omesh")
+				continue;
+
+			std::string str_path = entry.path().string();
+			std::string rel_path = ".\\" + str_path.substr(str_path.rfind("res\\meshes"));
+			auto* p_mesh = new MeshAsset(rel_path);
+			DeserializeAssetBinary(rel_path, *p_mesh);
+			p_mesh->filepath = rel_path;
+			AddAsset(p_mesh);
+			LoadMeshAssetIntoGL(p_mesh);
 		}
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(prefab_folder)) {
@@ -562,9 +594,7 @@ namespace ORNG {
 
 					ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
 
-					ORNG_CORE_CRITICAL("script path: {}", rel_path);
 					AddAsset(new ScriptAsset(rel_path, symbols));
-
 				}
 				else {
 					std::string rel_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
@@ -594,7 +624,7 @@ namespace ORNG {
 		// Serialize all assets currently loaded into asset manager
 		// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
 		for (auto* p_texture : GetView<Texture2D>()) {
-			SerializeAssetToBinaryFile(*p_texture, ".\\res\\textures\\" + p_texture->filepath.substr(p_texture->filepath.rfind("\\") + 1));
+			SerializeAssetToBinaryFile(*p_texture, ".\\res\\textures\\" + ReplaceFileExtension(GetFilename(p_texture->filepath), "") + ".otex");
 		}
 
 		for (auto* p_mat : GetView<Material>()) {
@@ -618,7 +648,6 @@ namespace ORNG {
 
 
 	void AssetManager::InitBaseAssets() {
-		InitBaseCube();
 		InitBaseTexture();
 		InitBase3DQuad();
 		
@@ -630,7 +659,6 @@ namespace ORNG {
 		auto symbols = ScriptSymbols("");
 		mp_base_script = std::make_unique<ScriptAsset>("", symbols);
 		mp_base_script->uuid = UUID<uint64_t>(ORNG_BASE_SCRIPT_ID);
-		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
 		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);
 		mp_base_material->uuid = UUID<uint64_t>(ORNG_BASE_MATERIAL_ID);
 		mp_base_brdf_lut = std::make_unique<Texture2D>("Base BRDF LUT");
@@ -639,7 +667,6 @@ namespace ORNG {
 		EnvMapLoader loader{};
 		loader.LoadBRDFConvolution(*mp_base_brdf_lut);
 
-		AddAsset(&*mp_base_cube);
 		AddAsset(&*mp_base_tex);
 		AddAsset(&*mp_base_material);
 		AddAsset(&*mp_base_script);
@@ -672,141 +699,6 @@ namespace ORNG {
 	};
 
 
-
-	void AssetManager::InitBaseCube() {
-		mp_base_cube = std::make_unique<MeshAsset>("Base cube");
-		mp_base_cube->m_vao.vertex_data.positions = {
-			0.5, 0.5, -0.5,
-			-0.5, 0.5, -0.5,
-			-0.5, 0.5, 0.5,
-			0.5, 0.5, 0.5,
-			0.5, -0.5, 0.5,
-			0.5, 0.5, 0.5,
-			-0.5, 0.5, 0.5,
-			-0.5, -0.5, 0.5,
-			-0.5, -0.5, 0.5,
-			-0.5, 0.5, 0.5,
-			-0.5, 0.5, -0.5,
-			-0.5, -0.5, -0.5,
-			-0.5, -0.5, -0.5,
-			0.5, -0.5, -0.5,
-			0.5, -0.5, 0.5,
-			-0.5, -0.5, 0.5,
-			0.5, -0.5, -0.5,
-			0.5, 0.5, -0.5,
-			0.5, 0.5, 0.5,
-			0.5, -0.5, 0.5,
-			-0.5, -0.5, -0.5,
-			-0.5, 0.5, -0.5,
-			0.5, 0.5, -0.5,
-			0.5, -0.5, -0.5,
-		};
-
-
-		mp_base_cube->m_vao.vertex_data.normals = {
-			-0, 1, -0,
-			-0, 1, -0,
-			-0, 1, -0,
-			-0, 1, -0,
-			-0, -0, 1,
-			-0, -0, 1,
-			-0, -0, 1,
-			-0, -0, 1,
-			-1, -0, -0,
-			-1, -0, -0,
-			-1, -0, -0,
-			-1, -0, -0,
-			-0, -1, -0,
-			-0, -1, -0,
-			-0, -1, -0,
-			-0, -1, -0,
-			1, -0, -0,
-			1, -0, -0,
-			1, -0, -0,
-			1, -0, -0,
-			-0, -0, -1,
-			-0, -0, -1,
-			-0, -0, -1,
-			-0, -0, -1,
-		};
-
-		mp_base_cube->m_vao.vertex_data.tangents = {
-			-1, 0, 0,
-			-1, 0, 0,
-			-1, 0, 0,
-			-1, 0, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			1, 0, 0,
-			1, 0, 0,
-			1, 0, 0,
-			1, 0, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-			0, 1, 0,
-		};
-
-		mp_base_cube->m_vao.vertex_data.tex_coords = {
-			1.0, 0.0, // Vertex 0
-			1.0, 1.0, // Vertex 1
-			0.0, 1.0, // Vertex 2
-			0.0, 0.0, // Vertex 3
-
-			1.0, 0.0, // Vertex 4
-			1.0, 1.0, // Vertex 5
-			0.0, 1.0, // Vertex 6
-			0.0, 0.0, // Vertex 7
-
-			1.0, 0.0, // Vertex 8
-			1.0, 1.0, // Vertex 9
-			0.0, 1.0, // Vertex 10
-			0.0, 0.0, // Vertex 11
-
-			1.0, 1.0, 1.0, // Vertex 13
-			0.0, 1.0, // Vertex 14
-			0.0, 0.0, // Vertex 15
-
-			1.0, 0.0, // Vertex 16
-			1.0, 1.0, // Vertex 17
-			0.0, 1.0, // Vertex 18
-			0.0, 0.0, // Vertex 19
-
-			1.0, 0.0, // Vertex 20
-			1.0, 1.0, // Vertex 21
-			0.0, 1.0, // Vertex 22
-			0.0, 0.0  // Vertex 23
-		};
-
-
-		mp_base_cube->m_vao.vertex_data.indices = {
-			// Indices for each face (two triangles per face)
-			0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23
-		};
-
-		mp_base_cube->num_indices = mp_base_cube->m_vao.vertex_data.indices.size();
-		mp_base_cube->uuid = UUID<uint64_t>(ORNG_BASE_MESH_ID);
-		mp_base_cube->m_vao.FillBuffers();
-		mp_base_cube->m_aabb.extents = { 0.5, 0.5, 0.5 };
-		MeshAsset::MeshEntry entry;
-		entry.base_index = 0;
-		entry.base_vertex = 0;
-		entry.material_index = 0;
-		entry.num_indices = mp_base_cube->m_vao.vertex_data.indices.size();
-		mp_base_cube->m_submeshes.push_back(entry);
-		mp_base_cube->num_materials = 1;
-		mp_base_cube->m_is_loaded = true;
-	}
 
 	void AssetManager::InitBase3DQuad() {
 		mp_base_quad = std::make_unique<MeshAsset>("quad");

@@ -69,7 +69,7 @@ extern/implot/implot_items.cpp
  "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h")
 
 add_library(ORNG_CORE STATIC
-${ORNG_LIB_SOURCES})
+${ORNG_LIB_SOURCES} "src/rendering/renderpasses/BloomPass.cpp" )
 
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)

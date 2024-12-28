@@ -5,7 +5,7 @@
 namespace ORNG {
 
 	void TransformHierarchySystem::UpdateChildTransforms(const Events::ECS_Event<TransformComponent>& t_event) {
-		auto* p_relationship_comp = t_event.affected_components[0]->GetEntity()->GetComponent<RelationshipComponent>();
+		auto* p_relationship_comp = t_event.p_component->GetEntity()->GetComponent<RelationshipComponent>();
 		entt::entity current_entity = p_relationship_comp->first;
 
 		auto& reg = mp_scene->GetRegistry();

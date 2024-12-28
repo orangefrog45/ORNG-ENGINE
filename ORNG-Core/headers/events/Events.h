@@ -91,7 +91,7 @@ namespace ORNG::Events {
 		uint8_t* data_payload = nullptr; // Data payload will be a ptr to the asset being modified if it's an asset event
 	};
 
-	enum class ECS_EventType {
+	enum class ECS_EventType : uint8_t {
 		COMP_ADDED,
 		COMP_UPDATED,
 		COMP_DELETED,
@@ -99,12 +99,12 @@ namespace ORNG::Events {
 
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
-		ECS_Event(ECS_EventType t_event_type, T* p_comp, uint32_t t_sub_event_type = UINT32_MAX) : event_type(t_event_type), sub_event_type(t_sub_event_type) { affected_components[0] = p_comp; };
+		ECS_Event(ECS_EventType t_event_type, T* p_comp, uint8_t t_sub_event_type = UINT8_MAX) : event_type(t_event_type), sub_event_type(t_sub_event_type), p_component(p_comp) {};
 		ECS_EventType event_type;
-		uint32_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
+		uint8_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
 
-		std::array<T*, 2> affected_components = { nullptr, nullptr };
-		std::any data_payload;
+		T* p_component = nullptr;
+		void* p_data = nullptr;
 	};
 
 	template <std::derived_from<Event> T>

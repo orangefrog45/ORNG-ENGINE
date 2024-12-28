@@ -17,7 +17,7 @@ void main() {
             InitializeParticle( gl_GlobalInvocationID.x);
         }
 
-	    float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan + float(ssbo_particle_append.num_particles_appended) * 0.000001 ;
+	    float interpolation = 1.0 - clamp(PTCL.velocity_life.w, 0.0, EMITTER.lifespan) / EMITTER.lifespan;
 
         //ssbo_particles.particles[i].velocity_life.xyz = InterpolateV3(interpolation, EMITTER.velocity_over_life) ;
 
@@ -26,6 +26,4 @@ void main() {
 
         // Update positions with velocity
         ssbo_particles.particles[ gl_GlobalInvocationID.x].pos.xyz += ssbo_particles.particles[ gl_GlobalInvocationID.x].velocity_life.xyz * ubo_common.delta_time * 0.001;
-
-
 }

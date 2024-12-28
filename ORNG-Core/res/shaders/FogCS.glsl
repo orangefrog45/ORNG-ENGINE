@@ -217,7 +217,7 @@ void main() {
 	
 		// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		float fog_density = u_density_coef;
+		float fog_density = u_density_coef * abs(sin(step_pos.y*step_pos.z*step_pos.x*0.001));
 
 		vec3 slice_light = vec3(0);
 

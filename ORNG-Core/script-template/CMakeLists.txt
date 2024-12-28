@@ -36,10 +36,17 @@ ${ENGINE_BASE_DIR}/extern/vcpkg/packages/physx_x64-windows/include/physx
 "${ENGINE_BASE_DIR}/ORNG-Core/extern/tracy/public/tracy"
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+set(SCRIPT_LIBS 
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imguid.lib
+)
+else()
 set(SCRIPT_LIBS 
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imgui.lib
 )
+endif()
 
 # DO NOT MODIFY OR DELETE THIS LINE - these are variables that allow compiling scripts with extra c++ files, you can modify the below lines - EXTRA CPPS START
 

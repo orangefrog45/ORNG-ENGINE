@@ -83,7 +83,7 @@ namespace ORNG::Events {
 		static void DispatchEvent(const ECS_Event<T>& t_event) {
 				for (auto [entity, listener] : Get().m_listener_registry.view<ECS_EventListener<T>>().each()) {
 					// Check if the event listener is listening to the scene the event was dispatched from
-					if (listener.scene_id == t_event.affected_components[0]->GetSceneUUID())
+					if (listener.scene_id == t_event.p_component->GetSceneUUID())
 						listener.OnEvent(t_event);
 				}
 		}

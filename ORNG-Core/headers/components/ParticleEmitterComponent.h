@@ -38,7 +38,7 @@ namespace ORNG {
 			int dif = num - m_num_particles;
 			m_num_particles = num;
 
-			DispatchUpdateEvent(NB_PARTICLES_CHANGED, dif);
+			DispatchUpdateEvent(NB_PARTICLES_CHANGED, &dif);
 		}
 
 		unsigned GetNbParticles() {
@@ -65,7 +65,7 @@ namespace ORNG {
 
 		void SetParticleLifespan(float lifespan_ms) {
 			m_particle_lifespan_ms = lifespan_ms;
-			DispatchUpdateEvent(LIFESPAN_CHANGED, (int)0);
+			DispatchUpdateEvent(LIFESPAN_CHANGED);
 		}
 
 		float GetParticleLifespan() {
@@ -74,7 +74,7 @@ namespace ORNG {
 
 		void SetParticleSpawnDelay(float delay_ms) {
 			m_particle_spawn_delay_ms = delay_ms;
-			DispatchUpdateEvent(SPAWN_DELAY_CHANGED, (int)0);
+			DispatchUpdateEvent(SPAWN_DELAY_CHANGED);
 		}
 
 		float GetSpawnDelay() {
@@ -123,7 +123,7 @@ namespace ORNG {
 
 		EmitterType m_type = BILLBOARD;
 
-		enum EmitterSubEvent : uint32_t {
+		enum EmitterSubEvent : uint8_t {
 			DEFAULT= 0,
 			NB_PARTICLES_CHANGED = 2,
 			LIFESPAN_CHANGED = 4,
@@ -133,7 +133,7 @@ namespace ORNG {
 			FULL_UPDATE = 64,
 		};
 
-		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, std::any data_payload = 0.f);
+		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, void* data_payload = nullptr);
 		// User-configurable parameters
 
 		glm::vec3 acceleration = { 0, 0, 0 };

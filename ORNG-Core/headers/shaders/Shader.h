@@ -162,6 +162,8 @@ namespace ORNG {
 			m_shader_paths[shader_stage] = path;
 		}
 
+		const std::string& GetName() const { return m_name; }
+
 		// Adds a shader variant at id 'id' with the defines specified
 		Shader* AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms);
 

@@ -425,20 +425,20 @@ namespace ORNG {
 
 				out << YAML::BeginMap;
 
-				Out(out, "LP0", attachment.p_joint->poses[0]);
-				Out(out, "LP1", attachment.p_joint->poses[1]);
+				Out(out, "LP0", attachment.p_joint->m_poses[0]);
+				Out(out, "LP1", attachment.p_joint->m_poses[1]);
 
 				Out(out, "TargetUUID", attachment.p_joint->p_a1->GetUUID());
 
 				Out(out, "Motion", YAML::Flow);
 				out << YAML::BeginSeq;
 				for (int i = 0; i < 6; i++) {
-					out << (uint32_t)attachment.p_joint->motion[(PxD6Axis::Enum)i];
+					out << (uint32_t)attachment.p_joint->m_motion[(PxD6Axis::Enum)i];
 				}
 				out << YAML::EndSeq;
 
-				Out(out, "ForceThreshold", attachment.p_joint->force_threshold);
-				Out(out, "TorqueThreshold", attachment.p_joint->torque_threshold);
+				Out(out, "ForceThreshold", attachment.p_joint->m_force_threshold);
+				Out(out, "TorqueThreshold", attachment.p_joint->m_torque_threshold);
 				out << YAML::EndMap;
 			}
 
@@ -459,15 +459,14 @@ namespace ORNG {
 			auto motion_node = joint_node["Motion"];
 			for (int i = 0; i < 6; i++) {
 				auto motion = (PxD6Motion::Enum)motion_node[i].as<uint32_t>();
-				p_joint->motion[(PxD6Axis::Enum)i] = motion;
+				p_joint->SetMotionCached((PxD6Axis::Enum)i, motion);
 			}
-
-			p_joint->SetLocalPose(0, joint_node["LP0"].as<glm::vec3>());
-			p_joint->SetLocalPose(1, joint_node["LP1"].as<glm::vec3>());
+			p_joint->SetLocalPoseCached(0, joint_node["LP0"].as<glm::vec3>());
+			p_joint->SetLocalPoseCached(1, joint_node["LP1"].as<glm::vec3>());
 
 			attachment.m_target_uuid = joint_node["TargetUUID"].as<uint64_t>();
 
-			p_joint->SetBreakForce(joint_node["ForceThreshold"].as<float>(), joint_node["TorqueThreshold"].as<float>());
+			p_joint->SetBreakForceCached(joint_node["ForceThreshold"].as<float>(), joint_node["TorqueThreshold"].as<float>());
 		}
 	}
 
@@ -569,7 +568,7 @@ namespace ORNG {
 		else {
 			auto* p_res = entity.GetComponent<ParticleMeshResources>();
 			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
-			p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+			p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 
 			auto materials = emitter_node["Materials"];
 			std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
@@ -581,7 +580,8 @@ namespace ORNG {
 			}
 		}
 
-		p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE, (int)p_emitter->m_num_particles - ParticleEmitterComponent::BASE_NUM_PARTICLES);
+		int dif = p_emitter->m_num_particles - ParticleEmitterComponent::BASE_NUM_PARTICLES;
+		p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE, &dif);
 	}
 
 	void SceneSerializer::DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity) {
@@ -606,10 +606,10 @@ namespace ORNG {
 	VehicleComponent* SceneSerializer::DeserializeVehicleComp(const YAML::Node& node, SceneEntity& entity) {
 		auto* p_comp = entity.AddComponent<VehicleComponent>();
 		p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(node["BodyMesh"].as<uint64_t>());
-		p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+		p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 
 		p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(node["WheelMesh"].as<uint64_t>());
-		p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+		p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 
 
 		p_comp->body_scale = node["BodyScale"].as<glm::vec3>();
@@ -683,7 +683,7 @@ namespace ORNG {
 			material_vec[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 		}
 
-		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID), std::move(material_vec));
+		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID), std::move(material_vec));
 	}
 
 	void SceneSerializer::ResolveEntityRefs(Scene& scene, SceneEntity& entity) {

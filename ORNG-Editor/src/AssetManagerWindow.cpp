@@ -410,7 +410,13 @@ namespace ORNG {
 
 		spec.on_drag = [p_mesh_asset]() {
 			static MeshAsset* p_dragged_mesh = nullptr;
+
 			p_dragged_mesh = p_mesh_asset;
+			if (!p_dragged_mesh->GetLoadStatus()) {
+				ImGui::EndDragDropSource();
+				return;
+			}
+
 			ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
 			ImGui::EndDragDropSource();
 			};
@@ -803,10 +809,9 @@ namespace ORNG {
 		// Disable additional user renderpasses as this is just a preview of a mesh
 		settings.do_intercept_renderpasses = false;
 
-		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+		SceneRenderer::RenderScene(settings);
 
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
-
 	}
 
 	void AssetManagerWindow::CreateMaterialPreview(const Material* p_material) {
@@ -836,7 +841,8 @@ namespace ORNG {
 		settings.p_output_tex = p_tex.get();
 		// Disable additional user renderpasses as this is just a preview of a mesh
 		settings.do_intercept_renderpasses = false;
-		SceneRenderer::SceneRenderingOutput output = SceneRenderer::RenderScene(settings);
+		SceneRenderer::RenderScene(settings);
+
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0);
 	}

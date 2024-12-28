@@ -55,48 +55,33 @@ namespace ORNG {
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index", "u_num_emitters" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index", "u_num_particles" });
 			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
-
-			mp_append_buffer_transfer_cs = &Renderer::GetShaderLibrary().CreateShader("particle append buffer transfer");
-			mp_append_buffer_transfer_cs->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleAppendTransferCS.glsl");
-			mp_append_buffer_transfer_cs->Init();
-			mp_append_buffer_transfer_cs->AddUniform("u_buffer_index");
 		}
-
-	
 	};
 
 	void ParticleSystem::OnLoad() {
 		if (!m_particle_ssbo.IsInitialized()) {
 			m_particle_ssbo.Init();
 			m_emitter_ssbo.Init();
-			m_particle_append_ssbo.Init();
-			m_particle_append_ssbo.Resize(sizeof(uint32_t) + particle_struct_size * 100'000);
-			p_num_appended = static_cast<unsigned*>(glMapNamedBufferRange(m_particle_append_ssbo.GetHandle(), 0, sizeof(unsigned), GL_MAP_WRITE_BIT | GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
 		}
 
-
-
-		m_particle_append_ssbo.draw_type = GL_DYNAMIC_DRAW;
 		m_particle_ssbo.draw_type = GL_DYNAMIC_DRAW;
 		m_emitter_ssbo.draw_type = GL_DYNAMIC_DRAW;
 
 		GL_StateManager::BindSSBO(m_emitter_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_EMITTERS);
 		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
-		GL_StateManager::BindSSBO(m_particle_append_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_APPEND);
-
 
 		m_particle_listener.scene_id = GetSceneUUID();
 		m_particle_listener.OnEvent = [this](const Events::ECS_Event<ParticleEmitterComponent>& e_event) {
 			switch (e_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED:
-				InitEmitter(e_event.affected_components[0]);
+				InitEmitter(e_event.p_component);
 				break;
 			case COMP_UPDATED:
 				OnEmitterUpdate(e_event);
 				break;
 			case COMP_DELETED:
-				OnEmitterDestroy(e_event.affected_components[0]);
+				OnEmitterDestroy(e_event.p_component);
 				break;
 			}
 			};
@@ -106,10 +91,10 @@ namespace ORNG {
 			switch (e_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED:
-				InitBuffer(e_event.affected_components[0]);
+				InitBuffer(e_event.p_component);
 				break;
 			case COMP_UPDATED:
-				OnBufferUpdate(e_event.affected_components[0]);
+				OnBufferUpdate(e_event.p_component);
 				break;
 			}
 			};
@@ -117,7 +102,7 @@ namespace ORNG {
 		m_transform_listener.scene_id = GetSceneUUID();
 		m_transform_listener.OnEvent = [this](const Events::ECS_Event<TransformComponent>& e_event) {
 			if (e_event.event_type == Events::ECS_EventType::COMP_UPDATED) {
-				if (auto* p_emitter = e_event.affected_components[0]->GetEntity()->GetComponent<ParticleEmitterComponent>())
+				if (auto* p_emitter = e_event.p_component->GetEntity()->GetComponent<ParticleEmitterComponent>())
 					OnEmitterUpdate(p_emitter);
 			}
 			};
@@ -152,7 +137,7 @@ namespace ORNG {
 		else if (p_comp->m_type == ParticleEmitterComponent::MESH && !p_mesh_res) {
 			p_mesh_res = p_ent->AddComponent<ParticleMeshResources>();
 			p_mesh_res->materials = { AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
-			p_mesh_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+			p_mesh_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 		}
 
 		if (!m_emitter_entities.empty()) {
@@ -166,8 +151,6 @@ namespace ORNG {
 
 		m_emitter_entities.push_back(p_comp->GetEnttHandle());
 		p_comp->m_index = m_emitter_entities.size() - 1;
-
-
 
 		unsigned prev_total = total_emitter_particles;
 		total_emitter_particles += p_comp->m_num_particles;
@@ -238,6 +221,7 @@ namespace ORNG {
 			);
 
 		glNamedBufferSubData(m_emitter_ssbo.GetHandle(), index * emitter_struct_size, emitter_struct_size, &emitter_data[0]);
+		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 		//std::memcpy(p_emitter_gpu_buffer + index * emitter_struct_size, &emitter_data[0], emitter_struct_size);
 	}
 
@@ -256,23 +240,23 @@ namespace ORNG {
 		else {
 			p_ent->DeleteComponent<ParticleBillboardResources>();
 			auto* p_res = p_ent->AddComponent<ParticleMeshResources>();
-			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_MESH_ID);
+			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
 			p_res->materials = { AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
 		}
 	}
 
 	void ParticleSystem::OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event) {
-		auto* p_comp = e_event.affected_components[0];
+		auto* p_comp = e_event.p_component;
 
 		if (e_event.sub_event_type & (ParticleEmitterComponent::FULL_UPDATE | ParticleEmitterComponent::NB_PARTICLES_CHANGED | ParticleEmitterComponent::LIFESPAN_CHANGED | ParticleEmitterComponent::SPAWN_DELAY_CHANGED)) {
-			OnEmitterDestroy(p_comp, std::any_cast<int>(e_event.data_payload));
+			OnEmitterDestroy(p_comp, *reinterpret_cast<int*>(e_event.p_data));
 			InitEmitter(p_comp);
 		}
 		else if (e_event.sub_event_type & ParticleEmitterComponent::VISUAL_TYPE_CHANGED) {
-			OnEmitterVisualTypeChange(e_event.affected_components[0]);
+			OnEmitterVisualTypeChange(e_event.p_component);
 		}
 		else {
-			UpdateEmitterBufferAtIndex(e_event.affected_components[0]->m_index);
+			UpdateEmitterBufferAtIndex(e_event.p_component->m_index);
 		}
 	}
 
@@ -323,43 +307,29 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_particle_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_particle_buffer_listener.GetRegisterID());
+
+		for (auto& connection : m_connections) {
+			connection.release();
+		}
+
+		auto& shader_library = Renderer::GetShaderLibrary();
+		shader_library.DeleteShader(mp_particle_cs->GetName());
+		shader_library.DeleteShader(mp_particle_initializer_cs->GetName());
 	}
 
 	void ParticleSystem::InitBuffer(ParticleBufferComponent* p_comp) {
-
 		p_comp->m_particle_ssbo.Init();
 		p_comp->m_particle_ssbo.Resize(p_comp->m_min_allocated_particles * particle_struct_size);
-		
 
 		glNamedBufferSubData(p_comp->m_particle_ssbo.GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
+		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 	void ParticleSystem::OnBufferUpdate(ParticleBufferComponent* p_comp) {
 		p_comp->m_particle_ssbo.Resize(p_comp->m_min_allocated_particles * particle_struct_size);
 
 		glNamedBufferSubData(p_comp->m_particle_ssbo.GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
-	}
-
-
-
-	void ParticleSystem::UpdateAppendBuffer() {
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-		if (*p_num_appended == 0)
-			return;
-
-
-		for (auto [entity, buf_comp] : mp_scene->GetRegistry().view<ParticleBufferComponent>().each()) {
-			GL_StateManager::BindSSBO(buf_comp.m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
-
-			mp_append_buffer_transfer_cs->ActivateProgram();
-			mp_append_buffer_transfer_cs->SetUniform<unsigned>("u_buffer_index", buf_comp.GetBufferID());
-			GL_StateManager::DispatchCompute((int)glm::ceil(*p_num_appended / 32.f), 1, 1);
-		}
-
-		unsigned reset = 0;
-		memcpy(p_num_appended, &reset, sizeof(unsigned));
-
+		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 	void ParticleSystem::OnUpdate() {
@@ -370,7 +340,5 @@ namespace ORNG {
 			GL_StateManager::DispatchCompute(glm::ceil(total_emitter_particles / 32.f), 1, 1);
 
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-		UpdateAppendBuffer();
 	}
 }

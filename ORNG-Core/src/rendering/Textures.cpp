@@ -187,20 +187,20 @@ namespace ORNG {
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 	}
 
-	bool Texture2D::LoadFromBinary(const std::vector<std::byte>& data) {
+	bool Texture2D::LoadFromBinary(std::byte* p_data, size_t size, bool is_decompressed, int width, int height, int bpp) {
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec))) {
 			ORNG_CORE_ERROR("2D Texture failed loading from binary: Invalid spec");
 			return false;
 		}
 		bool ret = false;
 
-		int width, height, bpp;
-		
-		unsigned char* image_data = stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(data.data()), data.size(), &width, &height, &bpp, 0);
+		stbi_uc* image_data = is_decompressed ?
+			reinterpret_cast<stbi_uc*>(p_data) :
+			stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(p_data), size, &width, &height, &bpp, 0);
 
-		if (image_data == nullptr || data.empty()) {
+		if (image_data == nullptr) {
 			ORNG_CORE_ERROR("Can't load binary texture data, - '{0}'", stbi_failure_reason());
-			return  false;
+			return false;
 		}
 
 		unsigned internal_format, format;
@@ -244,8 +244,8 @@ namespace ORNG {
 			glGenerateMipmap(m_texture_target);
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 
-		stbi_image_free(image_data);
-
+		if (const bool owned_memory = !p_data)
+			stbi_image_free(image_data);
 	}
 
 	bool Texture2D::LoadFromFile() {
