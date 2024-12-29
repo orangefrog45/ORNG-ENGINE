@@ -484,12 +484,12 @@ namespace ORNG {
 
 	std::tuple<bool, glm::vec3, glm::vec3> SceneRenderer::UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos, glm::vec3 voxel_aligned_cam_pos) {
 		auto new_pos = glm::roundMultiple(unaligned_cam_pos, glm::vec3(alignment));
-		glm::bvec3 res = glm::epsilonEqual(new_pos, voxel_aligned_cam_pos, 0.15f);
+		glm::bvec3 res = glm::epsilonEqual(new_pos, voxel_aligned_cam_pos, 0.015f);
 		bool aligned_pos_moved = !glm::all(res);
 
 		// Camera update will have shifted texture by 32 voxels as the camera position is rounded to 32 voxels (this aligns it with the highest mip (4) to remove artifacts)
 		if (aligned_pos_moved) {
-			glm::ivec3 delta_tex_coords = glm::ivec3((unsigned)(!res.x) * 32, (unsigned)(!res.y) * 32, (unsigned)(!res.z) * 32)
+			glm::ivec3 delta_tex_coords = glm::ivec3((unsigned)(!res.x) * 64, (unsigned)(!res.y) * 64, (unsigned)(!res.z) * 64)
 				* glm::ivec3(new_pos.x < voxel_aligned_cam_pos.x ? -1 : 1, new_pos.y < voxel_aligned_cam_pos.y ? -1 : 1, new_pos.z < voxel_aligned_cam_pos.z ? -1 : 1);
 
 
@@ -718,7 +718,7 @@ namespace ORNG {
 		auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
 
 		// Draw scene into voxel textures
-		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(1, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, 1, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, 1), cam_pos, {0, 1, 0}) };
+		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 			for (auto* p_group : mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {

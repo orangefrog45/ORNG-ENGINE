@@ -127,7 +127,7 @@ void main() {
     vec4 original = convRGBA8ToVec4(imageLoad(voxel_image, coord).r);
     original.rgb /= 255.0; // Scale down to 0-1
     original.rgb *= original.a * 0.1; // Apply emissive
-    col.rgb = original.rgb + col.rgb * 0.05 ;
+    col.rgb = (original.rgb + col.rgb * 0.05) ;
 
     // Create an emissive component to brighten colours if needed for HDR
     float l = length(col.rgb);

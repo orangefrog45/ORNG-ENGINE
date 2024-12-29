@@ -63,7 +63,7 @@ const vec3 diffuse_cone_dirs[] =
 
 #define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d   ; \
 		\
-		vec3 coord = vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz) / (VOXEL_SIZE * (current_cascade + 1)) + vec3(VOXEL_RES * 0.5)) / VOXEL_RES); \
+		vec3 coord = vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz + sampled_normal*0.15) / (VOXEL_SIZE * (current_cascade + 1)) + vec3(VOXEL_RES * 0.5)) / VOXEL_RES); \
 		if (any(greaterThan(coord, vec3(1.0))) || any(lessThan(coord, vec3(0.0)))) { \
 			current_cascade++; \
 			break; \
@@ -96,7 +96,7 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_
 	float step_size_correction_factor = (1.0 + tan_eighth_angle) / (1.0 - tan_eighth_angle);
 	float step_length = step_size_correction_factor * 0.2;
 
-	float d = pow(VOXEL_SIZE, 1.0 / 3.0);
+	float d = 0.15;
 
 	vec3 weight = abs(cone_dir);
 	uint current_cascade = 0;
@@ -111,40 +111,40 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_
 		float cam_dist = length(ubo_common.voxel_aligned_cam_positions[0].xyz - step_pos);
 
 		// Interpolate between cascade borders
-		if (cam_dist > 20.f) {
-			float mip2 = clamp(log2(diam / VOXEL_SIZE ) - 1.0, 0.0, 4.0);
+		// if (cam_dist > 20.f) {
+		// 	float mip2 = clamp(log2(diam / VOXEL_SIZE ) - 1.0, 0.0, 4.0);
 
-			vec3 coord_2 =  vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[1].xyz) / (VOXEL_SIZE * 2.0) + vec3(VOXEL_RES * 0.5)) / VOXEL_RES);
-			coord_2.z /= 6.0;
-			vec4 add = vec4(0);
-			float interp = 1.0 - (25.f - cam_dist) * 0.2f;
+		// 	vec3 coord_2 =  vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[1].xyz) / (VOXEL_SIZE * 2.0) + vec3(VOXEL_RES * 0.5)) / VOXEL_RES);
+		// 	coord_2.z /= 6.0;
+		// 	vec4 add = vec4(0);
+		// 	float interp = 1.0 - (25.f - cam_dist) * 0.2f;
 
-			add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip2, 0.0)) * weight.x * 0.5;
-			add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip2, 0.0)) * weight.y * 0.5;
-			add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip2, 0.0)) * weight.z * 0.5;
-			mip_col = mix(mip_col, add, interp);
-		}
+		// 	add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip2, 0.0)) * weight.x * 0.5;
+		// 	add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip2, 0.0)) * weight.y * 0.5;
+		// 	add += textureLod(voxel_mip_sampler_cascade_1, coord_2 + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip2, 0.0)) * weight.z * 0.5;
+		// 	mip_col = mix(mip_col, add, interp);
+		// }
 		)
 
 	}
 	dist_travelled = d;
 
-	while (col.a < 0.95 && current_cascade == 1) {
-		CONE_TRACE_SKELETON(
-		float mip = clamp(log2(diam / VOXEL_SIZE ) - 1.0, 0.0, 4.0);
+	// while (col.a < 0.95 && current_cascade == 1) {
+	// 	CONE_TRACE_SKELETON(
+	// 	float mip = clamp(log2(diam / VOXEL_SIZE ) - 1.0, 0.0, 4.0);
 
-		mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip, 0.0)) * weight.x * 0.5;
-		mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip, 0.0)) * weight.y * 0.5;
-		mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip, 0.0)) * weight.z * 0.5;
+	// 	mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.x < 0 ? 3.0 : 0.0) / 6.0), max(mip, 0.0)) * weight.x * 0.5;
+	// 	mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), max(mip, 0.0)) * weight.y * 0.5;
+	// 	mip_col += textureLod(voxel_mip_sampler_cascade_1, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), max(mip, 0.0)) * weight.z * 0.5;
 
-		)
+	// 	)
 
-		if (any(greaterThan(coord, vec3(0.8)))) {
-			//mip_col *= (1.0 - max(max(coord.x, coord.y), coord.z)) * 5.0;
-			//mip_col = vec4(10, 0, 0, 10);
-		}
+	// 	if (any(greaterThan(coord, vec3(0.8)))) {
+	// 		//mip_col *= (1.0 - max(max(coord.x, coord.y), coord.z)) * 5.0;
+	// 		//mip_col = vec4(10, 0, 0, 10);
+	// 	}
 
-	}
+	// }
 
 	return col;
 }

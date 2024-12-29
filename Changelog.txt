@@ -1,5 +1,5 @@
 29/12/24:
--Big improvements to VXGI
+-VXGI looks a lot better
 
 28/12/24:
 -Support for loading embedded textures from meshes

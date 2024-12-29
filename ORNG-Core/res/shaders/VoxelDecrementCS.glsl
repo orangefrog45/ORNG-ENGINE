@@ -22,7 +22,7 @@ void OnCamPosUpdate() {
 
     uint tex_size = imageSize(voxel_image).x;
 
-    ivec3 new_coords = tex_coord - u_delta_tex_coords;
+    ivec3 new_coords = tex_coord - u_delta_tex_coords/4;
 
     if (any(greaterThan(new_coords, ivec3(tex_size))) || any(lessThan(new_coords, ivec3(0)))) {
         // New coords out of bounds
