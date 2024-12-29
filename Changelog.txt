@@ -1,3 +1,6 @@
+29/12/24:
+-Big improvements to VXGI
+
 28/12/24:
 -Support for loading embedded textures from meshes
 -Faster mesh loading, base material serialization

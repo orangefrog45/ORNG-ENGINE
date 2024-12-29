@@ -54,7 +54,6 @@ namespace ORNG {
 		POINTLIGHT
 	};
 
-#define VOXEL_MIP_RES 128
 	void SceneRenderer::I_Init() {
 		mp_shader_library = &Renderer::GetShaderLibrary();
 		mp_framebuffer_library = &Renderer::GetFramebufferLibrary();
@@ -371,9 +370,9 @@ namespace ORNG {
 		m_scene_voxel_tex_c1_normals.SetSpec(voxel_spec_r32ui);
 
 		Texture3DSpec voxel_mip_spec = voxel_spec_rgbaf;
-		voxel_mip_spec.width = VOXEL_MIP_RES;
-		voxel_mip_spec.height = VOXEL_MIP_RES;
-		voxel_mip_spec.layer_count = VOXEL_MIP_RES * 6; // Each face starts at z = face_index * VOXEL_MIP_RES
+		voxel_mip_spec.width = 256;
+		voxel_mip_spec.height = 256;
+		voxel_mip_spec.layer_count = 256 * 6; // Each face starts at z = face_index * VOXEL_MIP_RES
 		voxel_mip_spec.generate_mipmaps = true;
 		voxel_mip_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		voxel_mip_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -439,13 +438,13 @@ namespace ORNG {
 		// Only update the aligned camera pos for the cascade about to be rendered to ensure consistency for the camera position from when the voxel grid was generated and when it is read from
 		switch (m_active_voxel_cascade_idx) {
 		case 0:
-			if (auto [aligned_cam_pos_moved, new_aligned_cam_pos, delta_tex_coords] = UpdateVoxelAlignedCameraPos(6.4f, cam_pos, m_voxel_aligned_cam_positions[0]); aligned_cam_pos_moved) {
+			if (auto [aligned_cam_pos_moved, new_aligned_cam_pos, delta_tex_coords] = UpdateVoxelAlignedCameraPos(6.4f * 0.5f, cam_pos, m_voxel_aligned_cam_positions[0]); aligned_cam_pos_moved) {
 				m_voxel_aligned_cam_positions[0] = new_aligned_cam_pos;
 				AdjustVoxelGridForCameraMovement(m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, delta_tex_coords, 256);
 			}
 			break;
 		case 1:
-			if (auto [aligned_cam_pos_moved, new_aligned_cam_pos, delta_tex_coords] = UpdateVoxelAlignedCameraPos(12.8f, cam_pos, m_voxel_aligned_cam_positions[1]); aligned_cam_pos_moved) {
+			if (auto [aligned_cam_pos_moved, new_aligned_cam_pos, delta_tex_coords] = UpdateVoxelAlignedCameraPos(12.8f * 0.5f, cam_pos, m_voxel_aligned_cam_positions[1]); aligned_cam_pos_moved) {
 				m_voxel_aligned_cam_positions[1] = new_aligned_cam_pos;
 				AdjustVoxelGridForCameraMovement(m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, delta_tex_coords, 256);
 			}
@@ -719,14 +718,14 @@ namespace ORNG {
 		auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
 
 		// Draw scene into voxel textures
-		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
+		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(1, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, 1, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, 1), cam_pos, {0, 1, 0}) };
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 			for (auto* p_group : mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
 				DrawInstanceGroupGBufferWithoutStateChanges(mp_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, ORNG_MatFlags_INVALID, GL_TRIANGLES);
 			}
-			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
@@ -742,10 +741,11 @@ namespace ORNG {
 		glBindImageTexture(1, cascade_mips.GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+		const int voxel_mip_ratio = m_scene_voxel_tex_c0.GetSpec().width /  m_voxel_mip_faces_c0.GetSpec().width;
 		// Create first anisotropic mip
 		glBindImageTexture(2, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 		mp_3d_mipmap_shader->Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC);
-		GL_StateManager::DispatchCompute((int)half_cascade_width / 4, (int)half_cascade_width / 4, (int)half_cascade_width / 4);
+		GL_StateManager::DispatchCompute((int)cascade_width / voxel_mip_ratio / 4, (int)cascade_width / voxel_mip_ratio / 4, (int)cascade_width / voxel_mip_ratio / 4);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 		// Create mip chain from anisotropic mip
@@ -755,7 +755,7 @@ namespace ORNG {
 			mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
 			glBindImageTexture(0, cascade_mips.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
-			int group_dim = (int)glm::ceil((half_cascade_width / (i + 1)) / 4.f);
+			int group_dim = (int)glm::ceil((cascade_width / voxel_mip_ratio / (i + 1)) / 4.f);
 			GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
 			glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}

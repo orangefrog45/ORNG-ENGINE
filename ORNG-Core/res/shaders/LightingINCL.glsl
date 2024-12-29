@@ -14,7 +14,7 @@ ORNG_INCLUDE "ShadowsINCL.glsl"
 #error "No brdf LUT sampler defined for lighting calculations"
 #endif
 
-#define MAX_REFLECTION_LOD 4.0
+#define MAX_REFLECTION_LOD 8.0
 #define LIGHT_ZNEAR 0.01 // true for all light types
 
 vec3 FresnelSchlick(float cos_theta, vec3 f0) {
@@ -132,6 +132,24 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index, vec3 world_pos, 
 	return max((kd * albedo / PI + specular) * n_dot_l * (light.colour.xyz / attenuation) * spotlight_intensity, vec3(0.0, 0.0, 0.0));
 }
 
+vec3 CookTorranceBRDF(vec3 surface_to_light, vec3 v, vec3 f0, vec3 world_pos, vec3 n, float roughness, float metallic, vec3 albedo) {
+	vec3 l = surface_to_light;
+	vec3 h = normalize(v + l);
+	vec3 f = FresnelSchlick(max(dot(h, v), 0.0), f0);
+
+	float ndf = DistributionGGX(h, n, roughness);
+	float g = GeometrySmith(v, l, n, roughness);
+
+	vec3 num = ndf * g * f;
+	float denom = 4.0 * max(dot(n, v), 0.0) * max(dot(n, l), 0.0) + 0.0001;
+	vec3 specular = num / denom;
+
+	vec3 kd = vec3(1.0) - f;
+	kd *= 1.0 - metallic;
+
+	float n_dot_l = max(dot(n, l), 0.0);
+	return (kd * albedo / PI + specular) * n_dot_l;
+}
 
 vec3 CalcDirectionalLight(vec3 v, vec3 f0, vec3 n, float roughness, float metallic, vec3 albedo) {
 	vec3 l = ubo_global_lighting.directional_light.direction.xyz;

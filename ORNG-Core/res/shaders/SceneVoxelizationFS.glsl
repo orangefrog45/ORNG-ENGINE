@@ -24,6 +24,8 @@ in VSVertData {
     vec3 view_dir_tangent_space;
 } vert_data;
 
+in flat mat4 vs_transform;
+
 ORNG_INCLUDE "CommonINCL.glsl"
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
 ORNG_INCLUDE "BuffersINCL.glsl"
@@ -108,7 +110,6 @@ void main() {
         discard;
 
     vec3 n = normalize(vert_data.normal);
-
     vec3 col = vec3(0);
 
     // Calculate luminance value
@@ -135,8 +136,12 @@ void main() {
     col.rgb /= emissive;
 
     // Use AtomicMax to prevent flickering from multiple threads trying to write into one voxel
-    imageAtomicMax(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
-    imageAtomicMax(voxel_image, coord, convVec4ToRGBA8(vec4(col * 255, emissive * 10.0)));
+    uint col_packed = convVec4ToRGBA8(vec4(col * 255, emissive * 10.0));
+
+    if (imageAtomicMax(voxel_image, coord, col_packed) < col_packed) {
+        // Set successfully, set normal too
+        imageAtomicExchange(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));
+    }
 
     discard;
 }

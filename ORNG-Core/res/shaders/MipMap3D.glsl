@@ -34,17 +34,13 @@ const ivec3 aniso_offsets[] = ivec3[8]
 
 #ifdef ANISOTROPIC_MIPMAP_CHAIN
 
-float FetchTexels(ivec3 start_coord, uint face_index, out vec4[8] values, uint mip_dim) {
-    float sum = 0.0;
-
+void FetchTexels(ivec3 start_coord, uint face_index, out vec4[8] values, uint mip_dim) {
     for (int i = 0; i < 8; i++) {
         ivec3 local_coord = ivec3(start_coord + aniso_offsets[i]);
         ivec3 coord = ApplyMipFaceTexCoordOffset(local_coord, face_index, mip_dim);
         uint current_face_index = uint(coord.z) / mip_dim;
         values[i] = texelFetch(input_mips, coord, u_mip_level - 1);
-        sum++;
     }
-    return sum;
 }
 
 #endif
@@ -64,21 +60,38 @@ vec4 Average8(vec4 values[8]) {
     return val / 8.0;
 }
 
+float IsCoordValid(ivec3 coord) {
+    return all(lessThan(coord, ivec3(VOXEL_RES))) ? 0.f : 1.f;
+}
+
+ivec3 ConstrainCoord(ivec3 coord) {
+    return min(coord, ivec3(VOXEL_RES));
+}
 
 void main() {
-ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
+ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz);
 
 #ifdef ANISOTROPIC_MIPMAP
     vec4 values[8] = {
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(1, 1, 1))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(1, 1, 0))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(1, 0, 1))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(1, 0, 0))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(0, 1, 1))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(0, 1, 0))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(0, 0, 1))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord + ivec3(0, 0, 0))).r) / 255.,
-         
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 1)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 0)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 1)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 0)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 1)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 0)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 1)))).r) / 255.,
+        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 0)))).r) / 255.,
+    };
+
+    vec4 values_normals[8] = {
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 1)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 0)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 1)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 0)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 1)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 0)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 1)))).r) - 127)),
+        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 0)))).r) - 127)),
     };
 
     for (int i = 0; i < 8; i++) {
@@ -89,23 +102,11 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         values[i].a = values[i].a > 0.01 ? 1.0 : 0.0;
     }
 
-    vec4 values_normals[8] = {
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(1, 1, 1))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(1, 1, 0))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(1, 0, 1))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(1, 0, 0))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(0, 1, 1))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(0, 1, 0))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(0, 0, 1))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord + ivec3(0, 0, 0))).r) - 127)),
-         
-    };
-
     float sum = 0.f;
     vec4 final = vec4(0);
 
     for (int i = 0; i < 8; i++) {
-        if (values_normals[i].x < 0) {
+        if (values[i].a > 0.01 && values_normals[i].x < 0) {
             sum += abs(values_normals[i].x);
             final.rgb += values[i].rgb *  abs(values_normals[i].x);
         }
@@ -113,13 +114,13 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 256), vec4(final.rgb / 8.f, final.a / 8.0));
 
     sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
-        if (values_normals[i].y < 0) {
+        if (values[i].a > 0.01 && values_normals[i].y < 0) {
             sum += abs(values_normals[i].y);
             final.rgb += values[i].rgb * abs(values_normals[i].y);
         }
@@ -127,13 +128,13 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 256), vec4(final.rgb / 8.f, final.a / 8.0));
 
     sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
-        if (values_normals[i].z < 0) {
+        if (values[i].a > 0.01 && values_normals[i].z < 0) {
             sum += abs(values_normals[i].z);
             final.rgb += values[i].rgb * abs(values_normals[i].z);
         }
@@ -141,13 +142,13 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 256), vec4(final.rgb / 8.f, final.a / 8.0));
 
         sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
-        if (values_normals[i].x > 0) {
+        if (values[i].a > 0.01 && values_normals[i].x > 0) {
             sum += values_normals[i].x;
             final.rgb += values[i].rgb * values_normals[i].x;
         }
@@ -155,14 +156,14 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 256), vec4(final.rgb / 8.f, final.a / 8.0));
 
 
         sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
-        if (values_normals[i].y > 0) {
+        if (values[i].a > 0.01 && values_normals[i].y > 0) {
             sum += values_normals[i].y;
             final.rgb += values[i].rgb * values_normals[i].y;
         }
@@ -170,14 +171,14 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 256), vec4(final.rgb / 8.f, final.a / 8.0));
 
     
     sum = 0.f;
     final = vec4(0);
 
      for (int i = 0; i < 8; i++) {
-        if (values_normals[i].z > 0) {
+        if (values[i].a > 0.01 && values_normals[i].z > 0) {
             sum += values_normals[i].z;
             final.rgb += values[i].rgb * values_normals[i].z;
         }
@@ -185,7 +186,7 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
         final.a += values[i].a;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 128), vec4(final.rgb / max(sum, 1.f), final.a / 8.0));
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 256), vec4(final.rgb / 8.f, final.a / 8.0));
 
   
     // vec4 val = convRGBA8ToVec4(imageLoad(input_image, sample_coord / 2).r) / 255.;
@@ -205,48 +206,49 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz * 2);
 
     
 #elif defined(ANISOTROPIC_MIPMAP_CHAIN)
+    sample_coord = ivec3(gl_GlobalInvocationID.xyz*2);
     vec4 values[8];
     uint mip_dim = imageSize(output_mips).x;
     float sum = 0.f;
 
     // X+
-    sum = FetchTexels(sample_coord, 0, values, mip_dim * 2);
+    FetchTexels(sample_coord, 0, values, mip_dim * 2);
     imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, mip_dim), 
-        Average8(values) * (8.0 / sum)
+        Average8(values)
     );
 
     // Y+
-    sum = FetchTexels(sample_coord, 1, values, mip_dim * 2);
+    FetchTexels(sample_coord, 1, values, mip_dim * 2);
     imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, mip_dim), 
-               Average8(values) * (8.0 / sum)
+               Average8(values)
 
     );
 
     // Z+
-    sum = FetchTexels(sample_coord, 2, values, mip_dim * 2);
+    FetchTexels(sample_coord, 2, values, mip_dim * 2);
     imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, mip_dim), 
-                Average8(values) * (8.0 / sum)
+                Average8(values)
 
     );
 
     // X-
-    sum = FetchTexels(sample_coord, 3, values, mip_dim * 2);
+    FetchTexels(sample_coord, 3, values, mip_dim * 2);
     imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, mip_dim), 
-              Average8(values) * (8.0 / sum)
+              Average8(values)
 
     );
 
     // Y-
-    sum = FetchTexels(sample_coord, 4, values, mip_dim * 2);
+     FetchTexels(sample_coord, 4, values, mip_dim * 2);
     imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, mip_dim), 
-               Average8(values) * (8.0 / sum)
+               Average8(values)
 
     );
 
     // Z-
-    sum = FetchTexels(sample_coord, 5, values, mip_dim * 2);
+    FetchTexels(sample_coord, 5, values, mip_dim * 2);
     imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, mip_dim), 
-                Average8(values) * (8.0 / sum)
+                Average8(values)
 
     );
 
