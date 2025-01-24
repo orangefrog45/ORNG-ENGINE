@@ -341,6 +341,8 @@ namespace ORNG {
 			des.object(tex.uuid);
 			des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container1b(raw_data, UINT64_MAX);
+
+			tex.SetSpec(tex.m_spec); // Has to be called for texture to properly update
 		}
 
 		template<typename S>

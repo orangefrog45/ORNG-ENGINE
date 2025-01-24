@@ -24,115 +24,6 @@ namespace ORNG {
 			UnloadScene();
 	}
 
-	Scene::Scene() {
-		m_uuid_change_listener.OnEvent = [this](const UUIDChangeEvent& _event) {
-			auto* p_ent = m_entity_uuid_lookup[_event.old_uuid];
-			if (!p_ent) // Entity belongs to a different scene
-				return;
-
-			m_entity_uuid_lookup.erase(_event.old_uuid);
-			m_entity_uuid_lookup[_event.new_uuid] = p_ent;
-		};
-
-		Events::EventManager::RegisterListener(m_uuid_change_listener);
-
-		// Init script interface object
-		m_si.CreateEntity = 
-			[this](const std::string& str) -> SceneEntity& {
-				return CreateEntity(str);
-			};
-
-		m_si.GetEntityByEnttHandle = 
-			[this](entt::entity id) -> SceneEntity* {
-				return GetEntity(id);
-			};
-
-		m_si.GetEntityByName = 
-			[this](const std::string& name) -> SceneEntity* {
-				return GetEntity(name);
-			};
-
-		m_si.DeleteEntity = 
-			[this](SceneEntity* p_entity) {
-			DeleteEntity(p_entity);
-			};
-
-		m_si.DeleteEntityAtEndOfFrame =
-			[this](SceneEntity* p_entity) {
-			DeleteEntityAtEndOfFrame(p_entity);
-			};
-
-
-		m_si.DuplicateEntity = 
-			[this](SceneEntity& ent) -> SceneEntity& {
-				return DuplicateEntityCallScript(ent);
-			};
-
-		m_si.InstantiatePrefab =
-			[this](uint64_t uuid) -> SceneEntity& {
-				auto* p_prefab = AssetManager::GetAsset<Prefab>(uuid);
-				if (!p_prefab)
-					throw std::runtime_error(std::format("InstantiatePrefab failed, UUID '{}' does not match any prefab asset", uuid));
-
-				return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
-			};
-
-		m_si.Raycast =
-			[this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
-				return GetSystem<PhysicsSystem>().Raycast(origin, unit_dir, max_distance);
-			};
-
-		m_si.GetEntityByUUID =
-			[this](uint64_t id) -> SceneEntity* {
-				return GetEntity(id);
-			};
-
-
-		m_si.OverlapQuery =
-			[this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
-				return GetSystem<PhysicsSystem>().OverlapQuery(geom, pos, max_hits);
-			};
-
-		m_si.GetSceneTimeElapsed =
-			[this]() {
-				return m_time_elapsed;
-			};
-
-		m_si.GetActiveCamera =
-			[this] {
-			return GetSystem<CameraSystem>().GetActiveCamera();
-			};
-
-		m_si.GetScreenDimensions = []() -> glm::ivec2 {
-			return glm::ivec2{ Window::GetWidth(), Window::GetHeight() };
-			};
-
-		m_si.GetMaterialByUUID = [](uint64_t uuid) -> Material* {
-			return AssetManager::GetAsset<Material>(uuid);
-			};
-
-		m_si.CreateMaterial = []() -> Material* {
-			return AssetManager::AddAsset(new Material());
-			};
-
-		m_si.CreateShader = [](const std::string& name) {
-			return &Renderer::GetShaderLibrary().CreateShader(name.c_str());
-			};
-
-		m_si.DeleteShader = [](const std::string& name) {
-			Renderer::GetShaderLibrary().DeleteShader(name);
-		};
-
-		m_si.AttachRenderpass = [](const Renderpass& rp) {
-			SceneRenderer::AttachRenderpassIntercept(rp);
-		};
-
-		m_si.DetachRenderpass = [](const std::string& name) {
-			SceneRenderer::DetachRenderpassIntercept(name);
-		};
-	}
-
-
 	void Scene::AddDefaultSystems() {
 		AddSystem(new CameraSystem{ this });
 		AddSystem(new AudioSystem{ this });
@@ -153,15 +44,13 @@ namespace ORNG {
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			script.p_instance->OnUpdate(ts * 0.001f); // convert to seconds
 		}
-		ORNG_PROFILE_FUNC();
 
-		//if (m_camera_system.GetActiveCamera())
+		//if (m_camera_system.GetActiveCamera())a
 			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 
 		for (auto* p_entity : m_entity_deletion_queue) {
 			DeleteEntity(p_entity);
 		}
-
 
 		m_entity_deletion_queue.clear();
 	}
@@ -184,6 +73,7 @@ namespace ORNG {
 		if (auto* p_script = p_entity->GetComponent<ScriptComponent>(); p_script && p_script->p_instance) {
 			p_script->p_instance->OnDestroy();
 		}
+		p_entity->RemoveParent();
 
 		auto current_child_entity = p_entity->GetComponent<RelationshipComponent>()->first;
 		while (current_child_entity != entt::null) {
@@ -194,7 +84,6 @@ namespace ORNG {
 			current_child_entity = next;
 		}
 
-		
 		if (m_root_entities.contains(p_entity->GetEnttHandle()))
 			m_root_entities.erase(p_entity->GetEnttHandle());
 		
@@ -454,14 +343,26 @@ namespace ORNG {
 	void Scene::LoadScene() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 
+		m_uuid_change_listener.OnEvent = [this](const UUIDChangeEvent& _event) {
+			auto* p_ent = m_entity_uuid_lookup[_event.old_uuid];
+			if (!p_ent) // Entity belongs to a different scene
+				return;
+
+			m_entity_uuid_lookup.erase(_event.old_uuid);
+			m_entity_uuid_lookup[_event.new_uuid] = p_ent;
+			};
+
+		Events::EventManager::RegisterListener(m_uuid_change_listener);
+		InitSI();
+
 		m_hierarchy_modification_listener.scene_id = uuid();
 		m_hierarchy_modification_listener.OnEvent = [&](const Events::ECS_Event<RelationshipComponent>& _event) {
 			entt::entity entity = _event.p_component->GetEnttHandle();
 			entt::entity parent = _event.p_component->GetEntity()->GetParent();
 
-			if (parent == entt::null && m_root_entities.contains(entity))
+			if (parent != entt::null && m_root_entities.contains(entity))
 				m_root_entities.erase(entity);
-			else if (parent != entt::null && !m_root_entities.contains(entity))
+			else if (parent == entt::null && !m_root_entities.contains(entity))
 				m_root_entities.insert(entity);
 			};
 
@@ -555,5 +456,102 @@ namespace ORNG {
 		m_root_entities.insert(ent->GetEnttHandle());
 
 		return *ent;
+	}
+
+	void Scene::InitSI() {
+		// Init script interface object
+		m_si.CreateEntity =
+			[this](const std::string& str) -> SceneEntity& {
+			return CreateEntity(str);
+			};
+
+		m_si.GetEntityByEnttHandle =
+			[this](entt::entity id) -> SceneEntity* {
+			return GetEntity(id);
+			};
+
+		m_si.GetEntityByName =
+			[this](const std::string& name) -> SceneEntity* {
+			return GetEntity(name);
+			};
+
+		m_si.DeleteEntity =
+			[this](SceneEntity* p_entity) {
+			DeleteEntity(p_entity);
+			};
+
+		m_si.DeleteEntityAtEndOfFrame =
+			[this](SceneEntity* p_entity) {
+			DeleteEntityAtEndOfFrame(p_entity);
+			};
+
+
+		m_si.DuplicateEntity =
+			[this](SceneEntity& ent) -> SceneEntity& {
+			return DuplicateEntityCallScript(ent);
+			};
+
+		m_si.InstantiatePrefab =
+			[this](uint64_t uuid) -> SceneEntity& {
+			auto* p_prefab = AssetManager::GetAsset<Prefab>(uuid);
+			if (!p_prefab)
+				throw std::runtime_error(std::format("InstantiatePrefab failed, UUID '{}' does not match any prefab asset", uuid));
+
+			return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
+			};
+
+		m_si.Raycast =
+			[this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
+			return GetSystem<PhysicsSystem>().Raycast(origin, unit_dir, max_distance);
+			};
+
+		m_si.GetEntityByUUID =
+			[this](uint64_t id) -> SceneEntity* {
+			return GetEntity(id);
+			};
+
+
+		m_si.OverlapQuery =
+			[this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
+			return GetSystem<PhysicsSystem>().OverlapQuery(geom, pos, max_hits);
+			};
+
+		m_si.GetSceneTimeElapsed =
+			[this]() {
+			return m_time_elapsed;
+			};
+
+		m_si.GetActiveCamera =
+			[this] {
+			return GetSystem<CameraSystem>().GetActiveCamera();
+			};
+
+		m_si.GetScreenDimensions = []() -> glm::ivec2 {
+			return glm::ivec2{ Window::GetWidth(), Window::GetHeight() };
+			};
+
+		m_si.GetMaterialByUUID = [](uint64_t uuid) -> Material* {
+			return AssetManager::GetAsset<Material>(uuid);
+			};
+
+		m_si.CreateMaterial = []() -> Material* {
+			return AssetManager::AddAsset(new Material());
+			};
+
+		m_si.CreateShader = [](const std::string& name) {
+			return &Renderer::GetShaderLibrary().CreateShader(name.c_str());
+			};
+
+		m_si.DeleteShader = [](const std::string& name) {
+			Renderer::GetShaderLibrary().DeleteShader(name);
+			};
+
+		m_si.AttachRenderpass = [](const Renderpass& rp) {
+			SceneRenderer::AttachRenderpassIntercept(rp);
+			};
+
+		m_si.DetachRenderpass = [](const std::string& name) {
+			SceneRenderer::DetachRenderpassIntercept(name);
+			};
 	}
 }

@@ -14,17 +14,14 @@ namespace ORNG {
 		void Init();
 		void Bind() const;
 
-
 		const Texture2D& Add2DTexture(const std::string& name, unsigned int attachment_point, const Texture2DSpec& spec);
+
 		// Binds an existing texture to the framebuffer, texture will not be deleted upon framebuffer deletion
 		void AddShared2DTexture(const std::string& name, Texture2D& tex, GLenum attachment_point);
 
-
 		void AddRenderbuffer(unsigned int width, unsigned int height);
 
-
 		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
-
 
 		void BindTexture2D(unsigned int tex_ref, unsigned int attachment, unsigned int target, unsigned int mip_layer = 0);
 

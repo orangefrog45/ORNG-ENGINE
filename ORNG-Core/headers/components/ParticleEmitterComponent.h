@@ -1,3 +1,4 @@
+#pragma once
 #include "Component.h"
 #include "util/Interpolators.h"
 
@@ -92,7 +93,7 @@ namespace ORNG {
 
 		void SetActive(bool active) {
 			m_active = active;
-			DispatchUpdateEvent();
+			DispatchUpdateEvent(ACTIVE_STATUS_CHANGED);
 		}
 
 		bool IsActive() {
@@ -117,6 +118,8 @@ namespace ORNG {
 			DispatchUpdateEvent(VISUAL_TYPE_CHANGED);
 		}
 
+		bool AreAnyEmittedParticlesAlive();
+
 		inline static const int BASE_NUM_PARTICLES = 64;
 
 	private:
@@ -131,6 +134,7 @@ namespace ORNG {
 			VISUAL_TYPE_CHANGED = 16,
 			MODIFIERS_CHANGED = 32,
 			FULL_UPDATE = 64,
+			ACTIVE_STATUS_CHANGED = 128
 		};
 
 		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, void* data_payload = nullptr);
@@ -143,6 +147,8 @@ namespace ORNG {
 		float m_particle_spawn_delay_ms = 1000.f / 64.f;
 		float m_spread = 1.0; // 1 = 360 degree spread, 0 = no spread
 		bool m_active = true;
+
+		float m_last_active_status_change_time = 0.f;
 
 		InterpolatorV3 m_life_colour_interpolator{ {0, 1}, {0, 1}, {1, 1, 1}, {1, 1, 1} };
 		InterpolatorV3 m_life_scale_interpolator{ {0, 1}, {0, 1}, {1, 1, 1}, {1, 1, 1} };

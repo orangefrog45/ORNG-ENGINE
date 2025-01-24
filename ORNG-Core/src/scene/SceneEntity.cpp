@@ -6,7 +6,8 @@
 namespace ORNG {
 
 	void SceneEntity::SetParent(SceneEntity& parent_entity) {
-		auto* p_comp = AddComponent<RelationshipComponent>();
+		if (GetParent() != entt::null) RemoveParent();
+		auto* p_comp = GetComponent<RelationshipComponent>();
 		auto* p_parent_comp = parent_entity.GetComponent<RelationshipComponent>();
 
 		entt::entity current_parent_child = p_parent_comp->first;

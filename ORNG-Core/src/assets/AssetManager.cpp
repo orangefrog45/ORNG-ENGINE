@@ -461,8 +461,8 @@ namespace ORNG {
 
 		m_assets.erase(ORNG_BASE_SPHERE_ID);
 		mp_base_sphere.release();
-		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.obj");
-		DeserializeAssetBinary("res/core-res/meshes/Sphere.obj.omesh", *mp_base_sphere);
+		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.glb");
+		DeserializeAssetBinary("res/core-res/meshes/Sphere.glb.omesh", *mp_base_sphere);
 		mp_base_sphere->m_vao.FillBuffers();
 		mp_base_sphere->m_is_loaded = true;
 		mp_base_sphere->uuid = UUID<uint64_t>{ ORNG_BASE_SPHERE_ID };

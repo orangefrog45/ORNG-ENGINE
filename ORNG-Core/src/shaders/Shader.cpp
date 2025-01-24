@@ -283,7 +283,7 @@ namespace ORNG {
 
 
 	int Shader::CreateUniform(const std::string& name) {
-		constexpr bool SHADER_DEBUG_MODE = true;
+		constexpr bool SHADER_DEBUG_MODE = false;
 
 		int location = glGetUniformLocation(m_program_id, name.c_str());
 		if (location == -1 && SHADER_DEBUG_MODE) {

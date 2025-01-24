@@ -27,7 +27,7 @@ namespace ORNG {
 		friend class SceneEntity;
 		friend class AssetManagerWindow;
 
-		Scene();
+		Scene() = default;
 		~Scene();
 
 		// Adds a system to be managed by this scene, should be a heap-allocated ptr to the system
@@ -52,11 +52,16 @@ namespace ORNG {
 
 		// Allocates pool for component in main application instead of inside a script (needs to be called from main application)
 		// This allocation prevents crashes when the scripts memory is released
-		template<std::derived_from<Component> T>
-		void RegisterComponent() {
+		template<std::derived_from<Component> T, typename... Args>
+		void RegisterComponent(Args&&... args) {
 			auto ent = m_registry.create();
-			m_registry.emplace<T>(ent, nullptr);
+			m_registry.emplace<T>(ent, nullptr, std::forward<Args>(args)...);
 			m_registry.destroy(ent);
+
+			Events::EventListener<Events::ECS_Event<T>> e;
+			e.OnEvent = [](auto) {};
+			Events::EventManager::RegisterListener(e);
+			Events::EventManager::DeregisterListener(e.GetRegisterID());
 		}
 
 		void AddDefaultSystems();
@@ -156,6 +161,9 @@ namespace ORNG {
 
 	private:
 		void SetScriptState();
+
+		void InitSI();
+
 		bool m_is_loaded = false;
 
 		// Delta time accumulated over each call to Update(), different from application time

@@ -64,9 +64,9 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
+		tex->SetSpec(spec);
 		unsigned int tex_handle = tex->GetTextureHandle();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, tex_handle, GL_TEXTURE0, true);
-		tex->SetSpec(spec);
 		m_textures[name] = Framebuffer::FramebufferTexture{ static_cast<TextureBase*>(tex), false };
 		m_textures[name].screen_size_ratio = glm::vec2((float)spec.width / (float)Window::GetWidth(), (float)spec.height / (float)Window::GetHeight());
 

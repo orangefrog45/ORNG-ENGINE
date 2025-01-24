@@ -812,7 +812,6 @@ namespace ORNG {
 	}
 
 
-
 	void PhysicsSystem::RemoveComponent(CharacterControllerComponent* p_comp) {
 		p_comp->p_controller->release();
 	};

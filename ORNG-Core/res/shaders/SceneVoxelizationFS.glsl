@@ -127,17 +127,17 @@ void main() {
     vec4 original = convRGBA8ToVec4(imageLoad(voxel_image, coord).r);
     original.rgb /= 255.0; // Scale down to 0-1
     original.rgb *= original.a * 0.1; // Apply emissive
-    col.rgb = (original.rgb + col.rgb * 0.05) ;
+    //col.rgb = (original.rgb * 0.95 + col.rgb * 0.05) ;
 
     // Create an emissive component to brighten colours if needed for HDR
     float l = length(col.rgb);
     
-    float emissive = clamp(l, 1.0, 25.5);
+    float emissive = clamp(l, 0.1, 25.5);
     col.rgb /= emissive;
 
-    // Use AtomicMax to prevent flickering from multiple threads trying to write into one voxel
-    uint col_packed = convVec4ToRGBA8(vec4(col * 255, emissive * 10.0));
+    uint col_packed = convVec4ToRGBA8(vec4(normalize(col) * 255, emissive * 10.0));
 
+    // Use AtomicMax to prevent flickering from multiple threads trying to write into one voxel
     if (imageAtomicMax(voxel_image, coord, col_packed) < col_packed) {
         // Set successfully, set normal too
         imageAtomicExchange(voxel_image_normals, coord, convVec4ToRGBA8(vec4(n * 127 + 127, 255)));

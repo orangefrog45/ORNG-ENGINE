@@ -17,15 +17,11 @@ namespace ORNG {
 	TextureBaseSpec::TextureBaseSpec() : internal_format(GL_NONE), format(GL_NONE), min_filter(GL_NONE), mag_filter(GL_NONE), wrap_params(GL_REPEAT), storage_type(GL_UNSIGNED_BYTE) {};
 
 	TextureBase::TextureBase(unsigned int texture_target, const std::string& name) : Asset(name), m_texture_target(texture_target), m_name(name) {
-		glGenTextures(1, &m_texture_obj); 
 		ASSERT(name.length() <= ORNG_MAX_NAME_SIZE); 
-		ASSERT(GL_StateManager::IsGlewIntialized());
 	};
 
 	TextureBase::TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid) : Asset(name, t_uuid), m_texture_target(texture_target), m_name(name) { 
-		glGenTextures(1, &m_texture_obj); 
 		ASSERT(name.length() <= ORNG_MAX_NAME_SIZE);
-		ASSERT(GL_StateManager::IsGlewIntialized());
 	};
 
 	void TextureBase::Unload() { 
@@ -358,22 +354,10 @@ namespace ORNG {
 	}
 
 
-	Texture2D::Texture2D(const Texture2D& other) : TextureBase(GL_TEXTURE_2D, other.m_name + " - Copy") {
-		SetSpec(other.m_spec);
-		glCopyImageSubData(other.m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
-			m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
-			m_spec.width, m_spec.height, 1);
-	}
-
-	Texture2D& Texture2D::operator=(const Texture2D& other) {
-		SetSpec(other.m_spec);
-		glCopyImageSubData(other.m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
-			m_texture_obj, GL_TEXTURE_2D, 0, 0, 0, 0,
-			m_spec.width, m_spec.height, 1);
-		return *this;
-	}
 
 	bool Texture2D::SetSpec(const Texture2DSpec& spec) {
+		if (m_texture_obj == 0) glGenTextures(1, &m_texture_obj);
+
 		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) && spec.filepath.size() <= ORNG_MAX_FILEPATH_SIZE) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_texture_obj, GL_TEXTURE0, true);
@@ -402,6 +386,8 @@ namespace ORNG {
 	}
 
 	bool Texture2DArray::SetSpec(const Texture2DArraySpec& spec) {
+		if (m_texture_obj == 0) glGenTextures(1, &m_texture_obj);
+
 		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) && std::ranges::all_of(spec.filepaths, [](const std::string& s) {return s.size() <= ORNG_MAX_FILEPATH_SIZE; })) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_texture_obj, GL_TEXTURE0, true);
@@ -427,6 +413,8 @@ namespace ORNG {
 	}
 
 	bool Texture3D::SetSpec(const Texture3DSpec& spec) {
+		if (m_texture_obj == 0) glGenTextures(1, &m_texture_obj);
+
 		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) && std::ranges::all_of(spec.filepaths, [](const std::string& s) {return s.size() <= ORNG_MAX_FILEPATH_SIZE; })) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_3D, m_texture_obj, GL_TEXTURE0, true);
@@ -459,6 +447,8 @@ namespace ORNG {
 	};
 
 	bool TextureCubemap::SetSpec(const TextureCubemapSpec& spec) {
+		if (m_texture_obj == 0) glGenTextures(1, &m_texture_obj);
+
 		if (ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&spec)) &&
 			std::ranges::all_of(spec.filepaths, [](const std::string& s) {return s.size() <= ORNG_MAX_FILEPATH_SIZE; }) &&
 			m_spec.filepaths.size() == 6)
@@ -491,6 +481,8 @@ namespace ORNG {
 	}
 
 	bool TextureCubemapArray::SetSpec(const TextureCubemapArraySpec& spec) {
+		if (m_texture_obj == 0) glGenTextures(1, &m_texture_obj);
+
 		if (ValidateBaseSpec(static_cast<const TextureCubemapArraySpec*>(&spec))) {
 			m_spec = spec;
 			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_texture_obj, GL_TEXTURE0, true);

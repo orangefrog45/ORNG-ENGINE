@@ -134,9 +134,6 @@ namespace ORNG {
 
 		Texture2D(const std::string& filepath);
 		Texture2D(const std::string& filepath, uint64_t t_uuid);
-		// Allocates a new texture object and copies texture data from other
-		Texture2D(const Texture2D& other);
-		Texture2D& operator=(const Texture2D& other);
 
 		bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();

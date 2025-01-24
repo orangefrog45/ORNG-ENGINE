@@ -3,8 +3,6 @@ ORNG_INCLUDE "CommonINCL.glsl"
 #define VELOCITY_SCALE 35.0
 
 // Emitters both manage the memory for particles as well as the update/render functionality
-// The update/render functionality can be overidden in a custom layer
-// EmitParticle() does not work with emitters
 struct ParticleEmitter {
     vec4 pos;
 
@@ -26,8 +24,6 @@ struct ParticleEmitter {
     InterpolatorV1 alpha_over_life;
 
     vec4 acceleration;
-
-
 };
 
 struct Particle {
@@ -61,9 +57,11 @@ layout(std140, binding = 6) buffer Particles {
 void InitializeParticle(uint index) {
 
     float az = rnd(vec2(index,rnd(vec2(PI, index)))) * 2.0 * PI;
-    float pol = rnd(vec2(PI,rnd(vec2(index,PI)))) * EMITTER.spread;
+    float pol = rnd(vec2(PI,rnd(vec2(index,PI)))) * EMITTER.spread * 0.5;
 
-    float rnd_vel = rnd(vec2(index, pol)) * (EMITTER.spawn_extents_vel_scale_max.w - EMITTER.vel_scale_min) + EMITTER.vel_scale_min;
+    float rnd_vel = rnd(vec2(index, pol));
+    rnd_vel = sqrt(abs(rnd_vel)) * sign(rnd_vel);
+    rnd_vel *= (EMITTER.spawn_extents_vel_scale_max.w - EMITTER.vel_scale_min) + EMITTER.vel_scale_min;
     vec3 vel = mat3(EMITTER.rotation_matrix) * (normalize(vec3( sin(pol) * cos(az), sin(pol) * sin(az), cos(pol))) * abs(rnd_vel));
 
     vec3 spawn_pos = EMITTER.pos.xyz + mat3(EMITTER.rotation_matrix) * (vec3(rnd(vec2(index, ubo_common.delta_time)), rnd(vec2(az, index)), rnd(vec2(ssbo_particles.particles[index].pos.x, ubo_common.delta_time))) *  EMITTER.spawn_extents_vel_scale_max.xyz);

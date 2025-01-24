@@ -371,6 +371,7 @@ namespace ORNG {
 			Out(out, "Spawn delay", p_emitter->GetSpawnDelay());
 			Out(out, "Type", (unsigned)p_emitter->GetType());
 			Out(out, "Acceleration", p_emitter->GetAcceleration());
+			Out(out, "Active", p_emitter->IsActive());
 
 			InterpolatorSerializer::SerializeInterpolator("Colour over time", out, p_emitter->m_life_colour_interpolator);
 			InterpolatorSerializer::SerializeInterpolator("Alpha over time", out, p_emitter->m_life_alpha_interpolator);
@@ -556,6 +557,7 @@ namespace ORNG {
 		p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
 		p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
 		p_emitter->acceleration = emitter_node["Acceleration"].as<glm::vec3>();
+		p_emitter->m_active = emitter_node["Active"].as<bool>();
 		p_emitter->SetType(static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>()));
 
 		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Alpha over time"], p_emitter->m_life_alpha_interpolator);
@@ -585,7 +587,6 @@ namespace ORNG {
 	}
 
 	void SceneSerializer::DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity) {
-		ORNG_TRACY_PROFILE;
 		auto* p_transform = entity.GetComponent<TransformComponent>();
 		p_transform->m_pos = node["Pos"].as<glm::vec3>();
 		p_transform->m_scale = node["Scale"].as<glm::vec3>();
@@ -772,6 +773,14 @@ namespace ORNG {
 			fout << "constexpr uint64_t " << name << " = " << p_asset->uuid() << "; \n";
 		}
 		fout << "};"; // namespace Sounds
+
+		fout << "namespace Materials {\n";
+		for (auto* p_asset : AssetManager::GetView<Material>()) {
+			std::string name = p_asset->name;
+			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
+			fout << "constexpr uint64_t " << name << "_" << p_asset->uuid() << " = " << p_asset->uuid() << "; \n";
+		}
+		fout << "};"; // namespace Materials
 
 		fout << "};"; // namespace Scene
 		fout << "};"; // namespace ScriptInterface

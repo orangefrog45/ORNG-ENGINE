@@ -173,6 +173,12 @@ namespace ORNG {
 			m_is_updating = is_updating;
 		}
 
+		// Returns pointer to list of active actors of length nb_actors.
+		// Actors entity can be reached as: static_cast<SceneEntity*>(active_actors[i]->userData)
+		PxActor** GetActiveActors(physx::PxU32& nb_actors) {
+			return mp_phys_scene->getActiveActors(nb_actors);
+		}
+
 		inline static constexpr uint64_t GetSystemUUID() { return 29348475677; }
 
 		enum class ActorType : uint8_t {
@@ -334,6 +340,7 @@ namespace ORNG {
 
 	private:
 		void InitEmitter(ParticleEmitterComponent* p_comp);
+		void InitParticles(ParticleEmitterComponent* p_comp);
 		void OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event);
 		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
 		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif = 0);
@@ -358,9 +365,6 @@ namespace ORNG {
 
 		// Total particles belonging to emitters, does not include those belonging to ParticleBufferComponents which are stored separately
 		unsigned total_emitter_particles = 0;
-
-		unsigned* p_num_appended = nullptr;
-		std::byte* p_emitter_gpu_buffer = nullptr;
 
 		SSBO<float> m_particle_ssbo{ false, 0 };
 		SSBO<float> m_emitter_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };

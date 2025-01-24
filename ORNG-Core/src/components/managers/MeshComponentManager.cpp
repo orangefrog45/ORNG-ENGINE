@@ -305,7 +305,8 @@ namespace ORNG {
 					i--;
 				}
 			}
-
 		}
+
+		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 }

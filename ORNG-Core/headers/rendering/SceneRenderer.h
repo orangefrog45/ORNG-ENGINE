@@ -10,7 +10,7 @@
 #include "Settings.h"
 #endif
 
-#define VOXEL_GI
+//#define VOXEL_GI
 
 namespace ORNG {
 	class Scene;

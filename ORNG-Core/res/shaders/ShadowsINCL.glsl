@@ -51,12 +51,12 @@ vec2 CalcBlockerDistanceDirectional(vec3 proj_coord, vec2 texel_size, int sample
 	int blockers = 0;
 
 	const int pcss_sample_count = 16;
-	float rnd = rnd(world_pos.xy) * 2.0 * PI;
 
 	for (int i = 0; i < pcss_sample_count; i++) {
+		float rnd = rand(vec2(dot(world_pos, world_pos), i + dot(world_pos, vec3(1)))) * PI;
 		vec2 offset = vec2(
-			cos(rnd) * poisson_disk_kernel_2[i].x - sin(rnd) * poisson_disk_kernel_2[i].y,
-			sin(rnd) * poisson_disk_kernel_2[i].x + cos(rnd) * poisson_disk_kernel_2[i].y
+			cos(rnd) * poisson_disk_kernel[i].x - sin(rnd) * poisson_disk_kernel[i].y,
+			sin(rnd) * poisson_disk_kernel[i].x + cos(rnd) * poisson_disk_kernel[i].y
 		);
 
 		float z = texture(DIR_DEPTH_SAMPLER, vec3(vec2(proj_coord.xy + offset * texel_size * ubo_global_lighting.directional_light.blocker_search_size), sampler_index)).r;

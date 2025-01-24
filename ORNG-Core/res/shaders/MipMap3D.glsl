@@ -72,121 +72,88 @@ void main() {
 ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz);
 
 #ifdef ANISOTROPIC_MIPMAP
-    vec4 values[8] = {
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 1)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 0)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 1)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 0)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 1)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 0)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 1)))).r) / 255.,
-        convRGBA8ToVec4(imageLoad(input_image, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 0)))).r) / 255.,
-    };
+    vec4 colour_val = convRGBA8ToVec4(imageLoad(input_image, ivec3(sample_coord)).r) / 255.0;
+    vec4 normal = normalize((convRGBA8ToVec4(imageLoad(input_normals, ivec3(sample_coord)).r) - 127));
 
-    vec4 values_normals[8] = {
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 1)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 1, 0)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 1)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(1, 0, 0)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 1)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 1, 0)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 1)))).r) - 127)),
-        normalize((convRGBA8ToVec4(imageLoad(input_normals, ConstrainCoord(ivec3(sample_coord + ivec3(0, 0, 0)))).r) - 127)),
-    };
+    // Scale colour by emissive factor stored in alpha component
+    colour_val.rgb *= (colour_val.a * 25.5);
 
-    for (int i = 0; i < 8; i++) {
-        // Scale colour by emissive factor stored in alpha component
-        values[i].rgb *= (values[i].a * 25.5);
-
-        // Alpha stores emissive component, switch it back to an actual opacity value here (1.0 for full voxel, 0 for empty, no inbetween)
-        values[i].a = values[i].a > 0.01 ? 1.0 : 0.0;
-    }
+    // Alpha stores emissive component, switch it back to an actual opacity value here (1.0 for full voxel, 0 for empty, no inbetween)
+    colour_val.a = colour_val.a > 0.01 ? 1.0 : 0.0;
 
     float sum = 0.f;
     vec4 final = vec4(0);
 
-    for (int i = 0; i < 8; i++) {
-        if (values[i].a > 0.01 && values_normals[i].x < 0) {
-            sum += abs(values_normals[i].x);
-            final.rgb += values[i].rgb *  abs(values_normals[i].x);
-        }
-
-        final.a += values[i].a;
+    if (colour_val.a > 0.01 && normal.x < 0) {
+        sum = abs(normal.x);
+        final.rgb = colour_val.rgb *  abs(normal.x);
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 256), vec4(final.rgb / 8.f, final.a / 8.0));
+    final.a = colour_val.a;
+
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 0, 256), vec4(final.rgb, final.a));
 
     sum = 0.f;
     final = vec4(0);
 
-     for (int i = 0; i < 8; i++) {
-        if (values[i].a > 0.01 && values_normals[i].y < 0) {
-            sum += abs(values_normals[i].y);
-            final.rgb += values[i].rgb * abs(values_normals[i].y);
-        }
-
-        final.a += values[i].a;
+    if (colour_val.a > 0.01 && normal.y < 0) {
+        sum = abs(normal.y);
+        final.rgb = colour_val.rgb * abs(normal.y);
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 256), vec4(final.rgb / 8.f, final.a / 8.0));
+    final.a = colour_val.a;
+
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 1, 256), vec4(final.rgb, final.a));
 
     sum = 0.f;
     final = vec4(0);
 
-     for (int i = 0; i < 8; i++) {
-        if (values[i].a > 0.01 && values_normals[i].z < 0) {
-            sum += abs(values_normals[i].z);
-            final.rgb += values[i].rgb * abs(values_normals[i].z);
-        }
-
-        final.a += values[i].a;
+    if (colour_val.a > 0.01 && normal.z < 0) {
+        sum = abs(normal.z);
+        final.rgb = colour_val.rgb * abs(normal.z);
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 256), vec4(final.rgb / 8.f, final.a / 8.0));
+    final.a += colour_val.a;
+
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 2, 256), vec4(final.rgb, final.a));
 
         sum = 0.f;
     final = vec4(0);
 
-     for (int i = 0; i < 8; i++) {
-        if (values[i].a > 0.01 && values_normals[i].x > 0) {
-            sum += values_normals[i].x;
-            final.rgb += values[i].rgb * values_normals[i].x;
-        }
-
-        final.a += values[i].a;
+    if (colour_val.a > 0.01 && normal.x > 0) {
+        sum = normal.x;
+        final.rgb = colour_val.rgb * normal.x;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 256), vec4(final.rgb / 8.f, final.a / 8.0));
+    final.a = colour_val.a;
+
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 3, 256), vec4(final.rgb, final.a));
 
 
         sum = 0.f;
     final = vec4(0);
 
-     for (int i = 0; i < 8; i++) {
-        if (values[i].a > 0.01 && values_normals[i].y > 0) {
-            sum += values_normals[i].y;
-            final.rgb += values[i].rgb * values_normals[i].y;
-        }
-
-        final.a += values[i].a;
+    if (colour_val.a > 0.01 && normal.y > 0) {
+        sum = normal.y;
+        final.rgb = colour_val.rgb * normal.y;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 256), vec4(final.rgb / 8.f, final.a / 8.0));
+    final.a = colour_val.a;
+
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 4, 256), vec4(final.rgb, final.a));
 
     
     sum = 0.f;
     final = vec4(0);
 
-     for (int i = 0; i < 8; i++) {
-        if (values[i].a > 0.01 && values_normals[i].z > 0) {
-            sum += values_normals[i].z;
-            final.rgb += values[i].rgb * values_normals[i].z;
-        }
-
-        final.a += values[i].a;
+    if (colour_val.a > 0.01 && normal.z > 0) {
+        sum = normal.z;
+        final.rgb = colour_val.rgb * normal.z;
     }
 
-    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 256), vec4(final.rgb / 8.f, final.a / 8.0));
+    final.a = colour_val.a;
+
+    imageStore(output_mips, ApplyMipFaceTexCoordOffset(ivec3(gl_GlobalInvocationID.xyz), 5, 256), vec4(final.rgb, final.a));
 
   
     // vec4 val = convRGBA8ToVec4(imageLoad(input_image, sample_coord / 2).r) / 255.;

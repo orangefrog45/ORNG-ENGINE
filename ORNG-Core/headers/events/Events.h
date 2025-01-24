@@ -120,7 +120,7 @@ namespace ORNG::Events {
 		entt::entity GetRegisterID() { return m_entt_handle; }
 	private:
 		// Given upon listener being registered with EventManager
-		entt::entity m_entt_handle = entt::entity(0);
+		entt::entity m_entt_handle = entt::null;
 		// Function given by event manager when listener is registered
 		std::function<void()> OnDestroy = nullptr;
 	};

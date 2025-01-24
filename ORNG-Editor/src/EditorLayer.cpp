@@ -1633,7 +1633,18 @@ namespace ORNG {
 	}
 
 
+	void EditorLayer::PushEntityIntoGraph(SceneEntity* p_entity, std::vector<EditorLayer::EntityNodeEntry>& output, unsigned depth) {
+		output.push_back(EditorLayer::EntityNodeEntry{ .p_entity = p_entity, .depth = depth });
+		if (VectorContains(m_state.open_tree_nodes_entities, p_entity->GetUUID())) {
+			p_entity->ForEachLevelOneChild([&](entt::entity child) { PushEntityIntoGraph(SCENE->GetEntity(child), output, depth + 1); });
+		}
+	}
 
+	void EditorLayer::GetEntityGraph(std::vector<EditorLayer::EntityNodeEntry>& output) {
+		for (auto entt_handle : SCENE->m_root_entities) {
+			PushEntityIntoGraph(SCENE->GetEntity(entt_handle), output, 0);
+		}
+	}
 
 	EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int layer, bool node_selection_active, const Box2D& selection_box) {
 		EntityNodeData ret{ EntityNodeEvent::E_NONE, {0, 0}, {0, 0} };
@@ -1759,16 +1770,6 @@ namespace ORNG {
 		if (is_tree_node_open) {
 			ImGui::TreePop(); // Pop tree node opened earlier
 		}
-		// Render entity nodes for all the children of this entity
-		if (p_entity && VectorContains(m_state.open_tree_nodes_entities, p_entity->GetUUID())) {
-			entt::entity current_child_entity = p_entity_relationship_comp->first;
-			while (current_child_entity != entt::null) {
-				auto& child_rel_comp = SCENE->m_registry.get<RelationshipComponent>(current_child_entity);
-				// Render child entity node, propagate event up
-				ret.e_event = static_cast<EntityNodeEvent>((ret.e_event | RenderEntityNode(child_rel_comp.GetEntity(), layer + 1, node_selection_active, selection_box).e_event));
-				current_child_entity = child_rel_comp.next;
-			}
-		}
 
 		ImGui::PopID();
 		return ret;
@@ -1821,12 +1822,12 @@ namespace ORNG {
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2);
 			ImGui::PushStyleColor(ImGuiCol_Header, m_res.lightest_grey_color);
 			if (ExtraUI::H2TreeNode("Entities")) {
-				for (auto* p_entity : SCENE->m_entities) {
-					if (p_entity->GetComponent<RelationshipComponent>()->parent != entt::null)
-						continue;
+				std::vector<EditorLayer::EntityNodeEntry> entity_graph;
+				// TODO: This should only be updated when the scene graph changes
+				GetEntityGraph(entity_graph);
 
-					auto node_data = RenderEntityNode(p_entity, 0, node_selection_active, node_selection_box);
-
+				for (auto& entry : entity_graph) {
+					auto node_data = RenderEntityNode(entry.p_entity, entry.depth, node_selection_active, node_selection_box);
 					active_event = (EntityNodeEvent)(node_data.e_event | active_event);
 				}
 			}
@@ -2317,6 +2318,11 @@ namespace ORNG {
 		n = p_comp->m_num_particles;
 		if (ImGui::DragInt("##np", &n) && n >= 0 && n <= 100'000) {
 			p_comp->SetNbParticles(n);
+		}
+
+		ImGui::Text("Active"); ImGui::SameLine();
+		if (ImGui::Checkbox("##active", &p_comp->m_active)) {
+			p_comp->SetActive(p_comp->m_active);
 		}
 
 		if (ExtraUI::ShowVec3Editor("Spawn extents", p_comp->m_spawn_extents)) {

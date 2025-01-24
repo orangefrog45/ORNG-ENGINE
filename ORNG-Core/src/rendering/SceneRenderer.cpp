@@ -463,7 +463,7 @@ namespace ORNG {
 		mp_shader_library->SetMatrixUBOs(proj_mat, view_mat);
 
 		CheckResizeScreenSizeTextures(p_output_tex);
-		glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+		glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 	void SceneRenderer::UpdateLightSpaceMatrices(CameraComponent* p_cam) {
@@ -517,8 +517,8 @@ namespace ORNG {
 		res.p_spotlight_depth_tex = &m_spotlight_system.m_spotlight_depth_tex;
 
 		PrepRenderPasses(p_cam, settings.p_output_tex);
-
 		glViewport(0, 0, spec.width, spec.height);
+
 		if (settings.do_intercept_renderpasses) {
 			DoDepthPass(p_cam, settings.p_output_tex);
 			RunRenderpassIntercepts(RenderpassStage::POST_DEPTH, res);
@@ -718,7 +718,9 @@ namespace ORNG {
 		auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
 
 		// Draw scene into voxel textures
-		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}) , glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
+		std::array<glm::mat4, 3> matrices = { glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}), 
+			glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}), 
+			glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
 		for (int i = 0; i < 3; i++) {
 			mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 			for (auto* p_group : mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
@@ -794,6 +796,7 @@ namespace ORNG {
 			GL_StateManager::BindSSBO(mp_scene->GetSystem<ParticleSystem>().m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 			mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
+				if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 				mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 				IDrawMeshGBuffer(mp_transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
 			}
@@ -801,8 +804,8 @@ namespace ORNG {
 			mp_transparency_shader_variants->Activate((unsigned)TransparencyShaderVariants::T_PARTICLE_BILLBOARD);
 			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
+				if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 				mp_transparency_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-
 				IDrawMeshGBuffer(mp_transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID);
 			}
 		}
@@ -915,6 +918,7 @@ namespace ORNG {
 				GL_StateManager::BindSSBO(mp_scene->GetSystem<ParticleSystem>().m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 				mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE);
 				for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
+					if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 					mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
 					IDrawMeshGBuffer(mp_gbuffer_shader_variants, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0], ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED);
 				}
@@ -923,11 +927,12 @@ namespace ORNG {
 			mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::PARTICLE_BILLBOARD);
 			auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 			for (auto [entity, emitter, res] : mp_scene->m_registry.view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
+				if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 				mp_gbuffer_shader_variants->SetUniform("u_transform_start_index", emitter.m_particle_start_index);
-
 				IDrawMeshGBuffer(mp_gbuffer_shader_variants, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED);
 			}
 		}
+
 		mp_gbuffer_shader_variants->Activate((unsigned)GBufferVariants::UNIFORM_TRANSFORM);
 		RenderVehicles(mp_gbuffer_shader_variants, SOLID);
 

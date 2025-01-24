@@ -82,6 +82,18 @@ namespace ORNG {
 
 		EntityNodeData RenderEntityNode(SceneEntity* p_entity, unsigned int layer, bool node_selection_active, const Box2D& selection_box);
 
+		struct EntityNodeEntry {
+			SceneEntity* p_entity;
+
+			// How far is this entity nested (how many parents does it have)
+			unsigned depth;
+		};
+
+
+		// Outputs an ordered list of entities with their children depending on if their nodes are opened or not.
+		void GetEntityGraph(std::vector<EntityNodeEntry>& output);
+		void PushEntityIntoGraph(SceneEntity* p_entity, std::vector<EditorLayer::EntityNodeEntry>& output, unsigned depth);
+
 		void DisplayEntityEditor();
 
 		void RenderGeneralSettingsMenu();

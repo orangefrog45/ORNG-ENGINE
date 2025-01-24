@@ -828,12 +828,9 @@ namespace ORNG {
 			p_mesh->SetMeshAsset(p_sphere_mesh);
 
 		auto& mesh_sys = mp_preview_scene->GetSystem<MeshInstancingSystem>();
-		mesh_sys.OnUpdate();
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<TransformComponent>()->SetScale(1.0, 1.0, 1.0);
-
 		p_mesh->SetMaterialID(0, p_material);
 
-		mesh_sys.OnUpdate();
 		mesh_sys.OnUpdate();
 
 		SceneRenderer::SceneRenderingSettings settings;

@@ -27,6 +27,13 @@ namespace ORNG::Events {
 			mp_instance = new EventManager();
 		}
 
+		template <std::derived_from<Event> T>
+		inline static void RegisterListenerType() {
+			auto entity = Get().m_listener_registry.create();
+			auto& reg = Get().m_listener_registry;
+			reg.emplace<EventListener<T>>(entity);
+			reg.destroy(entity);
+		}
 
 		template <std::derived_from<Event> T>
 		inline static void RegisterListener(EventListener<T>& listener) {
