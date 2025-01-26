@@ -4,6 +4,8 @@
 
 namespace ORNG {
 	void RuntimeLayer::OnInit() {
+		m_scene_renderer.Init();
+
 		mp_quad_shader = &Renderer::GetShaderLibrary().GetShader("SL quad");
 
 		Texture2DSpec spec;
@@ -30,17 +32,16 @@ namespace ORNG {
 			}
 			};
 
-		mp_scene = std::make_unique<Scene>();
-		mp_scene->AddDefaultSystems();
+		m_scene.AddDefaultSystems();
 		Events::EventManager::RegisterListener(m_window_event_listener);
 		AssetManager::LoadAssetsFromProjectPath("./", true);
-		mp_scene->LoadScene();
-		SceneSerializer::DeserializeScene(*mp_scene, ".\\scene.yml", true);
-		mp_scene->Start();
+		m_scene.LoadScene();
+		SceneSerializer::DeserializeScene(m_scene, ".\\scene.yml", true);
+		m_scene.Start();
 	}
 
 	void RuntimeLayer::Update() {
-		mp_scene->Update(FrameTiming::GetTimeStep());
+		m_scene.Update(FrameTiming::GetTimeStep());
 	}
 
 	void RuntimeLayer::OnRender() {
@@ -49,8 +50,8 @@ namespace ORNG {
 
 		SceneRenderer::SceneRenderingSettings s;
 		s.p_output_tex = &*mp_display_tex;
-		SceneRenderer::SetActiveScene(&*mp_scene);
-		SceneRenderer::RenderScene(s);
+		s.p_scene = &m_scene;
+		m_scene_renderer.RenderScene(s);
 
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 
@@ -62,6 +63,6 @@ namespace ORNG {
 	void RuntimeLayer::OnShutdown() {}
 
 	void RuntimeLayer::OnImGuiRender() {
-		mp_scene->OnImGuiRender();
+		m_scene.OnImGuiRender();
 	}
 }
