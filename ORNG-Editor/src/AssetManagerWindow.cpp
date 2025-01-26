@@ -146,7 +146,7 @@ namespace ORNG {
 		entities.push_back(&entity);
 
 		entity.ForEachChildRecursive([&](entt::entity child_handle) {
-			entities.push_back((*mp_scene_context)->GetEntity(child_handle));
+			entities.push_back(mp_scene_context->GetEntity(child_handle));
 			});
 
 		Scene::SortEntitiesNumParents(entities, false);
@@ -161,7 +161,7 @@ namespace ORNG {
 
 	void AssetManagerWindow::UnloadScriptFromComponents(const std::string& relative_path) {
 		auto* p_curr_asset = AssetManager::GetAsset<ScriptAsset>(relative_path);
-		for (auto [entity, script_comp] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+		for (auto [entity, script_comp] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
 			if (auto* p_symbols = script_comp.GetSymbols(); p_symbols && p_curr_asset->symbols.script_name == script_comp.GetSymbols()->script_name) {
 				// Free memory for instances that were allocated by the DLL
 				script_comp.GetSymbols()->DestroyInstance(script_comp.p_instance);
@@ -174,7 +174,7 @@ namespace ORNG {
 		asset.filepath = relative_path;
 		asset.symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
 
-		for (auto [entity, script] : (*mp_scene_context)->GetRegistry().view<ScriptComponent>().each()) {
+		for (auto [entity, script] : mp_scene_context->GetRegistry().view<ScriptComponent>().each()) {
 			if (script.GetSymbols() && script.GetSymbols()->script_name == asset.symbols.script_name) {
 				script.SetSymbols(&asset.symbols);
 			}
@@ -191,7 +191,7 @@ namespace ORNG {
 		AssetDisplaySpec spec;
 
 		unsigned using_count = 0;
-		for (auto [entity, script] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+		for (auto [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
 			if (script.GetSymbols() == &p_asset->symbols) 
 				using_count++;
 		}
@@ -373,7 +373,7 @@ namespace ORNG {
 		AssetDisplaySpec spec;
 
 		unsigned using_count = 0;
-		for (auto [entity, comp] : (*mp_scene_context)->m_registry.view<PhysicsComponent>().each()) {
+		for (auto [entity, comp] : mp_scene_context->m_registry.view<PhysicsComponent>().each()) {
 			if (comp.GetMaterial() == p_material)
 				using_count++;
 		}
@@ -401,7 +401,7 @@ namespace ORNG {
 		AssetDisplaySpec spec;
 
 		unsigned using_count = 0;
-		for (auto [entity, mesh] : (*mp_scene_context)->m_registry.view<MeshComponent>().each()) {
+		for (auto [entity, mesh] : mp_scene_context->m_registry.view<MeshComponent>().each()) {
 			if (mesh.GetMeshData() == p_mesh_asset)
 				using_count++;
 		}
@@ -673,7 +673,7 @@ namespace ORNG {
 					std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
 
 					for (auto id : id_vec) {
-						auto* p_ent = (*mp_scene_context)->GetEntity(id);
+						auto* p_ent = mp_scene_context->GetEntity(id);
 						std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_ent->name + ".opfb";
 
 						if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
@@ -777,7 +777,7 @@ namespace ORNG {
 		}
 		case Events::AssetEventType::SCRIPT_DELETED:
 			auto* p_symbols = &reinterpret_cast<ScriptAsset*>(t_event.data_payload)->symbols;
-			for (auto [entity, script] : (*mp_scene_context)->m_registry.view<ScriptComponent>().each()) {
+			for (auto [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
 				if (script.GetSymbols() == p_symbols) {
 					auto* p_asset = AssetManager::GetAsset<ScriptAsset>(ORNG_BASE_SCRIPT_ID);
 					script.SetSymbols(&p_asset->symbols);
@@ -801,15 +801,14 @@ namespace ORNG {
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<TransformComponent>()->SetScale(scale_factor);
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
 		mp_preview_scene->GetSystem<MeshInstancingSystem>().OnUpdate();
-		//mp_preview_scene->m_mesh_component_manager.OnUpdate();
 
 		SceneRenderer::SceneRenderingSettings settings;
-		SceneRenderer::SetActiveScene(&*mp_preview_scene);
 		settings.p_output_tex = &*p_tex;
+		settings.p_scene = &*mp_preview_scene;
 		// Disable additional user renderpasses as this is just a preview of a mesh
 		settings.do_intercept_renderpasses = false;
 
-		SceneRenderer::RenderScene(settings);
+		mp_scene_renderer->RenderScene(settings);
 
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 	}
@@ -834,11 +833,11 @@ namespace ORNG {
 		mesh_sys.OnUpdate();
 
 		SceneRenderer::SceneRenderingSettings settings;
-		SceneRenderer::SetActiveScene(&*mp_preview_scene);
+		settings.p_scene = &*mp_preview_scene;
 		settings.p_output_tex = p_tex.get();
 		// Disable additional user renderpasses as this is just a preview of a mesh
 		settings.do_intercept_renderpasses = false;
-		SceneRenderer::RenderScene(settings);
+		mp_scene_renderer->RenderScene(settings);
 
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0);

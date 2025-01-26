@@ -51,16 +51,10 @@ namespace ORNG::Events {
 	};
 
 
-	enum MouseEventType {
-		RECEIVE, // Input received
-		SET // State/window should be updated, e.g change cursor pos, listened for and handled in Window class
-	};
-
 	struct MouseEvent : public Event {
-		MouseEvent(MouseEventType _event_type, MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos, std::any _data_payload = 0) :
-			event_type(_event_type), mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos), data_payload(_data_payload) {};
+		MouseEvent(MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos, std::any _data_payload = 0) :
+			mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos), data_payload(_data_payload) {};
 
-		MouseEventType event_type;
 		MouseAction mouse_action;
 		MouseButton mouse_button;
 		glm::ivec2 mouse_pos_new;
@@ -118,7 +112,6 @@ namespace ORNG::Events {
 
 		// Handle used for deregistration, set by eventmanager on listener registration
 		entt::entity GetRegisterID() { return m_entt_handle; }
-	private:
 		// Given upon listener being registered with EventManager
 		entt::entity m_entt_handle = entt::null;
 		// Function given by event manager when listener is registered

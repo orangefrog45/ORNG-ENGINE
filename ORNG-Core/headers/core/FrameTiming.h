@@ -1,18 +1,16 @@
 #pragma once
 #include "util/TimeStep.h"
 
-namespace ScriptInterface {
-	class FrameTiming;
-}
-
 namespace ORNG {
-
 	class FrameTiming {
-		friend class ScriptInterface::FrameTiming;
 	public:
+		static void Init(FrameTiming* p_instance = nullptr) {
+			mp_instance = p_instance ? p_instance : new FrameTiming();
+		}
+
 		static FrameTiming& Get() {
-			static FrameTiming s_instance;
-			return s_instance;
+			DEBUG_ASSERT(mp_instance);
+			return *mp_instance;
 		}
 
 		static float GetTimeStep() {
@@ -31,9 +29,7 @@ namespace ORNG {
 			Get().IUpdate();
 		}
 
-
 	private:
-
 		void IUpdate() {
 			current_frame++;
 
@@ -47,6 +43,8 @@ namespace ORNG {
 			return current_frame_time_step;
 		}
 
+		inline static FrameTiming* mp_instance = nullptr;
+
 		unsigned current_frame = 0;
 		double current_frame_time_step = 0;
 		double total_elapsed_time = 0;
@@ -54,6 +52,5 @@ namespace ORNG {
 		std::chrono::steady_clock::time_point current_frame_time = std::chrono::steady_clock::now();
 
 		inline const static std::chrono::steady_clock::time_point m_application_start_time = std::chrono::steady_clock::now();
-
 	};
 }

@@ -1,27 +1,28 @@
+#include <GLFW/glfw3.h>
+
 #include "../includes/ScriptAPI.h"
 #include "core/FrameTiming.h"
 #include "events/EventManager.h"
-#include "core/Input.h"
+#include "core/Window.h"
+#include "core/GLStateManager.h"
+#include "rendering/Renderer.h"
+#include "assets/AssetManager.h"
 #include "imgui/imgui.h"
 
-namespace physx {
-	class PxGeometry;
-}
 
 extern "C" {
-	// Connect main application's event system with dll
-	__declspec(dllexport) void SetEventManagerPtr(ORNG::Events::EventManager* p_instance) {
-		ORNG::Events::EventManager::SetInstance(p_instance);
-	}
+	// Connect main application's singletons with dll
+	__declspec(dllexport) void SetSingletonPtrs(void* p_window, void* p_frametiming, void* p_event_manager,
+		void* p_gl_manager, void* p_asset_manager, void* p_renderer) {
+		ORNG::Window::InitInstance(static_cast<ORNG::Window*>(p_window));
+		ORNG::FrameTiming::Init(static_cast<ORNG::FrameTiming*>(p_frametiming));
+		ORNG::Events::EventManager::SetInstance(static_cast<ORNG::Events::EventManager*>(p_event_manager));
+		ORNG::GL_StateManager::Init(static_cast<ORNG::GL_StateManager*>(p_gl_manager));
+		ORNG::AssetManager::Init(static_cast<ORNG::AssetManager*>(p_asset_manager));
+		ORNG::Renderer::Init(static_cast<ORNG::Renderer*>(p_renderer));
 
-	// Connect main application's input system with dll
-	__declspec(dllexport) void SetInputPtr(void* p_input) {
-		ScriptInterface::Input::SetInput(p_input);
-	}
-
-	// Connect main application's frametiming system with dll
-	__declspec(dllexport) void SetFrameTimingPtr(void* p_instance) {
-		ScriptInterface::FrameTiming::SetInstance(p_instance);
+		// Also initialize glfw for window stuff
+		glfwInit();
 	}
 
 	// Connect main application's ImGui context with dll
@@ -29,64 +30,4 @@ extern "C" {
 		ImGui::SetCurrentContext(static_cast<ImGuiContext*>(p_instance));
 		ImGui::SetAllocatorFunctions(static_cast<ImGuiMemAllocFunc>(mem_alloc_func), static_cast<ImGuiMemFreeFunc>(free_func));
 	}
-}
-
-namespace ScriptInterface {
-	glm::ivec2 Input::GetMouseDelta() {
-		return static_cast<ORNG::Input*>(mp_input)->m_mouse_position - static_cast<ORNG::Input*>(mp_input)->m_last_mouse_position;
-	}
-
-	bool Input::IsKeyDown(ORNG::Key key) {
-		ORNG::InputType state = static_cast<ORNG::Input*>(mp_input)->m_key_states[key];
-		return state != ORNG::InputType::RELEASE;
-	}
-
-	bool Input::IsKeyDown(unsigned key) {
-		ORNG::InputType state = static_cast<ORNG::Input*>(mp_input)->m_key_states[static_cast<ORNG::Key>(std::toupper(key))];
-		return state != ORNG::InputType::RELEASE;
-	}
-
-	bool Input::IsKeyPressed(ORNG::Key key) {
-		return static_cast<ORNG::Input*>(mp_input)->m_key_states[key] == ORNG::InputType::PRESS;
-	}
-
-	bool Input::IsKeyPressed(unsigned key) {
-		return static_cast<ORNG::Input*>(mp_input)->m_key_states[static_cast<ORNG::Key>(std::toupper(key))] == ORNG::InputType::PRESS;
-	}
-
-	bool Input::IsMouseDown(ORNG::MouseButton btn) {
-		return static_cast<ORNG::Input*>(mp_input)->m_mouse_states[btn] != ORNG::InputType::RELEASE;
-	}
-
-	bool Input::IsMouseClicked(ORNG::MouseButton btn) {
-		return static_cast<ORNG::Input*>(mp_input)->m_mouse_states[btn] == ORNG::InputType::PRESS;
-	}
-
-	bool Input::IsMouseDown(unsigned btn) {
-		return static_cast<ORNG::Input*>(mp_input)->m_mouse_states[static_cast<ORNG::MouseButton>(btn)] != ORNG::InputType::RELEASE;
-	}
-
-	bool Input::IsMouseClicked(unsigned btn) {
-		return static_cast<ORNG::Input*>(mp_input)->m_mouse_states[static_cast<ORNG::MouseButton>(btn)] == ORNG::InputType::PRESS;
-	}
-
-	glm::ivec2 Input::GetMousePos() {
-		return static_cast<ORNG::Input*>(mp_input)->m_mouse_position;
-	}
-
-	void Input::SetMousePos(glm::ivec2 pos) {
-		static_cast<ORNG::Input*>(mp_input)->SetCursorPos(pos.x, pos.y);
-	}
-
-	void Input::SetInput(void* p_input) {
-		mp_input = p_input;
-	}
-
-	void Input::SetMouseVisible(bool visible) {
-		static_cast<ORNG::Input*>(mp_input)->SetCursorVisible(visible);
-	}
-
-	float FrameTiming::GetDeltaTime() { return static_cast<ORNG::FrameTiming*>(mp_instance)->IGetTimeStep(); }
-
-	float FrameTiming::GetElapsedTime() { return static_cast<ORNG::FrameTiming*>(mp_instance)->total_elapsed_time; }
 }

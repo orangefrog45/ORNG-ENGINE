@@ -2,7 +2,7 @@
 #include "LuaCLI.h"
 #include "imgui.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
-#include "core/Input.h"
+#include "core/Window.h"
 
 
 namespace ORNG {
@@ -39,7 +39,7 @@ namespace ORNG {
 		static bool display_window = false;
 		static bool reselect = true;
 
-		if (!ImGui::GetIO().WantCaptureKeyboard && Input::IsKeyPressed(Key::Accent)) {
+		if (!ImGui::GetIO().WantCaptureKeyboard && Window::Get().input.IsKeyPressed(Key::Accent)) {
 			display_window = !display_window;
 			reselect = display_window;
 		}
@@ -77,7 +77,7 @@ namespace ORNG {
 
 			if (ImGui::IsItemFocused()) {
 
-				if (Input::IsKeyPressed(Key::Enter)) {
+				if (Window::Get().input.IsKeyPressed(Key::Enter)) {
 					try {
 						std::ranges::for_each(input_callbacks, [](const auto& p_func) {p_func(); });
 						lua.script(lua_input);

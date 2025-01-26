@@ -4,12 +4,10 @@
 namespace ORNG {
 
 	enum ApplicationModulesFlags : uint32_t {
-		MODULE_NONE = 0,
-		PHYSICS = 1 << 0,
-		SCENE_RENDERER = 1 << 1,
-		AUDIO = 1 << 2,
-		INPUT = 1 << 3,
-		ASSET_MANAGER = 1 << 4,
+		MODULE_NONE =	0,
+		PHYSICS =		1 << 0,
+		AUDIO =			1 << 1,
+		ASSET_MANAGER = 1 << 2,
 	};
 
 	struct ApplicationData {

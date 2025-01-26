@@ -1,10 +1,16 @@
 #include "pch/pch.h"
 #include "scripting/ScriptingEngine.h"
-#include "core/Input.h"
 #include "core/FrameTiming.h"
 #include "util/UUID.h"
 #include "scene/SceneSerializer.h"
 #include "imgui.h"
+
+// Below includes are for setting the singleton instances for scripts
+#include "assets/AssetManager.h"
+#include "core/Window.h"
+#include "core/GLStateManager.h"
+#include "core/FrameTiming.h"
+#include "rendering/Renderer.h"
 
 
 namespace ORNG {
@@ -175,14 +181,12 @@ namespace ORNG {
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
 		symbols.loaded = true;
 
-		InputSetter setter = (InputSetter)(GetProcAddress(script_dll, "SetInputPtr"));
-		EventInstanceSetter event_setter = (EventInstanceSetter)(GetProcAddress(script_dll, "SetEventManagerPtr"));
-		FrameTimingSetter frame_timing_setter = (FrameTimingSetter)(GetProcAddress(script_dll, "SetFrameTimingPtr"));
+		SingletonPtrSetter singleton_setter = (SingletonPtrSetter)(GetProcAddress(script_dll, "SetSingletonPtrs"));
 		ImGuiContextSetter imgui_context_setter = (ImGuiContextSetter)(GetProcAddress(script_dll, "SetImGuiContext"));
-		// Set input class ptr in dll for shared state - used to get key/mouse inputs
-		setter(&Input::Get());
-		event_setter(&Events::EventManager::Get());
-		frame_timing_setter(&FrameTiming::Get());
+		// Set singletons so they're usable across the DLL boundary
+		singleton_setter(&Window::Get(), &FrameTiming::Get(), &Events::EventManager::Get(), &GL_StateManager::Get(), 
+			&AssetManager::Get(), &Renderer::Get());
+
 		ImGuiMemAllocFunc imgui_malloc = nullptr;
 		ImGuiMemFreeFunc imgui_free = nullptr;
 		void* user_data = nullptr;

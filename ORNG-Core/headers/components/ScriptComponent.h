@@ -5,8 +5,6 @@
 #include "scripting/ScriptShared.h"
 
 namespace ORNG {
-	class SceneEntity;
-
 	class ScriptComponent : public Component {
 		friend class EditorLayer;
 		friend class SceneSerializer;
@@ -16,14 +14,7 @@ namespace ORNG {
 				p_symbols->DestroyInstance(p_instance);
 		};
 
-		void SetSymbols(const ScriptSymbols* t_symbols) {
-			if (p_instance)
-				p_symbols->DestroyInstance(p_instance);
-
-			p_symbols = t_symbols;
-			p_instance = t_symbols->CreateInstance();
-			p_instance->p_entity = GetEntity();
-		}
+		void SetSymbols(const ScriptSymbols* t_symbols);
 
 		const ScriptSymbols* GetSymbols() {
 			return p_symbols;

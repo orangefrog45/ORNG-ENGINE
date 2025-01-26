@@ -45,14 +45,15 @@ namespace ORNG {
 	class AssetManagerWindow {
 		friend class EditorLayer;
 	public:
-		AssetManagerWindow(std::string* p_active_project_dir, std::unique_ptr<Scene>* scene_context) : mp_active_project_dir(p_active_project_dir), mp_scene_context(scene_context) {};
+		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene, SceneRenderer* p_scene_renderer) : 
+			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene), mp_scene_renderer(p_scene_renderer) {};
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
 		void Init();
 
-		void SetScene(std::unique_ptr<Scene>* scene_context) {
-			mp_scene_context = scene_context;
+		void SetScene(Scene* p_scene) {
+			mp_scene_context = p_scene;
 		}
 
 		void OnShutdown() {
@@ -139,6 +140,8 @@ namespace ORNG {
 				});
 		};
 
+		SceneRenderer* mp_scene_renderer = nullptr;
+
 		ImVec2 image_button_size{ 125, 125};
 		unsigned column_count = 1;
 
@@ -147,7 +150,7 @@ namespace ORNG {
 		Material* mp_selected_material = nullptr;
 		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
 
-		std::unique_ptr<Scene>* mp_scene_context = nullptr;
+		Scene* mp_scene_context = nullptr;
 
 		// UUID's of assets flagged for deletion
 		std::vector<uint64_t> m_asset_deletion_queue;

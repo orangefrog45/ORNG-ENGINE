@@ -36,7 +36,7 @@ namespace ORNG {
 		AssetManager::LoadAssetsFromProjectPath("./", true);
 		mp_scene->LoadScene();
 		SceneSerializer::DeserializeScene(*mp_scene, ".\\scene.yml", true);
-		mp_scene->OnStart();
+		mp_scene->Start();
 	}
 
 	void RuntimeLayer::Update() {

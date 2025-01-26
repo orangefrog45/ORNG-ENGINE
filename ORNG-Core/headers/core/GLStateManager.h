@@ -4,6 +4,20 @@
 namespace ORNG {
 	class GL_StateManager {
 	public:
+		static GL_StateManager& Get() {
+			DEBUG_ASSERT(mp_instance);
+			return *mp_instance;
+		}
+
+		static void Init(GL_StateManager* p_instance = nullptr) {
+			if (p_instance) {
+				ASSERT(!mp_instance);
+				mp_instance = p_instance;
+			}
+			else {
+				mp_instance = new GL_StateManager();
+			}
+		};
 
 		static void InitGL() {
 			Get().I_InitGL();
@@ -50,7 +64,6 @@ namespace ORNG {
 		inline static void DeleteBuffer(unsigned buffer_handle) {
 			glDeleteBuffers(1, &buffer_handle);
 		}
-
 
 		inline static void BindSSBO(unsigned int ssbo, unsigned int binding_index) {
 			Get().IBindSSBO(ssbo, binding_index);
@@ -108,6 +121,10 @@ namespace ORNG {
 
 		inline static bool IsGlewIntialized() {
 			return Get().m_glew_initialized;
+		}
+
+		inline static void Shutdown() {
+			if (mp_instance) delete mp_instance;
 		}
 
 		struct UniformBindingPoints {
@@ -194,10 +211,7 @@ namespace ORNG {
 
 		void IBindTexture(int target, int texture, int tex_unit, bool force_mode);
 
-		static GL_StateManager& Get() {
-			static GL_StateManager s_instance;
-			return s_instance;
-		}
+		inline static GL_StateManager* mp_instance = nullptr;
 
 		bool m_glew_initialized = false;
 

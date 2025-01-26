@@ -75,7 +75,6 @@ namespace ORNG {
 
 		std::vector<entt::entity> m_instances_to_update;
 
-		// These two vectors line up, m_entities_to_instance[2] has a transform at m_transforms_to_allocate[2 * sizeof(glm::mat4)]
 		std::vector<entt::entity> m_entities_to_instance;
 
 		entt::registry& m_registry;

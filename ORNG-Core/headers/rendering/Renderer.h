@@ -23,13 +23,26 @@ namespace ORNG {
 	public:
 		friend class Application;
 		friend class EditorLayer;
-		static void Init() { Get().I_Init(); };
 
-		static Renderer& Get() {
-			static Renderer s_instance;
-			return s_instance;
+		static void Init(Renderer* p_instance = nullptr) {
+			if (p_instance) {
+				ASSERT(!mp_instance);
+				mp_instance = p_instance;
+			}
+			else {
+				mp_instance = new Renderer();
+				Get().I_Init();
+			}
+		};
+
+		static void Shutdown() {
+			if (mp_instance) delete mp_instance;
 		}
 
+		inline static Renderer& Get() {
+			DEBUG_ASSERT(mp_instance);
+			return *mp_instance;
+		}
 
 		static void DrawQuad() {
 			Get().IDrawQuad();
@@ -89,6 +102,8 @@ namespace ORNG {
 		static void DrawBoundingBox(const MeshAsset& asset);
 
 	private:
+		inline static Renderer* mp_instance = nullptr;
+
 		void I_Init();
 
 		void IDrawScaledQuad(glm::vec2 min, glm::vec2 max);

@@ -9,7 +9,6 @@ namespace ORNG {
 			return; // Too small
 		}
 
-
 		Events::WindowEvent window_event;
 		window_event.event_type = Events::WindowEvent::WINDOW_RESIZE;
 		window_event.old_window_size = glm::vec2(m_window_width, m_window_height);
@@ -45,7 +44,7 @@ namespace ORNG {
 	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 		double posx, posy;
 		glfwGetCursorPos(window, &posx, &posy);
-		Events::MouseEvent e_event{ Events::MouseEventType::RECEIVE, static_cast<MouseAction>(action), static_cast<MouseButton>(button), glm::ivec2(floor(posx), floor(posy)), gs_mouse_coords };
+		Events::MouseEvent e_event{ static_cast<MouseAction>(action), static_cast<MouseButton>(button), glm::ivec2(floor(posx), floor(posy)), gs_mouse_coords };
 
 		Events::EventManager::DispatchEvent(e_event);
 
@@ -53,7 +52,7 @@ namespace ORNG {
 	}
 
 	void CursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
-		Events::MouseEvent e_event{ Events::MouseEventType::RECEIVE, MOVE, MouseButton::NONE, glm::ivec2(floor(xPos), floor(yPos)), gs_mouse_coords };
+		Events::MouseEvent e_event{ MOVE, MouseButton::NONE, glm::ivec2(floor(xPos), floor(yPos)), gs_mouse_coords };
 
 		Events::EventManager::DispatchEvent(e_event);
 
@@ -62,12 +61,15 @@ namespace ORNG {
 
 	void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); gs_mouse_coords = { x, y }; }
 
-
 	void Window::IUpdate() {
+		input.OnUpdate();
 		m_scroll_data.active = false;
 		m_scroll_data.offset = { 0,0 };
 	}
 
+	void Window::SetCursorVisible(bool visible) {
+		glfwSetInputMode(Get().p_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
+	}
 
 	void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -103,6 +105,7 @@ namespace ORNG {
 		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
 		glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
 		glfwSetCursorPosCallback(p_window, CursorPosCallback);
+		
 		glfwSetWindowSizeCallback(p_window, [](GLFWwindow*, int width, int height)
 			{
 				Window::SetWindowDimensions(width, height);
@@ -110,35 +113,22 @@ namespace ORNG {
 		);
 
 		if (!p_window)
-		{
 			glfwTerminate();
-		}
+
 		glfwSetKeyCallback(p_window, key_callback);
 
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
 
-		m_mouse_listener.OnEvent = [this](const Events::MouseEvent& t_event) {
-			if (t_event.event_type != Events::MouseEventType::SET)
-				return;
-
-			if (t_event.mouse_action == MOVE)
-				SetCursorPos(t_event.mouse_pos_new.x, t_event.mouse_pos_new.y);
-			else if (t_event.mouse_action == TOGGLE_VISIBILITY) {
-				glfwSetInputMode(p_window, GLFW_CURSOR, (std::any_cast<bool>(t_event.data_payload) ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED));
-			}
-
-			};
-
 		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
 			if (t_event.event_type == Events::EngineCoreEvent::ENGINE_UPDATE) {
 				Update();
 			}
-
 		};
 
-		Events::EventManager::RegisterListener(m_mouse_listener);
 		Events::EventManager::RegisterListener(m_update_listener);
+
+		input.Init();
 	}
 }

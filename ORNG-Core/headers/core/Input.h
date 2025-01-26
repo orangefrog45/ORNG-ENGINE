@@ -90,111 +90,89 @@ namespace ORNG {
 	class Input {
 		friend class ScriptInterface::Input;
 	public:
-
 		// Not case-sensitive
 		// Returns true if key has been pressed this frame or is being held down
-		static bool IsKeyDown(Key key) {
-			InputType state = Get().m_key_states[key];
+		bool IsKeyDown(Key key) {
+			InputType state = m_key_states[key];
 			return state != InputType::RELEASE;
 		}
 
 		// Not case-sensitive
 		// Returns true if key has been pressed this frame or is being held down
-		static bool IsKeyDown(unsigned key) {
-			InputType state = Get().m_key_states[static_cast<Key>(std::toupper(key))];
+		bool IsKeyDown(unsigned key) {
+			InputType state = m_key_states[static_cast<Key>(std::toupper(key))];
 			return (state != InputType::RELEASE);
 		}
 
 		// Not case-sensitive
 		// Returns true only if key has been pressed this frame
-		static bool IsKeyPressed(Key key) {
-			return Get().m_key_states[key] == InputType::PRESS;
+		bool IsKeyPressed(Key key) {
+			return m_key_states[key] == InputType::PRESS;
 		}
 
 		// Not case-sensitive
 		// Returns true only if key has been pressed this frame
-		static bool IsKeyPressed(unsigned key) {
-			return Get().m_key_states[static_cast<Key>(std::toupper(key))] == InputType::PRESS;
+		bool IsKeyPressed(unsigned key) {
+			return m_key_states[static_cast<Key>(std::toupper(key))] == InputType::PRESS;
 		}
 
-
-		static bool IsMouseDown(MouseButton btn) {
-			return Get().m_mouse_states[btn] != InputType::RELEASE;
+		bool IsMouseDown(MouseButton btn) {
+			return m_mouse_states[btn] != InputType::RELEASE;
 		}
 
-		static bool IsMouseClicked(MouseButton btn) {
-			return Get().m_mouse_states[btn] == InputType::PRESS;
+		bool IsMouseClicked(MouseButton btn) {
+			return m_mouse_states[btn] == InputType::PRESS;
 		}
 
-		static bool IsMouseDown(unsigned btn) {
-			return Get().m_mouse_states[static_cast<MouseButton>(btn)] != InputType::RELEASE;
+		bool IsMouseDown(unsigned btn) {
+			return m_mouse_states[static_cast<MouseButton>(btn)] != InputType::RELEASE;
 		}
 
-		static bool IsMouseClicked(unsigned btn) {
-			return Get().m_mouse_states[static_cast<MouseButton>(btn)] == InputType::PRESS;
+		bool IsMouseClicked(unsigned btn) {
+			return m_mouse_states[static_cast<MouseButton>(btn)] == InputType::PRESS;
 		}
 
-		static glm::ivec2 GetMousePos() {
-			return Get().m_mouse_position;
+		glm::ivec2 GetMousePos() {
+			return m_mouse_position;
 		}
 
-		static void Init() {
-			Get().I_Init();
-		}
-
-		static glm::vec2 GetMouseDelta() {
-			return Get().m_mouse_position - Get().m_last_mouse_position;
-		}
-
-		static void OnUpdate() {
-			Get().m_last_mouse_position = Get().m_mouse_position;
-			// Press state only valid for one frame, then the key is considered "held"
-			for (auto& [key, v] : Get().m_key_states) {
-				if (v == InputType::PRESS)
-					v = InputType::HELD;
-			}
-
-			for (auto& [key, v] : Get().m_mouse_states) {
-				if (v == InputType::PRESS)
-					v = InputType::HELD;
-			}
-		}
-
-		static void SetCursorPos(int x, int y) {
-			Events::MouseEvent e_event{ Events::MouseEventType::SET, MOVE, MouseButton::NONE, glm::ivec2(x, y), Input::GetMousePos()};
-			Events::EventManager::DispatchEvent(e_event);
-		}
-
-		static void SetCursorVisible(bool visible) {
-			Events::MouseEvent e_event{ Events::MouseEventType::SET, TOGGLE_VISIBILITY, MouseButton::NONE, {0, 0}, {0, 0}, visible };
-			Events::EventManager::DispatchEvent(e_event);
-		}
-
-		static Input& Get() {
-			static Input s_instance;
-			return s_instance;
-		}
-	private:
-
-		void I_Init() {
+		void Init() {
 			m_key_listener.OnEvent = [this](const Events::KeyEvent& t_event) {
 				m_key_states[static_cast<Key>(t_event.key)] = static_cast<InputType>(t_event.event_type);
 				};
 
 			m_mouse_listener.OnEvent = [this](const Events::MouseEvent& t_event) {
 				auto& state = m_mouse_states[t_event.mouse_button];
-				if (t_event.mouse_action != MOVE && t_event.event_type == Events::MouseEventType::RECEIVE) {
+				if (t_event.mouse_action != MOVE)
 					state = static_cast<InputType>(t_event.mouse_action);
-				}
+
 				m_mouse_position = t_event.mouse_pos_new;
 				};
 			Events::EventManager::RegisterListener(m_key_listener);
 			Events::EventManager::RegisterListener(m_mouse_listener);
 		}
 
+		glm::vec2 GetMouseDelta() {
+			m_mouse_position - m_last_mouse_position;
+		}
+
+		void OnUpdate() {
+			m_last_mouse_position = m_mouse_position;
+			// Press state only valid for one frame, then the key is considered "held"
+			for (auto& [key, v] : m_key_states) {
+				if (v == InputType::PRESS)
+					v = InputType::HELD;
+			}
+
+			for (auto& [key, v] : m_mouse_states) {
+				if (v == InputType::PRESS)
+					v = InputType::HELD;
+			}
+		}
+
+	private:
 		glm::ivec2 m_mouse_position{ 0, 0 };
 		glm::ivec2 m_last_mouse_position{ 0, 0 };
-
 
 		std::unordered_map<Key, InputType> m_key_states;
 		std::unordered_map<MouseButton, InputType> m_mouse_states;

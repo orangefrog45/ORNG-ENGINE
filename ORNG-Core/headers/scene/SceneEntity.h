@@ -1,12 +1,7 @@
 #ifndef SCENE_ENTITY_H
 #define SCENE_ENTITY_H
 
-#ifndef ORNG_SCRIPT_ENV
 #include "Scene.h"
-#else
-#include "SI.h"
-#endif
-
 #include "util/UUID.h"
 #include "util/util.h"
 #include "components/Component.h"
@@ -90,15 +85,8 @@ namespace ORNG {
 		void SetParent(SceneEntity& parent_entity);
 		void RemoveParent();
 
-
 		// Returns a new duplicate entity in the scene
-		SceneEntity& Duplicate() {
-#ifdef ORNG_SCRIPT_ENV
-			return si->DuplicateEntity(*this);
-#else
-			return mp_scene->DuplicateEntity(*this);
-#endif
-	}
+		SceneEntity& Duplicate();
 
 		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
 
@@ -107,8 +95,6 @@ namespace ORNG {
 		entt::entity GetEnttHandle() const { return m_entt_handle; };
 
 		std::string name = "Entity";
-
-
 	private:
 		UUID<uint64_t> m_uuid;
 

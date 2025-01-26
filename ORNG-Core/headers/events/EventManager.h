@@ -17,10 +17,8 @@ namespace ORNG::Events {
 
 	class EventManager {
 	public:
-
 		~EventManager() {
 			m_listener_registry.clear();
-			delete mp_instance;
 		}
 
 		static void Init() {

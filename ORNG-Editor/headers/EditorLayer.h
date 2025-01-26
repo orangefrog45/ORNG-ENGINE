@@ -45,11 +45,11 @@ namespace ORNG {
 	class EditorLayer : public Layer {
 		friend class GameLayer;
 	public:
-		EditorLayer(std::unique_ptr<Scene>* p_scene, const std::string& start_filepath) : mp_scene_context(p_scene), m_start_filepath(start_filepath) { m_asset_manager_window.SetScene(p_scene); };
+		EditorLayer(Scene* p_scene, const std::string& start_filepath) : mp_scene_context(p_scene), m_start_filepath(start_filepath) { m_asset_manager_window.SetScene(p_scene); };
 
 		void Init();
 
-		void SetScene(std::unique_ptr<Scene>* p_scene);
+		void SetScene(Scene* p_scene);
 
 	private:
 		void OnInit() override { Init(); };
@@ -221,7 +221,9 @@ namespace ORNG {
 			State/resources
 		*/
 
-		std::unique_ptr<Scene>* mp_scene_context = nullptr;
+		SceneRenderer m_scene_renderer;
+
+		Scene* mp_scene_context = nullptr;
 		std::unique_ptr<SceneEntity> mp_editor_camera{ nullptr };
 
 		struct EditorState {
@@ -274,6 +276,8 @@ namespace ORNG {
 			Framebuffer* p_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
 			Framebuffer* p_picking_fb = nullptr;
 
+			FullscreenTexture2D picking_tex;
+
 			VAO line_vao;
 
 			// STYLING
@@ -299,7 +303,7 @@ namespace ORNG {
 
 		EditorEventStack m_event_stack;
 		LuaCLI m_lua_cli;
-		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context };
+		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context, &m_scene_renderer };
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 

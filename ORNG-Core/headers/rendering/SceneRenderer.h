@@ -47,7 +47,6 @@ namespace ORNG {
 		std::string name;
 	};
 
-
 	enum class VoxelizationSV {
 		MAIN
 	};
@@ -96,7 +95,6 @@ namespace ORNG {
 	private:
 		TextureCubemapArray m_pointlight_depth_tex{ "Pointlight depth" }; // Used for shadow maps
 		SSBO<float> m_pointlight_ssbo{ true, 0 };
-
 	};
 
 
@@ -104,16 +102,14 @@ namespace ORNG {
 		friend class EditorLayer;
 	public:
 		SceneRenderer() = default;
-		~SceneRenderer() {
-			m_spotlight_system.OnUnload();
-			m_pointlight_system.OnUnload();
-		}
+		~SceneRenderer();
 
-		static void Init() {
-			Get().I_Init();
-		}
+		void Init();
+		void Unload();
 
 		struct SceneRenderingSettings {
+			Scene* p_scene = nullptr;
+
 			// Will custom user renderpasses be executed
 			bool do_intercept_renderpasses = true;
 			bool render_meshes = true;
@@ -130,47 +126,25 @@ namespace ORNG {
 			Texture2D* p_input_tex = nullptr;
 		};
 
-		static void RenderScene(const SceneRenderingSettings& settings) {
-			return Get().IRenderScene(settings);
-		};
-
-
-		static void SetActiveScene(Scene* p_scene) {
-			Get().mp_scene = p_scene;
-		}
-
-
-		static Scene* GetScene() {
-			return Get().mp_scene;
-		}
+		void RenderScene(const SceneRenderingSettings& settings);
 
 		// Insert a custom renderpass during RenderScene
-		static void AttachRenderpassIntercept(const Renderpass& renderpass) {
-			Get().IAttachRenderpassIntercept(renderpass);
-		}
+		void AttachRenderpassIntercept(const Renderpass& renderpass);
+		void DetachRenderpassIntercept(const std::string& name);
 
-		static void DetachRenderpassIntercept(const std::string& name) {
-			Get().IDetachRenderpassIntercept(name);
-		}
+		void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, 
+			const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, bool allow_state_changes,
+			GLenum primitive_type = GL_TRIANGLES);
 
-		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, GLenum primitive_type=GL_TRIANGLES) {
-			Get().IDrawMeshGBuffer(p_shader, p_mesh, render_group, instances, materials, mat_flags, mat_flags_excluded, primitive_type);
-		}
-
-		static SceneRenderer& Get() {
-			static SceneRenderer s_instance;
-			return s_instance;
-		}
-
-		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex);
+		void PrepRenderPasses(CameraComponent* p_cam, Texture2D* p_output_tex, Scene* p_scene);
 		void DoGBufferPass(CameraComponent* p_cam, const SceneRenderingSettings& settings);
-		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex);
-		void DoLightingPass(Texture2D* output_tex);
-		void DoFogPass(unsigned int width, unsigned int height);
-		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex);
-		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height);
-		void DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, Texture3D& cascade_mips, unsigned cascade_width, float voxel_size, VoxelizationSV shader_variant, glm::vec3 cam_pos);
-
+		void DoDepthPass(CameraComponent* p_cam, Texture2D* p_output_tex, Scene* p_scene);
+		void DoLightingPass(Texture2D* output_tex, Scene* p_scene);
+		void DoFogPass(unsigned int width, unsigned int height, Scene* p_scene);
+		void DoPostProcessingPass(CameraComponent* p_cam, Texture2D* output_tex, Scene* p_scene);
+		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height, Scene* p_scene);
+		void DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, 
+			Texture3D& cascade_mips, unsigned cascade_width, float voxel_size, VoxelizationSV shader_variant, glm::vec3 cam_pos, Scene* p_scene);
 	private:
 		// Shift voxel luminance data in the 3D texture when the cameras voxel-aligned position changes
 		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size);
@@ -184,7 +158,7 @@ namespace ORNG {
 		// Sets state back to default values
 		void UndoGL_StateModificationsFromMatFlags(MaterialFlags flags);
 
-		void DrawAllMeshesDepth(RenderGroup render_group);
+		void DrawAllMeshesDepth(RenderGroup render_group, Scene* p_scene);
 
 		void IAttachRenderpassIntercept(const Renderpass& renderpass) {
 			ASSERT(std::ranges::find_if(m_render_intercepts, [&](const auto& pass) {return pass.name == renderpass.name; }) == m_render_intercepts.end());
@@ -197,23 +171,18 @@ namespace ORNG {
 			m_render_intercepts.erase(it);
 		}
 
-		void UpdateLightSpaceMatrices(CameraComponent* p_cam);
+		void UpdateLightSpaceMatrices(CameraComponent* p_cam, Scene* p_scene);
 
 		void RunRenderpassIntercepts(RenderpassStage stage, RenderResources& res);
-		void I_Init();
-		void IRenderScene(const SceneRenderingSettings& settings);
-		void DrawTerrain(CameraComponent* p_cam);
+		void DrawTerrain(CameraComponent* p_cam, Scene* p_scene);
 		void DrawSkybox();
-		void DoBloomPass(Texture2D* p_input_and_output, unsigned int width, unsigned int height);
+		void DoBloomPass(Texture2D* p_input_and_output, unsigned int width, unsigned int height, Scene* p_scene);
 		void CheckResizeScreenSizeTextures(Texture2D* p_output_tex);
 		void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 
-		void DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group, MaterialFlags mat_flags, MaterialFlags mat_flags_exclusion, GLenum primitive_type = GL_TRIANGLES);
-		void DrawInstanceGroupGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group, MaterialFlags mat_flags, MaterialFlags mat_flags_exclusion, GLenum primitive_type = GL_TRIANGLES);
-		void IDrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_exclusion, GLenum primitive_type = GL_TRIANGLES);
-		void IDrawMeshGBufferWithoutStateChanges(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_exclusion, GLenum primitive_type=GL_TRIANGLES);
-		void RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group);
-
+		void DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* p_group, RenderGroup render_group, MaterialFlags mat_flags, 
+			MaterialFlags mat_flags_exclusion, bool allow_state_changes, GLenum primitive_type = GL_TRIANGLES);
+		void RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group, Scene* p_scene);
 
 		// User-attached renderpasses go here, e.g to insert a custom renderpass just after the gbuffer stage
 		std::vector<Renderpass> m_render_intercepts;
@@ -251,11 +220,18 @@ namespace ORNG {
 		Framebuffer* mp_transparency_fb = nullptr;
 		Framebuffer* mp_composition_fb = nullptr;
 
-		//none of the objects the pointers below reference managed by scene renderer, just inputs
-		Scene* mp_scene = nullptr;
 		ShaderLibrary* mp_shader_library = nullptr;
 		FramebufferLibrary* mp_framebuffer_library = nullptr;
 		
+		FullscreenTexture2D m_gbf_normals;
+		FullscreenTexture2D m_gbf_albedo;
+		FullscreenTexture2D m_gbf_rma;
+		FullscreenTexture2D m_gbf_depth;
+		FullscreenTexture2D m_gbf_shader_ids;
+
+		FullscreenTexture2D m_transparency_accum;
+		FullscreenTexture2D m_transparency_revealage;
+
 		Texture2D m_blue_noise_tex{ "SR blue noise" };
 		Texture2D m_fog_output_tex{ "SR fog output" };
 		Texture2D m_fog_blur_tex_1{ "SR fog blur 1" };

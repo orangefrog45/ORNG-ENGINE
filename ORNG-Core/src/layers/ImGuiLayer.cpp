@@ -31,7 +31,7 @@ namespace ORNG {
 	}
 
 	void ImGuiLayer::Update() {
-		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('u')) {
+		if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed('u')) {
 			m_render_debug = !m_render_debug;
 		}
 	}

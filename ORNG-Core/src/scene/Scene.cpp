@@ -17,7 +17,6 @@
 #include "rendering/Renderer.h"
 #include "rendering/SceneRenderer.h" 
 
-
 namespace ORNG {
 	Scene::~Scene() {
 		if (m_is_loaded)
@@ -31,6 +30,7 @@ namespace ORNG {
 		AddSystem(new PhysicsSystem{ this });
 		AddSystem(new MeshInstancingSystem{ this });
 		AddSystem(new TransformHierarchySystem{ this });
+		AddSystem(new ScriptSystem{ this });
 	}
 
 	void Scene::Update(float ts) {
@@ -40,12 +40,11 @@ namespace ORNG {
 			p_system->OnUpdate();
 		}
 		
-		SetScriptState();
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			script.p_instance->OnUpdate(ts * 0.001f); // convert to seconds
 		}
 
-		//if (m_camera_system.GetActiveCamera())a
+		//if (m_camera_system.GetActiveCamera())
 			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 
 		for (auto* p_entity : m_entity_deletion_queue) {
@@ -97,6 +96,8 @@ namespace ORNG {
 
 
 	SceneEntity* Scene::GetEntity(uint64_t uuid) {
+		if (!m_entity_uuid_lookup.contains(uuid)) return nullptr;
+
 		return m_entity_uuid_lookup[uuid];
 	}
 
@@ -114,20 +115,22 @@ namespace ORNG {
 			return p_transform->GetEntity();
 	}
 
-
-	SceneEntity& Scene::InstantiatePrefabCallScript(const Prefab& prefab) {
-		auto& ent = InstantiatePrefab(prefab);
-		if (auto* p_script = ent.GetComponent<ScriptComponent>())
-			p_script->p_instance->OnCreate();
-
-		return ent;
-	}
-
-	SceneEntity& Scene::InstantiatePrefab(const Prefab& prefab) {
+	SceneEntity& Scene::InstantiatePrefab(const Prefab& prefab, bool call_on_create) {
 		auto vec = SceneSerializer::DeserializePrefab(*this, prefab);
 		
+		if (call_on_create) {
+			for (auto* p_ent : vec) {
+				if (auto* p_script = p_ent->GetComponent<ScriptComponent>(); p_script && p_script->p_instance) p_script->p_instance->OnCreate();
+			}
+		}
+
 		// Prefab entities are serialized so that the root/top-parent is first
 		return *vec[0];
+	}
+
+	SceneEntity* Scene::InstantiatePrefab(uint64_t prefab_uuid, bool call_on_create) {
+		Prefab* p_prefab = AssetManager::GetAsset<Prefab>(prefab_uuid);
+		return p_prefab ? &InstantiatePrefab(*p_prefab, call_on_create) : nullptr;
 	}
 
 	std::vector<SceneEntity*> Scene::DuplicateEntityGroup(const std::vector<SceneEntity*> group) {
@@ -353,7 +356,6 @@ namespace ORNG {
 			};
 
 		Events::EventManager::RegisterListener(m_uuid_change_listener);
-		InitSI();
 
 		m_hierarchy_modification_listener.scene_id = uuid();
 		m_hierarchy_modification_listener.OnEvent = [&](const Events::ECS_Event<RelationshipComponent>& _event) {
@@ -368,53 +370,38 @@ namespace ORNG {
 
 		Events::EventManager::RegisterListener(m_hierarchy_modification_listener);
 
+		// Allocate storage for components from the main application
+		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
+		RegisterComponent<MeshComponent>();
+		RegisterComponent<PointLightComponent>();
+		RegisterComponent<SpotLightComponent>();
+		RegisterComponent<ScriptComponent>();
+		RegisterComponent<DataComponent>();
+		RegisterComponent<PhysicsComponent>();
+		RegisterComponent<CharacterControllerComponent>();
+		RegisterComponent<CameraComponent>();
+		RegisterComponent<AudioComponent>();
+		RegisterComponent<VehicleComponent>();
+		RegisterComponent<ParticleEmitterComponent>();
+		RegisterComponent<ParticleBufferComponent>();
+
 		for (auto [id, p_sys] : systems) {
 			p_sys->OnLoad();
 		}
-
-		// Allocate storage for components from the main application
-		// If not done allocation will be done in dll's (scripts), if the dlls have to reload or disconnect the memory is invalidated, so allocations must be done here
-		auto& ent = CreateEntity("allocator");
-		ent.AddComponent<MeshComponent>();
-		ent.AddComponent<PointLightComponent>();
-		ent.AddComponent<SpotLightComponent>();
-		ent.AddComponent<ScriptComponent>();
-		ent.AddComponent<DataComponent>();
-		ent.AddComponent<PhysicsComponent>();
-		ent.AddComponent<CharacterControllerComponent>();
-		ent.AddComponent<CameraComponent>();
-		ent.AddComponent<AudioComponent>();
-		ent.AddComponent<VehicleComponent>();
-		ent.AddComponent<ParticleEmitterComponent>();
-		ent.AddComponent<ParticleBufferComponent>();
-		DeleteEntity(&ent);
 
 		m_is_loaded = true;
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}
 
 
-	void Scene::OnStart() {
-		TimeStep s{ TimeStep::TimeUnits::MILLISECONDS };
-		SetScriptState();
+	CameraComponent* Scene::GetActiveCamera() {
+		return GetSystem<CameraSystem>().GetActiveCamera();
+	}
+
+	void Scene::Start() {
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
 			script.p_instance->OnCreate();
 		}
-	}
-
-	void Scene::SetScriptState() {
-		for (auto* p_script_asset : AssetManager::GetView<ScriptAsset>()) {
-			if (p_script_asset->symbols.loaded) {
-				auto* p_instance = p_script_asset->symbols.CreateInstance();
-				// Set static variable 'si', all instances will now have access to this
-				p_instance->SetSI(&m_si);
-				p_script_asset->symbols.DestroyInstance(p_instance);
-			}
-		}
-	}
-
-	CameraComponent* Scene::GetActiveCamera() {
-		return GetSystem<CameraSystem>().GetActiveCamera();
 	}
 
 	void Scene::UnloadScene() {
@@ -458,100 +445,4 @@ namespace ORNG {
 		return *ent;
 	}
 
-	void Scene::InitSI() {
-		// Init script interface object
-		m_si.CreateEntity =
-			[this](const std::string& str) -> SceneEntity& {
-			return CreateEntity(str);
-			};
-
-		m_si.GetEntityByEnttHandle =
-			[this](entt::entity id) -> SceneEntity* {
-			return GetEntity(id);
-			};
-
-		m_si.GetEntityByName =
-			[this](const std::string& name) -> SceneEntity* {
-			return GetEntity(name);
-			};
-
-		m_si.DeleteEntity =
-			[this](SceneEntity* p_entity) {
-			DeleteEntity(p_entity);
-			};
-
-		m_si.DeleteEntityAtEndOfFrame =
-			[this](SceneEntity* p_entity) {
-			DeleteEntityAtEndOfFrame(p_entity);
-			};
-
-
-		m_si.DuplicateEntity =
-			[this](SceneEntity& ent) -> SceneEntity& {
-			return DuplicateEntityCallScript(ent);
-			};
-
-		m_si.InstantiatePrefab =
-			[this](uint64_t uuid) -> SceneEntity& {
-			auto* p_prefab = AssetManager::GetAsset<Prefab>(uuid);
-			if (!p_prefab)
-				throw std::runtime_error(std::format("InstantiatePrefab failed, UUID '{}' does not match any prefab asset", uuid));
-
-			return InstantiatePrefabCallScript(*AssetManager::GetAsset<Prefab>(uuid));
-			};
-
-		m_si.Raycast =
-			[this](glm::vec3 origin, glm::vec3 unit_dir, float max_distance) -> RaycastResults {
-			return GetSystem<PhysicsSystem>().Raycast(origin, unit_dir, max_distance);
-			};
-
-		m_si.GetEntityByUUID =
-			[this](uint64_t id) -> SceneEntity* {
-			return GetEntity(id);
-			};
-
-
-		m_si.OverlapQuery =
-			[this](PxGeometry& geom, glm::vec3 pos, unsigned max_hits) -> OverlapQueryResults {
-			return GetSystem<PhysicsSystem>().OverlapQuery(geom, pos, max_hits);
-			};
-
-		m_si.GetSceneTimeElapsed =
-			[this]() {
-			return m_time_elapsed;
-			};
-
-		m_si.GetActiveCamera =
-			[this] {
-			return GetSystem<CameraSystem>().GetActiveCamera();
-			};
-
-		m_si.GetScreenDimensions = []() -> glm::ivec2 {
-			return glm::ivec2{ Window::GetWidth(), Window::GetHeight() };
-			};
-
-		m_si.GetMaterialByUUID = [](uint64_t uuid) -> Material* {
-			return AssetManager::GetAsset<Material>(uuid);
-			};
-
-		m_si.CreateMaterial = []() -> Material* {
-			return AssetManager::AddAsset(new Material());
-			};
-
-		m_si.CreateShader = [](const std::string& name) {
-			return &Renderer::GetShaderLibrary().CreateShader(name.c_str());
-			};
-
-		m_si.DeleteShader = [](const std::string& name) {
-			Renderer::GetShaderLibrary().DeleteShader(name);
-			};
-
-		m_si.AttachRenderpass = [](const Renderpass& rp) {
-			SceneRenderer::AttachRenderpassIntercept(rp);
-			};
-
-		m_si.DetachRenderpass = [](const std::string& name) {
-			SceneRenderer::DetachRenderpassIntercept(name);
-			};
-	}
 }

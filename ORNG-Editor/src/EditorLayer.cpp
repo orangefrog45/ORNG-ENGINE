@@ -25,7 +25,7 @@ constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 
 using namespace ORNG::Events;
 
-#define SCENE (*mp_scene_context)
+#define SCENE mp_scene_context
 
 namespace ORNG {
 	void EditorLayer::Init() {
@@ -109,16 +109,21 @@ namespace ORNG {
 		// Entity ID's are split into halves for storage in textures then recombined later as there is no format for 64 bit uints
 		m_res.p_picking_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("picking", true);
 		m_res.p_picking_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
-		m_res.p_picking_fb->Add2DTexture("component_ids_split", GL_COLOR_ATTACHMENT0, picking_spec);
+		m_res.picking_tex.SetSpec(picking_spec);
+		m_res.picking_tex.OnResize = [this] {
+			m_res.p_picking_fb->BindTexture2D(m_res.picking_tex.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		};
+		m_res.picking_tex.OnResize();
 
-		SceneRenderer::SetActiveScene(&*SCENE);
 		SCENE->AddDefaultSystems();
 		static auto s = &*SCENE;
 		m_event_stack.SetContext(s, &m_state.selected_entity_ids);
 
+		m_scene_renderer.Init();
+
 		m_res.p_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
-		m_res.p_editor_pass_fb->AddShared2DTexture("shared_depth", Renderer::GetFramebufferLibrary().GetFramebuffer("gbuffer").GetTexture<Texture2D>("shared_depth"), GL_DEPTH_ATTACHMENT);
-		m_res.p_editor_pass_fb->AddShared2DTexture("Editor scene display", *m_res.p_scene_display_texture, GL_COLOR_ATTACHMENT0);
+		m_res.p_editor_pass_fb->BindTexture2D(m_scene_renderer.m_gbf_depth.GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
+		m_res.p_editor_pass_fb->BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		m_res.p_editor_pass_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 
 		std::string base_proj_dir = m_state.executable_directory + "\\projects\\base-project";
@@ -133,8 +138,9 @@ namespace ORNG {
 		ORNG_CORE_INFO("Editor layer initialized");
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_INITIALIZATION));
 
-		m_asset_manager_window.p_extern_scene = mp_scene_context->get();
+		m_asset_manager_window.p_extern_scene = mp_scene_context;
 		m_asset_manager_window.Init();
+
 	}
 
 
@@ -155,10 +161,9 @@ namespace ORNG {
 
 		// Set to fullscreen so mouse coordinate and gui operations in scripts work correctly as they would in a runtime layer
 		m_state.fullscreen_scene_display = true;
-		SCENE->OnStart();
 
 		UpdateSceneDisplayRect();
-
+		SCENE->Start();
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_START_SIMULATION));
 	}
 
@@ -168,7 +173,7 @@ namespace ORNG {
 		SCENE->m_time_elapsed = 0.0;
 
 		// Reset mouse state as scripts may have modified it
-		Input::SetCursorVisible(true);
+		Window::SetCursorVisible(true);
 
 		m_state.selected_entity_ids.clear();
 		m_state.p_selected_joint = nullptr;
@@ -205,6 +210,7 @@ namespace ORNG {
 
 		SCENE->UnloadScene();
 		m_asset_manager_window.OnShutdown();
+		m_scene_renderer.Unload();
 	}
 
 	void EditorLayer::InitImGui() {
@@ -248,15 +254,15 @@ namespace ORNG {
 	}
 
 	void EditorLayer::PollKeybinds() {
-		if (!ImGui::GetIO().WantCaptureKeyboard && !Input::IsMouseDown(1)) {
+		if (!ImGui::GetIO().WantCaptureKeyboard && !Window::Get().input.IsMouseDown(1)) {
 			// Tab - Show/hide ui in simulation mode
-			if (Input::IsKeyPressed(Key::Tab)) {
+			if (Window::Get().input.IsKeyPressed(Key::Tab)) {
 				m_state.render_ui_in_simulation = !m_state.render_ui_in_simulation;
 			}
 
 			if (m_state.selection_mode == SelectionMode::ENTITY) {
 				// Ctrl+D - Duplicate entity
-				if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::D)) {
+				if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed(Key::D)) {
 					auto vec = DuplicateEntitiesTracked(m_state.selected_entity_ids);
 					std::vector<uint64_t> duplicate_ids;
 					for (auto* p_ent : vec) {
@@ -266,31 +272,31 @@ namespace ORNG {
 				}
 
 				// Ctrl+x - Delete entity
-				if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::X)) {
+				if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed(Key::X)) {
 					DeleteEntitiesTracked(m_state.selected_entity_ids);
 				}
 			}
 			else if (m_state.selection_mode == SelectionMode::JOINT) {
-				if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed(Key::X)) {
+				if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed(Key::X)) {
 					m_state.p_selected_joint->Break();
 					m_state.p_selected_joint = nullptr;
 				}
 			}
 
 			// Ctrl+z / Ctrl+shift+z undo/redo
-			if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('z') && !m_state.simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
-				if (Input::IsKeyDown(Key::Shift))
+			if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed('z') && !m_state.simulate_mode_active) { // Undo/redo disabled in simulation mode to prevent overlap during (de)serialization switching back and forth
+				if (Window::Get().input.IsKeyDown(Key::Shift))
 					m_event_stack.Redo();
 				else
 					m_event_stack.Undo();
 			}
 
 			// K - Make editor cam active
-			if (Input::IsKeyDown(Key::K))
+			if (Window::Get().input.IsKeyDown(Key::K))
 				mp_editor_camera->GetComponent<CameraComponent>()->MakeActive();
 
 			// F - Focus on entity
-			if (Input::IsKeyDown(Key::F) && !m_state.selected_entity_ids.empty()) {
+			if (Window::Get().input.IsKeyDown(Key::F) && !m_state.selected_entity_ids.empty()) {
 				auto* p_entity_transform = SCENE->GetEntity(m_state.selected_entity_ids[0])->GetComponent<TransformComponent>();
 				auto* p_editor_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 				auto pos = p_entity_transform->GetAbsPosition();
@@ -304,20 +310,20 @@ namespace ORNG {
 			}
 
 			// Escape - exit simulation mode
-			if (m_state.simulate_mode_active && Input::IsKeyDown(Key::Escape)) {
+			if (m_state.simulate_mode_active && Window::Get().input.IsKeyDown(Key::Escape)) {
 				EndPlayScene();
 			}
 		}
 
 		// Drag state tracking
 		static bool dragging = false;
-		if (Input::IsMouseClicked(0)) {
-			m_state.mouse_drag_data.start = Input::GetMousePos();
+		if (Window::Get().input.IsMouseClicked(0)) {
+			m_state.mouse_drag_data.start = Window::Get().input.GetMousePos();
 			if (!m_state.fullscreen_scene_display) m_state.mouse_drag_data.start = ConvertFullscreenMouseToDisplayMouse(m_state.mouse_drag_data.start);
 		}
 
 		if (dragging) {
-			m_state.mouse_drag_data.end = Input::GetMousePos();
+			m_state.mouse_drag_data.end = Window::Get().input.GetMousePos();
 			if (!m_state.fullscreen_scene_display) m_state.mouse_drag_data.end = ConvertFullscreenMouseToDisplayMouse(m_state.mouse_drag_data.end);
 			MultiSelectDisplay();
 		}
@@ -432,20 +438,20 @@ namespace ORNG {
 			glm::vec3 pos = p_transform->GetAbsPosition();
 			glm::vec3 movement_vec{ 0.0, 0.0, 0.0 };
 			float time_elapsed = FrameTiming::GetTimeStep();
-			movement_vec += p_transform->right * (float)Input::IsKeyDown(Key::D) * time_elapsed * cam_speed;
-			movement_vec -= p_transform->right * (float)Input::IsKeyDown(Key::A) * time_elapsed * cam_speed;
-			movement_vec += p_transform->forward * (float)Input::IsKeyDown(Key::W) * time_elapsed * cam_speed;
-			movement_vec -= p_transform->forward * (float)Input::IsKeyDown(Key::S) * time_elapsed * cam_speed;
-			movement_vec += glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(Key::E) * time_elapsed * cam_speed;
-			movement_vec -= glm::vec3(0, 1, 0) * (float)Input::IsKeyDown(Key::Q) * time_elapsed * cam_speed;
+			movement_vec += p_transform->right * (float)Window::Get().input.IsKeyDown(Key::D) * time_elapsed * cam_speed;
+			movement_vec -= p_transform->right * (float)Window::Get().input.IsKeyDown(Key::A) * time_elapsed * cam_speed;
+			movement_vec += p_transform->forward * (float)Window::Get().input.IsKeyDown(Key::W) * time_elapsed * cam_speed;
+			movement_vec -= p_transform->forward * (float)Window::Get().input.IsKeyDown(Key::S) * time_elapsed * cam_speed;
+			movement_vec += glm::vec3(0, 1, 0) * (float)Window::Get().input.IsKeyDown(Key::E) * time_elapsed * cam_speed;
+			movement_vec -= glm::vec3(0, 1, 0) * (float)Window::Get().input.IsKeyDown(Key::Q) * time_elapsed * cam_speed;
 
-			if (Input::IsKeyDown(Key::Space))
+			if (Window::Get().input.IsKeyDown(Key::Space))
 				movement_vec *= 10.0;
 
-			if (Input::IsKeyDown(Key::Shift))
+			if (Window::Get().input.IsKeyDown(Key::Shift))
 				movement_vec *= 100.0;
 
-			if (Input::IsKeyDown(Key::LeftControl))
+			if (Window::Get().input.IsKeyDown(Key::LeftControl))
 				movement_vec *= 0.1;
 
 			p_transform->SetAbsolutePosition(pos + movement_vec);
@@ -454,11 +460,11 @@ namespace ORNG {
 		// Camera rotation
 		static glm::vec2 last_mouse_pos;
 		if (ImGui::IsMouseClicked(1))
-			last_mouse_pos = Input::GetMousePos();
+			last_mouse_pos = Window::Get().input.GetMousePos();
 
 		if (ImGui::IsMouseDown(1)) {
 			float rotation_speed = 0.005f;
-			glm::vec2 mouse_coords = Input::GetMousePos();
+			glm::vec2 mouse_coords = Window::Get().input.GetMousePos();
 			glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
 
 			glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
@@ -518,7 +524,7 @@ namespace ORNG {
 				else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
 					if (p_payload->DataSize == sizeof(Prefab*)) {
 						Prefab* prefab_data = (*static_cast<Prefab**>(p_payload->Data));
-						auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefabCallScript(*prefab_data) : SCENE->InstantiatePrefab(*prefab_data);
+						auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefab(*prefab_data) : SCENE->InstantiatePrefab(*prefab_data, false);
 						auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 						glm::vec3 pos;
 						if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
@@ -558,7 +564,7 @@ namespace ORNG {
 
 		m_lua_cli.render_pos = { LEFT_WINDOW_WIDTH, m_res.toolbar_height };
 		m_lua_cli.size = { m_state.scene_display_rect.x, 250 };
-		m_lua_cli.OnImGuiRender(!Input::IsMouseDown(1));
+		m_lua_cli.OnImGuiRender(!Window::Get().input.IsMouseDown(1));
 
 		m_asset_manager_window.OnRenderUI();
 
@@ -605,7 +611,7 @@ namespace ORNG {
 
 
 		SceneRenderer::SceneRenderingSettings settings;
-		SceneRenderer::SetActiveScene(&**mp_scene_context);
+		settings.p_scene = mp_scene_context;
 		settings.p_output_tex = &*m_res.p_scene_display_texture;
 		settings.render_meshes = m_state.general_settings.debug_render_settings.render_meshes;
 		settings.voxel_mip_layer = m_state.general_settings.debug_render_settings.voxel_mip;
@@ -618,7 +624,7 @@ namespace ORNG {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 
-		SceneRenderer::RenderScene(settings);
+		m_scene_renderer.RenderScene(settings);
 
 		m_asset_manager_window.OnMainRender();
 
@@ -652,7 +658,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderGeneralSettingsMenu() {
-		if (Input::IsKeyDown(Key::LeftControl) && Input::IsKeyPressed('j')) {
+		if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed('j')) {
 			m_state.general_settings.editor_window_settings.display_settings_window = !m_state.general_settings.editor_window_settings.display_settings_window;
 		}
 
@@ -786,11 +792,11 @@ namespace ORNG {
 			ImGui::SameLine();
 
 			if (!ImGui::GetIO().WantCaptureMouse) {
-				if (Input::IsKeyPressed(GLFW_KEY_1))
+				if (Window::Get().input.IsKeyPressed(GLFW_KEY_1))
 					m_state.current_gizmo_operation = ImGuizmo::TRANSLATE;
-				else if (Input::IsKeyPressed(GLFW_KEY_2))
+				else if (Window::Get().input.IsKeyPressed(GLFW_KEY_2))
 					m_state.current_gizmo_operation = ImGuizmo::SCALE;
-				else if (Input::IsKeyPressed(GLFW_KEY_3))
+				else if (Window::Get().input.IsKeyPressed(GLFW_KEY_3))
 					m_state.current_gizmo_operation = ImGuizmo::ROTATE;
 			}
 
@@ -809,9 +815,9 @@ namespace ORNG {
 			}
 
 			if (!ImGui::GetIO().WantCaptureMouse) {
-				if (Input::IsKeyPressed(GLFW_KEY_4))
+				if (Window::Get().input.IsKeyPressed(GLFW_KEY_4))
 					m_state.selection_mode = SelectionMode::ENTITY;
-				else if (Input::IsKeyPressed(GLFW_KEY_5))
+				else if (Window::Get().input.IsKeyPressed(GLFW_KEY_5))
 					m_state.selection_mode = SelectionMode::JOINT;
 			}
 
@@ -1185,7 +1191,7 @@ namespace ORNG {
 		}
 
 		glm::vec2 mouse_coords = glm::min(
-			glm::max(glm::vec2(Input::GetMousePos()), glm::vec2(1, 1)), 
+			glm::max(glm::vec2(Window::Get().input.GetMousePos()), glm::vec2(1, 1)), 
 			glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1)
 		);
 
@@ -1197,7 +1203,7 @@ namespace ORNG {
 		glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, pixels);
 		uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
 
-		if (!Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+		if (!Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 			m_state.selected_entity_ids.clear();
 
 		if (pixels[2] != UINT_MAX) { // Joint selected
@@ -1507,7 +1513,7 @@ namespace ORNG {
 			auto* p_cam_transform = p_cam->GetComponent<TransformComponent>();
 
 			//xtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
-			auto coords = ConvertFullscreenMouseToDisplayMouse(Input::GetMousePos());
+			auto coords = ConvertFullscreenMouseToDisplayMouse(Window::Get().input.GetMousePos());
 			coords.y = Window::GetHeight() - coords.y;
 
 			auto dir = ExtraMath::ScreenCoordsToRayDir(p_cam_comp->GetProjectionMatrix(), coords,
@@ -1694,7 +1700,7 @@ namespace ORNG {
 		if (node_selection_active) {
 			if (ExtraUI::DoBoxesIntersect(ret.node_screen_min, ret.node_screen_max, selection_box.min, selection_box.max))
 				SelectEntity(p_entity->GetUUID());
-			else if (!Input::IsKeyDown(Key::LeftControl))
+			else if (!Window::Get().input.IsKeyDown(Key::LeftControl))
 				DeselectEntity(p_entity->GetUUID());
 		}
 
@@ -1742,10 +1748,10 @@ namespace ORNG {
 				ImGui::OpenPopup(popup_id.c_str());
 
 			if (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(1)) {
-				if (!Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
+				if (!Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL)) // Only selecting one entity at a time
 					m_state.selected_entity_ids.clear();
 
-				if (Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_state.selected_entity_ids, p_entity->GetUUID()) && ImGui::IsMouseClicked(0)) // Deselect entity from group of entities currently selected
+				if (Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL) && VectorContains(m_state.selected_entity_ids, p_entity->GetUUID()) && ImGui::IsMouseClicked(0)) // Deselect entity from group of entities currently selected
 					m_state.selected_entity_ids.erase(std::ranges::find(m_state.selected_entity_ids, p_entity->GetUUID()));
 				else
 					SelectEntity(p_entity->GetUUID());
@@ -1781,7 +1787,7 @@ namespace ORNG {
 	void EditorLayer::RenderSceneGraph() {
 		if (ImGui::BeginChild("Scene graph", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f })) {
 			// Click anywhere on window to deselect entity nodes
-			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Input::IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_state.selected_entity_ids.clear();
 
 			// Right click to bring up "new entity" popup
@@ -2626,7 +2632,7 @@ namespace ORNG {
 			}
 
 			is_using = true;
-			mouse_down = Input::IsMouseDown(0);
+			mouse_down = Window::Get().input.IsMouseDown(0);
 		}
 		else {
 			if (ImGui::IsMouseReleased(0)) {
@@ -2989,7 +2995,7 @@ namespace ORNG {
 			m_state.selected_entity_ids.erase(it);
 	}
 
-	void EditorLayer::SetScene(std::unique_ptr<Scene>* p_scene) {
+	void EditorLayer::SetScene(Scene* p_scene) {
 		mp_scene_context = p_scene;
 		m_asset_manager_window.SetScene(p_scene);
 	}

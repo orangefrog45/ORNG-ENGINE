@@ -111,12 +111,23 @@ namespace ORNG {
 		friend class AssetManagerWindow;
 		friend class EditorLayer;
 		friend class SceneSerializer;
+
 		static AssetManager& Get() {
-			static AssetManager s_instance;
-			return s_instance;
+			DEBUG_ASSERT(mp_instance);
+			return *mp_instance;
 		}
 
-		static void Init() { Get().I_Init(); }
+		static void Init(AssetManager* p_instance = nullptr) { 
+			if (p_instance) {
+				ASSERT(!mp_instance);
+				mp_instance = p_instance;
+			}
+			else {
+				mp_instance = new AssetManager();
+				Get().I_Init(); 
+			}
+
+		}
 
 		// Asset's memory will be managed by asset manager, provide a ptr to a heap-allocated object that will not be destroyed
 		template<std::derived_from<Asset> T>
@@ -205,7 +216,7 @@ namespace ORNG {
 		}
 
 		// Clears all assets including base replacement ones
-		static void OnShutdown() {
+		static void Shutdown() {
 			Get().IOnShutdown();
 		};
 
@@ -443,6 +454,8 @@ namespace ORNG {
 		void InitBaseAssets();
 		void InitBaseTexture();
 		void InitBase3DQuad();
+		
+		inline static AssetManager* mp_instance = nullptr;
 
 		std::unique_ptr<ScriptAsset> mp_base_script = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_sphere = nullptr;

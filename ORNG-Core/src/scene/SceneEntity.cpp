@@ -74,6 +74,9 @@ namespace ORNG {
 	}
 
 
+	SceneEntity& SceneEntity::Duplicate() {
+		return mp_scene->DuplicateEntity(*this);
+	}
 
 	void SceneEntity::ForEachChildRecursive(std::function<void(entt::entity)> func_ptr) {
 		auto& rel_comp = mp_registry->get<RelationshipComponent>(m_entt_handle);

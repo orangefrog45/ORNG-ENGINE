@@ -12,6 +12,7 @@ namespace ORNG {
 	{
 		// Setup a transform matrix ssbo for this instance group
 		m_transform_ssbo.Init();
+		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
 		// Max of 10k wasted vertices rendered (unlikely unless frequently removing instances)
 		// Check the vertex data too in case the mesh hasn't fully loaded yet (GetIndicesCount will return 0)
@@ -51,10 +52,6 @@ namespace ORNG {
 
 
 	void MeshInstanceGroup::ProcessUpdates() {
-
-		if (m_transform_ssbo.GetGPU_BufferSize() == 0)
-			m_transform_ssbo.Resize(64);
-
 		if (!m_entities_to_instance.empty()) {
 			ORNG_TRACY_PROFILE;
 
@@ -155,14 +152,12 @@ namespace ORNG {
 		m_used_transform_memory_end_idx = m_instances.size();
 		m_transform_ssbo.data.clear();
 		m_tombstone_count = 0;
+
+		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 
 	void MeshInstanceGroup::AddInstance(SceneEntity* ptr) {
-		std::array<std::byte, sizeof(glm::mat4)> transform_bytes;
-		std::byte* p_byte = &transform_bytes[0];
-		ConvertToBytes(p_byte, ptr->GetComponent<TransformComponent>()->GetMatrix());
-
 		m_entities_to_instance.push_back(ptr->GetEnttHandle());
 	}
 }

@@ -10,6 +10,7 @@ src/components/Component.cpp
 src/components/MeshComponent.cpp
 src/components/PhysicsComponent.cpp
 src/components/TransformComponent.cpp
+src/components/ScriptComponent.cpp
 src/components/lights/LightComponents.cpp
 src/components/managers/MeshComponentManager.cpp
 src/components/managers/PhysicsSystem.cpp
@@ -66,10 +67,10 @@ extern/implot/implot_items.cpp
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
  "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp" "src/physics/vehicles/BaseVehicle.cpp" "src/physics/vehicles/PhysXVehicleActor.cpp" 
  "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp" 
- "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h")
+ "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h" "src/components/managers/ScriptSystem.cpp")
 
 add_library(ORNG_CORE STATIC
-${ORNG_LIB_SOURCES} "src/rendering/renderpasses/BloomPass.cpp" )
+${ORNG_LIB_SOURCES} "src/rendering/renderpasses/BloomPass.cpp"  "src/components/managers/ScriptSystem.cpp")
 
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
@@ -87,8 +88,6 @@ endif()
 
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
-
-
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
@@ -137,7 +136,7 @@ ${ORNG_CORE_INCLUDE_DIRS}
 )
 
 
-target_link_libraries(ORNG_CORE PRIVATE 
+target_link_libraries(ORNG_CORE PUBLIC 
 OpenGL::GL
 glfw
 libglew_shared
@@ -151,14 +150,13 @@ Tracy::TracyClient
 )
 
 if (NOT ORNG_DISABLE_FMOD)
-	target_link_libraries(ORNG_CORE PRIVATE ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib)
+	target_link_libraries(ORNG_CORE PUBLIC ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib)
 	target_include_directories(ORNG_CORE PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc")
 endif()
 
 target_precompile_headers(ORNG_CORE PUBLIC
 headers/pch/pch.h
 )
-
 
 # Required binaries for engine
 if (CMAKE_BUILD_TYPE MATCHES Debug)

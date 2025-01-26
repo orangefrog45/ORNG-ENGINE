@@ -150,12 +150,12 @@ namespace ORNG {
 		}
 	}
 
-
 	SceneEntity& SceneSerializer::DeserializeEntityUUIDFromString(Scene& scene, const std::string& str) {
 		YAML::Node data = YAML::Load(str);
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
 		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
 	}
+
 	std::vector<SceneEntity*> SceneSerializer::DeserializePrefab(Scene& scene, const Prefab& prefab) {
 		ORNG_TRACY_PROFILE;
 

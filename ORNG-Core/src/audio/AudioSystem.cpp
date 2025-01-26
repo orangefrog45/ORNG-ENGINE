@@ -40,8 +40,8 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(m_transform_listener);
 
 		auto& reg = mp_scene->GetRegistry();
-		reg.on_construct<AudioComponent>().connect<&OnAudioComponentAdd>();
-		reg.on_destroy<AudioComponent>().connect<&OnAudioComponentDestroy>();
+		m_connections[0] = reg.on_construct<AudioComponent>().connect<&OnAudioComponentAdd>();
+		m_connections[1] = reg.on_destroy<AudioComponent>().connect<&OnAudioComponentDestroy>();
 	}
 
 
@@ -57,8 +57,10 @@ namespace ORNG {
 		mp_channel_group->release();
 		Events::EventManager::DeregisterListener(m_audio_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
-	}
 
+		m_connections[0].release();
+		m_connections[1].release();
+	}
 
 
 	void AudioSystem::OnUpdate() {

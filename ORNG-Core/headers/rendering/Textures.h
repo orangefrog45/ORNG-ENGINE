@@ -1,10 +1,11 @@
 #pragma once
+#include "assets/Asset.h"
+#include "bitsery/traits/string.h"
+#include "bitsery/traits/core/traits.h"
+#include "events/EventManager.h"
 #include "util/util.h"
 #include "util/UUID.h"
 #include "util/Log.h"
-#include "bitsery/traits/string.h"
-#include "bitsery/traits/core/traits.h"
-#include "assets/Asset.h"
 
 namespace ORNG {
 
@@ -135,16 +136,49 @@ namespace ORNG {
 		Texture2D(const std::string& filepath);
 		Texture2D(const std::string& filepath, uint64_t t_uuid);
 
-		bool SetSpec(const Texture2DSpec& spec);
+		virtual bool SetSpec(const Texture2DSpec& spec);
 		bool LoadFromFile();
 		bool LoadFromBinary(std::byte* p_data, size_t size, bool is_decompressed, int width = -1, int height = -1, int channels = -1);
 		const Texture2DSpec& GetSpec() const { return m_spec; }
 
-	private:
+	protected:
 		Texture2DSpec m_spec;
 	};
 
 
+	// Texture that automatically resizes itself upon window resize to match its dimensions
+	// Previous contents are erased
+	class FullscreenTexture2D : public Texture2D {
+	public:
+		FullscreenTexture2D() : Texture2D("") {
+			m_window_event_listener.OnEvent = [this](const Events::WindowEvent& _event) {
+				if (_event.event_type == Events::WindowEvent::EventType::WINDOW_RESIZE) {
+					OnWindowResize(_event.new_window_size);
+					if (OnResize) OnResize();
+				}
+			};
+		};
+
+		bool SetSpec(const Texture2DSpec& spec) final {
+			bool result = Texture2D::SetSpec(spec);
+			if (m_window_event_listener.m_entt_handle == entt::null)
+				Events::EventManager::RegisterListener(m_window_event_listener);
+
+			return result;
+		}
+
+		// A callback that is invoked immediately after this texture resizes
+		std::function<void()> OnResize = nullptr;
+	private:
+		void OnWindowResize(glm::uvec2 new_dim) {
+			m_spec.width = new_dim.x;
+			m_spec.height = new_dim.y;
+
+			SetSpec(m_spec);
+		}
+
+		Events::EventListener<Events::WindowEvent> m_window_event_listener;
+	};
 
 
 	class Texture2DArray : public TextureBase {

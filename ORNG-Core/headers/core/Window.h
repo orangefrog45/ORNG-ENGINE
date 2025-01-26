@@ -1,17 +1,30 @@
 #pragma once
+#include "core/Input.h"
+#include "events/EventManager.h"
 #include "util/TimeStep.h"
 #include "util/util.h"
-#include "events/EventManager.h"
 
 struct GLFWwindow;
 
 namespace ORNG {
-
 	class Window {
 	public:
+		static void InitInstance(Window* p_instance = nullptr) {
+			mp_instance = p_instance ? p_instance : new Window();
+		}
+
 		static void Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
 			Get().I_Init(initial_dimensions, name, initial_window_display_monitor_idx, iconified, decorated);
 		};
+
+		static void Shutdown() {
+			if (mp_instance) delete mp_instance;
+		}
+
+		static Window& Get() {
+			DEBUG_ASSERT(mp_instance);
+			return *mp_instance;
+		}
 
 		static GLFWwindow* GetGLFWwindow() {
 			return Get().p_window;
@@ -33,6 +46,8 @@ namespace ORNG {
 			Get().ISetCursorPos(x, y);
 		}
 
+		static void SetCursorVisible(bool visible);
+
 		static void SetScrollActive(glm::vec2 offset) {
 			Get().m_scroll_data.active = true;
 			Get().m_scroll_data.offset = offset;
@@ -47,7 +62,7 @@ namespace ORNG {
 			glm::vec2 offset = { 0, 0 };
 		};
 
-
+		Input input;
 	private:
 		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated);
 
@@ -59,19 +74,14 @@ namespace ORNG {
 
 		ScrollData m_scroll_data;
 
-		// Handles events with event_type == SET to update window
-		Events::EventListener<Events::MouseEvent> m_mouse_listener;
-
 		Events::EventListener<Events::EngineCoreEvent> m_update_listener;
 
-		static Window& Get() {
-			static Window s_instance;
-			return s_instance;
-		}
+		inline static Window* mp_instance = nullptr;
 
 		GLFWwindow* p_window = nullptr;
 		unsigned int m_window_width = 0;
 		unsigned int m_window_height = 0;
+
 	};
 
 }

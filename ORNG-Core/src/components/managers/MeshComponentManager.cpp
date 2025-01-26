@@ -53,7 +53,6 @@ namespace ORNG {
 			group->AddInstance(comp->GetEntity());
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
-
 			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials, mp_scene->GetRegistry());
 			m_instance_groups.push_back(group);
 			group->AddInstance(comp->GetEntity());

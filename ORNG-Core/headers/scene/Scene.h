@@ -30,6 +30,9 @@ namespace ORNG {
 		Scene() = default;
 		~Scene();
 
+		// Call this just before this scene starts getting updated but after it's fully loaded
+		void Start();
+
 		// Adds a system to be managed by this scene, should be a heap-allocated ptr to the system
 		// Memory for the system is freed when the scene is deleted
 		template<typename SystemType>
@@ -58,15 +61,13 @@ namespace ORNG {
 			m_registry.emplace<T>(ent, nullptr, std::forward<Args>(args)...);
 			m_registry.destroy(ent);
 
-			Events::EventListener<Events::ECS_Event<T>> e;
+			Events::ECS_EventListener<T> e;
 			e.OnEvent = [](auto) {};
 			Events::EventManager::RegisterListener(e);
 			Events::EventManager::DeregisterListener(e.GetRegisterID());
 		}
 
 		void AddDefaultSystems();
-
-		void OnStart();
 
 		void Update(float ts);
 
@@ -86,16 +87,11 @@ namespace ORNG {
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
 
+		// Instantiates prefab
+		// call_on_create will call the OnCreate function of any script components attached to the prefab or its child entities if true
+		SceneEntity& InstantiatePrefab(const Prefab& prefab, bool call_on_create = true);
 
-		const SI& GetSI() {
-			return m_si;
-		}
-
-		// Instantiates prefab without calling OnCreate, used for instantiation while the scene is paused e.g in the editor
-		SceneEntity& InstantiatePrefab(const Prefab& prefab);
-
-		// This instantiation method is what scripts will use, it calls the OnCreate method on the script component of the prefab if it has one
-		SceneEntity& InstantiatePrefabCallScript(const Prefab& prefab);
+		SceneEntity* InstantiatePrefab(uint64_t prefab_uuid, bool call_on_create = true);
 
 		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
 		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
@@ -160,16 +156,11 @@ namespace ORNG {
 		std::unordered_map<uint64_t, SceneEntity*> m_entity_uuid_lookup;
 
 	private:
-		void SetScriptState();
-
-		void InitSI();
-
 		bool m_is_loaded = false;
 
 		// Delta time accumulated over each call to Update(), different from application time
 		double m_time_elapsed = 0.0;
 
-		SI m_si;
 
 		// Favour using a prefab instead of duplicating entities for performance
 		SceneEntity& DuplicateEntity(SceneEntity& original);
