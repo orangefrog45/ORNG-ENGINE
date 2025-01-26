@@ -1,6 +1,6 @@
+#include "../includes/ScriptAPI.h"
 #include <GLFW/glfw3.h>
 
-#include "../includes/ScriptAPI.h"
 #include "core/FrameTiming.h"
 #include "events/EventManager.h"
 #include "core/Window.h"
