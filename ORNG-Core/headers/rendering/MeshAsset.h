@@ -27,8 +27,8 @@ namespace ORNG {
 		friend class SceneRenderer;
 		friend class MeshInstancingSystem;
 		friend class SceneSerializer;
-		friend class CodedAssets;
 		friend class AssetManager;
+		friend class AssetSerializer;
 
 
 		MeshAsset() = delete;

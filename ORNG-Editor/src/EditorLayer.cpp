@@ -497,10 +497,10 @@ namespace ORNG {
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(LEFT_WINDOW_WIDTH, m_res.toolbar_height)));
 		ImGui::SetNextWindowSize(m_state.scene_display_rect);
 
-
 		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
-			ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
+			//ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
+			ImGui::Image((ImTextureID)m_scene_renderer.m_ssao_pass.GetSSAOTex().GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
 			ImGui::Dummy(ImVec2(0, 5));
 			ImGui::Dummy(ImVec2(5, 0));
@@ -559,7 +559,6 @@ namespace ORNG {
 		if (!m_state.simulate_mode_active)
 			RenderSceneDisplayPanel();
 
-
 		RenderToolbar();
 
 		m_lua_cli.render_pos = { LEFT_WINDOW_WIDTH, m_res.toolbar_height };
@@ -604,11 +603,10 @@ namespace ORNG {
 		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
 		GL_StateManager::DefaultClearBits();
 
-
 		if (ImGui::IsMouseClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
 			DoPickingPass();
 		}
-
+		glPolygonMode(GL_FRONT_AND_BACK, m_state.general_settings.debug_render_settings.render_wireframe ? GL_LINE : GL_FILL);
 
 		SceneRenderer::SceneRenderingSettings settings;
 		settings.p_scene = mp_scene_context;
@@ -617,15 +615,7 @@ namespace ORNG {
 		settings.voxel_mip_layer = m_state.general_settings.debug_render_settings.voxel_mip;
 		settings.voxel_render_face = m_state.general_settings.debug_render_settings.voxel_render_face;
 
-		if (m_state.general_settings.debug_render_settings.render_wireframe) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		}
-		else {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		}
-
 		m_scene_renderer.RenderScene(settings);
-
 		m_asset_manager_window.OnMainRender();
 
 		m_res.p_editor_pass_fb->Bind();
@@ -650,8 +640,6 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_res.p_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 			Renderer::DrawQuad();
 		}
-
-
 	}
 
 
@@ -743,7 +731,7 @@ namespace ORNG {
 			case 3: {
 				std::string scene_filepath{ "scene.yml" };
 				std::string uuid_filepath{ "./res/scripts/includes/uuids.h" };
-				AssetManager::SerializeAssets();
+				AssetManager::GetSerializer().SerializeAssets(m_state.current_project_directory);
 				SceneSerializer::SerializeScene(*SCENE, scene_filepath);
 				SceneSerializer::SerializeSceneUUIDs(*SCENE, uuid_filepath);
 				selected_component = 0;
@@ -1048,7 +1036,7 @@ namespace ORNG {
 				SCENE->UnloadScene();
 
 			AssetManager::ClearAll();
-			AssetManager::LoadAssetsFromProjectPath(m_state.current_project_directory, false);
+			AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
 			SCENE->LoadScene();
 			SceneSerializer::DeserializeScene(*SCENE, m_state.current_project_directory + "\\scene.yml", true);
 

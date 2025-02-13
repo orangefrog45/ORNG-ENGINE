@@ -1,21 +1,13 @@
 
 #include "pch/pch.h"
+#include "assets/Prefab.h"
 #include "util/TimeStep.h"
 #include "scene/Scene.h"
 #include "util/util.h"
 #include "scene/SceneEntity.h"
-#include "../extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "components/ComponentSystems.h"
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
-#include "util/Timers.h"
-#include "core/FrameTiming.h"
-#include "Tracy.hpp"
-#include "core/Window.h"
-
-// For SI funcs
-#include "rendering/Renderer.h"
-#include "rendering/SceneRenderer.h" 
 
 namespace ORNG {
 	Scene::~Scene() {
@@ -24,13 +16,14 @@ namespace ORNG {
 	}
 
 	void Scene::AddDefaultSystems() {
+		// This order is intentional for optimal use
 		AddSystem(new CameraSystem{ this });
 		AddSystem(new AudioSystem{ this });
 		AddSystem(new ParticleSystem{ this });
 		AddSystem(new PhysicsSystem{ this });
-		AddSystem(new MeshInstancingSystem{ this });
 		AddSystem(new TransformHierarchySystem{ this });
 		AddSystem(new ScriptSystem{ this });
+		AddSystem(new MeshInstancingSystem{ this });
 	}
 
 	void Scene::Update(float ts) {
@@ -40,10 +33,6 @@ namespace ORNG {
 			p_system->OnUpdate();
 		}
 		
-		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			script.p_instance->OnUpdate(ts * 0.001f); // convert to seconds
-		}
-
 		//if (m_camera_system.GetActiveCamera())
 			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 

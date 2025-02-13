@@ -130,8 +130,8 @@ namespace ORNG {
 	class Texture2D : public TextureBase {
 	public:
 		friend class EditorLayer;
-		friend class Scene;
 		friend class AssetManager;
+		friend class AssetSerializer;
 
 		Texture2D(const std::string& filepath);
 		Texture2D(const std::string& filepath, uint64_t t_uuid);
@@ -146,11 +146,12 @@ namespace ORNG {
 	};
 
 
-	// Texture that automatically resizes itself upon window resize to match its dimensions
-	// Previous contents are erased
+	// Texture that automatically resizes itself upon window resize to match (window dimensions * screen_size_ratio).
+	// Previous contents are erased.
 	class FullscreenTexture2D : public Texture2D {
 	public:
-		FullscreenTexture2D() : Texture2D("") {
+		// screen_size_ratio - this texture will be resized to (new_window_dimensions * screen_size_ratio), should be 1 if the texture needs to match window size.
+		FullscreenTexture2D(glm::vec2 screen_size_ratio = {1, 1}) : Texture2D(""), m_screen_size_ratio(screen_size_ratio) {
 			m_window_event_listener.OnEvent = [this](const Events::WindowEvent& _event) {
 				if (_event.event_type == Events::WindowEvent::EventType::WINDOW_RESIZE) {
 					OnWindowResize(_event.new_window_size);
@@ -159,6 +160,7 @@ namespace ORNG {
 			};
 		};
 
+		// spec.width and spec.height WILL BE USED, they should match the window dimensions if needed.
 		bool SetSpec(const Texture2DSpec& spec) final {
 			bool result = Texture2D::SetSpec(spec);
 			if (m_window_event_listener.m_entt_handle == entt::null)
@@ -171,12 +173,13 @@ namespace ORNG {
 		std::function<void()> OnResize = nullptr;
 	private:
 		void OnWindowResize(glm::uvec2 new_dim) {
-			m_spec.width = new_dim.x;
-			m_spec.height = new_dim.y;
+			m_spec.width = (uint32_t)ceil(new_dim.x * m_screen_size_ratio.x);
+			m_spec.height = (uint32_t)ceil(new_dim.y * m_screen_size_ratio.y);
 
 			SetSpec(m_spec);
 		}
 
+		glm::vec2 m_screen_size_ratio;
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 	};
 

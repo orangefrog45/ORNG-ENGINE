@@ -102,4 +102,5 @@ void Application::Init(const ApplicationData& data) {
 	Shutdown();
 	glfwDestroyWindow(window);
 	glfwTerminate();
+	
 }

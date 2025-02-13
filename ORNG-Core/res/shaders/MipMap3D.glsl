@@ -79,7 +79,7 @@ ivec3 sample_coord = ivec3(gl_GlobalInvocationID.xyz);
     colour_val.rgb *= (colour_val.a * 25.5);
 
     // Alpha stores emissive component, switch it back to an actual opacity value here (1.0 for full voxel, 0 for empty, no inbetween)
-    colour_val.a = colour_val.a > 0.01 ? 1.0 : 0.0;
+    colour_val.a = normal.a > 0.01 ? 1.0 : 0.0;
 
     float sum = 0.f;
     vec4 final = vec4(0);

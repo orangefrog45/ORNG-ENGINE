@@ -7,7 +7,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const uint NUM_SHADOW_CASCADES = 3;
 ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
-
 layout(binding = 1) uniform sampler2D albedo_sampler;
 layout(binding = 3) uniform sampler2DArray dir_depth_sampler;
 layout(binding = 4) uniform sampler2DArray spot_depth_sampler;

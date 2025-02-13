@@ -23,6 +23,7 @@ set(SCRIPT_INCLUDE_DIRS
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/spdlog/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/build/include
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glfw/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glew-cmake/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern

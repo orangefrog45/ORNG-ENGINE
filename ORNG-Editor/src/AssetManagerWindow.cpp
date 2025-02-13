@@ -154,7 +154,7 @@ namespace ORNG {
 		Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
 		prefab->serialized_content = SceneSerializer::SerializeEntityArrayIntoString(entities);
 		prefab->node = YAML::Load(prefab->serialized_content);
-		SceneSerializer::SerializeBinary(fp, *prefab);
+		AssetManager::GetSerializer().SerializeAssetToBinaryFile(*prefab, fp);
 
 		return true;
 	}
@@ -244,9 +244,6 @@ namespace ORNG {
 
 	}
 
-
-
-
 	void AssetManagerWindow::RenderScriptTab() {
 		if (ImGui::BeginTabItem("Scripts")) {
 			static std::string new_script_name = "";
@@ -319,7 +316,7 @@ namespace ORNG {
 				//setting up file explorer callbacks
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					MeshAsset* asset = AssetManager::AddAsset(new MeshAsset(filepath));
-					AssetManager::LoadMeshAsset(asset);
+					AssetManager::GetSerializer().LoadMeshAsset(asset);
 					};
 
 
@@ -446,11 +443,11 @@ namespace ORNG {
 
 						Texture2D* p_new_tex = new Texture2D(filepath);
 						p_new_tex->SetSpec(m_current_2d_tex_spec);
-						AssetManager::LoadTexture2D(AssetManager::AddAsset(p_new_tex));
+						AssetManager::GetSerializer().LoadTexture2D(AssetManager::AddAsset(p_new_tex));
 						p_new_tex->filepath = new_filepath;
 
 						// Set filepath to the new path from the serialized texture
-						AssetManager::SerializeAssets();
+						AssetManager::GetSerializer().SerializeAssets(".");
 					}
 					else {
 						ORNG_CORE_ERROR("Texture asset '{0}' not added, already found in project files", new_filepath);
@@ -742,7 +739,7 @@ namespace ORNG {
 			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
 			if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
 				// Gen binary file if none exists
-				AssetManager::SerializeAssetToBinaryFile(*p_mesh, filepath);
+				AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_mesh, filepath);
 			}
 
 			// Update the mesh filepath from the source file initially loaded to the generated binary file

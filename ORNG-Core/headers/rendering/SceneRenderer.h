@@ -5,6 +5,7 @@
 #include "scene/Scene.h"
 #include "rendering/Material.h"
 #include "rendering/renderpasses/BloomPass.h"
+#include "rendering/renderpasses/SSAOPass.h"
 
 #ifdef ORNG_EDITOR_LAYER
 #include "Settings.h"
@@ -145,6 +146,7 @@ namespace ORNG {
 		void DoTransparencyPass(Texture2D* p_output_tex, unsigned width, unsigned height, Scene* p_scene);
 		void DoVoxelizationPass(unsigned output_width, unsigned output_height, Texture3D& main_cascade_tex, Texture3D& normals_main_cascade_tex, 
 			Texture3D& cascade_mips, unsigned cascade_width, float voxel_size, VoxelizationSV shader_variant, glm::vec3 cam_pos, Scene* p_scene);
+
 	private:
 		// Shift voxel luminance data in the 3D texture when the cameras voxel-aligned position changes
 		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size);
@@ -188,6 +190,7 @@ namespace ORNG {
 		std::vector<Renderpass> m_render_intercepts;
 
 		BloomPass m_bloom_pass;
+		SSAOPass m_ssao_pass;
 
 #define NUM_VOXEL_CASCADES 2
 		// Camera position snapped to the voxel grid per cascade, index 0 = cascade 0 etc (prevents flickering when moving)
@@ -248,7 +251,7 @@ namespace ORNG {
 
 		Texture3D m_voxel_mip_faces_c0{ "SR voxel mips cascade 0" };
 		Texture3D m_voxel_mip_faces_c1{ "SR voxel mips cascade 1" };
-
+		
 		PointlightSystem m_pointlight_system;
 		SpotlightSystem m_spotlight_system;
 

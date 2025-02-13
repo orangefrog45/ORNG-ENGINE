@@ -4,6 +4,7 @@
 #include "core/Window.h"
 #include "rendering/SceneRenderer.h"
 #include "rendering/Renderer.h"
+#include "core/FrameTiming.h"
 
 using namespace ORNG;
 
@@ -19,4 +20,11 @@ void ScriptSystem::OnLoad() {
 		}
 	}
 }
+
+void ScriptSystem::OnUpdate() {
+	for (auto [entity, script] : mp_scene->GetRegistry().view<ScriptComponent>().each()) {
+		script.p_instance->OnUpdate(FrameTiming::GetTimeStep() * 0.001f); // convert to seconds
+	}
+}
+
 

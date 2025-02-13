@@ -407,6 +407,8 @@ namespace ORNG {
 		cone_trace_spec.width = Window::GetWidth() * 0.5;
 		cone_trace_spec.height = Window::GetHeight() * 0.5;
 		m_cone_trace_accum_tex.SetSpec(cone_trace_spec);
+
+		m_ssao_pass.Init();
 	}
 
 	SceneRenderer::~SceneRenderer() {
@@ -434,6 +436,7 @@ namespace ORNG {
 		mp_shader_library->DeleteShader(mp_cone_trace_shader->GetName()); mp_cone_trace_shader = nullptr;
 		mp_shader_library->DeleteShader(mp_transparency_shader_variants->GetName()); mp_transparency_shader_variants = nullptr;
 		mp_shader_library->DeleteShader(mp_transparency_composite_shader->GetName()); mp_transparency_composite_shader = nullptr;
+//		mp_shader_library->DeleteShader(mp_ssao_tex->GetName()); mp_ssao_tex = nullptr;
 
 		mp_framebuffer_library->DeleteFramebuffer(mp_scene_voxelization_fb); mp_scene_voxelization_fb = nullptr;
 		mp_framebuffer_library->DeleteFramebuffer(m_gbuffer_fb); m_gbuffer_fb = nullptr;
@@ -570,11 +573,12 @@ namespace ORNG {
 
 #ifdef VOXEL_GI
 			if (m_active_voxel_cascade_idx == 0)
-				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::MAIN, m_voxel_aligned_cam_positions[0]);
+				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c0, m_scene_voxel_tex_c0_normals, m_voxel_mip_faces_c0, 256.f, 0.2f, VoxelizationSV::MAIN, m_voxel_aligned_cam_positions[0], settings.p_scene);
 			else
-				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::MAIN, m_voxel_aligned_cam_positions[1]);
+				DoVoxelizationPass(spec.width, spec.height, m_scene_voxel_tex_c1, m_scene_voxel_tex_c1_normals, m_voxel_mip_faces_c1, 256.f, 0.4f, VoxelizationSV::MAIN, m_voxel_aligned_cam_positions[1], settings.p_scene);
 #endif
 			DoGBufferPass(p_cam, settings);
+			m_ssao_pass.DoPass(m_gbf_depth, m_gbf_normals);
 			RunRenderpassIntercepts(RenderpassStage::POST_GBUFFER, res);
 			DoLightingPass(settings.p_output_tex, settings.p_scene);
 			RunRenderpassIntercepts(RenderpassStage::POST_LIGHTING, res);
@@ -588,6 +592,7 @@ namespace ORNG {
 		else {
 			DoDepthPass(p_cam, settings.p_output_tex, settings.p_scene);
 			DoGBufferPass(p_cam, settings);
+			m_ssao_pass.DoPass(m_gbf_depth, m_gbf_normals);
 			DoLightingPass(settings.p_output_tex, settings.p_scene);
 			DoFogPass(spec.width, spec.height, settings.p_scene);
 			glViewport(0, 0, spec.width, spec.height);

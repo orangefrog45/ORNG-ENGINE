@@ -40,6 +40,7 @@ namespace ORNG {
 	class Material : public Asset {
 		friend class SceneRenderer;
 		friend class AssetManager;
+		friend class AssetSerializer;
 	public:
 		explicit Material(Texture2D* p_base_colour_tex) : Asset(""), base_colour_texture(p_base_colour_tex) {};
 

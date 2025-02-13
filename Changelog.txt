@@ -1,3 +1,6 @@
+13/2/25:
+-Asset manager rewrite, new asset serializer class
+
 26/1/25:
  -Scripting environment matches engine app environment more closely
  -Singletons now work in scripts as they're pointer-based

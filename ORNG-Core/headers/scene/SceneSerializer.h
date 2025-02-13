@@ -103,37 +103,6 @@ namespace ORNG {
 		// This has to occur after the full scene tree has been deserialized for the EntityNodeRef's to navigate properly
 		static void ConnectJointComp(Scene& scene, JointComponent& comp);
 
-
-		template <typename T>
-		static void SerializeBinary(const std::string& filepath, T& data) {
-			std::ofstream s{ filepath, s.binary | s.trunc | s.out };
-			if (!s.is_open()) {
-				ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", filepath);
-				return;
-			}
-			bitsery::Serializer<bitsery::OutputBufferedStreamAdapter> ser{ s };
-
-			ser.object(data);
-			// flush to writer
-			ser.adapter().flush();
-			s.close();
-		}
-
-		template <typename T>
-		static void DeserializeBinary(const std::string& filepath, T& data) {
-			std::ifstream s{ filepath, std::ios::binary };
-			if (!s.is_open()) {
-				ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
-				return;
-			}
-
-			// Use buffered stream adapter
-			bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
-			des.object(data);
-		}
-
-
-
 		template <typename S>
 		void serialize(S& s, UUID<uint64_t>& o) {
 			s.value8b(o.m_uuid);

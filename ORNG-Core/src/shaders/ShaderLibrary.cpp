@@ -109,12 +109,12 @@ namespace ORNG {
 		return m_shader_variants[name];
 	}
 
-	Shader& ShaderLibrary::GetShader(const std::string& name) {
+	Shader* ShaderLibrary::GetShader(const std::string& name) {
 		if (!m_shaders.contains(name)) {
-			ORNG_CORE_CRITICAL("No shader with name '{0}' exists", name);
-			BREAKPOINT;
+			ORNG_CORE_ERROR("No shader with name '{0}' exists", name);
+			return nullptr;
 		}
-		return m_shaders[name];
+		return &m_shaders[name];
 	}
 
 	void ShaderLibrary::DeleteShader(const std::string& name) {

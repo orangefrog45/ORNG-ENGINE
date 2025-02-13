@@ -1,3 +1,4 @@
+#pragma once
 #include "Asset.h"
 #include "physx/PxMaterial.h"
 

@@ -75,7 +75,6 @@ const vec3 diffuse_cone_dirs[] =
 		vec4 mip_col = vec4(0);\
 		x \
 		vec4 voxel = mip_col;\
-		\
 		if (voxel.a > 0.0) {\
 			float a = 1.0 - col.a;\
 			col.rgb += a  * voxel.rgb;\
@@ -95,9 +94,9 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_
 	const float tan_half_angle = tan(aperture * 0.5);
 	const float tan_eighth_angle = tan(aperture * 0.125);
 	float step_size_correction_factor = (1.0 + tan_eighth_angle) / (1.0 - tan_eighth_angle);
-	float step_length = step_size_correction_factor * 0.3;
+	float step_length = step_size_correction_factor * 0.2;
 
-	float d = 0.2;
+	float d = 0.3;
 
 	vec3 weight = abs(cone_dir);
 	uint current_cascade = 0;
@@ -145,7 +144,8 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_
 		}
 
 	}
-	dist_travelled = col.a < 0.005 ? 1 : 0;
+
+	dist_travelled = d / 76.0;
 
 	return col ;
 }
@@ -192,6 +192,6 @@ void main() {
 	float occlusion;
 	vec4 res = CalculateIndirectDiffuseLighting(v, f0, occlusion);
 
-    vec3 light = res.rgb + 0 *CalculateAmbientLightContribution(n_dot_v, f0, r, roughness_metallic_ao.r, sampled_normal.xyz, roughness_metallic_ao.b, roughness_metallic_ao.g, sampled_albedo.rgb);
+    vec3 light = res.rgb;
 	imageStore(u_output_texture, tex_coords / 2, vec4(light, res.a) );
 }

@@ -67,10 +67,12 @@ extern/implot/implot_items.cpp
  "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
  "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp" "src/physics/vehicles/BaseVehicle.cpp" "src/physics/vehicles/PhysXVehicleActor.cpp" 
  "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp" 
- "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h" "src/components/managers/ScriptSystem.cpp")
+ "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h" "src/components/managers/ScriptSystem.cpp" 
+ "headers/rendering/renderpasses/SSAOPass.h" "src/rendering/renderpasses/SSAOPass.cpp" "src/rendering/renderpasses/BloomPass.cpp" "headers/assets/AssetSerializer.h" "src/assets/AssetSerializer.cpp"
+"headers/assets/Prefab.h")
 
 add_library(ORNG_CORE STATIC
-${ORNG_LIB_SOURCES} "src/rendering/renderpasses/BloomPass.cpp"  "src/components/managers/ScriptSystem.cpp")
+${ORNG_LIB_SOURCES})
 
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)

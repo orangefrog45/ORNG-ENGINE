@@ -1,6 +1,4 @@
 #include "pch/pch.h"
-
-
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
 #include "components/ComponentSystems.h"
@@ -8,16 +6,7 @@
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
 #include "physics/Physics.h"
-
-/*
-	struct VertexData {
-			std::vector<glm::vec3> positions;
-			std::vector<glm::vec3> normals;
-			std::vector<glm::vec3> tangents;
-			std::vector<glm::vec2> tex_coords;
-			std::vector<unsigned int> indices;
-		};
-*/
+#include "assets/Prefab.h"
 
 
 namespace YAML {
@@ -736,7 +725,6 @@ namespace ORNG {
 
 		std::ofstream fout{ output };
 		fout << "#pragma once" << "\n";
-		fout << "namespace ScriptInterface {\n";
 		fout << "namespace World {\n";
 		fout << "namespace Entities {\n";
 
@@ -783,7 +771,6 @@ namespace ORNG {
 		fout << "};"; // namespace Materials
 
 		fout << "};"; // namespace Scene
-		fout << "};"; // namespace ScriptInterface
 	}
 
 	void SceneSerializer::SerializeScene(const Scene& scene, std::string& output, bool write_to_string) {

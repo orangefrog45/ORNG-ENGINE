@@ -83,6 +83,8 @@ namespace ORNG {
 
 		void OnLoad() final;
 
+		void OnUpdate() final;
+
 		void OnUnload() final {
 			m_script_destroy_connection.release();
 		}

@@ -27,12 +27,12 @@ namespace ORNG {
 			float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1, float scene_time_elapsed
 		);
 
-		Shader& GetShader(const std::string& name);
+		Shader* GetShader(const std::string& name);
 
 		void DeleteShader(const std::string& name);
 
 		Shader& GetQuadShader() {
-			return GetShader("SL quad");
+			return *GetShader("SL quad");
 		}
 
 		void ReloadShaders();
@@ -40,13 +40,6 @@ namespace ORNG {
 		inline static const uint64_t LIGHTING_SHADER_ID = 1;
 		inline static const uint64_t INVALID_SHADER_ID = 0; //useful for rendering things that should not have any shader applied to them (e.g skybox), only default gbuffer albedo
 	private:
-		struct ShaderPackageEntry {
-			std::string filepath;
-			std::string shader_content;
-		};
-
-		std::vector<ShaderPackageEntry> m_shader_package_cache;
-
 		std::unordered_map<std::string, Shader> m_shaders;
 		std::unordered_map<std::string, ShaderVariants> m_shader_variants;
 
