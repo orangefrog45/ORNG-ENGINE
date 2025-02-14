@@ -1,5 +1,12 @@
+14/2/24:
+-Rendering system overhaul ------
+-- Individual renderpasses made into their own classes
+-- Rendergraphs that renderpasses can be attached to and share data/resources within
+-- SceneRenderer converted to a utility class
+
 13/2/25:
 -Asset manager rewrite, new asset serializer class
+-Started SSAO pass, a bit buggy
 
 26/1/25:
  -Scripting environment matches engine app environment more closely

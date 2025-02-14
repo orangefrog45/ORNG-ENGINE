@@ -20,8 +20,6 @@ layout(std140, binding = 2) uniform commons{
 	vec4 camera_up;
 	vec4 voxel_aligned_cam_positions[4];
 	float time_elapsed;
-	float render_resolution_x;
-	float render_resolution_y;
 	float cam_zfar;
 	float cam_znear;
 	float delta_time;

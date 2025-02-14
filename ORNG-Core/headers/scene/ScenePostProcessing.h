@@ -22,7 +22,7 @@ namespace ORNG {
 	};
 
 
-	struct PostProcessing {
+	struct PostProcessingSettings {
 		Bloom bloom;
 		GlobalFog global_fog;
 	};

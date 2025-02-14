@@ -1,10 +1,9 @@
 #include "pch/pch.h"
-#include "rendering/SceneRenderer.h"
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
+#include "components/systems/PointlightSystem.h"
 
 namespace ORNG {
-
 
 	void PointlightSystem::OnLoad() {
 		if (!m_pointlight_ssbo.IsInitialized())
@@ -51,7 +50,8 @@ namespace ORNG {
 		// - END ATTENUATION
 	}
 
-	void PointlightSystem::OnUpdate(entt::registry* p_registry) {
+	void PointlightSystem::OnUpdate() {
+		auto* p_registry = &mp_scene->GetRegistry();
 		auto view = p_registry->view<PointLightComponent>();
 		if (view.size() == 0) {
 			m_pointlight_ssbo.Resize(0);

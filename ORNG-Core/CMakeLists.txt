@@ -69,7 +69,7 @@ extern/implot/implot_items.cpp
  "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp" 
  "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h" "src/components/managers/ScriptSystem.cpp" 
  "headers/rendering/renderpasses/SSAOPass.h" "src/rendering/renderpasses/SSAOPass.cpp" "src/rendering/renderpasses/BloomPass.cpp" "headers/assets/AssetSerializer.h" "src/assets/AssetSerializer.cpp"
-"headers/assets/Prefab.h")
+"headers/assets/Prefab.h" "headers/rendering/renderpasses/Renderpass.h" "headers/rendering/RenderGraph.h" "headers/rendering/renderpasses/GBufferPass.h" "src/rendering/renderpasses/GBufferPass.cpp" "headers/rendering/renderpasses/DepthPass.h" "src/rendering/renderpasses/DepthPass.cpp" "headers/components/systems/PointlightSystem.h" "headers/components/systems/ComponentSystem.h" "headers/rendering/renderpasses/VoxelPass.h" "src/rendering/renderpasses/VoxelPass.cpp" "headers/components/systems/SceneUBOSystem.h" "src/components/managers/SceneUBOSystem.cpp" "headers/rendering/renderpasses/LightingPass.h" "src/rendering/renderpasses/LightingPass.cpp" "headers/rendering/renderpasses/FogPass.h" "src/rendering/renderpasses/FogPass.cpp" "headers/rendering/renderpasses/TransparencyPass.h" "src/rendering/renderpasses/TransparencyPass.cpp" "headers/rendering/renderpasses/PostProcessPass.h" "src/rendering/renderpasses/PostProcessPass.cpp")
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES})

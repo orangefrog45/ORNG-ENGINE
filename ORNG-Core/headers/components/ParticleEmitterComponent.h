@@ -120,6 +120,10 @@ namespace ORNG {
 
 		bool AreAnyEmittedParticlesAlive();
 
+		unsigned GetParticleStartIdx() const noexcept {
+			return m_particle_start_index;
+		}
+
 		inline static const int BASE_NUM_PARTICLES = 64;
 
 	private:
@@ -153,7 +157,6 @@ namespace ORNG {
 		InterpolatorV3 m_life_colour_interpolator{ {0, 1}, {0, 1}, {1, 1, 1}, {1, 1, 1} };
 		InterpolatorV3 m_life_scale_interpolator{ {0, 1}, {0, 1}, {1, 1, 1}, {1, 1, 1} };
 		InterpolatorV1 m_life_alpha_interpolator{ {0, 1}, {0, 1}, 1, 1 };
-
 
 		// State
 

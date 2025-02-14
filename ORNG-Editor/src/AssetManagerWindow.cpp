@@ -799,13 +799,8 @@ namespace ORNG {
 		mp_preview_scene->GetEntity("Sphere")->GetComponent<MeshComponent>()->SetMeshAsset(p_asset);
 		mp_preview_scene->GetSystem<MeshInstancingSystem>().OnUpdate();
 
-		SceneRenderer::SceneRenderingSettings settings;
-		settings.p_output_tex = &*p_tex;
-		settings.p_scene = &*mp_preview_scene;
-		// Disable additional user renderpasses as this is just a preview of a mesh
-		settings.do_intercept_renderpasses = false;
 
-		mp_scene_renderer->RenderScene(settings);
+		//mp_scene_renderer->RenderScene(settings);
 
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 	}
@@ -829,12 +824,8 @@ namespace ORNG {
 
 		mesh_sys.OnUpdate();
 
-		SceneRenderer::SceneRenderingSettings settings;
-		settings.p_scene = &*mp_preview_scene;
-		settings.p_output_tex = p_tex.get();
-		// Disable additional user renderpasses as this is just a preview of a mesh
-		settings.do_intercept_renderpasses = false;
-		mp_scene_renderer->RenderScene(settings);
+
+		//mp_scene_renderer->RenderScene(settings);
 
 		glGenerateTextureMipmap(p_tex->GetTextureHandle());
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_tex->GetTextureHandle(), GL_TEXTURE0);

@@ -1,5 +1,6 @@
 #pragma once
 #include "util/TimeStep.h"
+#include "util/util.h"
 
 namespace ORNG {
 	class FrameTiming {

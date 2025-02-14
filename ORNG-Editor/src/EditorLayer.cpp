@@ -18,6 +18,15 @@
 #include "tracy/public/tracy/Tracy.hpp"
 #include "imgui/imgui_internal.h"
 #include "components/ComponentSystems.h"
+#include "rendering/renderpasses/DepthPass.h"
+#include "rendering/renderpasses/GBufferPass.h"
+#include "rendering/renderpasses/LightingPass.h"
+#include "rendering/renderpasses/FogPass.h"
+#include "rendering/renderpasses/TransparencyPass.h"
+#include "rendering/renderpasses/PostProcessPass.h"
+#include "components/systems/PointlightSystem.h"
+#include "components/systems/SpotlightSystem.h"
+#include "components/systems/SceneUBOSystem.h"
 
 constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
@@ -119,10 +128,8 @@ namespace ORNG {
 		static auto s = &*SCENE;
 		m_event_stack.SetContext(s, &m_state.selected_entity_ids);
 
-		m_scene_renderer.Init();
-
 		m_res.p_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
-		m_res.p_editor_pass_fb->BindTexture2D(m_scene_renderer.m_gbf_depth.GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
+		//m_res.p_editor_pass_fb->BindTexture2D(m_scene_renderer.m_gbf_depth.GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
 		m_res.p_editor_pass_fb->BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		m_res.p_editor_pass_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 
@@ -141,6 +148,17 @@ namespace ORNG {
 		m_asset_manager_window.p_extern_scene = mp_scene_context;
 		m_asset_manager_window.Init();
 
+		m_render_graph.AddRenderpass(new DepthPass(&m_render_graph));
+		m_render_graph.AddRenderpass(new GBufferPass(&m_render_graph));
+		m_render_graph.AddRenderpass(new LightingPass(&m_render_graph));
+		m_render_graph.AddRenderpass(new FogPass(&m_render_graph));
+		m_render_graph.AddRenderpass(new TransparencyPass(&m_render_graph));
+		m_render_graph.AddRenderpass(new PostProcessPass(&m_render_graph));
+		m_render_graph.SetData("OutCol", &*m_res.p_scene_display_texture);
+		m_render_graph.SetData("PPS", &SCENE->post_processing);
+		m_render_graph.SetData("Scene", SCENE);
+		m_render_graph.SetData("BloomInCol", &*m_res.p_scene_display_texture);
+		m_render_graph.Init();
 	}
 
 
@@ -210,7 +228,6 @@ namespace ORNG {
 
 		SCENE->UnloadScene();
 		m_asset_manager_window.OnShutdown();
-		m_scene_renderer.Unload();
 	}
 
 	void EditorLayer::InitImGui() {
@@ -345,6 +362,9 @@ namespace ORNG {
 		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)
 			SCENE->Update(FrameTiming::GetTimeStep());
 		else {
+			SCENE->GetSystem<SpotlightSystem>().OnUpdate();
+			SCENE->GetSystem<PointlightSystem>().OnUpdate();
+			SCENE->GetSystem<SceneUBOSystem>().OnUpdate();
 			SCENE->GetSystem<MeshInstancingSystem>().OnUpdate(); // This still needs to update so meshes are rendered correctly in the editor
 			SCENE->GetSystem<ParticleSystem>().OnUpdate(); // Continue simulating particles for visual feedback
 			SCENE->GetSystem<AudioSystem>().OnUpdate(); // For accurate audio playback
@@ -499,8 +519,7 @@ namespace ORNG {
 
 		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
-			//ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
-			ImGui::Image((ImTextureID)m_scene_renderer.m_ssao_pass.GetSSAOTex().GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
+			ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
 			ImGui::Dummy(ImVec2(0, 5));
 			ImGui::Dummy(ImVec2(5, 0));
@@ -608,14 +627,7 @@ namespace ORNG {
 		}
 		glPolygonMode(GL_FRONT_AND_BACK, m_state.general_settings.debug_render_settings.render_wireframe ? GL_LINE : GL_FILL);
 
-		SceneRenderer::SceneRenderingSettings settings;
-		settings.p_scene = mp_scene_context;
-		settings.p_output_tex = &*m_res.p_scene_display_texture;
-		settings.render_meshes = m_state.general_settings.debug_render_settings.render_meshes;
-		settings.voxel_mip_layer = m_state.general_settings.debug_render_settings.voxel_mip;
-		settings.voxel_render_face = m_state.general_settings.debug_render_settings.voxel_render_face;
-
-		m_scene_renderer.RenderScene(settings);
+		m_render_graph.Execute();
 		m_asset_manager_window.OnMainRender();
 
 		m_res.p_editor_pass_fb->Bind();
@@ -914,6 +926,7 @@ namespace ORNG {
 
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
 	void RefreshScriptIncludes() {
+		return;
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");

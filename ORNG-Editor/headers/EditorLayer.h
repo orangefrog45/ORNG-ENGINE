@@ -7,6 +7,7 @@
 #include "Settings.h"
 #include "EditorEventStack.h"
 #include "LuaCLI.h"
+#include "rendering/RenderGraph.h"
 
 namespace physx {
 	class PxMaterial;
@@ -221,8 +222,7 @@ namespace ORNG {
 			State/resources
 		*/
 
-		SceneRenderer m_scene_renderer;
-
+		RenderGraph m_render_graph;
 		Scene* mp_scene_context = nullptr;
 		std::unique_ptr<SceneEntity> mp_editor_camera{ nullptr };
 
@@ -303,7 +303,7 @@ namespace ORNG {
 
 		EditorEventStack m_event_stack;
 		LuaCLI m_lua_cli;
-		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context, &m_scene_renderer };
+		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context };
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 

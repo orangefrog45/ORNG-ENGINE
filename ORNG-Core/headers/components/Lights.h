@@ -47,11 +47,18 @@ namespace ORNG {
 	class DirectionalLight : public BaseLight {
 	public:
 		friend class EditorLayer;
-		friend class SceneRenderer;
-		friend class ShaderLibrary;
+		friend class SceneUBOSystem;
 		DirectionalLight();
 		auto GetLightDirection() const { return m_light_direction; };
-		void SetLightDirection(const glm::vec3& dir) { m_light_direction = glm::normalize(dir); };
+		void SetLightDirection(const glm::vec3& dir) { 
+			m_light_direction = glm::normalize(dir); 
+		};
+
+		const glm::mat4& GetLightSpaceMatrix(unsigned idx) const noexcept {
+			return m_light_space_matrices[idx];
+		}
+
+		inline static constexpr unsigned SHADOW_RESOLUTION = 4096;
 
 		std::array<float, 3> cascade_ranges = { 20.f, 75.f, 200.f };
 		//Amount the CameraComponent is pulled back from the center of the depth map

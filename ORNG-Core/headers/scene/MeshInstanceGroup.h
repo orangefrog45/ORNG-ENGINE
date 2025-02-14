@@ -40,6 +40,9 @@ namespace ORNG {
 			m_tombstone_limit = 250;
 		};
 
+		const SSBO<float>& GetTransformSSBO() const noexcept {
+			return m_transform_ssbo;
+		}
 
 		void AddInstance(SceneEntity* ptr);
 
@@ -87,6 +90,5 @@ namespace ORNG {
 		unsigned m_tombstone_limit;
 
 		SSBO<float> m_transform_ssbo{ true, 0};
-
 	};
 }

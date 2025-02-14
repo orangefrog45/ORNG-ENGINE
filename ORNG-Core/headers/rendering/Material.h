@@ -104,7 +104,7 @@ namespace ORNG {
 				flags = (MaterialFlags)(flags | ORNG_MatFlags_NONE);
 		}
 
-		inline MaterialFlags GetFlags() {
+		inline MaterialFlags GetFlags() const noexcept {
 			return flags;
 		}
 

@@ -3,7 +3,7 @@
 #include "core/GLStateManager.h"
 #include "scene/SceneEntity.h"
 #include "core/GLStateManager.h"
-#include "rendering/SceneRenderer.h"
+#include "components/systems/SpotlightSystem.h"
 
 
 namespace ORNG {
@@ -21,8 +21,8 @@ namespace ORNG {
 
 		Texture2DArraySpec spotlight_depth_spec;
 		spotlight_depth_spec.internal_format = GL_DEPTH_COMPONENT24;
-		spotlight_depth_spec.width = 1024;
-		spotlight_depth_spec.height = 1024;
+		spotlight_depth_spec.width = SpotlightSystem::SPOTLIGHT_SHADOW_MAP_RES;
+		spotlight_depth_spec.height = SpotlightSystem::SPOTLIGHT_SHADOW_MAP_RES;
 		spotlight_depth_spec.layer_count = 8;
 		spotlight_depth_spec.format = GL_DEPTH_COMPONENT;
 		spotlight_depth_spec.storage_type = GL_FLOAT;
@@ -97,7 +97,8 @@ namespace ORNG {
 
 
 
-	void SpotlightSystem::OnUpdate(entt::registry* p_registry) {
+	void SpotlightSystem::OnUpdate() {
+		auto* p_registry = &mp_scene->GetRegistry();
 		auto view = p_registry->view<SpotLightComponent>();
 
 		if (view.empty()) {

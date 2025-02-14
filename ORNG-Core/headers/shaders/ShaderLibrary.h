@@ -19,14 +19,6 @@ namespace ORNG {
 
 		ShaderVariants& CreateShaderVariants(const char* name);
 
-		void SetMatrixUBOs(const glm::mat4& proj, const glm::mat4& view);
-
-		void SetGlobalLighting(const DirectionalLight& dir_light);
-
-		void SetCommonUBO(glm::vec3 camera_pos, glm::vec3 camera_target, glm::vec3 cam_right, glm::vec3 cam_up, unsigned int render_resolution_x, unsigned int render_resolution_y, 
-			float cam_zfar, float cam_znear, glm::vec3 voxel_aligned_cam_pos_c0, glm::vec3 voxel_aligned_cam_pos_c1, float scene_time_elapsed
-		);
-
 		Shader* GetShader(const std::string& name);
 
 		void DeleteShader(const std::string& name);
@@ -42,14 +34,5 @@ namespace ORNG {
 	private:
 		std::unordered_map<std::string, Shader> m_shaders;
 		std::unordered_map<std::string, ShaderVariants> m_shader_variants;
-
-		UBO m_matrix_ubo{ true, 0 };
-		inline const static unsigned int m_matrix_ubo_size = sizeof(glm::mat4) * 6;
-
-		UBO m_global_lighting_ubo{ true, 0 };
-		inline const static unsigned int m_global_lighting_ubo_size = 16 * sizeof(float);
-
-		UBO m_common_ubo{true, 0};
-		inline const static unsigned int m_common_ubo_size = sizeof(glm::vec4) * 8 + sizeof(float) * 7;
 	};
 }

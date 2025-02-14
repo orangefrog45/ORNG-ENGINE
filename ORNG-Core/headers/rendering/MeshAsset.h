@@ -74,6 +74,21 @@ namespace ORNG {
 			s.container8b(m_material_uuids, 10000);
 		}
 
+		inline static constexpr unsigned INVALID_MATERIAL = 0xFFFFFFFF;
+
+		struct MeshEntry {
+			MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
+
+			unsigned int num_indices;
+			unsigned int base_vertex;
+			unsigned int base_index;
+			unsigned int material_index;
+		};
+
+		const std::vector<MeshEntry>& GetSubmeshes() {
+			return m_submeshes;
+		}
+
 	private:
 		// Callback for when this mesh has a VAO created for it and its materials set up by the AssetManager class
 		// This is split from "LoadMeshData" so vertex data can be loaded asynchronously, cannot create the VAO asynchronously due to opengl contexts
@@ -101,18 +116,6 @@ namespace ORNG {
 		bool m_is_loaded = false;
 
 		const aiScene* p_scene = nullptr;
-
-
-#define INVALID_MATERIAL 0xFFFFFFFF
-
-		struct MeshEntry {
-			MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
-
-			unsigned int num_indices;
-			unsigned int base_vertex;
-			unsigned int base_index;
-			unsigned int material_index;
-		};
 
 		std::vector<MeshEntry> m_submeshes;
 

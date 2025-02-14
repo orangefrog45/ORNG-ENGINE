@@ -8,6 +8,9 @@
 #include "components/ComponentSystems.h"
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
+#include "components/systems/PointlightSystem.h"
+#include "components/systems/SpotlightSystem.h"
+#include "components/systems/SceneUBOSystem.h"
 
 namespace ORNG {
 	Scene::~Scene() {
@@ -19,9 +22,12 @@ namespace ORNG {
 		// This order is intentional for optimal use
 		AddSystem(new CameraSystem{ this });
 		AddSystem(new AudioSystem{ this });
+		AddSystem(new PointlightSystem{ this });
+		AddSystem(new SpotlightSystem{ this });
 		AddSystem(new ParticleSystem{ this });
 		AddSystem(new PhysicsSystem{ this });
 		AddSystem(new TransformHierarchySystem{ this });
+		AddSystem(new SceneUBOSystem{ this });
 		AddSystem(new ScriptSystem{ this });
 		AddSystem(new MeshInstancingSystem{ this });
 	}

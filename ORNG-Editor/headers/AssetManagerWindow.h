@@ -45,8 +45,8 @@ namespace ORNG {
 	class AssetManagerWindow {
 		friend class EditorLayer;
 	public:
-		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene, SceneRenderer* p_scene_renderer) : 
-			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene), mp_scene_renderer(p_scene_renderer) {};
+		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene) : 
+			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene) {};
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
@@ -139,8 +139,6 @@ namespace ORNG {
 				m_asset_deletion_queue.push_back(p_asset->uuid());
 				});
 		};
-
-		SceneRenderer* mp_scene_renderer = nullptr;
 
 		ImVec2 image_button_size{ 125, 125};
 		unsigned column_count = 1;

@@ -42,15 +42,15 @@ namespace ORNG {
 			return p_system;
 		}
 
-		template<typename SystemType>
-		SystemType& GetSystem() {
-			ASSERT(systems.contains(SystemType::GetSystemUUID()));
-			return *dynamic_cast<SystemType*>(systems[SystemType::GetSystemUUID()]);
+		template<typename SystemType> 
+		bool HasSystem() {
+			return systems.contains(SystemType::GetSystemUUID());
 		}
 
 		template<typename SystemType>
-		bool HasSystem() {
-			return systems.contains(SystemType::GetSystemUUID());
+		SystemType& GetSystem() {
+			ASSERT(HasSystem<SystemType>());
+			return *dynamic_cast<SystemType*>(systems[SystemType::GetSystemUUID()]);
 		}
 
 		// Allocates pool for component in main application instead of inside a script (needs to be called from main application)
@@ -148,7 +148,7 @@ namespace ORNG {
 		UUID<uint64_t> uuid;
 
 		Skybox skybox;
-		PostProcessing post_processing;
+		PostProcessingSettings post_processing;
 		DirectionalLight directional_light;
 		Terrain terrain;
 

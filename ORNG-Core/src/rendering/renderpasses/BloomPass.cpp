@@ -3,20 +3,12 @@
 #include "core/Window.h"
 #include "rendering/renderpasses/BloomPass.h"
 #include "rendering/Renderer.h"
+#include "rendering/RenderGraph.h"
 #include "shaders/Shader.h"
 
 using namespace ORNG;
 
 void BloomPass::Init() {
-	ResizeTexture(ceil(Window::GetWidth() * 0.5f), ceil(Window::GetHeight() * 0.5f));
-
-	m_window_listener.OnEvent = [this](const Events::WindowEvent& _event) {
-		if (_event.event_type == Events::WindowEvent::WINDOW_RESIZE) {
-			ResizeTexture(ceil(_event.new_window_size.x * 0.5f), ceil(_event.new_window_size.y * 0.5f));
-		}
-	};
-	Events::EventManager::RegisterListener(m_window_listener);
-
 	auto& shader_library = Renderer::GetShaderLibrary();
 
 	mp_bloom_downsample_shader = &shader_library.CreateShader("Bloom downsample");
@@ -40,30 +32,20 @@ void BloomPass::Init() {
 	mp_composition_shader->AddUniforms("u_bloom_intensity");
 }
 
-void BloomPass::ResizeTexture(unsigned new_width, unsigned new_height) {
-	Texture2DSpec bloom_rgb_spec;
-	bloom_rgb_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-	bloom_rgb_spec.mag_filter = GL_LINEAR;
-	bloom_rgb_spec.generate_mipmaps = true;
-	bloom_rgb_spec.width = new_width;
-	bloom_rgb_spec.height = new_height;
-	bloom_rgb_spec.format = GL_RGBA;
-	bloom_rgb_spec.internal_format = GL_RGBA16F;
-	bloom_rgb_spec.wrap_params = GL_CLAMP_TO_EDGE;
-	bloom_rgb_spec.storage_type = GL_FLOAT;
 
-	m_bloom_tex.SetSpec(bloom_rgb_spec);
-}
+void BloomPass::DoPass() {
+	const Bloom& bloom_settings = mp_graph->GetData<PostProcessingSettings>("PPS")->bloom;
+	auto* p_output = mp_graph->GetData<Texture2D>("OutCol");
+	auto* p_input = mp_graph->GetData<Texture2D>("BloomInCol");
 
-void BloomPass::DoPass(Texture2D* p_input, Texture2D* p_output, float intensity, float threshold, float knee) {
 	const auto& spec = p_input->GetSpec();
 	unsigned width = spec.width;
 	unsigned height = spec.height;
 
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, p_input->GetTextureHandle(), GL_TEXTURE1);
 	mp_bloom_threshold_shader->ActivateProgram();
-	mp_bloom_threshold_shader->SetUniform("u_threshold", threshold);
-	mp_bloom_threshold_shader->SetUniform("u_knee", knee);
+	mp_bloom_threshold_shader->SetUniform("u_threshold", bloom_settings.threshold);
+	mp_bloom_threshold_shader->SetUniform("u_knee", bloom_settings.knee);
 	// Isolate bright spots
 	glBindImageTexture(0, m_bloom_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 	glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
@@ -90,9 +72,8 @@ void BloomPass::DoPass(Texture2D* p_input, Texture2D* p_output, float intensity,
 	}
 
 	mp_composition_shader->ActivateProgram();
-	mp_composition_shader->SetUniform("u_bloom_intensity", intensity);
+	mp_composition_shader->SetUniform("u_bloom_intensity", bloom_settings.intensity);
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glDispatchCompute((GLuint)glm::ceil((float)width / 8.f), (GLuint)glm::ceil((float)height / 8.f), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
 }
