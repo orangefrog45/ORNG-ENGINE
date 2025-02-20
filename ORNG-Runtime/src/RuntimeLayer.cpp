@@ -2,11 +2,16 @@
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
 
+#include "rendering/renderpasses/DepthPass.h"
+#include "rendering/renderpasses/GBufferPass.h"
+#include "rendering/renderpasses/LightingPass.h"
+#include "rendering/renderpasses/FogPass.h"
+#include "rendering/renderpasses/TransparencyPass.h"
+#include "rendering/renderpasses/PostProcessPass.h"
+
 namespace ORNG {
 	void RuntimeLayer::OnInit() {
-		m_scene_renderer.Init();
-
-		mp_quad_shader = &Renderer::GetShaderLibrary().GetShader("SL quad");
+		mp_quad_shader = &Renderer::GetShaderLibrary().GetQuadShader();
 
 		Texture2DSpec spec;
 		// Setting up the scene display texture
@@ -29,15 +34,34 @@ namespace ORNG {
 				spec.width = t_event.new_window_size.x;
 				spec.height = t_event.new_window_size.y;
 				mp_display_tex->SetSpec(spec);
+
+				m_render_graph.Reset();
+				InitRenderGraph();
 			}
 			};
 
 		m_scene.AddDefaultSystems();
 		Events::EventManager::RegisterListener(m_window_event_listener);
-		AssetManager::LoadAssetsFromProjectPath("./", true);
+		AssetManager::GetSerializer().LoadAssetsFromProjectPath("./", true);
 		m_scene.LoadScene();
 		SceneSerializer::DeserializeScene(m_scene, ".\\scene.yml", true);
 		m_scene.Start();
+
+		InitRenderGraph();
+	}
+
+	void RuntimeLayer::InitRenderGraph() {
+		m_render_graph.AddRenderpass<DepthPass>();
+		m_render_graph.AddRenderpass<GBufferPass>();
+		m_render_graph.AddRenderpass<LightingPass>();
+		m_render_graph.AddRenderpass<FogPass>();
+		m_render_graph.AddRenderpass<TransparencyPass>();
+		m_render_graph.AddRenderpass<PostProcessPass>();
+		m_render_graph.SetData("OutCol", &*mp_display_tex);
+		m_render_graph.SetData("PPS", &m_scene.post_processing);
+		m_render_graph.SetData("Scene", &m_scene);
+		m_render_graph.SetData("BloomInCol", &*mp_display_tex);
+		m_render_graph.Init();
 	}
 
 	void RuntimeLayer::Update() {
@@ -45,16 +69,10 @@ namespace ORNG {
 	}
 
 	void RuntimeLayer::OnRender() {
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		GL_StateManager::DefaultClearBits();
-
-		SceneRenderer::SceneRenderingSettings s;
-		s.p_output_tex = &*mp_display_tex;
-		s.p_scene = &m_scene;
-		m_scene_renderer.RenderScene(s);
-
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
-
+		m_render_graph.Execute();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		mp_quad_shader->ActivateProgram();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_display_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		Renderer::DrawQuad();

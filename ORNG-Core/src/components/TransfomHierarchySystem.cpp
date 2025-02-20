@@ -1,6 +1,7 @@
 #include "pch/pch.h"
-#include "components/ComponentSystems.h"
+#include "components/systems/TransformHierarchySystem.h"
 #include "scene/SceneEntity.h"
+#include "scene/Scene.h"
 
 namespace ORNG {
 

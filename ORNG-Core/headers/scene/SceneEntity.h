@@ -25,7 +25,8 @@ namespace ORNG {
 
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>, typename... Args>
 		T* AddComponent(Args&&... args) {
-			if (HasComponent<T>()) return GetComponent<T>(); return &mp_registry->emplace<T>(m_entt_handle, this, std::forward<Args>(args)...);
+			if (HasComponent<T>()) return GetComponent<T>(); 
+			return &mp_registry->emplace<T>(m_entt_handle, this, std::forward<Args>(args)...);
 		};
 
 		// Returns ptr to component or nullptr if no component was found

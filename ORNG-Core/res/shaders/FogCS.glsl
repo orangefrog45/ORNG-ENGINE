@@ -203,7 +203,7 @@ void main() {
 	// Tex coords in range (0, 0), (screen width, screen height) / 2
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
 
-	float noise_offset = texelFetch(blue_noise_sampler, ivec2(tex_coords % textureSize(blue_noise_sampler, 0).xy), 0).r;
+	float noise_offset = 0; // TODO: need to get some noise
 
 	float fragment_depth = texelFetch(gbuffer_depth_sampler, tex_coords * 2, 0).r;
 	vec3 frag_world_pos = WorldPosFromDepth(fragment_depth, tex_coords / vec2(imageSize(fog_texture)));
@@ -217,7 +217,7 @@ void main() {
 	
 		// Raymarching
 	for (int i = 0; i < u_step_count; i++) {
-		float fog_density = u_density_coef * abs(sin(step_pos.y*step_pos.z*step_pos.x*0.001));
+		float fog_density = u_density_coef;
 
 		vec3 slice_light = vec3(0);
 

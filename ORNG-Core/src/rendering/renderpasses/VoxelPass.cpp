@@ -1,13 +1,14 @@
 #include "pch/pch.h"
-#include "components/ComponentSystems.h"
 #include "core/FrameTiming.h"
 #include "core/GLStateManager.h"
+#include "components/systems/CameraSystem.h"
+#include "components/systems/MeshInstancingSystem.h"
 #include "rendering/renderpasses/VoxelPass.h"
 #include "rendering/Renderer.h"
 #include "shaders/Shader.h"
 #include "util/Timers.h"
-#include "scene/SceneEntity.h"
 #include "scene/Scene.h"
+#include "scene/SceneEntity.h"
 #include "rendering/SceneRenderer.h"
 
 #include <glm/glm/gtc/round.hpp>
@@ -55,22 +56,19 @@ void VoxelPass::Init() {
 
 	auto voxel_uniforms = gbuffer_uniforms;
 	PushBackMultiple(voxel_uniforms, "u_orth_proj_view_matrix", "u_voxel_size", "u_cascade_idx");
-	mp_scene_voxelization_shader = &Renderer::GetShaderLibrary().CreateShaderVariants("scene-voxelizer");
-	mp_scene_voxelization_shader->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
-	mp_scene_voxelization_shader->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/SceneVoxelizationFS.glsl");
-	mp_scene_voxelization_shader->AddVariant((unsigned)VoxelizationSV::MAIN, { "VOXELIZE" }, voxel_uniforms);
+	m_scene_voxelization_shader.SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
+	m_scene_voxelization_shader.SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/SceneVoxelizationFS.glsl");
+	m_scene_voxelization_shader.AddVariant((unsigned)VoxelizationSV::MAIN, { "VOXELIZE" }, voxel_uniforms);
 
-	mp_voxel_compute_sv = &Renderer::GetShaderLibrary().CreateShaderVariants("SR voxel decrement");
-	mp_voxel_compute_sv->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/VoxelDecrementCS.glsl");
-	mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE, { "DECREMENT_LUMINANCE" }, {});
-	mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE, { "ON_CAM_POS_UPDATE" }, { "u_delta_tex_coords" });
-	mp_voxel_compute_sv->AddVariant((unsigned)VoxelCS_SV::BLIT, { "BLIT" }, {});
+	m_voxel_compute_sv.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/VoxelDecrementCS.glsl");
+	m_voxel_compute_sv.AddVariant((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE, { "DECREMENT_LUMINANCE" }, {});
+	m_voxel_compute_sv.AddVariant((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE, { "ON_CAM_POS_UPDATE" }, { "u_delta_tex_coords" });
+	m_voxel_compute_sv.AddVariant((unsigned)VoxelCS_SV::BLIT, { "BLIT" }, {});
 
-	mp_3d_mipmap_shader = &Renderer::GetShaderLibrary().CreateShaderVariants("3d-mipmap");
-	mp_3d_mipmap_shader->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/MipMap3D.glsl");
-	mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
-	mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC, { "ANISOTROPIC_MIPMAP" }, {});
-	mp_3d_mipmap_shader->AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, { "u_mip_level" });
+	m_3d_mipmap_shader.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/MipMap3D.glsl");
+	m_3d_mipmap_shader.AddVariant((unsigned)MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
+	m_3d_mipmap_shader.AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC, { "ANISOTROPIC_MIPMAP" }, {});
+	m_3d_mipmap_shader.AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, { "u_mip_level" });
 }
 
 void VoxelPass::DoPass() {
@@ -101,7 +99,7 @@ void VoxelPass::DoPass() {
 	Texture3D& cascade_mips = active_cascade_idx == 0 ? m_voxel_mip_faces_c0 : m_voxel_mip_faces_c1;
 
 	ORNG_PROFILE_FUNC_GPU();
-	Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 	glDepthFunc(GL_ALWAYS);
@@ -114,14 +112,14 @@ void VoxelPass::DoPass() {
 	glBindImageTexture(1, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
 	// Decrement accumulated values from previous frames as new luminance is about to be added
-	mp_voxel_compute_sv->Activate((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE);
+	m_voxel_compute_sv.Activate((unsigned)VoxelCS_SV::DECREMENT_LUMINANCE);
 	GL_StateManager::DispatchCompute(cascade_width / 4, cascade_width / 4, cascade_width / 4);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glViewport(0, 0, 256, 256);
-	mp_scene_voxelization_shader->Activate((unsigned)VoxelizationSV::MAIN);
-	mp_scene_voxelization_shader->SetUniform("u_voxel_size", voxel_size);
-	mp_scene_voxelization_shader->SetUniform("u_cascade_idx", active_cascade_idx);
+	m_scene_voxelization_shader.Activate((unsigned)VoxelizationSV::MAIN);
+	m_scene_voxelization_shader.SetUniform("u_voxel_size", voxel_size);
+	m_scene_voxelization_shader.SetUniform("u_cascade_idx", active_cascade_idx);
 	auto proj = glm::ortho(-half_cascade_width * voxel_size, half_cascade_width * voxel_size, -half_cascade_width * voxel_size, half_cascade_width * voxel_size, voxel_size, cascade_width * voxel_size);
 
 	// Draw scene into voxel textures
@@ -129,9 +127,9 @@ void VoxelPass::DoPass() {
 		glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}),
 		glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0}) };
 	for (int i = 0; i < 3; i++) {
-		mp_scene_voxelization_shader->SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
+		m_scene_voxelization_shader.SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 		for (auto* p_group : mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
-			SceneRenderer::DrawInstanceGroupGBuffer(mp_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, ORNG_MatFlags_INVALID,
+			SceneRenderer::DrawInstanceGroupGBuffer(&m_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, ORNG_MatFlags_INVALID,
 				GL_TRIANGLES, true);
 		}
 	}
@@ -152,15 +150,15 @@ void VoxelPass::DoPass() {
 	const int voxel_mip_ratio = m_scene_voxel_tex_c0.GetSpec().width / m_voxel_mip_faces_c0.GetSpec().width;
 	// Create first anisotropic mip
 	glBindImageTexture(2, normals_main_cascade_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	mp_3d_mipmap_shader->Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC);
+	m_3d_mipmap_shader.Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC);
 	GL_StateManager::DispatchCompute((int)cascade_width / voxel_mip_ratio / 4, (int)cascade_width / voxel_mip_ratio / 4, (int)cascade_width / voxel_mip_ratio / 4);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	// Create mip chain from anisotropic mip
-	mp_3d_mipmap_shader->Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN);
+	m_3d_mipmap_shader.Activate((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN);
 	GL_StateManager::BindTexture(GL_TEXTURE_3D, cascade_mips.GetTextureHandle(), GL_TEXTURE0);
 	for (int i = 1; i <= 6; i++) {
-		mp_3d_mipmap_shader->SetUniform("u_mip_level", i);
+		m_3d_mipmap_shader.SetUniform("u_mip_level", i);
 		glBindImageTexture(0, cascade_mips.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 		int group_dim = (int)glm::ceil((cascade_width / voxel_mip_ratio / (i + 1)) / 4.f);
@@ -184,14 +182,14 @@ void VoxelPass::AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex,
 	glBindImageTexture(0, voxel_luminance_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	glBindImageTexture(1, intermediate_copy_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 
-	mp_voxel_compute_sv->Activate((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE);
-	mp_voxel_compute_sv->SetUniform("u_delta_tex_coords", delta_tex_coords);
+	m_voxel_compute_sv.Activate((unsigned)VoxelCS_SV::ON_CAM_POS_UPDATE);
+	m_voxel_compute_sv.SetUniform("u_delta_tex_coords", delta_tex_coords);
 	GL_StateManager::DispatchCompute(tex_size / 4, tex_size / 4, tex_size / 4);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glBindImageTexture(0, intermediate_copy_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
 	glBindImageTexture(1, voxel_luminance_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32UI);
-	mp_voxel_compute_sv->Activate((unsigned)VoxelCS_SV::BLIT);
+	m_voxel_compute_sv.Activate((unsigned)VoxelCS_SV::BLIT);
 	GL_StateManager::DispatchCompute(tex_size / 4, tex_size / 4, tex_size / 4);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

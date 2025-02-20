@@ -1,8 +1,11 @@
+20/2/24:
+-Shaders and framebuffers no longer tied to a library
+
 14/2/24:
 -Rendering system overhaul ------
 -- Individual renderpasses made into their own classes
--- Rendergraphs that renderpasses can be attached to and share data/resources within
--- SceneRenderer converted to a utility class
+-- Rendergraphs that renderpasses can be attached to and share resources within
+-- SceneRenderer rewritten as a utility class
 
 13/2/25:
 -Asset manager rewrite, new asset serializer class

@@ -1,5 +1,4 @@
 #include "pch/pch.h"
-#include "components/ComponentSystems.h"
 #include "physics/Physics.h"
 #include "scene/SceneEntity.h"
 #include "glm/glm/gtc/quaternion.hpp"
@@ -9,8 +8,8 @@
 #include "physx/vehicle2/PxVehicleAPI.h"
 #include "physics/vehicles/DirectDrive.h"
 #include "assets/AssetManager.h"
-#include "physx/extensions/PxParticleExt.h"
 #include "core/FrameTiming.h"
+#include "components/systems/PhysicsSystem.h"
 
 
 namespace ORNG {

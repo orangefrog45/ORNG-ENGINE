@@ -13,12 +13,11 @@ using namespace ORNG;
 void PostProcessPass::Init() {
 	mp_scene = mp_graph->GetData<Scene>("Scene");
 
-	mp_post_process_shader = &Renderer::GetShaderLibrary().CreateShader("post_process");
-	mp_post_process_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/PostProcessCS.glsl");
-	mp_post_process_shader->Init();
-	mp_post_process_shader->AddUniforms("exposure", "u_bloom_intensity", "u_fog_enabled");
+	m_post_process_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/PostProcessCS.glsl");
+	m_post_process_shader.Init();
+	m_post_process_shader.AddUniforms("exposure", "u_bloom_intensity", "u_fog_enabled");
 
-	mp_post_process_shader->AddUniforms({
+	m_post_process_shader.AddUniforms({
 		"quad_sampler",
 		"world_position_sampler",
 		"camera_pos",
@@ -37,10 +36,10 @@ void PostProcessPass::DoPass() {
 	auto& spec = p_output_tex->GetSpec();
 	//DoBloomPass(p_output_tex, spec.width, spec.height, mp_scene);
 
-	mp_post_process_shader->ActivateProgram();
-	mp_post_process_shader->SetUniform("exposure", p_cam->exposure);
-	mp_post_process_shader->SetUniform("u_bloom_intensity", mp_scene->post_processing.bloom.intensity);
-	mp_post_process_shader->SetUniform("u_fog_enabled", mp_fog_tex && mp_scene->post_processing.global_fog.density_coef >= 0.001f && mp_scene->post_processing.global_fog.step_count != 0);
+	m_post_process_shader.ActivateProgram();
+	m_post_process_shader.SetUniform("exposure", p_cam->exposure);
+	m_post_process_shader.SetUniform("u_bloom_intensity", mp_scene->post_processing.bloom.intensity);
+	m_post_process_shader.SetUniform("u_fog_enabled", mp_fog_tex && mp_scene->post_processing.global_fog.density_coef >= 0.001f && mp_scene->post_processing.global_fog.step_count != 0);
 	
 	if (mp_fog_tex)
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_fog_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_2, false);

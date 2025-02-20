@@ -4,10 +4,9 @@
 #include "rendering/Renderer.h"
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
-#include "util/TimeStep.h"
 #include "components/ParticleBufferComponent.h"
-#include "util/Timers.h"
 #include "core/FrameTiming.h"
+#include "components/systems/ParticleSystem.h"
 
 
 
@@ -43,18 +42,14 @@ namespace ORNG {
 	};
 
 	ParticleSystem::ParticleSystem(Scene* p_scene) : ComponentSystem(p_scene) {
-		if (!mp_particle_cs) {
-			mp_particle_cs = &Renderer::GetShaderLibrary().CreateShader("particle update");
-			mp_particle_cs->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleCS.glsl");
-			mp_particle_cs->Init();
+		m_particle_cs.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleCS.glsl");
+		m_particle_cs.Init();
 
-			mp_particle_initializer_cs = &Renderer::GetShaderLibrary().CreateShaderVariants("particle initializer");
-			mp_particle_initializer_cs->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleInitializerCS.glsl");
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::DEFAULT, {}, { "u_start_index", "u_emitter_index" });
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index", "u_num_emitters" });
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index", "u_num_particles" });
-			mp_particle_initializer_cs->AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
-		}
+		m_particle_initializer_cs.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/ParticleInitializerCS.glsl");
+		m_particle_initializer_cs.AddVariant(ParticleCSVariants::DEFAULT, {}, { "u_start_index", "u_emitter_index" });
+		m_particle_initializer_cs.AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_EMITTERS" }, { "u_emitter_index", "u_num_emitters" });
+		m_particle_initializer_cs.AddVariant(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES, { "EMITTER_DELETE", "EMITTER_DELETE_DECREMENT_PARTICLES" }, { "u_start_index", "u_num_particles" });
+		m_particle_initializer_cs.AddVariant(ParticleCSVariants::INITIALIZE_AS_DEAD, { "INITIALIZE_AS_DEAD" }, { "u_start_index" });
 	};
 
 	void ParticleSystem::OnLoad() {
@@ -126,9 +121,9 @@ namespace ORNG {
 		GL_StateManager::BindSSBO(m_emitter_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_EMITTERS);
 		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
-		mp_particle_initializer_cs->Activate(ParticleCSVariants::DEFAULT);
-		mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index);
-		mp_particle_initializer_cs->SetUniform<unsigned>("u_emitter_index", m_emitter_entities.size() - 1);
+		m_particle_initializer_cs.Activate(ParticleCSVariants::DEFAULT);
+		m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index);
+		m_particle_initializer_cs.SetUniform<unsigned>("u_emitter_index", m_emitter_entities.size() - 1);
 
 		if (p_comp->m_num_particles > 0) {
 			GL_StateManager::DispatchCompute(glm::ceil((float)p_comp->m_num_particles / 32.f), 1, 1);
@@ -172,8 +167,8 @@ namespace ORNG {
 			m_particle_ssbo.Resize(new_allocated_particles * particle_struct_size);
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
-			mp_particle_initializer_cs->Activate(ParticleCSVariants::INITIALIZE_AS_DEAD);
-			mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
+			m_particle_initializer_cs.Activate(ParticleCSVariants::INITIALIZE_AS_DEAD);
+			m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
 			GL_StateManager::DispatchCompute((int)glm::ceil((new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
@@ -279,18 +274,18 @@ namespace ORNG {
 		int num_particles_to_decrement = (total_emitter_particles - (p_comp->m_particle_start_index + old_nb_particles));
 		if (num_particles_to_decrement > 0) {
 			// Adjust emitter indices to account for deletion (handled in shader)
-			mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES);
-			mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
-			mp_particle_initializer_cs->SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
-			mp_particle_initializer_cs->SetUniform<unsigned>("u_num_particles", num_particles_to_decrement);
+			m_particle_initializer_cs.Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES);
+			m_particle_initializer_cs.SetUniform("u_emitter_index", p_comp->m_index);
+			m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
+			m_particle_initializer_cs.SetUniform<unsigned>("u_num_particles", num_particles_to_decrement);
 			GL_StateManager::DispatchCompute((int)glm::ceil(num_particles_to_decrement / 32.f), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 
 		// Emitter "start indices" (where their particles start in the buffer) need to be modified to account for deletion
-		mp_particle_initializer_cs->Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS);
-		mp_particle_initializer_cs->SetUniform("u_emitter_index", p_comp->m_index);
-		mp_particle_initializer_cs->SetUniform<unsigned>("u_num_emitters", m_emitter_entities.size());
+		m_particle_initializer_cs.Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS);
+		m_particle_initializer_cs.SetUniform("u_emitter_index", p_comp->m_index);
+		m_particle_initializer_cs.SetUniform<unsigned>("u_num_emitters", m_emitter_entities.size());
 		GL_StateManager::DispatchCompute(1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -323,8 +318,6 @@ namespace ORNG {
 		}
 
 		auto& shader_library = Renderer::GetShaderLibrary();
-		shader_library.DeleteShader(mp_particle_cs->GetName());
-		shader_library.DeleteShader(mp_particle_initializer_cs->GetName());
 	}
 
 	void ParticleSystem::InitBuffer(ParticleBufferComponent* p_comp) {
@@ -343,7 +336,7 @@ namespace ORNG {
 	}
 
 	void ParticleSystem::OnUpdate() {
-		mp_particle_cs->ActivateProgram();
+		m_particle_cs.ActivateProgram();
 		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 		if (total_emitter_particles > 0)

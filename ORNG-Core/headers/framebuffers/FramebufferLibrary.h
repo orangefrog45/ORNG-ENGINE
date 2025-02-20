@@ -2,6 +2,7 @@
 #include "framebuffers/Framebuffer.h"
 #include "util/util.h"
 
+#if false
 namespace ORNG {
 
 	class FramebufferLibrary {
@@ -25,3 +26,4 @@ namespace ORNG {
 
 	};
 }
+#endif

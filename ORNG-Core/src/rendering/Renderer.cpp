@@ -11,7 +11,6 @@ namespace ORNG {
 	void Renderer::I_Init() {
 		TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 
-		m_framebuffer_library.Init();
 		m_shader_library.Init();
 		mp_quad = std::make_unique<Quad>();
 		mp_quad->Load();

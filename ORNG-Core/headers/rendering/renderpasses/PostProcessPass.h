@@ -1,6 +1,7 @@
 #pragma once
 #include "rendering/renderpasses/Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
 
 namespace ORNG {
 	class PostProcessPass : public Renderpass {
@@ -15,7 +16,7 @@ namespace ORNG {
 	private:
 		Texture2D* mp_fog_tex = nullptr;
 
-		class Shader* mp_post_process_shader = nullptr;
-		class Scene* mp_scene = nullptr;
+		Shader m_post_process_shader;
+		Scene* mp_scene = nullptr;
 	};
 }

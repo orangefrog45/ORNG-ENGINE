@@ -279,6 +279,11 @@ namespace ORNG {
 
 		glValidateProgram(m_program_id);
 		glUseProgram(m_program_id);
+
+		if (m_reload_listener.GetRegisterID() == entt::null) {
+			m_reload_listener.OnEvent = [this]([[maybe_unused]] auto) {Reload(); };
+			Events::EventManager::RegisterListener(m_reload_listener);
+		}
 	}
 
 

@@ -1,10 +1,8 @@
 #include "pch/pch.h"
-#include "components/ComponentSystems.h"
 #include "assets/AssetManager.h"
-#include "core/Window.h"
 #include "rendering/SceneRenderer.h"
-#include "rendering/Renderer.h"
 #include "core/FrameTiming.h"
+#include "components/systems/ScriptSystem.h"
 
 using namespace ORNG;
 

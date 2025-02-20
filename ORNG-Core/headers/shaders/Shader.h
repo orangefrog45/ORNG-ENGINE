@@ -2,6 +2,7 @@
 #include "util/Log.h"
 #include "util/util.h"
 #include "util/UUID.h"
+#include "events/Events.h"
 
 namespace ORNG {
 	class Material;
@@ -28,7 +29,6 @@ namespace ORNG {
 		void AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines = {});
 
 		void Reload();
-
 
 		const std::string& GetName() const {
 			return m_name;
@@ -136,10 +136,12 @@ namespace ORNG {
 		std::unordered_map<std::string, unsigned int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;
 		std::string m_name = "Unnamed shader";
+
+		Events::EventListener<Events::ShaderReloadEvent> m_reload_listener;
 	};
 
 
-	// This class can contain multiple of the same shader with different defines, cleaner than having to create and store a shader externally for every potential variation needed
+	// This class can contain multiple of the same shader with different defines
 	class ShaderVariants {
 		friend class ShaderLibrary;
 	public:

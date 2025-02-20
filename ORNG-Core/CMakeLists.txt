@@ -3,73 +3,96 @@ cmake_minimum_required(VERSION 3.8)
 project(ORNG_CORE)
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-set(ORNG_LIB_SOURCES 
-src/stb_image.cpp
-src/components/Camera.cpp
-src/components/Component.cpp
-src/components/MeshComponent.cpp
-src/components/PhysicsComponent.cpp
-src/components/TransformComponent.cpp
-src/components/ScriptComponent.cpp
-src/components/lights/LightComponents.cpp
-src/components/managers/MeshComponentManager.cpp
-src/components/managers/PhysicsSystem.cpp
-src/components/managers/PointlightComponentManager.cpp
-src/components/managers/SpotlightComponentManager.cpp
-src/core/Application.cpp
-src/core/GLStateManager.cpp
-src/core/Window.cpp
-src/events/EventManager.cpp
-src/events/Events.cpp
-src/framebuffers/Framebuffer.cpp
-src/framebuffers/FramebufferLibrary.cpp
-src/layers/LayerStack.cpp
-src/pch/pch.cpp
-src/physics/physics.cpp
-src/rendering/EnvMapLoader.cpp
-src/rendering/MeshAsset.cpp
-src/rendering/MeshInstanceGroup.cpp
-src/rendering/Quad.cpp
-src/rendering/Renderer.cpp
-src/rendering/SceneRenderer.cpp
-src/rendering/Textures.cpp
-"src/rendering/VAO.cpp"
-src/scene/GridMesh.cpp
-src/scene/Scene.cpp
-src/scene/SceneEntity.cpp
-src/scene/ScenePostProcessing.cpp
-src/scene/SceneSerializer.cpp
-src/scene/Skybox.cpp
-src/shaders/Shader.cpp
-src/shaders/ShaderLibrary.cpp
-src/terrain/ChunkLoader.cpp
-src/terrain/Terrain.cpp
-src/terrain/TerrainChunk.cpp
-src/terrain/TerrainGenerator.cpp
-src/terrain/TerrainQuadtree.cpp
-src/util/ExtraMath.cpp
-src/util/Log.cpp
-src/util/Timers.cpp
-src/util/TimeStep.cpp
-src/util/UUID.cpp
-"src/assets/AssetManager.cpp"
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.cpp
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx2.cpp
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx512.cpp
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_neon.cpp
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
-extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
-extern/implot/implot.cpp
-extern/implot/implot_items.cpp
+set(ORNG_LIB_SOURCES
+    src/stb_image.cpp
+    src/components/Camera.cpp
+    src/components/Component.cpp
+    src/components/MeshComponent.cpp
+    src/components/PhysicsComponent.cpp
+    src/components/TransformComponent.cpp
+    src/components/ScriptComponent.cpp
+    src/components/lights/LightComponents.cpp
+    src/components/managers/MeshComponentManager.cpp
+    src/components/managers/PhysicsSystem.cpp
+    src/components/managers/PointlightComponentManager.cpp
+    src/components/managers/SpotlightComponentManager.cpp
+    src/core/Application.cpp
+    src/core/GLStateManager.cpp
+    src/core/Window.cpp
+    src/events/EventManager.cpp
+    src/events/Events.cpp
+    src/framebuffers/Framebuffer.cpp
+    src/framebuffers/FramebufferLibrary.cpp
+    src/layers/LayerStack.cpp
+    src/pch/pch.cpp
+    src/physics/physics.cpp
+    src/rendering/EnvMapLoader.cpp
+    src/rendering/MeshAsset.cpp
+    src/rendering/MeshInstanceGroup.cpp
+    src/rendering/Quad.cpp
+    src/rendering/Renderer.cpp
+    src/rendering/SceneRenderer.cpp
+    src/rendering/Textures.cpp
+    src/rendering/VAO.cpp
+    src/scene/GridMesh.cpp
+    src/scene/Scene.cpp
+    src/scene/SceneEntity.cpp
+    src/scene/ScenePostProcessing.cpp
+    src/scene/SceneSerializer.cpp
+    src/scene/Skybox.cpp
+    src/shaders/Shader.cpp
+    src/shaders/ShaderLibrary.cpp
+    src/terrain/ChunkLoader.cpp
+    src/terrain/Terrain.cpp
+    src/terrain/TerrainChunk.cpp
+    src/terrain/TerrainGenerator.cpp
+    src/terrain/TerrainQuadtree.cpp
+    src/util/ExtraMath.cpp
+    src/util/Log.cpp
+    src/util/Timers.cpp
+    src/util/TimeStep.cpp
+    src/util/UUID.cpp
+    src/assets/AssetManager.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx2.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx512.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_neon.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
+    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
+    extern/implot/implot.cpp
+    extern/implot/implot_items.cpp
+    src/scripting/ScriptingEngine.cpp
+    src/audio/AudioEngine.cpp
+    src/components/managers/AudioSystem.cpp
+    src/components/TransfomHierarchySystem.cpp
+    src/util/ExtraUI.cpp
+    src/scene/SceneManager.cpp
+    src/util/util.cpp
+    src/components/AudioComponent.cpp
+    src/layers/ImGuiLayer.cpp
+    src/physics/vehicles/BaseVehicle.cpp
+    src/physics/vehicles/PhysXVehicleActor.cpp
+    src/physics/vehicles/DirectDrive.cpp
+    src/components/VehicleComponent.cpp
+    src/assets/AssetsImpl.cpp
+    src/components/managers/ParticleSystem.cpp
+    src/util/Interpolator.cpp
+    src/components/ParticleEmitterComponent.cpp
+    src/components/managers/ScriptSystem.cpp
+    src/rendering/renderpasses/SSAOPass.cpp
+    src/rendering/renderpasses/BloomPass.cpp
+    src/assets/AssetSerializer.cpp
+    src/rendering/renderpasses/GBufferPass.cpp
+    src/rendering/renderpasses/DepthPass.cpp
+    src/rendering/renderpasses/VoxelPass.cpp
+    src/components/managers/SceneUBOSystem.cpp
+    src/rendering/renderpasses/LightingPass.cpp
+    src/rendering/renderpasses/FogPass.cpp
+    src/rendering/renderpasses/TransparencyPass.cpp
+    src/rendering/renderpasses/PostProcessPass.cpp
+)
 
- "headers/components/ParticleBufferComponent.h"
- "src/scripting/ScriptingEngine.cpp"   "src/audio/AudioEngine.cpp" "src/audio/AudioSystem.cpp"  "src/components/TransfomHierarchySystem.cpp" "src/util/ExtraUI.cpp"
- "src/scene/SceneManager.cpp" "src/util/util.cpp"   "src/components/AudioComponent.cpp" "src/layers/ImGuiLayer.cpp" "src/physics/vehicles/BaseVehicle.cpp" "src/physics/vehicles/PhysXVehicleActor.cpp" 
- "src/physics/vehicles/DirectDrive.cpp" "src/components/VehicleComponent.cpp" "src/assets/AssetsImpl.cpp" "src/components/managers/ParticleSystem.cpp" 
- "headers/util/Interpolators.h" "src/util/Interpolator.cpp" "headers/util/InterpolatorSerializer.h" "src/components/ParticleEmitterComponent.cpp" "headers/scene/EntityNodeRef.h" "src/components/managers/ScriptSystem.cpp" 
- "headers/rendering/renderpasses/SSAOPass.h" "src/rendering/renderpasses/SSAOPass.cpp" "src/rendering/renderpasses/BloomPass.cpp" "headers/assets/AssetSerializer.h" "src/assets/AssetSerializer.cpp"
-"headers/assets/Prefab.h" "headers/rendering/renderpasses/Renderpass.h" "headers/rendering/RenderGraph.h" "headers/rendering/renderpasses/GBufferPass.h" "src/rendering/renderpasses/GBufferPass.cpp" "headers/rendering/renderpasses/DepthPass.h" "src/rendering/renderpasses/DepthPass.cpp" "headers/components/systems/PointlightSystem.h" "headers/components/systems/ComponentSystem.h" "headers/rendering/renderpasses/VoxelPass.h" "src/rendering/renderpasses/VoxelPass.cpp" "headers/components/systems/SceneUBOSystem.h" "src/components/managers/SceneUBOSystem.cpp" "headers/rendering/renderpasses/LightingPass.h" "src/rendering/renderpasses/LightingPass.cpp" "headers/rendering/renderpasses/FogPass.h" "src/rendering/renderpasses/FogPass.cpp" "headers/rendering/renderpasses/TransparencyPass.h" "src/rendering/renderpasses/TransparencyPass.cpp" "headers/rendering/renderpasses/PostProcessPass.h" "src/rendering/renderpasses/PostProcessPass.cpp")
 
 add_library(ORNG_CORE STATIC
 ${ORNG_LIB_SOURCES})

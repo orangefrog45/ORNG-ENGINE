@@ -4,10 +4,7 @@
 
 
 namespace ORNG {
-	class DirectionalLight;
-	struct PointLightComponent;
-	class SpotLightComponent;
-
+	// Contains a collection of common/useful shaders
 	class ShaderLibrary {
 	public:
 		friend class Renderer;
@@ -15,16 +12,8 @@ namespace ORNG {
 
 		void Init();
 
-		Shader& CreateShader(const char* name);
-
-		ShaderVariants& CreateShaderVariants(const char* name);
-
-		Shader* GetShader(const std::string& name);
-
-		void DeleteShader(const std::string& name);
-
 		Shader& GetQuadShader() {
-			return *GetShader("SL quad");
+			return m_quad_shader;
 		}
 
 		void ReloadShaders();
@@ -32,7 +21,7 @@ namespace ORNG {
 		inline static const uint64_t LIGHTING_SHADER_ID = 1;
 		inline static const uint64_t INVALID_SHADER_ID = 0; //useful for rendering things that should not have any shader applied to them (e.g skybox), only default gbuffer albedo
 	private:
-		std::unordered_map<std::string, Shader> m_shaders;
-		std::unordered_map<std::string, ShaderVariants> m_shader_variants;
+		Shader m_quad_shader;
 	};
+
 }

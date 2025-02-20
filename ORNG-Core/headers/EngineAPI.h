@@ -4,6 +4,7 @@
 #include "scene/Scene.h"
 #include "scene/SceneEntity.h"
 #include "rendering/Renderer.h"
+#include "rendering/RenderGraph.h"
 #include "rendering/SceneRenderer.h"
 #include "components/ComponentAPI.h"
 #include "framebuffers/FramebufferLibrary.h"

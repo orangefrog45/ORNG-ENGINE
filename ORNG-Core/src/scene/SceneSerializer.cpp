@@ -1,4 +1,6 @@
 #include "pch/pch.h"
+#include "events/Events.h"
+#include "components/ComponentAPI.h"
 #include "scene/SceneSerializer.h"
 #include "scene/Scene.h"
 #include "components/ComponentSystems.h"
@@ -7,6 +9,7 @@
 #include "util/InterpolatorSerializer.h"
 #include "physics/Physics.h"
 #include "assets/Prefab.h"
+#include "components/systems/PhysicsSystem.h"
 
 
 namespace YAML {

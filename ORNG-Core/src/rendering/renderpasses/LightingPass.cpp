@@ -15,18 +15,16 @@ using namespace ORNG;
 
 void LightingPass::Init() {
 	mp_scene = mp_graph->GetData<Scene>("Scene");
-	mp_shader = &Renderer::GetShaderLibrary().CreateShader("lighting");
-	mp_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/LightingCS.glsl");
-	mp_shader->Init();
-	mp_shader->AddUniform("u_ibl_active");
+	m_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/LightingCS.glsl");
+	m_shader.Init();
+	m_shader.AddUniform("u_ibl_active");
 
 	mp_output_tex = mp_graph->GetData<Texture2D>("OutCol");
 	if (auto* p_voxel_pass = mp_graph->GetRenderpass<VoxelPass>()) {
 		mp_voxel_pass = p_voxel_pass;
 
-		mp_cone_trace_shader = &Renderer::GetShaderLibrary().CreateShader("SR cone trace");
-		mp_cone_trace_shader->AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ConeTraceCS.glsl");
-		mp_cone_trace_shader->Init();
+		m_cone_trace_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ConeTraceCS.glsl");
+		m_cone_trace_shader.Init();
 
 		auto& output_spec = mp_output_tex->GetSpec();
 
@@ -38,10 +36,9 @@ void LightingPass::Init() {
 		cone_trace_spec.height = output_spec.height * 0.5;
 		m_cone_trace_accum_tex.SetSpec(cone_trace_spec);
 
-		mp_depth_aware_upsample_sv = &Renderer::GetShaderLibrary().CreateShaderVariants("LightingPass depth aware upsample");
-		mp_depth_aware_upsample_sv->SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/DepthAwareUpsampleCS.glsl");
+		m_depth_aware_upsample_sv.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/DepthAwareUpsampleCS.glsl");
 		// Cone trace upsample pass is also normal-aware as well as depth-aware
-		mp_depth_aware_upsample_sv->AddVariant(0, { "CONE_TRACE_UPSAMPLE" }, {});
+		m_depth_aware_upsample_sv.AddVariant(0, { "CONE_TRACE_UPSAMPLE" }, {});
 	}
 
 	auto* p_gbuffer_pass = mp_graph->GetRenderpass<GBufferPass>();
@@ -80,8 +77,8 @@ void LightingPass::DoPass() {
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSpecularPrefilter()->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
 	}
 
-	mp_shader->ActivateProgram();
-	mp_shader->SetUniform("u_ibl_active", mp_scene->skybox.using_env_map);
+	m_shader.ActivateProgram();
+	m_shader.SetUniform("u_ibl_active", mp_scene->skybox.using_env_map);
 
 	auto& spec = mp_output_tex->GetSpec();
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, mp_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -98,13 +95,13 @@ void LightingPass::DoPass() {
 
 	// Cone trace at half res
 	glClearTexImage(m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
-	mp_cone_trace_shader->ActivateProgram();
+	m_cone_trace_shader.ActivateProgram();
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 16.f), (GLuint)glm::ceil((float)spec.height / 16.f), 1);
 	glBindImageTexture(7, m_cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
-	mp_depth_aware_upsample_sv->Activate(0);
+	m_depth_aware_upsample_sv.Activate(0);
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, mp_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, m_cone_trace_accum_tex.GetTextureHandle(), GL_TEXTURE23, false);
 	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
@@ -112,7 +109,4 @@ void LightingPass::DoPass() {
 };
 
 void LightingPass::Destroy() {
-	auto& shader_lib = Renderer::GetShaderLibrary();
-	if (mp_cone_trace_shader) shader_lib.DeleteShader(mp_cone_trace_shader->GetName());
-	if (mp_shader) shader_lib.DeleteShader(mp_shader->GetName());
 };

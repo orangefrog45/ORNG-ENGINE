@@ -2,6 +2,7 @@
 #include "events/Events.h"
 #include "rendering/renderpasses/Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
 
 namespace ORNG {
 	class Shader;
@@ -17,13 +18,13 @@ namespace ORNG {
 		// p_input can be p_output, resolutions must match
 		void DoPass() override;
 
-		void Destroy() override;
+		void Destroy() override {};
 
 	private:
 		Texture2D m_bloom_tex{ "Bloom tex" };
-		Shader* mp_bloom_downsample_shader = nullptr;
-		Shader* mp_bloom_upsample_shader = nullptr;
-		Shader* mp_composition_shader = nullptr;
-		Shader* mp_bloom_threshold_shader = nullptr;
+		Shader m_bloom_downsample_shader;
+		Shader m_bloom_upsample_shader;
+		Shader m_composition_shader;
+		Shader m_bloom_threshold_shader;
 	};
 }

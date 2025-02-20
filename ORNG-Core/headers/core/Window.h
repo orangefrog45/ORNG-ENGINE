@@ -62,6 +62,10 @@ namespace ORNG {
 			glm::vec2 offset = { 0, 0 };
 		};
 
+		inline static Input& GetInput() noexcept {
+			return Get().input;
+		}
+
 		Input input;
 	private:
 		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated);
@@ -73,8 +77,6 @@ namespace ORNG {
 		void IUpdate();
 
 		ScrollData m_scroll_data;
-
-		Events::EventListener<Events::EngineCoreEvent> m_update_listener;
 
 		inline static Window* mp_instance = nullptr;
 

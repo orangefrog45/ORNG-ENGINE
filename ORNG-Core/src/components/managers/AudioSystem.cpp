@@ -1,8 +1,8 @@
 #include "pch/pch.h"
 #include <fmod.hpp>
-#include "components/ComponentSystems.h"
 #include "audio/AudioEngine.h"
 #include "assets/AssetManager.h"
+#include "components/systems/AudioSystem.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
@@ -10,11 +10,9 @@ namespace ORNG {
 		ComponentSystem::DispatchComponentEvent<AudioComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
 	}
 
-
 	static void OnAudioComponentDestroy(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<AudioComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 	}
-
 
 	void AudioSystem::OnLoad() {
 		std::string name = std::to_string(GetSceneUUID());

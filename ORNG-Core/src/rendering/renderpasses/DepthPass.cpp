@@ -8,7 +8,7 @@
 #include "components/systems/PointlightSystem.h"
 #include "components/systems/SpotlightSystem.h"
 #include "scene/MeshInstanceGroup.h"
-#include "components/ComponentSystems.h"
+#include "components/systems/MeshInstancingSystem.h"
 #include "rendering/MeshAsset.h"
 #include "rendering/SceneRenderer.h"
 
@@ -22,18 +22,17 @@ enum class DepthSV {
 
 void DepthPass::Init()
 {
-	mp_sv = &Renderer::GetShaderLibrary().CreateShaderVariants("SR Depth");
-	mp_sv->SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/DepthVS.glsl");
-	mp_sv->SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/DepthFS.glsl");
-	mp_sv->AddVariant((unsigned)DepthSV::DIRECTIONAL, { "ORTHOGRAPHIC" }, { "u_alpha_test", "u_light_pv_matrix" });
-	mp_sv->AddVariant((unsigned)DepthSV::SPOTLIGHT, { "PERSPECTIVE", "SPOTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos" });
-	mp_sv->AddVariant((unsigned)DepthSV::POINTLIGHT, { "PERSPECTIVE", "POINTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos", "u_light_zfar" });
+	m_sv.SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/DepthVS.glsl");
+	m_sv.SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/DepthFS.glsl");
+	m_sv.AddVariant((unsigned)DepthSV::DIRECTIONAL, { "ORTHOGRAPHIC" }, { "u_alpha_test", "u_light_pv_matrix" });
+	m_sv.AddVariant((unsigned)DepthSV::SPOTLIGHT, { "PERSPECTIVE", "SPOTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos" });
+	m_sv.AddVariant((unsigned)DepthSV::POINTLIGHT, { "PERSPECTIVE", "POINTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos", "u_light_zfar" });
 
 	mp_scene = mp_graph->GetData<Scene>("Scene");
 	mp_spotlight_system = &mp_scene->GetSystem<SpotlightSystem>();
 	mp_pointlight_system = &mp_scene->GetSystem<PointlightSystem>();
 
-	mp_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("dir_depth", false);
+	m_fb.Init();
 
 	Texture2DArraySpec depth_spec;
 	depth_spec.format = GL_DEPTH_COMPONENT;
@@ -55,21 +54,21 @@ void DepthPass::DoPass()
 
 	if (mp_scene->directional_light.shadows_enabled) {
 		// Render cascades
-		mp_fb->Bind();
-		mp_sv->Activate((unsigned)DepthSV::DIRECTIONAL);
+		m_fb.Bind();
+		m_sv.Activate((unsigned)DepthSV::DIRECTIONAL);
 		for (int i = 0; i < 3; i++) {
 			glViewport(0, 0, DirectionalLight::SHADOW_RESOLUTION, DirectionalLight::SHADOW_RESOLUTION);
-			mp_fb->BindTextureLayerToFBAttachment(m_directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
+			m_fb.BindTextureLayerToFBAttachment(m_directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
 			GL_StateManager::ClearDepthBits();
 
-			mp_sv->SetUniform("u_light_pv_matrix", mp_scene->directional_light.GetLightSpaceMatrix(i));
+			m_sv.SetUniform("u_light_pv_matrix", mp_scene->directional_light.GetLightSpaceMatrix(i));
 			DrawAllMeshesDepth(SOLID, mp_scene);
 		}
 	}
 
 	// Spotlights
 	glViewport(0, 0, SpotlightSystem::SPOTLIGHT_SHADOW_MAP_RES, SpotlightSystem::SPOTLIGHT_SHADOW_MAP_RES);
-	mp_sv->Activate((unsigned)DepthSV::SPOTLIGHT);
+	m_sv.Activate((unsigned)DepthSV::SPOTLIGHT);
 	auto spotlights = mp_scene->GetRegistry().view<SpotLightComponent, TransformComponent>();
 
 	int index = 0;
@@ -77,18 +76,18 @@ void DepthPass::DoPass()
 		if (!light.shadows_enabled)
 			continue;
 
-		mp_fb->BindTextureLayerToFBAttachment(mp_spotlight_system->GetDepthTex().GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
+		m_fb.BindTextureLayerToFBAttachment(mp_spotlight_system->GetDepthTex().GetTextureHandle(), GL_DEPTH_ATTACHMENT, index++);
 		GL_StateManager::ClearDepthBits();
 
-		mp_sv->SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
-		mp_sv->SetUniform("u_light_pos", transform.GetAbsPosition());
+		m_sv.SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
+		m_sv.SetUniform("u_light_pos", transform.GetAbsPosition());
 		DrawAllMeshesDepth(SOLID, mp_scene);
 	}
 
 	// Pointlights
 	index = 0;
 	glViewport(0, 0, PointlightSystem::POINTLIGHT_SHADOW_MAP_RES, PointlightSystem::POINTLIGHT_SHADOW_MAP_RES);
-	mp_sv->Activate((unsigned)DepthSV::POINTLIGHT);
+	m_sv.Activate((unsigned)DepthSV::POINTLIGHT);
 	auto pointlights = mp_scene->GetRegistry().view<PointLightComponent, TransformComponent>();
 
 	for (auto [entity, pointlight, transform] : pointlights.each()) {
@@ -107,15 +106,15 @@ void DepthPass::DoPass()
 		   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
 		};
 
-		mp_sv->SetUniform("u_light_pos", light_pos);
-		mp_sv->SetUniform("u_light_zfar", pointlight.shadow_distance);
+		m_sv.SetUniform("u_light_pos", light_pos);
+		m_sv.SetUniform("u_light_zfar", pointlight.shadow_distance);
 
 		// Draw depth cubemap
 		for (int i = 0; i < 6; i++) {
-			mp_fb->BindTextureLayerToFBAttachment(mp_pointlight_system->GetDepthTex().GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
+			m_fb.BindTextureLayerToFBAttachment(mp_pointlight_system->GetDepthTex().GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
 			GL_StateManager::ClearDepthBits();
 
-			mp_sv->SetUniform("u_light_pv_matrix", capture_projection * capture_views[i]);
+			m_sv.SetUniform("u_light_pv_matrix", capture_projection * capture_views[i]);
 			DrawAllMeshesDepth(SOLID, mp_scene);
 		}
 
@@ -125,8 +124,6 @@ void DepthPass::DoPass()
 
 void DepthPass::Destroy()
 {
-	Renderer::GetShaderLibrary().DeleteShader(mp_sv->GetName());
-	Renderer::GetFramebufferLibrary().DeleteFramebuffer(mp_fb);
 	m_directional_light_depth_tex.Unload();
 }
 
@@ -144,11 +141,11 @@ void DepthPass::DrawAllMeshesDepth(RenderGroup render_group, Scene* p_scene) {
 				continue;
 
 			if (p_material->base_colour_texture && p_material->base_colour_texture->GetSpec().format == GL_RGBA) {
-				mp_sv->SetUniform("u_alpha_test", true);
+				m_sv.SetUniform("u_alpha_test", true);
 				GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_colour_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 			}
 			else {
-				mp_sv->SetUniform("u_alpha_test", false);
+				m_sv.SetUniform("u_alpha_test", false);
 			}
 
 			bool state_changed = SceneRenderer::SetGL_StateFromMatFlags(p_material->GetFlags());

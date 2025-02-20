@@ -3,9 +3,17 @@
 #include "util/util.h"
 
 namespace ORNG {
-	// A class which allows sequencing of renderpasses and easily passing resources/data between them
+	// Sequences renderpasses and provides interface to easily pass resources/data between them
+	// Does NOT synchronize resources between passes, just runs them in the set order
 	class RenderGraph {
 	public:
+		~RenderGraph() {
+			for (auto* p_pass : m_renderpasses) {
+				p_pass->Destroy();
+				delete p_pass;
+			}
+		}
+
 		// Only call AFTER adding every pass and required data to this graph
 		void Init() {
 			for (auto* p_pass : m_renderpasses) {
@@ -19,6 +27,17 @@ namespace ORNG {
 			}
 		}
 
+		// Clears all renderpasses and data
+		void Reset() {
+			for (auto* p_pass : m_renderpasses) {
+				p_pass->Destroy();
+				delete p_pass;
+			}
+
+			m_renderpasses.clear();
+			m_data.clear();
+		}
+
 		// Will overwrite any existing data with name='name'
 		void SetData(const std::string& name, void* data) {
 			m_data[name] = data;
@@ -29,8 +48,9 @@ namespace ORNG {
 			return reinterpret_cast<T*>(m_data[name]);
 		}
 
-		void AddRenderpass(Renderpass* p_pass) {
-			m_renderpasses.push_back(p_pass);
+		template<typename T, typename... Args>
+		void AddRenderpass(Args&&... args) {
+			m_renderpasses.push_back(new T(this, std::forward<Args>(args)...));
 		}
 
 		// Returns pointer to renderpass or nullptr if not found

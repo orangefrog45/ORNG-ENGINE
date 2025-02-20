@@ -4,6 +4,7 @@
 #include "util/Log.h"
 #include "events/EventManager.h"
 
+#if false
 namespace ORNG {
 
 	void FramebufferLibrary::Init() {
@@ -48,3 +49,5 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Failed to delete framebuffer '{0}', not found in FramebufferLibrary", p_framebuffer->m_name);
 	}
 }
+
+#endif

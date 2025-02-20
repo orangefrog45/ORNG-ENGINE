@@ -4,6 +4,7 @@ namespace ORNG {
 	class Renderpass {
 	public:
 		Renderpass(class RenderGraph* p_graph, const std::string& name) : mp_graph(p_graph), m_name(name) {};
+		virtual ~Renderpass() = default;
 	/*	virtual ~Renderpass() {
 			this->Destroy();
 		}*/

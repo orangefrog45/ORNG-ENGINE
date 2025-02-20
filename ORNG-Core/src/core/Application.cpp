@@ -86,16 +86,19 @@ void Application::Init(const ApplicationData& data) {
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+
 		Events::EventManager::DispatchEvent(update_event);
 		ExtraUI::OnUpdate();
 			
 		Events::EventManager::DispatchEvent(render_event);
+
 		glfwSwapBuffers(window);
 
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 		TracyGpuCollect;
 #endif
 		FrameTiming::Update();
+		Window::Update(); // Window must update last for input state to be valid
 	}
 
 	// Cleanup

@@ -91,10 +91,6 @@ namespace ORNG {
 			return Get().m_shader_library;
 		}
 
-		inline static FramebufferLibrary& GetFramebufferLibrary() {
-			return Get().m_framebuffer_library;
-		}
-
 		static void ResetDrawCallCounter() {
 			Get().m_draw_call_amount = 0;
 		}
@@ -121,7 +117,6 @@ namespace ORNG {
 		void IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count);
 
 		std::unique_ptr<Quad> mp_quad = nullptr;
-		FramebufferLibrary m_framebuffer_library;
 		ShaderLibrary m_shader_library;
 	};
 }

@@ -101,6 +101,8 @@ namespace ORNG::Events {
 		void* p_data = nullptr;
 	};
 
+	struct ShaderReloadEvent : public Events::Event {};
+
 	template <std::derived_from<Event> T>
 	class EventListener {
 	public:

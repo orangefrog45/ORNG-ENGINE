@@ -1,10 +1,9 @@
 #include "pch/pch.h"
 #include "core/FrameTiming.h"
 #include "components/systems/SceneUBOSystem.h"
-#include "components/ComponentSystems.h"
 #include "core/GLStateManager.h"
-#include "components/ComponentSystems.h"
 #include "scene/SceneEntity.h"
+#include "components/systems/CameraSystem.h"
 
 using namespace ORNG;
 
@@ -63,7 +62,6 @@ void SceneUBOSystem::UpdateCommonUBO() {
 		static_cast<float>(FrameTiming::GetTimeStep()),
 		mp_scene->GetTimeElapsed()
 	);
-
 	m_common_ubo.BufferSubData(0, m_common_ubo_size, data.data());
 	glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo.GetHandle());
 

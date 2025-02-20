@@ -6,6 +6,7 @@
 
 using namespace ORNG;
 
+#if false
 void SSAOPass::Init() {
 	constexpr const char* SHADER_NAME = "SSAO";
 	// May already exist
@@ -37,3 +38,4 @@ void SSAOPass::DoPass(Texture2D& depth_tex, Texture2D& normal_tex) {
 	glBindImageTexture(1, m_ao_tex.GetTextureHandle(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
 	glDispatchCompute(ceil(spec.width / 8.f), ceil(spec.height / 8.f), 1);
 }
+#endif

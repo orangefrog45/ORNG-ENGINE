@@ -2,6 +2,8 @@
 #include "Renderpass.h"
 #include "rendering/Textures.h"
 #include "rendering/Material.h"
+#include "shaders/Shader.h"
+#include "framebuffers/Framebuffer.h"
 
 namespace ORNG {
 	class DepthPass : public Renderpass {
@@ -19,8 +21,8 @@ namespace ORNG {
 	private:
 		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
 
-		class ShaderVariants* mp_sv = nullptr;
-		class Framebuffer* mp_fb = nullptr;
+		ShaderVariants m_sv;
+		Framebuffer m_fb;
 		class Scene* mp_scene = nullptr;
 		class SpotlightSystem* mp_spotlight_system = nullptr;
 		class PointlightSystem* mp_pointlight_system = nullptr;

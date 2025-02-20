@@ -264,17 +264,17 @@ namespace ORNG {
 
 			std::unique_ptr<GridMesh> grid_mesh = nullptr;
 
-			Shader* p_picking_shader = nullptr;
-			Shader* p_grid_shader = nullptr;
-			Shader* p_highlight_shader = nullptr;
-			Shader* p_quad_col_shader = nullptr;
-			Shader* p_plane_shader = nullptr;
+			Shader picking_shader;
+			Shader grid_shader;
+			Shader highlight_shader;
+			Shader quad_col_shader;
+			Shader plane_shader;
 
 			enum class RaymarchSV { CAPSULE, };
-			ShaderVariants* p_raymarch_shader = nullptr;
+			ShaderVariants raymarch_shader;
 
-			Framebuffer* p_editor_pass_fb = nullptr; // Framebuffer that any editor stuff will be rendered into e.g grid
-			Framebuffer* p_picking_fb = nullptr;
+			Framebuffer editor_pass_fb; // Framebuffer that any editor stuff will be rendered into e.g grid
+			Framebuffer picking_fb;
 
 			FullscreenTexture2D picking_tex;
 

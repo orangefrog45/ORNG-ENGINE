@@ -1,6 +1,7 @@
 #pragma once
 #include "rendering/renderpasses/Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
 
 namespace ORNG {
 	class FogPass : public Renderpass {
@@ -13,21 +14,19 @@ namespace ORNG {
 
 		void Destroy() override;
 
-		FullscreenTexture2D& GetFinalFogTex() {
+		Texture2D& GetFinalFogTex() {
 			return m_fog_blur_tex_1;
 		}
-
 	private:
-		FullscreenTexture2D m_fog_output_tex{ {0.5f, 0.5f} };
-		FullscreenTexture2D m_fog_blur_tex_1{ {1.f, 1.f} };
-		FullscreenTexture2D m_fog_blur_tex_2{ {1.f, 1.f} };
+		Texture2D m_fog_output_tex{""};
+		Texture2D m_fog_blur_tex_1{""};
+		Texture2D m_fog_blur_tex_2{""};
 		Texture2D* mp_depth_tex = nullptr;
 
 		class Scene* mp_scene = nullptr;
 
-		class Shader* mp_fog_shader = nullptr;
-		Shader* mp_blur_shader = nullptr;
-		class ShaderVariants* mp_depth_aware_upsample_sv = nullptr;
-
+		Shader m_fog_shader;
+		Shader m_blur_shader;
+		ShaderVariants m_depth_aware_upsample_sv;
 	};
 }

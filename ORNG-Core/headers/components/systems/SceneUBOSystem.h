@@ -22,6 +22,6 @@ namespace ORNG {
 		inline const static unsigned int m_global_lighting_ubo_size = 16 * sizeof(float);
 
 		UBO m_common_ubo{ true, 0 };
-		inline const static unsigned int m_common_ubo_size = sizeof(glm::vec4) * 8 + sizeof(float) * 5;
+		inline const static unsigned int m_common_ubo_size = sizeof(glm::vec4) * 8 + sizeof(float) * 6;
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
 
 namespace ORNG {
 	class VoxelPass : public Renderpass {
@@ -31,12 +32,12 @@ namespace ORNG {
 		Texture3D m_voxel_mip_faces_c0{ "voxel mips cascade 0" };
 		Texture3D m_voxel_mip_faces_c1{ "voxel mips cascade 1" };
 
-		class ShaderVariants* mp_scene_voxelization_shader = nullptr;
-		ShaderVariants* mp_3d_mipmap_shader = nullptr;
-		ShaderVariants* mp_voxel_compute_sv = nullptr;
+		ShaderVariants m_scene_voxelization_shader;
+		ShaderVariants m_3d_mipmap_shader;
+		ShaderVariants m_voxel_compute_sv;
 		class Framebuffer* mp_scene_voxelization_fb = nullptr;
 
-		class ShaderVariants* mp_sv = nullptr;
+		ShaderVariants mp_sv;
 		class Framebuffer* mp_fb = nullptr;
 
 		class Scene* mp_scene = nullptr;

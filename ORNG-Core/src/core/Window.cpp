@@ -121,14 +121,6 @@ namespace ORNG {
 		glfwSwapInterval(0);
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
 
-		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
-			if (t_event.event_type == Events::EngineCoreEvent::ENGINE_UPDATE) {
-				Update();
-			}
-		};
-
-		Events::EventManager::RegisterListener(m_update_listener);
-
 		input.Init();
 	}
 }

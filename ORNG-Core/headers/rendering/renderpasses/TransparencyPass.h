@@ -1,6 +1,8 @@
 #pragma once
 #include "rendering/renderpasses/Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
+#include "framebuffers/Framebuffer.h"
 
 namespace ORNG {
 	class TransparencyPass : public Renderpass {
@@ -13,16 +15,16 @@ namespace ORNG {
 
 		void Destroy() override;
 	private:
-		FullscreenTexture2D m_transparency_accum;
-		FullscreenTexture2D m_transparency_revealage;
+		Texture2D m_transparency_accum{ "" };
+		Texture2D m_transparency_revealage{""};
 
 		Texture2D* mp_depth_tex = nullptr;
 
 		class Scene* mp_scene = nullptr;
 
-		class ShaderVariants* mp_transparency_shader_variants = nullptr;
-		class Shader* mp_transparency_composite_shader = nullptr;
-		class Framebuffer* mp_transparency_fb = nullptr;
-		Framebuffer* mp_composition_fb = nullptr;
+		ShaderVariants m_transparency_shader_variants;
+		Shader m_transparency_composite_shader;
+		Framebuffer m_transparency_fb;
+		Framebuffer m_composition_fb;
 	};
 }

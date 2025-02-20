@@ -1,6 +1,7 @@
 #pragma once
 #include "rendering/renderpasses/Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
 
 namespace ORNG {
 	class LightingPass : public Renderpass {
@@ -22,13 +23,13 @@ namespace ORNG {
 		Texture2D* mp_output_tex = nullptr;
 
 		// Applies direct lighting over image
-		class Shader* mp_shader = nullptr;
+		Shader m_shader;
 
 		// Used for upscaling cone tracing radiance tex
-		class ShaderVariants* mp_depth_aware_upsample_sv = nullptr;
+		ShaderVariants m_depth_aware_upsample_sv;
 
 		// Applies cone traced radiance over image if a VoxelPass is present
-		Shader* mp_cone_trace_shader = nullptr;
+		Shader m_cone_trace_shader;
 		// nullptr if VoxelPass not in render graph
 		class VoxelPass* mp_voxel_pass = nullptr;
 

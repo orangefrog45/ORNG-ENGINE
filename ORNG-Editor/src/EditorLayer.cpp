@@ -49,36 +49,30 @@ namespace ORNG {
 		m_res.line_vao.AddBuffer<VertexBufferGL<glm::vec3>>(0, GL_FLOAT, 3, GL_STREAM_DRAW);
 		m_res.line_vao.Init();
 
-		m_res.p_raymarch_shader = &Renderer::GetShaderLibrary().CreateShaderVariants("Editor raymarch");
-		m_res.p_raymarch_shader->SetPath(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl");
-		m_res.p_raymarch_shader->SetPath(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/RaymarchFS.glsl");
-		m_res.p_raymarch_shader->AddVariant((unsigned)EditorResources::RaymarchSV::CAPSULE, { "CAPSULE" }, {"u_capsule_pos", "u_capsule_height", "u_capsule_radius"});
+		m_res.raymarch_shader.SetPath(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl");
+		m_res.raymarch_shader.SetPath(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/RaymarchFS.glsl");
+		m_res.raymarch_shader.AddVariant((unsigned)EditorResources::RaymarchSV::CAPSULE, { "CAPSULE" }, {"u_capsule_pos", "u_capsule_height", "u_capsule_radius"});
 
 		m_res.grid_mesh = std::make_unique<GridMesh>();
 		m_res.grid_mesh->Init();
-		m_res.p_grid_shader = &Renderer::GetShaderLibrary().CreateShader("grid");
-		m_res.p_grid_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/shaders/GridVS.glsl");
-		m_res.p_grid_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/GridFS.glsl");
-		m_res.p_grid_shader->Init();
+		m_res.grid_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/shaders/GridVS.glsl");
+		m_res.grid_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/GridFS.glsl");
+		m_res.grid_shader.Init();
 
+		m_res.quad_col_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl", { "TRANSFORM" });
+		m_res.quad_col_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
+		m_res.quad_col_shader.Init();
+		m_res.quad_col_shader.AddUniforms("u_scale", "u_translation", "u_colour");
 
-		m_res.p_quad_col_shader = &Renderer::GetShaderLibrary().CreateShader("quad_col");
-		m_res.p_quad_col_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl", { "TRANSFORM" });
-		m_res.p_quad_col_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
-		m_res.p_quad_col_shader->Init();
-		m_res.p_quad_col_shader->AddUniforms("u_scale", "u_translation", "u_colour");
+		m_res.picking_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl");
+		m_res.picking_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/PickingFS.glsl");
+		m_res.picking_shader.Init();
+		m_res.picking_shader.AddUniforms("comp_id", "transform");
 
-		m_res.p_picking_shader = &Renderer::GetShaderLibrary().CreateShader("picking");
-		m_res.p_picking_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl");
-		m_res.p_picking_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/PickingFS.glsl");
-		m_res.p_picking_shader->Init();
-		m_res.p_picking_shader->AddUniforms("comp_id", "transform");
-
-		m_res.p_highlight_shader = &Renderer::GetShaderLibrary().CreateShader("highlight");
-		m_res.p_highlight_shader->AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl", {"OUTLINE"});
-		m_res.p_highlight_shader->AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
-		m_res.p_highlight_shader->Init();
-		m_res.p_highlight_shader->AddUniforms("transform", "u_colour", "u_scale");
+		m_res.highlight_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl", {"OUTLINE"});
+		m_res.highlight_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
+		m_res.highlight_shader.Init();
+		m_res.highlight_shader.AddUniforms("transform", "u_colour", "u_scale");
 
 		// Setting up the scene display texture
 		m_res.color_render_texture_spec.format = GL_RGBA;
@@ -102,6 +96,19 @@ namespace ORNG {
 				m_res.p_scene_display_texture->SetSpec(spec);
 
 				UpdateSceneDisplayRect();
+
+				m_render_graph.Reset();
+				m_render_graph.AddRenderpass<DepthPass>();
+				m_render_graph.AddRenderpass<GBufferPass>();
+				m_render_graph.AddRenderpass<LightingPass>();
+				m_render_graph.AddRenderpass<FogPass>();
+				m_render_graph.AddRenderpass<TransparencyPass>();
+				m_render_graph.AddRenderpass<PostProcessPass>();
+				m_render_graph.SetData("OutCol", &*m_res.p_scene_display_texture);
+				m_render_graph.SetData("PPS", &SCENE->post_processing);
+				m_render_graph.SetData("Scene", SCENE);
+				m_render_graph.SetData("BloomInCol", &*m_res.p_scene_display_texture);
+				m_render_graph.Init();
 			}
 			};
 
@@ -116,11 +123,11 @@ namespace ORNG {
 		picking_spec.height = Window::GetHeight();
 
 		// Entity ID's are split into halves for storage in textures then recombined later as there is no format for 64 bit uints
-		m_res.p_picking_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("picking", true);
-		m_res.p_picking_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
+		m_res.picking_fb.Init();
+		m_res.picking_fb.AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 		m_res.picking_tex.SetSpec(picking_spec);
 		m_res.picking_tex.OnResize = [this] {
-			m_res.p_picking_fb->BindTexture2D(m_res.picking_tex.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+			m_res.picking_fb.BindTexture2D(m_res.picking_tex.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		};
 		m_res.picking_tex.OnResize();
 
@@ -128,10 +135,10 @@ namespace ORNG {
 		static auto s = &*SCENE;
 		m_event_stack.SetContext(s, &m_state.selected_entity_ids);
 
-		m_res.p_editor_pass_fb = &Renderer::GetFramebufferLibrary().CreateFramebuffer("editor_passes", true);
-		//m_res.p_editor_pass_fb->BindTexture2D(m_scene_renderer.m_gbf_depth.GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
-		m_res.p_editor_pass_fb->BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-		m_res.p_editor_pass_fb->AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
+		m_res.editor_pass_fb.Init();
+		//m_res.editor_pass_fb.BindTexture2D(m_scene_renderer.m_gbf_depth.GetTextureHandle(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D);
+		m_res.editor_pass_fb.BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		m_res.editor_pass_fb.AddRenderbuffer(Window::GetWidth(), Window::GetHeight());
 
 		std::string base_proj_dir = m_state.executable_directory + "\\projects\\base-project";
 		if (!std::filesystem::exists(base_proj_dir)) {
@@ -148,12 +155,12 @@ namespace ORNG {
 		m_asset_manager_window.p_extern_scene = mp_scene_context;
 		m_asset_manager_window.Init();
 
-		m_render_graph.AddRenderpass(new DepthPass(&m_render_graph));
-		m_render_graph.AddRenderpass(new GBufferPass(&m_render_graph));
-		m_render_graph.AddRenderpass(new LightingPass(&m_render_graph));
-		m_render_graph.AddRenderpass(new FogPass(&m_render_graph));
-		m_render_graph.AddRenderpass(new TransparencyPass(&m_render_graph));
-		m_render_graph.AddRenderpass(new PostProcessPass(&m_render_graph));
+		m_render_graph.AddRenderpass<DepthPass>();
+		m_render_graph.AddRenderpass<GBufferPass>();
+		m_render_graph.AddRenderpass<LightingPass>();
+		m_render_graph.AddRenderpass<FogPass>();
+		m_render_graph.AddRenderpass<TransparencyPass>();
+		m_render_graph.AddRenderpass<PostProcessPass>();
 		m_render_graph.SetData("OutCol", &*m_res.p_scene_display_texture);
 		m_render_graph.SetData("PPS", &SCENE->post_processing);
 		m_render_graph.SetData("Scene", SCENE);
@@ -619,7 +626,8 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderDisplayWindow() {
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 		GL_StateManager::DefaultClearBits();
 
 		if (ImGui::IsMouseClicked(0) && !ImGui::GetIO().WantCaptureMouse) {
@@ -630,12 +638,12 @@ namespace ORNG {
 		m_render_graph.Execute();
 		m_asset_manager_window.OnMainRender();
 
-		m_res.p_editor_pass_fb->Bind();
-		m_res.p_editor_pass_fb->BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+		m_res.editor_pass_fb.Bind();
+		m_res.editor_pass_fb.BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		// Mouse drag selection quad
 		if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
-			m_res.p_quad_col_shader->ActivateProgram();
-			m_res.p_quad_col_shader->SetUniform("u_colour", glm::vec4(0, 0, 1, 0.1));
+			m_res.quad_col_shader.ActivateProgram();
+			m_res.quad_col_shader.SetUniform("u_colour", glm::vec4(0, 0, 1, 0.1));
 			glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
 			Renderer::DrawScaledQuad((glm::vec2(m_state.mouse_drag_data.start.x, Window::GetHeight() - m_state.mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_state.mouse_drag_data.end.x, Window::GetHeight() - m_state.mouse_drag_data.end.y) / w) * 2.f - 1.f);
 		}
@@ -645,7 +653,7 @@ namespace ORNG {
 		if (m_state.general_settings.debug_render_settings.render_physx_debug)
 			RenderPhysxDebug();
 
-		Renderer::GetFramebufferLibrary().UnbindAllFramebuffers();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		if (m_state.simulate_mode_active) {
 			Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
@@ -1147,8 +1155,8 @@ namespace ORNG {
 
 
 	void EditorLayer::DoPickingPass() {
-		m_res.p_picking_fb->Bind();
-		m_res.p_picking_shader->ActivateProgram();
+		m_res.picking_fb.Bind();
+		m_res.picking_shader.ActivateProgram();
 
 		GL_StateManager::ClearDepthBits();
 		GL_StateManager::ClearBitsUnsignedInt(UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX);
@@ -1160,8 +1168,8 @@ namespace ORNG {
 			uint64_t full_id = mesh.GetEntityUUID();
 			glm::uvec3 id_vec{ (uint32_t)(full_id >> 32), (uint32_t)(full_id), UINT_MAX };
 
-			m_res.p_picking_shader->SetUniform("comp_id", id_vec);
-			m_res.p_picking_shader->SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+			m_res.picking_shader.SetUniform("comp_id", id_vec);
+			m_res.picking_shader.SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 
 			Renderer::DrawMeshInstanced(mesh.GetMeshData(), 1);
 		}
@@ -1183,8 +1191,8 @@ namespace ORNG {
 					auto* p_transform = p_joint->GetA0()->GetComponent<TransformComponent>();
 					auto pos = glm::quat(glm::radians(p_transform->GetAbsOrientation())) * p_joint->m_poses[0] + p_transform->GetAbsPosition();
 
-					m_res.p_picking_shader->SetUniform("comp_id", id_vec);
-					m_res.p_picking_shader->SetUniform("transform", glm::translate(pos) * glm::scale(glm::vec3(0.1)));
+					m_res.picking_shader.SetUniform("comp_id", id_vec);
+					m_res.picking_shader.SetUniform("transform", glm::translate(pos) * glm::scale(glm::vec3(0.1)));
 
 					Renderer::DrawSphere();
 				}
@@ -1231,7 +1239,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DoSelectedEntityHighlightPass() {
-		m_res.p_editor_pass_fb->Bind();
+		m_res.editor_pass_fb.Bind();
 		glEnable(GL_STENCIL_TEST);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		glClearStencil(0);
@@ -1240,8 +1248,8 @@ namespace ORNG {
 		glStencilFunc(GL_ALWAYS, 1, 0xFF);
 
 		glDisable(GL_DEPTH_TEST);
-		m_res.p_highlight_shader->ActivateProgram();
-		m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.0, 1, 0, 0));
+		m_res.highlight_shader.ActivateProgram();
+		m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0.0, 1, 0, 0));
 
 		for (auto id : m_state.selected_entity_ids) {
 			auto* current_entity = SCENE->GetEntity(id);
@@ -1251,8 +1259,8 @@ namespace ORNG {
 
 			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
 
-			m_res.p_highlight_shader->SetUniform("u_scale", 1.f);
-			m_res.p_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+			m_res.highlight_shader.SetUniform("u_scale", 1.f);
+			m_res.highlight_shader.SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
 		}
 
@@ -1261,16 +1269,16 @@ namespace ORNG {
 
 		for (auto id : m_state.selected_entity_ids) {
 			auto* current_entity = SCENE->GetEntity(id);
-			m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(1.0, 0.2, 0, 1));
+			m_res.highlight_shader.SetUniform("u_colour", glm::vec4(1.0, 0.2, 0, 1));
 
 			if (!current_entity || !current_entity->HasComponent<MeshComponent>())
 				continue;
 
 			MeshComponent* meshc = current_entity->GetComponent<MeshComponent>();
 
-			m_res.p_highlight_shader->SetUniform("u_scale", 1.025f);
+			m_res.highlight_shader.SetUniform("u_scale", 1.025f);
 
-			m_res.p_highlight_shader->SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
+			m_res.highlight_shader.SetUniform("transform", meshc->GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
 			Renderer::DrawMeshInstanced(meshc->GetMeshData(), 1);
 		}
 
@@ -1284,7 +1292,7 @@ namespace ORNG {
 		m_res.grid_mesh->CheckBoundary(mp_editor_camera->GetComponent<TransformComponent>()->GetPosition());
 		GL_StateManager::BindSSBO(m_res.grid_mesh->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
-		m_res.p_grid_shader->ActivateProgram();
+		m_res.grid_shader.ActivateProgram();
 		Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_res.grid_mesh->m_vao, ceil(m_res.grid_mesh->grid_width / m_res.grid_mesh->grid_step) * 2);
 	}
 
@@ -1434,10 +1442,10 @@ namespace ORNG {
 	
 
 	void EditorLayer::RenderPhysxDebug() {
-		m_res.p_highlight_shader->ActivateProgram();
+		m_res.highlight_shader.ActivateProgram();
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
-		m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.0, 0.75, 0, 0.5));
+		m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0.0, 0.75, 0, 0.5));
 
 		auto* p_line_pos_buf = m_res.line_vao.GetBuffer<VertexBufferGL<glm::vec3>>(0);
 		p_line_pos_buf->data.clear();
@@ -1464,34 +1472,34 @@ namespace ORNG {
 				glm::vec3 pos1 = abs_pos1 + glm::quat(glm::radians(p_transform1->GetAbsOrientation())) * ConvertVec3<glm::vec3>(pose1.p);
 
 				if (m_state.p_selected_joint == p_joint)
-					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.1, 0.3, 1.0, 0.75));
+					m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0.1, 0.3, 1.0, 0.75));
 
-				m_res.p_highlight_shader->SetUniform("transform", glm::translate(abs_pos0) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
+				m_res.highlight_shader.SetUniform("transform", glm::translate(abs_pos0) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
 				Renderer::DrawSphere();
-				m_res.p_highlight_shader->SetUniform("transform", glm::translate(abs_pos1) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
+				m_res.highlight_shader.SetUniform("transform", glm::translate(abs_pos1) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
 				Renderer::DrawSphere();
-				m_res.p_highlight_shader->SetUniform("transform", glm::translate(pos0) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
+				m_res.highlight_shader.SetUniform("transform", glm::translate(pos0) * glm::scale(glm::vec3{ 0.01, 0.01, 0.01 }));
 				Renderer::DrawSphere();
 
 				if (m_state.p_selected_joint == p_joint) { // Highlight currently selected joint a different colour
-					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0, 0.75, 0, 0.5));
+					m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0, 0.75, 0, 0.5));
 					// Draw accumulated lines so far
 					m_res.line_vao.FillBuffers();
 					glLineWidth(3.f);
-					m_res.p_highlight_shader->SetUniform("transform", glm::identity<glm::mat4>());
+					m_res.highlight_shader.SetUniform("transform", glm::identity<glm::mat4>());
 					Renderer::DrawVAOArrays(m_res.line_vao, p_line_pos_buf->data.size(), GL_LINES);
 					p_line_pos_buf->data.clear();
 
 					PushBackMultiple(p_line_pos_buf->data, abs_pos0, pos0, abs_pos1, pos1);
 
-					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0.1, 0.3, 1.0, 0.75));
+					m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0.1, 0.3, 1.0, 0.75));
 					m_res.line_vao.FillBuffers();
 					glLineWidth(3.f);
-					m_res.p_highlight_shader->SetUniform("transform", glm::identity<glm::mat4>());
+					m_res.highlight_shader.SetUniform("transform", glm::identity<glm::mat4>());
 					Renderer::DrawVAOArrays(m_res.line_vao, p_line_pos_buf->data.size(), GL_LINES);
 					p_line_pos_buf->data.clear();
 
-					m_res.p_highlight_shader->SetUniform("u_colour", glm::vec4(0, 0.75, 0, 0.5));
+					m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0, 0.75, 0, 0.5));
 					continue;
 				}
 
@@ -1501,7 +1509,7 @@ namespace ORNG {
 
 		m_res.line_vao.FillBuffers();
 		glLineWidth(3.f);
-		m_res.p_highlight_shader->SetUniform("transform", glm::identity<glm::mat4>());
+		m_res.highlight_shader.SetUniform("transform", glm::identity<glm::mat4>());
 		Renderer::DrawVAOArrays(m_res.line_vao, p_line_pos_buf->data.size(), GL_LINES);
 		
 		/*
@@ -1542,9 +1550,9 @@ namespace ORNG {
 		for (auto [entity, phys, transform] : SCENE->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::BOX) {
 				if (auto* p_mesh = phys.GetEntity()->GetComponent<MeshComponent>())
-					m_res.p_highlight_shader->SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().extents * 2.f));
+					m_res.highlight_shader.SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().extents * 2.f));
 				else
-					m_res.p_highlight_shader->SetUniform("transform", transform.GetMatrix());
+					m_res.highlight_shader.SetUniform("transform", transform.GetMatrix());
 
 				Renderer::DrawCube();
 			}
@@ -1571,27 +1579,27 @@ namespace ORNG {
 				}
 
 				// Undo scaling to prevent shearing
-				m_res.p_highlight_shader->SetUniform("transform", m);
+				m_res.highlight_shader.SetUniform("transform", m);
 				Renderer::DrawSphere();
 			}
 		}
 
 		for (auto [entity, mesh, phys, transform] : SCENE->m_registry.view<MeshComponent, PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::TRIANGLE_MESH) {
-				m_res.p_highlight_shader->SetUniform("transform", transform.GetMatrix());
+				m_res.highlight_shader.SetUniform("transform", transform.GetMatrix());
 				for (int i = 0; i < mesh.mp_mesh_asset->m_submeshes.size(); i++) {
 					Renderer::DrawSubMesh(mesh.mp_mesh_asset, i);
 				}
 			}
 		}
 
-		m_res.p_raymarch_shader->Activate((unsigned)EditorResources::RaymarchSV::CAPSULE);
+		m_res.raymarch_shader.Activate((unsigned)EditorResources::RaymarchSV::CAPSULE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		for (auto [entity, controller, transform] : SCENE->m_registry.view<CharacterControllerComponent, TransformComponent>().each()) {
 			PxCapsuleController* p_controller = static_cast<PxCapsuleController*>(controller.p_controller);
-			m_res.p_raymarch_shader->SetUniform("u_capsule_pos", transform.GetAbsPosition());
-			m_res.p_raymarch_shader->SetUniform<float>("u_capsule_height", p_controller->getHeight());
-			m_res.p_raymarch_shader->SetUniform<float>("u_capsule_radius", p_controller->getRadius());
+			m_res.raymarch_shader.SetUniform("u_capsule_pos", transform.GetAbsPosition());
+			m_res.raymarch_shader.SetUniform<float>("u_capsule_height", p_controller->getHeight());
+			m_res.raymarch_shader.SetUniform<float>("u_capsule_radius", p_controller->getRadius());
 			Renderer::DrawQuad();
 		}
 

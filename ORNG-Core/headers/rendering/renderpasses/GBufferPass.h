@@ -1,6 +1,8 @@
 #pragma once
 #include "Renderpass.h"
 #include "rendering/Textures.h"
+#include "shaders/Shader.h"
+#include "framebuffers/Framebuffer.h"
 
 namespace ORNG {
 	class GBufferPass : public Renderpass {
@@ -13,17 +15,16 @@ namespace ORNG {
 
 		void Destroy() override;
 
-		FullscreenTexture2D normals;
-		FullscreenTexture2D albedo;
-		FullscreenTexture2D rma;
-		FullscreenTexture2D depth;
-		FullscreenTexture2D shader_ids;
+		Texture2D normals{ "" };
+		Texture2D albedo{""};
+		Texture2D rma{""};
+		Texture2D depth{""};
+		Texture2D shader_ids{""};
 	private:
+		ShaderVariants m_sv;
+		ShaderVariants m_displacement_sv;
 
-		class ShaderVariants* mp_sv = nullptr;
-		ShaderVariants* mp_displacement_sv = nullptr;
-
-		class Framebuffer* mp_framebuffer = nullptr;
+		Framebuffer m_framebuffer;
 
 		class Scene* mp_scene = nullptr;
 	};
