@@ -2,20 +2,10 @@
 
 #include "rendering/SceneRenderer.h"
 #include "shaders/ShaderLibrary.h"
-#include "core/Window.h"
 #include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
-#include "components/CameraComponent.h"
-#include "events/EventManager.h"
-#include "util/Timers.h"
-#include "scene/SceneEntity.h"
-#include "terrain/TerrainChunk.h"
-#include "core/FrameTiming.h"
 #include "rendering/Material.h"
 #include "assets/AssetManager.h"
-#include "components/ComponentSystems.h"
-#include "glm/glm/gtc/round.hpp"
-
 #include "scene/MeshInstanceGroup.h"
 
 namespace ORNG {

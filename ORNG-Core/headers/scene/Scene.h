@@ -5,7 +5,6 @@
 #include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"
 #include "components/ComponentAPI.h"
-#include "terrain/Terrain.h"
 
 
 namespace ORNG {
@@ -150,7 +149,6 @@ namespace ORNG {
 		Skybox skybox;
 		PostProcessingSettings post_processing;
 		DirectionalLight directional_light;
-		Terrain terrain;
 
 		std::unordered_map<uint16_t, ComponentSystem*> systems;
 		std::unordered_map<uint64_t, SceneEntity*> m_entity_uuid_lookup;

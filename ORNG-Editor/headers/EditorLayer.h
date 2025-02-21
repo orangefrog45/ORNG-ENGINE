@@ -150,8 +150,6 @@ namespace ORNG {
 
 		void RenderBloomEditor();
 
-		void RenderTerrainEditor();
-
 		/*
 			Entity/Component modifiers		
 		*/

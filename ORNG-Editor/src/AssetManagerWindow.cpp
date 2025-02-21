@@ -6,13 +6,10 @@
 #include "core/Window.h"
 #include "util/ExtraUI.h"
 #include "rendering/MeshAsset.h"
-#include "rendering/SceneRenderer.h"
 #include "scene/SceneEntity.h"
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
-#include "fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.h"
 #include "core/GLStateManager.h"
-#include "scene/SceneEntity.h"
 #include "physics/Physics.h"
 #include "yaml-cpp/yaml.h"
 #include "components/ComponentSystems.h"
@@ -26,7 +23,6 @@ namespace ORNG {
 	void AssetManagerWindow::InitPreviewScene() {
 		mp_preview_scene = std::make_unique<Scene>();
 
-		mp_preview_scene->terrain.Init(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
 		mp_preview_scene->AddSystem(new MeshInstancingSystem(&*mp_preview_scene))->OnLoad();
 		mp_preview_scene->AddSystem(new CameraSystem(&*mp_preview_scene))->OnLoad();
 		mp_preview_scene->skybox.Load(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr", 512, true);

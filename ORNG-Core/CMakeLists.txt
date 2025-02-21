@@ -37,29 +37,17 @@ set(ORNG_LIB_SOURCES
     src/scene/GridMesh.cpp
     src/scene/Scene.cpp
     src/scene/SceneEntity.cpp
-    src/scene/ScenePostProcessing.cpp
+    
     src/scene/SceneSerializer.cpp
     src/scene/Skybox.cpp
     src/shaders/Shader.cpp
     src/shaders/ShaderLibrary.cpp
-    src/terrain/ChunkLoader.cpp
-    src/terrain/Terrain.cpp
-    src/terrain/TerrainChunk.cpp
-    src/terrain/TerrainGenerator.cpp
-    src/terrain/TerrainQuadtree.cpp
     src/util/ExtraMath.cpp
     src/util/Log.cpp
     src/util/Timers.cpp
     src/util/TimeStep.cpp
     src/util/UUID.cpp
     src/assets/AssetManager.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx2.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_avx512.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_neon.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_internal.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse2.cpp
-    extern/fastsimd/FastNoiseSIMD-master/FastNoiseSIMD/FastNoiseSIMD_sse41.cpp
     extern/implot/implot.cpp
     extern/implot/implot_items.cpp
     src/scripting/ScriptingEngine.cpp
@@ -142,7 +130,6 @@ ${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake/include
 ${CMAKE_CURRENT_LIST_DIR}/extern
 ${CMAKE_CURRENT_LIST_DIR}/extern/imgui
 ${CMAKE_CURRENT_LIST_DIR}/headers
-${CMAKE_CURRENT_LIST_DIR}/extern/fastnoise2/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/yaml/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/plog/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
@@ -234,9 +221,7 @@ RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
 endif()
 
 
-
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/res/core-res")
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/extern/vswhere.exe DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/extern/")
 
 
 

@@ -1830,7 +1830,6 @@ namespace ORNG {
 				m_state.general_settings.editor_window_settings.display_skybox_editor = ExtraUI::EmptyTreeNode("Skybox");
 				m_state.general_settings.editor_window_settings.display_directional_light_editor = ExtraUI::EmptyTreeNode("Directional Light");
 				m_state.general_settings.editor_window_settings.display_global_fog_editor = ExtraUI::EmptyTreeNode("Global fog");
-				m_state.general_settings.editor_window_settings.display_terrain_editor = ExtraUI::EmptyTreeNode("Terrain");
 				m_state.general_settings.editor_window_settings.display_bloom_editor = ExtraUI::EmptyTreeNode("Bloom");
 			}
 
@@ -1899,8 +1898,6 @@ namespace ORNG {
 				RenderGlobalFogEditor();
 			if (m_state.general_settings.editor_window_settings.display_skybox_editor)
 				RenderSkyboxEditor();
-			if (m_state.general_settings.editor_window_settings.display_terrain_editor)
-				RenderTerrainEditor();
 			if (m_state.general_settings.editor_window_settings.display_bloom_editor)
 				RenderBloomEditor();
 
@@ -2777,33 +2774,6 @@ namespace ORNG {
 			ImGui::SliderFloat("Knee", &SCENE->post_processing.bloom.knee, 0.f, 1.f);
 		}
 	}
-
-
-
-
-	void EditorLayer::RenderTerrainEditor() {
-		return;
-		if (ExtraUI::H2TreeNode("Terrain")) {
-			ImGui::InputFloat("Height factor", &SCENE->terrain.m_height_scale);
-			static int terrain_width = 1000;
-
-			if (ImGui::InputInt("Size", &terrain_width) && terrain_width > 500)
-				SCENE->terrain.m_width = terrain_width;
-			else
-				terrain_width = SCENE->terrain.m_width;
-
-			static int terrain_seed = 123;
-			ImGui::InputInt("Seed", &terrain_seed);
-			SCENE->terrain.m_seed = terrain_seed;
-
-			if (auto* p_new_material = RenderMaterialComponent(SCENE->terrain.mp_material))
-				SCENE->terrain.mp_material = p_new_material;
-
-			if (ImGui::Button("Reload"))
-				SCENE->terrain.ResetTerrainQuadtree();
-		}
-	}
-
 
 
 
