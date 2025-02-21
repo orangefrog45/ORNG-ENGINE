@@ -59,13 +59,18 @@ namespace ORNG {
 
 		void OnImGuiRender() override { RenderUI(); };
 
-		void OnRender() override { RenderDisplayWindow(); };
+		void OnRender() override {
+			RenderDisplayWindow(); 
+			if (m_state.simulate_mode_active) mp_scene_context->OnRender();
+		};
 
 		void OnShutdown() override;
 
 		/*
 			Editor UI and rendering
 		*/
+
+		void InitRenderGraph();
 
 		void InitImGui();
 

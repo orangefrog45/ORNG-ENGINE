@@ -37,6 +37,10 @@ namespace ORNG {
 			}
 		}
 
+		void OnUnload() override {
+			Events::EventManager::DeregisterListener(m_event_listener.GetRegisterID());
+		}
+
 		// Returns ptr to active camera or nullptr if no camera is active.
 		CameraComponent* GetActiveCamera() {
 			auto& reg = mp_scene->GetRegistry();

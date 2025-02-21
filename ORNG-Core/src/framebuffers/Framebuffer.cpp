@@ -25,7 +25,6 @@ namespace ORNG {
 
 	Framebuffer::~Framebuffer() {
 		glDeleteFramebuffers(1, &m_fbo);
-		ORNG_CORE_INFO("Framebuffer '{0}' deleted", m_name);
 	}
 
 

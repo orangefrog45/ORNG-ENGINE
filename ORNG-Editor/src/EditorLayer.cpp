@@ -131,7 +131,6 @@ namespace ORNG {
 		};
 		m_res.picking_tex.OnResize();
 
-		SCENE->AddDefaultSystems();
 		static auto s = &*SCENE;
 		m_event_stack.SetContext(s, &m_state.selected_entity_ids);
 
@@ -155,6 +154,10 @@ namespace ORNG {
 		m_asset_manager_window.p_extern_scene = mp_scene_context;
 		m_asset_manager_window.Init();
 
+		SCENE->mp_render_graph = &m_render_graph;
+	}
+
+	void EditorLayer::InitRenderGraph() {
 		m_render_graph.AddRenderpass<DepthPass>();
 		m_render_graph.AddRenderpass<GBufferPass>();
 		m_render_graph.AddRenderpass<LightingPass>();
@@ -167,7 +170,6 @@ namespace ORNG {
 		m_render_graph.SetData("BloomInCol", &*m_res.p_scene_display_texture);
 		m_render_graph.Init();
 	}
-
 
 	void EditorLayer::UpdateSceneDisplayRect() {
 		if (m_state.fullscreen_scene_display)
@@ -211,6 +213,10 @@ namespace ORNG {
 
 		SCENE->ClearAllEntities();
 		SceneSerializer::DeserializeScene(*SCENE, m_state.temp_scene_serialization, false);
+
+		// Reset render graph in case scripts have changed it
+		m_render_graph.Reset();
+		InitRenderGraph();
 
 		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -934,13 +940,10 @@ namespace ORNG {
 
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
 	void RefreshScriptIncludes() {
-		return;
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scene/SceneEntity.h", "./res/scripts/includes/SceneEntity.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/SI.h", "./res/scripts/includes/SI.h");
 	}
 
 
@@ -1056,10 +1059,15 @@ namespace ORNG {
 			if (SCENE->m_is_loaded)
 				SCENE->UnloadScene();
 
+			SCENE->AddDefaultSystems();
 			AssetManager::ClearAll();
 			AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
 			SCENE->LoadScene();
 			SceneSerializer::DeserializeScene(*SCENE, m_state.current_project_directory + "\\scene.yml", true);
+
+			// Reinitialize with new scene system resources
+			m_render_graph.Reset();
+			InitRenderGraph();
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();

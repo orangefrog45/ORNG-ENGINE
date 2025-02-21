@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Application.h"
+#include "core/GLStateManager.h"
 #include "scene/Scene.h"
 #include "scene/SceneEntity.h"
 #include "rendering/Renderer.h"

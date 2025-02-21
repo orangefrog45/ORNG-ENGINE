@@ -55,6 +55,11 @@ namespace ORNG {
 		}
 	}
 
+	void Scene::OnRender() {
+		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
+			script.p_instance->OnRender();
+		}
+	}
 
 	void Scene::DeleteEntityAtEndOfFrame(SceneEntity* p_entity) {
 		if (!VectorContains(m_entity_deletion_queue, p_entity))
@@ -412,6 +417,7 @@ namespace ORNG {
 			p_sys->OnUnload();
 			delete p_sys;
 		}
+		systems.clear();
 
 		Events::EventManager::DeregisterListener(m_hierarchy_modification_listener.GetRegisterID());
 

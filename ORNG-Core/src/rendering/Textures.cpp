@@ -29,6 +29,7 @@ namespace ORNG {
 			GL_StateManager::BindTexture(m_texture_target, 0, unit, true); 
 
 		glDeleteTextures(1, &m_texture_obj); 
+		m_texture_obj = 0;
 	};
 
 	Texture2D::Texture2D(const std::string& filepath) : TextureBase(GL_TEXTURE_2D, filepath) {};

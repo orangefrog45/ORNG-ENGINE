@@ -25,6 +25,7 @@ namespace ORNG {
 		friend class SceneSerializer;
 		friend class SceneEntity;
 		friend class AssetManagerWindow;
+		friend class RuntimeLayer;
 
 		Scene() = default;
 		~Scene();
@@ -69,6 +70,8 @@ namespace ORNG {
 		void AddDefaultSystems();
 
 		void Update(float ts);
+
+		void OnRender();
 
 		void OnImGuiRender();
 
@@ -152,13 +155,20 @@ namespace ORNG {
 
 		std::unordered_map<uint16_t, ComponentSystem*> systems;
 		std::unordered_map<uint64_t, SceneEntity*> m_entity_uuid_lookup;
-
+		
+		// This points to the default render graph in-engine being used to render the scene
+		// This can be freely modified by scripts as long as renderpass dependencies aren't broken
+		inline class RenderGraph* GetRenderGraph() noexcept {
+			return mp_render_graph;
+		}
 	private:
+		// Set externally by either editor or runtime layer
+		RenderGraph* mp_render_graph = nullptr;
+
 		bool m_is_loaded = false;
 
 		// Delta time accumulated over each call to Update(), different from application time
 		double m_time_elapsed = 0.0;
-
 
 		// Favour using a prefab instead of duplicating entities for performance
 		SceneEntity& DuplicateEntity(SceneEntity& original);

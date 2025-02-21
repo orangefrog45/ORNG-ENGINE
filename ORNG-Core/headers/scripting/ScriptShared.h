@@ -25,6 +25,7 @@ namespace ORNG {
 		virtual ~ScriptBase() {};
 
 		virtual void OnUpdate(float dt) {};
+		virtual void OnRender() {};
 		virtual void OnCreate() {};
 		virtual void OnDestroy() {};
 		virtual void OnCollide([[maybe_unused]] SceneEntity* p_hit) {};

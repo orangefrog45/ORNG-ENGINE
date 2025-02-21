@@ -44,10 +44,13 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(m_window_event_listener);
 		AssetManager::GetSerializer().LoadAssetsFromProjectPath("./", true);
 		m_scene.LoadScene();
+
+		InitRenderGraph();
+		m_scene.mp_render_graph = &m_render_graph;
+
 		SceneSerializer::DeserializeScene(m_scene, ".\\scene.yml", true);
 		m_scene.Start();
 
-		InitRenderGraph();
 	}
 
 	void RuntimeLayer::InitRenderGraph() {
@@ -76,6 +79,8 @@ namespace ORNG {
 		mp_quad_shader->ActivateProgram();
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_display_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		Renderer::DrawQuad();
+
+		m_scene.OnRender();
 	}
 
 	void RuntimeLayer::OnShutdown() {}

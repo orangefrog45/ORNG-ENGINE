@@ -12,6 +12,7 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class EnvMapLoader;
 		Skybox() = default;
+
 		void Load(const std::string& filepath, unsigned cubemap_resolution, bool using_ibl);
 
 		const TextureCubemap& GetSkyboxTexture() const noexcept {
