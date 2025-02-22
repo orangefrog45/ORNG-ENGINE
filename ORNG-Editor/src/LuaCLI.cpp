@@ -29,11 +29,16 @@ namespace ORNG {
 	}
 
 
-	struct LuaOutput {
-		LuaOutput(std::string_view _content, bool _error) : content(_content), is_error(_error) {};
-		std::string content;
-		bool is_error;
-	};
+	LuaCLI::LuaResult LuaCLI::Execute(const std::string& lua_cmd) {
+		try {
+			std::ranges::for_each(input_callbacks, [](const auto& p_func) {p_func();});
+			lua.script(lua_cmd);
+			return { lua_cmd, false };
+		}
+		catch (std::exception& e) {
+			return { e.what(), true };
+		}
+	}
 
 	void LuaCLI::OnImGuiRender(bool enable_typing) {
 		static bool display_window = false;
@@ -47,7 +52,7 @@ namespace ORNG {
 		if (!display_window)
 			return;
 
-		static std::vector<LuaOutput> output_stack;
+		static std::vector<LuaResult> output_stack;
 
 		lua.set_function("print", [](const std::string& s) {
 			output_stack.push_back({ s, false });
@@ -74,9 +79,7 @@ namespace ORNG {
 
 			ImGui::InputText("##input", &lua_input, enable_typing ? 0 : ImGuiInputTextFlags_ReadOnly );
 
-
 			if (ImGui::IsItemFocused()) {
-
 				if (Window::Get().input.IsKeyPressed(Key::Enter)) {
 					try {
 						std::ranges::for_each(input_callbacks, [](const auto& p_func) {p_func(); });

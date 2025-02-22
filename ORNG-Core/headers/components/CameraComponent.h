@@ -21,8 +21,6 @@ namespace ORNG {
 		void UpdateFrustum(TransformComponent* p_transform);
 		void UpdateFrustum();
 
-
-
 		ExtraMath::Frustum view_frustum;
 		float fov = 90.0f;
 		float zNear = 0.1f;

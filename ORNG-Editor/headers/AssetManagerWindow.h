@@ -77,7 +77,6 @@ namespace ORNG {
 		uint32_t GetMeshPreviewTex(const MeshAsset* p_mesh) {
 			return m_mesh_preview_textures.contains(p_mesh) ? m_mesh_preview_textures[p_mesh]->GetTextureHandle() : 0;
 		}
-		inline static const int window_height = 300;
 
 		Scene* p_extern_scene = nullptr;
 

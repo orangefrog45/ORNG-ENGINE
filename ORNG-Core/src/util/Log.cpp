@@ -1,4 +1,5 @@
 #include "pch/pch.h"
+#include "events/EventManager.h"
 #include "spdlog/sinks/ringbuffer_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -20,7 +21,7 @@ namespace ORNG {
 		std::ofstream("log.txt", std::ios::trunc);
 
 		std::vector<spdlog::sink_ptr> sinks;
-		s_ringbuffer_sink->set_pattern("% %v%$");
+		s_ringbuffer_sink->set_pattern("%^[%T] %n: %v%$");
 		sinks.push_back(s_ringbuffer_sink);
 		sinks.push_back(s_file_sink);
 
@@ -33,21 +34,24 @@ namespace ORNG {
 	}
 
 	std::string Log::GetLastLog() {
-		return s_ringbuffer_sink->last_formatted()[4];
+		return s_ringbuffer_sink->last_formatted(1)[0];
 	}
 
 	std::vector<std::string> Log::GetLastLogs() {
-		return std::move(s_ringbuffer_sink->last_formatted());
+		return std::move(s_ringbuffer_sink->last_formatted(MAX_LOG_HISTORY));
 	}
-
+	
 	void Log::Flush() {
 		GetCoreLogger()->flush();
 	}
-
 
 	std::shared_ptr<spdlog::logger>& Log::GetCoreLogger() {
 		return s_core_logger;
 	}
 
+	void Log::OnLog(LogEvent::Type type)
+	{
+		Events::EventManager::DispatchEvent(LogEvent{type, GetLastLog() });
+	}
 
 }

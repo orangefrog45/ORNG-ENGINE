@@ -8,6 +8,7 @@
 #include "EditorEventStack.h"
 #include "LuaCLI.h"
 #include "rendering/RenderGraph.h"
+#include "util/LoggerUI.h"
 
 namespace physx {
 	class PxMaterial;
@@ -39,8 +40,6 @@ namespace ORNG {
 		ENTITY,
 		JOINT
 	};
-
-
 
 
 	class EditorLayer : public Layer {
@@ -80,6 +79,10 @@ namespace ORNG {
 		void RenderToolbar();
 
 		void RenderUI();
+
+		void RenderBottomWindow();
+
+		void RenderConsole();
 
 		void RenderSceneDisplayPanel();
 
@@ -306,6 +309,7 @@ namespace ORNG {
 
 		EditorEventStack m_event_stack;
 		LuaCLI m_lua_cli;
+		LoggerUI m_logger_ui;
 		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context };
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;

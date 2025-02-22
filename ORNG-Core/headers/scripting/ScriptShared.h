@@ -65,8 +65,9 @@ namespace ORNG {
 
 	typedef ScriptBase* (__cdecl* InstanceCreator)();
 	typedef void(__cdecl* InstanceDestroyer)(ScriptBase*);
-	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*);
+	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*, void*);
 	typedef void(__cdecl* ImGuiContextSetter)(void*, void*, void*);
+	typedef void(__cdecl* UnloadFunc)();
 
 	struct ScriptSymbols {
 		// Even if script fails to load, name must be preserved
@@ -78,6 +79,7 @@ namespace ORNG {
 
 		InstanceCreator CreateInstance = [] {return new ScriptBase(); };
 		InstanceDestroyer DestroyInstance = [](ScriptBase* p_base) { delete p_base; };
+		UnloadFunc Unload = nullptr;
 	};
 
 }

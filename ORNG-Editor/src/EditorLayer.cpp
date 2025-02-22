@@ -28,9 +28,8 @@
 #include "components/systems/SpotlightSystem.h"
 #include "components/systems/SceneUBOSystem.h"
 
-constexpr unsigned LEFT_WINDOW_WIDTH = 75;
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
-
+constexpr unsigned BOTTOM_WINDOW_HEIGHT = 300;
 
 using namespace ORNG::Events;
 
@@ -45,6 +44,7 @@ namespace ORNG {
 
 		InitImGui();
 		InitLua();
+		m_logger_ui.Init();
 
 		m_res.line_vao.AddBuffer<VertexBufferGL<glm::vec3>>(0, GL_FLOAT, 3, GL_STREAM_DRAW);
 		m_res.line_vao.Init();
@@ -175,7 +175,7 @@ namespace ORNG {
 		if (m_state.fullscreen_scene_display)
 			m_state.scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - m_res.toolbar_height) };
 		else
-			m_state.scene_display_rect = { ImVec2(Window::GetWidth() - (LEFT_WINDOW_WIDTH + RIGHT_WINDOW_WIDTH), Window::GetHeight() - m_asset_manager_window.window_height - m_res.toolbar_height) };
+			m_state.scene_display_rect = { ImVec2(Window::GetWidth() - (RIGHT_WINDOW_WIDTH), Window::GetHeight() - BOTTOM_WINDOW_HEIGHT - m_res.toolbar_height) };
 
 		mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_state.scene_display_rect.x / m_state.scene_display_rect.y;
 	}
@@ -241,6 +241,7 @@ namespace ORNG {
 
 		SCENE->UnloadScene();
 		m_asset_manager_window.OnShutdown();
+		m_logger_ui.Shutdown();
 	}
 
 	void EditorLayer::InitImGui() {
@@ -527,7 +528,7 @@ namespace ORNG {
 	void EditorLayer::RenderSceneDisplayPanel() {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(LEFT_WINDOW_WIDTH, m_res.toolbar_height)));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, m_res.toolbar_height)));
 		ImGui::SetNextWindowSize(m_state.scene_display_rect);
 
 		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
@@ -592,28 +593,17 @@ namespace ORNG {
 			RenderSceneDisplayPanel();
 
 		RenderToolbar();
-
-		m_lua_cli.render_pos = { LEFT_WINDOW_WIDTH, m_res.toolbar_height };
-		m_lua_cli.size = { m_state.scene_display_rect.x, 250 };
-		m_lua_cli.OnImGuiRender(!Window::Get().input.IsMouseDown(1));
-
-		m_asset_manager_window.OnRenderUI();
+		RenderBottomWindow();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, m_res.toolbar_height)));
-		ImGui::SetNextWindowSize(ImVec2(LEFT_WINDOW_WIDTH, Window::GetHeight() - m_res.toolbar_height - m_asset_manager_window.window_height));
-		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-
-		ImGui::Begin("##left window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar);
-		ImGui::End();
 
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, m_res.toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(RIGHT_WINDOW_WIDTH, Window::GetHeight() - m_res.toolbar_height));
 		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBringToFrontOnFocus)) {
+		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | 
+			ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration)) {
 			RenderSceneGraph();
 			DisplayEntityEditor();
 		}
@@ -629,7 +619,65 @@ namespace ORNG {
 	}
 
 
+	void EditorLayer::RenderBottomWindow() {
+		int window_width = Window::GetWidth() - 650;
+		ImGui::SetNextWindowSize(ImVec2(window_width, BOTTOM_WINDOW_HEIGHT));
+		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, Window::GetHeight() - BOTTOM_WINDOW_HEIGHT)));
 
+		ImGui::Begin("##bottom", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration);
+		ImGui::BeginTabBar("#log-asset-selector");
+		
+		if (ImGui::BeginTabItem("Console")) {
+			RenderConsole();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Assets")) {
+			m_asset_manager_window.OnRenderUI();
+			ImGui::EndTabItem();
+		}
+
+		ImGui::EndTabBar();
+		ImGui::End();
+	}
+
+	void EditorLayer::RenderConsole() {
+		static unsigned last_num_logs_rendered = 0;
+		static float scroll_max_y = 0.f;
+
+		ImGui::SetWindowFontScale(0.85f);
+
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{ 0.2, 0.2, 0.2, 1.0 });
+		if (ImGui::BeginChild("Logs", {ImGui::GetContentRegionMax().x, ImGui::GetContentRegionMax().y - 60 }, true)) {
+			unsigned current_num_logs_rendered = m_logger_ui.RenderLogContentsWithImGui();
+			// If scroll is already close to the bottom, make sure it stays locked to the bottom as more logs are added
+			if (current_num_logs_rendered != last_num_logs_rendered && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 100.0)
+				ImGui::SetScrollHereY(1.f);
+
+			last_num_logs_rendered = current_num_logs_rendered;
+
+		}
+		ImGui::EndChild();
+
+		ImGui::SetWindowFontScale(1.f);
+		static std::string lua_cmd = "";
+		ImGui::Text("> ");
+		ImGui::SameLine();
+		ImGui::PushItemWidth(ImGui::GetContentRegionMax().x);
+		ImGui::InputText("##cmd-input", &lua_cmd);
+		ImGui::PopItemWidth();
+		if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+			auto result = m_lua_cli.Execute(lua_cmd);
+			m_logger_ui.AddLog("> " + result.content, LogEvent::Type::L_TRACE);
+			if (result.is_error) {
+				m_logger_ui.AddLog(result.content, LogEvent::Type::L_ERROR);
+			}
+
+			lua_cmd.clear();
+		}
+
+		ImGui::PopStyleColor();
+	}
 
 	void EditorLayer::RenderDisplayWindow() {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1154,10 +1202,9 @@ namespace ORNG {
 
 	glm::vec2 EditorLayer::ConvertFullscreenMouseToDisplayMouse(glm::vec2 mouse_coords) {
 		// Transform mouse coordinates to full window space for the proper texture coordinates
-		mouse_coords.x -= LEFT_WINDOW_WIDTH;
-		mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - (RIGHT_WINDOW_WIDTH + LEFT_WINDOW_WIDTH)));
+		mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - (RIGHT_WINDOW_WIDTH)));
 		mouse_coords.y -= m_res.toolbar_height;
-		mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - m_asset_manager_window.window_height - m_res.toolbar_height);
+		mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - BOTTOM_WINDOW_HEIGHT - m_res.toolbar_height);
 		return mouse_coords;
 	}
 
@@ -1330,19 +1377,20 @@ namespace ORNG {
 
 
 	void EditorLayer::InitLua() {
-
 		m_lua_cli.Init();
 		m_lua_cli.input_callbacks.push_back([this] {
 			UpdateLuaEntityArray();
 			});
 
-		m_lua_cli.GetLua().set_function("ORNG_select_entity", [this](unsigned handle) {
+		auto& lua = m_lua_cli.GetLua();
+
+		lua.set_function("ORNG_select_entity", [this](unsigned handle) {
 			auto* p_ent = SCENE->GetEntity(entt::entity(handle));
 			if (p_ent)
 				m_state.selected_entity_ids.push_back(p_ent->GetUUID());
 			});
 
-		m_lua_cli.GetLua().set_function("get_entity", [this](unsigned handle) -> LuaEntity {
+		lua.set_function("get_entity", [this](unsigned handle) -> LuaEntity {
 			auto* p_ent = SCENE->GetEntity(entt::entity(handle));
 			if (!p_ent)
 				return LuaEntity{ "NULL", (unsigned)entt::null, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, (unsigned)entt::null };
@@ -1351,9 +1399,11 @@ namespace ORNG {
 			auto* p_relation_comp = p_ent->GetComponent<RelationshipComponent>();
 
 			return LuaEntity{ p_ent->name, (unsigned)p_ent->GetEnttHandle(), p_transform->GetPosition(), p_transform->GetScale(), p_transform->GetOrientation(), (unsigned)p_relation_comp->parent};
-
 			});
 
+		lua.set_function("clear", [this] {
+			m_logger_ui.ClearLogs();
+		});
 
 		std::string util_script = R"(
 			entity_array = {}
@@ -1802,7 +1852,7 @@ namespace ORNG {
 
 
 	void EditorLayer::RenderSceneGraph() {
-		if (ImGui::BeginChild("Scene graph", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f })) {
+		if (ImGui::BeginChild("Scene graph", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
 			// Click anywhere on window to deselect entity nodes
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 				m_state.selected_entity_ids.clear();
@@ -1899,7 +1949,7 @@ namespace ORNG {
 
 
 	void EditorLayer::DisplayEntityEditor() {
-		if (ImGui::BeginChild("Entity editor", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f })) {
+		if (ImGui::BeginChild("Entity editor", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
 			if (m_state.general_settings.editor_window_settings.display_directional_light_editor)
 				RenderDirectionalLightEditor();
 			if (m_state.general_settings.editor_window_settings.display_global_fog_editor)
@@ -2572,7 +2622,7 @@ namespace ORNG {
 		if (m_state.fullscreen_scene_display)
 			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y + m_res.toolbar_height, m_state.scene_display_rect.x, m_state.scene_display_rect.y);
 		else
-			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x + LEFT_WINDOW_WIDTH, ImGui::GetMainViewport()->Pos.y + m_res.toolbar_height, m_state.scene_display_rect.x, m_state.scene_display_rect.y);
+			ImGuizmo::SetRect(ImGui::GetMainViewport()->Pos.x, ImGui::GetMainViewport()->Pos.y + m_res.toolbar_height, m_state.scene_display_rect.x, m_state.scene_display_rect.y);
 
 		if (m_state.selection_mode != SelectionMode::ENTITY)
 			return;

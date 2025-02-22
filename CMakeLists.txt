@@ -33,7 +33,6 @@ project(HW_MONITOR)
 project(PHYS_GAME)
 add_subdirectory("Game")
 add_subdirectory("HW-Monitor")
-add_subdirectory("IFS-fractals")
 add_subdirectory("PhysicsGame")
 endif()
 

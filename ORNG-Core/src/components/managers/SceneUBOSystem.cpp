@@ -41,7 +41,7 @@ void SceneUBOSystem::UpdateCommonUBO() {
 	glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
 	glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
 
-	ORNG_CORE_CRITICAL("IMPLEMENT VOXEL ALIGNMENT SYSTEM");
+	//ORNG_CORE_CRITICAL("IMPLEMENT VOXEL ALIGNMENT SYSTEM");
 	// Any 0's are padding, all vec3 types are defined as vec4's in the shader for easier alignment.
 	ConvertToBytes(p_byte,
 		cam_pos, 0,

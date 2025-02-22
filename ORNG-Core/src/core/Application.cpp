@@ -34,6 +34,9 @@ void Application::Shutdown() {
 	if (!(m_settings.disabled_modules & ApplicationModulesFlags::PHYSICS))
 		Physics::Shutdown();
 
+	glfwDestroyWindow(Window::GetGLFWwindow());
+	glfwTerminate();
+
 	//GL_StateManager::Shutdown();
 }
 
@@ -46,7 +49,6 @@ void Application::Init(const ApplicationData& data) {
 	}
 
 	Log::Init();
-	ORNG_CORE_INFO("Initializing core engine"); Log::Flush();
 
 	Events::EventManager::Init();
 	FrameTiming::Init();
@@ -102,8 +104,5 @@ void Application::Init(const ApplicationData& data) {
 	}
 
 	// Cleanup
-	Shutdown();
-	glfwDestroyWindow(window);
-	glfwTerminate();
-	
+	Shutdown();	
 }

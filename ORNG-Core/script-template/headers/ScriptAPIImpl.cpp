@@ -13,7 +13,8 @@
 extern "C" {
 	// Connect main application's singletons with dll
 	__declspec(dllexport) void SetSingletonPtrs(void* p_window, void* p_frametiming, void* p_event_manager,
-		void* p_gl_manager, void* p_asset_manager, void* p_renderer) {
+		void* p_gl_manager, void* p_asset_manager, void* p_renderer, void* p_logger) {
+		ORNG::Log::InitFrom(*static_cast<std::shared_ptr<spdlog::logger>*>(p_logger));
 		ORNG::Window::InitInstance(static_cast<ORNG::Window*>(p_window));
 		ORNG::FrameTiming::Init(static_cast<ORNG::FrameTiming*>(p_frametiming));
 		ORNG::Events::EventManager::SetInstance(static_cast<ORNG::Events::EventManager*>(p_event_manager));
@@ -29,5 +30,10 @@ extern "C" {
 	__declspec(dllexport) void SetImGuiContext(void* p_instance, void* mem_alloc_func, void* free_func) {
 		ImGui::SetCurrentContext(static_cast<ImGuiContext*>(p_instance));
 		ImGui::SetAllocatorFunctions(static_cast<ImGuiMemAllocFunc>(mem_alloc_func), static_cast<ImGuiMemFreeFunc>(free_func));
+	}
+
+	__declspec(dllexport) void Unload() {
+		glfwMakeContextCurrent(nullptr);
+		glfwTerminate();
 	}
 }

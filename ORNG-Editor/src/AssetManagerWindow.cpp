@@ -117,7 +117,6 @@ namespace ORNG {
 			AssetManager::DeleteAsset(uuid);
 		}
 
-
 		m_asset_deletion_queue.clear();
 		RenderMainAssetWindow();
 
@@ -701,12 +700,6 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderMainAssetWindow() {
-		int window_width = Window::GetWidth() - 650;
-		column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
-		ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
-		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, Window::GetHeight() - window_height)));
-
-		ImGui::Begin("Assets", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 		ImGui::BeginTabBar("Selection");
 
 		RenderMeshAssetTab();
@@ -718,7 +711,6 @@ namespace ORNG {
 		RenderPhysxMaterialTab();
 
 		ImGui::EndTabBar();
-		ImGui::End();
 	}
 
 

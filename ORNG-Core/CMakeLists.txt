@@ -79,7 +79,7 @@ set(ORNG_LIB_SOURCES
     src/rendering/renderpasses/FogPass.cpp
     src/rendering/renderpasses/TransparencyPass.cpp
     src/rendering/renderpasses/PostProcessPass.cpp
-)
+ "src/util/LoggerUI.cpp")
 
 
 add_library(ORNG_CORE STATIC

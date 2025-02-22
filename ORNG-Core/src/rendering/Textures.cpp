@@ -117,7 +117,6 @@ namespace ORNG {
 	}
 
 	bool TextureBase::LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer) {
-
 		stbi_set_flip_vertically_on_load(1);
 
 		int width = 0;
@@ -185,6 +184,7 @@ namespace ORNG {
 	}
 
 	bool Texture2D::LoadFromBinary(std::byte* p_data, size_t size, bool is_decompressed, int width, int height, int bpp) {
+		stbi_set_flip_vertically_on_load(1);
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec))) {
 			ORNG_CORE_ERROR("2D Texture failed loading from binary: Invalid spec");
 			return false;
@@ -246,7 +246,6 @@ namespace ORNG {
 	}
 
 	bool Texture2D::LoadFromFile() {
-
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec)) || m_spec.filepath.empty()) {
 			ORNG_CORE_ERROR("2D Texture failed loading from file: Invalid spec");
 			return false;

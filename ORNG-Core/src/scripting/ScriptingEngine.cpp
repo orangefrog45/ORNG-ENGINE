@@ -179,13 +179,15 @@ namespace ORNG {
 
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
+		symbols.Unload = (UnloadFunc)(GetProcAddress(script_dll, "Unload"));
 		symbols.loaded = true;
 
 		SingletonPtrSetter singleton_setter = (SingletonPtrSetter)(GetProcAddress(script_dll, "SetSingletonPtrs"));
 		ImGuiContextSetter imgui_context_setter = (ImGuiContextSetter)(GetProcAddress(script_dll, "SetImGuiContext"));
+
 		// Set singletons so they're usable across the DLL boundary
 		singleton_setter(&Window::Get(), &FrameTiming::Get(), &Events::EventManager::Get(), &GL_StateManager::Get(), 
-			&AssetManager::Get(), &Renderer::Get());
+			&AssetManager::Get(), &Renderer::Get(), &Log::GetCoreLogger());
 
 		ImGuiMemAllocFunc imgui_malloc = nullptr;
 		ImGuiMemFreeFunc imgui_free = nullptr;
@@ -219,7 +221,9 @@ namespace ORNG {
 
 	bool ScriptingEngine::UnloadScriptDLL(const std::string& filepath) {
 		if (auto results = GetScriptData(filepath); results.is_loaded) {
-			FreeLibrary(sm_loaded_script_dll_handles[results.script_data_index].dll_handle);
+			auto& script_data = sm_loaded_script_dll_handles[results.script_data_index];
+			script_data.symbols.Unload();
+			FreeLibrary(script_data.dll_handle);
 			sm_loaded_script_dll_handles.erase(sm_loaded_script_dll_handles.begin() + results.script_data_index);
 			return true;
 		}
