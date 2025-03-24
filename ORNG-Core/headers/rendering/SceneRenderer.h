@@ -38,8 +38,11 @@ namespace ORNG {
 
 		// Sets state back to default values
 		static void UndoGL_StateModificationsFromMatFlags(MaterialFlags flags);
+
+		static void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
+
+		static std::vector<std::string> GetGBufferUniforms();
 	private:
 		void UpdateLightSpaceMatrices(CameraComponent* p_cam, Scene* p_scene);
-		static void SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_mat);
 	};
 }

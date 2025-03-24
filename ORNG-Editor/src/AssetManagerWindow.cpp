@@ -135,8 +135,7 @@ namespace ORNG {
 	}
 
 
-	bool AssetManagerWindow::CreateAndSerializePrefab(SceneEntity& entity, const std::string& fp) {
-
+	bool AssetManagerWindow::CreateAndSerializePrefab(SceneEntity& entity, const std::string& fp, uint64_t uuid) {
 		std::vector<SceneEntity*> entities;
 		entities.push_back(&entity);
 
@@ -147,6 +146,8 @@ namespace ORNG {
 		Scene::SortEntitiesNumParents(entities, false);
 
 		Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
+		if (uuid != 0) prefab->uuid = UUID<uint64_t>{ uuid };
+
 		prefab->serialized_content = SceneSerializer::SerializeEntityArrayIntoString(entities);
 		prefab->node = YAML::Load(prefab->serialized_content);
 		AssetManager::GetSerializer().SerializeAssetToBinaryFile(*prefab, fp);
@@ -669,7 +670,8 @@ namespace ORNG {
 						std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_ent->name + ".opfb";
 
 						if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
-							m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(*p_ent, fp); });
+							auto uuid = p_asset->uuid();
+							m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(*p_ent, fp, uuid); });
 						}
 						else
 							CreateAndSerializePrefab(*p_ent, fp);
@@ -700,6 +702,9 @@ namespace ORNG {
 
 
 	void AssetManagerWindow::RenderMainAssetWindow() {
+		const int window_width = Window::GetWidth() - 650;
+		column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
+
 		ImGui::BeginTabBar("Selection");
 
 		RenderMeshAssetTab();
@@ -911,6 +916,8 @@ namespace ORNG {
 
 			if (!mp_selected_material->ao_texture)
 				ret |= ImGui::SliderFloat("AO", &mp_selected_material->ao, 0.f, 1.f);
+
+			ret |= ImGui::SliderFloat("Alpha cutoff", &mp_selected_material->alpha_cutoff, 0.f, 1.f);
 
 			static bool emissive = false;
 			emissive = (flags & ORNG_MatFlags_EMISSIVE);

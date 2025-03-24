@@ -10,8 +10,10 @@
 
 namespace ORNG {
 	Shader::~Shader() {
+		Events::EventManager::DeregisterListener(m_reload_listener.GetRegisterID());
 		glDeleteProgram(m_program_id);
 	}
+
 	void CheckIncludeTreeCircularIncludes(const std::string& filepath, std::vector<const std::string*>& include_tree) {
 		for (const auto* s : include_tree) {
 			if (*s == filepath) {
@@ -234,7 +236,7 @@ namespace ORNG {
 	void Shader::Reload() {
 		glDeleteProgram(m_program_id);
 
-		for (auto& [type, stage] : m_stages) {
+		for (auto [type, stage] : m_stages) {
 			AddStage(type, stage.filepath, stage.defines);
 		}
 
@@ -280,10 +282,9 @@ namespace ORNG {
 		glValidateProgram(m_program_id);
 		glUseProgram(m_program_id);
 
-		if (m_reload_listener.GetRegisterID() == entt::null) {
-			m_reload_listener.OnEvent = [this]([[maybe_unused]] auto) {Reload(); };
-			Events::EventManager::RegisterListener(m_reload_listener);
-		}
+		Events::EventManager::DeregisterListener(m_reload_listener.GetRegisterID());
+		m_reload_listener.OnEvent = [this]([[maybe_unused]] auto) {Reload(); };
+		Events::EventManager::RegisterListener(m_reload_listener);
 	}
 
 
@@ -369,7 +370,7 @@ namespace ORNG {
 
 	Shader* ShaderVariants::AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms) {
 		ASSERT(!m_shaders.contains(id));
-		m_shaders[id] = Shader(std::format("{}", m_name));
+		m_shaders[id] = Shader{ std::format("{} - Variant {}", m_name, id) };
 		for (auto& [type, path] : m_shader_paths) {
 			m_shaders[id].AddStage(type, path, defines);
 		}

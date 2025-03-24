@@ -3,7 +3,10 @@
 #define LOG_H
 
 #include <spdlog/logger.h>
+#include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
 #include "events/Events.h"
 
 template<typename T>
@@ -41,17 +44,21 @@ namespace ORNG {
 	class Log { 
 	public:
 		static void Init();
-		static void InitFrom(std::shared_ptr<spdlog::logger> p_logger) {
-			s_core_logger = p_logger;
+		static void InitFrom(std::shared_ptr<spdlog::logger> p_core_logger, std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> p_ringbuffer_sink) {
+			s_core_logger = p_core_logger;
+			s_ringbuffer_sink = p_ringbuffer_sink;
 		}
 
 		static void Flush();
 		static std::string GetLastLog();
 		static std::vector<std::string> GetLastLogs();
 		static std::shared_ptr<spdlog::logger>& GetCoreLogger();
+		static auto& GetRingbufferSink() { return s_ringbuffer_sink; };
 		static void OnLog(LogEvent::Type type);
 	private:
-		static std::shared_ptr<spdlog::logger> s_core_logger;
+		inline static std::shared_ptr<spdlog::logger> s_core_logger = nullptr;
+		inline static std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> s_ringbuffer_sink = nullptr;
+		inline static std::shared_ptr<spdlog::sinks::basic_file_sink_mt> s_file_sink = nullptr;
 	};
 
 }

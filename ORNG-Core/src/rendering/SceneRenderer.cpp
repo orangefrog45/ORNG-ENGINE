@@ -92,8 +92,34 @@ namespace ORNG {
 		p_shader->SetUniform("u_material.sprite_data.num_rows", p_material->spritesheet_data.num_rows);
 		p_shader->SetUniform("u_material.sprite_data.num_cols", p_material->spritesheet_data.num_cols);
 		p_shader->SetUniform("u_material.sprite_data.fps", p_material->spritesheet_data.fps);
+
+		p_shader->SetUniform("u_material.alpha_cutoff", p_material->alpha_cutoff);
 	}
 
+	std::vector<std::string> SceneRenderer::GetGBufferUniforms() {
+		return {
+			"u_roughness_sampler_active",
+			"u_metallic_sampler_active",
+			"u_emissive_sampler_active",
+			"u_normal_sampler_active",
+			"u_ao_sampler_active",
+			"u_displacement_sampler_active",
+			"u_num_parallax_layers",
+			"u_material.base_colour",
+			"u_material.metallic",
+			"u_material.roughness",
+			"u_material.ao",
+			"u_material.tile_scale",
+			"u_material.emissive_strength",
+			"u_material.flags",
+			"u_material.displacement_scale",
+			"u_shader_id",
+			"u_material.sprite_data.num_rows",
+			"u_material.sprite_data.num_cols",
+			"u_material.sprite_data.fps",
+			"u_material.alpha_cutoff"
+		};
+	}
 
 	/*void SceneRenderer::RenderVehicles(ShaderVariants* p_shader, RenderGroup render_group, Scene* p_scene) {
 		p_shader->SetUniform("u_bloom_threshold", p_scene->post_processing.bloom.threshold);

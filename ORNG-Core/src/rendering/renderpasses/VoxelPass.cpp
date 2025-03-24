@@ -10,6 +10,8 @@
 #include "scene/Scene.h"
 #include "scene/SceneEntity.h"
 #include "rendering/SceneRenderer.h"
+#include "rendering/RenderGraph.h"
+#include "components/systems/SceneUBOSystem.h"
 
 #include <glm/glm/gtc/round.hpp>
 
@@ -69,6 +71,46 @@ void VoxelPass::Init() {
 	m_3d_mipmap_shader.AddVariant((unsigned)MipMap3D_ShaderVariants::DEFAULT_MIP, {}, {});
 	m_3d_mipmap_shader.AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC, { "ANISOTROPIC_MIPMAP" }, {});
 	m_3d_mipmap_shader.AddVariant((unsigned)MipMap3D_ShaderVariants::ANISOTROPIC_CHAIN, { "ANISOTROPIC_MIPMAP_CHAIN" }, { "u_mip_level" });
+
+	mp_scene = mp_graph->GetData<Scene>("Scene");
+
+	const auto& out_spec = mp_graph->GetData<Texture2D>("OutCol")->GetSpec();
+	m_render_dimensions = { out_spec.width, out_spec.height };
+
+	Texture3DSpec voxel_spec_rgbaf;
+	voxel_spec_rgbaf.format = GL_RGBA;
+	voxel_spec_rgbaf.internal_format = GL_RGBA16F;
+	voxel_spec_rgbaf.width = 256;
+	voxel_spec_rgbaf.height = 256;
+	voxel_spec_rgbaf.layer_count = 256;
+	voxel_spec_rgbaf.storage_type = GL_FLOAT;
+	voxel_spec_rgbaf.mag_filter = GL_LINEAR;
+	voxel_spec_rgbaf.min_filter = GL_LINEAR;
+
+	Texture3DSpec voxel_spec_r32ui = voxel_spec_rgbaf;
+	voxel_spec_r32ui.format = GL_RED_INTEGER;
+	voxel_spec_r32ui.internal_format = GL_R32UI;
+	voxel_spec_r32ui.storage_type = GL_UNSIGNED_INT;
+	voxel_spec_r32ui.min_filter = GL_NEAREST;
+	voxel_spec_r32ui.mag_filter = GL_NEAREST;
+
+	m_scene_voxel_tex_c0_normals.SetSpec(voxel_spec_r32ui);
+	m_scene_voxel_tex_c0.SetSpec(voxel_spec_r32ui);
+	m_scene_voxel_tex_c1.SetSpec(voxel_spec_r32ui);
+	m_scene_voxel_tex_c1_normals.SetSpec(voxel_spec_r32ui);
+
+	Texture3DSpec voxel_mip_spec = voxel_spec_rgbaf;
+	voxel_mip_spec.width = 256;
+	voxel_mip_spec.height = 256;
+	voxel_mip_spec.layer_count = 256 * 6; // Each face starts at z = face_index * VOXEL_MIP_RES
+	voxel_mip_spec.generate_mipmaps = true;
+	voxel_mip_spec.wrap_params = GL_CLAMP_TO_EDGE;
+	voxel_mip_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+
+	m_voxel_mip_faces_c0.SetSpec(voxel_mip_spec);
+	m_voxel_mip_faces_c1.SetSpec(voxel_mip_spec);
+
+	m_scene_voxelization_fb.Init();
 }
 
 void VoxelPass::DoPass() {
@@ -89,6 +131,8 @@ void VoxelPass::DoPass() {
 		}
 		break;
 	}
+
+	mp_scene->GetSystem<SceneUBOSystem>().UpdateVoxelAlignedPositions(m_voxel_aligned_cam_positions);
 
 	constexpr float voxel_size = 0.2f;
 	const unsigned cascade_width = m_scene_voxel_tex_c0.GetSpec().width;
@@ -130,7 +174,7 @@ void VoxelPass::DoPass() {
 		m_scene_voxelization_shader.SetUniform("u_orth_proj_view_matrix", proj * matrices[i]);
 		for (auto* p_group : mp_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
 			SceneRenderer::DrawInstanceGroupGBuffer(&m_scene_voxelization_shader, p_group, SOLID, MaterialFlags::ORNG_MatFlags_ALL, ORNG_MatFlags_INVALID,
-				GL_TRIANGLES, true);
+				true, GL_TRIANGLES);
 		}
 	}
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -138,6 +182,8 @@ void VoxelPass::DoPass() {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glDepthFunc(GL_LEQUAL);
+
+	glViewport(0, 0, m_render_dimensions.x, m_render_dimensions.y);
 
 	// Clear old mip data
 	constexpr unsigned num_mip_levels = 6;
@@ -168,6 +214,7 @@ void VoxelPass::DoPass() {
 
 	glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 	glBindImageTexture(1, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
 }
 
 void VoxelPass::Destroy() {

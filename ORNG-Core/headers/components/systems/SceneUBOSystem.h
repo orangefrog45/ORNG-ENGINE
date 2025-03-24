@@ -9,6 +9,7 @@ namespace ORNG {
 		void OnUpdate() override;
 		void OnUnload() override;
 
+		void UpdateVoxelAlignedPositions(const std::array<glm::vec3, 2>& positions);
 		inline static constexpr uint64_t GetSystemUUID() { return 8289371920347454239; }
 	private:
 		void UpdateCommonUBO();

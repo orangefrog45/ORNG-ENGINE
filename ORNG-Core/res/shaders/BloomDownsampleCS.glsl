@@ -27,10 +27,6 @@ void main() {
 	vec3 K = textureLod(sampler_input, local_tex_coords + vec2(-2.0, 2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
 	vec3 L = textureLod(sampler_input, local_tex_coords + vec2(0.0, 2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
 	vec3 M = textureLod(sampler_input, local_tex_coords + vec2(2.0, 2.0) * upsampled_texel_size, u_mip_level - 1).rgb;
-	
-
-
-
 
 	vec2 div = (1.0 / 4.0) * vec2(0.5, 0.125);
 	vec3 total_result = (D + E + I + J) * div.x;

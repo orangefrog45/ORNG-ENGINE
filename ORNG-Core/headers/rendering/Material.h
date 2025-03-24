@@ -79,6 +79,7 @@ namespace ORNG {
 
 			s.value4b((uint32_t)flags);
 			s.value4b(displacement_scale);
+			s.value4b(alpha_cutoff);
 		}
 
 		inline void FlipFlags(MaterialFlags _flags) {
@@ -116,7 +117,8 @@ namespace ORNG {
 		float metallic = 0.0f;
 		float ao = 0.1f;
 		float emissive_strength = 1.f;
-		float opacity = 1.0;
+		// Alpha values from the albedo texture below this value will cause the pixel to be discarded in normal opaque shading, such as the gbuffer
+		float alpha_cutoff = 1.f;
 
 		Texture2D* base_colour_texture = nullptr;
 		Texture2D* normal_map_texture = nullptr;

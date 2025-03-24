@@ -14,6 +14,10 @@ layout(binding = 17) uniform sampler2D metallic_sampler;
 layout(binding = 18) uniform sampler2D ao_sampler;
 layout(binding = 25) uniform sampler2D emissive_sampler;
 
+#ifdef DECAL
+layout(binding = 16) uniform sampler2D view_depth_sampler;
+#endif
+
 
 #ifdef TESSELLATE
 in flat int ts_instance_id_out;
@@ -48,8 +52,8 @@ in flat mat4 vs_transform;
 #endif
 
 
-
 ORNG_INCLUDE "ParticleBuffersINCL.glsl"
+ORNG_INCLUDE "UtilINCL.glsl"
 
 #ifdef PARTICLE
 flat in uint vs_particle_index;
@@ -153,14 +157,38 @@ vec4 CalculateAlbedoAndEmissive(vec2 tex_coord) {
 
 #endif // ifndef SKYBOX_MODE
 
-
+#ifdef DECAL
+void RenderDecal() {
+	const vec2 ntc = vec2(gl_FragCoord.xy) / textureSize(view_depth_sampler, 0);
+	const vec3 world_pos = WorldPosFromDepth(texture(view_depth_sampler, ntc).r, ntc);
+	const vec3 surface_pos = vec3(inverse(TRANSFORM) * vec4(world_pos, 1.0));
+	if (any(greaterThan(surface_pos, vec3(1.0))) || any(lessThan(surface_pos, vec3(-1.0)))) discard;
+	const vec2 decal_tex_coord = (surface_pos.xy + 1.0) * 0.5;
+	albedo = CalculateAlbedoAndEmissive(decal_tex_coord);
+	// TODO: Would be nice to support parallax mapping with decals
+	if (albedo.a >= u_material.alpha_cutoff) {
+		roughness_metallic_ao.r = u_roughness_sampler_active ? texture(roughness_sampler, decal_tex_coord.xy).r : u_material.roughness;
+		roughness_metallic_ao.g = u_metallic_sampler_active ? texture(metallic_sampler, decal_tex_coord.xy).r : u_material.metallic;
+		roughness_metallic_ao.b = u_ao_sampler_active ? texture(ao_sampler, decal_tex_coord.xy).r : u_material.ao;
+		roughness_metallic_ao.a = 1.f;
+		shader_id = (u_material.flags & MAT_FLAG_EMISSIVE) == 0 ? 1 : 0;
+	} else {
+		discard;
+	}
+}
+#endif
 
 void main() {
+#ifdef DECAL
+	RenderDecal();
+	return;
+#endif
+
 #ifndef SKYBOX_MODE
 	vec2 adj_tex_coord = bool(u_material.flags & MAT_FLAG_PARALLAX_MAPPED) ? ParallaxMap() : vert_data.tex_coord.xy * u_material.tile_scale;
-	roughness_metallic_ao.r = texture(roughness_sampler, adj_tex_coord.xy).r * float(u_roughness_sampler_active) + u_material.roughness * float(!u_roughness_sampler_active);
-	roughness_metallic_ao.g = texture(metallic_sampler, adj_tex_coord.xy).r * float(u_metallic_sampler_active) + u_material.metallic * float(!u_metallic_sampler_active);
-	roughness_metallic_ao.b = texture(ao_sampler, adj_tex_coord.xy).r * float(u_ao_sampler_active) + u_material.ao * float(!u_ao_sampler_active);
+	roughness_metallic_ao.r = u_roughness_sampler_active ? texture(roughness_sampler, adj_tex_coord.xy).r : u_material.roughness;
+	roughness_metallic_ao.g = u_metallic_sampler_active ? texture(metallic_sampler, adj_tex_coord.xy).r : u_material.metallic;
+	roughness_metallic_ao.b = u_ao_sampler_active ? texture(ao_sampler, adj_tex_coord.xy).r : u_material.ao;
 	roughness_metallic_ao.a = 1.f;
 #endif
 
@@ -174,7 +202,7 @@ void main() {
 	gl_FragDepth = 1.0;
 #else
 	albedo = CalculateAlbedoAndEmissive(adj_tex_coord);
-	if (albedo.w < 0.25)
+	if (albedo.w < u_material.alpha_cutoff)
 		discard;
 
 		albedo.rgb *= albedo.w;

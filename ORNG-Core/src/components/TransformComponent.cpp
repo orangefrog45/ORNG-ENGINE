@@ -67,6 +67,11 @@ namespace ORNG {
 		auto* p_parent = GetParent();
 		if (m_is_absolute || !p_parent) {
 			m_transform = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
+
+			forward = glm::normalize(glm::vec3(-m_transform[2][0], -m_transform[2][1], -m_transform[2][2]));
+			right = glm::normalize(glm::vec3(m_transform[0][0], m_transform[0][1], m_transform[0][2]));
+			up = glm::normalize(glm::vec3(m_transform[1][0], m_transform[1][1], m_transform[1][2]));
+			
 			m_transform[0][0] *= m_scale.x;
 			m_transform[0][1] *= m_scale.x;
 			m_transform[0][2] *= m_scale.x;
@@ -110,11 +115,13 @@ namespace ORNG {
 			m_transform[3][3] = 1.0;
 
 			m_transform = p_parent->GetMatrix() * m_transform;
+
+			glm::quat orientation_quat = glm::quat{ glm::radians(m_abs_orientation) };
+			forward = orientation_quat * glm::vec3{ 0.f, 0.f, -1.f };
+			right = orientation_quat * glm::vec3{ 1.f, 0.f, 0.f };
+			up = orientation_quat * glm::vec3{ 0.f, 1.f, 0.f };
 		}
 
-		forward = glm::normalize(glm::vec3(-m_transform[2][0], -m_transform[2][1], -m_transform[2][2]));
-		right = glm::normalize(glm::cross(forward, g_up));
-		up = glm::normalize(glm::cross(right, forward));
 
 		UpdateAbsTransforms();
 

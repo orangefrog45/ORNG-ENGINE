@@ -67,7 +67,6 @@ namespace ORNG {
 				return;
 			}
 
-
 			if constexpr (std::is_same<T, float>::value) {
 				glUniform1f(m_uniforms[name], value);
 			}
@@ -174,7 +173,7 @@ namespace ORNG {
 		inline static unsigned m_active_shader_id = 0;
 
 		std::string m_name;
-		std::map<GLenum, std::string> m_shader_paths;
-		std::map<unsigned, Shader> m_shaders;
+		std::unordered_map<GLenum, std::string> m_shader_paths;
+		std::unordered_map<unsigned, Shader> m_shaders;
 	};
 }

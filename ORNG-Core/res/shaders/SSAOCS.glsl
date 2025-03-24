@@ -42,9 +42,9 @@ float LinearizeDepth(float depth) {
 void main() {
     ivec2 sample_coord = ivec2(gl_GlobalInvocationID.xy);
 
-    vec3 normal = texelFetch(normal_sampler, sample_coord, 0).rgb;
+    vec3 normal = mat3(PVMatrices.view) * texelFetch(normal_sampler, sample_coord, 0).rgb;
     float depth = texelFetch(depth_sampler, sample_coord, 0).r;
-    vec3 world_pos = WorldPosFromDepth(depth, vec2(sample_coord) / vec2(textureSize(depth_sampler, 0)));
+    vec3 world_pos = (PVMatrices.view  * vec4(WorldPosFromDepth(depth, vec2(sample_coord + 0.5) / vec2(textureSize(depth_sampler, 0))), 1.0)).xyz;
 
     mat3 tangent_to_world = CreateCoordinateSystem(normal);
 
@@ -58,11 +58,13 @@ void main() {
 
         vec3 sample_pos = (tangent_to_world * (offset * radius)) + world_pos;
 
-        vec4 proj = PVMatrices.proj_view * vec4(sample_pos, 1.0);
+        vec4 proj = PVMatrices.projection * vec4(sample_pos, 1.0);
         proj.xyz /= proj.w;
         proj.xyz = proj.xyz * 0.5 + 0.5;
         float sample_depth = texelFetch(depth_sampler, ivec2(proj.xy * textureSize(depth_sampler, 0)), 0).r;
-        occlusion += (sample_depth >= depth ? 1.0 : 0.0);
+        float z = (mat4(PVMatrices.view)  * vec4(WorldPosFromDepth(sample_depth, proj.xy), 1.0)).z;
+        float range_check = smoothstep(0.0, 1.0, radius / abs(z - sample_pos.z));
+        occlusion += (z >= sample_pos.z + 0.005 ? 1.0 : 0.0) * range_check;
     }
     imageStore(u_output_image, sample_coord, vec4(vec3(occlusion / 32.f), 1.0));
 }

@@ -61,7 +61,7 @@ const vec3 diffuse_cone_dirs[] =
 #define DIFFUSE_APERTURE_MAX PI / 3.0
 #define DIFFUSE_APERTURE_MIN PI / 6.0
 
-#define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d   ; \
+#define CONE_TRACE_SKELETON(x) 	vec3 step_pos = sampled_world_pos + cone_dir * d ; \
 		\
 		vec3 coord = vec3(((step_pos - ubo_common.voxel_aligned_cam_positions[current_cascade].xyz + sampled_normal*0.2) / (VOXEL_SIZE * (current_cascade + 1)) + vec3(VOXEL_RES * 0.5)) / VOXEL_RES); \
 		if (any(greaterThan(coord, vec3(1.0))) || any(lessThan(coord, vec3(0.0)))) { \
@@ -87,7 +87,7 @@ const vec3 diffuse_cone_dirs[] =
 
 
 
-vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_travelled) {
+vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling) {
 	cone_dir = normalize(cone_dir);
 	vec4 col = vec4(0);
 
@@ -108,7 +108,6 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_
 		sample_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.y < 0 ? 4.0 : 1.0) / 6.0), mip) * vec4(weight.y);
 		sample_col += textureLod(voxel_mip_sampler, coord + vec3(0, 0, (cone_dir.z < 0 ? 5.0 : 2.0) / 6.0), mip) * vec4(weight.z);
 		mip_col += sample_col;
-		float cam_dist = length(ubo_common.voxel_aligned_cam_positions[0].xyz - step_pos);
 
 		// VERY EXPENSIVE - Interpolate between cascade borders
 		// if (cam_dist > 20.f) {
@@ -145,34 +144,36 @@ vec4 ConeTrace(vec3 cone_dir, float aperture, float mip_scaling, out float dist_
 
 	}
 
-	dist_travelled = d / 76.0;
-
-	return col ;
+	return col;
 }
-	
-vec4 CalculateIndirectDiffuseLighting(vec3 v, vec3 f0, out float o_occlusion) {
+
+
+void CreateCoordinateSystem(in vec3 n, out vec3 nt, out vec3 nb) {
+  if (abs(n.x) > abs(n.y))
+    nt = vec3(n.z, 0, -n.x) / length(n.xz);
+  else
+    nt = vec3(0, -n.z, n.y) / length(n.yz);
+
+    nb = cross(n, nt);
+}
+
+vec4 CalculateIndirectDiffuseLighting(vec3 v, vec3 f0) {
 	vec4 col = vec4(0);
 
-    vec3 avg_normal = sampled_normal;
-    
-	vec3 non_parallel = abs(dot(avg_normal, vec3(0, 1, 0))) > 0.99999 ? vec3(0, 0, 1) : vec3(0, 1, 0);
-	vec3 right = normalize(non_parallel - dot(avg_normal, non_parallel) * avg_normal);
-	vec3 up = cross(right, avg_normal);
+	vec3 nt, nb;
+	CreateCoordinateSystem(sampled_normal, nt, nb);
+	mat3 tangent_to_world = mat3(nt, nb, sampled_normal);
 
 	float aperture = mix(DIFFUSE_APERTURE_MIN, DIFFUSE_APERTURE_MAX, roughness_metallic_ao.r);
 
-	float occlusion = 0.f;
-
 	for (int i = 0; i < 6; i++) {
-		vec3 cone_dir = normalize(avg_normal + diffuse_cone_dirs[i].x * right + diffuse_cone_dirs[i].z * up);
-		cone_dir = mix(normalize(reflect(-v, avg_normal)), cone_dir, roughness_metallic_ao.r);
-		float dist;
-		col += ConeTrace(cone_dir, aperture, 0.2 / roughness_metallic_ao.r, dist) * vec4(CookTorranceBRDF(cone_dir, v, f0, sampled_world_pos, avg_normal.rgb, 
+		vec3 cone_dir = normalize(tangent_to_world * diffuse_cone_dirs[i].xzy);
+		cone_dir = mix(normalize(reflect(-v, sampled_normal)), cone_dir, roughness_metallic_ao.r);
+		
+		col += ConeTrace(cone_dir, aperture, 0.2 / roughness_metallic_ao.r) * vec4(CookTorranceBRDF(cone_dir, v, f0, sampled_world_pos, sampled_normal.rgb, 
 		roughness_metallic_ao.r, roughness_metallic_ao.g, sampled_albedo), 1);
-
-		occlusion += dist;
 	}
-	o_occlusion = occlusion / 6.0;
+
 	return col / 6.0;
 }
 
@@ -189,9 +190,10 @@ void main() {
 	vec3 f0 = vec3(0.04); // TODO: Support different values for more metallic objects
 	f0 = mix(f0, sampled_albedo.xyz, roughness_metallic_ao.g);
 
-	float occlusion;
-	vec4 res = CalculateIndirectDiffuseLighting(v, f0, occlusion);
+	vec4 res = CalculateIndirectDiffuseLighting(v, f0);
 
     vec3 light = res.rgb;
-	imageStore(u_output_texture, tex_coords / 2, vec4(light, res.a) );
+	light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness_metallic_ao.r, sampled_normal.xyz, roughness_metallic_ao.b, roughness_metallic_ao.g, sampled_albedo.rgb) * max(0.95 - res.a, 0.0);
+
+	imageStore(u_output_texture, tex_coords / 2, vec4(light, res.a));
 }

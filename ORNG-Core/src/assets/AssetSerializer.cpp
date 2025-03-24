@@ -287,7 +287,7 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 }
 
 void AssetSerializer::SerializeAssets(const std::string& output_path) {
-	// Serialize all assets currently loaded into asset m_manager
+	// Serialize all assets currently loaded into asset manager
 	// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
 	for (auto* p_texture : m_manager.GetView<Texture2D>()) {
 		SerializeAssetToBinaryFile(*p_texture, output_path + "\\res\\textures\\" + ReplaceFileExtension(GetFilename(p_texture->filepath), "") + ".otex");
@@ -568,6 +568,7 @@ void AssetSerializer::DeserializeMaterialAsset(Material& data, BufferDeserialize
 	des.value4b(flags);
 	data.flags = (MaterialFlags)flags;
 	des.value4b(data.displacement_scale);
+	des.value4b(data.alpha_cutoff);
 }
 
 void AssetSerializer::DeserializeMaterialAsset(Material& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
@@ -603,4 +604,5 @@ void AssetSerializer::DeserializeMaterialAsset(Material& data, bitsery::Deserial
 	des.value4b(flags);
 	data.flags = (MaterialFlags)flags;
 	des.value4b(data.displacement_scale);
+	des.value4b(data.alpha_cutoff);
 }

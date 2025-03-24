@@ -71,7 +71,7 @@ namespace ORNG {
 		glfwSetInputMode(Get().p_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
 	}
 
-	void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
+	void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized) {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -79,33 +79,30 @@ namespace ORNG {
 		glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 		glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
+		if (maximized)
+			glfwWindowHint(GLFW_MAXIMIZED, true);
+
 		if (!decorated)
 			glfwWindowHint(GLFW_DECORATED, false);
 
 		if (!iconified)
 			glfwWindowHint(GLFW_AUTO_ICONIFY, false);
 
-		m_window_width = initial_dimensions.x;
-		m_window_height = initial_dimensions.y;
-
 		int count;
 		GLFWmonitor** monitors = glfwGetMonitors(&count);
 		if (initial_window_display_monitor_idx == -1) {
-			p_window = glfwCreateWindow(m_window_width, m_window_height, name, nullptr, nullptr);
+			p_window = glfwCreateWindow(initial_dimensions.x, initial_dimensions.y, name, nullptr, nullptr);
 		}
 		else if (initial_window_display_monitor_idx < count) {
-			p_window = glfwCreateWindow(m_window_width, m_window_height, name, monitors[initial_window_display_monitor_idx], nullptr);
+			p_window = glfwCreateWindow(initial_dimensions.x, initial_dimensions.y, name, monitors[initial_window_display_monitor_idx], nullptr);
 		}
 		else {
 			ORNG_CORE_ERROR("Initial window display monitor index too large, total monitors '{0}', received index '{1}'", count, initial_window_display_monitor_idx);
-			p_window = glfwCreateWindow(m_window_width, m_window_height, name, nullptr, nullptr);
+			p_window = glfwCreateWindow(initial_dimensions.x, initial_dimensions.y, name, nullptr, nullptr);
 		}
-
-
 		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
 		glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
 		glfwSetCursorPosCallback(p_window, CursorPosCallback);
-		
 		glfwSetWindowSizeCallback(p_window, [](GLFWwindow*, int width, int height)
 			{
 				Window::SetWindowDimensions(width, height);
@@ -115,11 +112,21 @@ namespace ORNG {
 		if (!p_window)
 			glfwTerminate();
 
-		glfwSetKeyCallback(p_window, key_callback);
+		// Read window dimensions back as GLFW window creation sometimes doesn't follow what was set perfectly (especially with maximization)
+		int width, height;
+		glfwGetWindowSize(p_window, &width, &height);
+		m_window_width = width;
+		m_window_height = height;
 
+		glfwSetKeyCallback(p_window, key_callback);
 		glfwMakeContextCurrent(p_window);
 		glfwSwapInterval(0);
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
+
+		// Set immediate opening colour to orange
+		glClearColor(0.3, 0.1, 0, 1);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glfwSwapBuffers(p_window);
 
 		input.Init();
 	}

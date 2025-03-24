@@ -10,6 +10,7 @@
 #include "util/Timers.h"
 #include "components/systems/MeshInstancingSystem.h"
 #include "components/systems/ParticleSystem.h"
+#include "components/DecalComponent.h"
 
 using namespace ORNG;
 
@@ -20,7 +21,8 @@ enum class GBufferVariants {
 	SKYBOX,
 	BILLBOARD,
 	PARTICLE_BILLBOARD,
-	UNIFORM_TRANSFORM
+	UNIFORM_TRANSFORM,
+	DECAL,
 };
 
 void GBufferPass::Init() {
@@ -65,27 +67,7 @@ void GBufferPass::Init() {
 	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 	m_framebuffer.EnableDrawBuffers(4, buffers);
 
-	std::vector<std::string> gbuffer_uniforms{
-	"u_roughness_sampler_active",
-		"u_metallic_sampler_active",
-		"u_emissive_sampler_active",
-		"u_normal_sampler_active",
-		"u_ao_sampler_active",
-		"u_displacement_sampler_active",
-		"u_num_parallax_layers",
-		"u_material.base_colour",
-		"u_material.metallic",
-		"u_material.roughness",
-		"u_material.ao",
-		"u_material.tile_scale",
-		"u_material.emissive_strength",
-		"u_material.flags",
-		"u_material.displacement_scale",
-		"u_shader_id",
-		"u_material.sprite_data.num_rows",
-		"u_material.sprite_data.num_cols",
-		"u_material.sprite_data.fps"
-	};
+	std::vector<std::string> gbuffer_uniforms = SceneRenderer::GetGBufferUniforms();
 
 	std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
 	ptcl_uniforms.push_back("u_transform_start_index");
@@ -110,6 +92,7 @@ void GBufferPass::Init() {
 		std::vector<std::string> transform_uniforms = gbuffer_uniforms;
 		transform_uniforms.push_back("u_transform");
 		m_sv.AddVariant((unsigned)UNIFORM_TRANSFORM, { "UNIFORM_TRANSFORM" }, transform_uniforms);
+		m_sv.AddVariant((unsigned)DECAL, { "UNIFORM_TRANSFORM", "DECAL" }, transform_uniforms);
 	}
 }
 
@@ -169,18 +152,28 @@ void GBufferPass::DoPass() {
 			ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED, true);
 	}
 
+
 	m_sv.Activate((unsigned)GBufferVariants::UNIFORM_TRANSFORM);
 	//RenderVehicles(mp_sv, SOLID, mp_scene);
 
-	//m_sv.Activate((unsigned)GBufferVariants::TERRAIN);
-	//SetGBufferMaterial(mp_sv, p_scene->terrain.mp_material);
-	//m_sv.SetUniform<unsigned int>("u_shader_id", ShaderLibrary::LIGHTING_SHADER_ID);
-	//DrawTerrain(p_cam);
+
+	// Draw decals
+	glDisable(GL_DEPTH_TEST);
+	m_sv.Activate((unsigned)GBufferVariants::DECAL);
+	GL_StateManager::BindTexture(GL_TEXTURE_2D, depth.GetTextureHandle(), GL_TEXTURE16);
+	for (auto [entity, decal, transform] : mp_scene->GetRegistry().view<DecalComponent, TransformComponent>().each()) {
+		// TODO: These should be sorted by material for minimal state changes, DecalSystem could handle this
+		if (!decal.p_material) continue;
+		SceneRenderer::SetGBufferMaterial(&m_sv, decal.p_material);
+		m_sv.SetUniform("u_transform", transform.GetMatrix());
+		Renderer::DrawCube();
+	}
+	glEnable(GL_DEPTH_TEST);
 
 	// Draw skybox
 	m_sv.Activate((unsigned)GBufferVariants::SKYBOX);
 	GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSkyboxTexture().GetTextureHandle(),
-		GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
+	GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
 	glDisable(GL_CULL_FACE);
 	glDepthFunc(GL_LEQUAL);
 	Renderer::DrawCube();

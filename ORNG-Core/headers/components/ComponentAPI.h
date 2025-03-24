@@ -11,3 +11,4 @@
 #include "components/ParticleEmitterComponent.h"
 #include "components/ParticleBufferComponent.h"
 #include "components/BillboardComponent.h"
+#include "components/DecalComponent.h"

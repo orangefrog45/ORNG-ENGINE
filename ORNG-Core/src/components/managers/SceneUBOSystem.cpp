@@ -41,7 +41,6 @@ void SceneUBOSystem::UpdateCommonUBO() {
 	glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
 	glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
 
-	//ORNG_CORE_CRITICAL("IMPLEMENT VOXEL ALIGNMENT SYSTEM");
 	// Any 0's are padding, all vec3 types are defined as vec4's in the shader for easier alignment.
 	ConvertToBytes(p_byte,
 		cam_pos, 0,
@@ -62,9 +61,14 @@ void SceneUBOSystem::UpdateCommonUBO() {
 		static_cast<float>(FrameTiming::GetTimeStep()),
 		mp_scene->GetTimeElapsed()
 	);
+
 	m_common_ubo.BufferSubData(0, m_common_ubo_size, data.data());
 	glBindBufferBase(GL_UNIFORM_BUFFER, GL_StateManager::UniformBindingPoints::GLOBALS, m_common_ubo.GetHandle());
 
+}
+
+void SceneUBOSystem::UpdateVoxelAlignedPositions(const std::array<glm::vec3, 2>& positions) {
+	m_common_ubo.BufferSubData(4 * sizeof(glm::vec4), sizeof(positions), reinterpret_cast<const std::byte*>(positions.data()));
 }
 
 void SceneUBOSystem::UpdateMatrixUBO() {

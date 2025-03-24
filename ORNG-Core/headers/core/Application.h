@@ -16,10 +16,11 @@ namespace ORNG {
 
 		// Leave as -1 to prevent fullscreening
 		int initial_window_display_monitor_idx = -1;
-		glm::ivec2 initial_window_dimensions = { 2560, 1440 };
+		glm::ivec2 initial_window_dimensions = { 1000, 600};
 		const char* window_name = "ORNG ENGINE";
 		bool window_decorated = true;
 		bool window_iconified = true;
+		bool start_maximized = true;
 	};
 
 	class Application

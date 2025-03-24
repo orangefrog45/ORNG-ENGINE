@@ -13,8 +13,8 @@ namespace ORNG {
 			mp_instance = p_instance ? p_instance : new Window();
 		}
 
-		static void Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated) {
-			Get().I_Init(initial_dimensions, name, initial_window_display_monitor_idx, iconified, decorated);
+		static void Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized) {
+			Get().I_Init(initial_dimensions, name, initial_window_display_monitor_idx, iconified, decorated, maximized);
 		};
 
 		static void Shutdown() {
@@ -68,7 +68,7 @@ namespace ORNG {
 
 		Input input;
 	private:
-		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated);
+		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized);
 
 		void ISetWindowDimensions(int width, int height);
 

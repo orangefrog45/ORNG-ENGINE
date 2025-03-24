@@ -6,6 +6,7 @@
 #include "rendering/renderpasses/GBufferPass.h"
 #include "rendering/renderpasses/DepthPass.h"
 #include "rendering/renderpasses/VoxelPass.h"
+#include "rendering/renderpasses/SSAOPass.h"
 #include "rendering/Renderer.h"
 #include "rendering/RenderGraph.h"
 #include "scene/Scene.h"
@@ -69,6 +70,7 @@ void LightingPass::DoPass() {
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_gbf_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_gbf_shader_id_tex->GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_IDS, false);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_gbf_rma_tex->GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
+	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_graph->GetRenderpass<SSAOPass>()->GetSSAOTex().GetTextureHandle(), GL_TEXTURE27, false);
 	GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, mp_pointlight_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 	//GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 

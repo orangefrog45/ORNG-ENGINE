@@ -53,7 +53,8 @@ void Application::Init(const ApplicationData& data) {
 	Events::EventManager::Init();
 	FrameTiming::Init();
 	Window::InitInstance();
-	Window::Init(data.initial_window_dimensions, data.window_name, data.initial_window_display_monitor_idx, data.window_iconified, data.window_decorated);
+	Window::Init(data.initial_window_dimensions, data.window_name,  data.initial_window_display_monitor_idx,
+		data.window_iconified, data.window_decorated, data.start_maximized);
 	GLFWwindow* window = Window::GetGLFWwindow();
 	GL_StateManager::Init();
 	GL_StateManager::InitGlew();
@@ -79,18 +80,18 @@ void Application::Init(const ApplicationData& data) {
 	layer_stack.Init();
 	ORNG_CORE_INFO("Layers initialized, beginning main loop");
 
-	// Engine loop
 	Events::EngineCoreEvent render_event;
 	render_event.event_type = Events::EngineCoreEvent::ENGINE_RENDER;
 
 	Events::EngineCoreEvent update_event;
 	update_event.event_type = Events::EngineCoreEvent::ENGINE_UPDATE;
 
+	// Engine loop
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 
 		Events::EventManager::DispatchEvent(update_event);
-		ExtraUI::OnUpdate();
+		ExtraUI::OnUpdate(); // TODO: get this out of here
 			
 		Events::EventManager::DispatchEvent(render_event);
 

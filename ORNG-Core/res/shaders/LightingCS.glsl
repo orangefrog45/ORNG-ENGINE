@@ -19,6 +19,7 @@ layout(binding = 20) uniform samplerCube diffuse_prefilter_sampler;
 layout(binding = 21) uniform samplerCube specular_prefilter_sampler;
 layout(binding = 22) uniform sampler2D brdf_lut_sampler;
 layout(binding = 26) uniform samplerCubeArray pointlight_depth_sampler;
+layout(binding = 27) uniform sampler2D occlusion_sampler;
 
 layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 
@@ -43,7 +44,6 @@ float roughness = roughness_metallic_ao.r;
 float metallic = roughness_metallic_ao.g;
 float ao = roughness_metallic_ao.b;
 
-
 void main()
 {
 	if (shader_id != 1) { // 1 = default lighting shader id
@@ -63,7 +63,7 @@ void main()
 	total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
 
 	if (u_ibl_active)
-		total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
+		total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb) * (1.0 - texture(occlusion_sampler, tex_coords / vec2(textureSize(occlusion_sampler, 0))).r);
 		
 	vec3 light_colour = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 

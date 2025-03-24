@@ -2,6 +2,7 @@
 #include "Renderpass.h"
 #include "rendering/Textures.h"
 #include "shaders/Shader.h"
+#include "framebuffers/Framebuffer.h"
 
 namespace ORNG {
 	class VoxelPass : public Renderpass {
@@ -15,7 +16,7 @@ namespace ORNG {
 
 		void Destroy() override;
 
-		static std::tuple<bool, glm::vec3, glm::vec3> UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos, glm::vec3 voxel_aligned_cam_pos);
+		std::tuple<bool, glm::vec3, glm::vec3> UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos, glm::vec3 voxel_aligned_cam_pos);
 	private:
 		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size);
 
@@ -35,10 +36,9 @@ namespace ORNG {
 		ShaderVariants m_scene_voxelization_shader;
 		ShaderVariants m_3d_mipmap_shader;
 		ShaderVariants m_voxel_compute_sv;
-		class Framebuffer* mp_scene_voxelization_fb = nullptr;
+		Framebuffer m_scene_voxelization_fb;
 
 		ShaderVariants mp_sv;
-		class Framebuffer* mp_fb = nullptr;
 
 		class Scene* mp_scene = nullptr;
 		class PointlightSystem* mp_pointlight_system = nullptr;

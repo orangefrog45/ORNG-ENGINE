@@ -1,8 +1,6 @@
 #include "pch/pch.h"
 #include "events/EventManager.h"
-#include "spdlog/sinks/ringbuffer_sink.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/sinks/basic_file_sink.h"
+
 
 #include "util/Log.h"
 
@@ -11,14 +9,12 @@ namespace ORNG {
 	// How many logged messages are saved and stored in memory that can be retrieved by the program
 	constexpr int MAX_LOG_HISTORY = 20;
 
-	static auto s_ringbuffer_sink = std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(MAX_LOG_HISTORY);
-	static auto s_file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt");
-	std::shared_ptr<spdlog::logger> Log::s_core_logger;
-
-
 	void Log::Init() {
 		// Clear log file
 		std::ofstream("log.txt", std::ios::trunc);
+
+		s_ringbuffer_sink = std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(MAX_LOG_HISTORY);
+		s_file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt");
 
 		std::vector<spdlog::sink_ptr> sinks;
 		s_ringbuffer_sink->set_pattern("%^[%T] %n: %v%$");
@@ -34,7 +30,8 @@ namespace ORNG {
 	}
 
 	std::string Log::GetLastLog() {
-		return s_ringbuffer_sink->last_formatted(1)[0];
+		auto last_formatted = s_ringbuffer_sink->last_formatted(1);
+		return last_formatted.empty() ? "" : last_formatted[0];
 	}
 
 	std::vector<std::string> Log::GetLastLogs() {

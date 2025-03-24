@@ -1,6 +1,5 @@
 #include "pch/pch.h"
 #include "assets/AssetManager.h"
-#include "rendering/SceneRenderer.h"
 #include "core/FrameTiming.h"
 #include "components/systems/ScriptSystem.h"
 
@@ -20,8 +19,9 @@ void ScriptSystem::OnLoad() {
 }
 
 void ScriptSystem::OnUpdate() {
+	const float dt = FrameTiming::GetTimeStep() * 0.001f;
 	for (auto [entity, script] : mp_scene->GetRegistry().view<ScriptComponent>().each()) {
-		script.p_instance->OnUpdate(FrameTiming::GetTimeStep() * 0.001f); // convert to seconds
+		script.p_instance->OnUpdate(dt); 
 	}
 }
 

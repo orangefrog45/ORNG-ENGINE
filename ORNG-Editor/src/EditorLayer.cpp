@@ -24,6 +24,8 @@
 #include "rendering/renderpasses/FogPass.h"
 #include "rendering/renderpasses/TransparencyPass.h"
 #include "rendering/renderpasses/PostProcessPass.h"
+#include "rendering/renderpasses/SSAOPass.h"
+#include "rendering/renderpasses/VoxelPass.h"
 #include "components/systems/PointlightSystem.h"
 #include "components/systems/SpotlightSystem.h"
 #include "components/systems/SceneUBOSystem.h"
@@ -98,17 +100,7 @@ namespace ORNG {
 				UpdateSceneDisplayRect();
 
 				m_render_graph.Reset();
-				m_render_graph.AddRenderpass<DepthPass>();
-				m_render_graph.AddRenderpass<GBufferPass>();
-				m_render_graph.AddRenderpass<LightingPass>();
-				m_render_graph.AddRenderpass<FogPass>();
-				m_render_graph.AddRenderpass<TransparencyPass>();
-				m_render_graph.AddRenderpass<PostProcessPass>();
-				m_render_graph.SetData("OutCol", &*m_res.p_scene_display_texture);
-				m_render_graph.SetData("PPS", &SCENE->post_processing);
-				m_render_graph.SetData("Scene", SCENE);
-				m_render_graph.SetData("BloomInCol", &*m_res.p_scene_display_texture);
-				m_render_graph.Init();
+				InitRenderGraph();
 			}
 			};
 
@@ -158,8 +150,15 @@ namespace ORNG {
 	}
 
 	void EditorLayer::InitRenderGraph() {
+		// The path is changed to force shaders to be loaded from the resources folder in the editor binary directory instead of the local project
+		// This allows easy shader hot-reloading and modification
+		std::string prev_path = std::filesystem::current_path().string();
+		std::filesystem::current_path(m_state.executable_directory);
+
 		m_render_graph.AddRenderpass<DepthPass>();
+		//m_render_graph.AddRenderpass<VoxelPass>();
 		m_render_graph.AddRenderpass<GBufferPass>();
+		m_render_graph.AddRenderpass<SSAOPass>();
 		m_render_graph.AddRenderpass<LightingPass>();
 		m_render_graph.AddRenderpass<FogPass>();
 		m_render_graph.AddRenderpass<TransparencyPass>();
@@ -169,6 +168,7 @@ namespace ORNG {
 		m_render_graph.SetData("Scene", SCENE);
 		m_render_graph.SetData("BloomInCol", &*m_res.p_scene_display_texture);
 		m_render_graph.Init();
+		std::filesystem::current_path(prev_path);
 	}
 
 	void EditorLayer::UpdateSceneDisplayRect() {
@@ -534,6 +534,7 @@ namespace ORNG {
 		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
+			//ImGui::Image((ImTextureID)m_render_graph.GetRenderpass<SSAOPass>()->GetSSAOTex().GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			ImGui::SetCursorPos(prev_curs_pos);
 			ImGui::Dummy(ImVec2(0, 5));
 			ImGui::Dummy(ImVec2(5, 0));
@@ -728,6 +729,10 @@ namespace ORNG {
 			return;
 
 		if (ImGui::Begin("Settings")) {
+			ImGui::SeparatorText("Editor camera");
+			ImGui::Text("Exposure");
+			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
+
 			ImGui::SeparatorText("Debug rendering");
 			ImGui::Checkbox("Render physx debug", &m_state.general_settings.debug_render_settings.render_physx_debug);
 			ImGui::Checkbox("Wireframe mode", &m_state.general_settings.debug_render_settings.render_wireframe);
@@ -1608,7 +1613,7 @@ namespace ORNG {
 		for (auto [entity, phys, transform] : SCENE->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::BOX) {
 				if (auto* p_mesh = phys.GetEntity()->GetComponent<MeshComponent>())
-					m_res.highlight_shader.SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().extents * 2.f));
+					m_res.highlight_shader.SetUniform("transform", transform.GetMatrix() * glm::scale(p_mesh->GetMeshData()->GetAABB().extents));
 				else
 					m_res.highlight_shader.SetUniform("transform", transform.GetMatrix());
 
@@ -1878,9 +1883,6 @@ namespace ORNG {
 				}
 				ImGui::End();
 			}
-
-			ImGui::Text("Editor cam exposure");
-			ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
 			EntityNodeEvent active_event = EntityNodeEvent::E_NONE;
 

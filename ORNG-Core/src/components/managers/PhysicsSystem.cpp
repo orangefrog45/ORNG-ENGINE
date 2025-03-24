@@ -624,7 +624,7 @@ namespace ORNG {
 
 		auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
 		auto* p_transform = p_comp->GetEntity()->GetComponent<TransformComponent>();
-		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(0.5f));
+		const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(1.f));
 
 		glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
 		glm::vec3 scaled_extents = aabb.extents * scale_factor;
