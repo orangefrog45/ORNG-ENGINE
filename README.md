@@ -1,14 +1,11 @@
 ## ORNG Engine
 
-This is a hobby windows-based OpenGL 3D game engine. It is not really intended for use by anyone other than me however feel free to look at the code or try to build/use it. There are very frequent breaking changes and it is not properly documented currently.
+This is a real-time windows-based 3D game engine, made with C++ and OpenGL, my first graphics/game engine project.
 
-In-engine screenshots (Not my 3D models/textures, credit to the original authors)
+### Engine preview
+
 ![Engine screenshot](EngineHouseDay.jpg)
 ![Engine screenshot](EngineHouseNight.jpg)
-
-&nbsp;
-
-Editor screenshot and some fractal rendering
 ![Engine screenshot](FractalEditor.jpg)
 
 ### Building:
@@ -28,7 +25,7 @@ Cloning this repo recursively and opening it with VS2022 should allow you to com
 ### Currently, features include:
 
 - Visual editor with a state-preserving simulation mode and lua console, uses ImGui for UI
-- Deferred PBR 3D renderer
+- Deferred physically-based 3D renderer
 - Cascaded voxel cone traced global illumination
 - C++ scripting (supports runtime editing/reloading)
 - 3D GPU Physics using Nvidia Physx
