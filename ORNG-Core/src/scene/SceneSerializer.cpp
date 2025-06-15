@@ -80,10 +80,6 @@ namespace ORNG {
 
 		RemapEntityReferences(id_mappings, ents);
 
-		for (auto* p_ent : ents) {
-			ResolveEntityRefs(scene, *p_ent);
-		}
-
 		return ents;
 	}
 
@@ -92,7 +88,6 @@ namespace ORNG {
 		YAML::Node data = YAML::Load(str);
 		DeserializeEntity(scene, data, entity, ignore_parent);
 	}
-
 
 
 	void SceneSerializer::SerializeEntity(SceneEntity& entity, YAML::Emitter& out) {
@@ -412,7 +407,6 @@ namespace ORNG {
 		std::unordered_map<std::string, std::function<void()>> deserializers = {
 			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }}, 
 			{"MeshComp",[&] { DeserializeMeshComp(entity_node["MeshComp"], entity); }},
-			{"PhysicsComp",[&] { DeserializePhysicsComp(entity_node["PhysicsComp"], entity); }}, 
 			{"PointlightComp",[&] { DeserializePointlightComp(entity_node["PointlightComp"], entity); }},
 			{"SpotlightComp",[&] { DeserializeSpotlightComp(entity_node["SpotlightComp"], entity); }},
 			{"CameraComp",[&] { DeserializeCameraComp(entity_node["CameraComp"], entity); }},
@@ -426,11 +420,13 @@ namespace ORNG {
 		// Skip the non-component fields
 		std::advance(it, 3);
 		for (it; it != entity_node.end(); it++) {
-			std::string tag = (*it).first.as<std::string>();
-			deserializers[tag]();
+			auto tag = it->first.as<std::string>();
+
+			if (deserializers.contains(tag)) deserializers[tag]();
 		}
 
 		Events::EventManager::DispatchEvent(EntitySerializationEvent{&entity, &entity_node});
+		Events::EventManager::DispatchEvent(EntitySerializationEvent{&entity});
 	}
 
 	void SceneSerializer::SerializeSceneUUIDs(const Scene& scene, std::string& output) {
@@ -572,7 +568,7 @@ namespace ORNG {
 
 		// Resolve/connect any node refs now scene tree is fully built
 		for (auto* p_entity : scene.m_entities) {
-			ResolveEntityRefs(scene, *p_entity);
+			Events::EventManager::DispatchEvent(EntitySerializationEvent{p_entity});
 		}
 
 		// Directional light

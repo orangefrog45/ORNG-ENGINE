@@ -21,7 +21,7 @@ namespace physx {
 namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
-	struct PhysXMaterialAsset;
+	class PhysXMaterialAsset;
 
 	class PhysicsComponent : public Component {
 		friend class PhysicsSystem;

@@ -4,6 +4,8 @@
 #include "scene/SceneSerializer.h"
 #include "components/PhysicsComponent.h"
 #include "components/VehicleComponent.h"
+#include "components/TransformComponent.h"
+#include "scripting/ScriptShared.h"
 
 #include <PxPhysicsAPI.h>
 #include <vehicle2/PxVehicleAPI.h>

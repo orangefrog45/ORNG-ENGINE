@@ -1,11 +1,9 @@
 #pragma once
 #include "shaders/Shader.h"
 #include "framebuffers/Framebuffer.h"
-#include "rendering/Textures.h"
 #include "scene/Scene.h"
 #include "rendering/Material.h"
-#include "rendering/renderpasses/BloomPass.h"
-#include "rendering/renderpasses/SSAOPass.h"
+#include "rendering/MeshAsset.h"
 
 #ifdef ORNG_EDITOR_LAYER
 #include "Settings.h"

@@ -25,7 +25,7 @@ namespace ORNG {
 		AddSystem(new PointlightSystem{ this });
 		AddSystem(new SpotlightSystem{ this });
 		AddSystem(new ParticleSystem{ this });
-		AddSystem(new PhysicsSystem{ this });
+//		AddSystem(new PhysicsSystem{ this });
 		AddSystem(new TransformHierarchySystem{ this });
 		AddSystem(new SceneUBOSystem{ this });
 		AddSystem(new ScriptSystem{ this });
@@ -133,7 +133,7 @@ namespace ORNG {
 		return p_prefab ? &InstantiatePrefab(*p_prefab, call_on_create) : nullptr;
 	}
 
-	std::vector<SceneEntity*> Scene::DuplicateEntityGroup(const std::vector<SceneEntity*> group) {
+	std::vector<SceneEntity*> Scene::DuplicateEntityGroup(const std::vector<SceneEntity*>& group) {
 		// Any UUID's of entities that are in "group" will be mapped to the new UUIDs of the duplicate entities, 
 		// this means things like joint connections will connect to the new duplicates if found instead of the old entities
 		std::unordered_map<uint64_t, uint64_t> uuid_lookup;
@@ -142,7 +142,9 @@ namespace ORNG {
 	
 		for (int i = 0; i < group.size(); i++) {
 			auto& ent = DuplicateEntityAsPartOfGroup(*group[i], uuid_lookup);
-			ent.SetParent(*GetEntity(group[i]->GetComponent<RelationshipComponent>()->parent));
+			if (auto* p_relationship = group[i]->GetComponent<RelationshipComponent>(); p_relationship->parent != entt::null) {
+				ent.SetParent(*GetEntity(p_relationship->parent));
+			}
 			duplicates.push_back(&ent);
 		}
 
@@ -150,7 +152,7 @@ namespace ORNG {
 		SceneSerializer::RemapEntityReferences(uuid_lookup, duplicates);
 
 		for (auto* p_dup : duplicates) {
-			SceneSerializer::ResolveEntityRefs(*this, *p_dup);
+			Events::EventManager::DispatchEvent(EntitySerializationEvent{p_dup});
 		}
 
 		return duplicates;
@@ -190,14 +192,14 @@ namespace ORNG {
 		new_entity.ForEachChildRecursive(
 			[&](entt::entity e) {
 				auto* p_child = GetEntity(e);
-				SceneSerializer::RemapEntityReferences(uuid_map, *p_child);
-				SceneSerializer::ResolveEntityRefs(*this, *p_child);
+				Events::EventManager::DispatchEvent(EntitySerializationEvent{p_child, &uuid_map});
+				Events::EventManager::DispatchEvent(EntitySerializationEvent{p_child});
 			}
 			
 		);
 
-		SceneSerializer::RemapEntityReferences(uuid_map, new_entity);
-		SceneSerializer::ResolveEntityRefs(*this, new_entity);
+		Events::EventManager::DispatchEvent(EntitySerializationEvent{&new_entity, &uuid_map});
+		Events::EventManager::DispatchEvent(EntitySerializationEvent{&new_entity});
 
 		return new_entity;
 	}
@@ -377,11 +379,8 @@ namespace ORNG {
 		RegisterComponent<SpotLightComponent>();
 		RegisterComponent<ScriptComponent>();
 		RegisterComponent<DataComponent>();
-		RegisterComponent<PhysicsComponent>();
-		RegisterComponent<CharacterControllerComponent>();
 		RegisterComponent<CameraComponent>();
 		RegisterComponent<AudioComponent>();
-		RegisterComponent<VehicleComponent>();
 		RegisterComponent<ParticleEmitterComponent>();
 		RegisterComponent<ParticleBufferComponent>();
 

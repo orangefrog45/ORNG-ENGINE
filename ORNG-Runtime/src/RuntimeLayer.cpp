@@ -9,6 +9,10 @@
 #include "rendering/renderpasses/TransparencyPass.h"
 #include "rendering/renderpasses/PostProcessPass.h"
 
+#include "components/systems/PhysicsSystem.h"
+#include "components/ComponentSystems.h"
+
+
 namespace ORNG {
 	void RuntimeLayer::OnInit() {
 		mp_quad_shader = &Renderer::GetShaderLibrary().GetQuadShader();
@@ -40,7 +44,16 @@ namespace ORNG {
 			}
 			};
 
-		m_scene.AddDefaultSystems();
+		m_scene.AddSystem(new CameraSystem{ &m_scene });
+		m_scene.AddSystem(new AudioSystem{ &m_scene });
+		m_scene.AddSystem(new PointlightSystem{ &m_scene });
+		m_scene.AddSystem(new SpotlightSystem{ &m_scene });
+		m_scene.AddSystem(new ParticleSystem{ &m_scene });
+		m_scene.AddSystem(new PhysicsSystem{ &m_scene });
+		m_scene.AddSystem(new TransformHierarchySystem{ &m_scene });
+		m_scene.AddSystem(new SceneUBOSystem{ &m_scene });
+		m_scene.AddSystem(new ScriptSystem{ &m_scene });
+		m_scene.AddSystem(new MeshInstancingSystem{ &m_scene });
 		Events::EventManager::RegisterListener(m_window_event_listener);
 		AssetManager::GetSerializer().LoadAssetsFromProjectPath("./", true);
 		m_scene.LoadScene();

@@ -6,7 +6,7 @@
 #include "core/GLStateManager.h"
 #include "core/Window.h" // For shared loading context
 #include "physics/Physics.h" // For initializing physx assets
-#include "PhysXMaterialAsset.h"
+#include "assets/PhysXMaterialAsset.h"
 
 #include <bitsery/adapter/stream.h>
 #include <GLFW/glfw3.h> // For glfwmakecontextcurrent

@@ -2,6 +2,9 @@
 #include <shellapi.h>
 #include <imgui.h>
 #include "AssetManagerWindow.h"
+#include "assets/Prefab.h"
+#include "assets/PhysXMaterialAsset.h"
+#include "components/PhysicsComponent.h"
 #include "assets/AssetManager.h"
 #include "core/Window.h"
 #include "util/ExtraUI.h"

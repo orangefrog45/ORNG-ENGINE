@@ -82,10 +82,6 @@ namespace ORNG {
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent = false);
 
-		// Called on each entity after the scene tree is fully built, resolves any EntityNodeRefs into actual entities and connects them appropiately (e.g joint connections)
-		// Any references to neighbour entities (same parent) that are before "neighbour_start" aren't resolved unless a duplicate is found after it, this allows entity duplication to work nicely with EntityNodeRefs
-		static void ResolveEntityRefs(Scene& scene, SceneEntity& entity);
-
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 
 		static std::string SerializeEntityArrayIntoString(const std::vector<SceneEntity*>& entities);
@@ -120,8 +116,6 @@ namespace ORNG {
 		static void DeserializeCameraComp(const YAML::Node& node, SceneEntity& entity);
 
 		static void DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity);
-
-		static void DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity);
 
 		static void DeserializeAudioComp(const YAML::Node& node, SceneEntity& entity);
 

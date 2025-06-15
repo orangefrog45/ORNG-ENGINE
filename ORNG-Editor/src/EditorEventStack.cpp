@@ -35,7 +35,7 @@ namespace ORNG {
 			}
 
 			for (int i = 0; i < e.affected_entities.size(); i++) {
-				SceneSerializer::ResolveEntityRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
 		else if (e.event_type == ENTITY_DELETE) {
@@ -54,7 +54,7 @@ namespace ORNG {
 			}
 
 			for (int i = 0; i < e.affected_entities.size(); i++) {
-				SceneSerializer::ResolveEntityRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
 	}
@@ -77,7 +77,7 @@ namespace ORNG {
 			}
 
 			for (int i = 0; i < e.affected_entities.size(); i++) {
-				SceneSerializer::ResolveEntityRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
 		else if (e.event_type == ENTITY_DELETE) {
@@ -93,7 +93,7 @@ namespace ORNG {
 			}
 
 			for (int i = 0; i < e.affected_entities.size(); i++) {
-				SceneSerializer::ResolveEntityRefs(**mp_scene_context, *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
+				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
 	}

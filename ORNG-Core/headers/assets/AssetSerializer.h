@@ -198,7 +198,7 @@ namespace ORNG {
 		void DeserializeAssetBinary(const std::string& filepath, T& data, std::any args = 0) {
 			std::vector<std::byte> buf;
 			ReadBinaryFile(filepath, buf);
-			BufferDeserializer des{buf};
+			BufferDeserializer des{buf.begin(), buf.end()};
 
 			if constexpr (std::is_same_v<T, MeshAsset>) {
 				DeserializeMeshAsset(data, des);

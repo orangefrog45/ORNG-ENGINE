@@ -111,7 +111,7 @@ namespace ORNG {
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
 
 		void RenderPhysxMaterialTab();
-		void RenderPhysXMaterial(PhysXMaterialAsset* p_material);
+		void RenderPhysXMaterial(class PhysXMaterialAsset* p_material);
 
 		void RenderTextureTab();
 		void RenderTexture(Texture2D* p_tex);
@@ -122,7 +122,7 @@ namespace ORNG {
 		void RenderPhysXMaterialEditor();
 
 		void RenderAudioTab();
-		void RenderAudioAsset(SoundAsset* p_asset);
+		void RenderAudioAsset(class SoundAsset* p_asset);
 
 		void RenderPrefabTab();
 		void RenderPrefab(Prefab* p_prefab);

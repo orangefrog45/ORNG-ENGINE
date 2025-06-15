@@ -42,6 +42,7 @@ set(ORNG_LIB_SOURCES
     src/components/managers/PointlightComponentManager.cpp
     src/components/managers/SpotlightComponentManager.cpp
 
+	# These aren't included in the rendering library as they have dependencies on the scene
 	src/rendering/renderpasses/SSAOPass.cpp
 	src/rendering/renderpasses/BloomPass.cpp
 	src/rendering/renderpasses/GBufferPass.cpp
@@ -88,11 +89,11 @@ set(ORNG_LIB_SOURCES
     src/components/managers/SceneUBOSystem.cpp
 	headers/components/DecalComponent.h
 
+	src/misc/LoggerUI.cpp
+	src/misc/Interpolator.cpp
+	src/misc/ExtraUI.cpp
 
-	src/util/LoggerUI.cpp
-	src/util/Interpolator.cpp
-	src/util/ExtraUI.cpp
-		headers/scene/SerializationUtil.h
+	headers/scene/SerializationUtil.h
 )
 
 
@@ -152,6 +153,8 @@ ${CMAKE_CURRENT_LIST_DIR}/extern/implot
 ${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
 ${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
 ${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
 CACHE STRING "" FORCE
 )
 

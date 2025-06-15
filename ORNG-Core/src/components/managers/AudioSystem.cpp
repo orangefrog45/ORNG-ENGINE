@@ -3,6 +3,7 @@
 #include "audio/AudioEngine.h"
 #include "assets/AssetManager.h"
 #include "components/systems/AudioSystem.h"
+#include "components/CameraComponent.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {

@@ -9,19 +9,8 @@
 #include "scene/MeshInstanceGroup.h"
 
 namespace ORNG {
-
 	SceneRenderer::~SceneRenderer() {
 	}
-
-	glm::mat4 PxTransformToGlmMat4(PxTransform t) {
-		auto mat = glm::mat4_cast(glm::quat(t.q.w, t.q.x, t.q.y, t.q.z));
-		mat[3][0] = t.p.x;
-		mat[3][1] = t.p.y;
-		mat[3][2] = t.p.z;
-		mat[3][3] = 1.0;
-		return mat;
-	}
-
 
 	void SceneRenderer::SetGBufferMaterial(ShaderVariants* p_shader, const Material* p_material) {
 		if (p_material->base_colour_texture) {

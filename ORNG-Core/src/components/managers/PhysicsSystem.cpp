@@ -7,6 +7,7 @@
 #include "components/TransformComponent.h"
 #include "components/ScriptComponent.h"
 
+#include "assets/PhysXMaterialAsset.h"
 #include "physics/Physics.h"
 #include "scene/SceneEntity.h"
 #include "glm/glm/gtc/quaternion.hpp"
@@ -18,6 +19,7 @@
 #include "core/FrameTiming.h"
 #include "yaml-cpp/yaml.h"
 #include "scene/SerializationUtil.h"
+
 
 
 namespace ORNG {
@@ -82,6 +84,11 @@ namespace ORNG {
 	}
 
 	void PhysicsSystem::OnLoad() {
+		mp_scene->RegisterComponent<PhysicsComponent>();
+		mp_scene->RegisterComponent<CharacterControllerComponent>();
+		mp_scene->RegisterComponent<VehicleComponent>();
+		mp_scene->RegisterComponent<JointComponent>();
+
 		PxBroadPhaseDesc bpDesc(PxBroadPhaseType::eABP);
 
 		mp_broadphase = PxCreateBroadPhase(bpDesc);

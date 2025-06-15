@@ -1,5 +1,6 @@
 #include "pch/pch.h"
 #include "assets/AssetManager.h"
+#include "assets/PhysXMaterialAsset.h"
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
 #include "rendering/MeshAsset.h"
@@ -141,10 +142,10 @@ namespace ORNG {
 		AddAsset(&*mp_base_quad);
 
 		if (bool physics_module_active = Physics::GetPhysics()) {
-			mp_base_physx_material = std::make_unique<PhysXMaterialAsset>("BASE");
-			mp_base_physx_material->uuid = UUID<uint64_t>(ORNG_BASE_PHYSX_MATERIAL_ID);
-			mp_base_physx_material->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
-			AddAsset(&*mp_base_physx_material);
+			auto* p_phys_mat = new PhysXMaterialAsset("BASE");
+			p_phys_mat->uuid = UUID<uint64_t>(ORNG_BASE_PHYSX_MATERIAL_ID);
+			p_phys_mat->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
+			AddAsset(&*p_phys_mat);
 		}
 
 	}
@@ -162,7 +163,7 @@ namespace ORNG {
 		instance.mp_base_script.release();
 
 		if (bool physics_module_active = Physics::GetPhysics())
-			instance.mp_base_physx_material->p_material->release();
+			DeleteAsset(ORNG_BASE_PHYSX_MATERIAL_ID);
 	};
 
 	void AssetManager::InitBase3DQuad() {

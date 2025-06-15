@@ -30,6 +30,10 @@
 #include "components/systems/SpotlightSystem.h"
 #include "components/systems/SceneUBOSystem.h"
 
+#include "components/PhysicsComponent.h"
+#include "components/systems/PhysicsSystem.h"
+#include "assets/PhysXMaterialAsset.h"
+
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 constexpr unsigned BOTTOM_WINDOW_HEIGHT = 300;
 
@@ -1112,7 +1116,17 @@ namespace ORNG {
 			if (SCENE->m_is_loaded)
 				SCENE->UnloadScene();
 
-			SCENE->AddDefaultSystems();
+			SCENE->AddSystem(new CameraSystem{ SCENE });
+			SCENE->AddSystem(new AudioSystem{ SCENE });
+			SCENE->AddSystem(new PointlightSystem{ SCENE });
+			SCENE->AddSystem(new SpotlightSystem{ SCENE });
+			SCENE->AddSystem(new ParticleSystem{ SCENE });
+			SCENE->AddSystem(new PhysicsSystem{ SCENE });
+			SCENE->AddSystem(new TransformHierarchySystem{ SCENE });
+			SCENE->AddSystem(new SceneUBOSystem{ SCENE });
+			SCENE->AddSystem(new ScriptSystem{ SCENE });
+			SCENE->AddSystem(new MeshInstancingSystem{ SCENE });
+
 			AssetManager::ClearAll();
 			AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
 			SCENE->LoadScene();
