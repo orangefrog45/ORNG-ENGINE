@@ -1,11 +1,10 @@
 #pragma once
-#include <physx/PxPhysicsAPI.h>
-
+#include <PxPhysicsAPI.h>
+#include <glm/glm/gtc/quaternion.hpp>
+#include <glm/glm/trigonometric.hpp>
 
 #include "util/Log.h"
 #include "util/util.h"
-#include "glm/glm/gtc/quaternion.hpp"
-#include "glm/glm/trigonometric.hpp"
 #include "components/TransformComponent.h"
 
 class UserErrorCallback : public physx::PxErrorCallback
@@ -19,13 +18,10 @@ public:
 	}
 };
 
-
-
 namespace ORNG {
 	class Texture2D;
 	class Shader;
 	class Framebuffer;
-
 
 	inline static physx::PxTransform TransformComponentToPxTransform(TransformComponent& t) {
 		auto [p, s, r] = t.GetAbsoluteTransforms();

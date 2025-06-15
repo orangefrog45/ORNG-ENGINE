@@ -1,6 +1,7 @@
 #pragma once
+#include <PxMaterial.h>
+
 #include "Asset.h"
-#include "physx/PxMaterial.h"
 
 namespace ORNG {
 	struct PhysXMaterialAsset : public Asset {

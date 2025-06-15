@@ -3,6 +3,40 @@ cmake_minimum_required(VERSION 3.8)
 project(ORNG_CORE)
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+set(ORNG_RENDERING_SOURCES
+		src/rendering/EnvMapLoader.cpp
+		src/rendering/MeshAsset.cpp
+		src/rendering/MeshInstanceGroup.cpp
+		src/rendering/Quad.cpp
+		src/rendering/Renderer.cpp
+		src/rendering/Textures.cpp
+		src/rendering/VAO.cpp
+		src/rendering/renderpasses/SSAOPass.cpp
+		src/rendering/renderpasses/BloomPass.cpp
+		src/rendering/renderpasses/GBufferPass.cpp
+		src/rendering/renderpasses/DepthPass.cpp
+		src/rendering/renderpasses/VoxelPass.cpp
+		src/rendering/renderpasses/LightingPass.cpp
+		src/rendering/renderpasses/FogPass.cpp
+		src/rendering/renderpasses/TransparencyPass.cpp
+		src/rendering/renderpasses/PostProcessPass.cpp
+
+		src/framebuffers/Framebuffer.cpp
+		src/framebuffers/FramebufferLibrary.cpp
+
+		src/shaders/Shader.cpp
+		src/shaders/ShaderLibrary.cpp
+)
+
+set(ORNG_UTIL_SOURCES
+	src/util/ExtraMath.cpp
+	src/util/Log.cpp
+	src/util/Timers.cpp
+	src/util/TimeStep.cpp
+	src/util/UUID.cpp
+	src/util/util.cpp
+)
+
 set(ORNG_LIB_SOURCES
     src/stb_image.cpp
     src/components/Camera.cpp
@@ -21,32 +55,15 @@ set(ORNG_LIB_SOURCES
     src/core/Window.cpp
     src/events/EventManager.cpp
     src/events/Events.cpp
-    src/framebuffers/Framebuffer.cpp
-    src/framebuffers/FramebufferLibrary.cpp
     src/layers/LayerStack.cpp
     src/pch/pch.cpp
     src/physics/physics.cpp
-    src/rendering/EnvMapLoader.cpp
-    src/rendering/MeshAsset.cpp
-    src/rendering/MeshInstanceGroup.cpp
-    src/rendering/Quad.cpp
-    src/rendering/Renderer.cpp
     src/rendering/SceneRenderer.cpp
-    src/rendering/Textures.cpp
-    src/rendering/VAO.cpp
     src/scene/GridMesh.cpp
     src/scene/Scene.cpp
     src/scene/SceneEntity.cpp
-    
     src/scene/SceneSerializer.cpp
     src/scene/Skybox.cpp
-    src/shaders/Shader.cpp
-    src/shaders/ShaderLibrary.cpp
-    src/util/ExtraMath.cpp
-    src/util/Log.cpp
-    src/util/Timers.cpp
-    src/util/TimeStep.cpp
-    src/util/UUID.cpp
     src/assets/AssetManager.cpp
     extern/implot/implot.cpp
     extern/implot/implot_items.cpp
@@ -54,9 +71,7 @@ set(ORNG_LIB_SOURCES
     src/audio/AudioEngine.cpp
     src/components/managers/AudioSystem.cpp
     src/components/TransfomHierarchySystem.cpp
-    src/util/ExtraUI.cpp
     src/scene/SceneManager.cpp
-    src/util/util.cpp
     src/components/AudioComponent.cpp
     src/layers/ImGuiLayer.cpp
     src/physics/vehicles/BaseVehicle.cpp
@@ -65,25 +80,22 @@ set(ORNG_LIB_SOURCES
     src/components/VehicleComponent.cpp
     src/assets/AssetsImpl.cpp
     src/components/managers/ParticleSystem.cpp
-    src/util/Interpolator.cpp
     src/components/ParticleEmitterComponent.cpp
     src/components/managers/ScriptSystem.cpp
-    src/rendering/renderpasses/SSAOPass.cpp
-    src/rendering/renderpasses/BloomPass.cpp
     src/assets/AssetSerializer.cpp
-    src/rendering/renderpasses/GBufferPass.cpp
-    src/rendering/renderpasses/DepthPass.cpp
-    src/rendering/renderpasses/VoxelPass.cpp
     src/components/managers/SceneUBOSystem.cpp
-    src/rendering/renderpasses/LightingPass.cpp
-    src/rendering/renderpasses/FogPass.cpp
-    src/rendering/renderpasses/TransparencyPass.cpp
-    src/rendering/renderpasses/PostProcessPass.cpp
- "src/util/LoggerUI.cpp" "headers/components/DecalComponent.h")
+	headers/components/DecalComponent.h
 
 
-add_library(ORNG_CORE STATIC
-${ORNG_LIB_SOURCES})
+	src/util/LoggerUI.cpp
+	src/util/Interpolator.cpp
+	src/util/ExtraUI.cpp
+)
+
+
+add_library(ORNG_CORE STATIC ${ORNG_LIB_SOURCES})
+add_library(ORNG_RENDERING STATIC ${ORNG_RENDERING_SOURCES})
+add_library(ORNG_UTIL STATIC ${ORNG_UTIL_SOURCES})
 
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
@@ -134,21 +146,32 @@ ${CMAKE_CURRENT_LIST_DIR}/extern/yaml/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/plog/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/implot
-"${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy"
-"physx-complete/physx/physx/include/"
-"physx-complete/physx/pxshared/include/"
-"physx-complete/physx/physx/snippets/"
-${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
-${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
+${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
+${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
 CACHE STRING "" FORCE
 )
 
-target_include_directories(ORNG_CORE PUBLIC
-${ORNG_CORE_INCLUDE_DIRS}
+target_include_directories(ORNG_CORE PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
+target_include_directories(ORNG_RENDERING PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
+target_include_directories(ORNG_UTIL PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
+
+target_link_libraries(ORNG_RENDERING PUBLIC
+		OpenGL::GL
+		glfw
+		libglew_shared
+		assimp
+		${ASSIMP_LIBRARY}
+		Tracy::TracyClient
 )
 
+target_link_libraries(ORNG_UTIL PUBLIC
+	spdlog::spdlog_header_only
+)
 
-target_link_libraries(ORNG_CORE PUBLIC 
+target_link_libraries(ORNG_CORE PUBLIC
+ORNG_RENDERING
+ORNG_UTIL
 OpenGL::GL
 glfw
 libglew_shared
@@ -166,9 +189,9 @@ if (NOT ORNG_DISABLE_FMOD)
 	target_include_directories(ORNG_CORE PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc")
 endif()
 
-target_precompile_headers(ORNG_CORE PUBLIC
-headers/pch/pch.h
-)
+target_precompile_headers(ORNG_CORE PUBLIC headers/pch/pch.h)
+target_precompile_headers(ORNG_RENDERING PUBLIC headers/pch/pch.h)
+target_precompile_headers(ORNG_UTIL PUBLIC headers/pch/pch.h)
 
 # Required binaries for engine
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -198,13 +221,22 @@ endif()
 
 
 
-target_compile_definitions(ORNG_CORE PUBLIC 
+target_compile_definitions(ORNG_CORE PUBLIC
 ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
 ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
 GLM_ENABLE_EXPERIMENTAL
 ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
 ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
 )
+
+target_compile_definitions(ORNG_RENDERING PUBLIC
+		ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
+		ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
+		GLM_ENABLE_EXPERIMENTAL
+		ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
+		ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
+)
+
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 set_target_properties(${SCRIPT_TARGETS} PROPERTIES 

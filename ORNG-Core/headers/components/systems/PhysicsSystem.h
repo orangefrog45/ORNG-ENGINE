@@ -3,8 +3,8 @@
 #include "components/systems/ComponentSystem.h"
 #include "scene/Scene.h"
 
-#include "physx/PxPhysicsAPI.h"
-#include "physx/vehicle2/PxVehicleAPI.h"
+#include <PxPhysicsAPI.h>
+#include <vehicle2/PxVehicleAPI.h>
 
 namespace physx {
 	class PxScene;

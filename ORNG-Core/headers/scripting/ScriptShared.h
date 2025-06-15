@@ -13,7 +13,7 @@ namespace physx {
 namespace ORNG {
 	class PhysicsComponent;
 	class SceneEntity;
-	class CameraComponent;
+	struct CameraComponent;
 	struct SI;
 
 	class ScriptBase {
