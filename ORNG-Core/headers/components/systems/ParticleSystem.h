@@ -1,6 +1,7 @@
 #pragma once
 #include "components/systems/ComponentSystem.h"
-#include "scene/Scene.h"
+#include "components/ParticleBufferComponent.h"
+#include "components/ParticleEmitterComponent.h"
 #include "shaders/Shader.h"
 
 namespace ORNG {

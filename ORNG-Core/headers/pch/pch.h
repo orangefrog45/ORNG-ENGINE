@@ -19,7 +19,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_RADIANS
 
-#include <PxPhysXConfig.h>
+//#include <PxPhysXConfig.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
 #include <glm/glm/gtx/matrix_major_storage.hpp>

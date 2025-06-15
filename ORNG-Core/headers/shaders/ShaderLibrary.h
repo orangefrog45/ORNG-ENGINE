@@ -1,5 +1,4 @@
 #pragma once
-#include "rendering/VAO.h"
 #include "Shader.h"
 
 

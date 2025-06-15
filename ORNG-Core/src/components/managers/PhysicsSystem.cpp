@@ -2,6 +2,11 @@
 
 #include <vehicle2/PxVehicleAPI.h>
 
+#include "components/systems/PhysicsSystem.h"
+#include "components/MeshComponent.h"
+#include "components/TransformComponent.h"
+#include "components/ScriptComponent.h"
+
 #include "physics/Physics.h"
 #include "scene/SceneEntity.h"
 #include "glm/glm/gtc/quaternion.hpp"
@@ -11,7 +16,8 @@
 #include "physics/vehicles/DirectDrive.h"
 #include "assets/AssetManager.h"
 #include "core/FrameTiming.h"
-#include "components/systems/PhysicsSystem.h"
+#include "yaml-cpp/yaml.h"
+#include "scene/SerializationUtil.h"
 
 
 namespace ORNG {
@@ -143,6 +149,192 @@ namespace ORNG {
 		m_vehicle_context.physxUnitCylinderSweepMesh = mp_sweep_mesh;
 	}
 
+	void PhysicsSystem::SerializeEntity(SceneEntity& entity, YAML::Emitter* p_emitter) {
+		auto& out = *p_emitter;
+
+		PhysicsComponent* p_physics_comp = entity.GetComponent<PhysicsComponent>();
+		if (p_physics_comp) {
+			out << YAML::Key << "PhysicsComp";
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->m_body_type;
+			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->m_geometry_type;
+			out << YAML::Key << "IsTrigger" << YAML::Value << p_physics_comp->IsTrigger();
+			out << YAML::Key << "MaterialUUID" << YAML::Value << p_physics_comp->p_material->uuid();
+			out << YAML::EndMap;
+		}
+
+		if (auto* p_controller = entity.GetComponent<CharacterControllerComponent>()) {
+			auto* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
+			Out(out, "CharacterControllerComp", YAML::BeginMap);
+			Out(out, "Height", p_capsule->getHeight());
+			Out(out, "Radius", p_capsule->getRadius());
+
+			out << YAML::EndMap;
+		}
+
+		if (auto* p_vehicle = entity.GetComponent<VehicleComponent>()) {
+			Out(out, "VehicleComp", YAML::BeginMap);
+			Out(out, "BodyMesh", p_vehicle->p_body_mesh->uuid());
+			Out(out, "WheelMesh", p_vehicle->p_wheel_mesh->uuid());
+
+			Out(out, "WheelScale", p_vehicle->wheel_scale);
+			Out(out, "BodyScale", p_vehicle->body_scale);
+			out << YAML::Key << "BodyScale" << YAML::Value << p_vehicle->body_scale;
+
+
+			out << YAML::Key << "BodyMaterials" << YAML::Value << YAML::Flow;
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_vehicle->m_body_materials) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+
+			out << YAML::Key << "WheelMaterials" << YAML::Value << YAML::Flow;
+			out << YAML::BeginSeq;
+			for (auto* p_material : p_vehicle->m_wheel_materials) {
+				out << p_material->uuid();
+			}
+			out << YAML::EndSeq;
+
+			for (int i = 0; i < 4; i++) {
+				Out(out, std::format("Wheel{}", i), YAML::BeginMap);
+				Out(out, "SuspensionAttachment", ConvertVec3<glm::vec3>(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndMap;
+		}
+
+		if (auto* p_joint = entity.GetComponent<JointComponent>()) {
+			Out(out, "JointComp", YAML::BeginMap);
+
+			Out(out, "Joints", YAML::BeginSeq);
+
+			for (auto& [j, attachment] : p_joint->attachments) {
+				if (attachment.p_joint->p_a0 != p_joint->GetEntity() || !attachment.p_joint->p_a1)
+					continue;
+
+				out << YAML::BeginMap;
+
+				Out(out, "LP0", attachment.p_joint->m_poses[0]);
+				Out(out, "LP1", attachment.p_joint->m_poses[1]);
+
+				Out(out, "TargetUUID", attachment.p_joint->p_a1->GetUUID());
+
+				Out(out, "Motion", YAML::Flow);
+				out << YAML::BeginSeq;
+				for (int i = 0; i < 6; i++) {
+					out << (uint32_t)attachment.p_joint->m_motion[(PxD6Axis::Enum)i];
+				}
+				out << YAML::EndSeq;
+
+				Out(out, "ForceThreshold", attachment.p_joint->m_force_threshold);
+				Out(out, "TorqueThreshold", attachment.p_joint->m_torque_threshold);
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+			out << YAML::EndMap;
+		}
+	}
+
+	void PhysicsSystem::DeserializeEntity(SceneEntity& entity, YAML::Node* p_node) {
+		if (auto node = (*p_node)["PhysicsComp"]) {
+			auto geometry_type = static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>());
+			auto body_type = static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>());
+			auto is_trigger = node["IsTrigger"].as<bool>();
+
+			auto* p_material = AssetManager::GetAsset<PhysXMaterialAsset>(node["MaterialUUID"].as<uint64_t>());
+			entity.AddComponent<PhysicsComponent>(is_trigger, geometry_type, body_type, p_material);
+		}
+
+		if (auto node = (*p_node)["CharacterControllerComp"]) {
+			auto* p_controller = entity.AddComponent<CharacterControllerComponent>();
+			PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
+			p_capsule->setRadius(node["Radius"].as<float>());
+			p_capsule->setHeight(node["Height"].as<float>());
+			p_capsule->setPosition(ConvertVec3<PxExtendedVec3>(entity.GetComponent<TransformComponent>()->GetAbsPosition()));
+		}
+
+		if (auto node = (*p_node)["VehicleComp"]) {
+			auto* p_comp = entity.AddComponent<VehicleComponent>();
+			p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(node["BodyMesh"].as<uint64_t>());
+			p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+
+			p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(node["WheelMesh"].as<uint64_t>());
+			p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+
+			p_comp->body_scale = node["BodyScale"].as<glm::vec3>();
+			p_comp->wheel_scale = node["WheelScale"].as<glm::vec3>();
+
+			auto body_materials = node["BodyMaterials"];
+			std::vector<uint64_t> body_ids = body_materials.as<std::vector<uint64_t>>();
+			unsigned num_body_materials = p_comp->p_body_mesh->GetNbMaterials();
+			p_comp->m_body_materials.resize(num_body_materials);
+			for (int i = 0; i < num_body_materials; i++) {
+				auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
+				p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			}
+
+			auto wheel_materials = node["WheelMaterials"];
+			std::vector<uint64_t> wheel_ids = wheel_materials.as<std::vector<uint64_t>>();
+			unsigned num_wheel_materials = p_comp->p_wheel_mesh->GetNbMaterials();
+			p_comp->m_wheel_materials.resize(num_wheel_materials);
+			for (int i = 0; i < num_wheel_materials; i++) {
+				auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
+				p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			}
+			for (int i = 0; i < 4; i++) {
+				auto wheel = node[std::format("Wheel{}", i)];
+				p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ConvertVec3<PxVec3>(wheel["SuspensionAttachment"].as<glm::vec3>());
+			}
+		}
+
+		if (auto node = (*p_node)["JointComp"]) {
+			auto* p_joint_comp = entity.AddComponent<JointComponent>();
+			auto joint_map = node["Joints"];
+
+			for (auto joint_node : joint_map) {
+				auto& attachment = p_joint_comp->CreateJoint();
+				auto* p_joint = attachment.p_joint;
+
+				auto motion_node = joint_node["Motion"];
+				for (int i = 0; i < 6; i++) {
+					auto motion = (PxD6Motion::Enum)motion_node[i].as<uint32_t>();
+					p_joint->SetMotionCached((PxD6Axis::Enum)i, motion);
+				}
+				p_joint->SetLocalPoseCached(0, joint_node["LP0"].as<glm::vec3>());
+				p_joint->SetLocalPoseCached(1, joint_node["LP1"].as<glm::vec3>());
+
+				attachment.m_target_uuid = joint_node["TargetUUID"].as<uint64_t>();
+
+				p_joint->SetBreakForceCached(joint_node["ForceThreshold"].as<float>(), joint_node["TorqueThreshold"].as<float>());
+			}
+		}
+	}
+
+	void PhysicsSystem::ResolveJointConnections() {
+		for (auto [ent, joint] : mp_scene->GetRegistry().view<JointComponent>().each()) {
+			for (auto& [p_joint, attachment] : joint.attachments) {
+				auto* p_target_ent = mp_scene->GetEntity(attachment.m_target_uuid);
+
+				if (p_target_ent) {
+					attachment.p_joint->Connect(p_target_ent->AddComponent<JointComponent>(), true); // AddComponent will add a JointComp if one doesn't already exist or just return the existing one
+				}
+			}
+		}
+	}
+
+	void PhysicsSystem::RemapJointConnections(SceneEntity& entity, const std::unordered_map<uint64_t, uint64_t>* p_uuid_lookup) {
+		if (auto* p_joint_comp = entity.GetComponent<JointComponent>()) {
+			for (auto& attachment : p_joint_comp->attachments) {
+				if (p_uuid_lookup->contains(attachment.second.m_target_uuid))
+					attachment.second.m_target_uuid = p_uuid_lookup->at(attachment.second.m_target_uuid);
+			}
+		}
+	}
+
 	void PhysicsSystem::InitListeners() {
 		// Initialize event listeners
 
@@ -162,7 +354,6 @@ namespace ORNG {
 				break;
 			};
 			};
-
 
 
 		// Joint listener
@@ -219,11 +410,23 @@ namespace ORNG {
 			OnTransformEvent(t_event);
 			};
 
+		m_serialization_listener.OnEvent = [this](const EntitySerializationEvent& _event) {
+			if (_event.event_type == EntitySerializationEvent::Type::SERIALIZING)
+				SerializeEntity(*_event.p_entity, _event.data.p_emitter);
+			else if (_event.event_type == EntitySerializationEvent::Type::DESERIALIZING)
+				DeserializeEntity(*_event.p_entity, _event.data.p_node);
+			else if (_event.event_type == EntitySerializationEvent::Type::POST_DESERIALIZATION)
+				ResolveJointConnections();
+			else if (_event.event_type == EntitySerializationEvent::Type::ENTITY_REFERENCE_REMAP)
+				RemapJointConnections(*_event.p_entity, _event.data.p_uuid_lookup);
+		};
+
 		Events::EventManager::RegisterListener(m_phys_listener);
 		Events::EventManager::RegisterListener(m_joint_listener);
 		Events::EventManager::RegisterListener(m_character_controller_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 		Events::EventManager::RegisterListener(m_vehicle_listener);
+		Events::EventManager::RegisterListener(m_serialization_listener);
 	}
 
 	bool PhysicsSystem::InitVehicle(VehicleComponent* p_comp) {
@@ -542,6 +745,7 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_joint_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_vehicle_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_serialization_listener.GetRegisterID());
 	}
 
 

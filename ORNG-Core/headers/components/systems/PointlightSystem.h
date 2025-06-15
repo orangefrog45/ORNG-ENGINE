@@ -1,5 +1,6 @@
 #pragma once
 #include "components/systems/ComponentSystem.h"
+#include "rendering/VAO.h"
 
 namespace ORNG {
 	class PointlightSystem : public ComponentSystem {

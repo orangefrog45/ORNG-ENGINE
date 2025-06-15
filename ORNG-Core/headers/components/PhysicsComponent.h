@@ -191,7 +191,7 @@ namespace ORNG {
 		};
 
 		class JointAttachment {
-			friend class SceneSerializer;
+			friend class PhysicsSystem;
 			friend class Scene;
 		public:
 			JointAttachment() = default;

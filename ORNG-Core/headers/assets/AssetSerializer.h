@@ -1,15 +1,11 @@
 #pragma once
 #include "../rendering/Textures.h"
 #include "SoundAsset.h"
-#include "Prefab.h"
-#include "PhysXMaterialAsset.h"
 #include "../rendering/Material.h"
 #include "../rendering/MeshAsset.h"
-#include <bitsery/include/bitsery/bitsery.h>
 #include <bitsery/include/bitsery/serializer.h>
 #include <bitsery/include/bitsery/deserializer.h>
 #include <bitsery/include/bitsery/adapter/stream.h>
-#include <bitsery/include/bitsery/traits/string.h>
 #include <bitsery/include/bitsery/traits/vector.h>
 
 struct GLFWwindow;
@@ -46,7 +42,6 @@ namespace bitsery {
 		s.container4b(o.indices, ORNG_MAX_MESH_INDICES);
 	}
 
-
 	template <typename S>
 	void serialize(S& s, AABB& o) {
 		s.object(o.extents);
@@ -73,7 +68,7 @@ namespace ORNG {
 
 	class AssetSerializer {
 	public:
-		AssetSerializer(AssetManager& manager) : m_manager(manager) {};
+		explicit AssetSerializer(AssetManager& manager) : m_manager(manager) {};
 
 		void Init();
 
@@ -169,23 +164,7 @@ namespace ORNG {
 
 		void DeserializeMaterialAsset(Material& data, BufferDeserializer& des);
 
-		void DeserializeMaterialAsset(Material& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des);
-
-		template<typename S>
-		static void DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, S& des) {
-			des.object(data.uuid);
-			des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
-
-			float sf, df, r;
-
-			des.value4b(sf);
-			des.value4b(df);
-			des.value4b(r);
-
-			data.p_material->setDynamicFriction(df);
-			data.p_material->setStaticFriction(sf);
-			data.p_material->setRestitution(r);
-		}
+		static void DeserializePhysxMaterialAsset(class PhysXMaterialAsset& data, BufferDeserializer& des);
 
 		template<std::derived_from<Asset> T>
 		void SerializeAssetToBinaryFile(T& asset, const std::string& filepath) {
@@ -217,13 +196,9 @@ namespace ORNG {
 
 		template <std::derived_from<Asset> T>
 		void DeserializeAssetBinary(const std::string& filepath, T& data, std::any args = 0) {
-			std::ifstream s{ filepath, std::ios::binary };
-			if (!s.is_open()) {
-				ORNG_CORE_ERROR("Deserialization error: Cannot open {0} for reading", filepath);
-				return;
-			}
-
-			bitsery::Deserializer<bitsery::InputStreamAdapter> des{ s };
+			std::vector<std::byte> buf;
+			ReadBinaryFile(filepath, buf);
+			BufferDeserializer des{buf};
 
 			if constexpr (std::is_same_v<T, MeshAsset>) {
 				DeserializeMeshAsset(data, des);
@@ -243,8 +218,6 @@ namespace ORNG {
 			else {
 				des.object(data);
 			}
-
-			s.close();
 		}
 
 		private:

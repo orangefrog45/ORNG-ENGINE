@@ -4,7 +4,8 @@
 #include "../extern/entt/EnttSingleInclude.h"
 #include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"
-#include "components/ComponentAPI.h"
+#include "components/Component.h"
+#include "components/Lights.h"
 
 
 namespace ORNG {
@@ -79,7 +80,7 @@ namespace ORNG {
 
 		void UnloadScene();
 
-		CameraComponent* GetActiveCamera();
+		class CameraComponent* GetActiveCamera();
 
 		// Specify uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);

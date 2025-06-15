@@ -1,6 +1,6 @@
 #include "pch/pch.h"
 #include "core/GLStateManager.h"
-#include "components/ComponentSystems.h"
+#include "components/systems/CameraSystem.h"
 #include "rendering/renderpasses/PostProcessPass.h"
 #include "rendering/renderpasses/FogPass.h"
 #include "rendering/RenderGraph.h"

@@ -6,6 +6,7 @@
 #include "core/GLStateManager.h"
 #include "core/Window.h" // For shared loading context
 #include "physics/Physics.h" // For initializing physx assets
+#include "PhysXMaterialAsset.h"
 
 #include <bitsery/adapter/stream.h>
 #include <GLFW/glfw3.h> // For glfwmakecontextcurrent
@@ -160,7 +161,6 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	des.value4b(num_materials);
 	des.value4b(num_phys_materials);
 
-
 	std::vector<std::byte> bin_data;
 
 	for (uint32_t i = 0; i < num_textures; i++) {
@@ -306,6 +306,8 @@ void AssetSerializer::SerializeAssets(const std::string& output_path) {
 	for (auto* p_mat : m_manager.GetView<PhysXMaterialAsset>()) {
 		SerializeAssetToBinaryFile(*p_mat, output_path + "\\res\\physx-materials\\" + std::format("{}", p_mat->uuid()) + ".opmat");
 	}
+
+
 }
 
 void AssetSerializer::Init() {
@@ -571,38 +573,18 @@ void AssetSerializer::DeserializeMaterialAsset(Material& data, BufferDeserialize
 	des.value4b(data.alpha_cutoff);
 }
 
-void AssetSerializer::DeserializeMaterialAsset(Material& data, bitsery::Deserializer<bitsery::InputStreamAdapter>& des) {
-	des.object(data.base_colour);
-	des.value1b(data.render_group);
-	des.value4b(data.roughness);
-	des.value4b(data.metallic);
-	des.value4b(data.ao);
-	des.value4b(data.emissive_strength);
-	uint64_t texid;
-	des.value8b(texid);
-	if (texid != 0) data.base_colour_texture = m_manager.GetAsset<Texture2D>(texid);
-	des.value8b(texid);
-	if (texid != 0) data.normal_map_texture = m_manager.GetAsset<Texture2D>(texid);
-	des.value8b(texid);
-	if (texid != 0) data.metallic_texture = m_manager.GetAsset<Texture2D>(texid);
-	des.value8b(texid);
-	if (texid != 0) data.roughness_texture = m_manager.GetAsset<Texture2D>(texid);
-	des.value8b(texid);
-	if (texid != 0) data.ao_texture = m_manager.GetAsset<Texture2D>(texid);
-	des.value8b(texid);
-	if (texid != 0) data.displacement_texture = m_manager.GetAsset<Texture2D>(texid);
-	des.value8b(texid);
-	if (texid != 0) data.emissive_texture = m_manager.GetAsset<Texture2D>(texid);
-
-	des.value4b(data.parallax_layers);
-	des.object(data.tile_scale);
-	des.text1b(data.name, ORNG_MAX_NAME_SIZE);
+void AssetSerializer::DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, BufferDeserializer& des) {
 	des.object(data.uuid);
-	des.object(data.spritesheet_data);
+	des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
 
-	uint32_t flags;
-	des.value4b(flags);
-	data.flags = (MaterialFlags)flags;
-	des.value4b(data.displacement_scale);
-	des.value4b(data.alpha_cutoff);
+	float sf, df, r;
+
+	des.value4b(sf);
+	des.value4b(df);
+	des.value4b(r);
+
+	data.p_material->setDynamicFriction(df);
+	data.p_material->setStaticFriction(sf);
+	data.p_material->setRestitution(r);
 }
+

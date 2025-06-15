@@ -1,6 +1,4 @@
 #pragma once
-#include <PxMaterial.h>
-
 #include "Asset.h"
 
 namespace ORNG {

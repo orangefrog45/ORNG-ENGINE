@@ -3,7 +3,6 @@
 #include "components/systems/CameraSystem.h"
 #include "components/systems/MeshInstancingSystem.h"
 #include "components/systems/ParticleSystem.h"
-#include "components/systems/PhysicsSystem.h"
 #include "components/systems/PointlightSystem.h"
 #include "components/systems/SceneUBOSystem.h"
 #include "components/systems/ScriptSystem.h"

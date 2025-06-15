@@ -2,9 +2,9 @@
 
 #include "events/Events.h"
 #include "components/systems/ComponentSystem.h"
-#include "scene/Scene.h"
 #include "components/MeshComponent.h"
 #include "components/BillboardComponent.h"
+#include "components/TransformComponent.h"
 
 namespace ORNG {
 	class MeshInstancingSystem : public ComponentSystem {

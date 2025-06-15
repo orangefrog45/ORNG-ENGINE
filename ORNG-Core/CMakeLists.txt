@@ -4,22 +4,14 @@ project(ORNG_CORE)
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 set(ORNG_RENDERING_SOURCES
-		src/rendering/EnvMapLoader.cpp
 		src/rendering/MeshAsset.cpp
 		src/rendering/MeshInstanceGroup.cpp
 		src/rendering/Quad.cpp
 		src/rendering/Renderer.cpp
 		src/rendering/Textures.cpp
+		src/stb_image.cpp
 		src/rendering/VAO.cpp
-		src/rendering/renderpasses/SSAOPass.cpp
-		src/rendering/renderpasses/BloomPass.cpp
-		src/rendering/renderpasses/GBufferPass.cpp
-		src/rendering/renderpasses/DepthPass.cpp
-		src/rendering/renderpasses/VoxelPass.cpp
-		src/rendering/renderpasses/LightingPass.cpp
-		src/rendering/renderpasses/FogPass.cpp
-		src/rendering/renderpasses/TransparencyPass.cpp
-		src/rendering/renderpasses/PostProcessPass.cpp
+		src/core/GLStateManager.cpp
 
 		src/framebuffers/Framebuffer.cpp
 		src/framebuffers/FramebufferLibrary.cpp
@@ -38,7 +30,6 @@ set(ORNG_UTIL_SOURCES
 )
 
 set(ORNG_LIB_SOURCES
-    src/stb_image.cpp
     src/components/Camera.cpp
     src/components/Component.cpp
     src/components/MeshComponent.cpp
@@ -50,8 +41,19 @@ set(ORNG_LIB_SOURCES
     src/components/managers/PhysicsSystem.cpp
     src/components/managers/PointlightComponentManager.cpp
     src/components/managers/SpotlightComponentManager.cpp
+
+	src/rendering/renderpasses/SSAOPass.cpp
+	src/rendering/renderpasses/BloomPass.cpp
+	src/rendering/renderpasses/GBufferPass.cpp
+	src/rendering/renderpasses/DepthPass.cpp
+	src/rendering/renderpasses/VoxelPass.cpp
+	src/rendering/renderpasses/LightingPass.cpp
+	src/rendering/renderpasses/FogPass.cpp
+	src/rendering/renderpasses/TransparencyPass.cpp
+	src/rendering/renderpasses/PostProcessPass.cpp
+	src/rendering/EnvMapLoader.cpp
+
     src/core/Application.cpp
-    src/core/GLStateManager.cpp
     src/core/Window.cpp
     src/events/EventManager.cpp
     src/events/Events.cpp
@@ -90,6 +92,7 @@ set(ORNG_LIB_SOURCES
 	src/util/LoggerUI.cpp
 	src/util/Interpolator.cpp
 	src/util/ExtraUI.cpp
+		headers/scene/SerializationUtil.h
 )
 
 
@@ -147,8 +150,8 @@ ${CMAKE_CURRENT_LIST_DIR}/extern/plog/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
 ${CMAKE_CURRENT_LIST_DIR}/extern/implot
 ${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
+${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
+${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
 CACHE STRING "" FORCE
 )
 
