@@ -138,8 +138,8 @@ ${CMAKE_CURRENT_LIST_DIR}/extern/implot
 "physx-complete/physx/physx/include/"
 "physx-complete/physx/pxshared/include/"
 "physx-complete/physx/physx/snippets/"
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
+${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
+${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
 CACHE STRING "" FORCE
 )
 
@@ -175,7 +175,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmodL.dll
-${CMAKE_BINARY_DIR}/ORNG-Core/extern/glew-cmake/bin/glew-sharedd.dll
+${CMAKE_CURRENT_BINARY_DIR}/extern/glew-cmake/bin/glew-sharedd.dll
 ${GPU_LIBRARY_LOCATION}
 ${GPU_DEVICE_LIBRARY_LOCATION}
 CACHE string "Copy these into your .exe directory"
@@ -187,10 +187,10 @@ if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
 set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
 set(ORNG_CORE_BINARIES 
 ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
-${CMAKE_BINARY_DIR}/ORNG-Core/extern/glew-cmake/bin/glew-shared.dll
+${CMAKE_CURRENT_BINARY_DIR}/extern/glew-cmake/bin/glew-shared.dll
 ${GPU_LIBRARY_LOCATION}
 ${GPU_DEVICE_LIBRARY_LOCATION}
-CACHE string "Copy these into your .exe directory" FORCE
+CACHE STRING "Copy these into your .exe directory" FORCE
 )
 elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     message(FATAL_ERROR "Only debug and release builds are supported")
@@ -221,7 +221,7 @@ RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
 endif()
 
 
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Core/res/core-res")
+file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/res/core-res")
 
 
 

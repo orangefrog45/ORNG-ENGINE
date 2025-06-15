@@ -153,7 +153,7 @@ namespace ORNG {
 		}
 
 		glm::vec2 GetMouseDelta() {
-			m_mouse_position - m_last_mouse_position;
+			return m_mouse_position - m_last_mouse_position;
 		}
 
 		void OnUpdate() {

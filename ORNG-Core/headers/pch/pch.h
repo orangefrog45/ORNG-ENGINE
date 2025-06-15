@@ -16,8 +16,9 @@
 
 #include <GL/glew.h>
 
-#define GLM_ENABLE_EMPERIMENTAL
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_RADIANS
+
 #include "PxConfig.h"
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>

@@ -183,7 +183,7 @@ namespace ORNG {
 		GL_StateManager::BindTexture(m_texture_target, 0, GL_TEXTURE0, true);
 	}
 
-	bool Texture2D::LoadFromBinary(std::byte* p_data, size_t size, bool is_decompressed, int width, int height, int bpp) {
+	bool Texture2D::LoadFromBinary(std::byte* p_data, size_t size, bool is_decompressed, int width, int height, int bpp, bool is_float) {
 		stbi_set_flip_vertically_on_load(1);
 		if (!ValidateBaseSpec(static_cast<const TextureBaseSpec*>(&m_spec))) {
 			ORNG_CORE_ERROR("2D Texture failed loading from binary: Invalid spec");
@@ -202,40 +202,47 @@ namespace ORNG {
 
 		unsigned internal_format, format;
 
-		switch (bpp) {
-		case 1:
-			internal_format = GL_R8;
-			format = GL_RED;
-			break;
-		case 2:
-			internal_format = GL_RG8;
-			format = GL_RG;
-			break;
-		case 3:
-			if (m_spec.srgb_space)
-				internal_format = GL_SRGB8;
-			else
-				internal_format = GL_RGB8;
+		if (!is_float) {
+			switch (bpp) {
+			case 1:
+				internal_format = GL_R8;
+				format = GL_RED;
+				break;
+			case 2:
+				internal_format = GL_RG8;
+				format = GL_RG;
+				break;
+			case 3:
+				if (m_spec.srgb_space)
+					internal_format = GL_SRGB8;
+				else
+					internal_format = GL_RGB8;
 
-			format = GL_RGB;
-			break;
-		case 4:
-			if (m_spec.srgb_space)
-				internal_format = GL_SRGB8_ALPHA8;
-			else
-				internal_format = GL_RGBA8;
+				format = GL_RGB;
+				break;
+			case 4:
+				if (m_spec.srgb_space)
+					internal_format = GL_SRGB8_ALPHA8;
+				else
+					internal_format = GL_RGBA8;
 
-			format = GL_RGBA;
-			break;
-		default:
-			ORNG_CORE_ERROR("Failed loading binary texture', unsupported number of channels");
-			stbi_image_free(image_data);
-			return false;
+				format = GL_RGBA;
+				break;
+			default:
+				ORNG_CORE_ERROR("Failed loading binary texture', unsupported number of channels");
+				stbi_image_free(image_data);
+				return false;
+			}
 		}
 
 		GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
 
-		glTexImage2D(m_texture_target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+		// Texture is expected to already be configured properly for the floating-point format
+		if (is_float)
+			glTexImage2D(m_texture_target, 0, m_spec.internal_format, width, height, 0, m_spec.format, GL_FLOAT, image_data);
+		else
+			glTexImage2D(m_texture_target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+
 
 		if (m_spec.generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
