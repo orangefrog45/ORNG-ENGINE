@@ -212,7 +212,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 	${CMAKE_CURRENT_BINARY_DIR}/extern/glew-cmake/bin/glew-sharedd.dll
 	${GPU_LIBRARY_LOCATION}
 	${GPU_DEVICE_LIBRARY_LOCATION}
-	CACHE string "Copy these into your .exe directory"
+	CACHE STRING "Copy these into your .exe directory"
 	)
 endif()
 
