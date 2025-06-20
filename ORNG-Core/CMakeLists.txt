@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 3.8)
 
+# This exposes the following targets:
+# ORNG_CORE - contains entire ORNG library, this requires ORNG_BUILD_CORE to be ON, and physx to be installed via vcpkg and available to link to (see how physx is used in this file)
+# ORNG_PHYSICS - ignore for now
+# ORNG_RENDERING - contains all OpenGL rendering functionality
+# ORNG_SCENE - contains all scene functionality
+# ORNG_UTIL - contains utility functionality
+
+# You should link against one or more of these targets, and use target_include_directories(YOUR_TARGET PRIVATE ${ORNG_CORE_INCLUDE_DIRS}) somewhere in your CMakeLists
+
+# Look at ORNG_CORE_BINARIES for the dlls you need to place next to your .exe
+# ORNG_RENDERING requires the glew binary
+# ORNG_SCENE requires the fmod binary (for audio)
+
+# If you get unresolved symbol errors, check the file the symbol is defined in (should be a matching .cpp file to the .h file), then check which target here compiles it,...
+# ... then link against that target too.
+
 project(ORNG_CORE)
 set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
@@ -271,26 +287,26 @@ if (ORNG_BUILD_CORE)
 endif()
 
 target_compile_definitions(ORNG_RENDERING PUBLIC
-		ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
-		ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
-		GLM_ENABLE_EXPERIMENTAL
-		ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
-		ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
+	ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
+	ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
+	GLM_ENABLE_EXPERIMENTAL
+	ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
+	ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
 )
 
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-set_target_properties(${SCRIPT_TARGETS} PROPERTIES 
-LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
-ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
-RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
-)
+	set_target_properties(${SCRIPT_TARGETS} PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
+	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
+	)
 else()
-set_target_properties(${SCRIPT_TARGETS} PROPERTIES 
-LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
-ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
-RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
-)
+	set_target_properties(${SCRIPT_TARGETS} PROPERTIES
+	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
+	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
+	)
 endif()
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/res/core-res")
