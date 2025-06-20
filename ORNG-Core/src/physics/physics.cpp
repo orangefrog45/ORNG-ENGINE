@@ -35,12 +35,11 @@ namespace ORNG {
 		}
 
 #ifdef PHYSX_GPU_ACCELERATION_AVAILABLE
-		if (PxGetSuggestedCudaDeviceOrdinal(mp_foundation->getErrorCallback()) >= 0)
-		{
+		if (PxGetSuggestedCudaDeviceOrdinal(mp_foundation->getErrorCallback()) >= 0) {
 			PxCudaContextManagerDesc cudaContextManagerDesc;
 			mp_cuda_context_manager = PxCreateCudaContextManager(*Physics::GetFoundation(), cudaContextManagerDesc, PxGetProfilerCallback());
 			ASSERT(mp_cuda_context_manager && mp_cuda_context_manager->contextIsValid());
 		}
-	}
 #endif
+	}
 }

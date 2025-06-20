@@ -1,6 +1,7 @@
 #pragma once
 #include "core/Input.h"
 #include "events/EventManager.h"
+#include "GLFW/glfw3.h"
 #include "util/TimeStep.h"
 #include "util/util.h"
 
@@ -18,6 +19,7 @@ namespace ORNG {
 		};
 
 		static void Shutdown() {
+			glfwDestroyWindow(mp_instance->p_window);
 			if (mp_instance) delete mp_instance;
 		}
 

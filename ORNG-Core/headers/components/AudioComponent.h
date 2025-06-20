@@ -11,7 +11,7 @@ struct FMOD_VECTOR;
 namespace ORNG {
 	constexpr uint64_t INVALID_SOUND_UUID = 0;
 
-	struct SoundAsset;
+	class SoundAsset;
 
 	class AudioComponent : public Component {
 		friend class AudioSystem;

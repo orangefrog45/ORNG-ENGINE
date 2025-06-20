@@ -5,12 +5,12 @@ namespace ORNG {
 	class Framebuffer;
 	class Shader;
 
-
 	class Skybox {
 		friend class SceneSerializer;
-	public:
 		friend class EditorLayer;
 		friend class EnvMapLoader;
+		friend class EnvMapSystem;
+	public:
 		Skybox() = default;
 
 		[[nodiscard]] const TextureCubemap& GetSkyboxTexture() const noexcept {

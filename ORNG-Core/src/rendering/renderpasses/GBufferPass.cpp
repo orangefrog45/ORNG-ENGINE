@@ -3,6 +3,9 @@
 #include "core/Window.h"
 #include "core/GLStateManager.h"
 #include "rendering/renderpasses/GBufferPass.h"
+
+#include <components/systems/EnvMapSystem.h>
+
 #include "rendering/Renderer.h"
 #include "rendering/RenderGraph.h"
 #include "rendering/SceneRenderer.h"
@@ -171,14 +174,17 @@ void GBufferPass::DoPass() {
 	glEnable(GL_DEPTH_TEST);
 
 	// Draw skybox
-	m_sv.Activate((unsigned)GBufferVariants::SKYBOX);
-	GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSkyboxTexture().GetTextureHandle(),
-	GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
-	glDisable(GL_CULL_FACE);
-	glDepthFunc(GL_LEQUAL);
-	Renderer::DrawCube();
-	glDepthFunc(GL_LESS);
-	glEnable(GL_CULL_FACE);
+	if (mp_scene->HasSystem<EnvMapSystem>()) {
+		auto& skybox = mp_scene->GetSystem<EnvMapSystem>().skybox;
+		m_sv.Activate((unsigned)GBufferVariants::SKYBOX);
+		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetSkyboxTexture().GetTextureHandle(),
+		GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
+		glDisable(GL_CULL_FACE);
+		glDepthFunc(GL_LEQUAL);
+		Renderer::DrawCube();
+		glDepthFunc(GL_LESS);
+		glEnable(GL_CULL_FACE);
+	}
 }
 
 void GBufferPass::Destroy() {

@@ -4,6 +4,7 @@
 #include "core/GLStateManager.h"
 #include "stb/stb_image_write.h"
 #include "assets/AssetManager.h"
+#include "scene/Skybox.h"
 
 namespace ORNG {
 	void EnvMapLoader::Init() {

@@ -519,6 +519,8 @@ namespace ORNG {
 		out << YAML::Key << "Threshold" << YAML::Value << scene.post_processing.bloom.threshold;
 		out << YAML::EndMap;
 
+		Events::EventManager::DispatchEvent(SceneSerializationEvent{&out, scene});
+
 		out << YAML::EndMap;
 
 		// Write to either the string or an output file
@@ -530,7 +532,6 @@ namespace ORNG {
 			fout << out.c_str();
 		}
 
-		Events::EventManager::DispatchEvent(SceneSerializationEvent{&out, scene});
 	}
 
 	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {

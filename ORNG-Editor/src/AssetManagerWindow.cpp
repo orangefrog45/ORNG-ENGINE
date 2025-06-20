@@ -2,6 +2,9 @@
 #include <shellapi.h>
 #include <imgui.h>
 #include "AssetManagerWindow.h"
+
+#include <components/systems/EnvMapSystem.h>
+
 #include "assets/Prefab.h"
 #include "assets/PhysXMaterialAsset.h"
 #include "components/PhysicsComponent.h"
@@ -28,7 +31,10 @@ namespace ORNG {
 
 		mp_preview_scene->AddSystem(new MeshInstancingSystem(&*mp_preview_scene))->OnLoad();
 		mp_preview_scene->AddSystem(new CameraSystem(&*mp_preview_scene))->OnLoad();
-		mp_preview_scene->skybox.Load(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr", 512, true);
+		mp_preview_scene->AddSystem(new EnvMapSystem(&*mp_preview_scene)); // Don't load this as the serialization hooks will intefere with the main scene
+		auto& env_map_system = mp_preview_scene->GetSystem<EnvMapSystem>();
+		env_map_system.skybox.using_env_map = true;
+		env_map_system.LoadSkyboxFromHDRFile(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr", 512);
 
 		mp_preview_scene->post_processing.bloom.intensity = 0.25;
 		auto& cube_entity = mp_preview_scene->CreateEntity("Sphere");

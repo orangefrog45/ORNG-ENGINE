@@ -78,6 +78,8 @@ set(ORNG_LIB_SOURCES
 	src/rendering/renderpasses/TransparencyPass.cpp
 	src/rendering/renderpasses/PostProcessPass.cpp
 
+	src/rendering/EnvMapLoader.cpp
+
     src/core/Application.cpp
     src/core/Window.cpp
     src/events/EventManager.cpp
@@ -172,7 +174,8 @@ set(ORNG_CORE_INCLUDE_DIRS
 if (ORNG_BUILD_CORE)
 	target_include_directories(ORNG_PHYSICS PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
 	target_link_libraries(ORNG_PHYSICS PUBLIC
-			${PHYSX_LIBRARIES}
+		ORNG_SCENE
+		${PHYSX_LIBRARIES}
 	)
 
 	target_include_directories(ORNG_CORE PUBLIC ${ORNG_CORE_INCLUDE_DIRS})

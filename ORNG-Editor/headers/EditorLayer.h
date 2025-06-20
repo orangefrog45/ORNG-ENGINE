@@ -10,6 +10,8 @@
 #include "rendering/RenderGraph.h"
 #include "util/LoggerUI.h"
 #include "components/PhysicsComponent.h"
+#include "components/VehicleComponent.h"
+
 
 namespace physx {
 	class PxMaterial;

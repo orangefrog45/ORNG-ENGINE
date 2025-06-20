@@ -10,12 +10,15 @@ namespace ORNG {
     class EnvMapSystem : public ComponentSystem {
     public:
         explicit EnvMapSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+        virtual ~EnvMapSystem() = default;
 
         void OnLoad() final;
 
         void OnUnload() final;
 
         inline static constexpr uint64_t GetSystemUUID() { return 89273647238766545; }
+
+        void LoadSkyboxFromHDRFile(const std::string& filepath, unsigned resolution);
 
         Skybox skybox;
     private:
