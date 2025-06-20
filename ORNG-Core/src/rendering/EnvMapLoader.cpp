@@ -2,7 +2,6 @@
 #include "rendering/EnvMapLoader.h"
 #include "rendering/Renderer.h"
 #include "core/GLStateManager.h"
-#include "core/Window.h"
 #include "stb/stb_image_write.h"
 #include "assets/AssetManager.h"
 
@@ -227,8 +226,6 @@ namespace ORNG {
 		}
 
 		glEnable(GL_CULL_FACE);
-
-		glViewport(0, 0, Window::GetWidth(), Window::GetHeight());
 
 		return true;
 	}

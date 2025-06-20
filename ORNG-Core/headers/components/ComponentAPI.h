@@ -6,7 +6,6 @@
 #include "components/ScriptComponent.h"
 #include "components/TransformComponent.h"
 #include "components/AudioComponent.h"
-#include "components/VehicleComponent.h"
 #include "components/ParticleEmitterComponent.h"
 #include "components/ParticleBufferComponent.h"
 #include "components/BillboardComponent.h"

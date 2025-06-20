@@ -1,11 +1,11 @@
 #pragma once
-#include "scene/Skybox.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
 #include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"
 #include "components/Component.h"
 #include "components/Lights.h"
+#include "util/UUID.h"
 
 
 namespace ORNG {
@@ -80,8 +80,6 @@ namespace ORNG {
 
 		void UnloadScene();
 
-		struct CameraComponent* GetActiveCamera();
-
 		// Specify uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
 		void DeleteEntity(SceneEntity* p_entity);
@@ -147,7 +145,6 @@ namespace ORNG {
 
 		UUID<uint64_t> uuid;
 
-		Skybox skybox;
 		PostProcessingSettings post_processing;
 		DirectionalLight directional_light;
 

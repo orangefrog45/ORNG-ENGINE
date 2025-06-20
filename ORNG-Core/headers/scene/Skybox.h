@@ -13,22 +13,24 @@ namespace ORNG {
 		friend class EnvMapLoader;
 		Skybox() = default;
 
-		void Load(const std::string& filepath, unsigned cubemap_resolution, bool using_ibl);
-
-		const TextureCubemap& GetSkyboxTexture() const noexcept {
+		[[nodiscard]] const TextureCubemap& GetSkyboxTexture() const noexcept {
 			return m_skybox_tex;
 		}
 
-		const std::unique_ptr<TextureCubemap>& GetIrradianceTexture() const noexcept {
+		[[nodiscard]] const std::unique_ptr<TextureCubemap>& GetIrradianceTexture() const noexcept {
 			return m_diffuse_prefilter_map;
 		}
 
-		const std::unique_ptr<TextureCubemap>& GetSpecularPrefilter() const noexcept {
+		[[nodiscard]] const std::unique_ptr<TextureCubemap>& GetSpecularPrefilter() const noexcept {
 			return m_specular_prefilter_map;
 		}
 
-		const std::string& GetSrcFilepath() const noexcept {
+		[[nodiscard]] const std::string& GetSrcFilepath() const noexcept {
 			return m_hdr_tex_filepath;
+		}
+
+		[[nodiscard]] unsigned GetResolution() const noexcept {
+			return m_resolution;
 		}
 
 		// If false LoadEnvironmentMap will only load a cubemap image but no IBL textures.

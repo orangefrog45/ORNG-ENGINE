@@ -1,10 +1,8 @@
 #pragma once
-#include "util/UUID.h"
-#include <bitsery/bitsery.h>
 #include <bitsery/traits/vector.h>
-#include <bitsery/adapter/stream.h>
-#include "bitsery/traits/string.h"
-#include "util/Log.h"
+
+#include "util/UUID.h"
+#include "events/Events.h"
 #include "EntityNodeRef.h"
 
 namespace YAML {
@@ -65,11 +63,33 @@ namespace ORNG {
 		} data;
 	};
 
+	struct SceneSerializationEvent : public Events::Event {
+		enum class Type {
+			SERIALIZING,
+			DESERIALIZING
+		} event_type;
+
+		explicit SceneSerializationEvent(YAML::Emitter* p_emitter, Scene& _scene) : scene(_scene), event_type(Type::SERIALIZING) {data.p_emitter = p_emitter;}
+
+		explicit SceneSerializationEvent(YAML::Node* p_node, Scene& _scene) : scene(_scene), event_type(Type::DESERIALIZING) {data.p_node = p_node;}
+
+		Scene& scene;
+
+		union {
+			// Valid if event_type == SERIALIZING
+			YAML::Emitter* p_emitter;
+
+			// Valid if event_type == DESERIALIZING
+			// Pointer to the top-level YAML node
+			YAML::Node* p_node;
+		} data;
+	};
+
 
 	class SceneSerializer {
 	public:
 		// Output is either the filepath to write to or a string to be written to, if write_to_string is true then the string will be written to, no files
-		static void SerializeScene(const Scene& scene, std::string& output, bool write_to_string = false);
+		static void SerializeScene(Scene& scene, std::string& output, bool write_to_string = false);
 
 		// Produces a .h file with UUID values for each named entity and asset, used in scripts
 		static void SerializeSceneUUIDs(const Scene& scene, std::string& output);

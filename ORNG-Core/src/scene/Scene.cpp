@@ -5,12 +5,11 @@
 #include "scene/Scene.h"
 #include "util/util.h"
 #include "scene/SceneEntity.h"
-#include "components/ComponentSystems.h"
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
-#include "components/systems/PointlightSystem.h"
-#include "components/systems/SpotlightSystem.h"
-#include "components/systems/SceneUBOSystem.h"
+#include "components/ComponentAPI.h"
+#include "components/systems/ComponentSystem.h"
+
 
 namespace ORNG {
 	Scene::~Scene() {
@@ -20,16 +19,16 @@ namespace ORNG {
 
 	void Scene::AddDefaultSystems() {
 		// This order is intentional for optimal use
-		AddSystem(new CameraSystem{ this });
-		AddSystem(new AudioSystem{ this });
-		AddSystem(new PointlightSystem{ this });
-		AddSystem(new SpotlightSystem{ this });
-		AddSystem(new ParticleSystem{ this });
-//		AddSystem(new PhysicsSystem{ this });
-		AddSystem(new TransformHierarchySystem{ this });
-		AddSystem(new SceneUBOSystem{ this });
-		AddSystem(new ScriptSystem{ this });
-		AddSystem(new MeshInstancingSystem{ this });
+// 		AddSystem(new CameraSystem{ this });
+// 		AddSystem(new AudioSystem{ this });
+// 		AddSystem(new PointlightSystem{ this });
+// 		AddSystem(new SpotlightSystem{ this });
+// 		AddSystem(new ParticleSystem{ this });
+// //		AddSystem(new PhysicsSystem{ this });
+// 		AddSystem(new TransformHierarchySystem{ this });
+// 		AddSystem(new SceneUBOSystem{ this });
+// 		AddSystem(new ScriptSystem{ this });
+// 		AddSystem(new MeshInstancingSystem{ this });
 	}
 
 	void Scene::Update(float ts) {
@@ -392,10 +391,6 @@ namespace ORNG {
 		ORNG_CORE_INFO("Scene loaded in {0}ms", time.GetTimeInterval());
 	}
 
-
-	CameraComponent* Scene::GetActiveCamera() {
-		return GetSystem<CameraSystem>().GetActiveCamera();
-	}
 
 	void Scene::Start() {
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {

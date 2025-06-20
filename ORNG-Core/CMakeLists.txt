@@ -12,12 +12,20 @@ set(ORNG_RENDERING_SOURCES
 		src/stb_image.cpp
 		src/rendering/VAO.cpp
 		src/core/GLStateManager.cpp
+		src/core/Window.cpp
 
 		src/framebuffers/Framebuffer.cpp
 		src/framebuffers/FramebufferLibrary.cpp
 
 		src/shaders/Shader.cpp
 		src/shaders/ShaderLibrary.cpp
+
+		src/components/managers/MeshComponentManager.cpp
+		src/components/managers/PointlightComponentManager.cpp
+		src/components/managers/SpotlightComponentManager.cpp
+		src/components/managers/ParticleSystem.cpp
+		src/components/managers/SceneUBOSystem.cpp
+		src/components/managers/EnvMapSystem.cpp
 )
 
 set(ORNG_UTIL_SOURCES
@@ -27,21 +35,38 @@ set(ORNG_UTIL_SOURCES
 	src/util/TimeStep.cpp
 	src/util/UUID.cpp
 	src/util/util.cpp
+	src/misc/Interpolator.cpp
+)
+
+set(ORNG_PHYSICS_SOURCES
+	src/components/managers/PhysicsSystem.cpp
+	src/components/PhysicsComponent.cpp
+	src/components/VehicleComponent.cpp
+	src/physics/physics.cpp
+	src/physics/vehicles/BaseVehicle.cpp
+	src/physics/vehicles/PhysXVehicleActor.cpp
+	src/physics/vehicles/DirectDrive.cpp
+)
+
+set(ORNG_SCENE_SOURCES
+	src/components/MeshComponent.cpp
+	src/components/TransformComponent.cpp
+	src/components/ScriptComponent.cpp
+	src/components/Component.cpp
+	src/components/lights/LightComponents.cpp
+	src/components/Camera.cpp
+	src/scene/Scene.cpp
+	src/scene/SceneEntity.cpp
+	src/scene/SceneSerializer.cpp
+	src/components/managers/AudioSystem.cpp
+	src/components/TransfomHierarchySystem.cpp
+	src/components/ParticleEmitterComponent.cpp
+	src/components/managers/ScriptSystem.cpp
+	src/components/AudioComponent.cpp
+	src/audio/AudioEngine.cpp
 )
 
 set(ORNG_LIB_SOURCES
-    src/components/Camera.cpp
-    src/components/Component.cpp
-    src/components/MeshComponent.cpp
-    src/components/PhysicsComponent.cpp
-    src/components/TransformComponent.cpp
-    src/components/ScriptComponent.cpp
-    src/components/lights/LightComponents.cpp
-    src/components/managers/MeshComponentManager.cpp
-    src/components/managers/PhysicsSystem.cpp
-    src/components/managers/PointlightComponentManager.cpp
-    src/components/managers/SpotlightComponentManager.cpp
-
 	# These aren't included in the rendering library as they have dependencies on the scene
 	src/rendering/renderpasses/SSAOPass.cpp
 	src/rendering/renderpasses/BloomPass.cpp
@@ -52,7 +77,6 @@ set(ORNG_LIB_SOURCES
 	src/rendering/renderpasses/FogPass.cpp
 	src/rendering/renderpasses/TransparencyPass.cpp
 	src/rendering/renderpasses/PostProcessPass.cpp
-	src/rendering/EnvMapLoader.cpp
 
     src/core/Application.cpp
     src/core/Window.cpp
@@ -60,48 +84,32 @@ set(ORNG_LIB_SOURCES
     src/events/Events.cpp
     src/layers/LayerStack.cpp
     src/pch/pch.cpp
-    src/physics/physics.cpp
     src/rendering/SceneRenderer.cpp
     src/scene/GridMesh.cpp
-    src/scene/Scene.cpp
-    src/scene/SceneEntity.cpp
-    src/scene/SceneSerializer.cpp
-    src/scene/Skybox.cpp
+
     src/assets/AssetManager.cpp
     extern/implot/implot.cpp
     extern/implot/implot_items.cpp
     src/scripting/ScriptingEngine.cpp
-    src/audio/AudioEngine.cpp
-    src/components/managers/AudioSystem.cpp
-    src/components/TransfomHierarchySystem.cpp
-    src/scene/SceneManager.cpp
-    src/components/AudioComponent.cpp
     src/layers/ImGuiLayer.cpp
-    src/physics/vehicles/BaseVehicle.cpp
-    src/physics/vehicles/PhysXVehicleActor.cpp
-    src/physics/vehicles/DirectDrive.cpp
-    src/components/VehicleComponent.cpp
     src/assets/AssetsImpl.cpp
-    src/components/managers/ParticleSystem.cpp
-    src/components/ParticleEmitterComponent.cpp
-    src/components/managers/ScriptSystem.cpp
+
     src/assets/AssetSerializer.cpp
-    src/components/managers/SceneUBOSystem.cpp
-	headers/components/DecalComponent.h
 
 	src/misc/LoggerUI.cpp
-	src/misc/Interpolator.cpp
 	src/misc/ExtraUI.cpp
-
-	headers/scene/SerializationUtil.h
 )
 
 
 add_library(ORNG_RENDERING STATIC ${ORNG_RENDERING_SOURCES})
 add_library(ORNG_UTIL STATIC ${ORNG_UTIL_SOURCES})
+add_library(ORNG_SCENE STATIC ${ORNG_SCENE_SOURCES})
+
 
 if (ORNG_BUILD_CORE)
 	add_library(ORNG_CORE STATIC ${ORNG_LIB_SOURCES})
+	add_library(ORNG_PHYSICS STATIC ${ORNG_PHYSICS_SOURCES})
+
 	find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 	target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
 
@@ -139,41 +147,46 @@ extern/glfw/include
 find_package(OpenGL REQUIRED)
 
 set(ORNG_CORE_INCLUDE_DIRS 
-${CMAKE_CURRENT_LIST_DIR}/extern/spdlog/include
-${CMAKE_CURRENT_LIST_DIR}/extern/assimp/include
-${CMAKE_CURRENT_LIST_DIR}/extern/assimp/build/include
-${CMAKE_CURRENT_LIST_DIR}/extern/glfw/include
-${CMAKE_CURRENT_BINARY_DIR}/extern/assimp/include
-${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake/include
-${CMAKE_CURRENT_LIST_DIR}/extern
-${CMAKE_CURRENT_LIST_DIR}/extern/imgui
-${CMAKE_CURRENT_LIST_DIR}/headers
-${CMAKE_CURRENT_LIST_DIR}/extern/yaml/include
-${CMAKE_CURRENT_LIST_DIR}/extern/plog/include
-${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
-${CMAKE_CURRENT_LIST_DIR}/extern/implot
-${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
-${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
-${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
-${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
-CACHE STRING "" FORCE
+	${CMAKE_CURRENT_LIST_DIR}/extern/spdlog/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/assimp/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/assimp/build/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/glfw/include
+	${CMAKE_CURRENT_BINARY_DIR}/extern/assimp/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake/include
+	${CMAKE_CURRENT_LIST_DIR}/extern
+	${CMAKE_CURRENT_LIST_DIR}/extern/imgui
+	${CMAKE_CURRENT_LIST_DIR}/headers
+	${CMAKE_CURRENT_LIST_DIR}/extern/yaml/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/plog/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
+	${CMAKE_CURRENT_LIST_DIR}/extern/implot
+	${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
+	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
+	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
+	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
+	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
+	CACHE STRING "" FORCE
 )
 
+
 if (ORNG_BUILD_CORE)
+	target_include_directories(ORNG_PHYSICS PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
+	target_link_libraries(ORNG_PHYSICS PUBLIC
+			${PHYSX_LIBRARIES}
+	)
+
 	target_include_directories(ORNG_CORE PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
 	target_link_libraries(ORNG_CORE PUBLIC
 	ORNG_RENDERING
 	ORNG_UTIL
+	ORNG_SCENE
+	ORNG_PHYSICS
 	OpenGL::GL
 	glfw
 	libglew_shared
 	assimp
 	spdlog::spdlog_header_only
-	yaml-cpp
-	${YAML_CPP_LIBRARIES}
 	${ASSIMP_LIBRARY}
-	${PHYSX_LIBRARIES}
 	Tracy::TracyClient
 	)
 	target_precompile_headers(ORNG_CORE PUBLIC headers/pch/pch.h)
@@ -181,25 +194,38 @@ endif()
 
 target_include_directories(ORNG_RENDERING PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
 target_include_directories(ORNG_UTIL PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
+target_include_directories(ORNG_SCENE PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
 
 target_link_libraries(ORNG_RENDERING PUBLIC
-		OpenGL::GL
-		glfw
-		libglew_shared
-		assimp
-		${ASSIMP_LIBRARY}
-		Tracy::TracyClient
+	OpenGL::GL
+	glfw
+	libglew_shared
+	assimp
+	${ASSIMP_LIBRARY}
+	Tracy::TracyClient
+	ORNG_UTIL
 )
 
 target_link_libraries(ORNG_UTIL PUBLIC
 	spdlog::spdlog_header_only
+	Tracy::TracyClient
 )
 
+target_link_libraries(ORNG_SCENE PUBLIC
+	yaml-cpp
+	${YAML_CPP_LIBRARIES}
+	ORNG_UTIL
+)
 
+# Link FMOD to ORNG_CORE
 if (ORNG_BUILD_CORE AND NOT ORNG_DISABLE_FMOD)
 	target_link_libraries(ORNG_CORE PUBLIC ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib)
 	target_include_directories(ORNG_CORE PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc")
 endif()
+
+# Link FMOD to ORNG_SCENE
+target_link_libraries(ORNG_SCENE PUBLIC ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib)
+target_include_directories(ORNG_SCENE PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc")
 
 target_precompile_headers(ORNG_RENDERING PUBLIC headers/pch/pch.h)
 target_precompile_headers(ORNG_UTIL PUBLIC headers/pch/pch.h)
@@ -218,14 +244,14 @@ endif()
 
 
 if(CMAKE_BUILD_TYPE MATCHES Release OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
-set(ORNG_CORE_BINARIES 
-${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
-${CMAKE_CURRENT_BINARY_DIR}/extern/glew-cmake/bin/glew-shared.dll
-${GPU_LIBRARY_LOCATION}
-${GPU_DEVICE_LIBRARY_LOCATION}
-CACHE STRING "Copy these into your .exe directory" FORCE
-)
+	set(CMAKE_CONFIGURATION_TYPES "Release" CACHE STRING "" FORCE)
+	set(ORNG_CORE_BINARIES
+		${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod.dll
+		${CMAKE_CURRENT_BINARY_DIR}/extern/glew-cmake/bin/glew-shared.dll
+		${GPU_LIBRARY_LOCATION}
+		${GPU_DEVICE_LIBRARY_LOCATION}
+		CACHE STRING "Copy these into your .exe directory" FORCE
+	)
 elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     message(FATAL_ERROR "Only debug and release builds are supported")
 endif()

@@ -482,7 +482,7 @@ namespace ORNG {
 		fout << "};"; // namespace Scene
 	}
 
-	void SceneSerializer::SerializeScene(const Scene& scene, std::string& output, bool write_to_string) {
+	void SceneSerializer::SerializeScene(Scene& scene, std::string& output, bool write_to_string) {
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
@@ -501,12 +501,6 @@ namespace ORNG {
 		out << YAML::Key << "Direction" << YAML::Value << scene.directional_light.GetLightDirection();
 		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
 		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
-		out << YAML::EndMap;
-
-		out << YAML::Key << "Skybox" << YAML::BeginMap;
-		out << YAML::Key << "HDR filepath" << YAML::Value << scene.skybox.m_hdr_tex_filepath;
-		out << YAML::Key << "IBL" << YAML::Value << scene.skybox.using_env_map;
-		out << YAML::Key << "Resolution" << YAML::Value << scene.skybox.m_resolution;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Fog" << YAML::BeginMap;
@@ -535,6 +529,8 @@ namespace ORNG {
 			std::ofstream fout{ output };
 			fout << out.c_str();
 		}
+
+		Events::EventManager::DispatchEvent(SceneSerializationEvent{&out, scene});
 	}
 
 	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {
@@ -583,14 +579,6 @@ namespace ORNG {
 			scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 		}
 
-		// Skybox/Env map
-		{
-			auto skybox = data["Skybox"];
-			bool using_env_maps = skybox["IBL"].as<bool>();
-			float res = skybox["Resolution"].as<float>();
-			scene.skybox.Load(skybox["HDR filepath"].as<std::string>(), res, using_env_maps);
-		}
-
 		// Bloom
 		{
 			auto bloom = data["Bloom"];
@@ -611,6 +599,7 @@ namespace ORNG {
 			scene.post_processing.global_fog.step_count = fog["Steps"].as<int>();
 		}
 
+		Events::EventManager::DispatchEvent(SceneSerializationEvent{&data, scene});
 		return true;
 	}
 }
