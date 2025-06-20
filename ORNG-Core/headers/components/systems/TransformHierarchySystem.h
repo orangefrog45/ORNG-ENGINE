@@ -1,7 +1,7 @@
 #pragma once
 
 #include "components/systems/ComponentSystem.h"
-#include "scene/Scene.h"
+#include "components/TransformComponent.h"
 
 namespace ORNG {
 	class TransformHierarchySystem : public ComponentSystem {

@@ -1,10 +1,9 @@
 #ifndef PHYSICSCOMPONENT_H
 #define PHYSICSCOMPONENT_H
 
-#include "Component.h"
-#include "physx/extensions/PxD6Joint.h"
+#include <extensions/PxD6Joint.h>
 
-#include "scene/EntityNodeRef.h"
+#include "Component.h"
 #include "util/UUID.h"
 
 namespace physx {
@@ -22,9 +21,7 @@ namespace physx {
 namespace ORNG {
 	class PhysicsSystem;
 	class TransformComponent;
-	struct PhysXMaterialAsset;
-
-
+	class PhysXMaterialAsset;
 
 	class PhysicsComponent : public Component {
 		friend class PhysicsSystem;
@@ -67,7 +64,6 @@ namespace ORNG {
 		PhysXMaterialAsset* GetMaterial() {
 			return p_material;
 		}
-
 
 		physx::PxRigidActor* p_rigid_actor = nullptr;
 	private:
@@ -195,7 +191,7 @@ namespace ORNG {
 		};
 
 		class JointAttachment {
-			friend class SceneSerializer;
+			friend class PhysicsSystem;
 			friend class Scene;
 		public:
 			JointAttachment() = default;

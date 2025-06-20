@@ -2,7 +2,6 @@
 #include "events/Events.h"
 #include "scripting/ScriptingEngine.h"
 #include "assets/SoundAsset.h"
-#include "PhysXMaterialAsset.h"
 #include "AssetSerializer.h"
 
 #define ORNG_BASE_MATERIAL_ID 0
@@ -16,11 +15,9 @@
 #define ORNG_BASE_BRDF_LUT_ID 8
 #define ORNG_NUM_BASE_ASSETS 9
 
-
 struct GLFWwindow;
 enum aiTextureType;
 struct aiMaterial;
-
 
 namespace ORNG {
 	class Texture2D;
@@ -178,7 +175,6 @@ namespace ORNG {
 		std::unique_ptr<MeshAsset> mp_base_cube = nullptr;
 		std::unique_ptr<MeshAsset> mp_base_quad = nullptr;
 		std::unique_ptr<Texture2D> mp_base_tex = nullptr;
-		std::unique_ptr<PhysXMaterialAsset> mp_base_physx_material = nullptr;
 		std::unique_ptr<Texture2D> mp_base_brdf_lut = nullptr;
 
 		// If a material fails to load etc, use this one instead

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "rendering/VAO.h"
 #include "Component.h"
 
 namespace ORNG {
@@ -32,9 +31,7 @@ namespace ORNG {
 			DispatchUpdateEvent();
 		}
 
-		SSBO<float> m_particle_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };
 	private:
-
 		void DispatchUpdateEvent() {
 			Events::ECS_Event<ParticleBufferComponent> e_event{ Events::ECS_EventType::COMP_UPDATED, this };
 			Events::EventManager::DispatchEvent(e_event);

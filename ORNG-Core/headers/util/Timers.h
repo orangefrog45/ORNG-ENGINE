@@ -83,7 +83,7 @@ namespace ORNG {
 			glEndQuery(GL_TIME_ELAPSED);
 			glGetQueryObjectuiv(query, GL_QUERY_RESULT, &result);
 			query_finished = true;
-			return (unsigned)result / 1000000.0;
+			return static_cast<unsigned>(result / 1000000.0);
 		}
 
 		GPU_TimerObject(const GPU_TimerObject&) = delete;

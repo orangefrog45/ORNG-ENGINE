@@ -321,18 +321,23 @@ namespace ORNG {
 	}
 
 	void ParticleSystem::InitBuffer(ParticleBufferComponent* p_comp) {
-		p_comp->m_particle_ssbo.Init();
-		p_comp->m_particle_ssbo.Resize(p_comp->m_min_allocated_particles * particle_struct_size);
-
-		glNamedBufferSubData(p_comp->m_particle_ssbo.GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
-		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+		// p_comp->m_particle_ssbo_handle = UUID<uint64_t>()();
+		// auto& p_ssbo = m_particle_comp_ssbos[p_comp->m_particle_ssbo_handle];
+		// p_ssbo = std::make_unique<SSBO<float>>(true, 0);
+		// p_ssbo->Init();
+		// p_ssbo->Resize(p_comp->m_min_allocated_particles * particle_struct_size);
+		//
+		// glNamedBufferSubData(p_ssbo->GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
+		// glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 	void ParticleSystem::OnBufferUpdate(ParticleBufferComponent* p_comp) {
-		p_comp->m_particle_ssbo.Resize(p_comp->m_min_allocated_particles * particle_struct_size);
-
-		glNamedBufferSubData(p_comp->m_particle_ssbo.GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
-		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+		// auto& p_ssbo = m_particle_comp_ssbos[p_comp->m_particle_ssbo_handle];
+		//
+		// p_ssbo->Resize(p_comp->m_min_allocated_particles * particle_struct_size);
+		//
+		// glNamedBufferSubData(p_ssbo->GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
+		// glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 	void ParticleSystem::OnUpdate() {

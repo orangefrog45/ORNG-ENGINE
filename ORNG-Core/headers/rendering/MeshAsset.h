@@ -10,10 +10,8 @@
 
 #define ORNG_MAX_MESH_INDICES 50'000'000
 
-
 struct aiScene;
 struct aiMesh;
-
 
 namespace ORNG {
 
@@ -29,7 +27,6 @@ namespace ORNG {
 		friend class SceneSerializer;
 		friend class AssetManager;
 		friend class AssetSerializer;
-
 
 		MeshAsset() = delete;
 		MeshAsset(const std::string& filename) : Asset(filename) {};

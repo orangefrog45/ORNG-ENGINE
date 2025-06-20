@@ -28,7 +28,7 @@
 
 #include "pch/pch.h"
 #include "physics/vehicles/PhysXVehicleActor.h"
-#include "physx/PxScene.h"
+#include <PxScene.h>
 
 namespace ORNG {
 	void PhysXIntegrationParams::create

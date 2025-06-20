@@ -1,10 +1,7 @@
 #pragma once
 #include "assets/Asset.h"
-#include "bitsery/traits/string.h"
-#include "bitsery/traits/core/traits.h"
 #include "events/EventManager.h"
 #include "util/util.h"
-#include "util/UUID.h"
 #include "util/Log.h"
 
 namespace ORNG {

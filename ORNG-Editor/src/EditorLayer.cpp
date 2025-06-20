@@ -6,6 +6,9 @@
 #include <fmod.hpp>
 
 #include "EditorLayer.h"
+
+#include <components/systems/EnvMapSystem.h>
+
 #include "../extern/Icons.h"
 #include "../extern/imgui/backends/imgui_impl_opengl3.h"
 #include "scene/SceneSerializer.h"
@@ -29,6 +32,10 @@
 #include "components/systems/PointlightSystem.h"
 #include "components/systems/SpotlightSystem.h"
 #include "components/systems/SceneUBOSystem.h"
+
+#include "components/PhysicsComponent.h"
+#include "components/systems/PhysicsSystem.h"
+#include "assets/PhysXMaterialAsset.h"
 
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 constexpr unsigned BOTTOM_WINDOW_HEIGHT = 300;
@@ -393,7 +400,7 @@ namespace ORNG {
 		glm::vec2 max = { glm::max(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), glm::max(Window::GetHeight() - m_state.mouse_drag_data.start.y, Window::GetHeight() - m_state.mouse_drag_data.end.y) };
 		glm::vec2 n = glm::vec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y);
 
-		auto* p_cam = SCENE->GetActiveCamera();
+		auto* p_cam = SCENE->GetSystem<CameraSystem>().GetActiveCamera();
 		auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 		auto pos = p_transform->GetAbsPosition();
 
@@ -460,7 +467,7 @@ namespace ORNG {
 
 
 	void EditorLayer::UpdateEditorCam() {
-		if (SCENE->GetActiveCamera() != mp_editor_camera->GetComponent<CameraComponent>())
+		if (SCENE->GetSystem<CameraSystem>().GetActiveCamera() != mp_editor_camera->GetComponent<CameraComponent>())
 			return;
 
 		static float cam_speed = 0.01f;
@@ -988,17 +995,11 @@ namespace ORNG {
 		ImGui::PopStyleVar(); // window rounding
 	}
 
-
-
-
 	// TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
 	void RefreshScriptIncludes() {
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
 		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptInstancer.h", "./res/scripts/includes/ScriptInstancer.h");
-		FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPIImpl.h", "./res/scripts/includes/ScriptAPIImpl.h");
 	}
-
 
 	bool EditorLayer::GenerateProject(const std::string& project_name, bool abs_path) {
 		if (std::filesystem::exists(m_state.executable_directory + "/projects/" + project_name)) {
@@ -1112,7 +1113,18 @@ namespace ORNG {
 			if (SCENE->m_is_loaded)
 				SCENE->UnloadScene();
 
-			SCENE->AddDefaultSystems();
+			SCENE->AddSystem(new CameraSystem{ SCENE });
+			SCENE->AddSystem(new EnvMapSystem{ SCENE });
+			SCENE->AddSystem(new AudioSystem{ SCENE });
+			SCENE->AddSystem(new PointlightSystem{ SCENE });
+			SCENE->AddSystem(new SpotlightSystem{ SCENE });
+			SCENE->AddSystem(new ParticleSystem{ SCENE });
+			SCENE->AddSystem(new PhysicsSystem{ SCENE });
+			SCENE->AddSystem(new TransformHierarchySystem{ SCENE });
+			SCENE->AddSystem(new SceneUBOSystem{ SCENE });
+			SCENE->AddSystem(new ScriptSystem{ SCENE });
+			SCENE->AddSystem(new MeshInstancingSystem{ SCENE });
+
 			AssetManager::ClearAll();
 			AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
 			SCENE->LoadScene();
@@ -1580,7 +1592,7 @@ namespace ORNG {
 		*/
 
 		if (m_state.general_settings.editor_window_settings.display_joint_maker && !m_state.selected_entity_ids.empty()) {
-			auto* p_cam = SCENE->GetActiveCamera()->GetEntity();
+			auto* p_cam = SCENE->GetSystem<CameraSystem>().GetActiveCamera()->GetEntity();
 			auto* p_cam_comp = p_cam->GetComponent<CameraComponent>();
 			auto* p_cam_transform = p_cam->GetComponent<TransformComponent>();
 
@@ -1680,8 +1692,9 @@ namespace ORNG {
 			static bool using_env_maps = true;
 			static unsigned resolution = 4096;
 
-			using_env_maps = SCENE->skybox.using_env_map;
-			resolution = SCENE->skybox.m_resolution;
+			auto& skybox = SCENE->GetSystem<EnvMapSystem>().skybox;
+			using_env_maps = skybox.using_env_map;
+			resolution = skybox.m_resolution;
 
 			std::function<void(std::string)> file_explorer_callback = [this](std::string filepath) {
 				// Check if texture is an asset or not, if not, add it
@@ -1689,7 +1702,10 @@ namespace ORNG {
 				if (!std::filesystem::exists(new_filepath)) {
 					FileCopy(filepath, new_filepath);
 				}
-				SCENE->skybox.Load(new_filepath, resolution, using_env_maps);
+
+				auto& env_map_system = SCENE->GetSystem<EnvMapSystem>();
+				env_map_system.skybox.using_env_map = using_env_maps;
+				env_map_system.LoadSkyboxFromHDRFile(new_filepath, resolution);
 				};
 
 			if (ImGui::Button("Load skybox texture")) {
@@ -1702,10 +1718,11 @@ namespace ORNG {
 				ImGui::EndTooltip();
 			}
 
-			ExtraUI::InputUint("Resolution", SCENE->skybox.m_resolution);
+			ExtraUI::InputUint("Resolution", skybox.m_resolution);
 
 			if (ImGui::Checkbox("Gen IBL textures", &using_env_maps) || ImGui::Button("Reload")) {
-				SCENE->skybox.Load(SCENE->skybox.GetSrcFilepath(), resolution, using_env_maps);
+				skybox.using_env_map = using_env_maps;
+				SCENE->GetSystem<EnvMapSystem>().LoadSkyboxFromHDRFile(skybox.GetSrcFilepath(), resolution);
 			}
 		}
 	}

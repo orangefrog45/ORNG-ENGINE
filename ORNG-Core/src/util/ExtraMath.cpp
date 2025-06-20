@@ -2,7 +2,6 @@
 #include "util/ExtraMath.h"
 #include "glm/glm/gtc/round.hpp"
 
-
 namespace ORNG {
 	glm::mat3 ExtraMath::Init2DScaleTransform(float x, float y) {
 		glm::mat3 scale_matrix(

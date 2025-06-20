@@ -1,7 +1,9 @@
 #pragma once
 #include "components/systems/ComponentSystem.h"
-#include "scene/Scene.h"
+#include "components/ParticleBufferComponent.h"
+#include "components/ParticleEmitterComponent.h"
 #include "shaders/Shader.h"
+#include "rendering/VAO.h"
 
 namespace ORNG {
 	class ParticleSystem : public ComponentSystem {
@@ -32,6 +34,8 @@ namespace ORNG {
 		void UpdateEmitterBufferAtIndex(unsigned index);
 
 		std::array<entt::connection, 4> m_connections;
+
+		std::unordered_map<uint64_t, std::unique_ptr<SSBO<float>>> m_particle_comp_ssbos;
 
 		Events::ECS_EventListener<ParticleEmitterComponent> m_particle_listener;
 		Events::ECS_EventListener<ParticleBufferComponent> m_particle_buffer_listener;

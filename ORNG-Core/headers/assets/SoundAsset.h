@@ -6,7 +6,8 @@ namespace FMOD {
 }
 
 namespace ORNG {
-	struct SoundAsset : public Asset {
+	class SoundAsset : public Asset {
+	public:
 		SoundAsset(const std::string& t_filepath) : Asset(t_filepath) {};
 		~SoundAsset();
 

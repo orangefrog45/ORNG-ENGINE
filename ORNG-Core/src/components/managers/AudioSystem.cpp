@@ -3,6 +3,10 @@
 #include "audio/AudioEngine.h"
 #include "assets/AssetManager.h"
 #include "components/systems/AudioSystem.h"
+
+#include <components/systems/CameraSystem.h>
+
+#include "components/CameraComponent.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
@@ -64,7 +68,7 @@ namespace ORNG {
 	void AudioSystem::OnUpdate() {
 		auto& reg = mp_scene->GetRegistry();
 
-		if (auto* p_active_cam = mp_scene->GetActiveCamera()) {
+		if (auto* p_active_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera()) {
 			auto& transform = *p_active_cam->GetEntity()->GetComponent<TransformComponent>();
 			auto pos = transform.GetAbsPosition();
 			static FMOD_VECTOR cam_pos;

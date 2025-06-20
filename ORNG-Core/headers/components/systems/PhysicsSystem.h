@@ -1,10 +1,14 @@
 #pragma once
 
 #include "components/systems/ComponentSystem.h"
-#include "scene/Scene.h"
+#include "scene/SceneSerializer.h"
+#include "components/PhysicsComponent.h"
+#include "components/VehicleComponent.h"
+#include "components/TransformComponent.h"
+#include "scripting/ScriptShared.h"
 
-#include "physx/PxPhysicsAPI.h"
-#include "physx/vehicle2/PxVehicleAPI.h"
+#include <PxPhysicsAPI.h>
+#include <vehicle2/PxVehicleAPI.h>
 
 namespace physx {
 	class PxScene;
@@ -16,6 +20,12 @@ namespace physx {
 	class PxControllerManager;
 
 }
+
+namespace YAML {
+	class Emitter;
+	class Node;
+}
+
 namespace ORNG {
 	struct PhysicsCollisionEvent : public Events::Event {
 		PhysicsCollisionEvent(SceneEntity* _p0, SceneEntity* _p1) : p0(_p0), p1(_p1) {};
@@ -81,6 +91,11 @@ namespace ORNG {
 		void InitListeners();
 		void DeinitListeners();
 
+		void SerializeEntity(SceneEntity& entity, YAML::Emitter* p_emitter);
+		void DeserializeEntity(SceneEntity& entity, YAML::Node* p_node);
+		void ResolveJointConnections();
+		void RemapJointConnections(SceneEntity& entity, const std::unordered_map<uint64_t, uint64_t>* p_uuid_lookup);
+
 		std::array<entt::connection, 8> m_connections;
 
 		physx::vehicle2::PxVehiclePhysXSimulationContext m_vehicle_context;
@@ -94,6 +109,7 @@ namespace ORNG {
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<VehicleComponent> m_vehicle_listener;
 
+		Events::EventListener<EntitySerializationEvent> m_serialization_listener;
 
 		physx::PxBroadPhase* mp_broadphase = nullptr;
 		physx::PxAABBManager* mp_aabb_manager = nullptr;

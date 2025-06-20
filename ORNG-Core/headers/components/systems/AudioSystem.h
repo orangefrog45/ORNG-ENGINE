@@ -1,6 +1,8 @@
 #pragma once
 
 #include "components/systems/ComponentSystem.h"
+#include "components/AudioComponent.h"
+#include "components/TransformComponent.h"
 #include "scene/Scene.h"
 
 namespace FMOD {

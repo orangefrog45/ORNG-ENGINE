@@ -1,10 +1,11 @@
 #pragma once
-#include "scene/Skybox.h"
 #include "scene/ScenePostProcessing.h"
 #include "../extern/entt/EnttSingleInclude.h"
 #include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"
-#include "components/ComponentAPI.h"
+#include "components/Component.h"
+#include "components/Lights.h"
+#include "util/UUID.h"
 
 
 namespace ORNG {
@@ -79,8 +80,6 @@ namespace ORNG {
 
 		void UnloadScene();
 
-		CameraComponent* GetActiveCamera();
-
 		// Specify uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
 		void DeleteEntity(SceneEntity* p_entity);
@@ -97,9 +96,6 @@ namespace ORNG {
 
 		// This Duplicate method is what scripts will use, it calls the OnCreate method on the script component of the entity if it has one
 		SceneEntity& DuplicateEntityCallScript(SceneEntity& original);
-
-		// Duplicates entities as a group and calls OnCreate() on them
-		SceneEntity& DuplicateEntityGroupCallScript(const std::vector<SceneEntity*> group);
 
 		// Uses a noderef to attempt to find an entity, returns nullptr if none found
 		// Begins searching last layer starting from child at index "child_start"
@@ -149,7 +145,6 @@ namespace ORNG {
 
 		UUID<uint64_t> uuid;
 
-		Skybox skybox;
 		PostProcessingSettings post_processing;
 		DirectionalLight directional_light;
 
@@ -178,7 +173,7 @@ namespace ORNG {
 		// Resolves any EntityNodeRefs locally in the group if possible, so things like joints stay connected properly
 		// This only needs to be used over DuplicateEntity when duplicating sets of entities that reference entities that may share the same parent
 		// For performance, it's better to store the duplicates as children of some other entity and just call DuplicateEntity() on that one entity, refs get resolved locally quickly this way
-		std::vector<SceneEntity*> DuplicateEntityGroup(const std::vector<SceneEntity*> group);
+		std::vector<SceneEntity*> DuplicateEntityGroup(const std::vector<SceneEntity*>& group);
 
 		std::vector<SceneEntity*> m_entities;
 		std::vector<SceneEntity*> m_entity_deletion_queue;

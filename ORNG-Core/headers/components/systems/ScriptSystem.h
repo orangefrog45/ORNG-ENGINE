@@ -1,5 +1,6 @@
 #pragma once
 #include "components/systems/ComponentSystem.h"
+#include "components/ScriptComponent.h"
 #include "scene/Scene.h"
 
 namespace ORNG {

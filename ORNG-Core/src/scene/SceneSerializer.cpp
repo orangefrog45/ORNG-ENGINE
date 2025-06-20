@@ -7,105 +7,10 @@
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
-#include "physics/Physics.h"
 #include "assets/Prefab.h"
-#include "components/systems/PhysicsSystem.h"
-
-
-namespace YAML {
-	template<>
-	struct convert<glm::vec3> {
-		static Node encode(const glm::vec3& rhs) {
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs) {
-			if (!node.IsSequence() || node.size() != 3) {
-				return false;
-			}
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec4> {
-		static Node encode(const glm::vec4& rhs) {
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.push_back(rhs.w);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec4& rhs) {
-			if (!node.IsSequence() || node.size() != 4) {
-				return false;
-			}
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			rhs.w = node[3].as<float>();
-			return true;
-		}
-	};
-
-	template<>
-	struct convert<glm::vec2> {
-		static Node encode(const glm::vec2& rhs) {
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec2& rhs) {
-			if (!node.IsSequence() || node.size() != 2) {
-				return false;
-			}
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			return true;
-		}
-	};
-}
-
-
+#include "scene/SerializationUtil.h"
 
 namespace ORNG {
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4 v) {
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
-		return out;
-	}
-
-	YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2 v) {
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
-		return out;
-	}
-
-	template<typename T>
-	void Out(YAML::Emitter& out, const std::string& key, const T& v) {
-		out << YAML::Key << key << YAML::Value << v;
-	}
-
 	std::string SceneSerializer::SerializeEntityIntoString(SceneEntity& entity) {
 		YAML::Emitter out;
 
@@ -129,16 +34,7 @@ namespace ORNG {
 
 	void SceneSerializer::RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, const std::vector<SceneEntity*>& entities) {
 		for (auto* p_ent : entities) {
-			RemapEntityReferences(uuid_lookup, *p_ent);
-		}
-	}
-
-	void SceneSerializer::RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, SceneEntity& entity) {
-		if (auto* p_joint_comp = entity.GetComponent<JointComponent>()) {
-			for (auto& attachment : p_joint_comp->attachments) {
-				if (uuid_lookup.contains(attachment.second.m_target_uuid))
-					attachment.second.m_target_uuid = uuid_lookup.at(attachment.second.m_target_uuid);
-			}
+			Events::EventManager::DispatchEvent(EntitySerializationEvent{p_ent, &uuid_lookup});
 		}
 	}
 
@@ -184,10 +80,6 @@ namespace ORNG {
 
 		RemapEntityReferences(id_mappings, ents);
 
-		for (auto* p_ent : ents) {
-			ResolveEntityRefs(scene, *p_ent);
-		}
-
 		return ents;
 	}
 
@@ -196,7 +88,6 @@ namespace ORNG {
 		YAML::Node data = YAML::Load(str);
 		DeserializeEntity(scene, data, entity, ignore_parent);
 	}
-
 
 
 	void SceneSerializer::SerializeEntity(SceneEntity& entity, YAML::Emitter& out) {
@@ -283,21 +174,6 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		PhysicsComponent* p_physics_comp = entity.GetComponent<PhysicsComponent>();
-		if (!p_physics_comp) // Check for both types
-			p_physics_comp = static_cast<PhysicsComponent*>(entity.GetComponent<PhysicsComponent>());
-
-		if (p_physics_comp) {
-			out << YAML::Key << "PhysicsComp";
-			out << YAML::BeginMap;
-
-			out << YAML::Key << "RigidBodyType" << YAML::Value << p_physics_comp->m_body_type;
-			out << YAML::Key << "GeometryType" << YAML::Value << p_physics_comp->m_geometry_type;
-			out << YAML::Key << "IsTrigger" << YAML::Value << p_physics_comp->IsTrigger();
-			Out(out, "MaterialUUID", p_physics_comp->p_material->uuid());
-			out << YAML::EndMap;
-		}
-
 		ScriptComponent* p_script_comp = entity.GetComponent<ScriptComponent>();
 		if (p_script_comp) {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
@@ -321,38 +197,6 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		if (auto* p_vehicle = entity.GetComponent<VehicleComponent>()) {
-			Out(out, "VehicleComp", YAML::BeginMap);
-			Out(out, "BodyMesh", p_vehicle->p_body_mesh->uuid());
-			Out(out, "WheelMesh", p_vehicle->p_wheel_mesh->uuid());
-
-			Out(out, "WheelScale", p_vehicle->wheel_scale);
-			Out(out, "BodyScale", p_vehicle->body_scale);
-
-
-			Out(out, "BodyMaterials", YAML::Flow);
-			out << YAML::BeginSeq;
-			for (auto* p_material : p_vehicle->m_body_materials) {
-				out << p_material->uuid();
-			}
-			out << YAML::EndSeq;
-
-			Out(out, "WheelMaterials", YAML::Flow);
-			out << YAML::BeginSeq;
-			for (auto* p_material : p_vehicle->m_wheel_materials) {
-				out << p_material->uuid();
-			}
-			out << YAML::EndSeq;
-
-			for (int i = 0; i < 4; i++) {
-				Out(out, std::format("Wheel{}", i), YAML::BeginMap);
-				Out(out, "SuspensionAttachment", ConvertVec3<glm::vec3>(p_vehicle->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p));
-				out << YAML::EndMap;
-			}
-
-			out << YAML::EndMap;
-		}
-
 		if (auto* p_emitter = entity.GetComponent<ParticleEmitterComponent>()) {
 			Out(out, "ParticleEmitterComp", YAML::BeginMap);
 			Out(out, "Spread", p_emitter->GetSpread());
@@ -368,7 +212,6 @@ namespace ORNG {
 			InterpolatorSerializer::SerializeInterpolator("Colour over time", out, p_emitter->m_life_colour_interpolator);
 			InterpolatorSerializer::SerializeInterpolator("Alpha over time", out, p_emitter->m_life_alpha_interpolator);
 			InterpolatorSerializer::SerializeInterpolator("Scale over time", out, p_emitter->m_life_scale_interpolator);
-
 
 			if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 				Out(out, "MaterialUUID", entity.GetComponent<ParticleBillboardResources>()->p_material->uuid());
@@ -398,83 +241,10 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		if (auto* p_controller = entity.GetComponent<CharacterControllerComponent>()) {
-			auto* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
-			Out(out, "CharacterControllerComp", YAML::BeginMap);
-			Out(out, "Height", p_capsule->getHeight());
-			Out(out, "Radius", p_capsule->getRadius());
+		Events::EventManager::DispatchEvent(EntitySerializationEvent{&entity, &out});
 
-			out << YAML::EndMap;
-		}
-
-		if (auto* p_joint = entity.GetComponent<JointComponent>()) {
-			Out(out, "JointComp", YAML::BeginMap);
-
-			Out(out, "Joints", YAML::BeginSeq);
-
-			for (auto& [j, attachment] : p_joint->attachments) {
-				if (attachment.p_joint->p_a0 != p_joint->GetEntity() || !attachment.p_joint->p_a1)
-					continue;
-
-				out << YAML::BeginMap;
-
-				Out(out, "LP0", attachment.p_joint->m_poses[0]);
-				Out(out, "LP1", attachment.p_joint->m_poses[1]);
-
-				Out(out, "TargetUUID", attachment.p_joint->p_a1->GetUUID());
-
-				Out(out, "Motion", YAML::Flow);
-				out << YAML::BeginSeq;
-				for (int i = 0; i < 6; i++) {
-					out << (uint32_t)attachment.p_joint->m_motion[(PxD6Axis::Enum)i];
-				}
-				out << YAML::EndSeq;
-
-				Out(out, "ForceThreshold", attachment.p_joint->m_force_threshold);
-				Out(out, "TorqueThreshold", attachment.p_joint->m_torque_threshold);
-				out << YAML::EndMap;
-			}
-
-			out << YAML::EndSeq;
-			out << YAML::EndMap;
-		}
 		out << YAML::EndMap;
 	}
-
-	void SceneSerializer::DeserializeJointComp(const YAML::Node& node, SceneEntity& entity) {
-		auto* p_joint_comp = entity.AddComponent<JointComponent>();
-		auto& joint_map = node["Joints"];
-
-		for (auto& joint_node : joint_map) {
-			auto& attachment = p_joint_comp->CreateJoint();
-			auto* p_joint = attachment.p_joint;
-
-			auto motion_node = joint_node["Motion"];
-			for (int i = 0; i < 6; i++) {
-				auto motion = (PxD6Motion::Enum)motion_node[i].as<uint32_t>();
-				p_joint->SetMotionCached((PxD6Axis::Enum)i, motion);
-			}
-			p_joint->SetLocalPoseCached(0, joint_node["LP0"].as<glm::vec3>());
-			p_joint->SetLocalPoseCached(1, joint_node["LP1"].as<glm::vec3>());
-
-			attachment.m_target_uuid = joint_node["TargetUUID"].as<uint64_t>();
-
-			p_joint->SetBreakForceCached(joint_node["ForceThreshold"].as<float>(), joint_node["TorqueThreshold"].as<float>());
-		}
-	}
-
-	void SceneSerializer::ConnectJointComp(Scene& scene, JointComponent& joint) {
-		bool err = false;
-
-		for (auto& [p_joint, attachment] : joint.attachments) {
-			auto* p_target_ent = scene.GetEntity(attachment.m_target_uuid);
-
-			if (p_target_ent) {
-				attachment.p_joint->Connect(p_target_ent->AddComponent<JointComponent>(), true); // AddComponent will add a JointComp if one doesn't already exist or just return the existing one
-			}
-		}
-	}
-
 
 	void SceneSerializer::DeserializePointlightComp(const YAML::Node& light_node, SceneEntity& entity) {
 		auto* p_pointlight_comp = entity.AddComponent<PointLightComponent>();
@@ -527,17 +297,6 @@ namespace ORNG {
 		p_audio->SetPitch(node["Pitch"].as<float>());
 		p_audio->SetSoundAssetUUID(node["AudioUUID"].as<uint64_t>());
 		p_audio->SetMinMaxRange(node["MinRange"].as<float>(), node["MaxRange"].as<float>());
-	}
-
-	void SceneSerializer::DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity) {
-		ORNG_TRACY_PROFILE;
-
-		auto geometry_type = static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>());
-		auto body_type = static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>());
-		auto is_trigger = node["IsTrigger"].as<bool>();
-
-		auto* p_material = AssetManager::GetAsset<PhysXMaterialAsset>(node["MaterialUUID"].as<uint64_t>());
-		auto* p_physics_comp = entity.AddComponent<PhysicsComponent>(is_trigger, geometry_type, body_type, p_material);
 	}
 
 	void SceneSerializer::DeserializeParticleEmitterComp(const YAML::Node& emitter_node, SceneEntity& entity) {
@@ -596,50 +355,6 @@ namespace ORNG {
 		Events::EventManager::DispatchEvent(e_event);
 	}
 
-	VehicleComponent* SceneSerializer::DeserializeVehicleComp(const YAML::Node& node, SceneEntity& entity) {
-		auto* p_comp = entity.AddComponent<VehicleComponent>();
-		p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(node["BodyMesh"].as<uint64_t>());
-		p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
-
-		p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(node["WheelMesh"].as<uint64_t>());
-		p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
-
-
-		p_comp->body_scale = node["BodyScale"].as<glm::vec3>();
-		p_comp->wheel_scale = node["WheelScale"].as<glm::vec3>();
-
-		auto body_materials = node["BodyMaterials"];
-		std::vector<uint64_t> body_ids = body_materials.as<std::vector<uint64_t>>();
-		p_comp->m_body_materials.resize(p_comp->p_body_mesh->num_materials);
-		for (int i = 0; i < p_comp->p_body_mesh->num_materials; i++) {
-			auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
-			p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
-		}
-
-		auto wheel_materials = node["WheelMaterials"];
-		std::vector<uint64_t> wheel_ids = wheel_materials.as<std::vector<uint64_t>>();
-		p_comp->m_wheel_materials.resize(p_comp->p_wheel_mesh->num_materials);
-		for (int i = 0; i < p_comp->p_wheel_mesh->num_materials; i++) {
-			auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
-			p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
-		}
-		for (int i = 0; i < 4; i++) {
-			auto wheel = node[std::format("Wheel{}", i)];
-			p_comp->m_vehicle.mBaseParams.suspensionParams[i].suspensionAttachment.p = ConvertVec3<PxVec3>(wheel["SuspensionAttachment"].as<glm::vec3>());
-		}
-
-		return p_comp;
-	}
-
-	void SceneSerializer::DeserializeCharacterControllerComp(const YAML::Node& node, SceneEntity& entity) {
-		auto* p_controller = entity.AddComponent<CharacterControllerComponent>();
-		PxCapsuleController* p_capsule = static_cast<PxCapsuleController*>(p_controller->p_controller);
-		p_capsule->setRadius(node["Radius"].as<float>());
-		p_capsule->setHeight(node["Height"].as<float>());
-		p_capsule->setPosition(ConvertVec3<PxExtendedVec3>(entity.GetComponent<TransformComponent>()->GetAbsPosition()));
-	}
-
-
 	void SceneSerializer::SerializeEntityNodeRef(YAML::Emitter& out, const EntityNodeRef& ref) {
 		out << YAML::BeginMap;
 
@@ -657,8 +372,6 @@ namespace ORNG {
 
 		//ref.m_target_node_id = node["TargetNodeID"].as<uint32_t>();
 	}
-
-
 
 	void SceneSerializer::DeserializeMeshComp(const YAML::Node& mesh_node, SceneEntity& entity) {
 #ifdef ORNG_ENABLE_TRACY_PROFILE
@@ -679,17 +392,11 @@ namespace ORNG {
 		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID), std::move(material_vec));
 	}
 
-	void SceneSerializer::ResolveEntityRefs(Scene& scene, SceneEntity& entity) {
-		if (auto* p_joint = entity.GetComponent<JointComponent>())
-			ConnectJointComp(scene, *p_joint);
-	}
-
 
 	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent) {
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 		ZoneScoped;
 #endif
-		auto* p_replacement_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
 
 		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
 		if (!ignore_parent && parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
@@ -700,28 +407,27 @@ namespace ORNG {
 		std::unordered_map<std::string, std::function<void()>> deserializers = {
 			{"TransformComp",[&] { DeserializeTransformComp(entity_node["TransformComp"], entity); }}, 
 			{"MeshComp",[&] { DeserializeMeshComp(entity_node["MeshComp"], entity); }},
-			{"PhysicsComp",[&] { DeserializePhysicsComp(entity_node["PhysicsComp"], entity); }}, 
 			{"PointlightComp",[&] { DeserializePointlightComp(entity_node["PointlightComp"], entity); }},
 			{"SpotlightComp",[&] { DeserializeSpotlightComp(entity_node["SpotlightComp"], entity); }},
 			{"CameraComp",[&] { DeserializeCameraComp(entity_node["CameraComp"], entity); }},
 			{"ScriptComp",[&] { DeserializeScriptComp(entity_node["ScriptComp"], entity); }},
 			{"AudioComp",[&] { DeserializeAudioComp(entity_node["AudioComp"], entity); }},
-			{"VehicleComp",[&] { scene.GetSystem<PhysicsSystem>().InitVehicle(DeserializeVehicleComp(entity_node["VehicleComp"], entity)); }},
 			{"ParticleEmitterComp",[&] { DeserializeParticleEmitterComp(entity_node["ParticleEmitterComp"], entity); }},
 			{"ParticleBufferComp",[&] { DeserializeParticleBufferComp(entity_node["ParticleBufferComp"], entity); }},
-			{"CharacterControllerComp",[&] { DeserializeCharacterControllerComp(entity_node["CharacterControllerComp"], entity); }},
-			{"JointComp",[&] { DeserializeJointComp(entity_node["JointComp"], entity); }},
 		};
 
 		auto it = entity_node.begin();
 		// Skip the non-component fields
 		std::advance(it, 3);
 		for (it; it != entity_node.end(); it++) {
-			std::string tag = (*it).first.as<std::string>();
-			deserializers[tag]();
-		}
-	}
+			auto tag = it->first.as<std::string>();
 
+			if (deserializers.contains(tag)) deserializers[tag]();
+		}
+
+		Events::EventManager::DispatchEvent(EntitySerializationEvent{&entity, &entity_node});
+		Events::EventManager::DispatchEvent(EntitySerializationEvent{&entity});
+	}
 
 	void SceneSerializer::SerializeSceneUUIDs(const Scene& scene, std::string& output) {
 		std::unordered_set<std::string> names_taken;
@@ -776,7 +482,7 @@ namespace ORNG {
 		fout << "};"; // namespace Scene
 	}
 
-	void SceneSerializer::SerializeScene(const Scene& scene, std::string& output, bool write_to_string) {
+	void SceneSerializer::SerializeScene(Scene& scene, std::string& output, bool write_to_string) {
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
@@ -797,12 +503,6 @@ namespace ORNG {
 		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
 		out << YAML::EndMap;
 
-		out << YAML::Key << "Skybox" << YAML::BeginMap;
-		out << YAML::Key << "HDR filepath" << YAML::Value << scene.skybox.m_hdr_tex_filepath;
-		out << YAML::Key << "IBL" << YAML::Value << scene.skybox.using_env_map;
-		out << YAML::Key << "Resolution" << YAML::Value << scene.skybox.m_resolution;
-		out << YAML::EndMap;
-
 		out << YAML::Key << "Fog" << YAML::BeginMap;
 		Out(out, "Density", scene.post_processing.global_fog.density_coef);
 		Out(out, "Absorption", scene.post_processing.global_fog.absorption_coef);
@@ -819,6 +519,8 @@ namespace ORNG {
 		out << YAML::Key << "Threshold" << YAML::Value << scene.post_processing.bloom.threshold;
 		out << YAML::EndMap;
 
+		Events::EventManager::DispatchEvent(SceneSerializationEvent{&out, scene});
+
 		out << YAML::EndMap;
 
 		// Write to either the string or an output file
@@ -829,9 +531,8 @@ namespace ORNG {
 			std::ofstream fout{ output };
 			fout << out.c_str();
 		}
+
 	}
-
-
 
 	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {
 		YAML::Node data;
@@ -864,7 +565,7 @@ namespace ORNG {
 
 		// Resolve/connect any node refs now scene tree is fully built
 		for (auto* p_entity : scene.m_entities) {
-			ResolveEntityRefs(scene, *p_entity);
+			Events::EventManager::DispatchEvent(EntitySerializationEvent{p_entity});
 		}
 
 		// Directional light
@@ -877,14 +578,6 @@ namespace ORNG {
 			scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
 			glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
 			scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
-		}
-
-		// Skybox/Env map
-		{
-			auto skybox = data["Skybox"];
-			bool using_env_maps = skybox["IBL"].as<bool>();
-			float res = skybox["Resolution"].as<float>();
-			scene.skybox.Load(skybox["HDR filepath"].as<std::string>(), res, using_env_maps);
 		}
 
 		// Bloom
@@ -907,6 +600,7 @@ namespace ORNG {
 			scene.post_processing.global_fog.step_count = fog["Steps"].as<int>();
 		}
 
+		Events::EventManager::DispatchEvent(SceneSerializationEvent{&data, scene});
 		return true;
 	}
 }

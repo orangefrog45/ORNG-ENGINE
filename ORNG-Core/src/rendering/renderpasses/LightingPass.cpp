@@ -3,6 +3,9 @@
 #include "components/systems/SpotlightSystem.h"
 #include "core/GLStateManager.h"
 #include "rendering/renderpasses/LightingPass.h"
+
+#include <components/systems/EnvMapSystem.h>
+
 #include "rendering/renderpasses/GBufferPass.h"
 #include "rendering/renderpasses/DepthPass.h"
 #include "rendering/renderpasses/VoxelPass.h"
@@ -33,8 +36,8 @@ void LightingPass::Init() {
 		cone_trace_spec.format = GL_RGBA;
 		cone_trace_spec.internal_format = GL_RGBA16F;
 		cone_trace_spec.storage_type = GL_FLOAT;
-		cone_trace_spec.width = output_spec.width * 0.5;
-		cone_trace_spec.height = output_spec.height * 0.5;
+		cone_trace_spec.width = static_cast<uint32_t>(output_spec.width * 0.5);
+		cone_trace_spec.height = static_cast<uint32_t>(output_spec.height * 0.5);
 		m_cone_trace_accum_tex.SetSpec(cone_trace_spec);
 
 		m_depth_aware_upsample_sv.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/DepthAwareUpsampleCS.glsl");
@@ -74,13 +77,19 @@ void LightingPass::DoPass() {
 	GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, mp_pointlight_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 	//GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 
-	if (mp_scene->skybox.using_env_map) {
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetIrradianceTexture()->GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
-		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, mp_scene->skybox.GetSpecularPrefilter()->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
+	m_shader.ActivateProgram();
+
+	if (mp_scene->HasSystem<EnvMapSystem>()) {
+		auto& skybox = mp_scene->GetSystem<EnvMapSystem>().skybox;
+		if (skybox.using_env_map) {
+			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetIrradianceTexture()->GetTextureHandle(), GL_StateManager::TextureUnits::DIFFUSE_PREFILTER, false);
+			GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetSpecularPrefilter()->GetTextureHandle(), GL_StateManager::TextureUnits::SPECULAR_PREFILTER, false);
+		}
+		m_shader.SetUniform("u_ibl_active", skybox.using_env_map);
+	} else {
+		m_shader.SetUniform("u_ibl_active", false);
 	}
 
-	m_shader.ActivateProgram();
-	m_shader.SetUniform("u_ibl_active", mp_scene->skybox.using_env_map);
 
 	auto& spec = mp_output_tex->GetSpec();
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, mp_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);

@@ -1,5 +1,4 @@
 #pragma once
-#include "components/TransformComponent.h"
 #include "VAO.h"
 
 namespace ORNG {

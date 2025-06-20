@@ -1,10 +1,8 @@
 #pragma once
-#include "util/UUID.h"
-#include <bitsery/bitsery.h>
 #include <bitsery/traits/vector.h>
-#include <bitsery/adapter/stream.h>
-#include "bitsery/traits/string.h"
-#include "util/Log.h"
+
+#include "util/UUID.h"
+#include "events/Events.h"
 #include "EntityNodeRef.h"
 
 namespace YAML {
@@ -21,15 +19,77 @@ namespace ORNG {
 	struct VertexData3D;
 	struct TextureFileData;
 	class MeshAsset;
-	class VehicleComponent;
 	class MeshComponent;
-	struct JointComponent;
 	struct Prefab;
+
+	struct EntitySerializationEvent : public Events::Event {
+		enum class Type {
+			SERIALIZING,
+			DESERIALIZING,
+			POST_DESERIALIZATION,
+
+			// Entity is being duplicated,
+			ENTITY_REFERENCE_REMAP,
+		} event_type;
+
+		EntitySerializationEvent(SceneEntity* p_ent, YAML::Emitter* p_emitter) : event_type(Type::SERIALIZING), p_entity(p_ent) {
+			data.p_emitter = p_emitter;
+		};
+
+		EntitySerializationEvent(SceneEntity* p_ent, YAML::Node* p_node) : event_type(Type::DESERIALIZING), p_entity(p_ent) {
+			data.p_node = p_node;
+		};
+
+		explicit EntitySerializationEvent(SceneEntity* p_ent) : event_type(Type::POST_DESERIALIZATION), p_entity(p_ent) {
+			data.p_emitter = nullptr;
+		};
+
+		EntitySerializationEvent(SceneEntity* p_ent, const std::unordered_map<uint64_t, uint64_t>* p_uuid_lookup) : event_type(Type::ENTITY_REFERENCE_REMAP), p_entity(p_ent) {
+			data.p_uuid_lookup = p_uuid_lookup;
+		};
+
+		SceneEntity* p_entity;
+
+		union {
+			// Valid if event_type == SERIALIZING
+			YAML::Emitter* p_emitter;
+
+			// Valid if event_type == DESERIALIZING
+			YAML::Node* p_node;
+
+			// Valid if event_type == ENTITY_REFERENCE_REMAP
+			// Map of original_entity_uuid -> duplicate_entity_uuid
+			const std::unordered_map<uint64_t, uint64_t>* p_uuid_lookup;
+		} data;
+	};
+
+	struct SceneSerializationEvent : public Events::Event {
+		enum class Type {
+			SERIALIZING,
+			DESERIALIZING
+		} event_type;
+
+		explicit SceneSerializationEvent(YAML::Emitter* p_emitter, Scene& _scene) : scene(_scene), event_type(Type::SERIALIZING) {data.p_emitter = p_emitter;}
+
+		explicit SceneSerializationEvent(YAML::Node* p_node, Scene& _scene) : scene(_scene), event_type(Type::DESERIALIZING) {data.p_node = p_node;}
+
+		Scene& scene;
+
+		union {
+			// Valid if event_type == SERIALIZING
+			YAML::Emitter* p_emitter;
+
+			// Valid if event_type == DESERIALIZING
+			// Pointer to the top-level YAML node
+			YAML::Node* p_node;
+		} data;
+	};
+
 
 	class SceneSerializer {
 	public:
 		// Output is either the filepath to write to or a string to be written to, if write_to_string is true then the string will be written to, no files
-		static void SerializeScene(const Scene& scene, std::string& output, bool write_to_string = false);
+		static void SerializeScene(Scene& scene, std::string& output, bool write_to_string = false);
 
 		// Produces a .h file with UUID values for each named entity and asset, used in scripts
 		static void SerializeSceneUUIDs(const Scene& scene, std::string& output);
@@ -41,10 +101,6 @@ namespace ORNG {
 
 		// Entity argument is the entity that the data will be loaded into
 		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent = false);
-
-		// Called on each entity after the scene tree is fully built, resolves any EntityNodeRefs into actual entities and connects them appropiately (e.g joint connections)
-		// Any references to neighbour entities (same parent) that are before "neighbour_start" aren't resolved unless a duplicate is found after it, this allows entity duplication to work nicely with EntityNodeRefs
-		static void ResolveEntityRefs(Scene& scene, SceneEntity& entity);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 
@@ -60,8 +116,6 @@ namespace ORNG {
 		// Any references that point to entities not contained in the lookup map will not be affected
 		// UUID lookup should be {k: old_uuid, v: new_uuid}
 		static void RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, const std::vector<SceneEntity*>& entities);
-
-		static void RemapEntityReferences(const std::unordered_map<uint64_t, uint64_t>& uuid_lookup, SceneEntity& entity);
 
 		static SceneEntity& DeserializeEntityUUIDFromString(Scene& scene, const std::string& str);
 
@@ -83,25 +137,13 @@ namespace ORNG {
 
 		static void DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity);
 
-		static void DeserializePhysicsComp(const YAML::Node& node, SceneEntity& entity);
-
 		static void DeserializeAudioComp(const YAML::Node& node, SceneEntity& entity);
 
 		static void DeserializeParticleEmitterComp(const YAML::Node& node, SceneEntity& entity);
 
 		static void DeserializeParticleBufferComp(const YAML::Node& node, SceneEntity& entity);
 
-		static VehicleComponent* DeserializeVehicleComp(const YAML::Node& node, SceneEntity& entity);
-
 		static void DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity);
-
-		static void DeserializeCharacterControllerComp(const YAML::Node& node, SceneEntity& entity);
-
-		static void DeserializeJointComp(const YAML::Node& node, SceneEntity& entity);
-
-		// This resolves the EntityNodeRef's in the joint component and actually connects the joint
-		// This has to occur after the full scene tree has been deserialized for the EntityNodeRef's to navigate properly
-		static void ConnectJointComp(Scene& scene, JointComponent& comp);
 
 		template <typename S>
 		void serialize(S& s, UUID<uint64_t>& o) {
