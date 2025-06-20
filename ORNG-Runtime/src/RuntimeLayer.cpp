@@ -1,4 +1,7 @@
 #include "../headers/RuntimeLayer.h"
+
+#include <components/systems/EnvMapSystem.h>
+
 #include "assets/AssetManager.h"
 #include "scene/SceneSerializer.h"
 
@@ -45,6 +48,7 @@ namespace ORNG {
 			};
 
 		m_scene.AddSystem(new CameraSystem{ &m_scene });
+		m_scene.AddSystem(new EnvMapSystem{ &m_scene });
 		m_scene.AddSystem(new AudioSystem{ &m_scene });
 		m_scene.AddSystem(new PointlightSystem{ &m_scene });
 		m_scene.AddSystem(new SpotlightSystem{ &m_scene });
