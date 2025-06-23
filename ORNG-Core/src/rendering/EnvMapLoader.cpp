@@ -177,13 +177,11 @@ namespace ORNG {
 		hdr_cubemap_spec.width = resolution;
 		hdr_cubemap_spec.height = resolution;
 
-
 		TextureCubemapSpec specular_prefilter_spec = hdr_cubemap_spec;
 		specular_prefilter_spec.width = 512;
 		specular_prefilter_spec.height = 512;
 		specular_prefilter_spec.generate_mipmaps = true;
 		specular_prefilter_spec.mag_filter = GL_LINEAR;
-
 
 		TextureCubemapSpec diffuse_prefilter_spec = hdr_cubemap_spec;
 		diffuse_prefilter_spec.width = 256;

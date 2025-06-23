@@ -9,6 +9,10 @@ namespace ORNG {
 			return *mp_instance;
 		}
 
+		static GL_StateManager* GetPtr() {
+			return mp_instance;
+		}
+
 		static void Init(GL_StateManager* p_instance = nullptr) {
 			if (p_instance) {
 				ASSERT(!mp_instance);
@@ -24,27 +28,22 @@ namespace ORNG {
 		}
 
 		static void InitGlew() {
-			GLint GlewInitResult = glewInit();
-
-			if (GLEW_OK != GlewInitResult)
+			if (const unsigned glew_init_result = glewInit(); GLEW_OK != glew_init_result)
 			{
-				ORNG_CORE_CRITICAL("GLEW INIT FAILED");
-				Log::Flush();
-				printf("ERROR: %s", glewGetErrorString(GlewInitResult));
-				exit(EXIT_FAILURE);
+				ORNG_CORE_CRITICAL("Failed to initialized glew: '{}'", reinterpret_cast<const char*>(glewGetErrorString(glew_init_result)));
 			}
 
 			Get().m_glew_initialized = true;
-			std::string gl_version{ reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)) };
+			const std::string gl_version{ reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)) };
 
 			int major = -1;
 			int minor = -1;
-			for (char c : gl_version) {
+			for (const char c : gl_version) {
 				if (std::isdigit(c)) {
 					if (major == -1) {
 						major = CharToInt(c);
 					}
-					else if (minor == -1) {
+					else {
 						minor = CharToInt(c);
 						break;
 					}
@@ -78,8 +77,8 @@ namespace ORNG {
 		inline static int IsTextureBound(unsigned tex_obj_handle) {
 			int ret = -1;
 			for (auto [unit, data] : Get().m_current_texture_bindings) {
-				if ((data.tex_obj) == tex_obj_handle) {
-					ret = unit;
+				if (data.tex_obj == tex_obj_handle) {
+					ret = static_cast<int>(unit);
 					break;
 				}
 			}
@@ -124,71 +123,72 @@ namespace ORNG {
 		}
 
 		inline static void Shutdown() {
-			if (mp_instance) delete mp_instance;
+			delete mp_instance;
+			mp_instance = nullptr;
 		}
 
 		struct UniformBindingPoints {
-			static const int PVMATRICES = 0;
-			static const int GLOBAL_LIGHTING = 1;
-			static const int GLOBALS = 2;
+			static constexpr int PVMATRICES = 0;
+			static constexpr int GLOBAL_LIGHTING = 1;
+			static constexpr int GLOBALS = 2;
 		};
 
 		struct SSBO_BindingPoints {
-			static const int TRANSFORMS = 0;
-			static const int POINT_LIGHTS = 1;
-			static const int SPOT_LIGHTS = 2;
-			static const int PARTICLE_EMITTERS = 5;
-			static const int PARTICLES = 6;
+			static constexpr int TRANSFORMS = 0;
+			static constexpr int POINT_LIGHTS = 1;
+			static constexpr int SPOT_LIGHTS = 2;
+			static constexpr int PARTICLE_EMITTERS = 5;
+			static constexpr int PARTICLES = 6;
 		};
 
 		struct TextureUnits {
-			static const int COLOUR = GL_TEXTURE1;
-			static const int ROUGHNESS = GL_TEXTURE2;
-			static const int DIR_SHADOW_MAP = GL_TEXTURE3;
-			static const int SPOT_SHADOW_MAP = GL_TEXTURE4;
-			static const int POINT_SHADOW_MAP = GL_TEXTURE5;
-			static const int VIEW_DEPTH = GL_TEXTURE6;
-			static const int NORMAL_MAP = GL_TEXTURE7;
-			static const int DIFFUSE_ARRAY = GL_TEXTURE8;
-			static const int DISPLACEMENT = GL_TEXTURE9;
-			static const int NORMAL_ARRAY = GL_TEXTURE10;
-			static const int BLUE_NOISE = GL_TEXTURE11;
-			static const int SHADER_IDS = GL_TEXTURE12;
-			static const int COLOUR_CUBEMAP = GL_TEXTURE13;
-			static const int COLOUR_2 = GL_TEXTURE14;
-			static const int DATA_3D = GL_TEXTURE15;
-			static const int DEPTH = GL_TEXTURE16;
-			static const int METALLIC = GL_TEXTURE17;
-			static const int AO = GL_TEXTURE18;
-			static const int ROUGHNESS_METALLIC_AO = GL_TEXTURE19;
-			static const int DIFFUSE_PREFILTER = GL_TEXTURE20;
-			static const int SPECULAR_PREFILTER = GL_TEXTURE21;
-			static const int BRDF_LUT = GL_TEXTURE22;
-			static const int COLOUR_3 = GL_TEXTURE23;
-			static const int BLOOM = GL_TEXTURE24;
-			static const int EMISSIVE = GL_TEXTURE25;
-			static const int POINTLIGHT_DEPTH = GL_TEXTURE26;
-			static const int SCENE_VOXELIZATION = GL_TEXTURE27;
+			static constexpr int COLOUR = GL_TEXTURE1;
+			static constexpr int ROUGHNESS = GL_TEXTURE2;
+			static constexpr int DIR_SHADOW_MAP = GL_TEXTURE3;
+			static constexpr int SPOT_SHADOW_MAP = GL_TEXTURE4;
+			static constexpr int POINT_SHADOW_MAP = GL_TEXTURE5;
+			static constexpr int VIEW_DEPTH = GL_TEXTURE6;
+			static constexpr int NORMAL_MAP = GL_TEXTURE7;
+			static constexpr int DIFFUSE_ARRAY = GL_TEXTURE8;
+			static constexpr int DISPLACEMENT = GL_TEXTURE9;
+			static constexpr int NORMAL_ARRAY = GL_TEXTURE10;
+			static constexpr int BLUE_NOISE = GL_TEXTURE11;
+			static constexpr int SHADER_IDS = GL_TEXTURE12;
+			static constexpr int COLOUR_CUBEMAP = GL_TEXTURE13;
+			static constexpr int COLOUR_2 = GL_TEXTURE14;
+			static constexpr int DATA_3D = GL_TEXTURE15;
+			static constexpr int DEPTH = GL_TEXTURE16;
+			static constexpr int METALLIC = GL_TEXTURE17;
+			static constexpr int AO = GL_TEXTURE18;
+			static constexpr int ROUGHNESS_METALLIC_AO = GL_TEXTURE19;
+			static constexpr int DIFFUSE_PREFILTER = GL_TEXTURE20;
+			static constexpr int SPECULAR_PREFILTER = GL_TEXTURE21;
+			static constexpr int BRDF_LUT = GL_TEXTURE22;
+			static constexpr int COLOUR_3 = GL_TEXTURE23;
+			static constexpr int BLOOM = GL_TEXTURE24;
+			static constexpr int EMISSIVE = GL_TEXTURE25;
+			static constexpr int POINTLIGHT_DEPTH = GL_TEXTURE26;
+			static constexpr int SCENE_VOXELIZATION = GL_TEXTURE27;
 		};
 
 		struct TextureUnitIndexes {
-			static const int COLOUR = 1;
-			static const int SPECULAR = 2;
-			static const int DIR_SHADOW_MAP = 3;
-			static const int SPOT_SHADOW_MAP = 4;
-			static const int POINT_SHADOW_MAP = 5;
-			static const int VIEW_DEPTH = 6;
-			static const int NORMAL_MAP = 7;
-			static const int DIFFUSE_ARRAY = 8;
-			static const int DISPLACEMENT = 9;
-			static const int NORMAL_ARRAY = 10;
-			static const int BLUE_NOISE = 11;
-			static const int SHADER_IDS = 12;
-			static const int COLOR_CUBEMAP = 13;
-			static const int COLOUR_2 = 14;
-			static const int DATA_3D = 15;
-			static const int ROUGHNESS_METALLIC_AO = 19;
-			static const int COLOUR_3 = 23;
+			static constexpr int COLOUR = 1;
+			static constexpr int SPECULAR = 2;
+			static constexpr int DIR_SHADOW_MAP = 3;
+			static constexpr int SPOT_SHADOW_MAP = 4;
+			static constexpr int POINT_SHADOW_MAP = 5;
+			static constexpr int VIEW_DEPTH = 6;
+			static constexpr int NORMAL_MAP = 7;
+			static constexpr int DIFFUSE_ARRAY = 8;
+			static constexpr int DISPLACEMENT = 9;
+			static constexpr int NORMAL_ARRAY = 10;
+			static constexpr int BLUE_NOISE = 11;
+			static constexpr int SHADER_IDS = 12;
+			static constexpr int COLOR_CUBEMAP = 13;
+			static constexpr int COLOUR_2 = 14;
+			static constexpr int DATA_3D = 15;
+			static constexpr int ROUGHNESS_METALLIC_AO = 19;
+			static constexpr int COLOUR_3 = 23;
 		};
 
 	private:

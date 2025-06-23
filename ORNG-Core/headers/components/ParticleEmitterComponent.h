@@ -7,14 +7,14 @@ namespace ORNG {
 	class MeshAsset;
 
 	struct ParticleMeshResources : public Component {
-		ParticleMeshResources(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit ParticleMeshResources(SceneEntity* p_entity) : Component(p_entity) {};
 
 		MeshAsset* p_mesh = nullptr;
 		std::vector<const Material*> materials;
 	};
 
 	struct ParticleBillboardResources : public Component {
-		ParticleBillboardResources(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit ParticleBillboardResources(SceneEntity* p_entity) : Component(p_entity) {};
 		Material* p_material = nullptr;
 	};
 
@@ -29,7 +29,8 @@ namespace ORNG {
 			BILLBOARD,
 			MESH
 		};
-		ParticleEmitterComponent(SceneEntity* p_entity) : Component(p_entity) { };
+
+		explicit ParticleEmitterComponent(SceneEntity* p_entity) : Component(p_entity) { };
 
 		// Maximum of 100,000 particles per emitter
 		void SetNbParticles(unsigned num) {
@@ -42,7 +43,7 @@ namespace ORNG {
 			DispatchUpdateEvent(NB_PARTICLES_CHANGED, &dif);
 		}
 
-		unsigned GetNbParticles() {
+		[[nodiscard]] unsigned GetNbParticles() const noexcept {
 			return m_num_particles;
 		}
 
@@ -51,7 +52,7 @@ namespace ORNG {
 			DispatchUpdateEvent();
 		}
 
-		glm::vec3 GetSpawnExtents() {
+		[[nodiscard]] glm::vec3 GetSpawnExtents() const noexcept {
 			return m_spawn_extents;
 		}
 
@@ -60,7 +61,7 @@ namespace ORNG {
 			DispatchUpdateEvent();
 		}
 
-		glm::vec2 GetVelocityScale() {
+		[[nodiscard]] glm::vec2 GetVelocityScale() const noexcept {
 			return m_velocity_min_max_scalar;
 		}
 
@@ -69,7 +70,7 @@ namespace ORNG {
 			DispatchUpdateEvent(LIFESPAN_CHANGED);
 		}
 
-		float GetParticleLifespan() {
+		[[nodiscard]] float GetParticleLifespan() const noexcept {
 			return m_particle_lifespan_ms;
 		}
 
@@ -78,7 +79,7 @@ namespace ORNG {
 			DispatchUpdateEvent(SPAWN_DELAY_CHANGED);
 		}
 
-		float GetSpawnDelay() {
+		[[nodiscard]] float GetSpawnDelay() const noexcept {
 			return m_particle_spawn_delay_ms;
 		}
 
@@ -87,7 +88,7 @@ namespace ORNG {
 			DispatchUpdateEvent();
 		}
 
-		float GetSpread() {
+		[[nodiscard]] float GetSpread() const noexcept {
 			return m_spread;
 		}
 
@@ -96,7 +97,7 @@ namespace ORNG {
 			DispatchUpdateEvent(ACTIVE_STATUS_CHANGED);
 		}
 
-		bool IsActive() {
+		[[nodiscard]] bool IsActive() const noexcept {
 			return m_active;
 		}
 
@@ -105,11 +106,11 @@ namespace ORNG {
 			DispatchUpdateEvent();
 		}
 
-		glm::vec3 GetAcceleration() {
+		[[nodiscard]] glm::vec3 GetAcceleration() const noexcept {
 			return acceleration;
 		}
 
-		EmitterType GetType() {
+		[[nodiscard]] EmitterType GetType() const noexcept {
 			return m_type;
 		}
 
@@ -120,12 +121,11 @@ namespace ORNG {
 
 		bool AreAnyEmittedParticlesAlive();
 
-		unsigned GetParticleStartIdx() const noexcept {
+		[[nodiscard]] unsigned GetParticleStartIdx() const noexcept {
 			return m_particle_start_index;
 		}
 
-		inline static const int BASE_NUM_PARTICLES = 64;
-
+		static constexpr int BASE_NUM_PARTICLES = 64;
 	private:
 
 		EmitterType m_type = BILLBOARD;

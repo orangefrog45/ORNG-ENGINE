@@ -9,14 +9,11 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class SceneSerializer;
 	public:
-		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {
-			if (p_instance)
-				p_symbols->DestroyInstance(p_instance);
-		};
+		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {}
 
 		void SetSymbols(const ScriptSymbols* t_symbols);
 
-		const ScriptSymbols* GetSymbols() {
+		[[nodiscard]] const ScriptSymbols* GetSymbols() const {
 			return p_symbols;
 		}
 

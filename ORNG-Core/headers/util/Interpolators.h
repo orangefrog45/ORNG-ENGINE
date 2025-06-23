@@ -20,7 +20,7 @@ namespace ORNG {
 
 		void RemovePoint(unsigned index);
 
-		unsigned GetNbPoints() { return (unsigned)points.size(); };
+		[[nodiscard]] unsigned GetNbPoints() const noexcept { return (unsigned)points.size(); };
 
 		glm::vec2 GetPoint(unsigned index);
 
@@ -32,8 +32,8 @@ namespace ORNG {
 
 		float scale = 1.f;
 
-		inline static const unsigned GPU_STRUCT_SIZE_BYTES = sizeof(glm::vec4) * 4 + sizeof(unsigned); // 8 points, active_points uint
-		inline static const unsigned GPU_INTERPOLATOR_STRUCT_MAX_POINTS = 8;
+		static constexpr unsigned GPU_STRUCT_SIZE_BYTES = sizeof(glm::vec4) * 4 + sizeof(unsigned); // 8 points, active_points uint
+		static constexpr unsigned GPU_INTERPOLATOR_STRUCT_MAX_POINTS = 8;
 
 	private:
 		std::vector<glm::vec2> points;
@@ -60,7 +60,7 @@ namespace ORNG {
 
 		void RemovePoint(unsigned index);
 
-		unsigned GetNbPoints() { return (unsigned)points.size(); };
+		[[nodiscard]] unsigned GetNbPoints() const noexcept { return (unsigned)points.size(); };
 
 		glm::vec4 GetPoint(unsigned index);
 

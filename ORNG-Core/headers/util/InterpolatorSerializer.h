@@ -4,14 +4,12 @@
 #include "Interpolators.h"
 
 namespace ORNG {
-
 	template<typename T>
 	concept IsInterpolator = std::is_same_v<T, InterpolatorV3> || std::is_same_v<T, InterpolatorV1>;
 
 	struct InterpolatorSerializer {
-
 		template <IsInterpolator T>
-		static void SerializeInterpolator(const std::string& name, YAML::Emitter& out, T& interpolator) {
+		static void SerializeInterpolator(const std::string& name, YAML::Emitter& out, const T& interpolator) {
 			out << YAML::Key << name << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "Points" << YAML::Value << YAML::BeginSeq;
 
