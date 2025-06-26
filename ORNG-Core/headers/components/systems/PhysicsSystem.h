@@ -66,6 +66,9 @@ namespace ORNG {
 			CHARACTER_CONTROLLER,
 			VEHICLE
 		};
+
+		float step_size = 1.f / 90.f;
+
 	private:
 		static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type);
 
@@ -137,7 +140,6 @@ namespace ORNG {
 		// Transform that is currently being updated by the physics system, used to prevent needless physics component updates
 		TransformComponent* mp_currently_updating_transform = nullptr;
 
-		static constexpr float m_step_size = (1.f / 60.f);
 		float m_accumulator = 0.f;
 
 		class PhysCollisionCallback : public physx::PxSimulationEventCallback {

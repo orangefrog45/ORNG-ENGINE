@@ -33,7 +33,6 @@ namespace ORNG {
 
 		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
 
-
 		void SetScale(float scaleX, float scaleY, float scaleZ) {
 			SetScale({ scaleX, scaleY, scaleZ });
 		}
@@ -51,14 +50,38 @@ namespace ORNG {
 			SetPosition(final_pos);
 		}
 
-		inline void SetAbsoluteOrientation(glm::vec3 orientation) {
-			SetOrientation(orientation - (m_abs_orientation - m_orientation));
+		inline void SetAbsoluteOrientation(glm::vec3 orientation_degrees) {
+			SetAbsOrientationQuat(glm::quat{glm::radians(orientation_degrees)});
 		}
 
 		inline void SetOrientation(float x, float y, float z) {
 			glm::vec3 orientation{x, y, z};
 			SetOrientation(orientation);
 		}
+
+		void SetOrientationQuat(glm::quat q) {
+			m_orientation = q;
+			RebuildMatrix(UpdateType::ORIENTATION);
+		}
+
+		void SetAbsOrientationQuat(glm::quat q) {
+			if (m_parent_handle == entt::null) {
+				SetOrientationQuat(q);
+			} else {
+				glm::quat parent_accumulated = m_abs_orientation * glm::inverse(m_orientation);
+				glm::quat new_local = glm::inverse(parent_accumulated) * q;
+				SetOrientationQuat(new_local);
+			}
+		}
+
+		[[nodiscard]] glm::quat GetAbsOrientationQuat() const noexcept {
+			return m_abs_orientation;
+		}
+
+		[[nodiscard]] glm::quat GetOrientationQuat() const noexcept {
+			return m_orientation;
+		}
+
 		inline void SetPosition(float x, float y, float z) {
 			glm::vec3 pos{x, y, z};
 			SetPosition(pos);
@@ -81,7 +104,7 @@ namespace ORNG {
 		};
 
 		inline void SetOrientation(const glm::vec3 rot) {
-			m_orientation = rot;
+			m_orientation = glm::quat{glm::radians(rot)};
 			RebuildMatrix(UpdateType::ORIENTATION);
 		};
 
@@ -95,15 +118,12 @@ namespace ORNG {
 		}
 
 		inline glm::vec3 GetAbsOrientation() {
-			return m_abs_orientation;
+			return glm::degrees(glm::eulerAngles(m_abs_orientation));
 		}
 
 		inline glm::vec3 GetAbsScale() {
 			return m_abs_scale;
 		}
-
-		// Returns inherited position([0]), scale([1]), rotation ([2]) including this components transforms.
-		std::tuple<glm::vec3, glm::vec3, glm::vec3> GetAbsoluteTransforms() { return std::make_tuple(m_abs_pos, m_abs_scale, m_abs_orientation); }
 
 		TransformComponent* GetParent();
 
@@ -111,7 +131,7 @@ namespace ORNG {
 
 		glm::vec3 GetPosition() const { return m_pos; };
 		glm::vec3 GetScale() const { return m_scale; };
-		glm::vec3 GetOrientation() const { return m_orientation; };
+		glm::vec3 GetOrientation() const { return glm::degrees(glm::eulerAngles(m_orientation)); };
 
 
 		enum UpdateType : uint8_t {
@@ -120,7 +140,6 @@ namespace ORNG {
 			ORIENTATION = 2,
 			ALL = 3
 		};
-
 
 		glm::vec3 forward = { 0.0, 0.0, -1.0 };
 		glm::vec3 up = { 0.0, 1.0, 0.0 };
@@ -137,11 +156,11 @@ namespace ORNG {
 		glm::mat4 m_transform = glm::mat4(1);
 
 		glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
-		glm::vec3 m_orientation = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::quat m_orientation = {1.f, 0.f, 0.f, 0.f};
 		glm::vec3 m_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
 		glm::vec3 m_abs_scale = glm::vec3(1.0f, 1.0f, 1.0f);
-		glm::vec3 m_abs_orientation = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::quat m_abs_orientation = {1.f, 0.f, 0.f, 0.f};
 		glm::vec3 m_abs_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
 		glm::vec3 g_up = { 0.0, 1.0, 0.0 };

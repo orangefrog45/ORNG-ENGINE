@@ -31,6 +31,7 @@ layout(binding = 1, rgba16f) writeonly uniform image2D u_output_texture;
 #define BRDF_LUT_SAMPLER brdf_lut_sampler
 
 uniform bool u_ibl_active; 
+uniform bool u_using_ssao;
 
 ORNG_INCLUDE "LightingINCL.glsl"
 
@@ -62,8 +63,11 @@ void main()
 
 	total_light += CalculateDirectLightContribution(v, f0, sampled_world_pos.xyz, sampled_normal.xyz, roughness, metallic, sampled_albedo.rgb);
 
-	if (u_ibl_active)
-		total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb) * (1.0 - texture(occlusion_sampler, tex_coords / vec2(textureSize(occlusion_sampler, 0))).r);
+	if (u_ibl_active) {
+		vec3 ambient = CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, sampled_normal.xyz, ao, metallic, sampled_albedo.rgb);
+		if (u_using_ssao) ambient *= (1.0 - texture(occlusion_sampler, tex_coords / vec2(textureSize(occlusion_sampler, 0))).r);
+		total_light += ambient;
+	}
 		
 	vec3 light_colour = max(vec3(total_light), vec3(0.0, 0.0, 0.0));
 

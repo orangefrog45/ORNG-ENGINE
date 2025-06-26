@@ -187,19 +187,18 @@ namespace ORNG {
 	void ParticleSystem::UpdateEmitterBufferAtIndex(unsigned index) {
 		auto& comp = mp_scene->GetRegistry().get<ParticleEmitterComponent>(m_emitter_entities[index]);
 		auto* p_transform = comp.GetEntity()->GetComponent<TransformComponent>();
-		auto [pos, scale, rot] = p_transform->GetAbsoluteTransforms();
 		glm::vec3 forward = p_transform->forward;
 
 		std::array<std::byte, emitter_struct_size> emitter_data;
 		std::byte* p_byte = &emitter_data[0];
 
 		ConvertToBytes(p_byte,
-			pos, 0.0f,
+			p_transform->GetAbsPosition(), 0.0f,
 			comp.m_particle_start_index, 
 			comp.m_num_particles, 
 			comp.m_spread * 2.0f * glm::pi<float>(),
 			comp.m_velocity_min_max_scalar.x,
-			glm::mat4(ExtraMath::Init3DRotateTransform(rot.x, rot.y, rot.z)),
+			glm::mat4_cast(p_transform->GetAbsOrientationQuat()),
 			comp.m_spawn_extents,
 			comp.m_velocity_min_max_scalar.y,
 			comp.m_particle_lifespan_ms, 

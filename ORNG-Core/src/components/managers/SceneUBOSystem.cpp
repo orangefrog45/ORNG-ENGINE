@@ -71,16 +71,15 @@ void SceneUBOSystem::UpdateVoxelAlignedPositions(const std::array<glm::vec3, 2>&
 	m_common_ubo.BufferSubData(4 * sizeof(glm::vec4), sizeof(positions), reinterpret_cast<const std::byte*>(positions.data()));
 }
 
-void SceneUBOSystem::UpdateMatrixUBO() {
+void SceneUBOSystem::UpdateMatrixUBO(glm::mat4* p_proj, glm::mat4* p_view) {
 	auto* p_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
 	auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 
-	glm::mat4 proj = p_cam->GetProjectionMatrix();
-	glm::mat4 view = glm::lookAt(p_cam_transform->GetPosition(), p_cam_transform->GetPosition() + p_cam_transform->forward, glm::vec3{ 0, 1, 0 });
+	glm::mat4 proj = p_proj ? *p_proj : p_cam->GetProjectionMatrix();
+	glm::mat4 view = p_view ? *p_view : glm::lookAt(p_cam_transform->GetPosition(), p_cam_transform->GetPosition() + p_cam_transform->forward, glm::vec3{ 0, 1, 0 });
 
 	glm::mat4 proj_view = proj * view;
-	static std::vector<std::byte> matrices;
-	matrices.resize(m_matrix_ubo_size);
+	std::array<std::byte, m_matrix_ubo_size> matrices;
 	std::byte* p_byte = matrices.data();
 
 	ConvertToBytes(p_byte,
