@@ -10,7 +10,7 @@ This is a real-time windows-based 3D game engine, made with C++ and OpenGL, my f
 
 ### Building:
 
-Cloning this repo recursively and opening it with VS2022 should allow you to compile and run the engine, make sure the editor exe is set as the startup item in VS. I have not tested any environments other than VS2022 and I don't expect this to work on them yet.
+Cloning this repo recursively and opening the folder with an IDE that has CMake and Vcpkg integration should allow you to build and run the core library, runtime and editor.
 
 ### Controls:
 

@@ -67,9 +67,8 @@ namespace ORNG {
 
 		for (auto entity_node : entities) {
 			auto* p_ent = scene.GetEntity(id_mappings[entity_node["Entity"].as<uint64_t>()]);
-			uint64_t serialized_parent_uuid = entity_node["ParentID"].as<uint64_t>();
 
-			if (serialized_parent_uuid != 0) {
+			if (const auto serialized_parent_uuid = entity_node["ParentID"].as<uint64_t>(); serialized_parent_uuid != 0) {
 				auto* p_parent = scene.GetEntity(id_mappings[serialized_parent_uuid]);
 				ASSERT(p_parent);
 				p_ent->SetParent(*p_parent);
@@ -109,9 +108,7 @@ namespace ORNG {
 
 		out << YAML::EndMap;
 
-		auto* p_mesh_comp = entity.GetComponent<MeshComponent>();
-
-		if (p_mesh_comp) {
+		if (auto* p_mesh_comp = entity.GetComponent<MeshComponent>()) {
 			out << YAML::Key << "MeshComp";
 			out << YAML::BeginMap;
 			out << YAML::Key << "MeshAssetID" << YAML::Value << p_mesh_comp->GetMeshData()->uuid();
@@ -126,10 +123,7 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-
-		const auto* p_pointlight = entity.GetComponent<PointLightComponent>();
-
-		if (p_pointlight) {
+		if (auto* p_pointlight = entity.GetComponent<PointLightComponent>()) {
 			out << YAML::Key << "PointlightComp";
 			out << YAML::BeginMap;
 
@@ -143,9 +137,7 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		const auto* p_spotlight = entity.GetComponent<SpotLightComponent>();
-
-		if (p_spotlight) {
+		if (auto* p_spotlight = entity.GetComponent<SpotLightComponent>()) {
 			out << YAML::Key << "SpotlightComp";
 			out << YAML::BeginMap;
 
@@ -160,9 +152,8 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		const auto* p_cam = entity.GetComponent<CameraComponent>();
 
-		if (p_cam) {
+		if (auto* p_cam = entity.GetComponent<CameraComponent>()) {
 			out << YAML::Key << "CameraComp";
 			out << YAML::BeginMap;
 
@@ -174,8 +165,7 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		ScriptComponent* p_script_comp = entity.GetComponent<ScriptComponent>();
-		if (p_script_comp) {
+		if (const auto* p_script_comp = entity.GetComponent<ScriptComponent>()) {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
 
 			if (p_script_comp->GetSymbols())
@@ -186,8 +176,7 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		AudioComponent* p_audio_comp = entity.GetComponent<AudioComponent>();
-		if (p_audio_comp) {
+		if (const auto* p_audio_comp = entity.GetComponent<AudioComponent>()) {
 			out << YAML::Key << "AudioComp" << YAML::BeginMap;
 			out << YAML::Key << "Volume" << YAML::Value << p_audio_comp->m_volume;
 			out << YAML::Key << "Pitch" << YAML::Value << p_audio_comp->m_pitch;
@@ -197,7 +186,7 @@ namespace ORNG {
 			out << YAML::EndMap;
 		}
 
-		if (auto* p_emitter = entity.GetComponent<ParticleEmitterComponent>()) {
+		if (const auto* p_emitter = entity.GetComponent<ParticleEmitterComponent>()) {
 			Out(out, "ParticleEmitterComp", YAML::BeginMap);
 			Out(out, "Spread", p_emitter->GetSpread());
 			Out(out, "Spawn extents", p_emitter->GetSpawnExtents());
@@ -398,8 +387,7 @@ namespace ORNG {
 		ZoneScoped;
 #endif
 
-		uint64_t parent_id = entity_node["ParentID"].as<uint64_t>();
-		if (!ignore_parent && parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
+		if (const auto parent_id = entity_node["ParentID"].as<uint64_t>(); !ignore_parent && parent_id != 0 && entity.GetParent() == entt::null) // Parent may be set externally (prefab deserialization)
 			entity.SetParent(*scene.GetEntity(parent_id)); 
 
 		entity.name = entity_node["Name"].as<std::string>();

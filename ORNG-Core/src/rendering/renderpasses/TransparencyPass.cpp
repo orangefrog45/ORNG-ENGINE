@@ -44,18 +44,16 @@ void TransparencyPass::Init() {
 			"u_material.sprite_data.fps"
 	};
 
-
 	std::vector<std::string> ptcl_uniforms = gbuffer_uniforms;
-	ptcl_uniforms.push_back("u_transform_start_index");
-
+	ptcl_uniforms.emplace_back("u_transform_start_index");
 
 	m_transparency_shader_variants.SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/GBufferVS.glsl");
 	m_transparency_shader_variants.SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/WeightedBlendedFS.glsl");
 	{
 		using enum TransparencyShaderVariants;
-		m_transparency_shader_variants.AddVariant((unsigned)DEFAULT, { }, gbuffer_uniforms);
-		m_transparency_shader_variants.AddVariant((unsigned)T_PARTICLE, { "PARTICLE" }, ptcl_uniforms);
-		m_transparency_shader_variants.AddVariant((unsigned)T_PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
+		m_transparency_shader_variants.AddVariant(static_cast<unsigned>(DEFAULT), { }, gbuffer_uniforms);
+		m_transparency_shader_variants.AddVariant(static_cast<unsigned>(T_PARTICLE), { "PARTICLE" }, ptcl_uniforms);
+		m_transparency_shader_variants.AddVariant(static_cast<unsigned>(T_PARTICLE_BILLBOARD), { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
 	}
 
 	m_transparency_composite_shader.AddStage(GL_FRAGMENT_SHADER, "res/core-res/shaders/TransparentCompositeFS.glsl");
@@ -106,7 +104,7 @@ void TransparencyPass::DoPass() {
 	glClearBufferfv(GL_COLOR, 0, &filler_0[0]);
 	glClearBufferfv(GL_COLOR, 1, &filler_1[0]);
 
-	m_transparency_shader_variants.Activate((unsigned)TransparencyShaderVariants::DEFAULT);
+	m_transparency_shader_variants.Activate(static_cast<unsigned>(TransparencyShaderVariants::DEFAULT));
 	m_transparency_shader_variants.SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 
 	auto& mesh_system = mp_scene->GetSystem<MeshInstancingSystem>();
@@ -119,7 +117,7 @@ void TransparencyPass::DoPass() {
 
 	if (mp_scene->HasSystem<ParticleSystem>()) {
 		GL_StateManager::BindSSBO(mp_scene->GetSystem<ParticleSystem>().m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
-		m_transparency_shader_variants.Activate((unsigned)TransparencyShaderVariants::T_PARTICLE);
+		m_transparency_shader_variants.Activate(static_cast<unsigned>(TransparencyShaderVariants::T_PARTICLE));
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			m_transparency_shader_variants.SetUniform("u_transform_start_index", emitter.GetParticleStartIdx());
@@ -127,7 +125,7 @@ void TransparencyPass::DoPass() {
 				ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID, true);
 		}
 
-		m_transparency_shader_variants.Activate((unsigned)TransparencyShaderVariants::T_PARTICLE_BILLBOARD);
+		m_transparency_shader_variants.Activate(static_cast<unsigned>(TransparencyShaderVariants::T_PARTICLE_BILLBOARD));
 		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
@@ -138,7 +136,6 @@ void TransparencyPass::DoPass() {
 	}
 
 	//RenderVehicles(mp_transparency_shader_variants, RenderGroup::ALPHA_TESTED);
-
 
 	m_composition_fb.Bind();
 	m_composition_fb.BindTexture2D(mp_graph->GetData<Texture2D>("OutCol")->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);

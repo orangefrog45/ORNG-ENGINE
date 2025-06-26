@@ -13,7 +13,6 @@
 #include "core/FrameTiming.h"
 #include "physics/Physics.h"
 #include "assets/AssetManager.h"
-#include "core/Input.h"
 #include "audio/AudioEngine.h"
 #include <glfw/glfw3.h>
 #include "util/ExtraUI.h"
@@ -35,7 +34,7 @@ void Application::Shutdown() {
 		Physics::Shutdown();
 
 	glfwTerminate();
-	//GL_StateManager::Shutdown();
+	GL_StateManager::Shutdown();
 }
 
 void Application::Init(const ApplicationData& data) {
@@ -78,10 +77,10 @@ void Application::Init(const ApplicationData& data) {
 	layer_stack.Init();
 	ORNG_CORE_INFO("Layers initialized, beginning main loop");
 
-	Events::EngineCoreEvent render_event;
+	Events::EngineCoreEvent render_event{};
 	render_event.event_type = Events::EngineCoreEvent::ENGINE_RENDER;
 
-	Events::EngineCoreEvent update_event;
+	Events::EngineCoreEvent update_event{};
 	update_event.event_type = Events::EngineCoreEvent::ENGINE_UPDATE;
 
 	// Engine loop

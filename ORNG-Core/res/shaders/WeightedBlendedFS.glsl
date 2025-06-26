@@ -101,8 +101,8 @@ void main() {
     vec4 albedo = CalculateAlbedoAndEmissive(vert_data.tex_coord.xy);
 
 	total_light += CalculateDirectLightContribution(v, f0, vert_data.position.xyz, n, roughness, metallic, albedo.rgb);
-	
-	//total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
+	total_light += CalculateAmbientLightContribution(n_dot_v, f0, r, roughness, n, ao, metallic, albedo.rgb);
+
     vec4 colour = vec4(total_light, u_material.base_colour.a * albedo.w);
 
     float weight = clamp(pow(min(1.0, colour.a * 10.0) + 0.01, 3.0) * 1e8 * 
