@@ -6,6 +6,10 @@
 
 
 namespace ORNG {
+	std::shared_ptr<spdlog::logger> Log::s_core_logger = nullptr;
+	std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> Log::s_ringbuffer_sink = nullptr;
+	std::shared_ptr<spdlog::sinks::basic_file_sink_mt> Log::s_file_sink = nullptr;
+
 	// How many logged messages are saved and stored in memory that can be retrieved by the program
 	constexpr int MAX_LOG_HISTORY = 20;
 

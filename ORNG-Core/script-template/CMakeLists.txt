@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -15,6 +15,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_DEBUG_BINARY_DIR) # changed in engine
 else()
 set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_RELEASE_BINARY_DIR) # changed in engine
+endif()
+
+if (NOT EXISTS ${ENGINE_BINARY_DIR})
+    message(FATAL_ERROR "ORNG CMake binary directory can't be found at: '${ENGINE_BINARY_DIR}', make sure the ORNG build directory is 'ORNG_ROOT_DIRECTORY/out/build/debug'
+	and 'ORNG_ROOT_DIRECTORY/out/build/release' for debug and release builds respectively.")
 endif()
 
 set(CMAKE_DEBUG_POSTFIX "")
@@ -36,7 +41,9 @@ ${ENGINE_BASE_DIR}/ORNG-Core/extern/bitsery/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/implot
 ${ENGINE_BASE_DIR}/extern/vcpkg/packages/physx_x64-windows/include/
 ${ENGINE_BASE_DIR}/extern/vcpkg/packages/physx_x64-windows/include/physx
-"${ENGINE_BASE_DIR}/ORNG-Core/extern/tracy/public/tracy"
+${ENGINE_BASE_DIR}/ORNG-Core/extern/tracy/public/tracy
+${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/core/headers
+${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/include
 )
 
 find_package(OpenGL REQUIRED)
@@ -58,8 +65,13 @@ ${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXTask_static_64.l
 ${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/SimulationController_static_64.lib
 )
 
-set(SCRIPT_LIBS 
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
+set(SCRIPT_LIBS
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_COREd.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTILd.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENEd.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERINGd.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-COREd.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loaderd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imguid.lib
 OpenGL::GL
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/glfw/src/glfw3.lib
@@ -88,8 +100,13 @@ ${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXTask_static_64.lib
 ${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/SimulationController_static_64.lib
 )
 
-set(SCRIPT_LIBS 
+set(SCRIPT_LIBS
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTIL.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENE.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERING.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-CORE.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loader.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imgui.lib
 OpenGL::GL
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/glfw/src/glfw3.lib

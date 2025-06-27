@@ -11,6 +11,7 @@
 #include "util/LoggerUI.h"
 #include "components/PhysicsComponent.h"
 #include "components/VehicleComponent.h"
+#include "VRlib/core/headers/VR.h"
 
 
 namespace physx {
@@ -61,10 +62,7 @@ namespace ORNG {
 
 		void OnImGuiRender() override { RenderUI(); };
 
-		void OnRender() override {
-			RenderDisplayWindow(); 
-			if (m_state.simulate_mode_active) mp_scene_context->OnRender();
-		};
+		void OnRender() override;
 
 		void OnShutdown() override;
 
@@ -72,12 +70,14 @@ namespace ORNG {
 			Editor UI and rendering
 		*/
 
-		void InitRenderGraph();
+		void InitRenderGraph(bool use_vr);
 
 		void InitImGui();
 
 		// Window containing the actual rendered scene
 		void RenderDisplayWindow();
+
+		void RenderToVrTargets();
 
 		void RenderToolbar();
 
@@ -104,6 +104,7 @@ namespace ORNG {
 
 		// Outputs an ordered list of entities with their children depending on if their nodes are opened or not.
 		void GetEntityGraph(std::vector<EntityNodeEntry>& output);
+
 		void PushEntityIntoGraph(SceneEntity* p_entity, std::vector<EditorLayer::EntityNodeEntry>& output, unsigned depth);
 
 		void DisplayEntityEditor();
@@ -148,6 +149,8 @@ namespace ORNG {
 		void BeginPlayScene();
 
 		void EndPlayScene();
+
+		void SetVrRenderMode(bool use_vr);
 
 		/*
 			Misc modifiers
@@ -245,6 +248,12 @@ namespace ORNG {
 			bool selected_entities_are_dragged = false;
 			bool item_selected_this_frame = false;
 
+			// Changes render targets to VR render targets during simulation mode
+			// Editor is still visible on PC screen, but the scene is rendered to the headset display
+			bool use_vr_in_simulation = false;
+			std::unique_ptr<vrlib::VR> p_vr = nullptr;
+			XrFrameState xr_frame_state;
+
 			std::vector<uint64_t> selected_entity_ids;
 			std::vector<uint64_t> open_tree_nodes_entities;
 
@@ -268,8 +277,13 @@ namespace ORNG {
 		};
 
 		struct EditorResources {
-			Texture2DSpec color_render_texture_spec; // Texture spec for rendering the scene
+			// Texture spec for rendering the scene
+			Texture2DSpec colour_render_texture_spec;
 			std::unique_ptr<Texture2D> p_scene_display_texture{ nullptr };
+
+			// This texture and spec is used instead of the ones above if VR is active, as VR rendering will require a different resolution
+			Texture2DSpec vr_colour_render_texture_spec;
+			std::unique_ptr<Texture2D> p_vr_scene_display_texture{ nullptr };
 
 			std::unique_ptr<GridMesh> grid_mesh = nullptr;
 

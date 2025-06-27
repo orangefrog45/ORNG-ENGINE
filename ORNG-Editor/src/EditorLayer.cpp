@@ -1,6 +1,7 @@
 #include "pch/pch.h"
 
-
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
 #include <glfw/glfw3.h>
 #include "yaml/include/yaml-cpp/yaml.h"
 #include <fmod.hpp>
@@ -36,6 +37,10 @@
 #include "components/PhysicsComponent.h"
 #include "components/systems/PhysicsSystem.h"
 #include "assets/PhysXMaterialAsset.h"
+#include <imgui/backends/imgui_impl_glfw.h>
+
+#include "components/systems/VrSystem.h"
+#include "GLFW/glfw3native.h"
 
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 constexpr unsigned BOTTOM_WINDOW_HEIGHT = 300;
@@ -84,17 +89,17 @@ namespace ORNG {
 		m_res.highlight_shader.AddUniforms("transform", "u_colour", "u_scale");
 
 		// Setting up the scene display texture
-		m_res.color_render_texture_spec.format = GL_RGBA;
-		m_res.color_render_texture_spec.internal_format = GL_RGBA16F;
-		m_res.color_render_texture_spec.storage_type = GL_FLOAT;
-		m_res.color_render_texture_spec.mag_filter = GL_NEAREST;
-		m_res.color_render_texture_spec.min_filter = GL_NEAREST;
-		m_res.color_render_texture_spec.width = Window::GetWidth();
-		m_res.color_render_texture_spec.height = Window::GetHeight();
-		m_res.color_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
+		m_res.colour_render_texture_spec.format = GL_RGBA;
+		m_res.colour_render_texture_spec.internal_format = GL_RGBA16F;
+		m_res.colour_render_texture_spec.storage_type = GL_FLOAT;
+		m_res.colour_render_texture_spec.mag_filter = GL_NEAREST;
+		m_res.colour_render_texture_spec.min_filter = GL_NEAREST;
+		m_res.colour_render_texture_spec.width = Window::GetWidth();
+		m_res.colour_render_texture_spec.height = Window::GetHeight();
+		m_res.colour_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
 
 		m_res.p_scene_display_texture = std::make_unique<Texture2D>("Editor scene display");
-		m_res.p_scene_display_texture->SetSpec(m_res.color_render_texture_spec);
+		m_res.p_scene_display_texture->SetSpec(m_res.colour_render_texture_spec);
 
 		// Adding a resize event listener so the scene display texture scales with the window
 		m_window_event_listener.OnEvent = [this](const Events::WindowEvent& t_event) {
@@ -106,8 +111,11 @@ namespace ORNG {
 
 				UpdateSceneDisplayRect();
 
+				// Don't change the render graph here as it'll be reinitialized when exiting simulation mode
+				if (m_state.use_vr_in_simulation && m_state.simulate_mode_active) return;
+
 				m_render_graph.Reset();
-				InitRenderGraph();
+				InitRenderGraph(false);
 			}
 			};
 
@@ -154,9 +162,13 @@ namespace ORNG {
 		m_asset_manager_window.Init();
 
 		SCENE->mp_render_graph = &m_render_graph;
+
+		SetVrRenderMode(true);
 	}
 
-	void EditorLayer::InitRenderGraph() {
+	void EditorLayer::InitRenderGraph(bool use_vr) {
+		m_render_graph.Reset();
+
 		// The path is changed to force shaders to be loaded from the resources folder in the editor binary directory instead of the local project
 		// This allows easy shader hot-reloading and modification
 		std::string prev_path = std::filesystem::current_path().string();
@@ -170,10 +182,10 @@ namespace ORNG {
 		m_render_graph.AddRenderpass<FogPass>();
 		m_render_graph.AddRenderpass<TransparencyPass>();
 		m_render_graph.AddRenderpass<PostProcessPass>();
-		m_render_graph.SetData("OutCol", &*m_res.p_scene_display_texture);
+		m_render_graph.SetData("OutCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
+		m_render_graph.SetData("BloomInCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
 		m_render_graph.SetData("PPS", &SCENE->post_processing);
 		m_render_graph.SetData("Scene", SCENE);
-		m_render_graph.SetData("BloomInCol", &*m_res.p_scene_display_texture);
 		m_render_graph.Init();
 		std::filesystem::current_path(prev_path);
 	}
@@ -195,6 +207,10 @@ namespace ORNG {
 
 		// Set to fullscreen so mouse coordinate and gui operations in scripts work correctly as they would in a runtime layer
 		m_state.fullscreen_scene_display = true;
+
+		if (m_state.use_vr_in_simulation) {
+			InitRenderGraph(true);
+		}
 
 		UpdateSceneDisplayRect();
 		SCENE->Start();
@@ -223,7 +239,7 @@ namespace ORNG {
 
 		// Reset render graph in case scripts have changed it
 		m_render_graph.Reset();
-		InitRenderGraph();
+		InitRenderGraph(false);
 
 		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -239,6 +255,56 @@ namespace ORNG {
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_END_SIMULATION));
 	}
 
+	void EditorLayer::SetVrRenderMode(bool use_vr) {
+		if (m_state.use_vr_in_simulation == use_vr) return;
+
+		m_state.use_vr_in_simulation = use_vr;
+
+		if (use_vr) {
+			m_state.p_vr = std::make_unique<vrlib::VR>();
+			auto* p_window = ORNG::Window::GetGLFWwindow();
+			auto hDC = GetDC(glfwGetWin32Window(p_window));
+			auto hGLRC = glfwGetWGLContext(p_window);
+
+			static vrlib::OpenXR_DebugLogFunc log_func = [](const std::string& log, unsigned level) {
+				switch(level) {
+					case 0:
+						ORNG_CORE_TRACE(log)
+						break;
+					case 1:
+						ORNG_CORE_INFO(log);
+					break;
+					case 2:
+						ORNG_CORE_WARN(log);
+					break;
+					case 3:
+						ORNG_CORE_ERROR(log);
+					break;
+				}
+			};
+
+			m_state.p_vr->Init(hDC, hGLRC, log_func, {GL_RGBA16F, GL_RGB16F, GL_RGBA8},
+				{GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT16});
+
+			m_res.vr_colour_render_texture_spec.format = GL_RGBA;
+			m_res.vr_colour_render_texture_spec.internal_format = GL_RGBA16F;
+			m_res.vr_colour_render_texture_spec.storage_type = GL_FLOAT;
+			m_res.vr_colour_render_texture_spec.mag_filter = GL_NEAREST;
+			m_res.vr_colour_render_texture_spec.min_filter = GL_NEAREST;
+			m_res.vr_colour_render_texture_spec.width = m_state.p_vr->GetViewConfigurationView(0).recommendedImageRectWidth;
+			m_res.vr_colour_render_texture_spec.height = m_state.p_vr->GetViewConfigurationView(0).recommendedImageRectHeight;
+			m_res.vr_colour_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
+			m_res.p_vr_scene_display_texture = std::make_unique<Texture2D>("");
+			m_res.p_vr_scene_display_texture->SetSpec(m_res.vr_colour_render_texture_spec);
+
+			SCENE->AddSystem(new VrSystem(SCENE, *m_state.p_vr), 7999);
+		} else {
+			SCENE->RemoveSystem<VrSystem>();
+			m_state.p_vr->Shutdown();
+			m_state.p_vr = nullptr;
+			m_res.p_vr_scene_display_texture = nullptr;
+		}
+	}
 
 	void EditorLayer::OnShutdown() {
 		if (m_state.simulate_mode_active)
@@ -249,6 +315,11 @@ namespace ORNG {
 		SCENE->UnloadScene();
 		m_asset_manager_window.OnShutdown();
 		m_logger_ui.Shutdown();
+
+		if (m_state.use_vr_in_simulation) {
+			m_state.p_vr->Shutdown();
+			m_state.p_vr = nullptr;
+		}
 	}
 
 	void EditorLayer::InitImGui() {
@@ -284,7 +355,6 @@ namespace ORNG {
 		ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = m_res.lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered] = m_res.lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive] = m_res.lightest_grey_color;
-		ImGui::GetStyle().Colors[ImGuiCol_DockingEmptyBg] = m_res.lightest_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = m_res.dark_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_Border] = m_res.lighter_grey_color;
 		ImGui::GetStyle().Colors[ImGuiCol_TitleBg] = m_res.lighter_grey_color;
@@ -380,8 +450,25 @@ namespace ORNG {
 
 		UpdateEditorCam();
 
-		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused)
+		if (m_state.simulate_mode_active && !m_state.simulate_mode_paused) {
+			// Update VR if it's active
+			if (m_state.use_vr_in_simulation) {
+				m_state.p_vr->PollEvents();
+				XrSessionState session_state = m_state.p_vr->GetSessionState();
+
+				if (session_state == XR_SESSION_STATE_EXITING || session_state == XR_SESSION_STATE_LOSS_PENDING ||
+					session_state == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
+					EndPlayScene();
+					SetVrRenderMode(false);
+					ORNG_CORE_ERROR("VR mode exited due to instance loss or session exit.");
+				} else {
+					m_state.xr_frame_state = m_state.p_vr->BeginFrame();
+					m_state.p_vr->input.PollActions(m_state.xr_frame_state.predictedDisplayTime);
+				}
+			}
+
 			SCENE->Update(FrameTiming::GetTimeStep());
+		}
 		else {
 			SCENE->GetSystem<SpotlightSystem>().OnUpdate();
 			SCENE->GetSystem<PointlightSystem>().OnUpdate();
@@ -393,7 +480,60 @@ namespace ORNG {
 		}
 	}
 
-	void EditorLayer::MultiSelectDisplay() {
+	void EditorLayer::OnRender() {
+		RenderDisplayWindow();
+		if (m_state.simulate_mode_active) mp_scene_context->OnRender();
+
+		if (m_state.use_vr_in_simulation && m_state.simulate_mode_active) {
+			RenderToVrTargets();
+		}
+	};
+
+	void EditorLayer::RenderToVrTargets() {
+		if (!m_state.p_vr->IsSessionRunning()) return;
+
+		vrlib::VR::RenderLayerInfo render_layer_info;
+		render_layer_info.predicted_display_time = m_state.xr_frame_state.predictedDisplayTime;
+
+		if (m_state.p_vr->ShouldRender(m_state.xr_frame_state)) {
+			auto targets = m_state.p_vr->AcquireColourAndDepthRenderTargets(m_state.xr_frame_state, render_layer_info);
+
+		    auto* p_cam = SCENE->GetSystem<ORNG::CameraSystem>().GetActiveCamera();
+            auto* p_cam_transform = p_cam->GetEntity()->GetComponent<ORNG::TransformComponent>();
+			auto& vr_system = SCENE->GetSystem<VrSystem>();
+
+			for (size_t i = 0; i < targets.size(); i++) {
+				if (vr_system.ShouldUseMatrices()) {
+					auto [view, proj] = vr_system.GetEyeMatrices(i);
+					SCENE->GetSystem<ORNG::SceneUBOSystem>().UpdateMatrixUBO(&proj, &view);
+				}
+
+                m_render_graph.Execute();
+
+                ORNG::Framebuffer f{};
+                f.Init();
+                f.BindTexture2D(targets[i].colour_tex_handle, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
+                f.Bind();
+                GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+                f.EnableDrawBuffers(1, buffers);
+
+                ORNG::GL_StateManager::BindTexture(GL_TEXTURE_2D, m_res.p_vr_scene_display_texture->GetTextureHandle(), GL_TEXTURE1);
+                ORNG::Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
+                glClearColor(1.f, 0.f, 0.f, 1.f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glViewport(0, 0, targets[i].resolution[0], targets[i].resolution[1]);
+                ORNG::Renderer::DrawQuad();
+
+				m_state.p_vr->ReleaseColourAndDepthRenderTargets(render_layer_info, targets[i]);
+			}
+
+			render_layer_info.layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&render_layer_info.layer_projection));
+		}
+
+		m_state.p_vr->EndFrame(m_state.xr_frame_state, render_layer_info);
+	}
+
+		void EditorLayer::MultiSelectDisplay() {
 		m_state.selected_entity_ids.clear();
 
 		glm::vec2 min = { glm::min(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), glm::min(Window::GetHeight() - m_state.mouse_drag_data.start.y,  Window::GetHeight() - m_state.mouse_drag_data.end.y) };
@@ -463,8 +603,6 @@ namespace ORNG {
 			}
 		}
 	}
-
-
 
 	void EditorLayer::UpdateEditorCam() {
 		if (SCENE->GetSystem<CameraSystem>().GetActiveCamera() != mp_editor_camera->GetComponent<CameraComponent>())
@@ -538,7 +676,7 @@ namespace ORNG {
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, m_res.toolbar_height)));
 		ImGui::SetNextWindowSize(m_state.scene_display_rect);
 
-		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
+		if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 			ImVec2 prev_curs_pos = ImGui::GetCursorPos();
 			ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 			//ImGui::Image((ImTextureID)m_render_graph.GetRenderpass<SSAOPass>()->GetSSAOTex().GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
@@ -606,11 +744,9 @@ namespace ORNG {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
 
-		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
 		ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, m_res.toolbar_height)));
 		ImGui::SetNextWindowSize(ImVec2(RIGHT_WINDOW_WIDTH, Window::GetHeight() - m_res.toolbar_height));
-		ImGui::SetNextWindowViewport(ImGui::GetMainViewport()->ID);
-		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | 
+		if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration)) {
 			RenderSceneGraph();
 			DisplayEntityEditor();
@@ -717,7 +853,7 @@ namespace ORNG {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		if (m_state.simulate_mode_active) {
+		if (m_state.simulate_mode_active) { // Render fullscreen image
 			Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, m_res.p_scene_display_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 			Renderer::DrawQuad();
@@ -1113,17 +1249,19 @@ namespace ORNG {
 			if (SCENE->m_is_loaded)
 				SCENE->UnloadScene();
 
-			SCENE->AddSystem(new CameraSystem{ SCENE });
-			SCENE->AddSystem(new EnvMapSystem{ SCENE });
-			SCENE->AddSystem(new AudioSystem{ SCENE });
-			SCENE->AddSystem(new PointlightSystem{ SCENE });
-			SCENE->AddSystem(new SpotlightSystem{ SCENE });
-			SCENE->AddSystem(new ParticleSystem{ SCENE });
-			SCENE->AddSystem(new PhysicsSystem{ SCENE });
-			SCENE->AddSystem(new TransformHierarchySystem{ SCENE });
-			SCENE->AddSystem(new SceneUBOSystem{ SCENE });
-			SCENE->AddSystem(new ScriptSystem{ SCENE });
-			SCENE->AddSystem(new MeshInstancingSystem{ SCENE });
+
+			SCENE->AddSystem(new CameraSystem{ SCENE }, 0);
+			SCENE->AddSystem(new EnvMapSystem{ SCENE }, 1000);
+			SCENE->AddSystem(new AudioSystem{ SCENE }, 2000);
+			SCENE->AddSystem(new PointlightSystem{ SCENE }, 3000);
+			SCENE->AddSystem(new SpotlightSystem{ SCENE }, 4000);
+			SCENE->AddSystem(new ParticleSystem{ SCENE }, 5000);
+			SCENE->AddSystem(new PhysicsSystem{ SCENE }, 6000);
+			SCENE->AddSystem(new TransformHierarchySystem{ SCENE }, 7000);
+			if (m_state.use_vr_in_simulation)  SCENE->AddSystem(new VrSystem{SCENE, *m_state.p_vr}, 7999);
+			SCENE->AddSystem(new ScriptSystem{ SCENE }, 8000);
+			SCENE->AddSystem(new SceneUBOSystem{ SCENE }, 9000);
+			SCENE->AddSystem(new MeshInstancingSystem{ SCENE }, 10000);
 
 			AssetManager::ClearAll();
 			AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
@@ -1132,7 +1270,7 @@ namespace ORNG {
 
 			// Reinitialize with new scene system resources
 			m_render_graph.Reset();
-			InitRenderGraph();
+			InitRenderGraph(m_state.use_vr_in_simulation);
 
 			mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 			auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -1496,7 +1634,7 @@ namespace ORNG {
 		std::function<void(glm::vec3, float, glm::vec3)> p_rot_about_point_func = [this](glm::vec3 axis, float angle_degrees, glm::vec3 pivot) {
 			TRANSFORM_LUA_SKELETON(
 				glm::quat q = glm::angleAxis(glm::radians(angle_degrees), axis);
-				glm::vec3 offset_pos = std::get<0>(p_transform->GetAbsoluteTransforms()) - pivot;
+				glm::vec3 offset_pos = p_transform->GetAbsPosition() - pivot;
 				p_transform->SetAbsolutePosition(q * offset_pos + pivot);
 				p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))))
 				);
@@ -1635,7 +1773,7 @@ namespace ORNG {
 
 		for (auto [entity, phys, transform] : SCENE->m_registry.view<PhysicsComponent, TransformComponent>().each()) {
 			if (phys.m_geometry_type == PhysicsComponent::SPHERE) {
-				auto [t, s, r] = transform.GetAbsoluteTransforms();
+				glm::vec3 s = transform.GetAbsScale();
 				auto sf = ((PxSphereGeometry*)&phys.p_shape->getGeometry())->radius;
 				glm::mat4 m;
 				glm::mat4x4 rot_mat = ExtraMath::Init3DRotateTransform(transform.m_orientation.x, transform.m_orientation.y, transform.m_orientation.z);
@@ -2618,7 +2756,7 @@ namespace ORNG {
 		}
 
 		glm::vec3 matrix_translation = transforms[0]->m_pos;
-		glm::vec3 matrix_rotation = transforms[0]->m_orientation;
+		glm::vec3 matrix_rotation = transforms[0]->GetOrientation();
 		glm::vec3 matrix_scale = transforms[0]->m_scale;
 
 		// UI section
@@ -2672,7 +2810,7 @@ namespace ORNG {
 			ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
 			// The origin of the transform (rotate about this point)
-			auto [base_abs_translation, base_abs_scale, base_abs_orientation] = transforms[0]->GetAbsoluteTransforms();
+			glm::vec3 base_abs_translation = transforms[0]->GetAbsPosition();
 
 			glm::vec3 delta_translation = matrix_translation;
 			glm::vec3 delta_scale = matrix_scale;
@@ -2698,11 +2836,11 @@ namespace ORNG {
 
 						glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * rot;
 						glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
-						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * glm::quat(glm::radians(p_transform->m_orientation)));
+						glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * p_transform->m_orientation);
 						p_transform->SetOrientation(glm::degrees(total));
 					}
 					else {
-						auto orientation = glm::degrees(glm::eulerAngles(glm::quat(glm::radians(delta_rotation)) * glm::quat(glm::radians(p_transform->m_orientation))));
+						auto orientation = glm::degrees(glm::eulerAngles(glm::quat(glm::radians(delta_rotation)) * p_transform->m_orientation));
 						p_transform->SetOrientation(orientation.x, orientation.y, orientation.z);
 					}
 

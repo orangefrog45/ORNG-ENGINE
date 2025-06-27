@@ -56,9 +56,9 @@ namespace ORNG {
 		static auto& GetRingbufferSink() { return s_ringbuffer_sink; };
 		static void OnLog(LogEvent::Type type);
 	private:
-		inline static std::shared_ptr<spdlog::logger> s_core_logger = nullptr;
-		inline static std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> s_ringbuffer_sink = nullptr;
-		inline static std::shared_ptr<spdlog::sinks::basic_file_sink_mt> s_file_sink = nullptr;
+		static std::shared_ptr<spdlog::logger> s_core_logger;
+		static std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> s_ringbuffer_sink;
+		static std::shared_ptr<spdlog::sinks::basic_file_sink_mt> s_file_sink;
 	};
 
 }
