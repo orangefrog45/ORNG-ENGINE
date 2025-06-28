@@ -35,9 +35,20 @@ namespace ORNG::Events {
 
 	struct EngineCoreEvent : public Event {
 		enum EventType {
-			INVALID_TYPE = 0,
-			ENGINE_RENDER = 1,
-			ENGINE_UPDATE = 2,
+			FRAME_START,
+
+			BEFORE_RENDER,
+			RENDER,
+			POST_RENDER,
+
+			BEFORE_UPDATE,
+			UPDATE,
+			POST_UPDATE,
+
+			FRAME_END,
+
+			// Dispatching this event will stop the main engine loop, provided the Application class has been used as the entry point
+			REQUEST_TERMINATE,
 		} event_type;
 	};
 

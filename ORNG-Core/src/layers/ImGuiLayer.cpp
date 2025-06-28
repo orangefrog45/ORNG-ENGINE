@@ -3,6 +3,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <glfw/glfw3.h>
+#include <util/ExtraUI.h>
+
 #include "implot.h"
 #include "core/Window.h"
 #include "core/FrameTiming.h"
@@ -25,6 +27,7 @@ namespace ORNG {
 	}
 
 	void ImGuiLayer::Update() {
+		ExtraUI::OnUpdate();
 		if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed('u')) {
 			m_render_debug = !m_render_debug;
 		}

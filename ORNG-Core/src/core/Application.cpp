@@ -77,20 +77,25 @@ void Application::Init(const ApplicationData& data) {
 	layer_stack.Init();
 	ORNG_CORE_INFO("Layers initialized, beginning main loop");
 
-	Events::EngineCoreEvent render_event{};
-	render_event.event_type = Events::EngineCoreEvent::ENGINE_RENDER;
+	bool running = true;
 
-	Events::EngineCoreEvent update_event{};
-	update_event.event_type = Events::EngineCoreEvent::ENGINE_UPDATE;
+	Events::EventListener<Events::EngineCoreEvent> termination_listener{};
+	termination_listener.OnEvent = [&](const Events::EngineCoreEvent& _event) {
+		if (_event.event_type == Events::EngineCoreEvent::REQUEST_TERMINATE) running = false;
+	};
+	Events::EventManager::RegisterListener(termination_listener);
 
 	// Engine loop
-	while (!glfwWindowShouldClose(window)) {
+	while (running && !glfwWindowShouldClose(window)) {
 		glfwPollEvents();
-
-		Events::EventManager::DispatchEvent(update_event);
-		ExtraUI::OnUpdate(); // TODO: get this out of here
-			
-		Events::EventManager::DispatchEvent(render_event);
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::FRAME_START});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::BEFORE_UPDATE});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::UPDATE});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::POST_UPDATE});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::BEFORE_RENDER});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::RENDER});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::POST_RENDER});
+		Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::FRAME_END});
 
 		glfwSwapBuffers(window);
 
@@ -100,6 +105,8 @@ void Application::Init(const ApplicationData& data) {
 		FrameTiming::Update();
 		Window::Update(); // Window must update last for input state to be valid
 	}
+
+	Events::EventManager::DeregisterListener(termination_listener.GetRegisterID());
 
 	// Cleanup
 	Shutdown();	

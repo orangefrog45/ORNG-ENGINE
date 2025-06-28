@@ -161,7 +161,7 @@ void RuntimeLayer::Update() {
 		if (session_state == XR_SESSION_STATE_EXITING || session_state == XR_SESSION_STATE_LOSS_PENDING ||
 			session_state == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
 			ORNG_CORE_ERROR("Runtime exited due to VR instance loss or session exit.");
-			// TODO: kill runtime
+			Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::REQUEST_TERMINATE});
 			} else {
 				m_xr_frame_state = mp_vr->BeginFrame();
 				mp_vr->input.PollActions(m_xr_frame_state.predictedDisplayTime);
