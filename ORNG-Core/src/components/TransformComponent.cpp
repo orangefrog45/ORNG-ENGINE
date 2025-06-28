@@ -42,12 +42,16 @@ namespace ORNG {
 		if (m_is_absolute)
 			return;
 
+		glm::quat accumulated_parent_rotation = glm::quat{1.0f, 0.0f, 0.0f, 0.0f};
+
 		while (p_parent_transform) {
-			m_abs_orientation += p_parent_transform->m_orientation;
+			accumulated_parent_rotation = accumulated_parent_rotation * p_parent_transform->m_orientation;
 			m_abs_scale *= p_parent_transform->m_scale;
 
 			p_parent_transform = p_parent_transform->GetParent();
 		}
+
+		m_abs_orientation = accumulated_parent_rotation * m_orientation;
 	}
 
 
@@ -63,10 +67,11 @@ namespace ORNG {
 
 	void TransformComponent::RebuildMatrix(UpdateType type) {
 		//ORNG_TRACY_PROFILE;
+		UpdateAbsTransforms();
 
 		auto* p_parent = GetParent();
 		if (m_is_absolute || !p_parent) {
-			m_transform = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
+			m_transform = glm::mat4_cast(m_abs_orientation);
 
 			forward = glm::normalize(glm::vec3(-m_transform[2][0], -m_transform[2][1], -m_transform[2][2]));
 			right = glm::normalize(glm::vec3(m_transform[0][0], m_transform[0][1], m_transform[0][2]));
@@ -95,7 +100,8 @@ namespace ORNG {
 			glm::vec3 total_scale = m_scale * p_s;
 			glm::vec3 inv_scale{ p_s.y * p_s.z * inv_parent_scale_det, p_s.x * p_s.z * inv_parent_scale_det, p_s.y * p_s.x * inv_parent_scale_det };
 
-			m_transform = ExtraMath::Init3DRotateTransform(m_orientation.x, m_orientation.y, m_orientation.z);
+			m_transform = glm::mat4_cast(m_orientation);
+;
 			// Apply total_scale whilst undoing parent scaling transforms to prevent shearing
 			m_transform[0][0] *= total_scale.x * inv_scale.x;
 			m_transform[0][1] *= total_scale.x * inv_scale.y;
@@ -116,14 +122,12 @@ namespace ORNG {
 
 			m_transform = p_parent->GetMatrix() * m_transform;
 
-			glm::quat orientation_quat = glm::quat{ glm::radians(m_abs_orientation) };
-			forward = orientation_quat * glm::vec3{ 0.f, 0.f, -1.f };
-			right = orientation_quat * glm::vec3{ 1.f, 0.f, 0.f };
-			up = orientation_quat * glm::vec3{ 0.f, 1.f, 0.f };
+			forward = m_abs_orientation * glm::vec3{ 0.f, 0.f, -1.f };
+			right = m_abs_orientation * glm::vec3{ 1.f, 0.f, 0.f };
+			up = m_abs_orientation * glm::vec3{ 0.f, 1.f, 0.f };
 		}
 
-
-		UpdateAbsTransforms();
+		m_abs_pos = glm::vec3(m_transform[3][0], m_transform[3][1], m_transform[3][2]);
 
 		if (GetEntity()) {
 			Events::ECS_Event<TransformComponent> e_event{ Events::ECS_EventType::COMP_UPDATED, this, type };

@@ -11,6 +11,7 @@
 #include "util/LoggerUI.h"
 #include "components/PhysicsComponent.h"
 #include "components/VehicleComponent.h"
+#include "VRlib/core/headers/VR.h"
 
 
 namespace physx {
@@ -61,10 +62,7 @@ namespace ORNG {
 
 		void OnImGuiRender() override { RenderUI(); };
 
-		void OnRender() override {
-			RenderDisplayWindow(); 
-			if (m_state.simulate_mode_active) mp_scene_context->OnRender();
-		};
+		void OnRender() override;
 
 		void OnShutdown() override;
 
@@ -72,12 +70,14 @@ namespace ORNG {
 			Editor UI and rendering
 		*/
 
-		void InitRenderGraph();
+		void InitRenderGraph(bool use_vr);
 
 		void InitImGui();
 
 		// Window containing the actual rendered scene
 		void RenderDisplayWindow();
+
+		void RenderToVrTargets();
 
 		void RenderToolbar();
 
@@ -104,6 +104,7 @@ namespace ORNG {
 
 		// Outputs an ordered list of entities with their children depending on if their nodes are opened or not.
 		void GetEntityGraph(std::vector<EntityNodeEntry>& output);
+
 		void PushEntityIntoGraph(SceneEntity* p_entity, std::vector<EditorLayer::EntityNodeEntry>& output, unsigned depth);
 
 		void DisplayEntityEditor();
@@ -147,7 +148,17 @@ namespace ORNG {
 
 		void BeginPlayScene();
 
+		void InitVrForSimulationMode();
+
 		void EndPlayScene();
+
+		void ShutdownVrForSimulationMode();
+
+		void SetVrMode(bool use_vr);
+
+		void SaveProject();
+
+		void OpenLoadProjectMenu();
 
 		/*
 			Misc modifiers
@@ -219,6 +230,11 @@ namespace ORNG {
 
 		void BuildGameFromActiveProject();
 
+		void SerializeProjectToFile(const std::string& output_path);
+
+		void DeserializeProjectFromFile(const std::string& input_path);
+
+		void GenerateGameRuntimeSettings(const std::string& output_path);
 		/*
 			Misc
 		*/
@@ -245,6 +261,13 @@ namespace ORNG {
 			bool selected_entities_are_dragged = false;
 			bool item_selected_this_frame = false;
 
+			// Changes render targets to VR render targets during simulation mode
+			// Editor is still visible on PC screen, but the scene is rendered to the headset display
+			bool use_vr_in_simulation = false;
+			std::unique_ptr<vrlib::VR> p_vr = nullptr;
+			std::unique_ptr<Framebuffer> p_vr_framebuffer = nullptr;
+			XrFrameState xr_frame_state;
+
 			std::vector<uint64_t> selected_entity_ids;
 			std::vector<uint64_t> open_tree_nodes_entities;
 
@@ -268,8 +291,13 @@ namespace ORNG {
 		};
 
 		struct EditorResources {
-			Texture2DSpec color_render_texture_spec; // Texture spec for rendering the scene
+			// Texture spec for rendering the scene
+			Texture2DSpec colour_render_texture_spec;
 			std::unique_ptr<Texture2D> p_scene_display_texture{ nullptr };
+
+			// This texture and spec is used instead of the ones above if VR is active, as VR rendering will require a different resolution
+			Texture2DSpec vr_colour_render_texture_spec;
+			std::unique_ptr<Texture2D> p_vr_scene_display_texture{ nullptr };
 
 			std::unique_ptr<GridMesh> grid_mesh = nullptr;
 
@@ -320,7 +348,7 @@ namespace ORNG {
 		const std::string m_start_filepath;
 	};
 
-#define ORNG_BASE_SCENE_YAML R"(Scene: Untitled scene
+constexpr const char* ORNG_BASE_SCENE_YAML =  R"(Scene: Untitled scene
 Entities:
   []
 DirLight:
@@ -344,7 +372,14 @@ Fog:
 Bloom:
   Intensity: 0.333000004
   Knee: 0.100000001
-  Threshold: 1)"
+  Threshold: 1)";
+
+constexpr const char* ORNG_BASE_EDITOR_PROJECT_YAML = R"(
+CamPos: [0, 0, 0]
+CamFwd: [-0, -0, -1]
+VR enabled: false
+Active scene path: scene.yml
+)";
 }
 
 #undef SCENE

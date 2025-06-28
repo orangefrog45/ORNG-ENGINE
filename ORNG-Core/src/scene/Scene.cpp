@@ -34,7 +34,7 @@ namespace ORNG {
 	void Scene::Update(float ts) {
 		m_time_elapsed += ts;
 
-		for (auto [id, p_system] : systems) {
+		for (auto [p_system, _] : m_systems_with_priority) {
 			p_system->OnUpdate();
 		}
 		
@@ -383,7 +383,7 @@ namespace ORNG {
 		RegisterComponent<ParticleEmitterComponent>();
 		RegisterComponent<ParticleBufferComponent>();
 
-		for (auto [id, p_sys] : systems) {
+		for (auto [p_sys, _] : m_systems_with_priority) {
 			p_sys->OnLoad();
 		}
 
@@ -407,13 +407,15 @@ namespace ORNG {
 			DeleteEntity(m_entities[0]);
 		}
 
-		for (auto [id, p_sys] : systems) {
+		for (auto [p_sys, _] : m_systems_with_priority) {
 			p_sys->OnUnload();
 			delete p_sys;
 		}
+		m_systems_with_priority.clear();
 		systems.clear();
 
 		Events::EventManager::DeregisterListener(m_hierarchy_modification_listener.GetRegisterID());
+		Events::EventManager::DeregisterListener(m_uuid_change_listener.GetRegisterID());
 
 		m_entities.clear();
 		m_root_entities.clear();

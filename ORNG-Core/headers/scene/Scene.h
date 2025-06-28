@@ -35,17 +35,39 @@ namespace ORNG {
 		void Start();
 
 		// Adds a system to be managed by this scene, should be a heap-allocated ptr to the system
-		// Memory for the system is freed when the scene is deleted
+		// Memory for the system is freed when the scene is deleted or the system is removed
+		// Systems are loaded, updated, and unloaded in ascending order of priority
 		template<typename SystemType>
-		SystemType* AddSystem(SystemType* p_system) {
+		SystemType* AddSystem(SystemType* p_system, int priority) {
 			ASSERT(!systems.contains(SystemType::GetSystemUUID()));
 			systems[SystemType::GetSystemUUID()] = p_system;
+
+			auto it = m_systems_with_priority.begin();
+			for (it; it != m_systems_with_priority.end();) {
+				if (it->second > priority) break;
+				++it;
+			}
+
+			m_systems_with_priority.insert(it, std::make_pair(p_system, priority));
+
 			return p_system;
 		}
 
 		template<typename SystemType> 
 		bool HasSystem() {
 			return systems.contains(SystemType::GetSystemUUID());
+		}
+
+		template<typename SystemType>
+		void RemoveSystem() {
+			ASSERT(systems.contains(SystemType::GetSystemUUID()));
+			auto* p_sys = systems[SystemType::GetSystemUUID()];
+
+			auto it = std::ranges::find_if(m_systems_with_priority, [p_sys](const auto& pair) {return pair.first == p_sys;});
+			m_systems_with_priority.erase(it);
+
+			delete systems[SystemType::GetSystemUUID()];
+			systems.erase(SystemType::GetSystemUUID());
 		}
 
 		template<typename SystemType>
@@ -148,7 +170,7 @@ namespace ORNG {
 		PostProcessingSettings post_processing;
 		DirectionalLight directional_light;
 
-		std::unordered_map<uint16_t, ComponentSystem*> systems;
+		std::unordered_map<uint64_t, ComponentSystem*> systems;
 		std::unordered_map<uint64_t, SceneEntity*> m_entity_uuid_lookup;
 		
 		// This points to the default render graph in-engine being used to render the scene
@@ -157,6 +179,8 @@ namespace ORNG {
 			return mp_render_graph;
 		}
 	private:
+		std::vector<std::pair<ComponentSystem*, int>> m_systems_with_priority;
+
 		// Set externally by either editor or runtime layer
 		RenderGraph* mp_render_graph = nullptr;
 

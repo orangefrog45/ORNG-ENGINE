@@ -16,7 +16,7 @@ namespace ORNG {
 
 		// Each frame, check if any meshes have finished loading vertex data and load them into GPU if they have
 		m_update_listener.OnEvent = [this](const Events::EngineCoreEvent& t_event) {
-			if (t_event.event_type != Events::EngineCoreEvent::EventType::ENGINE_UPDATE) return;
+			if (t_event.event_type != Events::EngineCoreEvent::EventType::UPDATE) return;
 			serializer.ProcessAssetQueues();
 			};
 

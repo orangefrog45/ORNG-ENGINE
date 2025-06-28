@@ -29,9 +29,9 @@ namespace ORNG {
 	void AssetManagerWindow::InitPreviewScene() {
 		mp_preview_scene = std::make_unique<Scene>();
 
-		mp_preview_scene->AddSystem(new MeshInstancingSystem(&*mp_preview_scene))->OnLoad();
-		mp_preview_scene->AddSystem(new CameraSystem(&*mp_preview_scene))->OnLoad();
-		mp_preview_scene->AddSystem(new EnvMapSystem(&*mp_preview_scene)); // Don't load this as the serialization hooks will intefere with the main scene
+		mp_preview_scene->AddSystem(new MeshInstancingSystem(&*mp_preview_scene), 0)->OnLoad();
+		mp_preview_scene->AddSystem(new CameraSystem(&*mp_preview_scene), 1)->OnLoad();
+		mp_preview_scene->AddSystem(new EnvMapSystem(&*mp_preview_scene), 2); // Don't load this as the serialization hooks will intefere with the main scene
 		auto& env_map_system = mp_preview_scene->GetSystem<EnvMapSystem>();
 		env_map_system.skybox.using_env_map = true;
 		env_map_system.LoadSkyboxFromHDRFile(GetApplicationExecutableDirectory() + "/res/textures/preview-sky.hdr", 512);

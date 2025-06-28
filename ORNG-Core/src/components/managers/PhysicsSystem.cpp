@@ -924,11 +924,10 @@ namespace ORNG {
 		PxQuatT phys_rot = pose.q;
 
 		glm::quat phys_quat = glm::quat(phys_rot.w, phys_rot.x, phys_rot.y, phys_rot.z);
-		glm::vec3 orientation = glm::degrees(glm::eulerAngles(phys_quat));
 
 		// Only set orientation from normal rigid bodies (character controllers causing bugs)
 		if (type == PhysicsSystem::ActorType::RIGID_BODY) [[likely]]
-			transform.m_orientation = orientation - (transform.m_abs_orientation - transform.m_orientation);
+			transform.SetAbsOrientationQuat(phys_quat);
 
 		transform.SetAbsolutePosition(glm::vec3(phys_pos.x, phys_pos.y, phys_pos.z));
 	}
@@ -944,11 +943,11 @@ namespace ORNG {
 
 		m_accumulator += ts;
 
-		if (m_accumulator < m_step_size * 1000.f)
+		if (m_accumulator < step_size * 1000.f)
 			return;
 
 		for (auto [entity, vehicle, transform] : reg.view<VehicleComponent, TransformComponent>().each()) {
-			vehicle.m_vehicle.step(m_step_size, m_vehicle_context);
+			vehicle.m_vehicle.step(step_size, m_vehicle_context);
 			PxShape* shape[1];
 			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shape[0], 1);
 
@@ -958,7 +957,7 @@ namespace ORNG {
 		}
 
 		m_accumulator = 0;
-		mp_phys_scene->simulate(m_step_size);
+		mp_phys_scene->simulate(step_size);
 		mp_phys_scene->fetchResults(true);
 		PxU32 num_active_actors;
 		PxActor** active_actors = mp_phys_scene->getActiveActors(num_active_actors);

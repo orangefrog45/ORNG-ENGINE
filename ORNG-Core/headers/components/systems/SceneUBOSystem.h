@@ -12,9 +12,11 @@ namespace ORNG {
 
 		void UpdateVoxelAlignedPositions(const std::array<glm::vec3, 2>& positions);
 		inline static constexpr uint64_t GetSystemUUID() { return 8289371920347454239; }
+
+		void UpdateMatrixUBO(glm::mat4* p_proj = nullptr, glm::mat4* p_view = nullptr);
+
 	private:
 		void UpdateCommonUBO();
-		void UpdateMatrixUBO();
 		void UpdateGlobalLightingUBO();
 
 		UBO m_matrix_ubo{ true, 0 };

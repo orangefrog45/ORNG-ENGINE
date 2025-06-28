@@ -13,9 +13,6 @@
 [submodule "ORNG-Core/extern/yaml"]
 	path = ORNG-Core/extern/yaml
 	url = https://github.com/jbeder/yaml-cpp
-[submodule "ORNG-Core/extern/imgui"]
-	path = ORNG-Core/extern/imgui
-	url = https://github.com/orangefrog45/imgui
 [submodule "ORNG-Editor/extern/imguizmo"]
 	path = ORNG-Editor/extern/imguizmo
 	url = https://github.com/orangefrog45/ImGuizmo
@@ -46,3 +43,9 @@
 [submodule "ORNG-Editor/extern/sol2"]
 	path = ORNG-Editor/extern/sol2
 	url = https://github.com/ThePhD/sol2
+[submodule "ORNG-Core/extern/imgui"]
+	path = ORNG-Core/extern/imgui
+	url = https://github.com/orangefrog45/imgui
+[submodule "ORNG-Core/extern/VRlib"]
+	path = ORNG-Core/extern/VRlib
+	url = https://github.com/orangefrog45/VRlib

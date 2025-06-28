@@ -24,12 +24,10 @@ namespace ORNG {
 	class Framebuffer;
 
 	inline static physx::PxTransform TransformComponentToPxTransform(TransformComponent& t) {
-		auto [p, s, r] = t.GetAbsoluteTransforms();
-		glm::quat n_quat{ glm::radians(r)};
+		glm::vec3 p = t.GetAbsPosition();
+		glm::quat r = t.GetAbsOrientationQuat();
 
-		physx::PxQuat n_px_quat{ n_quat.x, n_quat.y, n_quat.z, n_quat.w };
-
-		return { ConvertVec3<physx::PxVec3>(p), n_px_quat};
+		return { ConvertVec3<physx::PxVec3>(p), physx::PxQuat{ r.x, r.y, r.z, r.w }};
 	}
 
 	class Physics {

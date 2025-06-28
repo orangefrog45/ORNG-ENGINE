@@ -3,6 +3,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <glfw/glfw3.h>
+#include <util/ExtraUI.h>
+
 #include "implot.h"
 #include "core/Window.h"
 #include "core/FrameTiming.h"
@@ -16,21 +18,16 @@ namespace ORNG {
 		ImGui::CreateContext();
 		ImPlot::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 		ImGuiStyle& style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			style.WindowRounding = 0.0f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-		}
 
 		ImGui_ImplGlfw_InitForOpenGL(Window::GetGLFWwindow(), true);
 		ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 	}
 
 	void ImGuiLayer::Update() {
+		ExtraUI::OnUpdate();
 		if (Window::Get().input.IsKeyDown(Key::LeftControl) && Window::Get().input.IsKeyPressed('u')) {
 			m_render_debug = !m_render_debug;
 		}
@@ -94,14 +91,6 @@ namespace ORNG {
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow* backup_current_context = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		}
 	}
 
 

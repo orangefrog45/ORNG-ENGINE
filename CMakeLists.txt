@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 # If you want to treat this as a dependency and just link against the core ORNG library, look at the ./ORNG-Core/CMakeLists.txt file instead.
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -31,12 +31,12 @@ add_subdirectory("ORNG-Runtime")
 
 # EXTERNAL PROJECTS NOT IN ENGINE REPO - COMMENT OUT IF CAUSING ERRORS
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/Game")
-project(FRACTAL_GAME)
-project(HW_MONITOR)
-project(PHYS_GAME)
-add_subdirectory("Game")
-add_subdirectory("HW-Monitor")
-add_subdirectory("PhysicsGame")
+#project(FRACTAL_GAME)
+#project(HW_MONITOR)
+#project(PHYS_GAME)
+#add_subdirectory("Game")
+#add_subdirectory("HW-Monitor")
+#add_subdirectory("PhysicsGame")
 endif()
 
 

@@ -116,6 +116,7 @@ set(ORNG_LIB_SOURCES
 
 	src/misc/LoggerUI.cpp
 	src/misc/ExtraUI.cpp
+		headers/components/systems/VrSystem.h
 )
 
 
@@ -151,6 +152,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/VRlib)
 
 option(TRACY_ENABLE "" OFF)
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
@@ -164,7 +166,7 @@ extern/glfw/include
 
 find_package(OpenGL REQUIRED)
 
-set(ORNG_CORE_INCLUDE_DIRS 
+set(ORNG_CORE_INCLUDE_DIRS
 	${CMAKE_CURRENT_LIST_DIR}/extern/spdlog/include
 	${CMAKE_CURRENT_LIST_DIR}/extern/assimp/include
 	${CMAKE_CURRENT_LIST_DIR}/extern/assimp/build/include
@@ -183,6 +185,7 @@ set(ORNG_CORE_INCLUDE_DIRS
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
 	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
 	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include/physx
+	${VR-CORE-INCLUDES}
 	CACHE STRING "" FORCE
 )
 
@@ -207,6 +210,7 @@ if (ORNG_BUILD_CORE)
 	spdlog::spdlog_header_only
 	${ASSIMP_LIBRARY}
 	Tracy::TracyClient
+	VR-CORE
 	)
 	target_precompile_headers(ORNG_CORE PUBLIC headers/pch/pch.h)
 endif()
@@ -275,14 +279,13 @@ elseif(NOT CMAKE_BUILD_TYPE MATCHES Debug)
     message(FATAL_ERROR "Only debug and release builds are supported")
 endif()
 
-
 if (ORNG_BUILD_CORE)
 	target_compile_definitions(ORNG_CORE PUBLIC
 	ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
 	ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
 	GLM_ENABLE_EXPERIMENTAL
-	ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
-	ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
+	ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_BINARY_DIR}/../debug"
+	ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_BINARY_DIR}/../release"
 	)
 endif()
 
@@ -290,24 +293,9 @@ target_compile_definitions(ORNG_RENDERING PUBLIC
 	ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
 	ORNG_CORE_LIB_DIR="${CMAKE_BINARY_DIR}/ORNG-Core/"
 	GLM_ENABLE_EXPERIMENTAL
-	ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Debug/"
-	ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_SOURCE_DIR}/out/build/x64-Release/"
+	ORNG_CORE_DEBUG_BINARY_DIR="${CMAKE_BINARY_DIR}/../debug"
+	ORNG_CORE_RELEASE_BINARY_DIR="${CMAKE_BINARY_DIR}/../release"
 )
-
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set_target_properties(${SCRIPT_TARGETS} PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
-	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
-	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Debug/ORNG-Core"
-	)
-else()
-	set_target_properties(${SCRIPT_TARGETS} PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
-	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
-	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/out/build/x64-Release/ORNG-Core"
-	)
-endif()
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/res/core-res")
 

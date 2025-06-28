@@ -37,7 +37,7 @@ void PostProcessPass::DoPass() {
 	//DoBloomPass(p_output_tex, spec.width, spec.height, mp_scene);
 
 	m_post_process_shader.ActivateProgram();
-	m_post_process_shader.SetUniform("exposure", p_cam->exposure);
+	m_post_process_shader.SetUniform("exposure", p_cam ? p_cam->exposure : 1.f);
 	m_post_process_shader.SetUniform("u_bloom_intensity", mp_scene->post_processing.bloom.intensity);
 	m_post_process_shader.SetUniform("u_fog_enabled", mp_fog_tex && mp_scene->post_processing.global_fog.density_coef >= 0.001f && mp_scene->post_processing.global_fog.step_count != 0);
 	

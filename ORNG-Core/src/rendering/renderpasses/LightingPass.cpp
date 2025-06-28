@@ -21,7 +21,7 @@ void LightingPass::Init() {
 	mp_scene = mp_graph->GetData<Scene>("Scene");
 	m_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/LightingCS.glsl");
 	m_shader.Init();
-	m_shader.AddUniform("u_ibl_active");
+	m_shader.AddUniforms("u_ibl_active", "u_ssao_active");
 
 	mp_output_tex = mp_graph->GetData<Texture2D>("OutCol");
 	if (auto* p_voxel_pass = mp_graph->GetRenderpass<VoxelPass>()) {
@@ -73,7 +73,14 @@ void LightingPass::DoPass() {
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_gbf_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_gbf_shader_id_tex->GetTextureHandle(), GL_StateManager::TextureUnits::SHADER_IDS, false);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_gbf_rma_tex->GetTextureHandle(), GL_StateManager::TextureUnits::ROUGHNESS_METALLIC_AO, false);
-	GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_graph->GetRenderpass<SSAOPass>()->GetSSAOTex().GetTextureHandle(), GL_TEXTURE27, false);
+
+	if (auto* p_ssao_pass = mp_graph->GetRenderpass<SSAOPass>()) {
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_ssao_pass->GetSSAOTex().GetTextureHandle(), GL_TEXTURE27, false);
+		m_shader.SetUniform("u_using_ssao", true);
+	} else {
+		m_shader.SetUniform("u_using_ssao", false);
+	}
+
 	GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, mp_pointlight_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::POINTLIGHT_DEPTH, false);
 	//GL_StateManager::BindTexture(GL_TEXTURE_2D, m_blue_noise_tex.GetTextureHandle(), GL_StateManager::TextureUnits::BLUE_NOISE, false);
 
