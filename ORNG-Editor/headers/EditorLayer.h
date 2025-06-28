@@ -148,9 +148,17 @@ namespace ORNG {
 
 		void BeginPlayScene();
 
+		void InitVrForSimulationMode();
+
 		void EndPlayScene();
 
-		void SetVrRenderMode(bool use_vr);
+		void ShutdownVrForSimulationMode();
+
+		void SetVrMode(bool use_vr);
+
+		void SaveProject();
+
+		void OpenLoadProjectMenu();
 
 		/*
 			Misc modifiers
@@ -221,6 +229,10 @@ namespace ORNG {
 		bool MakeProjectActive(const std::string& folder_path);
 
 		void BuildGameFromActiveProject();
+
+		void SerializeProjectToFile(const std::string& output_path);
+
+		void DeserializeProjectFromFile(const std::string& input_path);
 
 		/*
 			Misc
@@ -334,7 +346,7 @@ namespace ORNG {
 		const std::string m_start_filepath;
 	};
 
-#define ORNG_BASE_SCENE_YAML R"(Scene: Untitled scene
+constexpr const char* ORNG_BASE_SCENE_YAML =  R"(Scene: Untitled scene
 Entities:
   []
 DirLight:
@@ -358,7 +370,14 @@ Fog:
 Bloom:
   Intensity: 0.333000004
   Knee: 0.100000001
-  Threshold: 1)"
+  Threshold: 1)";
+
+constexpr const char* ORNG_BASE_EDITOR_PROJECT_YAML = R"(
+CamPos: [0, 0, 0]
+CamFwd: [-0, -0, -1]
+VR enabled: false
+Active scene path: scene.yml
+)";
 }
 
 #undef SCENE

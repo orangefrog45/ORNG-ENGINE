@@ -24,11 +24,13 @@ Cloning this repo recursively and opening the folder with an IDE that has CMake 
 
 ### Currently, features include:
 
-- Visual editor with a state-preserving simulation mode and lua console, uses ImGui for UI
+- Visual editor built with ImGui, with a state-preserving simulation mode and Lua console
 - Deferred physically-based 3D renderer
+- C++ scripting with hot reloading
+- VR rendering and interaction support via OpenXR in the editor and runtime
+- 3D physics using Nvidia Physx
+- Editor project serialization and full game runtime generation
 - Cascaded voxel cone traced global illumination
-- C++ scripting (supports runtime editing/reloading)
-- 3D GPU Physics using Nvidia Physx
 - GPU-driven particle system
 - Volumetric fog
 - Stable cascaded shadow maps with PCSS
@@ -37,7 +39,6 @@ Cloning this repo recursively and opening the folder with an IDE that has CMake 
 - Normal, parallax and emissive map support
 - Mesh/texture file loading and binary serialization/deserialization
 - YAML serialization of scenes
-- Editor "Projects" (saves)
 - Postprocessing such as HDR, gamma correction and bloom
 - Point/spot/directional lights with shadows
 - Auto-instancing of meshes
