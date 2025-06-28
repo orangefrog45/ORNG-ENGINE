@@ -11,6 +11,9 @@ This is a real-time windows-based 3D game engine, made with C++ and OpenGL, my f
 ### Building:
 
 Cloning this repo recursively and opening the folder with an IDE that has CMake and Vcpkg integration should allow you to build and run the core library, runtime and editor.
+To create game builds with the editor, the runtime must already be built.
+
+For scripts to be able to locate the correct binaries, your build paths must be "ORNG_ROOT/out/build/debug" and "ORNG_ROOT/out/build/release.", where ORNG_ROOT is this directory.
 
 ### Controls:
 
