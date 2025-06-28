@@ -39,6 +39,7 @@
 #include "components/systems/PhysicsSystem.h"
 #include "assets/PhysXMaterialAsset.h"
 #include <imgui/backends/imgui_impl_glfw.h>
+#include <yaml/src/scanscalar.h>
 
 #include "components/systems/VrSystem.h"
 #include "GLFW/glfw3native.h"
@@ -295,20 +296,25 @@ void EditorLayer::InitVrForSimulationMode() {
 		m_res.vr_colour_render_texture_spec.storage_type = GL_FLOAT;
 		m_res.vr_colour_render_texture_spec.mag_filter = GL_NEAREST;
 		m_res.vr_colour_render_texture_spec.min_filter = GL_NEAREST;
-		m_res.vr_colour_render_texture_spec.width = m_state.p_vr->GetViewConfigurationView(0).recommendedImageRectWidth;
-		m_res.vr_colour_render_texture_spec.height = m_state.p_vr->GetViewConfigurationView(0).recommendedImageRectHeight;
+		XrViewConfigurationView view = m_state.p_vr->GetViewConfigurationView(0);
+		m_res.vr_colour_render_texture_spec.width = view.recommendedImageRectWidth;
+		m_res.vr_colour_render_texture_spec.height = view.recommendedImageRectHeight;
 		m_res.vr_colour_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		m_res.p_vr_scene_display_texture = std::make_unique<Texture2D>("");
 		m_res.p_vr_scene_display_texture->SetSpec(m_res.vr_colour_render_texture_spec);
 
 		SCENE->AddSystem(new VrSystem(SCENE, *m_state.p_vr), 7999);
+
+		m_state.p_vr_framebuffer = std::make_unique<Framebuffer>();
+		m_state.p_vr_framebuffer->Init();
+		m_state.p_vr_framebuffer->Bind();
+		GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+		m_state.p_vr_framebuffer->EnableDrawBuffers(1, buffers);
 	} catch (std::exception& e) {
 		ORNG_CORE_ERROR("Failed to initialize VRlib, make sure your VR device is accessible to this device.");
 		ORNG_CORE_ERROR("VRlib error: {}", e.what());
 		SetVrMode(false);
-		m_state.p_vr->Shutdown();
-		m_state.p_vr = nullptr;
-		m_res.p_vr_scene_display_texture = nullptr;
+		ShutdownVrForSimulationMode();
 	}
 }
 
@@ -317,6 +323,7 @@ void EditorLayer::ShutdownVrForSimulationMode() {
 	m_state.p_vr->Shutdown();
 	m_state.p_vr = nullptr;
 	m_res.p_vr_scene_display_texture = nullptr;
+	m_state.p_vr_framebuffer = nullptr;
 }
 
 
@@ -329,11 +336,6 @@ void EditorLayer::OnShutdown() {
 	SCENE->UnloadScene();
 	m_asset_manager_window.OnShutdown();
 	m_logger_ui.Shutdown();
-
-	if (m_state.use_vr_in_simulation) {
-		m_state.p_vr->Shutdown();
-		m_state.p_vr = nullptr;
-	}
 }
 
 void EditorLayer::InitImGui() {
@@ -524,12 +526,7 @@ void EditorLayer::RenderToVrTargets() {
 
             m_render_graph.Execute();
 
-            ORNG::Framebuffer f{};
-            f.Init();
-            f.BindTexture2D(targets[i].colour_tex_handle, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-            f.Bind();
-            GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
-            f.EnableDrawBuffers(1, buffers);
+            m_state.p_vr_framebuffer->BindTexture2D(targets[i].colour_tex_handle, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 
             ORNG::GL_StateManager::BindTexture(GL_TEXTURE_2D, m_res.p_vr_scene_display_texture->GetTextureHandle(), GL_TEXTURE1);
             ORNG::Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
@@ -963,7 +960,11 @@ void EditorLayer::RenderToolbar() {
 			break;
 		}
 		case 4: {
+#ifndef _DEBUG
 			BuildGameFromActiveProject();
+#else
+			ORNG_CORE_CRITICAL("Building games is not allowed in editor debug mode, use a release build instead.");
+#endif
 			selected_component = 0;
 			break;
 		}
@@ -1088,6 +1089,14 @@ void EditorLayer::SaveProject() {
 	SerializeProjectToFile(m_state.current_project_directory + "/project.oproj");
 }
 
+void EditorLayer::GenerateGameRuntimeSettings(const std::string &output_path) {
+	YAML::Emitter emitter{};
+	emitter << YAML::BeginMap;
+	emitter << YAML::Key << "VR" << YAML::Value << m_state.use_vr_in_simulation;
+
+	WriteTextFile(output_path, emitter.c_str());
+}
+
 void EditorLayer::BuildGameFromActiveProject() {
 	// Delete old build
 	TryFileDelete("./build");
@@ -1096,6 +1105,7 @@ void EditorLayer::BuildGameFromActiveProject() {
 
 	FileCopy(m_state.current_project_directory + "/scene.yml", "build/scene.yml");
 
+	GenerateGameRuntimeSettings(m_state.current_project_directory + "/build/runtime.orts");
 	for (auto& file : std::filesystem::recursive_directory_iterator{ m_state.current_project_directory + "/res" }) {
 		auto path_str = file.path().generic_string();
 		if (path_str.find(".vs") != std::string::npos)

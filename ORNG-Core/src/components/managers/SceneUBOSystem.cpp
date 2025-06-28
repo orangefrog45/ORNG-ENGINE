@@ -36,17 +36,34 @@ void SceneUBOSystem::UpdateCommonUBO() {
 	std::byte* p_byte = data.data();
 
 	auto* p_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
-	auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-	glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
-	glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
-	glm::mat4 proj_mat = p_cam->GetProjectionMatrix();
+	glm::vec3 cam_pos{0.f, 0.f, 0.f};
+	glm::vec3 cam_fwd{0.f, 0.f, -1.f};
+	glm::vec3 cam_right{1.f, 0.f, 0.f};
+	glm::vec3 cam_up{0.f, 1.f, 0.f};
+	glm::mat4 proj_mat = glm::identity<glm::mat4>();
+	float znear = 0.01f;
+	float zfar = 1000.f;
+
+	if (p_cam) {
+		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
+		cam_fwd = p_cam_transform->forward;
+		cam_up = p_cam_transform->right;
+		cam_fwd = p_cam_transform->up;
+		cam_pos = p_cam_transform->GetAbsPosition();
+		proj_mat = p_cam->GetProjectionMatrix();
+
+		znear = p_cam->zNear;
+		zfar = p_cam->zFar;
+	}
+
+	glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + cam_fwd, cam_up);
 
 	// Any 0's are padding, all vec3 types are defined as vec4's in the shader for easier alignment.
 	ConvertToBytes(p_byte,
 		cam_pos, 0,
-		p_cam_transform->forward, 0,
-		p_cam_transform->right, 0,
-		p_cam_transform->up, 0,
+		cam_fwd, 0,
+		cam_right, 0,
+		cam_up, 0,
 		cam_pos, 0,
 		cam_pos, 0,
 		cam_pos, 0,
@@ -56,8 +73,8 @@ void SceneUBOSystem::UpdateCommonUBO() {
 		//voxel_aligned_cam_pos_c1, 0,
 		//voxel_aligned_cam_pos_c1, 0,
 		static_cast<float>(FrameTiming::GetTotalElapsedTime()),
-		p_cam->zFar,
-		p_cam->zNear,
+		zfar,
+		znear,
 		static_cast<float>(FrameTiming::GetTimeStep()),
 		mp_scene->GetTimeElapsed()
 	);
@@ -73,6 +90,7 @@ void SceneUBOSystem::UpdateVoxelAlignedPositions(const std::array<glm::vec3, 2>&
 
 void SceneUBOSystem::UpdateMatrixUBO(glm::mat4* p_proj, glm::mat4* p_view) {
 	auto* p_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
+	if (!p_cam && (!p_proj || !p_view)) return;
 	auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 
 	glm::mat4 proj = p_proj ? *p_proj : p_cam->GetProjectionMatrix();

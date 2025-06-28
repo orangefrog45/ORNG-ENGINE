@@ -234,6 +234,7 @@ namespace ORNG {
 
 		void DeserializeProjectFromFile(const std::string& input_path);
 
+		void GenerateGameRuntimeSettings(const std::string& output_path);
 		/*
 			Misc
 		*/
@@ -264,6 +265,7 @@ namespace ORNG {
 			// Editor is still visible on PC screen, but the scene is rendered to the headset display
 			bool use_vr_in_simulation = false;
 			std::unique_ptr<vrlib::VR> p_vr = nullptr;
+			std::unique_ptr<Framebuffer> p_vr_framebuffer = nullptr;
 			XrFrameState xr_frame_state;
 
 			std::vector<uint64_t> selected_entity_ids;
