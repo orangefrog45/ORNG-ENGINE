@@ -938,13 +938,19 @@ namespace ORNG {
 
 		ORNG_PROFILE_FUNC();
 		auto& reg = mp_scene->GetRegistry();
-
 		float ts = FrameTiming::GetTimeStep();
 
-		m_accumulator += ts;
+		m_accumulator += ts * 0.001f;
 
-		if (m_accumulator < step_size * 1000.f)
-			return;
+		while (m_accumulator >= step_size) {
+			Tick();
+			m_accumulator -= step_size;
+		}
+	}
+
+	void PhysicsSystem::Tick() {
+		auto& reg = mp_scene->GetRegistry();
+		float ts = FrameTiming::GetTimeStep();
 
 		for (auto [entity, vehicle, transform] : reg.view<VehicleComponent, TransformComponent>().each()) {
 			vehicle.m_vehicle.step(step_size, m_vehicle_context);
@@ -956,7 +962,6 @@ namespace ORNG {
 			mp_currently_updating_transform = nullptr;
 		}
 
-		m_accumulator = 0;
 		mp_phys_scene->simulate(step_size);
 		mp_phys_scene->fetchResults(true);
 		PxU32 num_active_actors;
@@ -1021,6 +1026,7 @@ namespace ORNG {
 		m_trigger_event_queue.reserve(size_trigger);
 		m_joints_to_break.reserve(size_broken_joints);
 	}
+
 
 
 	void PhysicsSystem::RemoveComponent(CharacterControllerComponent* p_comp) {

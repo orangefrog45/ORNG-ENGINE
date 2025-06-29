@@ -118,7 +118,7 @@ void EditorLayer::Init() {
 			if (m_state.use_vr_in_simulation && m_state.simulate_mode_active) return;
 
 			m_render_graph.Reset();
-			InitRenderGraph(false);
+			InitRenderGraph(m_render_graph, false);
 		}
 		};
 
@@ -163,31 +163,29 @@ void EditorLayer::Init() {
 
 	m_asset_manager_window.p_extern_scene = mp_scene_context;
 	m_asset_manager_window.Init();
-
-	SCENE->mp_render_graph = &m_render_graph;
 }
 
-void EditorLayer::InitRenderGraph(bool use_vr) {
-	m_render_graph.Reset();
+void EditorLayer::InitRenderGraph(RenderGraph& graph, bool use_vr) {
+	graph.Reset();
 
 	// The path is changed to force shaders to be loaded from the resources folder in the editor binary directory instead of the local project
 	// This allows easy shader hot-reloading and modification
 	std::string prev_path = std::filesystem::current_path().string();
 	std::filesystem::current_path(m_state.executable_directory);
 
-	m_render_graph.AddRenderpass<DepthPass>();
+	graph.AddRenderpass<DepthPass>();
 	//m_render_graph.AddRenderpass<VoxelPass>();
-	m_render_graph.AddRenderpass<GBufferPass>();
-	m_render_graph.AddRenderpass<SSAOPass>();
-	m_render_graph.AddRenderpass<LightingPass>();
-	m_render_graph.AddRenderpass<FogPass>();
-	m_render_graph.AddRenderpass<TransparencyPass>();
-	m_render_graph.AddRenderpass<PostProcessPass>();
-	m_render_graph.SetData("OutCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
-	m_render_graph.SetData("BloomInCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
-	m_render_graph.SetData("PPS", &SCENE->post_processing);
-	m_render_graph.SetData("Scene", SCENE);
-	m_render_graph.Init();
+	graph.AddRenderpass<GBufferPass>();
+	graph.AddRenderpass<SSAOPass>();
+	graph.AddRenderpass<LightingPass>();
+	graph.AddRenderpass<FogPass>();
+	graph.AddRenderpass<TransparencyPass>();
+	graph.AddRenderpass<PostProcessPass>();
+	graph.SetData("OutCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
+	graph.SetData("BloomInCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
+	graph.SetData("PPS", &SCENE->post_processing);
+	graph.SetData("Scene", SCENE);
+	graph.Init();
 	std::filesystem::current_path(prev_path);
 }
 
@@ -211,7 +209,8 @@ void EditorLayer::BeginPlayScene() {
 
 	if (m_state.use_vr_in_simulation) {
 		InitVrForSimulationMode();
-		InitRenderGraph(true);
+		m_state.p_vr_render_graph = std::make_unique<RenderGraph>();
+		InitRenderGraph(*m_state.p_vr_render_graph, true);
 	}
 
 	UpdateSceneDisplayRect();
@@ -240,8 +239,9 @@ void EditorLayer::EndPlayScene() {
 	SceneSerializer::DeserializeScene(*SCENE, m_state.temp_scene_serialization, false);
 
 	// Reset render graph in case scripts have changed it
-	m_render_graph.Reset();
-	InitRenderGraph(false);
+	RenderGraph& render_graph = m_state.use_vr_in_simulation ? *m_state.p_vr_render_graph.get() : m_render_graph;
+	render_graph.Reset();
+	InitRenderGraph(render_graph, false);
 
 	mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 	auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
@@ -310,6 +310,7 @@ void EditorLayer::InitVrForSimulationMode() {
 		m_state.p_vr_framebuffer->Bind();
 		GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
 		m_state.p_vr_framebuffer->EnableDrawBuffers(1, buffers);
+		SCENE->mp_render_graph = m_state.p_vr_render_graph.get();
 	} catch (std::exception& e) {
 		ORNG_CORE_ERROR("Failed to initialize VRlib, make sure your VR device is accessible to this device.");
 		ORNG_CORE_ERROR("VRlib error: {}", e.what());
@@ -324,6 +325,9 @@ void EditorLayer::ShutdownVrForSimulationMode() {
 	m_state.p_vr = nullptr;
 	m_res.p_vr_scene_display_texture = nullptr;
 	m_state.p_vr_framebuffer = nullptr;
+	m_state.p_vr_render_graph->Reset();
+	m_state.p_vr_render_graph = nullptr;
+	SCENE->mp_render_graph = &m_render_graph;
 }
 
 
@@ -498,11 +502,12 @@ void EditorLayer::Update() {
 
 void EditorLayer::OnRender() {
 	RenderDisplayWindow();
-	if (m_state.simulate_mode_active) mp_scene_context->OnRender();
 
 	if (m_state.use_vr_in_simulation && m_state.simulate_mode_active) {
 		RenderToVrTargets();
 	}
+
+	mp_scene_context->OnRender();
 };
 
 void EditorLayer::RenderToVrTargets() {
@@ -524,10 +529,9 @@ void EditorLayer::RenderToVrTargets() {
 				SCENE->GetSystem<ORNG::SceneUBOSystem>().UpdateMatrixUBO(&proj, &view);
 			}
 
-            m_render_graph.Execute();
+            m_state.p_vr_render_graph->Execute();
 
             m_state.p_vr_framebuffer->BindTexture2D(targets[i].colour_tex_handle, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
-
             ORNG::GL_StateManager::BindTexture(GL_TEXTURE_2D, m_res.p_vr_scene_display_texture->GetTextureHandle(), GL_TEXTURE1);
             ORNG::Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
             glClearColor(1.f, 0.f, 0.f, 1.f);
@@ -542,6 +546,8 @@ void EditorLayer::RenderToVrTargets() {
 	}
 
 	m_state.p_vr->EndFrame(m_state.xr_frame_state, render_layer_info);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 	void EditorLayer::MultiSelectDisplay() {
@@ -1308,7 +1314,7 @@ bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		// Reinitialize with new scene system resources
 		m_render_graph.Reset();
 		// This render graph is for the editor, not the simulation mode, so keep VR disabled
-		InitRenderGraph(false);
+		InitRenderGraph(m_render_graph, false);
 
 		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();

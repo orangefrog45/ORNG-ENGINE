@@ -70,6 +70,7 @@ ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_COREd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTILd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENEd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERINGd.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_PHYSICSd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-COREd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loaderd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imguid.lib
@@ -105,6 +106,7 @@ ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTIL.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERING.lib
+${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_PHYSICS.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loader.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imgui.lib
