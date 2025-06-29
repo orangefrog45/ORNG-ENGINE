@@ -70,7 +70,7 @@ namespace ORNG {
 			Editor UI and rendering
 		*/
 
-		void InitRenderGraph(bool use_vr);
+		void InitRenderGraph(RenderGraph& graph, bool use_vr);
 
 		void InitImGui();
 
@@ -266,6 +266,7 @@ namespace ORNG {
 			bool use_vr_in_simulation = false;
 			std::unique_ptr<vrlib::VR> p_vr = nullptr;
 			std::unique_ptr<Framebuffer> p_vr_framebuffer = nullptr;
+			std::unique_ptr<RenderGraph> p_vr_render_graph = nullptr;
 			XrFrameState xr_frame_state;
 
 			std::vector<uint64_t> selected_entity_ids;

@@ -70,6 +70,8 @@ namespace ORNG {
 		float step_size = 1.f / 90.f;
 
 	private:
+		void Tick();
+
 		static void UpdateTransformCompFromGlobalPose(const PxTransform& pose, TransformComponent& transform, PhysicsSystem::ActorType type);
 
 		void InitComponent(PhysicsComponent* p_comp);
