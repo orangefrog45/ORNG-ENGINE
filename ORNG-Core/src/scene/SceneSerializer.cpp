@@ -169,7 +169,7 @@ namespace ORNG {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
 
 			if (p_script_comp->GetSymbols())
-				out << YAML::Key << "ScriptName" << YAML::Value << (p_script_comp->GetSymbols()->loaded ? p_script_comp->GetSymbols()->script_name : "");
+				out << YAML::Key << "ScriptName" << YAML::Value << p_script_comp->GetSymbols()->script_name;
 			else 
 				out << YAML::Key << "ScriptName" << YAML::Value << "";
 

@@ -287,6 +287,10 @@ namespace ORNG {
 				}
 			}
 
+			if (ImGui::Button("Refresh script project")) {
+				ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
+			}
+
 			ExtraUI::AlphaNumTextInput(new_script_name);
 
 			if (ImGui::BeginTable("##script table", column_count)) {

@@ -98,9 +98,18 @@ namespace ORNG {
 
 		Texture2D* CreateMeshAssetTexture(const aiScene* p_scene, const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 
-		void LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts);
+		void LoadAssetsFromProjectPath(const std::string& project_dir);
 
 		void LoadMeshAssetIntoGL(MeshAsset* p_asset);
+
+		void LoadAsset(const std::string& abs_path, const std::string& rel_path);
+		void LoadTexture2DAssetFromFile(const std::string& abs_path, const std::string& rel_path);
+		void LoadMeshAssetFromFile(const std::string& abs_path, const std::string& rel_path);
+		void LoadAudioAssetFromFile(const std::string& abs_path, const std::string& rel_path);
+		void LoadMaterialAssetFromFile(const std::string& abs_path, const std::string& rel_path);
+		void LoadPrefabAssetFromFile(const std::string& abs_path, const std::string& rel_path);
+		void LoadScriptAssetFromFile(const std::string& abs_path, const std::string& rel_path);
+		void LoadPhysxAssetFromFile(const std::string& abs_path, const std::string& rel_path);
 
 		template<typename SerializerType>
 		void SerializeTexture2D(Texture2D& tex, SerializerType& ser, std::byte* p_data = nullptr, size_t data_size = 0) {

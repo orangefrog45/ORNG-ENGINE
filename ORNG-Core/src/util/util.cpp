@@ -185,10 +185,14 @@ namespace ORNG {
 	}
 
 	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension) {
-		auto extension = filepath.substr(filepath.rfind('.'));
+		std::string extension = filepath.substr(filepath.rfind('.'));
 		std::string ret = filepath;
 		StringReplace(ret, extension, new_extension);
 		return ret;
+	}
+
+	std::string GetFileExtension(const std::string& filepath) {
+		return filepath.substr(filepath.rfind('.'));;
 	}
 
 	bool WriteTextFile(const std::string& filepath, const std::string& content) {

@@ -399,141 +399,126 @@ Texture2D* AssetSerializer::CreateMeshAssetTexture(const aiScene* p_scene, const
 	return p_tex;
 }
 
-void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts) {
-	std::string texture_folder = project_dir + "\\res\\textures\\";
-	std::string mesh_folder = project_dir + "\\res\\meshes\\";
-	std::string audio_folder = project_dir + "\\res\\audio\\";
-	std::string material_folder = project_dir + "\\res\\materials\\";
-	std::string prefab_folder = project_dir + "\\res\\prefabs\\";
-	std::string script_folder = project_dir + "\\res\\scripts\\";
-	std::string physx_mat_folder = project_dir + "\\res\\physx-materials\\";
+void AssetSerializer::LoadAsset(const std::string& abs_path, const std::string& rel_path) {
+	const std::string extension = GetFileExtension(rel_path);
 
-	Texture2DSpec default_spec;
-	default_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-	default_spec.mag_filter = GL_LINEAR;
-	default_spec.generate_mipmaps = true;
-	default_spec.storage_type = GL_UNSIGNED_BYTE;
+	if (extension == ".otex") {
+		LoadTexture2DAssetFromFile(abs_path, rel_path);
+	} else if (extension == ".osound") {
+		LoadAudioAssetFromFile(abs_path, rel_path);
+	} else if (extension == ".omat") {
+		LoadMaterialAssetFromFile(abs_path, rel_path);
+	} else if (extension == ".omesh") {
+		LoadMeshAssetFromFile(abs_path, rel_path);
+	} else if (extension == ".opfb") {
+		LoadPrefabAssetFromFile(abs_path, rel_path);
+	} else if (extension == ".cpp" || extension == ".dll") {
+		LoadScriptAssetFromFile(abs_path, rel_path);
+	} else if (extension == ".opmat") {
+		LoadPhysxAssetFromFile(abs_path, rel_path);
+	}
+};
 
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(texture_folder)) {
+void AssetSerializer::LoadTexture2DAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	if (rel_path.find("diffuse_prefilter") != std::string::npos) return;
+
+	Texture2DSpec spec{};
+	spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+	spec.mag_filter = GL_LINEAR;
+	spec.generate_mipmaps = true;
+	spec.storage_type = GL_UNSIGNED_BYTE;
+	spec.filepath = rel_path;
+
+	auto* p_tex = new Texture2D{rel_path};
+	std::vector<std::byte> binary_data;
+
+	DeserializeAssetBinary(rel_path, *p_tex, &binary_data);
+	p_tex->filepath = rel_path;
+	m_manager.AddAsset(p_tex);
+	p_tex->LoadFromBinary(binary_data.data(), binary_data.size(), false);
+	m_manager.DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
+};
+
+void AssetSerializer::LoadMeshAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	auto* p_mesh = new MeshAsset(rel_path);
+	DeserializeAssetBinary(rel_path, *p_mesh);
+	p_mesh->filepath = rel_path;
+	m_manager.AddAsset(p_mesh);
+	LoadMeshAssetIntoGL(p_mesh);
+};
+
+void AssetSerializer::LoadAudioAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	auto* p_sound = new SoundAsset{rel_path};
+	std::vector<std::byte> raw_sound_data;
+	DeserializeAssetBinary(rel_path, *p_sound, &raw_sound_data);
+	p_sound->filepath = rel_path;
+	p_sound->CreateSoundFromBinary(raw_sound_data);
+	m_manager.AddAsset(p_sound);
+};
+
+void AssetSerializer::LoadMaterialAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	auto* p_mat = new Material{rel_path};
+	p_mat->filepath = rel_path;
+	DeserializeAssetBinary(rel_path, *p_mat);
+	m_manager.AddAsset(p_mat);
+};
+
+void AssetSerializer::LoadPrefabAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	auto* p_prefab = new Prefab{rel_path};
+	DeserializeAssetBinary(rel_path, *p_prefab);
+	p_prefab->filepath = rel_path;
+	m_manager.AddAsset(p_prefab);
+	p_prefab->node = YAML::Load(p_prefab->serialized_content);
+#ifndef ORNG_EDITOR_LAYER
+	p_prefab->serialized_content.clear();
+#endif
+};
+
+void AssetSerializer::LoadScriptAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	if (rel_path.find("scripts\\includes") != std::string::npos)
+		return;
+
+#ifndef ORNG_EDITOR_LAYER
+	if (GetFileExtension(rel_path) != ".dll") return;
+#ifdef NDEBUG
+	if (path_string.find("debug") != std::string::npos)
+		return;
+#else
+	if (path_string.find("release") != std::string::npos)
+		return;
+#endif
+	std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
+	std::string rel_path = ".\\res\\scripts\\src\\" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
+
+	ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
+
+	m_manager.AddAsset(new ScriptAsset(rel_path, symbols));
+#else
+	if (GetFileExtension(rel_path) != ".cpp" || rel_path.find("scripts\\src\\") == std::string::npos) return;
+	ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
+	m_manager.AddAsset(new ScriptAsset{rel_path, symbols});
+#endif
+
+};
+
+void AssetSerializer::LoadPhysxAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+	auto* p_mat = new PhysXMaterialAsset{rel_path};
+	// Init material
+	p_mat->p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
+	DeserializeAssetBinary(rel_path, *p_mat);
+	m_manager.AddAsset(p_mat);
+};
+
+
+void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(project_dir + "\\res\\")) {
 		std::string path = entry.path().string();
 
-		if (entry.is_directory() || path.find("diffuse_prefilter") != std::string::npos || entry.path().extension() != ".otex") // Skip serialized diffuse prefilter
+		if (entry.is_directory())
 			continue;
 
-		auto rel_path = path.substr(path.rfind("\\res\\") + 1);
-		default_spec.filepath = rel_path;
-		auto* p_tex = new Texture2D(path);
-		std::vector<std::byte> binary_data;
-		auto& spec = p_tex->GetSpec();
-
-		DeserializeAssetBinary(path, *p_tex, &binary_data);
-		p_tex->filepath = rel_path;
-		m_manager.AddAsset(p_tex);
-		p_tex->LoadFromBinary(binary_data.data(), binary_data.size(), false);
-		m_manager.DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
-	}
-
-
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(audio_folder)) {
-		auto path = entry.path().string();
-		if (entry.is_directory() || !(entry.path().extension() == ".osound"))
-			continue;
-		else {
-			std::string rel_path = ".\\" + path.substr(path.rfind("res\\audio"));
-			auto* p_sound = new SoundAsset(path);
-			std::vector<std::byte> raw_sound_data;
-			DeserializeAssetBinary(path, *p_sound, &raw_sound_data);
-			p_sound->filepath = rel_path;
-			p_sound->CreateSoundFromBinary(raw_sound_data);
-			m_manager.AddAsset(p_sound);
-		}
-	}
-
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(material_folder)) {
-		auto path = entry.path();
-		if (entry.is_directory() || path.extension() != ".omat")
-			continue;
-		else {
-			std::string rel_path = ".\\" + entry.path().string().substr(path.string().rfind("res\\materials"));
-			auto* p_mat = new Material(rel_path);
-			p_mat->filepath = rel_path;
-			DeserializeAssetBinary(rel_path, *p_mat);
-			m_manager.AddAsset(p_mat);
-		}
-	}
-
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(mesh_folder)) {
-		if (entry.is_directory() || entry.path().extension() != ".omesh")
-			continue;
-
-		std::string str_path = entry.path().string();
-		std::string rel_path = ".\\" + str_path.substr(str_path.rfind("res\\meshes"));
-		auto* p_mesh = new MeshAsset(rel_path);
-		DeserializeAssetBinary(rel_path, *p_mesh);
-		p_mesh->filepath = rel_path;
-		m_manager.AddAsset(p_mesh);
-		LoadMeshAssetIntoGL(p_mesh);
-	}
-
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(prefab_folder)) {
-		auto path = entry.path();
-		if (entry.is_directory() || path.extension() != ".opfb")
-			continue;
-		else {
-			std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\prefabs"));
-			auto* p_prefab = new Prefab(rel_path);
-			DeserializeAssetBinary(rel_path, *p_prefab);
-			p_prefab->filepath = rel_path;
-			m_manager.AddAsset(p_prefab);
-			p_prefab->node = YAML::Load(p_prefab->serialized_content);
-#ifndef ORNG_EDITOR_LAYER 
-			p_prefab->serialized_content.clear();
-#endif
-		}
-	}
-
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(script_folder)) {
-		auto path = entry.path();
-		std::string path_string = path.string();
-		if (entry.is_directory() || (!precompiled_scripts && path.extension() != ".cpp") || (precompiled_scripts && path.extension() != ".dll") || path.string().find("scripts\\includes") != std::string::npos)
-			continue;
-		else {
-			if (precompiled_scripts) {
-#ifdef NDEBUG
-				if (path_string.find("debug") != std::string::npos)
-					continue;
-#else
-				if (path_string.find("release") != std::string::npos)
-					continue;
-#endif
-				std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
-				std::string rel_path = ".\\res\\scripts\\src\\" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
-
-				ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
-
-				m_manager.AddAsset(new ScriptAsset(rel_path, symbols));
-			}
-			else {
-				std::string rel_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
-				ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
-				m_manager.AddAsset(new ScriptAsset(rel_path, symbols));
-			}
-		}
-	}
-
-
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(physx_mat_folder)) {
-		auto path = entry.path();
-		if (entry.is_directory() || path.extension() != ".opmat")
-			continue;
-		else {
-			std::string rel_path = ".\\" + path.string().substr(path.string().rfind("res\\physx-materials"));
-			auto* p_mat = new PhysXMaterialAsset(rel_path);
-			// Init material
-			p_mat->p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
-			DeserializeAssetBinary(rel_path, *p_mat);
-			m_manager.AddAsset(p_mat);
-		}
+		const std::string rel_path = path.substr(path.rfind("\\res\\") + 1);
+		LoadAsset(path, rel_path);
 	}
 }
 

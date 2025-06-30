@@ -1310,7 +1310,7 @@ bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		SCENE->AddSystem(new MeshInstancingSystem{ SCENE }, 10000);
 
 		AssetManager::ClearAll();
-		AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
+		AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory);
 		SCENE->LoadScene();
 		SceneSerializer::DeserializeScene(*SCENE, m_state.current_project_directory + "\\scene.yml", true);
 
