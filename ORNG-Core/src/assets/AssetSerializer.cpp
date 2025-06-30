@@ -164,7 +164,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	std::vector<std::byte> bin_data;
 
 	for (uint32_t i = 0; i < num_textures; i++) {
-		Texture2D* p_tex = new Texture2D("");
+		auto* p_tex = new Texture2D{""};
 
 		DeserializeTexture2D(*p_tex, bin_data, des);
 		p_tex->LoadFromBinary(bin_data.data(), bin_data.size(), false);
@@ -173,7 +173,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	}
 
 	for (uint32_t i = 0; i < num_meshes; i++) {
-		MeshAsset* p_mesh = new MeshAsset("");
+		auto* p_mesh = new MeshAsset{""};
 
 		DeserializeMeshAsset(*p_mesh, des);
 		LoadMeshAssetIntoGL(p_mesh);
@@ -181,7 +181,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	}
 
 	for (uint32_t i = 0; i < num_sounds; i++) {
-		SoundAsset* p_sound = new SoundAsset("");
+		auto* p_sound = new SoundAsset{""};
 
 		DeserializeSoundAsset(*p_sound, bin_data, des);
 		p_sound->CreateSoundFromBinary(bin_data);
@@ -190,7 +190,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	}
 
 	for (uint32_t i = 0; i < num_prefabs; i++) {
-		Prefab* p_prefab = new Prefab("");
+		auto* p_prefab = new Prefab{""};
 
 		des.object(*p_prefab);
 		p_prefab->node = YAML::Load(p_prefab->serialized_content);
@@ -198,14 +198,14 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	}
 
 	for (uint32_t i = 0; i < num_materials; i++) {
-		auto* p_mat = new Material("");
+		auto* p_mat = new Material{""};
 
 		DeserializeMaterialAsset(*p_mat, des);
 		m_manager.AddAsset(p_mat);
 	}
 
 	for (uint32_t i = 0; i < num_phys_materials; i++) {
-		auto* p_mat = new PhysXMaterialAsset("");
+		auto* p_mat = new PhysXMaterialAsset{""};
 
 		// Init material
 		p_mat->p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
@@ -399,27 +399,27 @@ Texture2D* AssetSerializer::CreateMeshAssetTexture(const aiScene* p_scene, const
 	return p_tex;
 }
 
-void AssetSerializer::LoadAsset(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadAsset(const std::string& rel_path) {
 	const std::string extension = GetFileExtension(rel_path);
 
 	if (extension == ".otex") {
-		LoadTexture2DAssetFromFile(abs_path, rel_path);
+		LoadTexture2DAssetFromFile(rel_path);
 	} else if (extension == ".osound") {
-		LoadAudioAssetFromFile(abs_path, rel_path);
+		LoadAudioAssetFromFile(rel_path);
 	} else if (extension == ".omat") {
-		LoadMaterialAssetFromFile(abs_path, rel_path);
+		LoadMaterialAssetFromFile(rel_path);
 	} else if (extension == ".omesh") {
-		LoadMeshAssetFromFile(abs_path, rel_path);
+		LoadMeshAssetFromFile(rel_path);
 	} else if (extension == ".opfb") {
-		LoadPrefabAssetFromFile(abs_path, rel_path);
+		LoadPrefabAssetFromFile(rel_path);
 	} else if (extension == ".cpp" || extension == ".dll") {
-		LoadScriptAssetFromFile(abs_path, rel_path);
+		LoadScriptAssetFromFile(rel_path);
 	} else if (extension == ".opmat") {
-		LoadPhysxAssetFromFile(abs_path, rel_path);
+		LoadPhysxAssetFromFile(rel_path);
 	}
 };
 
-void AssetSerializer::LoadTexture2DAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadTexture2DAssetFromFile(const std::string& rel_path) {
 	if (rel_path.find("diffuse_prefilter") != std::string::npos) return;
 
 	Texture2DSpec spec{};
@@ -439,7 +439,7 @@ void AssetSerializer::LoadTexture2DAssetFromFile(const std::string& abs_path, co
 	m_manager.DispatchAssetEvent(Events::AssetEventType::TEXTURE_LOADED, reinterpret_cast<uint8_t*>(p_tex));
 };
 
-void AssetSerializer::LoadMeshAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadMeshAssetFromFile(const std::string& rel_path) {
 	auto* p_mesh = new MeshAsset(rel_path);
 	DeserializeAssetBinary(rel_path, *p_mesh);
 	p_mesh->filepath = rel_path;
@@ -447,7 +447,7 @@ void AssetSerializer::LoadMeshAssetFromFile(const std::string& abs_path, const s
 	LoadMeshAssetIntoGL(p_mesh);
 };
 
-void AssetSerializer::LoadAudioAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadAudioAssetFromFile(const std::string& rel_path) {
 	auto* p_sound = new SoundAsset{rel_path};
 	std::vector<std::byte> raw_sound_data;
 	DeserializeAssetBinary(rel_path, *p_sound, &raw_sound_data);
@@ -456,14 +456,14 @@ void AssetSerializer::LoadAudioAssetFromFile(const std::string& abs_path, const 
 	m_manager.AddAsset(p_sound);
 };
 
-void AssetSerializer::LoadMaterialAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadMaterialAssetFromFile(const std::string& rel_path) {
 	auto* p_mat = new Material{rel_path};
 	p_mat->filepath = rel_path;
 	DeserializeAssetBinary(rel_path, *p_mat);
 	m_manager.AddAsset(p_mat);
 };
 
-void AssetSerializer::LoadPrefabAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadPrefabAssetFromFile(const std::string& rel_path) {
 	auto* p_prefab = new Prefab{rel_path};
 	DeserializeAssetBinary(rel_path, *p_prefab);
 	p_prefab->filepath = rel_path;
@@ -474,7 +474,7 @@ void AssetSerializer::LoadPrefabAssetFromFile(const std::string& abs_path, const
 #endif
 };
 
-void AssetSerializer::LoadScriptAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadScriptAssetFromFile(const std::string& rel_path) {
 	if (rel_path.find("scripts\\includes") != std::string::npos)
 		return;
 
@@ -501,7 +501,7 @@ void AssetSerializer::LoadScriptAssetFromFile(const std::string& abs_path, const
 
 };
 
-void AssetSerializer::LoadPhysxAssetFromFile(const std::string& abs_path, const std::string& rel_path) {
+void AssetSerializer::LoadPhysxAssetFromFile(const std::string& rel_path) {
 	auto* p_mat = new PhysXMaterialAsset{rel_path};
 	// Init material
 	p_mat->p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
@@ -518,7 +518,7 @@ void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) 
 			continue;
 
 		const std::string rel_path = path.substr(path.rfind("\\res\\") + 1);
-		LoadAsset(path, rel_path);
+		LoadAsset(rel_path);
 	}
 }
 
