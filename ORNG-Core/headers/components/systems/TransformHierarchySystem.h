@@ -6,7 +6,9 @@
 namespace ORNG {
 	class TransformHierarchySystem : public ComponentSystem {
 	public:
-		TransformHierarchySystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+		explicit TransformHierarchySystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+		virtual ~TransformHierarchySystem() = default;
+
 		void OnLoad() override;
 
 		void OnUnload() override {

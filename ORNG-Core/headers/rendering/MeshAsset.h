@@ -32,7 +32,7 @@ namespace ORNG {
 		MeshAsset(const std::string& filename) : Asset(filename) {};
 		MeshAsset(const std::string& filename, uint64_t t_uuid) : Asset(filename) { uuid = UUID(t_uuid); };
 		MeshAsset(const MeshAsset& other) = default;
-		~MeshAsset() =default;
+		virtual ~MeshAsset() = default;
 
 		bool LoadMeshData();
 

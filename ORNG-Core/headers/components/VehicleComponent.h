@@ -7,13 +7,15 @@ namespace ORNG {
 	class MeshAsset;
 	class Material;
 
-	class VehicleComponent : public Component {
+	class VehicleComponent final : public Component {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		friend class SceneRenderer;
 		friend class SceneSerializer;
 	public:
-		VehicleComponent(SceneEntity* p_entity) : Component(p_entity) { };
+		explicit VehicleComponent(SceneEntity* p_entity) : Component(p_entity) { };
+		~VehicleComponent() override = default;
+
 		void SetThrottle(float t) { m_vehicle.mCommandState.throttle = t; };
 		void SetSteer(float t) { m_vehicle.mCommandState.steer = t; };
 		void SetHandBrake(float t) { m_vehicle.mCommandState.nbBrakes = 2;  m_vehicle.mCommandState.brakes[1] = t; };

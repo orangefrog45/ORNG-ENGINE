@@ -13,14 +13,14 @@ namespace ORNG {
 
 	class SoundAsset;
 
-	class AudioComponent : public Component {
+	class AudioComponent final : public Component {
 		friend class AudioSystem;
 		friend class EditorLayer;
 		friend class SceneSerializer;
 	public:
 		AudioComponent() = delete;
 		explicit AudioComponent(SceneEntity* p_entity);
-
+		~AudioComponent() override = default;
 
 		void SetSoundAssetUUID(uint64_t uuid) {
 			m_sound_asset_uuid = uuid;

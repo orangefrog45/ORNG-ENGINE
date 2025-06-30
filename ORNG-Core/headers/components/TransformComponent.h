@@ -22,7 +22,7 @@ namespace ORNG {
 		glm::vec2 m_pos = glm::vec2(0.0f, 0.0f);
 	};
 
-	class TransformComponent : public Component
+	class TransformComponent final : public Component
 	{
 	public:
 		friend class SceneSerializer;
@@ -31,7 +31,8 @@ namespace ORNG {
 		friend class TransformHierarchySystem;
 		friend class PhysicsSystem;
 
-		TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
+		explicit TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
+		~TransformComponent() override = default;
 
 		void SetScale(float scaleX, float scaleY, float scaleZ) {
 			SetScale({ scaleX, scaleY, scaleZ });

@@ -18,8 +18,8 @@ set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_RELEASE_BINARY_DIR) # changed in engine
 endif()
 
 if (NOT EXISTS ${ENGINE_BINARY_DIR})
-    message(FATAL_ERROR "ORNG CMake binary directory can't be found at: '${ENGINE_BINARY_DIR}', make sure the ORNG build directory is 'ORNG_ROOT_DIRECTORY/out/build/debug'
-	and 'ORNG_ROOT_DIRECTORY/out/build/release' for debug and release builds respectively.")
+    message(FATAL_ERROR "ORNG CMake binary directory can't be found at: '${ENGINE_BINARY_DIR}', make sure the ORNG build directory is 'ORNG_ROOT_DIRECTORY/out/debug'
+	and 'ORNG_ROOT_DIRECTORY/out/release' for debug and release builds respectively.")
 endif()
 
 set(CMAKE_DEBUG_POSTFIX "")

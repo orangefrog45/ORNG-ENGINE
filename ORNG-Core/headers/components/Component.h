@@ -7,15 +7,14 @@ namespace ORNG {
 	class Component {
 	public:
 		friend class Scene;
-		Component(SceneEntity* p_entity);
+		explicit Component(SceneEntity* p_entity);
+		virtual ~Component() = default;
 
-
-		uint64_t GetEntityUUID() const;
-		entt::entity GetEnttHandle() const;
-		uint64_t GetSceneUUID() const;
-		SceneEntity* GetEntity() { return mp_entity; }
-		std::string GetEntityName() const;
-
+		[[nodiscard]] uint64_t GetEntityUUID() const;
+		[[nodiscard]] entt::entity GetEnttHandle() const;
+		[[nodiscard]] uint64_t GetSceneUUID() const;
+		[[nodiscard]] SceneEntity* GetEntity() { return mp_entity; }
+		[[nodiscard]] std::string GetEntityName() const;
 	private:
 		SceneEntity* mp_entity = nullptr;
 	};

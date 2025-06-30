@@ -6,10 +6,10 @@ namespace FMOD {
 }
 
 namespace ORNG {
-	class SoundAsset : public Asset {
+	class SoundAsset final : public Asset {
 	public:
-		SoundAsset(const std::string& t_filepath) : Asset(t_filepath) {};
-		~SoundAsset();
+		explicit SoundAsset(const std::string& t_filepath) : Asset(t_filepath) {};
+		~SoundAsset() override;
 
 		FMOD::Sound* p_sound = nullptr;
 

@@ -162,8 +162,8 @@ void main() {
 				#define TRANSFORM ssbo_particles.particles[vs_particle_index]
 			#endif
 
-			vert_data.position = vec4(qtransform(TRANSFORM.quat, (interpolated_scale * position * TRANSFORM.scale.xyz)) + TRANSFORM.pos.xyz, 1.0);
-			vert_data.normal = qtransform(vec4(TRANSFORM.quat.xyz, 1.0), vertex_normal);
+			vert_data.position = vec4((interpolated_scale * position * TRANSFORM.scale.xyz) + TRANSFORM.pos.xyz, 1.0);
+			vert_data.normal = vertex_normal;
 
 			#undef TRANSFORM
 

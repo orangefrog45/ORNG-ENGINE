@@ -12,7 +12,8 @@ namespace FMOD {
 namespace ORNG {
 	class AudioSystem : public ComponentSystem {
 	public:
-		AudioSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+		explicit AudioSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+		virtual ~AudioSystem() = default;
 		void OnLoad() final;
 		void OnUnload() final;
 		void OnUpdate() final;

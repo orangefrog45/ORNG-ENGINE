@@ -6,8 +6,8 @@
 namespace ORNG {
 	class PointlightSystem : public ComponentSystem {
 	public:
-		PointlightSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-		~PointlightSystem() = default;
+		explicit PointlightSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
+		virtual ~PointlightSystem() = default;
 		void OnLoad() override;
 		void OnUpdate() override;
 		void OnUnload() override;

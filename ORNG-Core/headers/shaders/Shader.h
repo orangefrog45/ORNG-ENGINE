@@ -15,7 +15,7 @@ namespace ORNG {
 		friend class ShaderVariants;
 
 		Shader() = default;
-		Shader(const std::string& name) :  m_name(name) {};
+		explicit Shader(const std::string& name) :  m_name(name) {};
 		~Shader();
 
 		enum class ShaderType {

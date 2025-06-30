@@ -283,7 +283,11 @@ namespace ORNG {
 		glUseProgram(m_program_id);
 
 		Events::EventManager::DeregisterListener(m_reload_listener.GetRegisterID());
-		m_reload_listener.OnEvent = [this]([[maybe_unused]] auto) {Reload(); };
+		std::string name = m_name;
+		m_reload_listener.OnEvent = [this, name]([[maybe_unused]] auto) {
+			ORNG_CORE_INFO(name);
+			Reload();
+		};
 		Events::EventManager::RegisterListener(m_reload_listener);
 	}
 

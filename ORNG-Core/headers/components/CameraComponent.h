@@ -8,11 +8,12 @@ namespace ORNG {
 	class CameraSystem;
 	class TransformComponent;
 
-	struct CameraComponent : public Component {
+	struct CameraComponent final : public Component {
 		friend class SceneRenderer;
 		friend class Scene;
 		friend class CameraSystem;
-		CameraComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit CameraComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		~CameraComponent() override = default;
 
 		void Update();
 		void MakeActive();

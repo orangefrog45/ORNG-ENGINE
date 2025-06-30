@@ -3,8 +3,10 @@
 #include <yaml-cpp/node/node.h>
 
 namespace ORNG {
-	struct Prefab : public Asset {
-		Prefab(const std::string& filepath) : Asset(filepath) {};
+	struct Prefab final : public Asset {
+		explicit Prefab(const std::string& filepath) : Asset(filepath) {};
+		~Prefab() override = default;
+
 		// Yaml string that can be deserialized into entity
 		std::string serialized_content;
 

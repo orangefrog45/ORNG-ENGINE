@@ -3,9 +3,10 @@
 #include <PxMaterial.h>
 
 namespace ORNG {
-	class PhysXMaterialAsset : public Asset {
+	class PhysXMaterialAsset final : public Asset {
 	public:
-		PhysXMaterialAsset(const std::string& t_filepath) : Asset(t_filepath) {};
+		explicit PhysXMaterialAsset(const std::string& t_filepath) : Asset(t_filepath) {};
+		~PhysXMaterialAsset() override = default;
 
 		template<typename S>
 		void serialize(S& s) {

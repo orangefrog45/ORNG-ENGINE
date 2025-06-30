@@ -5,11 +5,12 @@
 #include "scripting/ScriptShared.h"
 
 namespace ORNG {
-	class ScriptComponent : public Component {
+	class ScriptComponent final : public Component {
 		friend class EditorLayer;
 		friend class SceneSerializer;
 	public:
 		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		~ScriptComponent() override = default;
 
 		void SetSymbols(const ScriptSymbols* t_symbols);
 

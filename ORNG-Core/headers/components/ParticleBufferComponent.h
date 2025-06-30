@@ -5,12 +5,13 @@
 namespace ORNG {
 	// ParticleBufferComponent is used for programmable particle systems - they're just used to manage memory for particles that a layer can then run custom update/render functionality on
 	// These can have particles assigned to them through EmitParticle(particle, m_buffer_id) in any shader as long as the particle append buffer is bound
-	class ParticleBufferComponent : public Component {
+	class ParticleBufferComponent final : public Component {
 		friend class ParticleSystem;
 		friend class SceneSerializer;
 		friend class EditorLayer;
 	public:
-		ParticleBufferComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit ParticleBufferComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		~ParticleBufferComponent() override = default;
 
 		uint32_t GetBufferID() {
 			return m_buffer_id;

@@ -13,6 +13,8 @@ namespace ORNG {
 			Events::EventManager::DispatchEvent(e_event);
 		}
 
+		virtual ~ComponentSystem() = default;
+
 		virtual void OnUpdate() {};
 
 		virtual void OnLoad() {};

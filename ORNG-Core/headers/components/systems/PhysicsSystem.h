@@ -36,7 +36,7 @@ namespace ORNG {
 	class PhysicsSystem : public ComponentSystem {
 		friend class EditorLayer;
 	public:
-		PhysicsSystem(Scene* p_scene);
+		explicit PhysicsSystem(Scene* p_scene);
 		virtual ~PhysicsSystem() = default;
 
 		void OnUpdate() override;

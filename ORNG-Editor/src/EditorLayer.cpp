@@ -39,6 +39,7 @@
 #include "components/systems/PhysicsSystem.h"
 #include "assets/PhysXMaterialAsset.h"
 #include <imgui/backends/imgui_impl_glfw.h>
+#include <rendering/renderpasses/BloomPass.h>
 #include <yaml/src/scanscalar.h>
 
 #include "components/systems/VrSystem.h"
@@ -180,6 +181,7 @@ void EditorLayer::InitRenderGraph(RenderGraph& graph, bool use_vr) {
 	graph.AddRenderpass<LightingPass>();
 	graph.AddRenderpass<FogPass>();
 	graph.AddRenderpass<TransparencyPass>();
+	graph.AddRenderpass<BloomPass>();
 	graph.AddRenderpass<PostProcessPass>();
 	graph.SetData("OutCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
 	graph.SetData("BloomInCol", use_vr ? &*m_res.p_vr_scene_display_texture : &*m_res.p_scene_display_texture);
@@ -320,7 +322,7 @@ void EditorLayer::InitVrForSimulationMode() {
 }
 
 void EditorLayer::ShutdownVrForSimulationMode() {
-	SCENE->RemoveSystem<VrSystem>();
+	if (SCENE->HasSystem<VrSystem>()) SCENE->RemoveSystem<VrSystem>();
 	m_state.p_vr->Shutdown();
 	m_state.p_vr = nullptr;
 	m_res.p_vr_scene_display_texture = nullptr;
@@ -361,24 +363,24 @@ void EditorLayer::InitImGui() {
 	ImGui_ImplOpenGL3_CreateFontsTexture();
 	ImGui::StyleColorsDark();
 
-
-	ImGui::GetStyle().Colors[ImGuiCol_Button] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] = m_res.lightest_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] = m_res.lightest_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_Border] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_Tab] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_TabHovered] = m_res.lightest_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_TabActive] = m_res.orange_color;
-	ImGui::GetStyle().Colors[ImGuiCol_Header] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered] = m_res.lightest_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_HeaderActive] = m_res.orange_color;
-	ImGui::GetStyle().Colors[ImGuiCol_FrameBg] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_FrameBgHovered] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_FrameBgActive] = m_res.lightest_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = m_res.dark_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_Border] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_TitleBg] = m_res.lighter_grey_color;
-	ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = m_res.lighter_grey_color;
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_Button] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_ButtonHovered] = m_res.lightest_grey_color;
+	style.Colors[ImGuiCol_ButtonActive] = m_res.lightest_grey_color;
+	style.Colors[ImGuiCol_Border] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_Tab] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_TabHovered] = m_res.lightest_grey_color;
+	style.Colors[ImGuiCol_TabActive] = m_res.orange_color;
+	style.Colors[ImGuiCol_Header] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_HeaderHovered] = m_res.lightest_grey_color;
+	style.Colors[ImGuiCol_HeaderActive] = m_res.orange_color;
+	style.Colors[ImGuiCol_FrameBg] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_FrameBgHovered] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_FrameBgActive] = m_res.lightest_grey_color;
+	style.Colors[ImGuiCol_WindowBg] = m_res.dark_grey_color;
+	style.Colors[ImGuiCol_Border] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_TitleBg] = m_res.lighter_grey_color;
+	style.Colors[ImGuiCol_TitleBgActive] = m_res.lighter_grey_color;
 }
 
 void EditorLayer::PollKeybinds() {
@@ -507,7 +509,8 @@ void EditorLayer::OnRender() {
 		RenderToVrTargets();
 	}
 
-	mp_scene_context->OnRender();
+	if (m_state.simulate_mode_active)
+		mp_scene_context->OnRender();
 };
 
 void EditorLayer::RenderToVrTargets() {

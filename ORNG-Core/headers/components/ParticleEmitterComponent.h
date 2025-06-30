@@ -19,7 +19,7 @@ namespace ORNG {
 	};
 
 
-	class ParticleEmitterComponent : public Component {
+	class ParticleEmitterComponent final : public Component {
 		friend class ParticleSystem;
 		friend class EditorLayer;
 		friend class SceneRenderer;
@@ -31,6 +31,7 @@ namespace ORNG {
 		};
 
 		explicit ParticleEmitterComponent(SceneEntity* p_entity) : Component(p_entity) { };
+		~ParticleEmitterComponent() override = default;
 
 		// Maximum of 100,000 particles per emitter
 		void SetNbParticles(unsigned num) {

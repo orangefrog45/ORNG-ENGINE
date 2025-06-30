@@ -9,7 +9,7 @@ namespace ORNG {
 	class MeshAsset;
 	class Material;
 
-	class MeshComponent : public Component {
+	class MeshComponent final : public Component {
 	public:
 		friend class MeshInstancingSystem;
 		friend class Scene;
@@ -22,6 +22,8 @@ namespace ORNG {
 		MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset);
 		MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset, std::vector<const Material*>&& materials);
 		MeshComponent(const MeshComponent& other) = delete;
+		~MeshComponent() override = default;
+
 
 		void SetMaterialID(unsigned int index, const Material* p_material);
 		void SetMeshAsset(MeshAsset* p_asset);

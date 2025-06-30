@@ -11,7 +11,8 @@ namespace ORNG {
 		friend class GBufferPass;
 		friend class TransparencyPass;
 	public:
-		ParticleSystem(Scene* p_scene);
+		explicit ParticleSystem(Scene* p_scene);
+		virtual ~ParticleSystem() = default;
 		void OnLoad() override;
 		void OnUnload() override;
 		void OnUpdate() override;
@@ -51,8 +52,8 @@ namespace ORNG {
 		SSBO<float> m_particle_ssbo{ false, 0 };
 		SSBO<float> m_emitter_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };
 
-		Shader m_particle_cs;
-		ShaderVariants m_particle_initializer_cs;
+		Shader m_particle_cs{};
+		ShaderVariants m_particle_initializer_cs{};
 	};
 
 

@@ -61,10 +61,10 @@ void InitializeParticle(uint index) {
 
     float rnd_vel = rnd(vec2(index, pol));
     rnd_vel = sqrt(abs(rnd_vel)) * sign(rnd_vel);
-    rnd_vel *= (EMITTER.spawn_extents_vel_scale_max.w - EMITTER.vel_scale_min) + EMITTER.vel_scale_min;
-    vec3 vel = mat3(EMITTER.rotation_matrix) * (normalize(vec3( sin(pol) * cos(az), sin(pol) * sin(az), cos(pol))) * abs(rnd_vel));
+    rnd_vel = rnd_vel * (EMITTER.spawn_extents_vel_scale_max.w - EMITTER.vel_scale_min) + EMITTER.vel_scale_min;
+    vec3 vel = mat3(EMITTER.rotation_matrix) * (normalize(vec3( sin(pol) * cos(az), sin(pol) * sin(az), -cos(pol))) * abs(rnd_vel));
 
-    vec3 spawn_pos = EMITTER.pos.xyz + mat3(EMITTER.rotation_matrix) * (vec3(rnd(vec2(index, ubo_common.delta_time)), rnd(vec2(az, index)), rnd(vec2(ssbo_particles.particles[index].pos.x, ubo_common.delta_time))) *  EMITTER.spawn_extents_vel_scale_max.xyz);
+    vec3 spawn_pos = EMITTER.pos.xyz + mat3(EMITTER.rotation_matrix) * (vec3(rnd(vec2(index, ubo_common.time_elapsed)), rnd(vec2(az, index)), rnd(vec2(ssbo_particles.particles[index].pos.x, ubo_common.time_elapsed))) *  EMITTER.spawn_extents_vel_scale_max.xyz);
 
 
     #ifdef FIRST_INITIALIZATION
@@ -77,12 +77,10 @@ void InitializeParticle(uint index) {
         ssbo_particles.particles[index].velocity_life.w += EMITTER.lifespan;
 
         ssbo_particles.particles[index].scale = vec4(1);
-
     #endif
 
-
+    ssbo_particles.particles[index].quat = vec4(0, 0, 0, 1);
     ssbo_particles.particles[index].pos.xyz = spawn_pos;
-
 }
 
 #undef EMITTER

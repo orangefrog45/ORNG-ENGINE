@@ -56,7 +56,7 @@ namespace ORNG {
 
 	void Scene::OnRender() {
 		for (auto [entity, script] : m_registry.view<ScriptComponent>().each()) {
-			script.p_instance->OnRender();
+			if (script.p_instance) script.p_instance->OnRender();
 		}
 	}
 
@@ -69,7 +69,7 @@ namespace ORNG {
 		ASSERT(m_registry.valid(p_entity->GetEnttHandle()));
 
 		if (auto* p_script = p_entity->GetComponent<ScriptComponent>(); p_script && p_script->p_instance) {
-			p_script->p_instance->OnDestroy();
+			if (p_script->p_instance) p_script->p_instance->OnDestroy();
 		}
 		p_entity->RemoveParent();
 

@@ -23,13 +23,14 @@ namespace ORNG {
 	class TransformComponent;
 	class PhysXMaterialAsset;
 
-	class PhysicsComponent : public Component {
+	class PhysicsComponent final : public Component {
 		friend class PhysicsSystem;
 		friend class EditorLayer;
 		friend class SceneSerializer;
 		friend class FixedJointComponent;
 	public:
-		PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		~PhysicsComponent() override = default;
 
 		enum GeometryType {
 			BOX = 0,
@@ -97,14 +98,16 @@ namespace ORNG {
 		BREAK
 	};
 
-	struct JointComponent : public Component {
+	struct JointComponent final : Component {
+		explicit JointComponent(SceneEntity* p_ent) : Component(p_ent) {};
+		~JointComponent() override = default;
 
 		class Joint {
 			friend class SceneSerializer;
 			friend class PhysicsSystem;
 			friend class EditorLayer;
 		public:
-			Joint(SceneEntity* _owner) : p_a0(_owner) {
+			explicit Joint(SceneEntity* _owner) : p_a0(_owner) {
 				std::fill_n(m_motion.data(), 6, physx::PxD6Motion::eLOCKED);
 			};
 
