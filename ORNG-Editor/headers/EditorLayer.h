@@ -342,7 +342,7 @@ namespace ORNG {
 		EditorEventStack m_event_stack;
 		LuaCLI m_lua_cli;
 		LoggerUI m_logger_ui;
-		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context };
+		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context, this };
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 

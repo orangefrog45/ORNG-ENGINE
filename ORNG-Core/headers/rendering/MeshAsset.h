@@ -34,7 +34,7 @@ namespace ORNG {
 		MeshAsset(const MeshAsset& other) = default;
 		virtual ~MeshAsset() = default;
 
-		bool LoadMeshData();
+		bool LoadMeshData(const std::string& raw_mesh_filepath);
 
 		bool GetLoadStatus() const { return m_is_loaded; };
 

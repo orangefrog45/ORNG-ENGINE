@@ -82,13 +82,10 @@ namespace ORNG::Events {
 	};
 
 	enum class AssetEventType {
-		MATERIAL_DELETED,
-		MESH_DELETED,
 		MESH_LOADED,
 		MATERIAL_LOADED,
-		TEXTURE_DELETED,
 		TEXTURE_LOADED,
-		SCRIPT_DELETED,
+		TEXTURE_DELETED,
 	};
 
 	struct AssetEvent : public Event {

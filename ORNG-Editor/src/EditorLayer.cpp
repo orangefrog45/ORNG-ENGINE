@@ -259,6 +259,7 @@ void EditorLayer::EndPlayScene() {
 	if (m_state.use_vr_in_simulation)
 		ShutdownVrForSimulationMode();
 
+	SCENE->End();
 	EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_END_SIMULATION));
 }
 
@@ -1320,6 +1321,7 @@ bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		InitRenderGraph(m_render_graph, false);
 
 		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
+		mp_editor_camera->name = "|_ORNG_EDITOR_CAMERA_|";
 		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 		p_transform->SetAbsolutePosition(cam_pos);
 		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
@@ -2690,15 +2692,12 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 	p_audio->mp_channel->getPosition(&position, FMOD_TIMEUNIT_MS);
 	unsigned int total_length;
 	p_sound->p_sound->getLength(&total_length, FMOD_TIMEUNIT_MS);
-	total_length /= 1000.0;
-	position /= 1000.0;
 
 	ImGui::SetCursorPos(prev_curs_pos);
 	ExtraUI::ColoredButton("##playback position", m_res.orange_color_dark, ImVec2(playback_widget_width * ((float)position / (float)total_length), playback_widget_height));
 	ImGui::PopStyleVar();
 	ImGui::SetCursorPos(prev_curs_pos);
-	ImGui::Text(std::format("{}:{}", position, total_length).c_str());
-
+	ImGui::Text(std::format("{}:{}", (float)position / 1000.f, (float)total_length / 1000.f).c_str());
 	ImVec2 wp = ImGui::GetWindowPos();
 
 	static bool was_paused = true;
@@ -2721,7 +2720,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 			ImVec2 mouse_pos = ImGui::GetMousePos();
 			ImVec2 local_mouse{ mouse_pos.x - (wp.x + prev_curs_pos.x), mouse_pos.y - (wp.y + prev_curs_pos.y) };
 
-			p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length) * 1000.0, FMOD_TIMEUNIT_MS);
+			p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length), FMOD_TIMEUNIT_MS);
 		}
 	}
 	if (first_mouse_down && ImGui::IsMouseReleased(0)) {
@@ -2741,7 +2740,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 			p_audio->SetPaused(false);
 		}
 	}
-
+	ImGui::SameLine();
 	if (ImGui::SmallButton(ICON_FA_REPEAT)) {
 		p_audio->Stop();
 		p_audio->Play(p_audio->GetAudioAssetUUID());
@@ -2758,7 +2757,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		}
 	}
 
-	ImGui::Text(p_sound->source_filepath.substr(p_sound->source_filepath.rfind("\\") + 1).c_str());
+	ImGui::Text(p_sound->filepath.substr(p_sound->filepath.rfind("/") + 1).c_str());
 
 	ImGui::PopID(); // p_audio
 }

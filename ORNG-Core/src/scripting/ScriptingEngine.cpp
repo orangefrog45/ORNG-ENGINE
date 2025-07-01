@@ -69,28 +69,34 @@ namespace ORNG {
 		size_t cmake_script_append_location = cmake_content.find("SCRIPT START\n") + 13;
 		std::string target_str = "\nset(SCRIPT_TARGETS ";
 		std::string script_src_directory = dir + "/src";
-		for (auto& entry : std::filesystem::directory_iterator{ script_src_directory }) {
-			if (auto path = entry.path().string(); path.ends_with(".cpp")) {
-				std::string filename = ReplaceFileExtension(path.substr(path.rfind("\\") + 1), "");
+		for (auto& entry : std::filesystem::recursive_directory_iterator{ script_src_directory }) {
+			if (auto path = entry.path().generic_string(); path.ends_with(".cpp")) {
+				std::string src_relative_filepath = path.substr(path.find("res/scripts/src/") + 16);
+				std::string filename = ReplaceFileExtension(src_relative_filepath, "");
+				std::string src_relative_filepath_no_extension = filename;
+				std::string class_name = GetFilename(filename);
+				StringReplace(filename, "/", "_");
 
 				// Create ExtraCpps variable for file if not found
-				if (cmake_content.find(filename + "_ExtraCpps") == std::string::npos) {
-					std::string var = "set(" + filename + "_ExtraCpps )\n";
-					cmake_content.insert(cmake_content.find("#E&CE") - 1, var);
-					cmake_script_append_location += var.length();
-				}
+				// if (cmake_content.find(filename + "_ExtraCpps") == std::string::npos) {
+				// 	std::string var = "set(" + filename + "_ExtraCpps )\n";
+				// 	cmake_content.insert(cmake_content.find("#E&CE") - 1, var);
+				// 	cmake_script_append_location += var.length();
+				// }
 
 				target_str += " " + filename;
 				std::string command_append_content = 
-					R"(add_library({0} SHARED src/{0}.cpp headers/ScriptAPIImpl.cpp instancers/ScriptInstancer.cpp ${{0}_ExtraCpps})
+					R"(add_library({0} SHARED src/{1} headers/ScriptAPIImpl.cpp instancers/ScriptInstancer.cpp ${{0}_ExtraCpps})
 						target_include_directories({0} PUBLIC ${SCRIPT_INCLUDE_DIRS})
 						target_link_libraries({0} PUBLIC ${SCRIPT_LIBS})
-						target_compile_definitions({0} PUBLIC ORNG_CLASS={0} SCRIPT_CLASS_HEADER_PATH="../headers/{0}.h")
+						target_compile_definitions({0} PUBLIC ORNG_CLASS={2} SCRIPT_CLASS_HEADER_PATH="{3}.h")
 )";
 				StringReplace(command_append_content, "{0}", filename);
+				StringReplace(command_append_content, "{1}", src_relative_filepath);
+				StringReplace(command_append_content, "{2}", class_name);
+				StringReplace(command_append_content, "{3}", src_relative_filepath_no_extension);
 				cmake_content.insert(cmake_content.begin() + cmake_script_append_location, command_append_content.begin(), command_append_content.end());
 				cmake_script_append_location += command_append_content.length();
-
 			}
 		}
 
@@ -112,12 +118,17 @@ namespace ORNG {
 
 
 	std::string ScriptingEngine::GetDllPathFromScriptCpp(const std::string& script_filepath) {
-		std::string filename = script_filepath.substr(script_filepath.find_last_of("\\") + 1);
+		std::string src_relative_filepath = script_filepath.substr(script_filepath.find("res/scripts/src/") + 16);
+		StringReplace(src_relative_filepath, "/", "_");
+
+		std::string filename = src_relative_filepath.substr(src_relative_filepath.find_last_of("/") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
+
+
 #ifdef NDEBUG
-		return ".\\res\\scripts\\bin\\release\\" + filename_no_ext + ".dll";
+		return "./res/scripts/bin/release/" + filename_no_ext + ".dll";
 #else
-		return ".\\res\\scripts\\bin\\debug\\" + filename_no_ext + ".dll";
+		return "./res/scripts/bin/debug/" + filename_no_ext + ".dll";
 #endif
 	}
 
@@ -138,22 +149,24 @@ namespace ORNG {
 			StringReplace(no_extension_path_alt, "debug", "release");
 #endif
 			FileDelete(dll_path);
-			TryFileDelete(no_extension_path + ".metadata");
-			TryFileDelete(no_extension_path + ".lib");
-			TryFileDelete(no_extension_path + ".obj");
-			TryFileDelete(no_extension_path + ".exp");
-
-			TryFileDelete(no_extension_path_alt + ".dll");
-			TryFileDelete(no_extension_path_alt + ".metadata");
-			TryFileDelete(no_extension_path_alt + ".lib");
-			TryFileDelete(no_extension_path_alt + ".obj");
-			TryFileDelete(no_extension_path_alt + ".exp");
+			std::array<std::string, 2> no_extension_paths = {no_extension_path, no_extension_path_alt};
+			for (size_t i = 0; i < no_extension_paths.size(); i++) {
+				TryFileDelete(no_extension_paths[i] + ".metadata");
+				TryFileDelete(no_extension_paths[i] + ".lib");
+				TryFileDelete(no_extension_paths[i] + ".obj");
+				TryFileDelete(no_extension_paths[i] + ".exp");
+				TryFileDelete(no_extension_paths[i] + ".pdb");
+				TryFileDelete(no_extension_paths[i] + ".ilk");
+			}
 		}
 
 		FileDelete(script_filepath);
 		std::string script_dir = GetFileDirectory(script_filepath);
 		std::string script_name = ReplaceFileExtension(GetFilename(script_filepath), "");
-		FileDelete(script_dir + "/../headers/" + script_name + ".h");
+		std::string header_filepath = script_filepath;
+		StringReplace(header_filepath, "src/", "headers/", 1);
+		header_filepath = ReplaceFileExtension(header_filepath, ".h");
+		FileDelete(header_filepath);
 		UpdateScriptCmakeProject("res/scripts");
 	}
 
@@ -179,6 +192,8 @@ namespace ORNG {
 
 		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
 		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
+		ScriptGetUuidFunc GetUUID = (ScriptGetUuidFunc)GetProcAddress(script_dll, "GetUUID");
+		symbols.uuid = GetUUID();
 		symbols.Unload = (UnloadFunc)(GetProcAddress(script_dll, "Unload"));
 		symbols.loaded = true;
 
@@ -207,11 +222,11 @@ namespace ORNG {
 			return sm_loaded_script_dll_handles[results.script_data_index].symbols;
 		}
 
-		std::string filename = filepath.substr(filepath.find_last_of("\\") + 1);
+		std::string filename = filepath.substr(filepath.find_last_of("/") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
-		std::string file_dir = filepath.substr(0, filepath.find_last_of("\\") + 1);
+		std::string file_dir = filepath.substr(0, filepath.find_last_of("/") + 1);
+		std::string relative_path = "./" + filepath.substr(filepath.rfind("res/scripts"));
 		std::string dll_path = GetDllPathFromScriptCpp(filepath);
-		std::string relative_path = ".\\" + filepath.substr(filepath.rfind("res\\scripts"));
 
 		ScriptSymbols symbols{ LoadScriptDll(dll_path, relative_path, filename_no_ext) };
 

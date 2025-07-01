@@ -68,12 +68,16 @@ namespace ORNG {
 	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*, void*, void*);
 	typedef void(__cdecl* ImGuiContextSetter)(void*, void*, void*);
 	typedef void(__cdecl* UnloadFunc)();
+	typedef uint64_t(__cdecl* ScriptGetUuidFunc)();
 
 	struct ScriptSymbols {
 		// Even if script fails to load, name must be preserved
 		ScriptSymbols(const std::string& _script_name) : script_name(_script_name) {};
 
 		bool loaded = false;
+		uint64_t uuid = INVALID_SCRIPT_UUID;
+
+		static constexpr uint64_t INVALID_SCRIPT_UUID = 0;
 
 		std::string script_name;
 

@@ -75,16 +75,6 @@ namespace ORNG {
 			OnTextureDelete(p_tex);
 			DispatchAssetEvent(Events::AssetEventType::TEXTURE_DELETED, reinterpret_cast<uint8_t*>(p_tex));
 		}
-		if (auto* p_mesh = dynamic_cast<MeshAsset*>(p_asset)) {
-			DispatchAssetEvent(Events::AssetEventType::MESH_DELETED, reinterpret_cast<uint8_t*>(p_mesh));
-		}
-		if (auto* p_material = dynamic_cast<Material*>(p_asset)) {
-			DispatchAssetEvent(Events::AssetEventType::MATERIAL_DELETED, reinterpret_cast<uint8_t*>(p_material));
-		}
-		else if (auto* p_script = dynamic_cast<ScriptAsset*>(p_asset)) {
-			DispatchAssetEvent(Events::AssetEventType::SCRIPT_DELETED, reinterpret_cast<uint8_t*>(p_script));
-			ScriptingEngine::UnloadScriptDLL("res/scripts/src/" + p_script->symbols.script_name + ".cpp");
-		}
 	}
 
 	void AssetManager::LoadExternalBaseAssets(const std::string& project_dir) {

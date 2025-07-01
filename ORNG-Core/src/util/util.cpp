@@ -59,12 +59,11 @@ namespace ORNG {
 		}
 	}
 
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text) {
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements) {
 		size_t pos = input.find(text_to_replace, 0);
 		unsigned num_replacements = 0;
 
-		while (pos < input.size() && pos != std::string::npos) {
-			ORNG_CORE_TRACE(pos);
+		while (pos < input.size() && pos != std::string::npos && num_replacements < max_replacements) {
 			input.replace(pos, text_to_replace.size(), replacement_text);
 			num_replacements++;
 
@@ -118,17 +117,17 @@ namespace ORNG {
 				// The filepath is already just the filename
 				return filepath;
 			}
-			return filepath.substr(forward_pos);
+			return filepath.substr(forward_pos + 1);
 		}
 		else if (forward_pos == std::string::npos) {
-			return filepath.substr(back_pos);
+			return filepath.substr(back_pos + 1);
 		}
 
 
 		if (forward_pos > back_pos)
-			return filepath.substr(forward_pos);
+			return filepath.substr(forward_pos + 1);
 		else
-			return filepath.substr(back_pos);
+			return filepath.substr(back_pos + 1);
 	}
 
 	bool PathEqualTo(const std::string& path1, const std::string& path2) {
@@ -192,14 +191,16 @@ namespace ORNG {
 	}
 
 	std::string GetFileExtension(const std::string& filepath) {
-		return filepath.substr(filepath.rfind('.'));;
+		size_t pos = filepath.rfind('.');
+		if (pos == std::string::npos) return "";
+		return filepath.substr(pos);
 	}
 
 	bool WriteTextFile(const std::string& filepath, const std::string& content) {
 		std::ofstream out{ filepath };
 
 		if (!out.is_open()) {
-			ORNG_CORE_ERROR("Failed to open text file '{0}' for reading", filepath);
+			ORNG_CORE_ERROR("Failed to open text file '{0}' for writing", filepath);
 			return false;
 		}
 

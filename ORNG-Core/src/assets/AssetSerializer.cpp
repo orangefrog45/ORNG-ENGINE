@@ -94,9 +94,9 @@ void AssetSerializer::LoadMeshAssetIntoGL(MeshAsset* p_asset) {
 	p_asset->m_is_loaded = true;
 }
 
-void AssetSerializer::LoadMeshAsset(MeshAsset* p_asset) {
-	m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset] {
-		p_asset->LoadMeshData();
+void AssetSerializer::LoadMeshAsset(MeshAsset* p_asset, const std::string& raw_mesh_filepath) {
+	m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset, raw_mesh_filepath] {
+		p_asset->LoadMeshData(raw_mesh_filepath);
 		return p_asset;
 		}));
 };
@@ -252,27 +252,21 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	ser.value4b(static_cast<uint32_t>(phys_mat_view.size()));
 
 	for (auto* p_texture : texture_view) {
-		p_texture->m_spec.filepath = ""; // Remove links to filepaths that would be on local disk (useless for distribution)
 		SerializeTexture2D(*p_texture, ser);
 	}
 	for (auto* p_mesh : mesh_view) {
-		p_mesh->filepath = "";
 		ser.object(*p_mesh);
 	}
 	for (auto* p_sound : sound_view) {
-		p_sound->source_filepath = "";
 		SerializeSoundAsset(*p_sound, ser);
 	}
 	for (auto* p_prefab : prefab_view) {
-		p_prefab->filepath = "";
 		ser.object(*p_prefab);
 	}
 	for (auto* p_mat : mat_view) {
-		p_mat->filepath = "";
 		ser.object(*p_mat);
 	}
 	for (auto* p_mat : phys_mat_view) {
-		p_mat->filepath = "";
 		ser.object(*p_mat);
 	}
 
@@ -290,24 +284,20 @@ void AssetSerializer::SerializeAssets(const std::string& output_path) {
 	// Serialize all assets currently loaded into asset manager
 	// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
 	for (auto* p_texture : m_manager.GetView<Texture2D>()) {
-		SerializeAssetToBinaryFile(*p_texture, output_path + "\\res\\textures\\" + ReplaceFileExtension(GetFilename(p_texture->filepath), "") + ".otex");
+		SerializeAssetToBinaryFile(*p_texture, p_texture->filepath);
 	}
 
 	for (auto* p_mat : m_manager.GetView<Material>()) {
-		SerializeAssetToBinaryFile(*p_mat, output_path + "\\res\\materials\\" + std::format("{}", p_mat->uuid()) + ".omat");
+		SerializeAssetToBinaryFile(*p_mat, p_mat->filepath);
 	}
 
 	for (auto* p_sound : m_manager.GetView<SoundAsset>()) {
-		std::string fn = p_sound->filepath.substr(p_sound->filepath.rfind("\\") + 1);
-		fn = ".\\res\\audio\\" + ReplaceFileExtension(fn, ".osound");
-		SerializeAssetToBinaryFile(*p_sound, fn);
+		SerializeAssetToBinaryFile(*p_sound, p_sound->filepath);
 	}
 
 	for (auto* p_mat : m_manager.GetView<PhysXMaterialAsset>()) {
-		SerializeAssetToBinaryFile(*p_mat, output_path + "\\res\\physx-materials\\" + std::format("{}", p_mat->uuid()) + ".opmat");
+		SerializeAssetToBinaryFile(*p_mat, p_mat->filepath);
 	}
-
-
 }
 
 void AssetSerializer::Init() {
@@ -377,7 +367,7 @@ Texture2D* AssetSerializer::CreateMeshAssetTexture(const aiScene* p_scene, const
 			base_spec.generate_mipmaps = true;
 			base_spec.mag_filter = GL_LINEAR;
 			base_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-			base_spec.filepath = dir + "\\" + filename;
+			base_spec.filepath = dir + "/" + filename;
 			base_spec.srgb_space = type == aiTextureType_BASE_COLOR ? true : false;
 
 			p_tex = new Texture2D{ filename };
@@ -387,7 +377,7 @@ Texture2D* AssetSerializer::CreateMeshAssetTexture(const aiScene* p_scene, const
 
 			if (auto* p_ai_tex = p_scene->GetEmbeddedTexture(path.C_Str())) {
 				StringReplace(filename, "*", "[E]_"); // * will appear if the texture is embedded but causes serialization errors with the filepath, so change here
-				p_tex->filepath = ".\\res\\textures\\" + filename + ".otex";
+				p_tex->filepath = "./res/textures/" + filename + ".otex";
 				ProcessEmbeddedTexture(p_tex, p_ai_tex);
 			}
 			else {
@@ -475,7 +465,7 @@ void AssetSerializer::LoadPrefabAssetFromFile(const std::string& rel_path) {
 };
 
 void AssetSerializer::LoadScriptAssetFromFile(const std::string& rel_path) {
-	if (rel_path.find("scripts\\includes") != std::string::npos)
+	if (rel_path.find("scripts/includes") != std::string::npos)
 		return;
 
 #ifndef ORNG_EDITOR_LAYER
@@ -487,18 +477,20 @@ void AssetSerializer::LoadScriptAssetFromFile(const std::string& rel_path) {
 	if (path_string.find("release") != std::string::npos)
 		return;
 #endif
-	std::string dll_path = ".\\" + path_string.substr(path_string.rfind("res\\scripts"));
-	std::string rel_path = ".\\res\\scripts\\src\\" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
+	std::string dll_path = "./" + path_string.substr(path_string.rfind("res/scripts"));
+	std::string rel_path = "./res/scripts/src/" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
 
 	ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
-
-	m_manager.AddAsset(new ScriptAsset(rel_path, symbols));
 #else
-	if (GetFileExtension(rel_path) != ".cpp" || rel_path.find("scripts\\src\\") == std::string::npos) return;
+	if (GetFileExtension(rel_path) != ".cpp" || rel_path.find("scripts/src/") == std::string::npos) return;
 	ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);
-	m_manager.AddAsset(new ScriptAsset{rel_path, symbols});
 #endif
 
+	if (symbols.loaded) {
+		auto* p_script = new ScriptAsset{rel_path, symbols};
+		p_script->uuid = UUID{symbols.uuid};
+		m_manager.AddAsset(p_script);
+	}
 };
 
 void AssetSerializer::LoadPhysxAssetFromFile(const std::string& rel_path) {
@@ -511,13 +503,13 @@ void AssetSerializer::LoadPhysxAssetFromFile(const std::string& rel_path) {
 
 
 void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(project_dir + "\\res\\")) {
-		std::string path = entry.path().string();
+	for (const auto& entry : std::filesystem::recursive_directory_iterator(project_dir + "/res/")) {
+		std::string path = entry.path().generic_string();
 
 		if (entry.is_directory())
 			continue;
 
-		const std::string rel_path = path.substr(path.rfind("\\res\\") + 1);
+		const std::string rel_path = path.substr(path.rfind("/res/") + 1);
 		LoadAsset(rel_path);
 	}
 }

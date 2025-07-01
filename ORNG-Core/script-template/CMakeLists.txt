@@ -44,6 +44,7 @@ ${ENGINE_BASE_DIR}/extern/vcpkg/packages/physx_x64-windows/include/physx
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/tracy/public/tracy
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/core/headers
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/include
+${CMAKE_CURRENT_LIST_DIR}/headers
 )
 
 find_package(OpenGL REQUIRED)

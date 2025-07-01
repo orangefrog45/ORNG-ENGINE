@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include "AssetManagerWindow.h"
 
+#include <Icons.h>
 #include <components/systems/EnvMapSystem.h>
 
 #include "assets/Prefab.h"
@@ -23,7 +24,7 @@
 namespace ORNG {
 
 	inline static std::string GenerateMeshBinaryPath(MeshAsset* p_mesh) {
-		return ".\\res\\meshes\\" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("\\") + 1) + ".omesh";
+		return "./res/meshes/" + p_mesh->filepath.substr(p_mesh->filepath.find_last_of("/") + 1) + ".omesh";
 	}
 
 	void AssetManagerWindow::InitPreviewScene() {
@@ -115,7 +116,20 @@ namespace ORNG {
 		ImGui::End();
 	}
 
-	void AssetManagerWindow::OnRenderUI() {
+	void AssetManagerWindow::ProcessAssetDeletionQueue() {
+		if (m_asset_deletion_queue.empty()) return;
+
+		// This is a bit hacky, but a big time-saver.
+		// If an asset gets deleted, all references of it need to be removed from every component type.
+		// Normally, this would mean iterating manually over every affected component type, checking the required fields, replacing, etc.
+		// Instead, here the scene just gets temporarily serialized in its current state, the asset is then deleted, and the temporary scene deserialized.
+		// Because valid UUID checks are implemented in deserialization code, any now-invalid UUIDs are automatically replaced during deserialization.
+		// Thus we get the exact same scene, but any references to the just-deleted asset(s) have been replaced thanks to the deserializer.
+		// Obviously not as performant as the manual way, but generally still fast, and much more maintainable, as I only have to ensure deserialization is robust.
+		std::string ser;
+		SceneSerializer::SerializeScene(*mp_scene_context, ser, true);
+		mp_scene_context->ClearAllEntities(false);
+
 		for (uint64_t uuid : m_asset_deletion_queue) {
 			if (mp_selected_material && mp_selected_material->uuid() == uuid)
 				mp_selected_material = nullptr;
@@ -126,7 +140,14 @@ namespace ORNG {
 			AssetManager::DeleteAsset(uuid);
 		}
 
+		SceneSerializer::DeserializeScene(*mp_scene_context, ser, false);
+
 		m_asset_deletion_queue.clear();
+	}
+
+
+	void AssetManagerWindow::OnRenderUI() {
+		ProcessAssetDeletionQueue();
 		RenderMainAssetWindow();
 
 		if (mp_selected_material && mp_selected_material->uuid() != ORNG_BASE_MATERIAL_ID && RenderMaterialEditorSection())
@@ -176,7 +197,6 @@ namespace ORNG {
 	}
 
 	void AssetManagerWindow::LoadScript(ScriptAsset& asset, const std::string& relative_path) {
-		asset.filepath = relative_path;
 		asset.symbols = ScriptingEngine::GetSymbolsFromScriptCpp(relative_path);
 
 		for (auto [entity, script] : mp_scene_context->GetRegistry().view<ScriptComponent>().each()) {
@@ -196,7 +216,7 @@ namespace ORNG {
 		AssetDisplaySpec spec;
 
 		unsigned using_count = 0;
-		for (auto [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
+		for (const auto& [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
 			if (script.GetSymbols() == &p_asset->symbols) 
 				using_count++;
 		}
@@ -215,7 +235,8 @@ namespace ORNG {
 			ImGui::EndDragDropSource();
 			};
 
-		spec.on_delete = [p_asset]() {
+		spec.on_delete = [p_asset, this]() {
+			UnloadScriptFromComponents(p_asset->filepath);
 			ScriptingEngine::OnDeleteScript(p_asset->filepath);
 			};
 
@@ -249,131 +270,6 @@ namespace ORNG {
 
 	}
 
-	void AssetManagerWindow::RenderScriptTab() {
-		if (ImGui::BeginTabItem("Scripts")) {
-			static std::string new_script_name = "";
-
-			if (ImGui::Button("Create script")) {
-				// Update here as certain directories need to be initialized if this is the first script created
-				ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
-
-				std::string script_path_h = *mp_active_project_dir + "\\res\\scripts\\headers\\" + new_script_name + ".h";
-				std::string script_path_cpp = *mp_active_project_dir + "\\res\\scripts\\src\\" + new_script_name + ".cpp";
-				if (!AssetManager::GetAsset<ScriptAsset>(script_path_cpp)) {
-					std::string script_template_h_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.h");
-					std::string script_template_cpp_content = ReadTextFile(ORNG_CORE_MAIN_DIR "\\src\\scripting\\ScriptingTemplate.cpp");
-					StringReplace(script_template_h_content, "ScriptClassExample", new_script_name);
-					StringReplace(script_template_cpp_content, "ScriptClassExample", new_script_name);
-					WriteTextFile(script_path_h, script_template_h_content);
-					WriteTextFile(script_path_cpp, script_template_cpp_content);
-					AssetManager::AddAsset(new ScriptAsset(script_path_cpp, false));
-				}
-
-				ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
-			}
-
-
-			if (ImGui::Button("Unload all scripts")) {
-				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					if (p_script->symbols.loaded)
-						UnloadScript(*p_script);
-				}
-			}
-
-			if (ImGui::Button("Load all scripts")) {
-				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					if (!p_script->symbols.loaded)
-						LoadScript(*p_script, p_script->filepath);
-				}
-			}
-
-			if (ImGui::Button("Refresh script project")) {
-				ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
-			}
-
-			ExtraUI::AlphaNumTextInput(new_script_name);
-
-			if (ImGui::BeginTable("##script table", column_count)) {
-				for (auto* p_script : AssetManager::GetView<ScriptAsset>()) {
-					ImGui::TableNextColumn();
-					RenderScriptAsset(p_script);
-				}
-				ImGui::EndTable();
-			}
-
-			ImGui::EndTabItem();
-		}
-	}
-
-
-
-	void AssetManagerWindow::RenderMeshAssetTab() {
-		bool is_tab_open = ImGui::BeginTabItem("Meshes");
-
-		if (ImGui::IsItemClicked()) {
-			for (auto* p_mesh : AssetManager::GetView<MeshAsset>()) {
-				m_meshes_to_gen_previews.push_back(p_mesh);
-			}
-		}
-
-		if (is_tab_open) // MESH TAB
-		{
-			if (ImGui::Button("Add mesh")) // MESH FILE EXPLORER
-			{
-				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx;*.glb\0*.obj;*.fbx;*.glb\0";
-
-				//setting up file explorer callbacks
-				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					MeshAsset* asset = AssetManager::AddAsset(new MeshAsset(filepath));
-					AssetManager::GetSerializer().LoadMeshAsset(asset);
-					};
-
-
-				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
-			} // END MESH FILE EXPLORER
-
-			if (ImGui::BeginTable("Meshes", column_count)) // MESH VIEWING TABLE
-			{
-				for (auto* p_mesh_asset : AssetManager::GetView<MeshAsset>())
-				{
-					ImGui::TableNextColumn();
-					RenderMeshAsset(p_mesh_asset);
-				}
-
-				ImGui::EndTable();
-				ImGui::EndTabItem();
-			} // END MESH VIEWING TABLE
-		} //	 END MESH TAB
-
-
-	}
-
-
-
-
-
-	void AssetManagerWindow::RenderPhysxMaterialTab() {
-		if (ImGui::BeginTabItem("Physx materials")) // PHYSX MATERIAL TAB
-		{
-			if (ImGui::Button("+")) // MESH FILE EXPLORER
-			{
-				auto* p_new = new PhysXMaterialAsset("new");
-				p_new->p_material = Physics::GetPhysics()->createMaterial(0.75, 0.75, 0.6);
-				AssetManager::AddAsset(p_new);
-			} // END PHYSX MATSH FILE EXPLORER
-
-			if (ImGui::BeginTable("Materials", column_count))
-			{
-				for (auto* p_mat : AssetManager::GetView<PhysXMaterialAsset>())
-				{
-					ImGui::TableNextColumn();
-					RenderPhysXMaterial(p_mat);
-				}
-				ImGui::EndTable();
-				ImGui::EndTabItem();
-			} // END PHYSX MAT VIEWING TABLE
-		} // END PHYSX MAT TAB
-	}
 
 	void AssetManagerWindow::RenderPhysXMaterial(PhysXMaterialAsset* p_material) {
 		AssetDisplaySpec spec;
@@ -425,7 +321,7 @@ namespace ORNG {
 
 			ImGui::SetDragDropPayload("MESH", &p_dragged_mesh, sizeof(MeshAsset*));
 			ImGui::EndDragDropSource();
-			};
+		};
 
 		spec.p_tex = m_mesh_preview_textures.contains(p_mesh_asset) ? m_mesh_preview_textures[p_mesh_asset].get() : AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 
@@ -433,61 +329,10 @@ namespace ORNG {
 	}
 
 
-
-
-	void AssetManagerWindow::RenderTextureTab() {
-		if (ImGui::BeginTabItem("Textures")) // TEXTURE TAB
-		{
-			if (ImGui::Button("Add texture")) {
-				static std::string file_extension = "";
-				wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
-
-				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					// Filepath of about-to-be serialized texture
-					std::string new_filepath = ".\\res\\textures\\" + ReplaceFileExtension(filepath.substr(filepath.find_last_of("\\") + 1), ".otex");
-					if (!std::filesystem::exists(new_filepath)) {
-						m_current_2d_tex_spec.filepath = filepath;
-						m_current_2d_tex_spec.generate_mipmaps = true;
-						m_current_2d_tex_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-
-						Texture2D* p_new_tex = new Texture2D(filepath);
-						p_new_tex->SetSpec(m_current_2d_tex_spec);
-						AssetManager::GetSerializer().LoadTexture2D(AssetManager::AddAsset(p_new_tex));
-						p_new_tex->filepath = new_filepath;
-
-						// Set filepath to the new path from the serialized texture
-						AssetManager::GetSerializer().SerializeAssets(".");
-					}
-					else {
-						ORNG_CORE_ERROR("Texture asset '{0}' not added, already found in project files", new_filepath);
-					}
-					};
-
-				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
-			}
-
-
-			// Create table for textures
-			if (ImGui::BeginTable("Textures", column_count)); // TEXTURE VIEWING TABLE
-			{
-				// Push textures into table
-				for (auto* p_texture : AssetManager::GetView<Texture2D>())
-				{
-					ImGui::TableNextColumn();
-					RenderTexture(p_texture);
-				}
-
-				ImGui::EndTable();
-			} // END TEXTURE VIEWING TABLE
-			ImGui::EndTabItem();
-		} // END TEXTURE TAB
-	}
-
-
 	void AssetManagerWindow::RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec& display_spec) {
 		ImGui::PushID(p_asset);
 
-		ExtraUI::NameWithTooltip(display_spec.override_name.empty() ? p_asset->filepath.substr(p_asset->filepath.find_last_of('\\') + 1).c_str() : display_spec.override_name);
+		ExtraUI::NameWithTooltip(display_spec.override_name.empty() ? GetFilename(p_asset->filepath).c_str() : display_spec.override_name);
 
 		if (ExtraUI::CenteredImageButton(ImTextureID(display_spec.p_tex->GetTextureHandle()), image_button_size) && display_spec.on_click) {
 			display_spec.on_click();
@@ -542,43 +387,6 @@ namespace ORNG {
 	}
 
 
-
-
-
-	void AssetManagerWindow::RenderMaterialTab() {
-		auto materials = AssetManager::GetView<Material>();
-		bool is_tab_open = ImGui::BeginTabItem("Materials");
-
-		if (ImGui::IsItemClicked()) {
-			// Refresh previews (they update automatically mostly but this fixes some bugs)
-			for (auto* p_mat : materials) {
-				m_materials_to_gen_previews.push_back(p_mat);
-			}
-		}
-
-		if (is_tab_open) { // MATERIAL TAB
-			if (ImGui::Button("Create material")) {
-				auto* p_mat = new Material();
-				AssetManager::AddAsset(p_mat);
-			}
-
-			if (ImGui::BeginTable("Material viewer", column_count)) { //MATERIAL VIEWING TABLE
-				for (auto p_material : materials) {
-					if (!m_material_preview_textures.contains(p_material))
-						// No material preview so proceeding will lead to a crash
-						continue;
-					ImGui::TableNextColumn();
-					RenderMaterial(p_material);
-				}
-
-				ImGui::EndTable();
-			} //END MATERIAL VIEWING TABLE
-			ImGui::EndTabItem();
-		} //END MATERIAL TAB
-	}
-
-
-
 	void AssetManagerWindow::RenderMaterial(Material* p_material) {
 		AssetDisplaySpec spec;
 		spec.on_drag = [p_material]() {
@@ -611,36 +419,6 @@ namespace ORNG {
 	}
 
 
-	void AssetManagerWindow::RenderAudioTab() {
-		if (ImGui::BeginTabItem("Audio")) {
-			if (ImGui::Button("Add audio")) {
-				wchar_t valid_extensions[MAX_PATH] = L"Audio Files: *.mp3;*.wav\0*.mp3;*.wav\0";
-
-				//setting up file explorer callbacks
-				std::function<void(std::string)> success_callback = [this](std::string filepath) {
-					// Give relative path to current project directory
-					auto* p_sound = new SoundAsset(filepath);
-					p_sound->source_filepath = filepath;
-					AssetManager::AddAsset(p_sound);
-					p_sound->CreateSoundFromFile();
-					};
-
-
-				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
-			}
-
-			if (ImGui::BeginTable("##audio asset table", column_count)) {
-				for (auto* p_sound : AssetManager::GetView<SoundAsset>()) {
-					ImGui::TableNextColumn();
-					RenderAudioAsset(p_sound);
-				}
-				ImGui::EndTable();
-			}
-			ImGui::EndTabItem();
-		}
-	}
-
-
 	void AssetManagerWindow::RenderAudioAsset(SoundAsset* p_asset) {
 		AssetDisplaySpec spec;
 
@@ -654,46 +432,6 @@ namespace ORNG {
 		spec.p_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
 
 		RenderBaseAsset(p_asset, spec);
-
-	}
-
-	void AssetManagerWindow::RenderPrefabTab() {
-		if (ImGui::BeginTabItem("Prefabs")) {
-			ImVec2 start_cursor_pos = ImGui::GetCursorPos();
-
-			if (ImGui::BeginTable("##prefab table", column_count)) {
-				for (auto p_prefab : AssetManager::GetView<Prefab>()) {
-					ImGui::TableNextColumn();
-					RenderPrefab(p_prefab);
-				}
-
-				ImGui::EndTable();
-			}
-
-			ImGui::SetCursorPos(start_cursor_pos);
-			ImGui::InvisibleButton("prefab-child", ImGui::GetContentRegionAvail());
-
-			// Setup entity drag drop on entire section
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY"); p_payload && p_payload->DataSize == sizeof(std::vector<uint64_t>)) {
-					std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
-
-					for (auto id : id_vec) {
-						auto* p_ent = mp_scene_context->GetEntity(id);
-						std::string fp = *mp_active_project_dir + "\\res\\prefabs\\" + p_ent->name + ".opfb";
-
-						if (auto* p_asset = AssetManager::GetAsset<Prefab>(fp)) {
-							auto uuid = p_asset->uuid();
-							m_confirmation_window_stack.emplace_back(std::format("Overwrite prefab '{}'?", fp), [=] {AssetManager::DeleteAsset(p_asset); CreateAndSerializePrefab(*p_ent, fp, uuid); });
-						}
-						else
-							CreateAndSerializePrefab(*p_ent, fp);
-					}
-
-				}
-			}
-			ImGui::EndTabItem();
-		}
 	}
 
 	void AssetManagerWindow::RenderPrefab(Prefab* p_prefab) {
@@ -711,80 +449,437 @@ namespace ORNG {
 		RenderBaseAsset(p_prefab, spec);
 	}
 
+	void AssetManagerWindow::RenderAsset(Asset *p_asset) {
+		if (auto* p_casted = dynamic_cast<Texture2D*>(p_asset))
+			RenderTexture(p_casted);
+		else if (auto* p_casted = dynamic_cast<MeshAsset*>(p_asset))
+			RenderMeshAsset(p_casted);
+		else if (auto* p_casted = dynamic_cast<SoundAsset*>(p_asset))
+			RenderAudioAsset(p_casted);
+		else if (auto* p_casted = dynamic_cast<Prefab*>(p_asset))
+			RenderPrefab(p_casted);
+		else if (auto* p_casted = dynamic_cast<Material*>(p_asset))
+			RenderMaterial(p_casted);
+		else if (auto* p_casted = dynamic_cast<PhysXMaterialAsset*>(p_asset))
+			RenderPhysXMaterial(p_casted);
+		else if (auto* p_casted = dynamic_cast<ScriptAsset*>(p_asset))
+			RenderScriptAsset(p_casted);
+	}
+
+	bool AssetManagerWindow::RenderDirectory(const std::filesystem::path& path, std::string& active_path) {
+		static bool ret = false;
+
+		ImGui::Text(path.filename().generic_string().c_str());
+		ImGui::Button(ICON_FA_FOLDER_CLOSED, image_button_size);
+
+		if (ExtraUI::RightClickPopup((std::string{"Directory settings"} + path.generic_string()).c_str())) {
+			static std::string s;
+			ImGui::InputText("##directory settings input", &s);
+
+			if (ImGui::Selectable("Delete")) {
+				PushConfirmationWindow(std::format("Delete directory? This will delete any assets inside, and cannot be undone.", s), [path] {
+					FileDelete(path.generic_string());
+					ret = true;
+				});
+			}
+
+			if (ImGui::Selectable("Rename")) {
+				PushConfirmationWindow(std::format("Rename directory to '{}'?", s), [path] {
+					try {
+						std::filesystem::rename(path, path.parent_path().generic_string() + '/' + s);
+					} catch(std::exception& e) {
+						ORNG_CORE_ERROR("Failed to rename directory: {}", e.what());
+					}
+				});
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::IsItemClicked()) {
+			active_path = path.generic_string();
+			return true;
+		}
+
+		bool ret_copy = ret;
+		ret = false;
+		return ret_copy;
+	}
+
+	void AssetManagerWindow::RenderAddAssetPopup(bool open_condition) {
+		if (open_condition) {
+			ImGui::OpenPopup("Add asset");
+		}
+
+		static std::function<void()> p_active_window = nullptr;
+
+		if (ImGui::BeginPopup("Add asset")) {
+			if (ImGui::Selectable("Mesh")) p_active_window = [this]{ if (RenderAddMeshAssetWindow()) p_active_window = nullptr;};
+			if (ImGui::Selectable("Texture2D")) p_active_window = [this]{ if (RenderAddTexture2DAssetWindow()) p_active_window = nullptr;};
+			if (ImGui::Selectable("Material")) p_active_window = [this]{ if (RenderAddMaterialAssetWindow()) p_active_window = nullptr;};
+			if (ImGui::Selectable("Script")) p_active_window = [this]{ if (RenderAddScriptAssetWindow()) p_active_window = nullptr;};
+			if (ImGui::Selectable("Prefab")) p_active_window = [this]{ if (RenderAddPrefabAssetWindow()) p_active_window = nullptr;};
+			if (ImGui::Selectable("Sound")) p_active_window = [this]{ if (RenderAddSoundAssetWindow()) p_active_window = nullptr;};
+			if (ImGui::Selectable("PhysX Material")) p_active_window = [this]{ if (RenderAddPhysxMaterialAssetWindow()) p_active_window = nullptr;};
+
+			ImGui::EndPopup();
+		}
+
+		if (p_active_window) p_active_window();
+	}
+
+	bool AssetManagerWindow::RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath) {
+		bool ret = false;
+		if (ImGui::Begin("Addasset", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::SeparatorText("Add asset");
+			ImGui::Text("Name: ");
+			ImGui::SameLine();
+			ImGui::InputText("##asset-name", &name);
+			if (display_spec.on_render) display_spec.on_render();
+
+			if (ImGui::Button("Add")) {
+				const std::string new_asset_fp = m_current_content_dir + "/" + name;
+				if (!CanCreateAsset(new_asset_fp)) {
+					ORNG_CORE_ERROR("Cannot create asset with path '{}', duplicate detected", new_asset_fp);
+					ret = false;
+				} else {
+					filepath = new_asset_fp;
+					ret = true;
+				}
+			}
+		}
+		ImGui::End();
+
+		return ret;
+	}
+
+	bool AssetManagerWindow::CanCreateAsset(const std::string& asset_filepath) {
+		return !std::filesystem::exists(asset_filepath);
+	}
+
+	bool AssetManagerWindow::RenderAddMeshAssetWindow() {
+		static std::string raw_mesh_filepath = "";
+
+		AssetAddDisplaySpec spec{};
+		spec.on_render = [this] {
+			ImGui::Text(std::format("Source: {}", raw_mesh_filepath).c_str());
+			if (ImGui::Button("Add mesh source file")) {
+				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx;*.glb\0*.obj;*.fbx;*.glb\0";
+
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					raw_mesh_filepath = filepath;
+				};
+
+				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			}
+		};
 
 
+		static std::string name = "New asset";
+		static std::string new_asset_fp;
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		if (!add || name.empty() || raw_mesh_filepath.empty()) return false;
+
+		new_asset_fp += ".omesh";
+
+		MeshAsset* p_asset = AssetManager::AddAsset(new MeshAsset{new_asset_fp});
+		AssetManager::GetSerializer().LoadMeshAsset(p_asset, raw_mesh_filepath);
+		new_asset_fp = "";
+		name = "New asset";
+
+		return true;
+	}
+
+	bool AssetManagerWindow::RenderAddTexture2DAssetWindow() {
+		static std::string raw_tex_filepath;
+
+		AssetAddDisplaySpec spec{};
+		spec.on_render = [this] {
+			ImGui::Text(std::format("Source: {}", raw_tex_filepath).c_str());
+			if (ImGui::Button("Add texture source file")) {
+				wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
+
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					raw_tex_filepath = filepath;
+				};
+
+				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			}
+		};
+
+		static std::string name = "New asset";
+		static std::string new_asset_fp = "";
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		if (!add || name.empty() || raw_tex_filepath.empty()) return false;
+
+		new_asset_fp += ".otex";
+
+		m_current_2d_tex_spec.filepath = raw_tex_filepath;
+		m_current_2d_tex_spec.generate_mipmaps = true;
+		m_current_2d_tex_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+
+		Texture2D* p_new_tex = new Texture2D{new_asset_fp};
+		p_new_tex->SetSpec(m_current_2d_tex_spec);
+		AssetManager::GetSerializer().LoadTexture2D(AssetManager::AddAsset(p_new_tex));
+		p_new_tex->filepath = new_asset_fp;
+		new_asset_fp = "";
+		name = "New asset";
+
+		return true;
+	}
+
+	bool AssetManagerWindow::RenderAddMaterialAssetWindow() {
+		AssetAddDisplaySpec spec{};
+		static std::string name = "New asset";
+		static std::string new_asset_fp;
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		if (!add || name.empty()) return false;
+
+		new_asset_fp += ".omat";
+		auto* p_mat = new Material{new_asset_fp};
+		p_mat->name = name;
+		AssetManager::AddAsset(p_mat);
+		AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_mat, new_asset_fp);
+		new_asset_fp = "";
+		name = "New asset";
+
+		return true;
+	}
+
+	bool AssetManagerWindow::RenderAddPrefabAssetWindow() {
+		static uint64_t prefab_entity_uuid = 0;
+
+		AssetAddDisplaySpec spec{};
+		spec.on_render = [this] {
+			ImGui::Text("Drag and drop an entity into the area below");
+			ImGui::Button("Drop here!", {100, 200});
+			if (prefab_entity_uuid != 0) {
+				ImGui::SameLine();
+				ImGui::Text(std::format("Prefab entity UUID: {}", prefab_entity_uuid).c_str());
+			}
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY"); p_payload && p_payload->DataSize == sizeof(std::vector<uint64_t>)) {
+					std::vector<uint64_t>& id_vec = *static_cast<std::vector<uint64_t>*>(p_payload->Data);
+
+					if (!id_vec.empty()) {
+						prefab_entity_uuid = id_vec[0];
+					}
+				}
+			}
+		};
+
+		static std::string name = "New asset";
+		static std::string new_asset_fp;
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		if (!add || name.empty() || prefab_entity_uuid == 0) return false;
+
+		new_asset_fp += ".opfb";
+		SceneEntity* p_prefab_ent = mp_scene_context->GetEntity(prefab_entity_uuid);
+		if (!p_prefab_ent) return false;
+
+		CreateAndSerializePrefab(*p_prefab_ent, new_asset_fp);
+
+		new_asset_fp = "";
+		name = "New asset";
+		prefab_entity_uuid = 0;
+
+		return true;
+	}
+
+	bool AssetManagerWindow::RenderAddScriptAssetWindow() {
+		AssetAddDisplaySpec spec{};
+		static std::string subdirectory_path;
+		spec.on_render = [] {
+			ImGui::Text("Name must be a valid C++ class name: no whitespace, starts with an alphabetic character, and only alpha-numerical characters");
+			ImGui::Separator();
+			ImGui::Text("Subdirectory path");
+			ImGui::SameLine();
+			if (ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+				ImGui::Text(R"(The path, relative to the src and headers folder where your script will be created, e.g if subdirectory path is 'player/movement',
+				the script files will be created at res/scripts/src/player/movement/ScriptName.cpp and res/scripts/headers/player/movement/ScriptName.h)");
+				ImGui::EndTooltip();
+			}
+			ImGui::InputText("##subdir", &subdirectory_path);
+		};
+
+		static std::string name = "NewScript";
+		static std::string _; // unused here
+		const bool add = RenderBaseAddAssetWindow(spec, name, _);
+
+		bool valid_name = true;
+		StringReplace(name, " ", "");
+		std::ranges::for_each(name, [&valid_name](char c) { if (!std::isalnum(c)) valid_name = false; });
+		valid_name &= !name.empty() && std::isalpha(name[0]);
+		std::ranges::for_each(subdirectory_path, [&valid_name](char c) { if (!std::isalnum(c) && c != '/') valid_name = false; });
+		valid_name &= !subdirectory_path.empty() && std::isalpha(subdirectory_path[0]);
+
+		std::string script_path_h = "res/scripts/headers/" + subdirectory_path + '/' + name + ".h";
+		std::string script_path_cpp = "res/scripts/src/" + subdirectory_path + '/' + name + ".cpp";
+		if (!add || !valid_name || FileExists(script_path_h) || FileExists(script_path_cpp)) return false;
+
+		if (!FileExists("res/scripts/headers/" + subdirectory_path)) {
+			std::filesystem::create_directories("res/scripts/headers/" + subdirectory_path);
+		}
+
+		if (!FileExists("res/scripts/src/" + subdirectory_path)) {
+			std::filesystem::create_directories("res/scripts/src/" + subdirectory_path);
+		}
+
+		// Update here as certain directories need to be initialized if this is the first script created
+		ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
+
+		if (!AssetManager::GetAsset<ScriptAsset>(script_path_cpp)) {
+			std::string script_template_h_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.h");
+			std::string script_template_cpp_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/src/scripting/ScriptingTemplate.cpp");
+			StringReplace(script_template_h_content, "ScriptClassExample", name);
+
+			const auto uuid = UUID<uint64_t>{};
+			StringReplace(script_template_cpp_content, "REPLACE_ME_UUID", std::to_string(uuid()));
+			StringReplace(script_template_cpp_content, "ScriptClassExample", name);
+			WriteTextFile(script_path_h, script_template_h_content);
+			WriteTextFile(script_path_cpp, script_template_cpp_content);
+			auto* p_script = new ScriptAsset{script_path_cpp, false};
+			p_script->uuid = uuid;
+			AssetManager::AddAsset(p_script);
+		}
+
+		ScriptingEngine::UpdateScriptCmakeProject("res/scripts");
+		name = "NewScript";
+		subdirectory_path = "";
+
+		return true;
+	}
+
+	bool AssetManagerWindow::RenderAddPhysxMaterialAssetWindow() {
+		AssetAddDisplaySpec spec{};
+
+		static std::string name = "New asset";
+		static std::string new_asset_fp;
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		if (!add || name.empty()) return false;
+
+		new_asset_fp += ".opmat";
+
+		auto* p_new = new PhysXMaterialAsset{new_asset_fp};
+		p_new->p_material = Physics::GetPhysics()->createMaterial(0.75, 0.75, 0.6);
+		AssetManager::AddAsset(p_new);
+
+		return true;
+	}
+
+	bool AssetManagerWindow::RenderAddSoundAssetWindow() {
+		static std::string raw_sound_filepath;
+
+		AssetAddDisplaySpec spec{};
+		spec.on_render = [this] {
+			ImGui::Text(std::format("Source: {}", raw_sound_filepath).c_str());
+			if (ImGui::Button("Add audio source file")) {
+				wchar_t valid_extensions[MAX_PATH] = L"Audio Files: *.mp3;*.wav;\0*.mp3;*.wav;\0";
+
+				std::function<void(std::string)> success_callback = [this](std::string filepath) {
+					raw_sound_filepath = filepath;
+				};
+
+				ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			}
+		};
+
+		static std::string name = "New asset";
+		static std::string new_asset_fp = "";
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		if (!add || name.empty() || raw_sound_filepath.empty()) return false;
+
+		new_asset_fp += ".osound";
+
+		auto* p_sound = new SoundAsset{new_asset_fp};
+		p_sound->source_filepath = raw_sound_filepath;
+		AssetManager::AddAsset(p_sound);
+		p_sound->CreateSoundFromFile();
+
+		name = "New asset";
+		new_asset_fp = "";
+
+		return true;
+	}
 
 	void AssetManagerWindow::RenderMainAssetWindow() {
 		const int window_width = Window::GetWidth() - 650;
-		column_count = glm::max((int)(window_width / (image_button_size.x + 40)), 1);
+		column_count = glm::max<int>(window_width / (image_button_size.x + 40), 1);
 
-		ImGui::BeginTabBar("Selection");
+		if (ImGui::Button(ICON_FA_ARROW_LEFT_LONG)) {
+			m_current_content_dir = m_current_content_dir.substr(0, m_current_content_dir.rfind('/'));
+		}
+		ImGui::SameLine();
+		RenderAddAssetPopup(ImGui::Button("+"));
 
-		RenderMeshAssetTab();
-		RenderTextureTab();
-		RenderMaterialTab();
-		RenderScriptTab();
-		RenderAudioTab();
-		RenderPrefabTab();
-		RenderPhysxMaterialTab();
+		if (ImGui::BeginTable(m_current_content_dir.c_str(), column_count))
+		{
+			for (const auto& entry : std::filesystem::directory_iterator{m_current_content_dir}) {
+				if (!entry.is_directory()) continue;
 
-		ImGui::EndTabBar();
+				ImGui::TableNextColumn();
+
+				if (RenderDirectory(entry.path(), m_current_content_dir)) {
+					break;
+				}
+			}
+
+			for (auto& [uuid, p_asset] : AssetManager::Get().m_assets) {
+				if (uuid < ORNG_NUM_BASE_ASSETS) continue;
+
+				auto parent_path = std::filesystem::path{p_asset->filepath}.parent_path();
+				auto current_dir_fs = std::filesystem::path{m_current_content_dir};
+				auto comp = parent_path.compare(current_dir_fs);
+				if (comp != 0) continue;
+				ImGui::TableNextColumn();
+				RenderAsset(p_asset);
+			}
+			ImGui::EndTable();
+		}
+
+		// if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1) && !ImGui::IsPopupOpen("Directory settings", ImGuiPopupFlags_AnyPopup)) {
+		// 	ImGui::OpenPopup("Content options");
+		// }
+		// if (ImGui::BeginPopup("Content options")) {
+		// 	static std::string dir_name;
+		// 	ImGui::InputText("##dirname", &dir_name);
+		// 	if (ImGui::Selectable("Create directory")) {
+		// 		std::filesystem::create_directories(m_current_content_dir + "/" +  dir_name);
+		// 		dir_name = "";
+		// 	}
+		// 	ImGui::EndPopup();
+		// }
+
 	}
 
 
 
 	void AssetManagerWindow::OnProjectEvent(const Events::AssetEvent& t_event) {
 		switch (t_event.event_type) {
-		case Events::AssetEventType::MESH_LOADED: {
-			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
-			m_meshes_to_gen_previews.push_back(p_mesh);
+			case Events::AssetEventType::MESH_LOADED: {
+				auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
+				m_meshes_to_gen_previews.push_back(p_mesh);
 
-			if (p_mesh->uuid() == ORNG_BASE_SPHERE_ID)
-				return;
+				if (p_mesh->uuid() == ORNG_BASE_SPHERE_ID)
+					return;
 
-			std::string filepath{ GenerateMeshBinaryPath(p_mesh) };
-			if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
-				// Gen binary file if none exists
-				AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_mesh, filepath);
-			}
-
-			// Update the mesh filepath from the source file initially loaded to the generated binary file
-			p_mesh->filepath = filepath;
-
-			break;
-		}
-		case Events::AssetEventType::MATERIAL_LOADED:
-		{
-			auto* p_material = reinterpret_cast<Material*>(t_event.data_payload);
-			m_materials_to_gen_previews.push_back(p_material);
-			break;
-		}
-		case Events::AssetEventType::MATERIAL_DELETED:
-		{
-			auto* p_material = reinterpret_cast<Material*>(t_event.data_payload);
-
-			// Check if the material is in a loading queue, if it is it needs to be removed
-			auto it = std::ranges::find(m_materials_to_gen_previews, p_material);
-			if (it != m_materials_to_gen_previews.end())
-				m_materials_to_gen_previews.erase(it);
-
-			m_material_preview_textures.erase(p_material);
-			break;
-		}
-		case Events::AssetEventType::MESH_DELETED:
-		{
-			auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
-			m_mesh_preview_textures.erase(p_mesh);
-
-			break;
-		}
-		case Events::AssetEventType::SCRIPT_DELETED:
-			auto* p_symbols = &reinterpret_cast<ScriptAsset*>(t_event.data_payload)->symbols;
-			for (auto [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
-				if (script.GetSymbols() == p_symbols) {
-					auto* p_asset = AssetManager::GetAsset<ScriptAsset>(ORNG_BASE_SCRIPT_ID);
-					script.SetSymbols(&p_asset->symbols);
+				const std::string& filepath = p_mesh->filepath;
+				if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
+					// Gen binary file if none exists
+					AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_mesh, filepath);
 				}
+
+				// Update the mesh filepath from the source file initially loaded to the generated binary file
+				p_mesh->filepath = filepath;
+
+				break;
+			}
+			case Events::AssetEventType::MATERIAL_LOADED:
+			{
+				auto* p_material = reinterpret_cast<Material*>(t_event.data_payload);
+				m_materials_to_gen_previews.push_back(p_material);
+				break;
 			}
 		}
 	}
@@ -1109,4 +1204,17 @@ namespace ORNG {
 	window_end:
 		ImGui::End();
 	}
+
+	void AssetManagerWindow::OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, const std::function<void()>& callback) {
+		PushConfirmationWindow("Delete asset? " + confirmation_text, [=] {
+			if (callback)
+				callback();
+
+			// Cleanup binary file
+			FileDelete(p_asset->filepath);
+
+			m_asset_deletion_queue.push_back(p_asset->uuid());
+			});
+	};
+
 }

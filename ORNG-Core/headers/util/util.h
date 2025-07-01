@@ -171,7 +171,7 @@ namespace ORNG {
 
 	// Replaces all instances of "text_to_replace" with "replacement_text"
 	// Modifies "input" string directly, returns number of replacement operations
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements = std::numeric_limits<unsigned>::max());
 
 	// Copies raw bytes of types into array of std::byte, this will increment the ptr provided by sizeof(T)
 	template<typename... Args>

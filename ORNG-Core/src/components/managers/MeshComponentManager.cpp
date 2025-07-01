@@ -116,15 +116,6 @@ namespace ORNG {
 			OnMeshEvent(t_event);
 			};
 
-		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
-			if (t_event.event_type == Events::AssetEventType::MATERIAL_DELETED) {
-				OnMaterialDeletion(reinterpret_cast<Material*>(t_event.data_payload));
-			}
-			else if (t_event.event_type == Events::AssetEventType::MESH_DELETED) {
-				OnMeshAssetDeletion(reinterpret_cast<MeshAsset*>(t_event.data_payload));
-			}
-			};
-
 		m_billboard_listener.scene_id = p_scene->uuid();
 		m_billboard_listener.OnEvent = [this](const Events::ECS_Event<BillboardComponent>& t_event) {
 			switch (t_event.event_type) {
@@ -139,7 +130,6 @@ namespace ORNG {
 
 
 		Events::EventManager::RegisterListener(m_mesh_listener);
-		Events::EventManager::RegisterListener(m_asset_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 		Events::EventManager::RegisterListener(m_billboard_listener);
 	};
@@ -218,7 +208,6 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_mesh_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_billboard_listener.GetRegisterID());
-		Events::EventManager::DeregisterListener(m_asset_listener.GetRegisterID());
 
 		m_mesh_add_connection.release();
 		m_mesh_remove_connection.release();

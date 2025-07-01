@@ -89,7 +89,7 @@ namespace ORNG {
 		void SerializeAssets(const std::string& output_path);
 
 		// Adds asset to a loading queue and loads it asynchronously
-		void LoadMeshAsset(MeshAsset* p_asset);
+		void LoadMeshAsset(MeshAsset* p_asset, const std::string& raw_mesh_filepath);
 
 		// Adds asset to a loading queue and loads it asynchronously
 		void LoadTexture2D(Texture2D* p_tex);
@@ -124,7 +124,6 @@ namespace ORNG {
 
 			ser.object(tex.m_spec);
 			ser.object(tex.uuid);
-			ser.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 			ser.container1b(texture_data, UINT64_MAX);
 		}
 
@@ -134,7 +133,6 @@ namespace ORNG {
 			TryFetchRawSoundData(sound, sound_data);
 
 			ser.object(sound.uuid);
-			ser.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 			ser.container1b(sound_data, UINT64_MAX);
 		}
 
@@ -142,7 +140,6 @@ namespace ORNG {
 		static void DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& raw_data, S& des) {
 			des.object(tex.m_spec);
 			des.object(tex.uuid);
-			des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container1b(raw_data, UINT64_MAX);
 
 			tex.SetSpec(tex.m_spec); // Has to be called for texture to properly update
@@ -151,7 +148,6 @@ namespace ORNG {
 		template<typename S>
 		static void DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, S& des) {
 			des.object(sound.uuid);
-			des.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container1b(raw_data, UINT64_MAX);
 		}
 
@@ -167,7 +163,6 @@ namespace ORNG {
 			}
 			des.value1b(mesh.num_materials);
 			des.object(mesh.uuid);
-			des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container8b(mesh.m_material_uuids, 10000);
 		}
 
@@ -180,6 +175,9 @@ namespace ORNG {
 			/* Use a different temporary filepath for the serialized output as the previous binary file needs to be
 			opened and have data transferred. Previous file is overwritten at end of this function. */
 			std::string temp_filepath = filepath + ".TEMP";
+
+			auto dir = std::filesystem::path{filepath}.parent_path();
+			if (!FileExists(dir.generic_string())) std::filesystem::create_directories(dir);
 
 			std::ofstream s{ temp_filepath, s.binary | s.trunc | s.out };
 			if (!s.is_open()) {

@@ -10,29 +10,29 @@
 
 using namespace ORNG;
 
-bool MeshAsset::LoadMeshData() {
+bool MeshAsset::LoadMeshData(const std::string& raw_mesh_filepath) {
 	if (m_is_loaded) {
-		ORNG_CORE_TRACE("Mesh '{0}' is already loaded", filepath);
+		ORNG_CORE_TRACE("Mesh '{0}' is already loaded", raw_mesh_filepath);
 		return true;
 	}
 
-	ORNG_CORE_INFO("Loading mesh: {0}", filepath);
+	ORNG_CORE_INFO("Loading mesh: {0}", raw_mesh_filepath);
 	mp_importer = std::make_unique<Assimp::Importer>();
 
 	TimeStep time = TimeStep(TimeStep::TimeUnits::MILLISECONDS);
 	bool ret = false;
-	p_scene = mp_importer->ReadFile(filepath.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
+	p_scene = mp_importer->ReadFile(raw_mesh_filepath.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace
 		| aiProcess_ImproveCacheLocality);
 
 	if (p_scene) {
 		ret = InitFromScene(p_scene);
 	}
 	else {
-		ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", filepath.c_str(), mp_importer->GetErrorString());
+		ORNG_CORE_ERROR("Error parsing '{0}' : '{1}'", raw_mesh_filepath.c_str(), mp_importer->GetErrorString());
 		return false;
 	}
 
-	ORNG_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), filepath);
+	ORNG_CORE_INFO("Mesh loaded in {0}ms: {1}", time.GetTimeInterval(), raw_mesh_filepath);
 	return ret;
 }
 

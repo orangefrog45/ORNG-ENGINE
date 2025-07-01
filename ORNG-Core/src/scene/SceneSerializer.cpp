@@ -167,12 +167,7 @@ namespace ORNG {
 
 		if (const auto* p_script_comp = entity.GetComponent<ScriptComponent>()) {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
-
-			if (p_script_comp->GetSymbols())
-				out << YAML::Key << "ScriptName" << YAML::Value << p_script_comp->GetSymbols()->script_name;
-			else 
-				out << YAML::Key << "ScriptName" << YAML::Value << "";
-
+			out << YAML::Key << "ScriptUUID" << YAML::Value << (p_script_comp->GetSymbols() ? p_script_comp->GetSymbols()->uuid : ScriptSymbols::INVALID_SCRIPT_UUID);
 			out << YAML::EndMap;
 		}
 
@@ -266,15 +261,15 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity) {
 		auto* p_script_comp = entity.AddComponent<ScriptComponent>();
-		std::string script_name = node["ScriptName"].as<std::string>();
+		auto script_uuid = node["ScriptUUID"].as<uint64_t>();
 
-		auto* p_asset = AssetManager::GetAsset<ScriptAsset>("res/scripts/src/" + script_name + ".cpp");
+		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_uuid);
 
 		if (p_asset) {
 			p_script_comp->SetSymbols(&p_asset->symbols);
 		}
 		else {
-			ORNG_CORE_ERROR("Scene deserialization error: no script file with name '{0}' found", script_name);
+			ORNG_CORE_ERROR("Scene deserialization error: no script file with UUID '{0}' found", script_uuid);
 			p_asset = AssetManager::GetAsset<ScriptAsset>(ORNG_BASE_SCRIPT_ID);
 			p_script_comp->SetSymbols(&p_asset->symbols);
 		}
@@ -285,6 +280,7 @@ namespace ORNG {
 		p_audio->SetVolume(node["Volume"].as<float>());
 		p_audio->SetPitch(node["Pitch"].as<float>());
 		p_audio->SetSoundAssetUUID(node["AudioUUID"].as<uint64_t>());
+		if (!AssetManager::GetAsset<SoundAsset>(p_audio->m_sound_asset_uuid)) p_audio->m_sound_asset_uuid = ORNG_BASE_SOUND_ID;
 		p_audio->SetMinMaxRange(node["MinRange"].as<float>(), node["MaxRange"].as<float>());
 	}
 

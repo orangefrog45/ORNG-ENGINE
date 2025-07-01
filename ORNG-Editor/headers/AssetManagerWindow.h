@@ -1,4 +1,7 @@
 #pragma once
+#include <assets/PhysXMaterialAsset.h>
+#include <assets/SoundAsset.h>
+
 #include "rendering/Textures.h"
 #include "scene/Scene.h"
 #include "events/Events.h"
@@ -40,13 +43,15 @@ namespace ORNG {
 		std::string override_name;
 	};
 
-
+	struct AssetAddDisplaySpec {
+		std::function<void()> on_render = nullptr;
+	};
 
 	class AssetManagerWindow {
 		friend class EditorLayer;
 	public:
-		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene) : 
-			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene) {};
+		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene, class EditorLayer* p_editor) :
+			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene), mp_editor(p_editor) {};
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
@@ -89,7 +94,7 @@ namespace ORNG {
 		bool CreateAndSerializePrefab(SceneEntity& entity, const std::string& fp, uint64_t uuid = 0);
 
 		void RenderConfirmationWindow(ConfirmationWindowData& data, int index);
-		void PushConfirmationWindow(const std::string& str, std::function<void()> func) {
+		void PushConfirmationWindow(const std::string& str, const std::function<void()>& func) {
 			m_confirmation_window_stack.emplace_back(str, func);
 		}
 		void CreateMaterialPreview(const Material* p_material);
@@ -99,48 +104,44 @@ namespace ORNG {
 		bool RenderMaterialTexture(const char* name, Texture2D*& p_tex);
 		void RenderTextureEditorSection();
 
+		bool RenderDirectory(const std::filesystem::path& path, std::string& active_path);
+		void RenderAsset(Asset* p_asset);
 		void RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec& display_spec);
+
+		void RenderAddAssetPopup(bool open_condition);
+		bool RenderAddMeshAssetWindow();
+		bool RenderAddTexture2DAssetWindow();
+		bool RenderAddMaterialAssetWindow();
+		bool RenderAddPrefabAssetWindow();
+		bool RenderAddScriptAssetWindow();
+		bool RenderAddPhysxMaterialAssetWindow();
+		bool RenderAddSoundAssetWindow();
+
+		bool RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath);
+		bool CanCreateAsset(const std::string& asset_filepath);
 
 		void UnloadScript(ScriptAsset& script);
 		void LoadScript(ScriptAsset& asset, const std::string& relative_path);
 		void UnloadScriptFromComponents(const std::string& relative_path);
+
 		void RenderScriptAsset(ScriptAsset* p_asset);
-		void RenderScriptTab();
-
-		void RenderMeshAssetTab();
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
-
-		void RenderPhysxMaterialTab();
 		void RenderPhysXMaterial(class PhysXMaterialAsset* p_material);
-
-		void RenderTextureTab();
 		void RenderTexture(Texture2D* p_tex);
-
-		void RenderMaterialTab();
 		void RenderMaterial(Material* p_material);
+		void RenderPrefab(Prefab* p_prefab);
+		void RenderAudioAsset(class SoundAsset* p_asset);
 
 		void RenderPhysXMaterialEditor();
 
-		void RenderAudioTab();
-		void RenderAudioAsset(class SoundAsset* p_asset);
+		void ProcessAssetDeletionQueue();
 
-		void RenderPrefabTab();
-		void RenderPrefab(Prefab* p_prefab);
-
-		void OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, std::function<void()> callback = nullptr) {
-			PushConfirmationWindow("Delete asset? " + confirmation_text, [=] {
-				if (callback)
-					callback();
-
-				// Cleanup binary file
-				FileDelete(p_asset->filepath);
-
-				m_asset_deletion_queue.push_back(p_asset->uuid());
-				});
-		};
+		void OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, const std::function<void()>& callback = nullptr);
 
 		ImVec2 image_button_size{ 125, 125};
 		unsigned column_count = 1;
+
+		std::string m_current_content_dir = "res";
 
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
@@ -148,6 +149,7 @@ namespace ORNG {
 		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
 
 		Scene* mp_scene_context = nullptr;
+		EditorLayer* mp_editor = nullptr;
 
 		// UUID's of assets flagged for deletion
 		std::vector<uint64_t> m_asset_deletion_queue;

@@ -1,4 +1,4 @@
-#include "../headers/ScriptClassExample.h"
+#include SCRIPT_CLASS_HEADER_PATH
 
 extern "C" {
 	using namespace ORNG;
@@ -14,6 +14,9 @@ extern "C" {
 	void ScriptClassExample::OnDestroy() {
 
 	}
+
+	// Do not delete or modify this
+	__declspec(dllexport) uint64_t GetUUID() { return REPLACE_ME_UUID; }
 }
 
 
