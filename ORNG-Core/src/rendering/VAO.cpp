@@ -149,7 +149,6 @@ namespace ORNG {
 	void MeshVAO::FillBuffers() {
 		GL_StateManager::BindVAO(GetHandle());
 
-
 		if (!vertex_data.positions.empty()) {
 			GL_StateManager::BindBuffer(GL_ARRAY_BUFFER, m_buffers[POS_VB]);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data.positions[0]) * vertex_data.positions.size(), &vertex_data.positions[0], GL_STATIC_DRAW);

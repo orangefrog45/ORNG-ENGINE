@@ -189,9 +189,10 @@ namespace ORNG {
 		mp_base_quad->m_vao.vertex_data.indices = {
 			0, 2, 1, 3, 1, 2
 		};
-		mp_base_quad->num_materials = 1;
+		mp_base_quad->m_num_materials = 1;
+		mp_base_quad->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
 
-		MeshAsset::MeshEntry entry;
+		MeshEntry entry;
 		entry.base_index = 0;
 		entry.base_vertex = 0;
 		entry.material_index = 0;

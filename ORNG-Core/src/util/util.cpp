@@ -39,10 +39,9 @@ namespace ORNG {
 	}
 
 
-
 	void FileDelete(const std::string& filepath) {
 		try {
-			std::filesystem::remove(filepath);
+			std::filesystem::remove_all(filepath);
 		}
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::remove error, '{0}'", e.what());
@@ -190,6 +189,25 @@ namespace ORNG {
 		return ret;
 	}
 
+	std::string StripNonAlphaNumeric(const std::string& input) {
+		std::string ret;
+		std::ranges::for_each(input, [&ret](char c){if (std::isalnum(c)) ret += c; });
+		return ret;
+	}
+
+	bool IsFilepathAChildOf(const std::filesystem::path& child, const std::filesystem::path& parent) {
+		try {
+			auto child_abs = std::filesystem::weakly_canonical(child);
+			auto parent_abs = std::filesystem::weakly_canonical(parent);
+
+			auto rel = std::filesystem::relative(child_abs, parent_abs);
+
+			return !rel.empty() && *rel.begin() != "..";
+		} catch (...) {
+			return false;
+		}
+	}
+
 	std::string GetFileExtension(const std::string& filepath) {
 		size_t pos = filepath.rfind('.');
 		if (pos == std::string::npos) return "";
@@ -226,7 +244,6 @@ namespace ORNG {
 	}
 
 	bool ReadBinaryFile(const std::string& filepath, std::vector<std::byte>& output) {
-
 		std::ifstream file{ filepath, std::ios::binary | std::ios::ate };
 
 		if (!file.is_open()) {

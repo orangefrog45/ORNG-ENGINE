@@ -2272,7 +2272,7 @@ void EditorLayer::RenderVehicleComponentEditor(VehicleComponent* p_comp) {
 		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
 			if (p_payload->DataSize == sizeof(MeshAsset*)) {
 				p_comp->p_body_mesh = *static_cast<MeshAsset**>(p_payload->Data);
-				p_comp->m_body_materials = { p_comp->p_body_mesh->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				p_comp->m_body_materials = { p_comp->p_body_mesh->GetNbMaterials(), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -2286,7 +2286,7 @@ void EditorLayer::RenderVehicleComponentEditor(VehicleComponent* p_comp) {
 		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
 			if (p_payload->DataSize == sizeof(MeshAsset*)) {
 				p_comp->p_wheel_mesh = *static_cast<MeshAsset**>(p_payload->Data);
-				p_comp->m_wheel_materials = { p_comp->p_wheel_mesh->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				p_comp->m_wheel_materials = { p_comp->p_wheel_mesh->GetNbMaterials(), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
 			}
 		}
 		ImGui::EndDragDropTarget();

@@ -49,7 +49,7 @@ namespace bitsery {
 	}
 
 	template <typename S>
-	void serialize(S& s, MeshAsset::MeshEntry& o) {
+	void serialize(S& s, MeshEntry& o) {
 		s.value4b(o.base_index);
 		s.value4b(o.base_vertex);
 		s.value4b(o.material_index);
@@ -93,10 +93,6 @@ namespace ORNG {
 
 		// Adds asset to a loading queue and loads it asynchronously
 		void LoadTexture2D(Texture2D* p_tex);
-
-		bool ProcessEmbeddedTexture(Texture2D* p_tex, const aiTexture* p_ai_tex);
-
-		Texture2D* CreateMeshAssetTexture(const aiScene* p_scene, const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
 
 		void LoadAssetsFromProjectPath(const std::string& project_dir);
 
@@ -161,7 +157,7 @@ namespace ORNG {
 			for (int i = 0; i < size; i++) {
 				des.object(mesh.m_submeshes[i]);
 			}
-			des.value1b(mesh.num_materials);
+			des.value4b(mesh.m_num_materials);
 			des.object(mesh.uuid);
 			des.container8b(mesh.m_material_uuids, 10000);
 		}
@@ -227,9 +223,18 @@ namespace ORNG {
 			}
 		}
 
+		struct MeshAssets {
+			MeshAsset* p_mesh = nullptr;
+			std::vector<Texture2D*> textures;
+			std::vector<Material*> materials;
+		};
+
 		private:
+			// Creates a mesh asset, texture assets and material assets if any exist
+			MeshAssets CreateAssetsFromMeshData(MeshAsset* p_mesh, MeshLoadResult& result);
+
 			AssetManager& m_manager;
-			std::vector<std::future<MeshAsset*>> m_mesh_loading_queue;
+			std::vector<std::future<std::pair<std::optional<MeshLoadResult>, MeshAsset*>>> m_mesh_loading_queue;
 			std::vector<std::future<void>> m_texture_loading_queue;
 
 			// Used for texture loading

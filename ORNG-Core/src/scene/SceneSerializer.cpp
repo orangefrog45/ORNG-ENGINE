@@ -310,7 +310,7 @@ namespace ORNG {
 
 			auto materials = emitter_node["Materials"];
 			std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
-			p_res->materials.resize(p_res->p_mesh->num_materials);
+			p_res->materials.resize(p_res->p_mesh->m_num_materials);
 
 			for (int i = 0; i < p_res->materials.size(); i++) {
 				auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);

@@ -44,7 +44,7 @@ namespace ORNG {
 			systems[SystemType::GetSystemUUID()] = p_system;
 
 			auto it = m_systems_with_priority.begin();
-			for (it; it != m_systems_with_priority.end();) {
+			while (it != m_systems_with_priority.end()) {
 				if (it->second > priority) break;
 				++it;
 			}

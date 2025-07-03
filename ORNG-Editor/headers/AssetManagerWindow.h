@@ -117,7 +117,7 @@ namespace ORNG {
 		bool RenderAddPhysxMaterialAssetWindow();
 		bool RenderAddSoundAssetWindow();
 
-		bool RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath);
+		bool RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath, const std::string& extension);
 		bool CanCreateAsset(const std::string& asset_filepath);
 
 		void UnloadScript(ScriptAsset& script);

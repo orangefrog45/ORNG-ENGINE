@@ -477,7 +477,13 @@ namespace ORNG {
 			ImGui::InputText("##directory settings input", &s);
 
 			if (ImGui::Selectable("Delete")) {
-				PushConfirmationWindow(std::format("Delete directory? This will delete any assets inside, and cannot be undone.", s), [path] {
+				PushConfirmationWindow(std::format("Delete directory? This will delete any assets inside, and cannot be undone.", s), [this, path] {
+					for (auto& [uuid, p_asset] : AssetManager::Get().m_assets) {
+						if (uuid >= ORNG_NUM_BASE_ASSETS && IsFilepathAChildOf(p_asset->filepath, path)) {
+							m_asset_deletion_queue.push_back(uuid);
+						}
+					}
+
 					FileDelete(path.generic_string());
 					ret = true;
 				});
@@ -528,7 +534,7 @@ namespace ORNG {
 		if (p_active_window) p_active_window();
 	}
 
-	bool AssetManagerWindow::RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath) {
+	bool AssetManagerWindow::RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath, const std::string& extension) {
 		bool ret = false;
 		if (ImGui::Begin("Addasset", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
 			ImGui::SeparatorText("Add asset");
@@ -538,7 +544,7 @@ namespace ORNG {
 			if (display_spec.on_render) display_spec.on_render();
 
 			if (ImGui::Button("Add")) {
-				const std::string new_asset_fp = m_current_content_dir + "/" + name;
+				const std::string new_asset_fp = m_current_content_dir + "/" + name + extension;
 				if (!CanCreateAsset(new_asset_fp)) {
 					ORNG_CORE_ERROR("Cannot create asset with path '{}', duplicate detected", new_asset_fp);
 					ret = false;
@@ -564,7 +570,7 @@ namespace ORNG {
 		spec.on_render = [this] {
 			ImGui::Text(std::format("Source: {}", raw_mesh_filepath).c_str());
 			if (ImGui::Button("Add mesh source file")) {
-				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx;*.glb\0*.obj;*.fbx;*.glb\0";
+				wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx;*.glb;*.gltf\0*.obj;*.fbx;*.glb;*.gltf\0";
 
 				std::function<void(std::string)> success_callback = [this](std::string filepath) {
 					raw_mesh_filepath = filepath;
@@ -577,13 +583,13 @@ namespace ORNG {
 
 		static std::string name = "New asset";
 		static std::string new_asset_fp;
-		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".omesh");
 		if (!add || name.empty() || raw_mesh_filepath.empty()) return false;
 
-		new_asset_fp += ".omesh";
-
-		MeshAsset* p_asset = AssetManager::AddAsset(new MeshAsset{new_asset_fp});
+		auto* p_asset = new MeshAsset{new_asset_fp};
+		p_asset->filepath = m_current_content_dir + "/" + ReplaceFileExtension(GetFilename(raw_mesh_filepath), "") + ".omesh";
 		AssetManager::GetSerializer().LoadMeshAsset(p_asset, raw_mesh_filepath);
+
 		new_asset_fp = "";
 		name = "New asset";
 
@@ -609,10 +615,8 @@ namespace ORNG {
 
 		static std::string name = "New asset";
 		static std::string new_asset_fp = "";
-		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".otex");
 		if (!add || name.empty() || raw_tex_filepath.empty()) return false;
-
-		new_asset_fp += ".otex";
 
 		m_current_2d_tex_spec.filepath = raw_tex_filepath;
 		m_current_2d_tex_spec.generate_mipmaps = true;
@@ -632,10 +636,9 @@ namespace ORNG {
 		AssetAddDisplaySpec spec{};
 		static std::string name = "New asset";
 		static std::string new_asset_fp;
-		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".omat");
 		if (!add || name.empty()) return false;
 
-		new_asset_fp += ".omat";
 		auto* p_mat = new Material{new_asset_fp};
 		p_mat->name = name;
 		AssetManager::AddAsset(p_mat);
@@ -671,10 +674,9 @@ namespace ORNG {
 
 		static std::string name = "New asset";
 		static std::string new_asset_fp;
-		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".opfb");
 		if (!add || name.empty() || prefab_entity_uuid == 0) return false;
 
-		new_asset_fp += ".opfb";
 		SceneEntity* p_prefab_ent = mp_scene_context->GetEntity(prefab_entity_uuid);
 		if (!p_prefab_ent) return false;
 
@@ -705,7 +707,7 @@ namespace ORNG {
 
 		static std::string name = "NewScript";
 		static std::string _; // unused here
-		const bool add = RenderBaseAddAssetWindow(spec, name, _);
+		const bool add = RenderBaseAddAssetWindow(spec, name, _, ".cpp");
 
 		bool valid_name = true;
 		StringReplace(name, " ", "");
@@ -756,10 +758,8 @@ namespace ORNG {
 
 		static std::string name = "New asset";
 		static std::string new_asset_fp;
-		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".opmat");
 		if (!add || name.empty()) return false;
-
-		new_asset_fp += ".opmat";
 
 		auto* p_new = new PhysXMaterialAsset{new_asset_fp};
 		p_new->p_material = Physics::GetPhysics()->createMaterial(0.75, 0.75, 0.6);
@@ -787,10 +787,8 @@ namespace ORNG {
 
 		static std::string name = "New asset";
 		static std::string new_asset_fp = "";
-		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp);
+		const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".osound");
 		if (!add || name.empty() || raw_sound_filepath.empty()) return false;
-
-		new_asset_fp += ".osound";
 
 		auto* p_sound = new SoundAsset{new_asset_fp};
 		p_sound->source_filepath = raw_sound_filepath;
@@ -838,18 +836,18 @@ namespace ORNG {
 			ImGui::EndTable();
 		}
 
-		// if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1) && !ImGui::IsPopupOpen("Directory settings", ImGuiPopupFlags_AnyPopup)) {
-		// 	ImGui::OpenPopup("Content options");
-		// }
-		// if (ImGui::BeginPopup("Content options")) {
-		// 	static std::string dir_name;
-		// 	ImGui::InputText("##dirname", &dir_name);
-		// 	if (ImGui::Selectable("Create directory")) {
-		// 		std::filesystem::create_directories(m_current_content_dir + "/" +  dir_name);
-		// 		dir_name = "";
-		// 	}
-		// 	ImGui::EndPopup();
-		// }
+		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(1) && !ImGui::IsPopupOpen("Directory settings", ImGuiPopupFlags_AnyPopup)) {
+			ImGui::OpenPopup("Content options");
+		}
+		if (ImGui::BeginPopup("Content options")) {
+			static std::string dir_name;
+			ImGui::InputText("##dirname", &dir_name);
+			if (ImGui::Selectable("Create directory")) {
+				std::filesystem::create_directories(m_current_content_dir + "/" +  dir_name);
+				dir_name = "";
+			}
+			ImGui::EndPopup();
+		}
 
 	}
 
@@ -858,21 +856,34 @@ namespace ORNG {
 	void AssetManagerWindow::OnProjectEvent(const Events::AssetEvent& t_event) {
 		switch (t_event.event_type) {
 			case Events::AssetEventType::MESH_LOADED: {
-				auto* p_mesh = reinterpret_cast<MeshAsset*>(t_event.data_payload);
-				m_meshes_to_gen_previews.push_back(p_mesh);
+				auto* p_data = reinterpret_cast<std::pair<AssetSerializer::MeshAssets*, MeshLoadResult*>*>(t_event.data_payload);
+				auto& [assets, load_result] = *p_data;
 
-				if (p_mesh->uuid() == ORNG_BASE_SPHERE_ID)
+				m_meshes_to_gen_previews.push_back(assets->p_mesh);
+
+				if (assets->p_mesh->uuid() == ORNG_BASE_SPHERE_ID || assets->p_mesh->uuid() == ORNG_BASE_CUBE_ID)
 					return;
 
-				const std::string& filepath = p_mesh->filepath;
-				if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".bin") == std::string::npos) {
+				const std::string& filepath = assets->p_mesh->filepath;
+				if (!FileExists(filepath) && filepath.substr(0, filepath.size() - 4).find(".omesh") == std::string::npos) {
 					// Gen binary file if none exists
-					AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_mesh, filepath);
+					AssetManager::GetSerializer().SerializeAssetToBinaryFile(*assets->p_mesh, filepath);
+
+					// Serialize materials
+					const std::string filepath_no_extension = ReplaceFileExtension(filepath, "");
+					for (size_t i = 0; i < assets->materials.size(); i++) {
+						auto* p_mat = assets->materials[i];
+						p_mat->filepath = std::format("{}_mat_{}.omat", filepath_no_extension, p_mat->name.empty() ? std::to_string(i) : StripNonAlphaNumeric(p_mat->name));
+						AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_mat, p_mat->filepath);
+					}
+
+					// Serialize textures
+					for (size_t i = 0; i < assets->textures.size(); i++) {
+						auto* p_tex = assets->textures[i];
+						p_tex->filepath = std::format("{}_tex_{}.otex", filepath_no_extension, p_tex->GetName().empty() ? std::to_string(i) : StripNonAlphaNumeric(p_tex->GetName()));
+						AssetManager::GetSerializer().SerializeAssetToBinaryFile(*p_tex, p_tex->filepath);
+					}
 				}
-
-				// Update the mesh filepath from the source file initially loaded to the generated binary file
-				p_mesh->filepath = filepath;
-
 				break;
 			}
 			case Events::AssetEventType::MATERIAL_LOADED:
@@ -961,8 +972,6 @@ namespace ORNG {
 
 			ImGui::Text("Name: "); ImGui::SameLine(avail - 300.0);
 			ExtraUI::AlphaNumTextInput(mp_selected_physx_material->name);
-
-
 
 			ImGui::Text("Dynamic friction"); ImGui::SameLine(avail - 300.0);
 			if (ImGui::DragFloat("##df", &df)) {

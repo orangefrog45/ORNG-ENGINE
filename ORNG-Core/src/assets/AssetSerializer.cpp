@@ -14,25 +14,70 @@
 
 using namespace ORNG;
 
-
 void AssetSerializer::ProcessAssetQueues() {
 	for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
 		[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
-			auto* p_mesh = m_mesh_loading_queue[i].get();
+			auto [result, p_mesh] = m_mesh_loading_queue[i].get();
 
 			m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
 			i--;
 
-			LoadMeshAssetIntoGL(p_mesh);
+			if (!result.has_value()) return;
 
+			MeshLoadResult& result_val = result.value();
+			MeshAssets assets = CreateAssetsFromMeshData(p_mesh, result_val);
+			LoadMeshAssetIntoGL(assets.p_mesh);
+
+			std::pair<MeshAssets*, MeshLoadResult*> payload = std::make_pair(&assets, &result_val);
 			Events::AssetEvent e_event;
 			e_event.event_type = Events::AssetEventType::MESH_LOADED;
-			e_event.data_payload = reinterpret_cast<uint8_t*>(p_mesh);
+			e_event.data_payload = reinterpret_cast<uint8_t*>(&payload);
 			Events::EventManager::DispatchEvent(e_event);
 
-			p_mesh->ClearCPU_VertexData();
+			assets.p_mesh->ClearCPU_VertexData();
 		}
 	}
+}
+
+AssetSerializer::MeshAssets AssetSerializer::CreateAssetsFromMeshData(MeshAsset* p_mesh, MeshLoadResult& result) {
+	MeshAssets assets;
+
+	AssetManager::AddAsset(p_mesh);
+	p_mesh->SetMeshData(result);
+
+	assets.p_mesh = p_mesh;
+
+	std::unordered_set<Texture2D*> invalid_textures;
+
+	for (LoadedMeshTexture& tex : result.textures) {
+		tex.p_tex->SetSpec(tex.spec);
+		if (tex.p_tex->LoadFromBinary(tex.data.data(), tex.data.size(), false)) {
+			AssetManager::AddAsset(tex.p_tex);
+			assets.textures.push_back(tex.p_tex);
+		} else {
+			ORNG_CORE_ERROR("Failed to load texture from mesh data '{}'", result.original_file_path);
+			invalid_textures.insert(tex.p_tex);
+		}
+	}
+
+	auto* p_replacement_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+	for (Material* p_mat : result.materials) {
+		if (invalid_textures.contains(p_mat->base_colour_texture)) p_mat->base_colour_texture = p_replacement_tex;
+		if (invalid_textures.contains(p_mat->normal_map_texture)) p_mat->normal_map_texture = p_replacement_tex;
+		if (invalid_textures.contains(p_mat->roughness_texture)) p_mat->roughness_texture = p_replacement_tex;
+		if (invalid_textures.contains(p_mat->metallic_texture)) p_mat->metallic_texture = p_replacement_tex;
+		if (invalid_textures.contains(p_mat->ao_texture)) p_mat->ao_texture = p_replacement_tex;
+		if (invalid_textures.contains(p_mat->emissive_texture)) p_mat->emissive_texture = p_replacement_tex;
+		if (invalid_textures.contains(p_mat->displacement_texture)) p_mat->displacement_texture = p_replacement_tex;
+
+		AssetManager::AddAsset(p_mat);
+		p_mesh->m_material_uuids.push_back(p_mat->uuid());
+	}
+
+	assets.materials = result.materials;
+	std::ranges::for_each(invalid_textures, [](auto* p_tex) {delete p_tex;});
+
+	return assets;
 }
 
 void AssetSerializer::LoadMeshAssetIntoGL(MeshAsset* p_asset) {
@@ -46,59 +91,15 @@ void AssetSerializer::LoadMeshAssetIntoGL(MeshAsset* p_asset) {
 	// Get directory used for finding material textures
 	std::string dir = GetFileDirectory(p_asset->filepath);
 
-	// p_scene will be nullptr if the mesh was loaded from a binary file, then default materials will be provided
-	if (p_asset->p_scene) {
-		for (unsigned int i = 0; i < p_asset->p_scene->mNumMaterials; i++) {
-			p_asset->num_materials++;
-			const aiMaterial* p_material = p_asset->p_scene->mMaterials[i];
-			Material* p_new_material = m_manager.AddAsset(new Material());
 
-			// Load material textures
-			p_new_material->base_colour_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_BASE_COLOR, p_material);
-			p_new_material->normal_map_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_NORMALS, p_material);
-			p_new_material->roughness_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_DIFFUSE_ROUGHNESS, p_material);
-			p_new_material->metallic_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_METALNESS, p_material);
-			p_new_material->ao_texture = CreateMeshAssetTexture(p_asset->p_scene, dir, aiTextureType_AMBIENT_OCCLUSION, p_material);
-
-			// Load material properties
-			aiColor3D base_color(0.0f, 0.0f, 0.0f);
-			if (p_material->Get(AI_MATKEY_BASE_COLOR, base_color) == aiReturn_SUCCESS) {
-				p_new_material->base_colour.r = base_color.r;
-				p_new_material->base_colour.g = base_color.g;
-				p_new_material->base_colour.b = base_color.b;
-			}
-
-			float roughness;
-			float metallic;
-
-			if (p_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS)
-				p_new_material->roughness = roughness;
-
-			if (p_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == aiReturn_SUCCESS)
-				p_new_material->metallic = metallic;
-
-			// Check if the material has had any properties actually set - if not then use the default material instead of creating a new one.
-			if (!p_new_material->base_colour_texture && !p_new_material->normal_map_texture && !p_new_material->roughness_texture
-				&& !p_new_material->metallic_texture && !p_new_material->ao_texture && p_new_material->roughness == 0.2f && p_new_material->metallic == 0.0f) {
-				m_manager.DeleteAsset(p_new_material);
-				p_asset->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
-			}
-			else {
-				p_asset->m_material_uuids.push_back(p_new_material->uuid());
-			}
-		}
-	}
-
-	p_asset->OnLoadIntoGL();
-
+	p_asset->m_vao.FillBuffers();
 	p_asset->m_is_loaded = true;
 }
 
 void AssetSerializer::LoadMeshAsset(MeshAsset* p_asset, const std::string& raw_mesh_filepath) {
 	m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset, raw_mesh_filepath] {
-		p_asset->LoadMeshData(raw_mesh_filepath);
-		return p_asset;
-		}));
+		return std::make_pair(std::move(MeshAsset::LoadMeshDataFromFile(raw_mesh_filepath)), p_asset);
+	}));
 };
 
 void AssetSerializer::LoadTexture2D(Texture2D* p_tex) {
@@ -178,6 +179,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 		DeserializeMeshAsset(*p_mesh, des);
 		LoadMeshAssetIntoGL(p_mesh);
 		m_manager.AddAsset(p_mesh);
+		p_mesh->ClearCPU_VertexData();
 	}
 
 	for (uint32_t i = 0; i < num_sounds; i++) {
@@ -307,87 +309,11 @@ void AssetSerializer::Init() {
 
 void AssetSerializer::IStallUntilMeshesLoaded() {
 	while (!m_mesh_loading_queue.empty()) {
-		for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
-			[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
-				auto* p_mesh_asset = m_mesh_loading_queue[i].get();
-
-				m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
-				i--;
-
-				LoadMeshAssetIntoGL(p_mesh_asset);
-				for (auto& future : m_texture_loading_queue) {
-					future.get();
-				}
-				m_texture_loading_queue.clear();
-				m_manager.DispatchAssetEvent(Events::AssetEventType::MESH_LOADED, reinterpret_cast<uint8_t*>(p_mesh_asset));
-			}
-		}
+		ProcessAssetQueues();
+		std::this_thread::yield();
 	}
 }
 
-bool AssetSerializer::ProcessEmbeddedTexture(Texture2D* p_tex, const aiTexture* p_ai_tex) {
-	int x, y, channels;
-	size_t size = glm::max(p_ai_tex->mHeight, 1u) * p_ai_tex->mWidth;
-	stbi_uc* p_data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(p_ai_tex->pcData), size, &x, &y, &channels, 0);
-
-	if (!p_data) {
-		ORNG_CORE_ERROR("Failed to load embedded texture");
-		return false;
-	}
-
-	if (!p_tex->LoadFromBinary(reinterpret_cast<std::byte*>(p_data), size, true, x, y, channels)) {
-		ORNG_CORE_ERROR("Failed to load embedded texture");
-		return false;
-	}
-
-	// Embedded texture must be immediately serialized to a file while the image data is still available
-
-	std::ofstream s{ p_tex->filepath, s.binary | s.trunc | s.out };
-	if (!s.is_open()) {
-		ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", p_tex->filepath);
-		return false;
-	}
-
-	bitsery::Serializer<bitsery::OutputStreamAdapter> ser{ s };
-
-	// Serializes the texture
-	SerializeTexture2D(*p_tex, ser, reinterpret_cast<std::byte*>(p_ai_tex->pcData), size);
-	stbi_image_free(p_data);
-	return true;
-}
-
-Texture2D* AssetSerializer::CreateMeshAssetTexture(const aiScene* p_scene, const std::string& dir, const aiTextureType& type, const aiMaterial* p_material) {
-	Texture2D* p_tex = nullptr;
-
-	if (p_material->GetTextureCount(type) > 0) {
-		aiString path;
-		if (p_material->GetTexture(type, 0, &path, NULL, NULL, NULL, NULL, NULL) == aiReturn_SUCCESS) {
-			std::string filename = GetFilename(path.data);
-			Texture2DSpec base_spec;
-			base_spec.generate_mipmaps = true;
-			base_spec.mag_filter = GL_LINEAR;
-			base_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-			base_spec.filepath = dir + "/" + filename;
-			base_spec.srgb_space = type == aiTextureType_BASE_COLOR ? true : false;
-
-			p_tex = new Texture2D{ filename };
-			p_tex->SetSpec(base_spec);
-			p_tex = m_manager.AddAsset(p_tex);
-			filename = filename + "_" + std::to_string(p_tex->uuid());
-
-			if (auto* p_ai_tex = p_scene->GetEmbeddedTexture(path.C_Str())) {
-				StringReplace(filename, "*", "[E]_"); // * will appear if the texture is embedded but causes serialization errors with the filepath, so change here
-				p_tex->filepath = "./res/textures/" + filename + ".otex";
-				ProcessEmbeddedTexture(p_tex, p_ai_tex);
-			}
-			else {
-				LoadTexture2D(p_tex);
-			}
-		}
-	}
-
-	return p_tex;
-}
 
 void AssetSerializer::LoadAsset(const std::string& rel_path) {
 	const std::string extension = GetFileExtension(rel_path);
@@ -503,14 +429,40 @@ void AssetSerializer::LoadPhysxAssetFromFile(const std::string& rel_path) {
 
 
 void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
-	for (const auto& entry : std::filesystem::recursive_directory_iterator(project_dir + "/res/")) {
+	// Lower priorities are loaded first
+	const std::unordered_map<std::string, unsigned> asset_extension_priorities = {
+		{".otex", 0},
+		{".omat", 1},
+		{".omesh", 2},
+		{".opmat", 3},
+		{".osound", 4},
+		{".opfb", 5},
+		{".cpp", 6},
+		{".dll", 6},
+	};
+
+	std::vector<std::pair<std::string, unsigned>> asset_paths;
+
+ 	for (const auto& entry : std::filesystem::recursive_directory_iterator(project_dir + "/res/")) {
 		std::string path = entry.path().generic_string();
 
-		if (entry.is_directory())
+ 		const std::string extension = GetFileExtension(path);
+		if (entry.is_directory() || !asset_extension_priorities.contains(extension))
 			continue;
 
+ 		const unsigned priority = asset_extension_priorities.at(extension);
+ 		auto it = asset_paths.begin();
+ 		while (it != asset_paths.end()) {
+ 			if (it->second > priority) break;
+ 			++it;
+ 		}
+
 		const std::string rel_path = path.substr(path.rfind("/res/") + 1);
-		LoadAsset(rel_path);
+ 		asset_paths.insert(it, std::make_pair(rel_path, priority));
+	}
+
+	for (const auto& [path, _] : asset_paths) {
+		LoadAsset(path);
 	}
 }
 
