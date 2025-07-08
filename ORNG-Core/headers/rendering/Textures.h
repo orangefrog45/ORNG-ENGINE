@@ -36,7 +36,7 @@ namespace ORNG {
 		uint32_t width = 1;
 		uint32_t height = 1;
 
-		uint32_t wrap_params;
+		uint32_t wrap_params = GL_CLAMP_TO_EDGE;
 		uint32_t storage_type;
 
 		uint8_t generate_mipmaps = false;

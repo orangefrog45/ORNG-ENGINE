@@ -1,11 +1,11 @@
 #pragma once
-#include <assets/PhysXMaterialAsset.h>
-#include <assets/SoundAsset.h>
-
+#include "assets/PhysXMaterialAsset.h"
+#include "assets/SoundAsset.h"
 #include "assets/SceneAsset.h"
 #include "rendering/Textures.h"
 #include "scene/Scene.h"
 #include "events/Events.h"
+#include "rendering/RenderGraph.h"
 
 namespace ORNG {
 	class MeshAsset;
@@ -155,6 +155,9 @@ namespace ORNG {
 		std::string m_current_content_dir = "res";
 
 		std::function<void()> mp_active_add_asset_window = nullptr;
+
+		RenderGraph m_preview_render_graph;
+		Texture2D m_preview_render_target{""};
 
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;

@@ -23,14 +23,13 @@ void LightingPass::Init() {
 	m_shader.Init();
 	m_shader.AddUniforms("u_ibl_active", "u_ssao_active");
 
-	mp_output_tex = mp_graph->GetData<Texture2D>("OutCol");
 	if (auto* p_voxel_pass = mp_graph->GetRenderpass<VoxelPass>()) {
 		mp_voxel_pass = p_voxel_pass;
 
 		m_cone_trace_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ConeTraceCS.glsl");
 		m_cone_trace_shader.Init();
 
-		auto& output_spec = mp_output_tex->GetSpec();
+		auto& output_spec = mp_graph->GetData<Texture2D>("OutCol")->GetSpec();
 
 		Texture2DSpec cone_trace_spec;
 		cone_trace_spec.format = GL_RGBA;
@@ -64,6 +63,8 @@ void LightingPass::Init() {
 };
 
 void LightingPass::DoPass() {
+	auto* p_output_tex = mp_graph->GetData<Texture2D>("OutCol");
+
 	ORNG_PROFILE_FUNC_GPU();
 
 	GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, mp_depth_pass->m_directional_light_depth_tex.GetTextureHandle(), GL_StateManager::TextureUnits::DIR_SHADOW_MAP, true);
@@ -98,8 +99,8 @@ void LightingPass::DoPass() {
 	}
 
 
-	auto& spec = mp_output_tex->GetSpec();
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, mp_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+	auto& spec = p_output_tex->GetSpec();
+	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
@@ -120,7 +121,7 @@ void LightingPass::DoPass() {
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	m_depth_aware_upsample_sv.Activate(0);
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, mp_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, m_cone_trace_accum_tex.GetTextureHandle(), GL_TEXTURE23, false);
 	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
