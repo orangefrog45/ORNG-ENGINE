@@ -137,12 +137,16 @@ namespace ORNG {
 
 	bool WriteTextFile(const std::string& filepath, const std::string& content);
 
+	bool WriteBinaryFile(const std::string& filepath, std::byte* p_data, size_t size);
+
 	// Returns filepath with modified extension, "new_extension" should include the '.', e.g ".png", ".jpg"
 	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension);
 
 	std::string StripNonAlphaNumeric(const std::string& input);
 
 	bool IsFilepathAChildOf(const std::filesystem::path& child, const std::filesystem::path& parent);
+
+	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
 	/*
 	MISC UTILS

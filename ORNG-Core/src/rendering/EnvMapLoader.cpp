@@ -160,11 +160,12 @@ namespace ORNG {
 		hdr_spec.filepath = filepath;
 
 		Texture2D hdr_texture("hdr_skybox");
-
 		hdr_texture.SetSpec(hdr_spec);
 
-		if (!FileExists(filepath) || !hdr_texture.LoadFromFile())
-			hdr_texture = *AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+		if (!FileExists(filepath) || !hdr_texture.LoadFromFile()) {
+			ORNG_CORE_ERROR("Failed to load skybox from: '{}'", filepath);
+			return false;
+		}
 
 		TextureCubemapSpec hdr_cubemap_spec;
 		hdr_cubemap_spec.generate_mipmaps = false;

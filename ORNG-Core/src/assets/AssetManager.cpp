@@ -34,7 +34,7 @@ namespace ORNG {
 	void AssetManager::IClearAll() {
 		auto it = m_assets.begin();
 		while (it != m_assets.end()) {
-			if (it->first < ORNG_NUM_BASE_ASSETS) {
+			if (it->first < static_cast<uint64_t>(BaseAssetIDs::NUM_BASE_ASSETS)) {
 				it++;
 				continue;
 			}
@@ -78,31 +78,31 @@ namespace ORNG {
 	}
 
 	void AssetManager::LoadExternalBaseAssets(const std::string& project_dir) {
-		m_assets.erase(ORNG_BASE_SOUND_ID);
+		m_assets.erase(static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND));
 		mp_base_sound = std::make_unique<SoundAsset>(project_dir + "res\\core-res\\audio\\mouse-click.mp3");
-		mp_base_sound->uuid = UUID<uint64_t>(ORNG_BASE_SOUND_ID);
+		mp_base_sound->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND));
 		mp_base_sound->source_filepath = project_dir + "res\\core-res\\audio\\mouse-click.mp3";
 		mp_base_sound->CreateSoundFromFile();
 		AddAsset(&*mp_base_sound);
 
-		m_assets.erase(ORNG_BASE_SPHERE_ID);
+		m_assets.erase(static_cast<uint64_t>(BaseAssetIDs::SPHERE_MESH));
 		mp_base_sphere.release();
-		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/Sphere.glb");
-		serializer.DeserializeAssetBinary("res/core-res/meshes/Sphere.glb.omesh", *mp_base_sphere);
+		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/sphere.obmesh");
+		serializer.DeserializeAssetBinary("res/core-res/meshes/sphere.obmesh", *mp_base_sphere);
 		mp_base_sphere->m_vao.FillBuffers();
 		mp_base_sphere->m_is_loaded = true;
-		mp_base_sphere->uuid = UUID<uint64_t>{ ORNG_BASE_SPHERE_ID };
-		mp_base_sphere->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
+		mp_base_sphere->uuid = UUID<uint64_t>{ static_cast<uint64_t>(BaseAssetIDs::SPHERE_MESH) };
+		mp_base_sphere->m_material_uuids.push_back(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		AddAsset(&*mp_base_sphere);
 
-		m_assets.erase(ORNG_BASE_CUBE_ID);
+		m_assets.erase(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 		mp_base_cube.release();
-		mp_base_cube = std::make_unique<MeshAsset>("res/meshes/cube.glb");
-		serializer.DeserializeAssetBinary("res/core-res/meshes/cube.glb.omesh", *mp_base_cube);
+		mp_base_cube = std::make_unique<MeshAsset>("res/meshes/cube.obmesh");
+		serializer.DeserializeAssetBinary("res/core-res/meshes/cube.obmesh", *mp_base_cube);
 		mp_base_cube->m_vao.FillBuffers();
 		mp_base_cube->m_is_loaded = true;
-		mp_base_cube->uuid = UUID<uint64_t>{ ORNG_BASE_CUBE_ID };
-		mp_base_cube->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
+		mp_base_cube->uuid = UUID<uint64_t>{ static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH) };
+		mp_base_cube->m_material_uuids.push_back(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		AddAsset(&*mp_base_cube);
 	}
 
@@ -112,16 +112,16 @@ namespace ORNG {
 		
 		LoadExternalBaseAssets("");
 
-		mp_base_material = std::make_unique<Material>((uint64_t)ORNG_BASE_MATERIAL_ID);
+		mp_base_material = std::make_unique<Material>((uint64_t)static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		mp_base_material->name = "Base material";
 
 		auto symbols = ScriptSymbols("");
 		mp_base_script = std::make_unique<ScriptAsset>("", symbols);
-		mp_base_script->uuid = UUID<uint64_t>(ORNG_BASE_SCRIPT_ID);
-		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);
-		mp_base_material->uuid = UUID<uint64_t>(ORNG_BASE_MATERIAL_ID);
+		mp_base_script->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_SCRIPT));
+		mp_base_tex->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE));
+		mp_base_material->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		mp_base_brdf_lut = std::make_unique<Texture2D>("Base BRDF LUT");
-		mp_base_brdf_lut->uuid = UUID<uint64_t>(ORNG_BASE_BRDF_LUT_ID);
+		mp_base_brdf_lut->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::BRDF_LUT_TEXTURE));
 
 		EnvMapLoader loader{};
 		loader.LoadBRDFConvolution(*mp_base_brdf_lut);
@@ -133,7 +133,7 @@ namespace ORNG {
 
 		if (bool physics_module_active = Physics::GetPhysics()) {
 			auto* p_phys_mat = new PhysXMaterialAsset("BASE");
-			p_phys_mat->uuid = UUID<uint64_t>(ORNG_BASE_PHYSX_MATERIAL_ID);
+			p_phys_mat->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL));
 			p_phys_mat->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
 			AddAsset(&*p_phys_mat);
 		}
@@ -153,7 +153,7 @@ namespace ORNG {
 		instance.mp_base_script.release();
 
 		if (bool physics_module_active = Physics::GetPhysics())
-			DeleteAsset(ORNG_BASE_PHYSX_MATERIAL_ID);
+			DeleteAsset(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL));
 	};
 
 	void AssetManager::InitBase3DQuad() {
@@ -190,7 +190,7 @@ namespace ORNG {
 			0, 2, 1, 3, 1, 2
 		};
 		mp_base_quad->m_num_materials = 1;
-		mp_base_quad->m_material_uuids.push_back(ORNG_BASE_MATERIAL_ID);
+		mp_base_quad->m_material_uuids.push_back(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 
 		MeshEntry entry;
 		entry.base_index = 0;
@@ -200,14 +200,14 @@ namespace ORNG {
 
 		mp_base_quad->m_submeshes.push_back(entry);
 		mp_base_quad->m_is_loaded = true;
-		mp_base_quad->uuid = UUID<uint64_t>(ORNG_BASE_QUAD_ID);
+		mp_base_quad->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::QUAD_MESH));
 
 		mp_base_quad->m_vao.FillBuffers();
 	}
 
 	void AssetManager::InitBaseTexture() {
 		mp_base_tex = std::make_unique<Texture2D>("Base coded texture", 0);
-		mp_base_tex->uuid = UUID<uint64_t>(ORNG_BASE_TEX_ID);
+		mp_base_tex->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE));
 		Texture2DSpec spec;
 		spec.format = GL_RGB;
 		spec.internal_format = GL_RGB8;
@@ -218,7 +218,7 @@ namespace ORNG {
 		spec.min_filter = GL_NEAREST;
 		spec.mag_filter = GL_NEAREST;
 		mp_base_tex->SetSpec(spec);
-		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_base_tex->GetTextureHandle(), GL_TEXTURE0);
+		GL_StateManager::BindTexture(GL_TEXTURE_2D, mp_base_tex->GetTextureHandle(), GL_TEXTURE0, true);
 		unsigned char white_pixel[] = { 255, 255, 255, 255 };
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, white_pixel);
 	}

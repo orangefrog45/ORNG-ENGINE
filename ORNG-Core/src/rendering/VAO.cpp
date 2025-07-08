@@ -10,6 +10,13 @@ namespace ORNG {
 
 	BufferBase::BufferBase(GLenum t_buffer_type, bool is_mutable, GLbitfield flags) : buffer_type(t_buffer_type), m_is_mutable(is_mutable), m_flags(flags) {  };
 
+	BufferBase::~BufferBase() {
+		if (GL_StateManager::GetPtr())
+			GL_StateManager::DeleteBuffer(m_ogl_handle);
+		else
+			glDeleteBuffers(1, &m_ogl_handle);
+	};
+
 
 	VAO_Base::~VAO_Base() {
 		glDeleteVertexArrays(1, &m_vao_handle);

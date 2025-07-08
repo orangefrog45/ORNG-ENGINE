@@ -99,9 +99,9 @@ namespace ORNG {
 		e_event.p_component->mp_fmod_pos = new FMOD_VECTOR{ pos.x, pos.y, pos.z };
 		e_event.p_component->mp_fmod_vel = new FMOD_VECTOR{ 0, 0, 0 };
 
-		e_event.p_component->SetSoundAssetUUID(ORNG_BASE_SOUND_ID);
+		e_event.p_component->SetSoundAssetUUID(static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND));
 
-		auto* p_asset = AssetManager::GetAsset<SoundAsset>(ORNG_BASE_SOUND_ID);
+		auto* p_asset = AssetManager::GetAsset<SoundAsset>(static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND));
 
 		// Default initialize channel with the base sound
 		ORNG_CALL_FMOD(AudioEngine::GetSystem()->playSound(p_asset->p_sound, mp_channel_group, true, &e_event.p_component->mp_channel));

@@ -55,6 +55,7 @@ namespace bitsery {
 		s.value4b(o.material_index);
 		s.value4b(o.num_indices);
 	}
+
 	template<typename S>
 	void serialize(S& s, MeshVAO& o) {
 		s.object(o.vertex_data);
@@ -106,7 +107,9 @@ namespace ORNG {
 		void LoadPrefabAssetFromFile(const std::string& rel_path);
 		void LoadScriptAssetFromFile(const std::string& rel_path);
 		void LoadPhysxAssetFromFile(const std::string& rel_path);
+		void LoadSceneAssetFromFile(const std::string& rel_path);
 
+		void SerializeSceneAsset(class SceneAsset& scene_asset, BufferSerializer& ser);
 		template<typename SerializerType>
 		void SerializeTexture2D(Texture2D& tex, SerializerType& ser, std::byte* p_data = nullptr, size_t data_size = 0) {
 			std::vector<std::byte> texture_data;

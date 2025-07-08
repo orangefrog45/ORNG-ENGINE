@@ -97,4 +97,28 @@ namespace ORNG {
 			}
 		}
 	}
+
+	void EditorEventStack::PushEvent(const EditorEntityEvent& e) {
+
+		if (m_active_index != 0)
+			m_events.erase(m_events.begin(), m_events.begin() + glm::max(m_active_index, 0));
+
+		m_events.push_front(e);
+
+		if (m_events.size() > MAX_EVENT_HISTORY)
+			m_events.erase(m_events.begin());
+
+		m_active_index = 0;
+
+		constexpr unsigned MAX_STORED_EVENTS = 50;
+		if (m_events.size() > MAX_STORED_EVENTS) {
+			m_events.pop_back();
+		}
+	};
+
+	void EditorEventStack::Clear() {
+		m_events.clear();
+		m_active_index = -1;
+	}
+
 }

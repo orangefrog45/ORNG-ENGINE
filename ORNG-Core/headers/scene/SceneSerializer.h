@@ -36,7 +36,7 @@ namespace ORNG {
 			data.p_emitter = p_emitter;
 		};
 
-		EntitySerializationEvent(SceneEntity* p_ent, YAML::Node* p_node) : event_type(Type::DESERIALIZING), p_entity(p_ent) {
+		EntitySerializationEvent(SceneEntity* p_ent, const YAML::Node* p_node) : event_type(Type::DESERIALIZING), p_entity(p_ent) {
 			data.p_node = p_node;
 		};
 
@@ -55,7 +55,7 @@ namespace ORNG {
 			YAML::Emitter* p_emitter;
 
 			// Valid if event_type == DESERIALIZING
-			YAML::Node* p_node;
+			const YAML::Node* p_node;
 
 			// Valid if event_type == ENTITY_REFERENCE_REMAP
 			// Map of original_entity_uuid -> duplicate_entity_uuid
@@ -92,15 +92,16 @@ namespace ORNG {
 		static void SerializeScene(Scene& scene, std::string& output, bool write_to_string = false);
 
 		// Produces a .h file with UUID values for each named entity and asset, used in scripts
-		static void SerializeSceneUUIDs(const Scene& scene, std::string& output);
+		static void SerializeSceneUUIDs(const std::vector<class SceneAsset*>& scenes, std::string& output);
 
 		// Deserializes from filepath at "input" if input_is_filepath = true, else deserializes from the string itself assuming it contains valid yaml data
-		static bool DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath = true);
+		// If "node" is provided, the scene will be deserialized from that instead
+		static bool DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath = true, std::optional<YAML::Node*> node = std::nullopt);
 
 		static void SerializeEntity(SceneEntity& entity, YAML::Emitter& out);
 
 		// Entity argument is the entity that the data will be loaded into
-		static void DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent = false);
+		static void DeserializeEntity(Scene& scene, const YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent = false);
 
 		static std::string SerializeEntityIntoString(SceneEntity& entity);
 

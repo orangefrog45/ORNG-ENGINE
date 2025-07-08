@@ -17,7 +17,7 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->base_colour_texture->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 		else { // Replace with 1x1 white pixel texture
-			GL_StateManager::BindTexture(GL_TEXTURE_2D, AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID)->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
+			GL_StateManager::BindTexture(GL_TEXTURE_2D, AssetManager::GetAsset<Texture2D>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE))->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
 		}
 
 		if (p_material->roughness_texture == nullptr) {
@@ -155,6 +155,7 @@ namespace ORNG {
 	void SceneRenderer::DrawInstanceGroupGBuffer(ShaderVariants* p_shader, const MeshInstanceGroup* group, RenderGroup render_group, 
 		MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, bool allow_state_changes, GLenum primitive_type) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
+
 		DrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetRenderCount(), group->m_materials.data(), mat_flags, 
 			mat_flags_excluded, allow_state_changes, primitive_type);
 	}

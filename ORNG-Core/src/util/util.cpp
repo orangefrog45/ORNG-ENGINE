@@ -76,7 +76,7 @@ namespace ORNG {
 	void Create_Directory(const std::string& path) {
 		try {
 			if (!std::filesystem::exists(path))
-				std::filesystem::create_directory(path);
+				std::filesystem::create_directories(path);
 		}
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::create_directory error: '{0}'", e.what());
@@ -208,6 +208,24 @@ namespace ORNG {
 		}
 	}
 
+	std::vector<std::string> SplitString(const std::string& str, char delimiter) {
+		std::vector<std::string> ret;
+		size_t last_split = 0;
+
+		for (size_t i = 0; i < str.size(); ++i) {
+			if (str[i] != delimiter) continue;
+
+			ret.push_back(str.substr(last_split, i - last_split));
+			last_split = i + 1;
+		}
+
+		if (last_split < str.size()) {
+			ret.push_back(str.substr(last_split));
+		}
+
+		return ret;
+	}
+
 	std::string GetFileExtension(const std::string& filepath) {
 		size_t pos = filepath.rfind('.');
 		if (pos == std::string::npos) return "";
@@ -223,6 +241,18 @@ namespace ORNG {
 		}
 
 		out << content;
+		out.close();
+	}
+
+	bool WriteBinaryFile(const std::string& filepath, std::byte* p_data, size_t size) {
+		std::ofstream out{ filepath, std::ios::binary };
+
+		if (!out.is_open()) {
+			ORNG_CORE_ERROR("Failed to open binary file '{0}' for writing", filepath);
+			return false;
+		}
+
+		out.write(reinterpret_cast<const char*>(p_data), size);
 		out.close();
 	}
 

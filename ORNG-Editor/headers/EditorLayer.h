@@ -7,10 +7,12 @@
 #include "Settings.h"
 #include "EditorEventStack.h"
 #include "LuaCLI.h"
+#include "assets/SceneAsset.h"
 #include "rendering/RenderGraph.h"
 #include "util/LoggerUI.h"
 #include "components/PhysicsComponent.h"
 #include "components/VehicleComponent.h"
+#include "layers/RuntimeSettings.h"
 #include "VRlib/core/headers/VR.h"
 
 
@@ -47,7 +49,7 @@ namespace ORNG {
 
 
 	class EditorLayer : public Layer {
-		friend class GameLayer;
+		friend class AssetManagerWindow;
 	public:
 		EditorLayer(Scene* p_scene, const std::string& start_filepath) : mp_scene_context(p_scene), m_start_filepath(start_filepath) { m_asset_manager_window.SetScene(p_scene); };
 
@@ -88,6 +90,8 @@ namespace ORNG {
 		void RenderConsole();
 
 		void RenderSceneDisplayPanel();
+
+		void RenderBuildMenu();
 
 		// Renders a popup with shortcuts to create a new entity with a component, e.g mesh
 		void RenderCreationWidget(SceneEntity* p_entity, bool trigger);
@@ -234,7 +238,12 @@ namespace ORNG {
 
 		void DeserializeProjectFromFile(const std::string& input_path);
 
-		void GenerateGameRuntimeSettings(const std::string& output_path);
+		void GenerateGameRuntimeSettings(const std::string& output_path, const class RuntimeSettings& settings);
+
+		void SetActiveScene(SceneAsset& scene);
+
+		void AddDefaultSceneSystems();
+
 		/*
 			Misc
 		*/
@@ -255,11 +264,14 @@ namespace ORNG {
 			bool render_ui_in_simulation = false; // In simulation mode, determines if Editor UI will be rendered on top. Editor UI is always rendered in non-simulation mode, no matter this setting
 			bool fullscreen_scene_display = false; // Whenever simulation mode is active this will be true
 
-			bool simulate_mode_active = false; // If true editor will start simulating the scene as if it were running in a runtime layer
+			bool simulate_mode_active = false; // If true, editor will start simulating the scene as if it were running in a runtime layer
 			bool simulate_mode_paused = false;
 
 			bool selected_entities_are_dragged = false;
 			bool item_selected_this_frame = false;
+
+			bool show_build_menu = false;
+			RuntimeSettings build_runtime_settings;
 
 			// Changes render targets to VR render targets during simulation mode
 			// Editor is still visible on PC screen, but the scene is rendered to the headset display
@@ -267,7 +279,7 @@ namespace ORNG {
 			std::unique_ptr<vrlib::VR> p_vr = nullptr;
 			std::unique_ptr<Framebuffer> p_vr_framebuffer = nullptr;
 			std::unique_ptr<RenderGraph> p_vr_render_graph = nullptr;
-			XrFrameState xr_frame_state;
+			XrFrameState xr_frame_state{};
 
 			std::vector<uint64_t> selected_entity_ids;
 			std::vector<uint64_t> open_tree_nodes_entities;
@@ -345,42 +357,10 @@ namespace ORNG {
 		AssetManagerWindow m_asset_manager_window{ &m_state.current_project_directory, mp_scene_context, this };
 
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
+		Events::EventListener<SwitchSceneEvent> m_switch_scene_event_listener;
 
 		const std::string m_start_filepath;
 	};
-
-constexpr const char* ORNG_BASE_SCENE_YAML =  R"(Scene: Untitled scene
-Entities:
-  []
-DirLight:
-  Shadows: true
-  Colour: [4.61000013, 4.92500019, 4.375]
-  Direction: [0, 0.707106829, 0.707106829]
-  CascadeRanges: [20, 75, 200]
-  Zmults: [5, 5, 5]
-Skybox:
-  HDR filepath: "res/textures/preview-sky.hdr"
-  IBL: true
-  Resolution: 2048
-Fog:
-  Density: 0.0
-  Absorption: 0.00300000003
-  Scattering: 0.0399999991
-  Anisotropy: 0.508000016
-  Colour: [0.300000012, 0.300000012, 0.400000006]
-  Steps: 23
-  Emission: 0
-Bloom:
-  Intensity: 0.333000004
-  Knee: 0.100000001
-  Threshold: 1)";
-
-constexpr const char* ORNG_BASE_EDITOR_PROJECT_YAML = R"(
-CamPos: [0, 0, 0]
-CamFwd: [-0, -0, -1]
-VR enabled: false
-Active scene path: scene.yml
-)";
 }
 
 #undef SCENE

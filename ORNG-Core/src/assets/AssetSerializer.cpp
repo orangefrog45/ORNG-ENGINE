@@ -7,12 +7,15 @@
 #include "core/Window.h" // For shared loading context
 #include "physics/Physics.h" // For initializing physx assets
 #include "assets/PhysXMaterialAsset.h"
+#include "assets/SceneAsset.h"
 
 #include <bitsery/adapter/stream.h>
 #include <GLFW/glfw3.h> // For glfwmakecontextcurrent
 #include <yaml-cpp/yaml.h>
 
 using namespace ORNG;
+
+constexpr size_t MAX_SCENE_YAML_SIZE = 100'000'000;
 
 void AssetSerializer::ProcessAssetQueues() {
 	for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
@@ -60,7 +63,7 @@ AssetSerializer::MeshAssets AssetSerializer::CreateAssetsFromMeshData(MeshAsset*
 		}
 	}
 
-	auto* p_replacement_tex = AssetManager::GetAsset<Texture2D>(ORNG_BASE_TEX_ID);
+	auto* p_replacement_tex = AssetManager::GetAsset<Texture2D>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE));
 	for (Material* p_mat : result.materials) {
 		if (invalid_textures.contains(p_mat->base_colour_texture)) p_mat->base_colour_texture = p_replacement_tex;
 		if (invalid_textures.contains(p_mat->normal_map_texture)) p_mat->normal_map_texture = p_replacement_tex;
@@ -140,6 +143,15 @@ bool AssetSerializer::TryFetchRawTextureData(Texture2D& tex, std::vector<std::by
 	return false;
 }
 
+void AssetSerializer::SerializeSceneAsset(SceneAsset &scene_asset, BufferSerializer &ser) {
+	std::string content = ReadTextFile(scene_asset.filepath);
+	if (content.empty()) {
+		ORNG_CORE_ERROR("Failed to serialize scene asset, yaml contents could not be read from: '{}'", scene_asset.filepath);
+		return;
+	}
+
+	ser.text1b(content, MAX_SCENE_YAML_SIZE);
+}
 
 void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& package_filepath) {
 	std::ifstream s{ package_filepath, std::ios::binary | std::ios::ate };
@@ -154,13 +166,14 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 
 	BufferDeserializer des{ file_data.begin(), file_data.end() };
 
-	uint32_t num_textures, num_meshes, num_sounds, num_prefabs, num_materials, num_phys_materials;
+	uint32_t num_textures, num_meshes, num_sounds, num_prefabs, num_materials, num_phys_materials, num_scenes;
 	des.value4b(num_textures);
 	des.value4b(num_meshes);
 	des.value4b(num_sounds);
 	des.value4b(num_prefabs);
 	des.value4b(num_materials);
 	des.value4b(num_phys_materials);
+	des.value4b(num_scenes);
 
 	std::vector<std::byte> bin_data;
 
@@ -214,6 +227,22 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 		DeserializePhysxMaterialAsset(*p_mat, des);
 		m_manager.AddAsset(p_mat);
 	}
+
+	for (uint32_t i = 0; i < num_scenes; i++) {
+		auto* p_scene = new SceneAsset{""};
+
+		std::string contents;
+		des.text1b(contents, MAX_SCENE_YAML_SIZE);
+
+		try {
+			p_scene->node = YAML::Load(contents);
+			p_scene->uuid = UUID{p_scene->node["SceneUUID"].as<uint64_t>()};
+		} catch(std::exception& e) {
+			ORNG_CORE_ERROR("Failed to deserialize scene: '{}'", e.what());
+		}
+
+		AssetManager::AddAsset(p_scene);
+	}
 }
 
 void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
@@ -226,9 +255,10 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	auto prefab_view = std::vector<Prefab*>();
 	auto mat_view = std::vector<Material*>();
 	auto phys_mat_view = std::vector<PhysXMaterialAsset*>();
+	auto scene_view = std::vector<SceneAsset*>();
 
 	for (auto& [uuid, p_asset] : m_manager.m_assets) {
-		if (p_asset->uuid() < ORNG_NUM_BASE_ASSETS)
+		if (p_asset->uuid() < static_cast<uint64_t>(BaseAssetIDs::NUM_BASE_ASSETS))
 			continue;
 
 		if (auto* p_casted = dynamic_cast<Texture2D*>(p_asset))
@@ -243,6 +273,8 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 			mat_view.push_back(p_casted);
 		else if (auto* p_casted = dynamic_cast<PhysXMaterialAsset*>(p_asset))
 			phys_mat_view.push_back(p_casted);
+		else if (auto* p_casted = dynamic_cast<SceneAsset*>(p_asset))
+			scene_view.push_back(p_casted);
 	}
 
 	// Begin layout with number of assets
@@ -252,6 +284,7 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	ser.value4b(static_cast<uint32_t>(prefab_view.size()));
 	ser.value4b(static_cast<uint32_t>(mat_view.size()));
 	ser.value4b(static_cast<uint32_t>(phys_mat_view.size()));
+	ser.value4b(static_cast<uint32_t>(scene_view.size()));
 
 	for (auto* p_texture : texture_view) {
 		SerializeTexture2D(*p_texture, ser);
@@ -271,7 +304,9 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	for (auto* p_mat : phys_mat_view) {
 		ser.object(*p_mat);
 	}
-
+	for (auto* p_scene : scene_view) {
+		SerializeSceneAsset(*p_scene, ser);
+	}
 
 	std::ofstream s{ output_path, s.binary | s.trunc | s.out };
 	if (!s.is_open()) {
@@ -285,6 +320,7 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 void AssetSerializer::SerializeAssets(const std::string& output_path) {
 	// Serialize all assets currently loaded into asset manager
 	// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
+	// Scenes are also overlooked as they're explicitly serialized in the editor
 	for (auto* p_texture : m_manager.GetView<Texture2D>()) {
 		SerializeAssetToBinaryFile(*p_texture, p_texture->filepath);
 	}
@@ -332,6 +368,8 @@ void AssetSerializer::LoadAsset(const std::string& rel_path) {
 		LoadScriptAssetFromFile(rel_path);
 	} else if (extension == ".opmat") {
 		LoadPhysxAssetFromFile(rel_path);
+	} else if (extension == ".oscene") {
+		LoadSceneAssetFromFile(rel_path);
 	}
 };
 
@@ -427,6 +465,20 @@ void AssetSerializer::LoadPhysxAssetFromFile(const std::string& rel_path) {
 	m_manager.AddAsset(p_mat);
 };
 
+void AssetSerializer::LoadSceneAssetFromFile(const std::string &rel_path) {
+	auto* p_scene = new SceneAsset{rel_path};
+	const std::string yaml = ReadTextFile(rel_path);
+
+	try {
+		p_scene->node = YAML::Load(yaml);
+		p_scene->uuid = UUID{p_scene->node["SceneUUID"].as<uint64_t>()};
+	} catch(std::exception& e) {
+		ORNG_CORE_ERROR("Failed to load scene asset from file: '{}'\n'{}'", rel_path, e.what());
+	}
+
+	m_manager.AddAsset(p_scene);
+}
+
 
 void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) {
 	// Lower priorities are loaded first
@@ -439,6 +491,7 @@ void AssetSerializer::LoadAssetsFromProjectPath(const std::string& project_dir) 
 		{".opfb", 5},
 		{".cpp", 6},
 		{".dll", 6},
+		{".oscene", 7},
 	};
 
 	std::vector<std::pair<std::string, unsigned>> asset_paths;

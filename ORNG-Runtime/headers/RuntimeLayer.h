@@ -1,11 +1,8 @@
-#include "../../ORNG-Core/headers/EngineAPI.h"
+#include "EngineAPI.h"
 #include "VRlib/core/headers/VR.h"
+#include "layers/RuntimeSettings.h"
 
 namespace ORNG {
-	struct RuntimeSettings {
-		bool use_vr = false;
-	};
-
 	class RuntimeLayer : public Layer {
 		void OnInit() override;
 		void Update() override;

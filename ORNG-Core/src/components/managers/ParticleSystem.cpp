@@ -142,12 +142,12 @@ namespace ORNG {
 
 		if (p_comp->m_type == ParticleEmitterComponent::BILLBOARD && !p_bb_res) {
 			p_bb_res = p_ent->AddComponent<ParticleBillboardResources>();
-			p_bb_res->p_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			p_bb_res->p_material = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		}
 		else if (p_comp->m_type == ParticleEmitterComponent::MESH && !p_mesh_res) {
 			p_mesh_res = p_ent->AddComponent<ParticleMeshResources>();
-			p_mesh_res->materials = { AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
-			p_mesh_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+			p_mesh_res->materials = { AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)) };
+			p_mesh_res->p_mesh = AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 		}
 
 		if (!m_emitter_entities.empty()) {
@@ -232,13 +232,13 @@ namespace ORNG {
 
 		if (p_comp->m_type == ParticleEmitterComponent::BILLBOARD) {
 			p_ent->DeleteComponent<ParticleMeshResources>();
-			p_ent->AddComponent<ParticleBillboardResources>()->p_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			p_ent->AddComponent<ParticleBillboardResources>()->p_material = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		}
 		else {
 			p_ent->DeleteComponent<ParticleBillboardResources>();
 			auto* p_res = p_ent->AddComponent<ParticleMeshResources>();
-			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
-			p_res->materials = { static_cast<size_t>(p_res->p_mesh->GetNbMaterials()), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
+			p_res->materials = { static_cast<size_t>(p_res->p_mesh->GetNbMaterials()), AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)) };
 		}
 	}
 

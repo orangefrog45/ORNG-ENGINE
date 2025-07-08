@@ -61,7 +61,7 @@ namespace ORNG {
 		}
 
 		inline static void DeleteBuffer(unsigned buffer_handle) {
-			glDeleteBuffers(1, &buffer_handle);
+			Get().IDeleteBuffer(buffer_handle);
 		}
 
 		inline static void BindSSBO(unsigned int ssbo, unsigned int binding_index) {
@@ -208,6 +208,8 @@ namespace ORNG {
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding_index, ssbo);
 			m_current_ssbo_bindings[binding_index] = ssbo;
 		}
+
+		void IDeleteBuffer(unsigned buffer_handle);
 
 		void IBindTexture(int target, int texture, int tex_unit, bool force_mode);
 
