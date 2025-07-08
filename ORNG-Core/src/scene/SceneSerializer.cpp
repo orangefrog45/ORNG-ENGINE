@@ -421,6 +421,9 @@ namespace ORNG {
 
 		const auto GetUniqueName = [](const std::unordered_set<std::string>& names_taken, const std::string& start_name) -> std::string {
 			std::string name = start_name;
+			// Replace spaces with underscores
+			std::ranges::for_each(name, [](char& c) {if (c == ' ') c = '_'; });
+
 			if (names_taken.contains(name)) {
 				int iter = 1;
 				while (names_taken.contains(name)) {
@@ -436,20 +439,19 @@ namespace ORNG {
 			std::unordered_set<std::string> entity_names_taken;
 			std::string scene_name = GetUniqueName(scene_names_taken, p_scene->node["Scene"].as<std::string>());
 			scene_names_taken.emplace(scene_name);
-			fout << std::format("namespace {} {}\n", scene_name, '{');
+			fout << std::format("namespace {} {}\n", scene_name, "{");
+			fout << "constexpr uint64_t uuid = " << std::to_string(p_scene->uuid()) << ";\n";
 			fout << "namespace Entities {\n";
 
 			auto& entities = p_scene->node["Entities"];
 			for (const auto& entity : entities) {
 				std::string ent_name = GetUniqueName(entity_names_taken, entity["Name"].as<std::string>());
-				// Replace spaces with underscores
-				std::ranges::for_each(ent_name, [](char& c) {if (c == ' ') c = '_'; });
 				entity_names_taken.emplace(ent_name);
 				fout << "constexpr uint64_t " << ent_name << " = " << entity["Entity"].as<uint64_t>() << ";\n";
 			}
 
-			fout << "\n};"; // namespace Entities
-			fout << "\n};"; // namespace scene_name
+			fout << "};\n"; // namespace Entities
+			fout << "};\n\n"; // namespace scene_name
 		}
 
 		fout << "namespace Prefabs {\n";
@@ -459,7 +461,7 @@ namespace ORNG {
 			std::ranges::for_each(prefab_name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "constexpr uint64_t " << prefab_name << " = " << p_prefab->uuid() << ";\n";
 		}
-		fout << "\n};"; // namespace Prefabs
+		fout << "\n};\n"; // namespace Prefabs
 
 		fout << "namespace Sounds {\n";
 		for (auto* p_asset : AssetManager::GetView<SoundAsset>()) {
@@ -468,7 +470,7 @@ namespace ORNG {
 			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "constexpr uint64_t " << name << " = " << p_asset->uuid() << "; \n";
 		}
-		fout << "\n};"; // namespace Sounds
+		fout << "\n};\n"; // namespace Sounds
 
 		fout << "namespace Materials {\n";
 		for (auto* p_asset : AssetManager::GetView<Material>()) {
@@ -476,9 +478,9 @@ namespace ORNG {
 			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "constexpr uint64_t " << name << "_" << p_asset->uuid() << " = " << p_asset->uuid() << "; \n";
 		}
-		fout << "\n};"; // namespace Materials
+		fout << "\n};\n"; // namespace Materials
 
-		fout << "\n};"; // namespace Scene
+		fout << "\n};\n"; // namespace Scene
 	}
 
 	void SceneSerializer::SerializeScene(Scene& scene, std::string& output, bool write_to_string) {
@@ -487,7 +489,7 @@ namespace ORNG {
 		out << YAML::BeginMap;
 
 		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
-		out << YAML::Key << "SceneUUID" << YAML::Value << scene.uuid();
+		out << YAML::Key << "SceneUUID" << YAML::Value << scene.m_asset_uuid();
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		for (auto* p_entity : scene.m_entities) {
@@ -558,7 +560,7 @@ namespace ORNG {
 		ORNG_CORE_TRACE("Deserializing scene '{0}'", scene_name);
 
 		scene.m_name = scene_name;
-		scene.uuid = UUID{data["SceneUUID"].as<uint64_t>()};
+		scene.m_asset_uuid = UUID{data["SceneUUID"].as<uint64_t>()};
 
 		const auto& entities = data["Entities"];
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass

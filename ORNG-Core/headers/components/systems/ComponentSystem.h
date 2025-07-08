@@ -21,7 +21,7 @@ namespace ORNG {
 
 		virtual void OnUnload() {};
 
-		inline uint64_t GetSceneUUID() const { return mp_scene->uuid(); }
+		inline uint64_t GetSceneUUID() const { return mp_scene->GetStaticUUID(); }
 	protected:
 		Scene* mp_scene = nullptr;
 	};

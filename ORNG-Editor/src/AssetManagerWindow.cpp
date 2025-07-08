@@ -378,7 +378,7 @@ void AssetManagerWindow::RenderSceneAsset(SceneAsset* p_asset) {
 	};
 
 	// Is scene active in the editor
-	const bool is_active = mp_editor->mp_scene_context->uuid() == p_asset->uuid();
+	const bool is_active = mp_editor->mp_scene_context->m_asset_uuid() == p_asset->uuid();
 	if (is_active) {
 		spec.popup_spec.options.emplace_back("Active", [this, p_asset]() {});
 	} else {
@@ -788,7 +788,7 @@ bool AssetManagerWindow::RenderAddScriptAssetWindow() {
 	std::ranges::for_each(name, [&valid_name](char c) { if (!std::isalnum(c)) valid_name = false; });
 	valid_name &= !name.empty() && std::isalpha(name[0]);
 	std::ranges::for_each(subdirectory_path, [&valid_name](char c) { if (!std::isalnum(c) && c != '/') valid_name = false; });
-	valid_name &= !subdirectory_path.empty() && std::isalpha(subdirectory_path[0]);
+	if(!subdirectory_path.empty()) valid_name &= std::isalpha(subdirectory_path[0]);
 
 	std::string script_path_h = "res/scripts/headers/" + subdirectory_path + '/' + name + ".h";
 	std::string script_path_cpp = "res/scripts/src/" + subdirectory_path + '/' + name + ".cpp";

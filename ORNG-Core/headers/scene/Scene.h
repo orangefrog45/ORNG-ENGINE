@@ -103,6 +103,11 @@ namespace ORNG {
 
 		void UnloadScene();
 
+		// This method will clear the scene and deserialize from the scene asset provided
+		// This must be the deserialization method used in scripts to avoid crashes or UB
+		// scene_asset must be valid at the end of the frame
+		void DeserializeAtEndOfFrame(class SceneAsset& scene_asset);
+
 		// Specify uuid if deserializing
 		SceneEntity& CreateEntity(const std::string& name, uint64_t uuid = 0);
 		void DeleteEntity(SceneEntity* p_entity);
@@ -110,6 +115,10 @@ namespace ORNG {
 		SceneEntity* GetEntity(uint64_t uuid);
 		SceneEntity* GetEntity(const std::string& name);
 		SceneEntity* GetEntity(entt::entity handle);
+
+		std::vector<SceneEntity*>& GetEntities() {
+			return m_entities;
+		}
 
 		// Instantiates prefab
 		// call_on_create will call the OnCreate function of any script components attached to the prefab or its child entities if true
@@ -167,8 +176,6 @@ namespace ORNG {
 			return m_time_elapsed;
 		}
 
-		UUID<uint64_t> uuid;
-
 		PostProcessingSettings post_processing;
 		DirectionalLight directional_light;
 
@@ -180,11 +187,31 @@ namespace ORNG {
 		inline class RenderGraph* GetRenderGraph() noexcept {
 			return mp_render_graph;
 		}
+
+		// The UUID of the SceneAsset deserialized into this scene
+		// 0 if no SceneAsset has been deserialized into the scene yet
+		[[nodiscard]] uint64_t GetSceneAssetUUID() const {
+			return m_asset_uuid();
+		}
+
+		[[nodiscard]] uint64_t GetStaticUUID() const {
+			return m_static_uuid();
+		}
+
 	private:
+		// The UUID of the SceneAsset deserialized into this scene
+		// 0 if no SceneAsset has been deserialized into the scene yet
+		UUID<uint64_t> m_asset_uuid{0};
+
+		// A static UUID that remains the same on this scene for its lifetime
+		UUID<uint64_t> m_static_uuid{};
+
 		std::vector<std::pair<ComponentSystem*, int>> m_systems_with_priority;
 
 		// Set externally by either editor or runtime layer
 		RenderGraph* mp_render_graph = nullptr;
+
+		SceneAsset* mp_pending_deserialization_asset = nullptr;
 
 		bool m_is_loaded = false;
 		bool m_started = false;

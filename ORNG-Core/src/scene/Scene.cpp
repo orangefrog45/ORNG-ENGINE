@@ -6,6 +6,7 @@
 #include "util/util.h"
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
+#include "assets/SceneAsset.h"
 #include "scene/SceneSerializer.h"
 #include "components/ComponentAPI.h"
 #include "components/systems/ComponentSystem.h"
@@ -37,15 +38,18 @@ namespace ORNG {
 		for (auto [p_system, _] : m_systems_with_priority) {
 			p_system->OnUpdate();
 		}
-		
-		//if (m_camera_system.GetActiveCamera())
-			//terrain.UpdateTerrainQuadtree(m_camera_system.GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetPosition());
 
 		for (auto* p_entity : m_entity_deletion_queue) {
 			DeleteEntity(p_entity);
 		}
 
 		m_entity_deletion_queue.clear();
+
+		if (mp_pending_deserialization_asset) {
+			ClearAllEntities(false); // Don't clear registry as if we're in the editor it'll destroy the camera
+			SceneSerializer::DeserializeScene(*this, "", false, &mp_pending_deserialization_asset->node);
+			mp_pending_deserialization_asset = nullptr;
+		}
 	}
 
 	void Scene::OnImGuiRender() {
@@ -358,7 +362,7 @@ namespace ORNG {
 
 		Events::EventManager::RegisterListener(m_uuid_change_listener);
 
-		m_hierarchy_modification_listener.scene_id = uuid();
+		m_hierarchy_modification_listener.scene_id = m_static_uuid();
 		m_hierarchy_modification_listener.OnEvent = [&](const Events::ECS_Event<RelationshipComponent>& _event) {
 			entt::entity entity = _event.p_component->GetEnttHandle();
 			entt::entity parent = _event.p_component->GetEntity()->GetParent();
@@ -431,10 +435,13 @@ namespace ORNG {
 	}
 
 
+	void Scene::DeserializeAtEndOfFrame(SceneAsset &scene_asset) {
+		mp_pending_deserialization_asset = &scene_asset;
+	}
 
 	SceneEntity& Scene::CreateEntity(const std::string& name, uint64_t uuid) {
 		auto reg_ent = m_registry.create();
-		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent, &m_registry, this->uuid()) : new SceneEntity(uuid, reg_ent, this, &m_registry, this->uuid());
+		SceneEntity* ent = uuid == 0 ? new SceneEntity(this, reg_ent, &m_registry, this->m_static_uuid()) : new SceneEntity(uuid, reg_ent, this, &m_registry, this->m_static_uuid());
 		uuid = ent->GetUUID();
 		ent->name = name;
 		m_entities.push_back(ent);

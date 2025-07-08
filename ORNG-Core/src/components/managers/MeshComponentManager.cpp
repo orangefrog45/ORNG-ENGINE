@@ -104,19 +104,19 @@ namespace ORNG {
 
 	MeshInstancingSystem::MeshInstancingSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 		// Setup event listeners
-		m_transform_listener.scene_id = p_scene->uuid();
+		m_transform_listener.scene_id = p_scene->GetStaticUUID();
 		m_transform_listener.OnEvent = [this, p_scene](const Events::ECS_Event<TransformComponent>& t_event) {
 			if (p_scene->GetRegistry().valid(entt::entity(t_event.p_component->GetEntity()->GetEnttHandle())))
 				OnTransformEvent(t_event);
 			};
 
 		// Instance group handling
-		m_mesh_listener.scene_id = p_scene->uuid();
+		m_mesh_listener.scene_id = p_scene->GetStaticUUID();
 		m_mesh_listener.OnEvent = [this](const Events::ECS_Event<MeshComponent>& t_event) {
 			OnMeshEvent(t_event);
 			};
 
-		m_billboard_listener.scene_id = p_scene->uuid();
+		m_billboard_listener.scene_id = p_scene->GetStaticUUID();
 		m_billboard_listener.OnEvent = [this](const Events::ECS_Event<BillboardComponent>& t_event) {
 			switch (t_event.event_type) {
 			case Events::ECS_EventType::COMP_ADDED:

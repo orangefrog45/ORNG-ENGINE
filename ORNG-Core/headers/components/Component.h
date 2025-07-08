@@ -12,7 +12,7 @@ namespace ORNG {
 
 		[[nodiscard]] uint64_t GetEntityUUID() const;
 		[[nodiscard]] entt::entity GetEnttHandle() const;
-		[[nodiscard]] uint64_t GetSceneUUID() const;
+		[[nodiscard]] uint64_t GetStaticSceneUUID() const;
 		[[nodiscard]] SceneEntity* GetEntity() { return mp_entity; }
 		[[nodiscard]] std::string GetEntityName() const;
 	private:

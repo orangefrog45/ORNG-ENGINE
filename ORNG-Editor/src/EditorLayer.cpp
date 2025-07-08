@@ -250,7 +250,7 @@ void EditorLayer::EndPlayScene() {
 	render_graph.Reset();
 	InitRenderGraph(render_graph, false);
 
-	mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
+	mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->m_static_uuid());
 	auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
 	p_transform->SetAbsolutePosition(cam_pos);
 	p_transform->LookAt(look_at_pos);
@@ -1101,7 +1101,7 @@ void EditorLayer::OpenLoadProjectMenu() {
 void EditorLayer::SaveProject() {
 	std::string uuid_filepath{ "./res/scripts/includes/uuids.h" };
 	AssetManager::GetSerializer().SerializeAssets(m_state.current_project_directory);
-	auto* p_scene_asset = AssetManager::GetAsset<SceneAsset>(SCENE->uuid());
+	auto* p_scene_asset = AssetManager::GetAsset<SceneAsset>(SCENE->m_asset_uuid());
 	std::string write_path = p_scene_asset ? p_scene_asset->filepath : "res/scene_temp.oscene";
 	std::string serialized;
 	SceneSerializer::SerializeScene(*SCENE, serialized, true);
@@ -1231,22 +1231,20 @@ void EditorLayer::SetActiveScene(SceneAsset& scene) {
 	m_event_stack.Clear();
 	mp_editor_camera = nullptr;
 	std::string before; SceneSerializer::SerializeScene(*SCENE, before, true);
-	uint64_t before_uuid = SCENE->uuid();
+	uint64_t before_uuid = SCENE->m_asset_uuid();
 
 	SCENE->UnloadScene();
 
-	// UUID must be set before adding systems, as systems may create ECS event listeners tied to scene UUID
-	SCENE->uuid = scene.uuid;
 	AddDefaultSceneSystems();
 	SCENE->LoadScene();
 
-	mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
+	mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->m_static_uuid());
 	mp_editor_camera->AddComponent<TransformComponent>();
 
 	if (!SceneSerializer::DeserializeScene(*SCENE, "", false, &scene.node)) {
 		ORNG_CORE_ERROR("Failed to set active scene, reverting back to previous scene.");
 		SCENE->UnloadScene();
-		SCENE->uuid = UUID{before_uuid};
+		SCENE->m_asset_uuid = UUID{before_uuid};
 		AddDefaultSceneSystems();
 		SCENE->LoadScene();
 		SceneSerializer::DeserializeScene(*SCENE, before, false);
@@ -1349,7 +1347,7 @@ bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		AssetManager::ClearAll();
 		AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory);
 
-		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
+		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->m_static_uuid());
 		DeserializeProjectFromFile(m_state.current_project_directory + "/project.oproj");
 		mp_editor_camera->AddComponent<TransformComponent>()->SetAbsolutePosition(cam_pos);
 		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
@@ -1376,7 +1374,7 @@ void EditorLayer::SerializeProjectToFile(const std::string &output_path) {
 	emitter << YAML::Key << "CamPos" << YAML::Value << p_cam_transform->GetAbsPosition();
 	emitter << YAML::Key << "CamFwd" << YAML::Value << p_cam_transform->forward;
 	emitter << YAML::Key << "VR_Enabled" << YAML::Value << m_state.use_vr_in_simulation;
-	emitter << YAML::Key << "ActiveSceneUUID" << YAML::Value << SCENE->uuid();
+	emitter << YAML::Key << "ActiveSceneUUID" << YAML::Value << SCENE->m_asset_uuid();
 	emitter << YAML::EndMap;
 
 	WriteTextFile(output_path, std::string{emitter.c_str()});
@@ -1387,8 +1385,6 @@ void EditorLayer::DeserializeProjectFromFile(const std::string &input_path) {
 	if (file_content.empty()) return;
 
 	YAML::Node node = YAML::Load(file_content);
-	// Set this here as some systems have ECS event listeners tied to the scene UUID, if this changes after the systems are initialized it will break them
-	SCENE->uuid = UUID{node["ActiveSceneUUID"].as<uint64_t>()};
 	AddDefaultSceneSystems();
 	SCENE->LoadScene();
 
