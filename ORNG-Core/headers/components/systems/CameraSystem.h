@@ -8,7 +8,7 @@ namespace ORNG {
 	class CameraSystem : public ComponentSystem {
 		friend class Scene;
 	public:
-		CameraSystem(Scene* p_scene) : ComponentSystem(p_scene) {
+		explicit CameraSystem(Scene* p_scene) : ComponentSystem(p_scene) {
 			m_event_listener.OnEvent = [this](const Events::ECS_Event<CameraComponent>& t_event) {
 				if (t_event.event_type == Events::ECS_EventType::COMP_UPDATED && t_event.p_component->is_active) {
 					SetActiveCamera(t_event.p_component->GetEnttHandle());

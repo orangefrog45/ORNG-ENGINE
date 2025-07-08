@@ -33,6 +33,7 @@ namespace ORNG {
 
 		// Call this just before this scene starts getting updated but after it's fully loaded
 		void Start();
+		void End();
 
 		// Adds a system to be managed by this scene, should be a heap-allocated ptr to the system
 		// Memory for the system is freed when the scene is deleted or the system is removed
@@ -43,7 +44,7 @@ namespace ORNG {
 			systems[SystemType::GetSystemUUID()] = p_system;
 
 			auto it = m_systems_with_priority.begin();
-			for (it; it != m_systems_with_priority.end();) {
+			while (it != m_systems_with_priority.end()) {
 				if (it->second > priority) break;
 				++it;
 			}
@@ -133,7 +134,7 @@ namespace ORNG {
 
 		static void SortEntitiesNumParents(std::vector<SceneEntity*>& entities, bool descending);
 
-		void ClearAllEntities() {
+		void ClearAllEntities(bool clear_reg = true) {
 			unsigned int max_iters = 10'000'000;
 			unsigned int i = 0;
 			while (!m_entities.empty()) {
@@ -147,7 +148,8 @@ namespace ORNG {
 				DeleteEntity(m_entities[0]);
 			}
 
-			m_registry.clear();
+			if (clear_reg) m_registry.clear();
+
 			ASSERT(m_entities.empty());
 			ASSERT(m_root_entities.empty());
 		}
@@ -185,6 +187,7 @@ namespace ORNG {
 		RenderGraph* mp_render_graph = nullptr;
 
 		bool m_is_loaded = false;
+		bool m_started = false;
 
 		// Delta time accumulated over each call to Update(), different from application time
 		double m_time_elapsed = 0.0;

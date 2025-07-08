@@ -4,22 +4,21 @@
 #include "assets/SoundAsset.h"
 #include "AssetSerializer.h"
 
-#define ORNG_BASE_MATERIAL_ID 0
-#define ORNG_BASE_SOUND_ID 1
-#define ORNG_BASE_TEX_ID 2
-#define ORNG_BASE_CUBE_ID 3
-#define ORNG_BASE_SCRIPT_ID	4
-#define ORNG_BASE_SPHERE_ID 5
-#define ORNG_BASE_PHYSX_MATERIAL_ID 6
-#define ORNG_BASE_QUAD_ID 7
-#define ORNG_BASE_BRDF_LUT_ID 8
-#define ORNG_NUM_BASE_ASSETS 9
-
-struct GLFWwindow;
-enum aiTextureType;
-struct aiMaterial;
-
 namespace ORNG {
+	enum class BaseAssetIDs {
+		DEFAULT_MATERIAL,
+		CLICK_SOUND,
+		WHITE_TEXTURE,
+		CUBE_MESH,
+		DEFAULT_SCRIPT,
+		SPHERE_MESH,
+		DEFAULT_PHYSX_MATERIAL,
+		QUAD_MESH,
+		BRDF_LUT_TEXTURE,
+
+		NUM_BASE_ASSETS
+	};
+
 	class Texture2D;
 	class MeshAsset;
 	struct Texture2DSpec;
@@ -68,7 +67,7 @@ namespace ORNG {
 			std::vector<T*> vec;
 			for (auto [uuid, p_asset] : Get().m_assets) {
 				if (T* p_typed_asset = dynamic_cast<T*>(p_asset); p_typed_asset &&
-					uuid >= ORNG_NUM_BASE_ASSETS
+					uuid >= static_cast<uint64_t>(BaseAssetIDs::NUM_BASE_ASSETS)
 					)
 					vec.push_back(p_typed_asset);
 			}

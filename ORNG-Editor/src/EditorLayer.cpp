@@ -44,6 +44,7 @@
 
 #include "components/systems/VrSystem.h"
 #include "GLFW/glfw3native.h"
+#include "layers/RuntimeSettings.h"
 
 constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
 constexpr unsigned BOTTOM_WINDOW_HEIGHT = 300;
@@ -77,10 +78,10 @@ void EditorLayer::Init() {
 	m_res.grid_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/GridFS.glsl");
 	m_res.grid_shader.Init();
 
-	m_res.quad_col_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl", { "TRANSFORM" });
+	m_res.quad_col_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl");
 	m_res.quad_col_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/core-res/shaders/ColourFS.glsl");
 	m_res.quad_col_shader.Init();
-	m_res.quad_col_shader.AddUniforms("u_scale", "u_translation", "u_colour");
+	m_res.quad_col_shader.AddUniforms("u_colour");
 
 	m_res.picking_shader.AddStage(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/TransformVS.glsl");
 	m_res.picking_shader.AddStage(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/PickingFS.glsl");
@@ -123,8 +124,12 @@ void EditorLayer::Init() {
 		}
 		};
 
-
 	Events::EventManager::RegisterListener(m_window_event_listener);
+
+	m_switch_scene_event_listener.OnEvent = [this](const SwitchSceneEvent& _event) {
+		SetActiveScene(*_event.p_new);
+	};
+	Events::EventManager::RegisterListener(m_switch_scene_event_listener);
 
 	Texture2DSpec picking_spec;
 	picking_spec.format = GL_RGB_INTEGER;
@@ -259,6 +264,7 @@ void EditorLayer::EndPlayScene() {
 	if (m_state.use_vr_in_simulation)
 		ShutdownVrForSimulationMode();
 
+	SCENE->End();
 	EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_END_SIMULATION));
 }
 
@@ -778,6 +784,8 @@ void EditorLayer::RenderUI() {
 	if (m_state.general_settings.editor_window_settings.display_joint_maker)
 		RenderJointMaker();
 
+	if (m_state.show_build_menu) RenderBuildMenu();
+
 	ImGui::PopStyleVar(); // window border size
 	ImGui::PopStyleVar(); // window padding
 }
@@ -860,10 +868,12 @@ void EditorLayer::RenderDisplayWindow() {
 	m_res.editor_pass_fb.BindTexture2D(m_res.p_scene_display_texture->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 	// Mouse drag selection quad
 	if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
+		glDisable(GL_DEPTH_TEST);
 		m_res.quad_col_shader.ActivateProgram();
 		m_res.quad_col_shader.SetUniform("u_colour", glm::vec4(0, 0, 1, 0.1));
 		glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
 		Renderer::DrawScaledQuad((glm::vec2(m_state.mouse_drag_data.start.x, Window::GetHeight() - m_state.mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_state.mouse_drag_data.end.x, Window::GetHeight() - m_state.mouse_drag_data.end.y) / w) * 2.f - 1.f);
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	//RenderGrid();
@@ -970,7 +980,7 @@ void EditorLayer::RenderToolbar() {
 		}
 		case 4: {
 #ifndef _DEBUG
-			BuildGameFromActiveProject();
+			m_state.show_build_menu = true;
 #else
 			ORNG_CORE_CRITICAL("Building games is not allowed in editor debug mode, use a release build instead.");
 #endif
@@ -1089,32 +1099,38 @@ void EditorLayer::OpenLoadProjectMenu() {
 }
 
 void EditorLayer::SaveProject() {
-	std::string scene_filepath{ "scene.yml" };
 	std::string uuid_filepath{ "./res/scripts/includes/uuids.h" };
 	AssetManager::GetSerializer().SerializeAssets(m_state.current_project_directory);
-	SceneSerializer::SerializeScene(*SCENE, scene_filepath);
-	SceneSerializer::SerializeSceneUUIDs(*SCENE, uuid_filepath);
+	auto* p_scene_asset = AssetManager::GetAsset<SceneAsset>(SCENE->uuid());
+	std::string write_path = p_scene_asset ? p_scene_asset->filepath : "res/scene_temp.oscene";
+	std::string serialized;
+	SceneSerializer::SerializeScene(*SCENE, serialized, true);
+
+	WriteTextFile(write_path, serialized);
+
+	// Update scene asset contents
+	p_scene_asset->node = YAML::Load(serialized);
+
+	// Update UUID file
+	SceneSerializer::SerializeSceneUUIDs(AssetManager::GetView<SceneAsset>(), uuid_filepath);
 
 	SerializeProjectToFile(m_state.current_project_directory + "/project.oproj");
 }
 
-void EditorLayer::GenerateGameRuntimeSettings(const std::string &output_path) {
-	YAML::Emitter emitter{};
-	emitter << YAML::BeginMap;
-	emitter << YAML::Key << "VR" << YAML::Value << m_state.use_vr_in_simulation;
-
-	WriteTextFile(output_path, emitter.c_str());
+void EditorLayer::GenerateGameRuntimeSettings(const std::string &output_path, const RuntimeSettings& settings) {
+	std::vector<std::byte> bin;
+	bitsery::Serializer<bitsery::OutputBufferAdapter<std::vector<std::byte>>> s{bin};
+	s.object(settings);
+	WriteBinaryFile(output_path, bin.data(), bin.size());
 }
 
 void EditorLayer::BuildGameFromActiveProject() {
 	// Delete old build
 	TryFileDelete("./build");
-	Create_Directory("./build");
 	Create_Directory("./build/res");
 
-	FileCopy(m_state.current_project_directory + "/scene.yml", "build/scene.yml");
+	GenerateGameRuntimeSettings(m_state.current_project_directory + "/build/runtime.orts", m_state.build_runtime_settings);
 
-	GenerateGameRuntimeSettings(m_state.current_project_directory + "/build/runtime.orts");
 	for (auto& file : std::filesystem::recursive_directory_iterator{ m_state.current_project_directory + "/res" }) {
 		auto path_str = file.path().generic_string();
 		if (path_str.find(".vs") != std::string::npos)
@@ -1139,6 +1155,35 @@ void EditorLayer::BuildGameFromActiveProject() {
 	for (const auto& path : dlls) {
 		FileCopy(GetApplicationExecutableDirectory() + "/../ORNG-Runtime/" + path, "build/" + path);
 	}
+}
+
+void EditorLayer::RenderBuildMenu() {
+	ImVec2 window_size{600, 600};
+	ImVec2 window_pos{(Window::GetWidth() - window_size.x) / 2.f, (Window::GetWidth() - window_size.x) / 2.f};
+
+	if (ImGui::Begin("Build settings")) {
+		ImGui::Checkbox("VR runtime", &m_state.build_runtime_settings.use_vr);
+
+		auto* p_current_start_scene = AssetManager::GetAsset<SceneAsset>(m_state.build_runtime_settings.start_scene_uuid);
+		std::string start_scene_name = p_current_start_scene ? p_current_start_scene->node["Scene"].as<std::string>() : "NONE";
+
+		ImGui::Text(std::format("Start scene: {}", start_scene_name).c_str()); ImGui::SameLine(); ImGui::Button("Drop scene asset here");
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("SCENE ASSET")) {
+				if (p_payload->DataSize == sizeof(SceneAsset*)) {
+					m_state.build_runtime_settings.start_scene_uuid = (*static_cast<SceneAsset**>(p_payload->Data))->uuid();
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+	}
+
+	if (ImGui::Button("Build")) {
+		m_state.show_build_menu = false;
+		BuildGameFromActiveProject();
+	}
+
+	if (ImGui::Button("Exit")) m_state.show_build_menu = false;
 }
 
 void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
@@ -1182,6 +1227,37 @@ void RefreshScriptIncludes() {
 	FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 }
 
+void EditorLayer::SetActiveScene(SceneAsset& scene) {
+	m_event_stack.Clear();
+	mp_editor_camera = nullptr;
+	std::string before; SceneSerializer::SerializeScene(*SCENE, before, true);
+	uint64_t before_uuid = SCENE->uuid();
+
+	SCENE->UnloadScene();
+
+	// UUID must be set before adding systems, as systems may create ECS event listeners tied to scene UUID
+	SCENE->uuid = scene.uuid;
+	AddDefaultSceneSystems();
+	SCENE->LoadScene();
+
+	mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
+	mp_editor_camera->AddComponent<TransformComponent>();
+
+	if (!SceneSerializer::DeserializeScene(*SCENE, "", false, &scene.node)) {
+		ORNG_CORE_ERROR("Failed to set active scene, reverting back to previous scene.");
+		SCENE->UnloadScene();
+		SCENE->uuid = UUID{before_uuid};
+		AddDefaultSceneSystems();
+		SCENE->LoadScene();
+		SceneSerializer::DeserializeScene(*SCENE, before, false);
+	}
+
+	mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
+
+	InitRenderGraph(m_render_graph, false);
+	if (m_state.use_vr_in_simulation) InitRenderGraph(*m_state.p_vr_render_graph, true);
+}
+
 bool EditorLayer::GenerateProject(const std::string& project_name, bool abs_path) {
 	if (std::filesystem::exists(m_state.executable_directory + "/projects/" + project_name)) {
 		ORNG_CORE_ERROR("Project with name '{0}' already exists", project_name);
@@ -1193,28 +1269,29 @@ bool EditorLayer::GenerateProject(const std::string& project_name, bool abs_path
 
 	std::string project_path = abs_path ? project_name : m_state.executable_directory + "/projects/" + project_name;
 	Create_Directory(project_path);
+
+	std::filesystem::create_directory(project_path + "/res");
+	std::filesystem::create_directory(project_path + "/res/meshes");
+	std::filesystem::create_directory(project_path + "/res/textures");
+	std::filesystem::create_directory(project_path + "/res/scripts");
+	std::filesystem::create_directory(project_path + "/res/scenes");
+	std::filesystem::create_directory(project_path + "/res/scripts/includes");
+	std::filesystem::create_directories(project_path + "/res/scripts/bin/release");
+	std::filesystem::create_directories(project_path + "/res/scripts/bin/debug");
+	std::filesystem::create_directory(project_path + "/res/shaders");
+	std::filesystem::create_directory(project_path + "/res/audio");
+	std::filesystem::create_directory(project_path + "/res/prefabs");
+	std::filesystem::create_directory(project_path + "/res/materials");
+	std::filesystem::create_directory(project_path + "/res/physx-materials");
+
 	// Create base scene for project to use
-	std::ofstream s{ project_path + "/scene.yml" };
+	std::ofstream s{ project_path + "/res/scenes/scene.oscene" };
 	s << ORNG_BASE_SCENE_YAML;
 	s.close();
 
 	s = std::ofstream{ project_path + "/project.oproj"};
 	s << ORNG_BASE_EDITOR_PROJECT_YAML;
 	s.close();
-
-	std::filesystem::create_directory(project_path + "/res");
-	std::filesystem::create_directory(project_path + "/res/meshes");
-	std::filesystem::create_directory(project_path + "/res/textures");
-	std::filesystem::create_directory(project_path + "/res/scripts");
-	std::filesystem::create_directory(project_path + "/res/scripts/includes");
-	std::filesystem::create_directory(project_path + "/res/scripts/bin");
-	std::filesystem::create_directory(project_path + "/res/scripts/bin/release");
-	std::filesystem::create_directory(project_path + "/res/scripts/bin/debug");
-	std::filesystem::create_directory(project_path + "/res/shaders");
-	std::filesystem::create_directory(project_path + "/res/audio");
-	std::filesystem::create_directory(project_path + "/res/prefabs");
-	std::filesystem::create_directory(project_path + "/res/materials");
-	std::filesystem::create_directory(project_path + "/res/physx-materials");
 
 	return true;
 }
@@ -1223,52 +1300,24 @@ bool EditorLayer::GenerateProject(const std::string& project_name, bool abs_path
 
 
 bool EditorLayer::ValidateProjectDir(const std::string& dir_path) {
-	try {
-		if (!std::filesystem::exists(dir_path + "/scene.yml")) {
-			std::ofstream s{ dir_path + "/scene.yml" };
-			s << ORNG_BASE_SCENE_YAML;
-			s.close();
-		}
-
-		// If any of these are missing, will be recreated
-		Create_Directory(dir_path + "/res/");
-		Create_Directory(dir_path + "/res/meshes");
-		Create_Directory(dir_path + "/res/textures");
-		Create_Directory(dir_path + "/res/shaders");
-		Create_Directory(dir_path + "/res/scripts");
-		Create_Directory(dir_path + "/res/scripts/bin");
-		Create_Directory(dir_path + "/res/scripts/bin/release");
-		Create_Directory(dir_path + "/res/scripts/bin/debug");
-		Create_Directory(dir_path + "/res/scripts/includes");
-		Create_Directory(dir_path + "/res/prefabs");
-		Create_Directory(dir_path + "/res/materials");
-		Create_Directory(dir_path + "/res/audio");
-		Create_Directory(dir_path + "/res/physx-materials");
-
-
-		std::ifstream stream(dir_path + "/scene.yml");
-		std::stringstream str_stream;
-		str_stream << stream.rdbuf();
-		stream.close();
-
-		YAML::Node data = YAML::Load(str_stream.str());
-		if (!data.IsDefined() || data.IsNull() || !data["Scene"]) {
-			std::filesystem::copy_file(dir_path + "/scene.yml", dir_path + "/sceneCORRUPTED.yml");
-			ORNG_CORE_ERROR("scene.yml file is corrupted, replacing with default template");
-			std::ofstream s{ dir_path + "/scene.yml" };
-			s << ORNG_BASE_SCENE_YAML;
-			s.close();
-		}
-	}
-	catch (const std::exception& e) {
-		ORNG_CORE_ERROR("Error validating project '{0}', : '{1}'", dir_path, e.what());
-		return false;
-	}
-
+	// For now no extra validation is done
 	return true;
 }
 
 
+void EditorLayer::AddDefaultSceneSystems() {
+	SCENE->AddSystem(new CameraSystem{ SCENE }, 0);
+	SCENE->AddSystem(new EnvMapSystem{ SCENE }, 1000);
+	SCENE->AddSystem(new AudioSystem{ SCENE }, 2000);
+	SCENE->AddSystem(new PointlightSystem{ SCENE }, 3000);
+	SCENE->AddSystem(new SpotlightSystem{ SCENE }, 4000);
+	SCENE->AddSystem(new ParticleSystem{ SCENE }, 5000);
+	SCENE->AddSystem(new PhysicsSystem{ SCENE }, 6000);
+	SCENE->AddSystem(new TransformHierarchySystem{ SCENE }, 7000);
+	SCENE->AddSystem(new ScriptSystem{ SCENE }, 8000);
+	SCENE->AddSystem(new SceneUBOSystem{ SCENE }, 9000);
+	SCENE->AddSystem(new MeshInstancingSystem{ SCENE }, 10000);
+}
 
 
 bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
@@ -1297,34 +1346,18 @@ bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 		if (SCENE->m_is_loaded)
 			SCENE->UnloadScene();
 
-		SCENE->AddSystem(new CameraSystem{ SCENE }, 0);
-		SCENE->AddSystem(new EnvMapSystem{ SCENE }, 1000);
-		SCENE->AddSystem(new AudioSystem{ SCENE }, 2000);
-		SCENE->AddSystem(new PointlightSystem{ SCENE }, 3000);
-		SCENE->AddSystem(new SpotlightSystem{ SCENE }, 4000);
-		SCENE->AddSystem(new ParticleSystem{ SCENE }, 5000);
-		SCENE->AddSystem(new PhysicsSystem{ SCENE }, 6000);
-		SCENE->AddSystem(new TransformHierarchySystem{ SCENE }, 7000);
-		SCENE->AddSystem(new ScriptSystem{ SCENE }, 8000);
-		SCENE->AddSystem(new SceneUBOSystem{ SCENE }, 9000);
-		SCENE->AddSystem(new MeshInstancingSystem{ SCENE }, 10000);
-
 		AssetManager::ClearAll();
-		AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory, false);
-		SCENE->LoadScene();
-		SceneSerializer::DeserializeScene(*SCENE, m_state.current_project_directory + "\\scene.yml", true);
+		AssetManager::GetSerializer().LoadAssetsFromProjectPath(m_state.current_project_directory);
+
+		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
+		DeserializeProjectFromFile(m_state.current_project_directory + "/project.oproj");
+		mp_editor_camera->AddComponent<TransformComponent>()->SetAbsolutePosition(cam_pos);
+		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
 
 		// Reinitialize with new scene system resources
 		m_render_graph.Reset();
 		// This render graph is for the editor, not the simulation mode, so keep VR disabled
 		InitRenderGraph(m_render_graph, false);
-
-		mp_editor_camera = std::make_unique<SceneEntity>(&*SCENE, SCENE->m_registry.create(), &SCENE->m_registry, SCENE->uuid());
-		auto* p_transform = mp_editor_camera->AddComponent<TransformComponent>();
-		p_transform->SetAbsolutePosition(cam_pos);
-		mp_editor_camera->AddComponent<CameraComponent>()->MakeActive();
-
-		DeserializeProjectFromFile(m_state.current_project_directory + "/project.oproj");
 
 		EventManager::DispatchEvent(EditorEvent(EditorEventType::POST_SCENE_LOAD));
 	}
@@ -1342,8 +1375,8 @@ void EditorLayer::SerializeProjectToFile(const std::string &output_path) {
 	emitter << YAML::BeginMap;
 	emitter << YAML::Key << "CamPos" << YAML::Value << p_cam_transform->GetAbsPosition();
 	emitter << YAML::Key << "CamFwd" << YAML::Value << p_cam_transform->forward;
-	emitter << YAML::Key << "VR enabled" << YAML::Value << m_state.use_vr_in_simulation;
-	emitter << YAML::Key << "Active scene path" << YAML::Value << "scene.yml"; // Currently don't support multiple scenes
+	emitter << YAML::Key << "VR_Enabled" << YAML::Value << m_state.use_vr_in_simulation;
+	emitter << YAML::Key << "ActiveSceneUUID" << YAML::Value << SCENE->uuid();
 	emitter << YAML::EndMap;
 
 	WriteTextFile(output_path, std::string{emitter.c_str()});
@@ -1354,13 +1387,27 @@ void EditorLayer::DeserializeProjectFromFile(const std::string &input_path) {
 	if (file_content.empty()) return;
 
 	YAML::Node node = YAML::Load(file_content);
+	// Set this here as some systems have ECS event listeners tied to the scene UUID, if this changes after the systems are initialized it will break them
+	SCENE->uuid = UUID{node["ActiveSceneUUID"].as<uint64_t>()};
+	AddDefaultSceneSystems();
+	SCENE->LoadScene();
+
+	auto uuid = node["ActiveSceneUUID"].as<uint64_t>();
+	auto* p_scene_asset = AssetManager::GetAsset<SceneAsset>(uuid);
+
+	if (!p_scene_asset) {
+		ORNG_CORE_ERROR("Project deserialization error: active scene UUID '{}' cannot be found", uuid);
+	} else {
+		SceneSerializer::DeserializeScene(*SCENE, "", false, &p_scene_asset->node);
+	}
+
 	auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 	const auto pos = node["CamPos"].as<glm::vec3>();
 	const auto fwd = node["CamFwd"].as<glm::vec3>();
 	p_cam_transform->SetAbsolutePosition(pos);
 	p_cam_transform->LookAt(pos + fwd);
 
-	SetVrMode(node["VR enabled"].as<bool>());
+	SetVrMode(node["VR_Enabled"].as<bool>());
 }
 
 void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
@@ -2084,10 +2131,10 @@ EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int
 }
 
 
-
-
 void EditorLayer::RenderSceneGraph() {
 	if (ImGui::BeginChild("Scene graph", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
+		ImGui::Text("Scene name:"); ImGui::SameLine(); ImGui::InputText("##scene-name-input", &SCENE->m_name);
+
 		// Click anywhere on window to deselect entity nodes
 		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 			m_state.selected_entity_ids.clear();
@@ -2270,7 +2317,7 @@ void EditorLayer::RenderVehicleComponentEditor(VehicleComponent* p_comp) {
 		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
 			if (p_payload->DataSize == sizeof(MeshAsset*)) {
 				p_comp->p_body_mesh = *static_cast<MeshAsset**>(p_payload->Data);
-				p_comp->m_body_materials = { p_comp->p_body_mesh->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				p_comp->m_body_materials = { p_comp->p_body_mesh->GetNbMaterials(), AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)) };
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -2284,7 +2331,7 @@ void EditorLayer::RenderVehicleComponentEditor(VehicleComponent* p_comp) {
 		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
 			if (p_payload->DataSize == sizeof(MeshAsset*)) {
 				p_comp->p_wheel_mesh = *static_cast<MeshAsset**>(p_payload->Data);
-				p_comp->m_wheel_materials = { p_comp->p_wheel_mesh->num_materials, AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+				p_comp->m_wheel_materials = { p_comp->p_wheel_mesh->GetNbMaterials(), AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)) };
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -2552,7 +2599,7 @@ void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent*
 
 		std::function<void(MeshAsset* p_new)> OnMeshDrop = [p_res](MeshAsset* p_new) {
 			p_res->p_mesh = p_new;
-			p_res->materials = { p_new->GetNbMaterials(), AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID) };
+			p_res->materials = { p_new->GetNbMaterials(), AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)) };
 			};
 
 		std::function<void(unsigned index, Material* p_new)> OnMaterialDrop = [p_res](unsigned index, Material* p_new) {
@@ -2690,15 +2737,12 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 	p_audio->mp_channel->getPosition(&position, FMOD_TIMEUNIT_MS);
 	unsigned int total_length;
 	p_sound->p_sound->getLength(&total_length, FMOD_TIMEUNIT_MS);
-	total_length /= 1000.0;
-	position /= 1000.0;
 
 	ImGui::SetCursorPos(prev_curs_pos);
 	ExtraUI::ColoredButton("##playback position", m_res.orange_color_dark, ImVec2(playback_widget_width * ((float)position / (float)total_length), playback_widget_height));
 	ImGui::PopStyleVar();
 	ImGui::SetCursorPos(prev_curs_pos);
-	ImGui::Text(std::format("{}:{}", position, total_length).c_str());
-
+	ImGui::Text(std::format("{}:{}", (float)position / 1000.f, (float)total_length / 1000.f).c_str());
 	ImVec2 wp = ImGui::GetWindowPos();
 
 	static bool was_paused = true;
@@ -2721,7 +2765,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 			ImVec2 mouse_pos = ImGui::GetMousePos();
 			ImVec2 local_mouse{ mouse_pos.x - (wp.x + prev_curs_pos.x), mouse_pos.y - (wp.y + prev_curs_pos.y) };
 
-			p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length) * 1000.0, FMOD_TIMEUNIT_MS);
+			p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length), FMOD_TIMEUNIT_MS);
 		}
 	}
 	if (first_mouse_down && ImGui::IsMouseReleased(0)) {
@@ -2741,7 +2785,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 			p_audio->SetPaused(false);
 		}
 	}
-
+	ImGui::SameLine();
 	if (ImGui::SmallButton(ICON_FA_REPEAT)) {
 		p_audio->Stop();
 		p_audio->Play(p_audio->GetAudioAssetUUID());
@@ -2758,7 +2802,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		}
 	}
 
-	ImGui::Text(p_sound->source_filepath.substr(p_sound->source_filepath.rfind("\\") + 1).c_str());
+	ImGui::Text(p_sound->filepath.substr(p_sound->filepath.rfind("/") + 1).c_str());
 
 	ImGui::PopID(); // p_audio
 }

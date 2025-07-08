@@ -146,7 +146,7 @@ void GBufferPass::DoPass() {
 		}
 
 		m_sv.Activate((unsigned)GBufferVariants::PARTICLE_BILLBOARD);
-		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID);
+		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::QUAD_MESH));
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			m_sv.SetUniform("u_transform_start_index", emitter.GetParticleStartIdx());

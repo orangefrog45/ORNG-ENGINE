@@ -23,7 +23,7 @@ namespace ORNG {
 			return m_is_initalized;
 		}
 
-		virtual ~BufferBase() { glDeleteBuffers(1, &m_ogl_handle); };
+		virtual ~BufferBase();
 
 		virtual size_t GetSizeCPU() = 0;
 

@@ -246,7 +246,7 @@ namespace ORNG {
 		}
 	}
 
-	void PhysicsSystem::DeserializeEntity(SceneEntity& entity, YAML::Node* p_node) {
+	void PhysicsSystem::DeserializeEntity(SceneEntity& entity, const YAML::Node* p_node) {
 		if (auto node = (*p_node)["PhysicsComp"]) {
 			auto geometry_type = static_cast<PhysicsComponent::GeometryType>(node["GeometryType"].as<unsigned int>());
 			auto body_type = static_cast<PhysicsComponent::RigidBodyType>(node["RigidBodyType"].as<unsigned int>());
@@ -267,10 +267,10 @@ namespace ORNG {
 		if (auto node = (*p_node)["VehicleComp"]) {
 			auto* p_comp = entity.AddComponent<VehicleComponent>();
 			p_comp->p_body_mesh = AssetManager::GetAsset<MeshAsset>(node["BodyMesh"].as<uint64_t>());
-			p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+			p_comp->p_body_mesh = p_comp->p_body_mesh ? p_comp->p_body_mesh : AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 
 			p_comp->p_wheel_mesh = AssetManager::GetAsset<MeshAsset>(node["WheelMesh"].as<uint64_t>());
-			p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+			p_comp->p_wheel_mesh = p_comp->p_wheel_mesh ? p_comp->p_wheel_mesh : AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 
 			p_comp->body_scale = node["BodyScale"].as<glm::vec3>();
 			p_comp->wheel_scale = node["WheelScale"].as<glm::vec3>();
@@ -281,7 +281,7 @@ namespace ORNG {
 			p_comp->m_body_materials.resize(num_body_materials);
 			for (int i = 0; i < num_body_materials; i++) {
 				auto* p_mat = AssetManager::GetAsset<Material>(body_ids[i]);
-				p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				p_comp->m_body_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 			}
 
 			auto wheel_materials = node["WheelMaterials"];
@@ -290,7 +290,7 @@ namespace ORNG {
 			p_comp->m_wheel_materials.resize(num_wheel_materials);
 			for (int i = 0; i < num_wheel_materials; i++) {
 				auto* p_mat = AssetManager::GetAsset<Material>(wheel_ids[i]);
-				p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				p_comp->m_wheel_materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 			}
 			for (int i = 0; i < 4; i++) {
 				auto wheel = node[std::format("Wheel{}", i)];
@@ -442,7 +442,7 @@ namespace ORNG {
 		if (vehicle.mPhysXState.physxActor.rigidBody)
 			vehicle.destroy();
 
-		auto* p_base_material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
+		auto* p_base_material = AssetManager::GetAsset<PhysXMaterialAsset>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL))->p_material;
 
 		static PxVehiclePhysXMaterialFriction f1;
 		f1.friction = 0.8f;
@@ -474,11 +474,11 @@ namespace ORNG {
 	void PhysicsSystem::InitComponent(VehicleComponent* p_comp) {
 		auto& vehicle = p_comp->m_vehicle;
 
-		auto* p_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+		auto* p_asset = AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 		p_comp->p_body_mesh = p_asset;
 		p_comp->p_wheel_mesh = p_asset;
-		p_comp->m_wheel_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
-		p_comp->m_body_materials.push_back(AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID));
+		p_comp->m_wheel_materials.push_back(AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)));
+		p_comp->m_body_materials.push_back(AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL)));
 
 		vehicle.mBaseParams.rigidBodyParams.mass = 2000.0;
 		vehicle.mBaseParams.rigidBodyParams.moi = PxVec3(3200.0,
@@ -850,7 +850,7 @@ namespace ORNG {
 			p_comp->p_rigid_actor->release();
 		}
 		else {
-			p_comp->p_material = p_comp->p_material ? p_comp->p_material : AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID);
+			p_comp->p_material = p_comp->p_material ? p_comp->p_material : AssetManager::GetAsset<PhysXMaterialAsset>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL));
 		}
 
 		{
@@ -1038,7 +1038,7 @@ namespace ORNG {
 		PxCapsuleControllerDesc desc;
 		desc.height = 1.8;
 		desc.radius = 0.1;
-		desc.material = AssetManager::GetAsset<PhysXMaterialAsset>(ORNG_BASE_PHYSX_MATERIAL_ID)->p_material;
+		desc.material = AssetManager::GetAsset<PhysXMaterialAsset>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL))->p_material;
 		desc.stepOffset = 0.5f;
 		p_comp->p_controller = mp_controller_manager->createController(desc);
 

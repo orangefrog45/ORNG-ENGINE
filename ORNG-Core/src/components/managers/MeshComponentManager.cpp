@@ -68,7 +68,7 @@ namespace ORNG {
 
 	void MeshInstancingSystem::OnBillboardAdd(BillboardComponent* p_comp) {
 		if (!p_comp->p_material) {
-			p_comp->p_material = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			p_comp->p_material = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		}
 
 		SortBillboardIntoInstanceGroup(p_comp);
@@ -91,7 +91,7 @@ namespace ORNG {
 			m_billboard_instance_groups[group_index]->AddInstance(p_comp->GetEntity());
 		}
 		else {
-			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_QUAD_ID), this, p_comp->p_material, mp_scene->GetRegistry());
+			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::QUAD_MESH)), this, p_comp->p_material, mp_scene->GetRegistry());
 			p_group->m_materials.push_back(p_comp->p_material);
 			m_billboard_instance_groups.push_back(p_group);
 			p_group->AddInstance(p_comp->GetEntity());
@@ -116,15 +116,6 @@ namespace ORNG {
 			OnMeshEvent(t_event);
 			};
 
-		m_asset_listener.OnEvent = [this](const Events::AssetEvent& t_event) {
-			if (t_event.event_type == Events::AssetEventType::MATERIAL_DELETED) {
-				OnMaterialDeletion(reinterpret_cast<Material*>(t_event.data_payload));
-			}
-			else if (t_event.event_type == Events::AssetEventType::MESH_DELETED) {
-				OnMeshAssetDeletion(reinterpret_cast<MeshAsset*>(t_event.data_payload));
-			}
-			};
-
 		m_billboard_listener.scene_id = p_scene->uuid();
 		m_billboard_listener.OnEvent = [this](const Events::ECS_Event<BillboardComponent>& t_event) {
 			switch (t_event.event_type) {
@@ -139,7 +130,6 @@ namespace ORNG {
 
 
 		Events::EventManager::RegisterListener(m_mesh_listener);
-		Events::EventManager::RegisterListener(m_asset_listener);
 		Events::EventManager::RegisterListener(m_transform_listener);
 		Events::EventManager::RegisterListener(m_billboard_listener);
 	};
@@ -150,12 +140,12 @@ namespace ORNG {
 		switch (t_event.event_type) {
 		case Events::ECS_EventType::COMP_ADDED:
 			if (!t_event.p_component->mp_mesh_asset) {
-				t_event.p_component->mp_mesh_asset = AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+				t_event.p_component->mp_mesh_asset = AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 			}
 
 			if (t_event.p_component->m_materials.empty()) {
 				t_event.p_component->m_materials.reserve(t_event.p_component->mp_mesh_asset->m_material_uuids.size());
-				auto* p_base_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				auto* p_base_mat = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 				for (auto uuid : t_event.p_component->mp_mesh_asset->m_material_uuids) {
 					auto* p_mat = AssetManager::GetAsset<Material>(uuid);
 					p_mat = p_mat ? p_mat : p_base_mat;
@@ -169,7 +159,7 @@ namespace ORNG {
 			// Materials will be empty if the mesh asset has been changed
 			if (t_event.p_component->m_materials.empty()) {
 				t_event.p_component->m_materials.reserve(t_event.p_component->mp_mesh_asset->m_material_uuids.size());
-				auto* p_base_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				auto* p_base_mat = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 				for (auto uuid : t_event.p_component->mp_mesh_asset->m_material_uuids) {
 					auto* p_mat = AssetManager::GetAsset<Material>(uuid);
 					p_mat = p_mat ? p_mat : p_base_mat;
@@ -218,7 +208,6 @@ namespace ORNG {
 		Events::EventManager::DeregisterListener(m_transform_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_mesh_listener.GetRegisterID());
 		Events::EventManager::DeregisterListener(m_billboard_listener.GetRegisterID());
-		Events::EventManager::DeregisterListener(m_asset_listener.GetRegisterID());
 
 		m_mesh_add_connection.release();
 		m_mesh_remove_connection.release();
@@ -238,7 +227,7 @@ namespace ORNG {
 		// Remove asset from all components using it
 		for (auto [entity, mesh] : reg.view<MeshComponent>().each()) {
 			if (mesh.GetMeshData() == p_asset)
-				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID));
+				mesh.SetMeshAsset(AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH)));
 		}
 
 		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };
@@ -271,7 +260,7 @@ namespace ORNG {
 			for (int y = 0; y < group->m_materials.size(); y++) {
 				const Material*& p_group_mat = group->m_materials[y];
 				if (p_group_mat == p_material) {
-					p_group_mat = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					p_group_mat = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 					material_indices.push_back(y);
 				}
 			}
@@ -282,7 +271,7 @@ namespace ORNG {
 			// Replace material in mesh if it contains it
 			for (auto [entt_handle, index] : group->m_instances) {
 				for (auto valid_replacement_index : material_indices) {
-					mp_scene->GetRegistry().get<MeshComponent>(entt_handle).m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+					mp_scene->GetRegistry().get<MeshComponent>(entt_handle).m_materials[valid_replacement_index] = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 				}
 			}
 		}

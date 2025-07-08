@@ -31,9 +31,6 @@ namespace ORNG {
 		void OnBillboardAdd(BillboardComponent* p_comp);
 		void OnBillboardRemove(BillboardComponent* p_comp);
 
-		// Listener for asset deletion
-		Events::EventListener<Events::AssetEvent> m_asset_listener;
-
 		Events::ECS_EventListener<TransformComponent> m_transform_listener;
 		Events::ECS_EventListener<MeshComponent> m_mesh_listener;
 		std::vector<MeshInstanceGroup*> m_instance_groups;

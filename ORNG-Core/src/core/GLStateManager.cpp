@@ -16,6 +16,17 @@ namespace ORNG {
 		glBindTexture(target, texture);
 	}
 
+	void GL_StateManager::IDeleteBuffer(unsigned buffer_handle) {
+		glDeleteBuffers(1, &buffer_handle);
+
+		if (m_current_bound_vao == buffer_handle) m_current_bound_vao = UINT32_MAX;
+
+		for (auto& [binding_idx, buffer] : m_current_ssbo_bindings) {
+			if (buffer == buffer_handle) buffer = UINT32_MAX;
+		}
+	}
+
+
 	void GLAPIENTRY GL_LogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {
 		switch (severity)
 		{

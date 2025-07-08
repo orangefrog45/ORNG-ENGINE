@@ -38,6 +38,7 @@ void BloomPass::Init() {
 	bloom_spec.generate_mipmaps = true;
 	bloom_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
 	bloom_spec.mag_filter = GL_LINEAR;
+	bloom_spec.wrap_params = GL_CLAMP_TO_EDGE;
 	m_bloom_tex.SetSpec(bloom_spec);
 }
 

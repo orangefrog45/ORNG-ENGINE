@@ -119,6 +119,8 @@ namespace ORNG {
 
 	std::string GetFilename(const std::string& filepath);
 
+	std::string GetFileExtension(const std::string& filepath);
+
 	std::string GetFileDirectory(const std::string& filepath);
 
 	std::string GetFileLastWriteTime(const std::string& filepath);
@@ -135,8 +137,16 @@ namespace ORNG {
 
 	bool WriteTextFile(const std::string& filepath, const std::string& content);
 
+	bool WriteBinaryFile(const std::string& filepath, std::byte* p_data, size_t size);
+
 	// Returns filepath with modified extension, "new_extension" should include the '.', e.g ".png", ".jpg"
 	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension);
+
+	std::string StripNonAlphaNumeric(const std::string& input);
+
+	bool IsFilepathAChildOf(const std::filesystem::path& child, const std::filesystem::path& parent);
+
+	std::vector<std::string> SplitString(const std::string& str, char delimiter);
 
 	/*
 	MISC UTILS
@@ -169,7 +179,7 @@ namespace ORNG {
 
 	// Replaces all instances of "text_to_replace" with "replacement_text"
 	// Modifies "input" string directly, returns number of replacement operations
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text);
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements = std::numeric_limits<unsigned>::max());
 
 	// Copies raw bytes of types into array of std::byte, this will increment the ptr provided by sizeof(T)
 	template<typename... Args>

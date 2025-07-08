@@ -117,6 +117,8 @@ set(ORNG_LIB_SOURCES
 	src/misc/LoggerUI.cpp
 	src/misc/ExtraUI.cpp
 		headers/components/systems/VrSystem.h
+		headers/assets/SceneAsset.h
+		headers/layers/RuntimeSettings.h
 )
 
 

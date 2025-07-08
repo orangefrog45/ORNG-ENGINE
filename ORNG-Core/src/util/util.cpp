@@ -39,10 +39,9 @@ namespace ORNG {
 	}
 
 
-
 	void FileDelete(const std::string& filepath) {
 		try {
-			std::filesystem::remove(filepath);
+			std::filesystem::remove_all(filepath);
 		}
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::remove error, '{0}'", e.what());
@@ -59,12 +58,11 @@ namespace ORNG {
 		}
 	}
 
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text) {
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements) {
 		size_t pos = input.find(text_to_replace, 0);
 		unsigned num_replacements = 0;
 
-		while (pos < input.size() && pos != std::string::npos) {
-			ORNG_CORE_TRACE(pos);
+		while (pos < input.size() && pos != std::string::npos && num_replacements < max_replacements) {
 			input.replace(pos, text_to_replace.size(), replacement_text);
 			num_replacements++;
 
@@ -78,7 +76,7 @@ namespace ORNG {
 	void Create_Directory(const std::string& path) {
 		try {
 			if (!std::filesystem::exists(path))
-				std::filesystem::create_directory(path);
+				std::filesystem::create_directories(path);
 		}
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::create_directory error: '{0}'", e.what());
@@ -118,17 +116,17 @@ namespace ORNG {
 				// The filepath is already just the filename
 				return filepath;
 			}
-			return filepath.substr(forward_pos);
+			return filepath.substr(forward_pos + 1);
 		}
 		else if (forward_pos == std::string::npos) {
-			return filepath.substr(back_pos);
+			return filepath.substr(back_pos + 1);
 		}
 
 
 		if (forward_pos > back_pos)
-			return filepath.substr(forward_pos);
+			return filepath.substr(forward_pos + 1);
 		else
-			return filepath.substr(back_pos);
+			return filepath.substr(back_pos + 1);
 	}
 
 	bool PathEqualTo(const std::string& path1, const std::string& path2) {
@@ -185,21 +183,76 @@ namespace ORNG {
 	}
 
 	std::string ReplaceFileExtension(const std::string& filepath, const std::string& new_extension) {
-		auto extension = filepath.substr(filepath.rfind('.'));
+		std::string extension = filepath.substr(filepath.rfind('.'));
 		std::string ret = filepath;
 		StringReplace(ret, extension, new_extension);
 		return ret;
+	}
+
+	std::string StripNonAlphaNumeric(const std::string& input) {
+		std::string ret;
+		std::ranges::for_each(input, [&ret](char c){if (std::isalnum(c)) ret += c; });
+		return ret;
+	}
+
+	bool IsFilepathAChildOf(const std::filesystem::path& child, const std::filesystem::path& parent) {
+		try {
+			auto child_abs = std::filesystem::weakly_canonical(child);
+			auto parent_abs = std::filesystem::weakly_canonical(parent);
+
+			auto rel = std::filesystem::relative(child_abs, parent_abs);
+
+			return !rel.empty() && *rel.begin() != "..";
+		} catch (...) {
+			return false;
+		}
+	}
+
+	std::vector<std::string> SplitString(const std::string& str, char delimiter) {
+		std::vector<std::string> ret;
+		size_t last_split = 0;
+
+		for (size_t i = 0; i < str.size(); ++i) {
+			if (str[i] != delimiter) continue;
+
+			ret.push_back(str.substr(last_split, i - last_split));
+			last_split = i + 1;
+		}
+
+		if (last_split < str.size()) {
+			ret.push_back(str.substr(last_split));
+		}
+
+		return ret;
+	}
+
+	std::string GetFileExtension(const std::string& filepath) {
+		size_t pos = filepath.rfind('.');
+		if (pos == std::string::npos) return "";
+		return filepath.substr(pos);
 	}
 
 	bool WriteTextFile(const std::string& filepath, const std::string& content) {
 		std::ofstream out{ filepath };
 
 		if (!out.is_open()) {
-			ORNG_CORE_ERROR("Failed to open text file '{0}' for reading", filepath);
+			ORNG_CORE_ERROR("Failed to open text file '{0}' for writing", filepath);
 			return false;
 		}
 
 		out << content;
+		out.close();
+	}
+
+	bool WriteBinaryFile(const std::string& filepath, std::byte* p_data, size_t size) {
+		std::ofstream out{ filepath, std::ios::binary };
+
+		if (!out.is_open()) {
+			ORNG_CORE_ERROR("Failed to open binary file '{0}' for writing", filepath);
+			return false;
+		}
+
+		out.write(reinterpret_cast<const char*>(p_data), size);
 		out.close();
 	}
 
@@ -221,7 +274,6 @@ namespace ORNG {
 	}
 
 	bool ReadBinaryFile(const std::string& filepath, std::vector<std::byte>& output) {
-
 		std::ifstream file{ filepath, std::ios::binary | std::ios::ate };
 
 		if (!file.is_open()) {

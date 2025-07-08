@@ -49,12 +49,13 @@ namespace bitsery {
 	}
 
 	template <typename S>
-	void serialize(S& s, MeshAsset::MeshEntry& o) {
+	void serialize(S& s, MeshEntry& o) {
 		s.value4b(o.base_index);
 		s.value4b(o.base_vertex);
 		s.value4b(o.material_index);
 		s.value4b(o.num_indices);
 	}
+
 	template<typename S>
 	void serialize(S& s, MeshVAO& o) {
 		s.object(o.vertex_data);
@@ -89,19 +90,26 @@ namespace ORNG {
 		void SerializeAssets(const std::string& output_path);
 
 		// Adds asset to a loading queue and loads it asynchronously
-		void LoadMeshAsset(MeshAsset* p_asset);
+		void LoadMeshAsset(MeshAsset* p_asset, const std::string& raw_mesh_filepath);
 
 		// Adds asset to a loading queue and loads it asynchronously
 		void LoadTexture2D(Texture2D* p_tex);
 
-		bool ProcessEmbeddedTexture(Texture2D* p_tex, const aiTexture* p_ai_tex);
-
-		Texture2D* CreateMeshAssetTexture(const aiScene* p_scene, const std::string& dir, const aiTextureType& type, const aiMaterial* p_material);
-
-		void LoadAssetsFromProjectPath(const std::string& project_dir, bool precompiled_scripts);
+		void LoadAssetsFromProjectPath(const std::string& project_dir);
 
 		void LoadMeshAssetIntoGL(MeshAsset* p_asset);
 
+		void LoadAsset(const std::string& rel_path);
+		void LoadTexture2DAssetFromFile(const std::string& rel_path);
+		void LoadMeshAssetFromFile(const std::string& rel_path);
+		void LoadAudioAssetFromFile(const std::string& rel_path);
+		void LoadMaterialAssetFromFile(const std::string& rel_path);
+		void LoadPrefabAssetFromFile(const std::string& rel_path);
+		void LoadScriptAssetFromFile(const std::string& rel_path);
+		void LoadPhysxAssetFromFile(const std::string& rel_path);
+		void LoadSceneAssetFromFile(const std::string& rel_path);
+
+		void SerializeSceneAsset(class SceneAsset& scene_asset, BufferSerializer& ser);
 		template<typename SerializerType>
 		void SerializeTexture2D(Texture2D& tex, SerializerType& ser, std::byte* p_data = nullptr, size_t data_size = 0) {
 			std::vector<std::byte> texture_data;
@@ -115,7 +123,6 @@ namespace ORNG {
 
 			ser.object(tex.m_spec);
 			ser.object(tex.uuid);
-			ser.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 			ser.container1b(texture_data, UINT64_MAX);
 		}
 
@@ -125,7 +132,6 @@ namespace ORNG {
 			TryFetchRawSoundData(sound, sound_data);
 
 			ser.object(sound.uuid);
-			ser.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 			ser.container1b(sound_data, UINT64_MAX);
 		}
 
@@ -133,7 +139,6 @@ namespace ORNG {
 		static void DeserializeTexture2D(Texture2D& tex, std::vector<std::byte>& raw_data, S& des) {
 			des.object(tex.m_spec);
 			des.object(tex.uuid);
-			des.text1b(tex.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container1b(raw_data, UINT64_MAX);
 
 			tex.SetSpec(tex.m_spec); // Has to be called for texture to properly update
@@ -142,7 +147,6 @@ namespace ORNG {
 		template<typename S>
 		static void DeserializeSoundAsset(SoundAsset& sound, std::vector<std::byte>& raw_data, S& des) {
 			des.object(sound.uuid);
-			des.text1b(sound.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container1b(raw_data, UINT64_MAX);
 		}
 
@@ -156,9 +160,8 @@ namespace ORNG {
 			for (int i = 0; i < size; i++) {
 				des.object(mesh.m_submeshes[i]);
 			}
-			des.value1b(mesh.num_materials);
+			des.value4b(mesh.m_num_materials);
 			des.object(mesh.uuid);
-			des.text1b(mesh.filepath, ORNG_MAX_FILEPATH_SIZE);
 			des.container8b(mesh.m_material_uuids, 10000);
 		}
 
@@ -171,6 +174,9 @@ namespace ORNG {
 			/* Use a different temporary filepath for the serialized output as the previous binary file needs to be
 			opened and have data transferred. Previous file is overwritten at end of this function. */
 			std::string temp_filepath = filepath + ".TEMP";
+
+			auto dir = std::filesystem::path{filepath}.parent_path();
+			if (!FileExists(dir.generic_string())) std::filesystem::create_directories(dir);
 
 			std::ofstream s{ temp_filepath, s.binary | s.trunc | s.out };
 			if (!s.is_open()) {
@@ -220,9 +226,18 @@ namespace ORNG {
 			}
 		}
 
+		struct MeshAssets {
+			MeshAsset* p_mesh = nullptr;
+			std::vector<Texture2D*> textures;
+			std::vector<Material*> materials;
+		};
+
 		private:
+			// Creates a mesh asset, texture assets and material assets if any exist
+			MeshAssets CreateAssetsFromMeshData(MeshAsset* p_mesh, MeshLoadResult& result);
+
 			AssetManager& m_manager;
-			std::vector<std::future<MeshAsset*>> m_mesh_loading_queue;
+			std::vector<std::future<std::pair<std::optional<MeshLoadResult>, MeshAsset*>>> m_mesh_loading_queue;
 			std::vector<std::future<void>> m_texture_loading_queue;
 
 			// Used for texture loading

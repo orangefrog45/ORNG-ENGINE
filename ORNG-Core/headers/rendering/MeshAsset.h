@@ -14,8 +14,49 @@ struct aiScene;
 struct aiMesh;
 
 namespace ORNG {
+	struct LoadedMeshTexture {
+		Texture2D* p_tex = nullptr;
+		std::vector<std::byte> data;
+		Texture2DSpec spec;
+		bool is_decompressed;
+	};
 
-	class TransformComponent;
+	inline static constexpr unsigned INVALID_MATERIAL = 0xFFFFFFFF;
+	struct MeshEntry {
+		MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
+
+		unsigned int num_indices;
+		unsigned int base_vertex;
+		unsigned int base_index;
+		unsigned int material_index;
+	};
+
+	// Textures and materials here are heap-allocated and need to be freed later
+	struct MeshLoadResult {
+		void Free() {
+			for (auto& tex : textures) {
+				delete tex.p_tex;
+			}
+			textures.clear();
+
+			for (auto* p_mat : materials) {
+				delete p_mat;
+			}
+			materials.clear();
+		}
+
+		std::string original_file_path;
+		VertexData3D vertex_data;
+		std::vector<LoadedMeshTexture> textures;
+		std::vector<Material*> materials;
+		// Contains indices into the textures array
+		std::unordered_map<std::string, unsigned> texture_name_lookup;
+		std::vector<MeshEntry> submeshes;
+		AABB aabb;
+
+		unsigned num_vertices = 0;
+		unsigned num_indices = 0;
+	};
 
 	class MeshAsset : public Asset {
 	public:
@@ -34,11 +75,14 @@ namespace ORNG {
 		MeshAsset(const MeshAsset& other) = default;
 		virtual ~MeshAsset() = default;
 
-		bool LoadMeshData();
+		static std::optional<MeshLoadResult> LoadMeshDataFromFile(const std::string& raw_mesh_filepath);
+
+		// 'result.vertex_data' is moved during this function call, do not use it afterwards
+		void SetMeshData(MeshLoadResult& result);
 
 		bool GetLoadStatus() const { return m_is_loaded; };
 
-		unsigned int GetIndicesCount() const { return num_indices; }
+		unsigned int GetIndicesCount() const { return m_num_indices; }
 
 		const AABB& GetAABB() const { return m_aabb; }
 
@@ -54,7 +98,7 @@ namespace ORNG {
 		}
 
 		unsigned GetNbMaterials() {
-			return num_materials;
+			return m_num_materials;
 		}
 
 		template<typename S>
@@ -65,55 +109,41 @@ namespace ORNG {
 			for (auto& entry : m_submeshes) {
 				s.object(entry);
 			}
-			s.value1b((uint8_t)num_materials);
+			s.value4b(m_num_materials);
 			s.object(uuid);
-			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 			s.container8b(m_material_uuids, 10000);
 		}
-
-		inline static constexpr unsigned INVALID_MATERIAL = 0xFFFFFFFF;
-
-		struct MeshEntry {
-			MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
-
-			unsigned int num_indices;
-			unsigned int base_vertex;
-			unsigned int base_index;
-			unsigned int material_index;
-		};
 
 		const std::vector<MeshEntry>& GetSubmeshes() {
 			return m_submeshes;
 		}
 
+		[[nodiscard]] const std::vector<uint64_t>& GetMaterialUUIDs() const noexcept {
+			return m_material_uuids;
+		}
+
 	private:
-		// Callback for when this mesh has a VAO created for it and its materials set up by the AssetManager class
-		// This is split from "LoadMeshData" so vertex data can be loaded asynchronously, cannot create the VAO asynchronously due to opengl contexts
-		void OnLoadIntoGL();
+		static bool ProcessEmbeddedTexture(Texture2D* p_tex, const aiTexture* p_ai_tex);
 
-		bool InitFromScene(const aiScene* p_scene);
+		static bool InitFromScene(const aiScene* p_scene, MeshLoadResult& result);
 
-		void ReserveSpace(unsigned int num_verts, unsigned int num_indices);
+		static void InitAllMeshes(const aiScene* p_scene, MeshLoadResult& result);
 
-		void InitAllMeshes(const aiScene* p_scene);
+		static void InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_idx, unsigned current_vertex, MeshLoadResult& result);
 
-		void InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_idx, unsigned current_vertex);
+		static void CountVerticesAndIndices(const aiScene* p_scene, unsigned int& num_verts, unsigned int& num_indices, MeshLoadResult& result);
 
-		void CountVerticesAndIndices(const aiScene* p_scene, unsigned int& num_verts, unsigned int& num_indices);
+		static void LoadMaterialsAndTextures(MeshLoadResult& result, const std::string& dir, const aiScene* p_scene);
+
+		static LoadedMeshTexture* CreateOrGetMaterialTexture(const std::string& dir, const aiTextureType& type, const aiMaterial* p_material, MeshLoadResult& result, const aiScene* p_scene);
 
 		MeshVAO m_vao;
 
 		AABB m_aabb;
-
-		std::unique_ptr<Assimp::Importer> mp_importer = nullptr;
-
-		unsigned int num_indices = 0;
-		uint8_t num_materials = 0;
-
+		unsigned m_num_indices = 0;
+		unsigned m_num_materials = 0;
 		bool m_is_loaded = false;
-
 		const aiScene* p_scene = nullptr;
-
 		std::vector<MeshEntry> m_submeshes;
 
 		// The UUIDs of the materials that got loaded in from this mesh

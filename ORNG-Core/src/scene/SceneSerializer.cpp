@@ -8,6 +8,7 @@
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
 #include "assets/Prefab.h"
+#include "assets/SceneAsset.h"
 #include "scene/SerializationUtil.h"
 
 namespace ORNG {
@@ -167,12 +168,7 @@ namespace ORNG {
 
 		if (const auto* p_script_comp = entity.GetComponent<ScriptComponent>()) {
 			out << YAML::Key << "ScriptComp" << YAML::BeginMap;
-
-			if (p_script_comp->GetSymbols())
-				out << YAML::Key << "ScriptName" << YAML::Value << (p_script_comp->GetSymbols()->loaded ? p_script_comp->GetSymbols()->script_name : "");
-			else 
-				out << YAML::Key << "ScriptName" << YAML::Value << "";
-
+			out << YAML::Key << "ScriptUUID" << YAML::Value << (p_script_comp->GetSymbols() ? p_script_comp->GetSymbols()->uuid : ScriptSymbols::INVALID_SCRIPT_UUID);
 			out << YAML::EndMap;
 		}
 
@@ -266,16 +262,16 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeScriptComp(const YAML::Node& node, SceneEntity& entity) {
 		auto* p_script_comp = entity.AddComponent<ScriptComponent>();
-		std::string script_name = node["ScriptName"].as<std::string>();
+		auto script_uuid = node["ScriptUUID"].as<uint64_t>();
 
-		auto* p_asset = AssetManager::GetAsset<ScriptAsset>("res/scripts/src/" + script_name + ".cpp");
+		auto* p_asset = AssetManager::GetAsset<ScriptAsset>(script_uuid);
 
 		if (p_asset) {
 			p_script_comp->SetSymbols(&p_asset->symbols);
 		}
 		else {
-			ORNG_CORE_ERROR("Scene deserialization error: no script file with name '{0}' found", script_name);
-			p_asset = AssetManager::GetAsset<ScriptAsset>(ORNG_BASE_SCRIPT_ID);
+			ORNG_CORE_ERROR("Scene deserialization error: no script file with UUID '{0}' found", script_uuid);
+			p_asset = AssetManager::GetAsset<ScriptAsset>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_SCRIPT));
 			p_script_comp->SetSymbols(&p_asset->symbols);
 		}
 	}
@@ -285,6 +281,7 @@ namespace ORNG {
 		p_audio->SetVolume(node["Volume"].as<float>());
 		p_audio->SetPitch(node["Pitch"].as<float>());
 		p_audio->SetSoundAssetUUID(node["AudioUUID"].as<uint64_t>());
+		if (!AssetManager::GetAsset<SoundAsset>(p_audio->m_sound_asset_uuid)) p_audio->m_sound_asset_uuid = static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND);
 		p_audio->SetMinMaxRange(node["MinRange"].as<float>(), node["MaxRange"].as<float>());
 	}
 
@@ -305,20 +302,20 @@ namespace ORNG {
 		InterpolatorSerializer::DeserializeInterpolator(emitter_node["Scale over time"], p_emitter->m_life_scale_interpolator);
 		if (p_emitter->GetType() == ParticleEmitterComponent::BILLBOARD) {
 			auto* p_mat = AssetManager::GetAsset<Material>(emitter_node["MaterialUUID"].as<uint64_t>());
-			entity.GetComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			entity.GetComponent<ParticleBillboardResources>()->p_material = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		}
 		else {
 			auto* p_res = entity.GetComponent<ParticleMeshResources>();
 			p_res->p_mesh = AssetManager::GetAsset<MeshAsset>(emitter_node["MeshUUID"].as<uint64_t>());
-			p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID);
+			p_res->p_mesh = p_res->p_mesh ? p_res->p_mesh : AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
 
 			auto materials = emitter_node["Materials"];
 			std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
-			p_res->materials.resize(p_res->p_mesh->num_materials);
+			p_res->materials.resize(p_res->p_mesh->m_num_materials);
 
 			for (int i = 0; i < p_res->materials.size(); i++) {
 				auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
-				p_res->materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+				p_res->materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 			}
 		}
 
@@ -375,14 +372,14 @@ namespace ORNG {
 
 		for (int i = 0; i < materials.size(); i++) { 
 			auto* p_mat = AssetManager::GetAsset<Material>(materials[i].as<uint64_t>());
-			material_vec[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(ORNG_BASE_MATERIAL_ID);
+			material_vec[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		}
 
-		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(ORNG_BASE_CUBE_ID), std::move(material_vec));
+		entity.AddComponent<MeshComponent>(p_mesh_asset ? p_mesh_asset : AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH)), std::move(material_vec));
 	}
 
 
-	void SceneSerializer::DeserializeEntity(Scene& scene, YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent) {
+	void SceneSerializer::DeserializeEntity(Scene& scene, const YAML::Node& entity_node, SceneEntity& entity, bool ignore_parent) {
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 		ZoneScoped;
 #endif
@@ -417,29 +414,43 @@ namespace ORNG {
 		Events::EventManager::DispatchEvent(EntitySerializationEvent{&entity});
 	}
 
-	void SceneSerializer::SerializeSceneUUIDs(const Scene& scene, std::string& output) {
-		std::unordered_set<std::string> names_taken;
-
+	void SceneSerializer::SerializeSceneUUIDs(const std::vector<class SceneAsset*>& scenes, std::string& output) {
 		std::ofstream fout{ output };
 		fout << "#pragma once" << "\n";
 		fout << "namespace World {\n";
-		fout << "namespace Entities {\n";
 
-		for (auto* p_entity : scene.m_entities) {
-			std::string ent_name = p_entity->name;
-			// Replace spaces with underscores
-			std::ranges::for_each(ent_name, [](char& c) {if (c == ' ') c = '_'; });
-			// Ensure a unique name
-			if (names_taken.contains(ent_name)) {
+		const auto GetUniqueName = [](const std::unordered_set<std::string>& names_taken, const std::string& start_name) -> std::string {
+			std::string name = start_name;
+			if (names_taken.contains(name)) {
 				int iter = 1;
-				while (names_taken.contains(ent_name)) {
-					ent_name = ent_name + "_" + std::to_string(iter);
+				while (names_taken.contains(name)) {
+					name += "_" + std::to_string(iter);
 				}
 			}
-			names_taken.emplace(ent_name);
-			fout << "constexpr uint64_t " << ent_name << " = " << p_entity->GetUUID() << ";\n";
+			return name;
+		};
+
+		std::unordered_set<std::string> scene_names_taken;
+
+		for (const auto* p_scene : scenes) {
+			std::unordered_set<std::string> entity_names_taken;
+			std::string scene_name = GetUniqueName(scene_names_taken, p_scene->node["Scene"].as<std::string>());
+			scene_names_taken.emplace(scene_name);
+			fout << std::format("namespace {} {}\n", scene_name, '{');
+			fout << "namespace Entities {\n";
+
+			auto& entities = p_scene->node["Entities"];
+			for (const auto& entity : entities) {
+				std::string ent_name = GetUniqueName(entity_names_taken, entity["Name"].as<std::string>());
+				// Replace spaces with underscores
+				std::ranges::for_each(ent_name, [](char& c) {if (c == ' ') c = '_'; });
+				entity_names_taken.emplace(ent_name);
+				fout << "constexpr uint64_t " << ent_name << " = " << entity["Entity"].as<uint64_t>() << ";\n";
+			}
+
+			fout << "\n};"; // namespace Entities
+			fout << "\n};"; // namespace scene_name
 		}
-		fout << "};"; // namespace Entities
 
 		fout << "namespace Prefabs {\n";
 		for (auto* p_prefab : AssetManager::GetView<Prefab>()) {
@@ -448,7 +459,7 @@ namespace ORNG {
 			std::ranges::for_each(prefab_name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "constexpr uint64_t " << prefab_name << " = " << p_prefab->uuid() << ";\n";
 		}
-		fout << "};"; // namespace Prefabs
+		fout << "\n};"; // namespace Prefabs
 
 		fout << "namespace Sounds {\n";
 		for (auto* p_asset : AssetManager::GetView<SoundAsset>()) {
@@ -457,7 +468,7 @@ namespace ORNG {
 			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "constexpr uint64_t " << name << " = " << p_asset->uuid() << "; \n";
 		}
-		fout << "};"; // namespace Sounds
+		fout << "\n};"; // namespace Sounds
 
 		fout << "namespace Materials {\n";
 		for (auto* p_asset : AssetManager::GetView<Material>()) {
@@ -465,9 +476,9 @@ namespace ORNG {
 			std::ranges::for_each(name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });
 			fout << "constexpr uint64_t " << name << "_" << p_asset->uuid() << " = " << p_asset->uuid() << "; \n";
 		}
-		fout << "};"; // namespace Materials
+		fout << "\n};"; // namespace Materials
 
-		fout << "};"; // namespace Scene
+		fout << "\n};"; // namespace Scene
 	}
 
 	void SceneSerializer::SerializeScene(Scene& scene, std::string& output, bool write_to_string) {
@@ -476,6 +487,7 @@ namespace ORNG {
 		out << YAML::BeginMap;
 
 		out << YAML::Key << "Scene" << YAML::Value << scene.m_name;
+		out << YAML::Key << "SceneUUID" << YAML::Value << scene.uuid();
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		for (auto* p_entity : scene.m_entities) {
@@ -522,18 +534,21 @@ namespace ORNG {
 
 	}
 
-	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath) {
-		YAML::Node data;
+	bool SceneSerializer::DeserializeScene(Scene& scene, const std::string& input, bool input_is_filepath, std::optional<YAML::Node*> node) {
+		YAML::Node fallback;
+		YAML::Node& data = node.has_value() ? *node.value() : fallback;
 
-		// Load yaml from either file or string itself
-		if (input_is_filepath) {
-			std::stringstream str_stream;
-			std::ifstream stream(input);
-			str_stream << stream.rdbuf();
-			data = YAML::Load(str_stream.str());
-		}
-		else {
-			data = YAML::Load(input);
+		if (!node.has_value()) {
+			// Load yaml from either file or string itself
+			if (input_is_filepath) {
+				std::stringstream str_stream;
+				std::ifstream stream(input);
+				str_stream << stream.rdbuf();
+				data = YAML::Load(str_stream.str());
+			}
+			else {
+				data = YAML::Load(input);
+			}
 		}
 
 		if (!data.IsDefined() || data.IsNull() || !data["Scene"])
@@ -542,12 +557,15 @@ namespace ORNG {
 		std::string scene_name = data["Scene"].as<std::string>();
 		ORNG_CORE_TRACE("Deserializing scene '{0}'", scene_name);
 
-		auto entities = data["Entities"];
+		scene.m_name = scene_name;
+		scene.uuid = UUID{data["SceneUUID"].as<uint64_t>()};
+
+		const auto& entities = data["Entities"];
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass
-		for (auto entity_node : entities) {
+		for (const auto& entity_node : entities) {
 			scene.CreateEntity(entity_node["Name"].as<std::string>(), entity_node["Entity"].as<uint64_t>());
 		}
-		for (auto entity_node : entities) {
+		for (const auto& entity_node : entities) {
 			DeserializeEntity(scene, entity_node, *scene.GetEntity(entity_node["Entity"].as<uint64_t>()));
 		}
 
@@ -558,7 +576,7 @@ namespace ORNG {
 
 		// Directional light
 		{
-			auto dir_light = data["DirLight"];
+			const auto& dir_light = data["DirLight"];
 			scene.directional_light.colour = dir_light["Colour"].as<glm::vec3>();
 			scene.directional_light.shadows_enabled = dir_light["Shadows"].as<bool>();
 			scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
@@ -570,7 +588,7 @@ namespace ORNG {
 
 		// Bloom
 		{
-			auto bloom = data["Bloom"];
+			const auto& bloom = data["Bloom"];
 			scene.post_processing.bloom.intensity = bloom["Intensity"].as<float>();
 			scene.post_processing.bloom.threshold = bloom["Threshold"].as<float>();
 			scene.post_processing.bloom.knee = bloom["Knee"].as<float>();
@@ -578,7 +596,7 @@ namespace ORNG {
 
 		// Fog
 		{
-			auto fog = data["Fog"];
+			const auto& fog = data["Fog"];
 			scene.post_processing.global_fog.density_coef = fog["Density"].as<float>();
 			scene.post_processing.global_fog.absorption_coef = fog["Absorption"].as<float>();
 			scene.post_processing.global_fog.scattering_coef = fog["Scattering"].as<float>();
@@ -589,6 +607,7 @@ namespace ORNG {
 		}
 
 		Events::EventManager::DispatchEvent(SceneSerializationEvent{&data, scene});
+
 		return true;
 	}
 }

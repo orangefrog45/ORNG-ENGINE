@@ -19,9 +19,6 @@ namespace ORNG {
 		// Accumulated cone tracing radiance
 		FullscreenTexture2D m_cone_trace_accum_tex{ {0.5f, 0.5f} };
 
-		// Texture to be shaded
-		Texture2D* mp_output_tex = nullptr;
-
 		// Applies direct lighting over image
 		Shader m_shader;
 

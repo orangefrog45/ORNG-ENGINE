@@ -97,7 +97,7 @@ namespace ORNG {
 		void DeinitListeners();
 
 		void SerializeEntity(SceneEntity& entity, YAML::Emitter* p_emitter);
-		void DeserializeEntity(SceneEntity& entity, YAML::Node* p_node);
+		void DeserializeEntity(SceneEntity& entity, const YAML::Node* p_node);
 		void ResolveJointConnections();
 		void RemapJointConnections(SceneEntity& entity, const std::unordered_map<uint64_t, uint64_t>* p_uuid_lookup);
 

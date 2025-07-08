@@ -10,7 +10,11 @@ uniform int u_mip_level;
 
 
 void main() {
+	ivec2 render_size = textureSize(sampler_input, 0);
 	ivec2 tex_coords = ivec2(gl_GlobalInvocationID.xy);
+
+    if (tex_coords.x < 0 || tex_coords.x >= render_size.x || tex_coords.y < 0 || tex_coords.y >= render_size.y) return;
+
 	vec2 local_tex_coords = tex_coords / vec2(imageSize(i_output));
 	vec2 upsampled_texel_size = 1.0 / vec2(textureSize(sampler_input, u_mip_level - 1));
 

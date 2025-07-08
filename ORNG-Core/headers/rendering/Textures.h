@@ -36,7 +36,7 @@ namespace ORNG {
 		uint32_t width = 1;
 		uint32_t height = 1;
 
-		uint32_t wrap_params;
+		uint32_t wrap_params = GL_CLAMP_TO_EDGE;
 		uint32_t storage_type;
 
 		uint8_t generate_mipmaps = false;
@@ -56,6 +56,8 @@ namespace ORNG {
 		[[nodiscard]] unsigned int GetTextureHandle() const noexcept { return m_texture_obj; }
 		[[nodiscard]] unsigned int GetTarget() const noexcept { return m_texture_target; }
 		[[nodiscard]] const std::string& GetName() const noexcept { return m_name; }
+
+		void SetName(const std::string& name) noexcept { m_name = name; }
 
 		template <typename S>
 		void serialize(S& s) {

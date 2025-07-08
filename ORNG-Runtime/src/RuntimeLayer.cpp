@@ -9,6 +9,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "assets/AssetManager.h"
+#include "assets/SceneAsset.h"
 #include "scene/SceneSerializer.h"
 
 #include "rendering/renderpasses/DepthPass.h"
@@ -83,13 +84,20 @@ void RuntimeLayer::OnInit() {
 	m_scene.AddSystem(new SceneUBOSystem{ &m_scene }, 9000);
 	m_scene.AddSystem(new MeshInstancingSystem{ &m_scene }, 10000);
 	Events::EventManager::RegisterListener(m_window_event_listener);
-	AssetManager::GetSerializer().LoadAssetsFromProjectPath("./", true);
+	AssetManager::GetSerializer().LoadAssetsFromProjectPath("./");
 	m_scene.LoadScene();
 
 	InitRenderGraph();
 	m_scene.mp_render_graph = &m_render_graph;
 
-	SceneSerializer::DeserializeScene(m_scene, ".\\scene.yml", true);
+	auto* p_start_scene = AssetManager::GetAsset<SceneAsset>(m_settings.start_scene_uuid);
+	if (!p_start_scene) {
+		ORNG_CORE_CRITICAL("Start scene with UUID '{}' not found, exiting\n");
+		BREAKPOINT;
+	}
+
+	ORNG_CORE_INFO("Loading scene: '{}'", p_start_scene->uuid());
+	SceneSerializer::DeserializeScene(m_scene, "", false, &p_start_scene->node);
 	m_scene.Start();
 }
 
@@ -128,14 +136,16 @@ void RuntimeLayer::InitVR() {
 void RuntimeLayer::LoadRuntimeSettings() {
 	ORNG_CORE_INFO("Loading runtime settings");
 
-	std::string file = ReadTextFile("runtime.orts");
-	if (file.empty()) {
-		ORNG_CORE_CRITICAL("Failed to read runtime settings, runtime.orts is missing, inaccessible or corrupted.");
+	std::vector<std::byte> rts;
+	ReadBinaryFile("runtime.orts", rts);
+
+	if (rts.empty()) {
+		ORNG_CORE_CRITICAL("Failed to read runtime settings, runtime.orts is missing or inaccessible.");
 		BREAKPOINT;
 	}
 
-	YAML::Node node = YAML::Load(file);
-	m_settings.use_vr = node["VR"].as<bool>();
+	bitsery::Deserializer<bitsery::InputBufferAdapter<std::vector<std::byte>>> d{rts.begin(), rts.end()};
+	d.object(m_settings);
 }
 
 

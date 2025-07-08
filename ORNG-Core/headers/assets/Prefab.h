@@ -17,7 +17,6 @@ namespace ORNG {
 		void serialize(S& s) {
 			s.text1b(serialized_content, 10000);
 			s.object(uuid);
-			s.text1b(filepath, ORNG_MAX_FILEPATH_SIZE);
 		}
 	};
 }
