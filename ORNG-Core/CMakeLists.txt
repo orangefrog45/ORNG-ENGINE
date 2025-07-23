@@ -148,16 +148,16 @@ endif()
 
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glfw)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/glew-cmake)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/assimp)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/spdlog)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/imgui)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/yaml)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/VRlib)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/glfw)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/assimp)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/spdlog)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/imgui)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/yaml)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/VRlib)
 
 option(TRACY_ENABLE "" OFF)
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/tracy)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/tracy)
 
 target_compile_options(glfw PRIVATE /MD$<$<CONFIG:Debug>:d>)
 
