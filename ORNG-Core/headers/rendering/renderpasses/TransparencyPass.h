@@ -14,17 +14,17 @@ namespace ORNG {
 		void DoPass() override;
 
 		void Destroy() override;
-	private:
-		Texture2D m_transparency_accum{ "" };
-		Texture2D m_transparency_revealage{""};
+		
+		Texture2D transparency_accum{ "" };
+		Texture2D transparency_revealage{""};
 
-		Texture2D* mp_depth_tex = nullptr;
+		Texture2D* p_depth_tex = nullptr;
 
-		class Scene* mp_scene = nullptr;
+		class Scene* p_scene = nullptr;
 
-		ShaderVariants m_transparency_shader_variants;
-		Shader m_transparency_composite_shader;
-		Framebuffer m_transparency_fb;
-		Framebuffer m_composition_fb;
+		ShaderVariants transparency_shader_variants;
+		Shader transparency_composite_shader;
+		Framebuffer transparency_fb;
+		Framebuffer composition_fb;
 	};
 }

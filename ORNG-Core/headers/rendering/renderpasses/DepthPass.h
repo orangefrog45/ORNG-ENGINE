@@ -18,13 +18,13 @@ namespace ORNG {
 		void Destroy() override;
 
 		void DrawAllMeshesDepth(RenderGroup render_group, Scene* p_scene);
-	private:
-		Texture2DArray m_directional_light_depth_tex{ "SR Directional depth array" };
 
-		ShaderVariants m_sv;
-		Framebuffer m_fb;
-		class Scene* mp_scene = nullptr;
-		class SpotlightSystem* mp_spotlight_system = nullptr;
-		class PointlightSystem* mp_pointlight_system = nullptr;
+		Texture2DArray directional_light_depth_tex{ "SR Directional depth array" };
+
+		ShaderVariants sv;
+		Framebuffer fb;
+		class Scene* p_scene = nullptr;
+		class SpotlightSystem* p_spotlight_system = nullptr;
+		class PointlightSystem* p_pointlight_system = nullptr;
 	};
 }

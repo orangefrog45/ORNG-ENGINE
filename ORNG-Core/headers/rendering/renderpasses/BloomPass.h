@@ -21,10 +21,10 @@ namespace ORNG {
 		void Destroy() override {};
 
 	private:
-		Texture2D m_bloom_tex{ "Bloom tex" };
-		Shader m_bloom_downsample_shader;
-		Shader m_bloom_upsample_shader;
-		Shader m_composition_shader;
-		Shader m_bloom_threshold_shader;
+		Texture2D bloom_tex{ "Bloom tex" };
+		Shader bloom_downsample_shader;
+		Shader bloom_upsample_shader;
+		Shader composition_shader;
+		Shader bloom_threshold_shader;
 	};
 }

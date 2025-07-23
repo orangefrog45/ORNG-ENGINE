@@ -23,7 +23,8 @@ void EnvMapSystem::LoadSkyboxFromHDRFile(const std::string& filepath, unsigned r
 
     skybox.m_hdr_tex_filepath = filepath;
     skybox.m_resolution = resolution;
-    m_loader.LoadSkybox(skybox.m_hdr_tex_filepath, skybox, skybox.GetResolution(), skybox.using_env_map);
+    if (!m_loader.LoadSkybox(skybox.m_hdr_tex_filepath, skybox, skybox.GetResolution(), skybox.using_env_map))
+        skybox.using_env_map = false;
 }
 
 void EnvMapSystem::DeserializeEnvMap(const SceneSerializationEvent& _event) {
@@ -33,7 +34,8 @@ void EnvMapSystem::DeserializeEnvMap(const SceneSerializationEvent& _event) {
     skybox.m_hdr_tex_filepath = skybox_node["HDR filepath"].as<std::string>();
     skybox.m_resolution = res;
     skybox.using_env_map = using_env_map;
-    m_loader.LoadSkybox(skybox.m_hdr_tex_filepath, skybox, res, using_env_map);
+    if (!m_loader.LoadSkybox(skybox.m_hdr_tex_filepath, skybox, res, using_env_map))
+        skybox.using_env_map = false;
 }
 
 void EnvMapSystem::SerializeEnvMap(const SceneSerializationEvent& _event) {

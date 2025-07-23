@@ -15,18 +15,18 @@ namespace ORNG {
 		void Destroy() override;
 
 		Texture2D& GetFinalFogTex() {
-			return m_fog_blur_tex_1;
+			return fog_blur_tex_1;
 		}
-	private:
-		Texture2D m_fog_output_tex{""};
-		Texture2D m_fog_blur_tex_1{""};
-		Texture2D m_fog_blur_tex_2{""};
-		Texture2D* mp_depth_tex = nullptr;
+		
+		Texture2D fog_output_tex{""};
+		Texture2D fog_blur_tex_1{""};
+		Texture2D fog_blur_tex_2{""};
+		Texture2D* p_depth_tex = nullptr;
 
-		class Scene* mp_scene = nullptr;
+		class Scene* p_scene = nullptr;
 
-		Shader m_fog_shader;
-		Shader m_blur_shader;
-		ShaderVariants m_depth_aware_upsample_sv;
+		Shader fog_shader;
+		Shader blur_shader;
+		ShaderVariants depth_aware_upsample_sv;
 	};
 }

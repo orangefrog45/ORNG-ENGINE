@@ -220,6 +220,7 @@ void EditorLayer::BeginPlayScene() {
 		InitRenderGraph(*m_state.p_vr_render_graph, true);
 	}
 
+	SCENE->mp_render_graph = &m_render_graph;
 	UpdateSceneDisplayRect();
 	SCENE->Start();
 	EventManager::DispatchEvent(EditorEvent(EditorEventType::SCENE_START_SIMULATION));

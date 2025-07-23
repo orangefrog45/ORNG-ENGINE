@@ -17,14 +17,13 @@ namespace ORNG {
 		void Destroy() override {};
 
 		inline const Texture2D& GetSSAOTex() noexcept {
-			return m_ao_tex;
+			return ao_tex;
 		}
 
-	private:
-		Texture2D* mp_depth_tex;
-		Texture2D* mp_normal_tex;
+		Texture2D* p_depth_tex;
+		Texture2D* p_normal_tex;
 
-		Texture2D m_ao_tex{""};
-		Shader m_ssao_shader;
+		Texture2D ao_tex{""};
+		Shader ssao_shader;
 	};
 }

@@ -20,11 +20,11 @@ namespace ORNG {
 		Texture2D rma{""};
 		Texture2D depth{""};
 		Texture2D shader_ids{""};
-	private:
-		ShaderVariants m_sv;
-		ShaderVariants m_displacement_sv;
 
-		Framebuffer m_framebuffer;
+		ShaderVariants sv;
+		ShaderVariants displacement_sv;
+
+		Framebuffer framebuffer;
 
 		class Scene* mp_scene = nullptr;
 	};

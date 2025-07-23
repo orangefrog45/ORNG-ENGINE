@@ -470,6 +470,7 @@ void AssetManagerWindow::RenderMaterial(Material* p_material) {
 		*p_new_material = *p_material;
 		// Give clone a unique UUID
 		p_new_material->uuid = UUID<uint64_t>();
+		p_new_material->filepath = ReplaceFileExtension(p_new_material->filepath, " - Copy.omat");
 		AssetManager::AddAsset(p_new_material);
 		// Render a preview for material
 		m_materials_to_gen_previews.push_back(p_new_material);
@@ -792,6 +793,7 @@ bool AssetManagerWindow::RenderAddScriptAssetWindow() {
 
 	std::string script_path_h = "res/scripts/headers/" + subdirectory_path + '/' + name + ".h";
 	std::string script_path_cpp = "res/scripts/src/" + subdirectory_path + '/' + name + ".cpp";
+	StringReplace(script_path_cpp, "//", "/"); // remove double slashes
 	if (!add || !valid_name || FileExists(script_path_h) || FileExists(script_path_cpp)) return false;
 
 	if (!FileExists("res/scripts/headers/" + subdirectory_path)) {

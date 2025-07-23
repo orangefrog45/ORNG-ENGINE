@@ -67,9 +67,6 @@ vec3 CalcPointLight(in PointLight light, vec3 v, vec3 f0, int index, vec3 world_
 		light.a_linear * distance +
 		light.exp * pow(distance, 2);
 
-	if (attenuation > 5000)
-		return vec3(0);
-
 	vec3 l = normalize(frag_to_light);
 	vec3 h = normalize(v + l);
 
@@ -106,9 +103,6 @@ vec3 CalcSpotLight(SpotLight light, vec3 v, vec3 f0, int index, vec3 world_pos, 
 	float attenuation = light.constant +
 		light.a_linear * distance +
 		light.exp * pow(distance, 2);
-
-		if (attenuation > 5000)
-		return vec3(0);
 
 	vec3 l = normalize(frag_to_light);
 	vec3 h = normalize(v + l);

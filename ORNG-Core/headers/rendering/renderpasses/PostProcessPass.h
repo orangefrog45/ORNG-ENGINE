@@ -13,10 +13,10 @@ namespace ORNG {
 		void DoPass() override;
 
 		void Destroy() override;
-	private:
-		Texture2D* mp_fog_tex = nullptr;
 
-		Shader m_post_process_shader;
-		Scene* mp_scene = nullptr;
+		Texture2D* p_fog_tex = nullptr;
+
+		Shader post_process_shader;
+		Scene* p_scene = nullptr;
 	};
 }

@@ -8,6 +8,8 @@
 
 #include "rendering/Renderer.h"
 
+#define SHADER_DEBUG_MODE false
+
 namespace ORNG {
 	Shader::~Shader() {
 		Events::EventManager::DeregisterListener(m_reload_listener.GetRegisterID());
@@ -273,10 +275,17 @@ namespace ORNG {
 			char* message = (char*)_malloca(length * sizeof(char));
 			glGetProgramInfoLog(m_program_id, length, &length, message);
 
-
-			ORNG_CORE_CRITICAL("Failed to link program for shader '{0}' : '{1}", m_name, message);
+			ORNG_CORE_ERROR("Failed to link program for shader '{0}' : '{1}", m_name, message);
+#if SHADER_DEBUG_MODE
 			BREAKPOINT;
+#else
+			auto prev_stages = m_stages;
+			for (auto& [stage, stage_data] : m_stages) {
+				stage_data.filepath = stage == GL_COMPUTE_SHADER ? "res/shaders/EmptyCompute.glsl" : "res/shaders/EmptyVSFS.glsl";
+			}
+#endif
 			Reload();
+			m_stages = prev_stages;
 		}
 
 		glValidateProgram(m_program_id);
@@ -293,8 +302,6 @@ namespace ORNG {
 
 
 	int Shader::CreateUniform(const std::string& name) {
-		constexpr bool SHADER_DEBUG_MODE = false;
-
 		int location = glGetUniformLocation(m_program_id, name.c_str());
 		if (location == -1 && SHADER_DEBUG_MODE) {
 			ORNG_CORE_ERROR("Could not find uniform '{0}'", name);
@@ -345,7 +352,7 @@ namespace ORNG {
 				err_code_it++;
 			}
 
-			ORNG_CORE_CRITICAL("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
+			ORNG_CORE_ERROR("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
 			std::string formatted_src;
 			size_t pos = 0;
 			unsigned line_num = 0;
