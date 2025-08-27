@@ -37,9 +37,6 @@
 [submodule "ORNG-Core/extern/tracy"]
 	path = ORNG-Core/extern/tracy
 	url = https://github.com/wolfpld/tracy
-[submodule "extern/vcpkg"]
-	path = extern/vcpkg
-	url = https://github.com/microsoft/vcpkg
 [submodule "ORNG-Editor/extern/sol2"]
 	path = ORNG-Editor/extern/sol2
 	url = https://github.com/ThePhD/sol2

@@ -152,7 +152,7 @@ namespace ORNG {
 		void* p_data = nullptr;
 		size_t size = 0;
 	private:
-		virtual void* GetDataPtr() {
+		void* GetDataPtr() override {
 			return p_data;
 		}
 	};

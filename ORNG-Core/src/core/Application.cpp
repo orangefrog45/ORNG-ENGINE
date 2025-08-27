@@ -11,7 +11,6 @@
 #include "core/GLStateManager.h"
 #include "events/EventManager.h"
 #include "core/FrameTiming.h"
-#include "physics/Physics.h"
 #include "assets/AssetManager.h"
 #include "audio/AudioEngine.h"
 #include <glfw/glfw3.h>
@@ -29,9 +28,6 @@ void Application::Shutdown() {
 
 	if (!(m_settings.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER))
 		AssetManager::Shutdown();
-
-	if (!(m_settings.disabled_modules & ApplicationModulesFlags::PHYSICS))
-		Physics::Shutdown();
 
 	glfwTerminate();
 	GL_StateManager::Shutdown();
@@ -62,9 +58,6 @@ void Application::Init(const ApplicationData& data) {
 		AudioEngine::Init();
 
 	Renderer::Init();
-
-	if (!(data.disabled_modules & ApplicationModulesFlags::PHYSICS))
-		Physics::Init();
 
 	if (!(data.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER))
 		AssetManager::Init();

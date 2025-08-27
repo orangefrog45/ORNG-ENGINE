@@ -11,14 +11,10 @@
 #include "rendering/RenderGraph.h"
 #include "util/LoggerUI.h"
 #include "components/PhysicsComponent.h"
-#include "components/VehicleComponent.h"
 #include "layers/RuntimeSettings.h"
 #include "VRlib/core/headers/VR.h"
 
 
-namespace physx {
-	class PxMaterial;
-}
 struct DragData {
 	glm::ivec2 start{ 0, 0 };
 	glm::ivec2 end{0, 0};
@@ -44,7 +40,6 @@ namespace ORNG {
 
 	enum class SelectionMode {
 		ENTITY,
-		JOINT
 	};
 
 
@@ -126,8 +121,6 @@ namespace ORNG {
 		// Highlight the selected entities in the editor
 		void DoSelectedEntityHighlightPass();
 
-		void RenderPhysxDebug();
-
 		void UpdateSceneDisplayRect();
 
 		/*
@@ -136,11 +129,7 @@ namespace ORNG {
 
 		void MultiSelectDisplay();
 
-		void RenderJointMaker();
-
 		void PollKeybinds();
-
-		void RenderJointEditor(JointComponent::Joint* p_joint);
 
 		void SelectEntity(uint64_t id);
 
@@ -205,15 +194,9 @@ namespace ORNG {
 
 		void RenderAudioComponentEditor(AudioComponent* p_audio);
 
-		void RenderVehicleComponentEditor(VehicleComponent* p_comp);
-
 		void RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp);
 
 		void RenderParticleBufferComponentEditor(class ParticleBufferComponent* p_comp);
-
-		void RenderCharacterControllerComponentEditor(CharacterControllerComponent* p_comp);
-
-		void RenderJointComponentEditor(JointComponent* p_comp);
 
 		void RenderEntityNodeRef(EntityNodeRef& ref);
 
@@ -297,8 +280,6 @@ namespace ORNG {
 
 			ImGuizmo::OPERATION current_gizmo_operation = ImGuizmo::TRANSLATE;
 			ImGuizmo::MODE current_gizmo_mode = ImGuizmo::WORLD;
-
-			JointComponent::Joint* p_selected_joint = nullptr;
 
 			GeneralSettings general_settings;
 		};

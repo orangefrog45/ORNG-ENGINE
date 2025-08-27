@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.8)
 
 # This exposes the following targets:
 # ORNG_CORE - contains entire ORNG library, this requires ORNG_BUILD_CORE to be ON, and physx to be installed via vcpkg and available to link to (see how physx is used in this file)
-# ORNG_PHYSICS - ignore for now
 # ORNG_RENDERING - contains all OpenGL rendering functionality
 # ORNG_SCENE - contains all scene functionality
 # ORNG_UTIL - contains utility functionality
@@ -54,16 +53,6 @@ set(ORNG_UTIL_SOURCES
 	src/misc/Interpolator.cpp
 )
 
-set(ORNG_PHYSICS_SOURCES
-	src/components/managers/PhysicsSystem.cpp
-	src/components/PhysicsComponent.cpp
-	src/components/VehicleComponent.cpp
-	src/physics/physics.cpp
-	src/physics/vehicles/BaseVehicle.cpp
-	src/physics/vehicles/PhysXVehicleActor.cpp
-	src/physics/vehicles/DirectDrive.cpp
-)
-
 set(ORNG_SCENE_SOURCES
 	src/components/MeshComponent.cpp
 	src/components/TransformComponent.cpp
@@ -79,6 +68,7 @@ set(ORNG_SCENE_SOURCES
 	src/components/ParticleEmitterComponent.cpp
 	src/components/managers/ScriptSystem.cpp
 	src/components/AudioComponent.cpp
+	src/components/PhysicsComponent.cpp
 	src/audio/AudioEngine.cpp
 )
 
@@ -116,38 +106,29 @@ set(ORNG_LIB_SOURCES
 
 	src/misc/LoggerUI.cpp
 	src/misc/ExtraUI.cpp
-		headers/components/systems/VrSystem.h
-		headers/assets/SceneAsset.h
-		headers/layers/RuntimeSettings.h
 )
-
 
 add_library(ORNG_RENDERING STATIC ${ORNG_RENDERING_SOURCES})
 add_library(ORNG_UTIL STATIC ${ORNG_UTIL_SOURCES})
 add_library(ORNG_SCENE STATIC ${ORNG_SCENE_SOURCES})
 
-
 if (ORNG_BUILD_CORE)
 	add_library(ORNG_CORE STATIC ${ORNG_LIB_SOURCES})
-	add_library(ORNG_PHYSICS STATIC ${ORNG_PHYSICS_SOURCES})
+endif()
 
-	find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
-	target_link_libraries(ORNG_CORE PRIVATE unofficial::omniverse-physx-sdk::sdk)
-
-	# Optional: import the defined target to copy over the GPU acceleration libraries (3rd party provided by NVIDIA)
-	if(TARGET unofficial::omniverse-physx-sdk::gpu-library)
-		add_custom_command(TARGET ORNG_CORE POST_BUILD
-				COMMAND ${CMAKE_COMMAND} -E copy_if_different
-				$<TARGET_FILE:unofficial::omniverse-physx-sdk::gpu-device-library>
-				$<TARGET_FILE_DIR:ORNG_CORE>)
-		target_compile_definitions(ORNG_CORE PUBLIC PHYSX_GPU_ACCELERATION_AVAILABLE)
-	else()
-		message(WARNING "GPU acceleration library target not defined - GPU acceleration will NOT be available!")
-	endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	target_compile_definitions(ORNG_RENDERING PRIVATE _DEBUG)
+	target_compile_definitions(ORNG_UTIL PRIVATE _DEBUG)
+	target_compile_definitions(ORNG_SCENE PRIVATE _DEBUG)
+else()
+	target_compile_definitions(ORNG_RENDERING PRIVATE NDEBUG)
+	target_compile_definitions(ORNG_UTIL PRIVATE NDEBUG)
+	target_compile_definitions(ORNG_SCENE PRIVATE NDEBUG)
 endif()
 
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/glfw)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/assimp)
@@ -193,18 +174,11 @@ set(ORNG_CORE_INCLUDE_DIRS
 
 
 if (ORNG_BUILD_CORE)
-	target_include_directories(ORNG_PHYSICS PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
-	target_link_libraries(ORNG_PHYSICS PUBLIC
-		ORNG_SCENE
-		${PHYSX_LIBRARIES}
-	)
-
 	target_include_directories(ORNG_CORE PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
 	target_link_libraries(ORNG_CORE PUBLIC
 	ORNG_RENDERING
 	ORNG_UTIL
 	ORNG_SCENE
-	ORNG_PHYSICS
 	OpenGL::GL
 	glfw
 	libglew_shared

@@ -1,6 +1,7 @@
 #pragma once
 #include "Asset.h"
 #include <yaml-cpp/node/node.h>
+#include <bitsery/traits/string.h>
 
 namespace ORNG {
 	struct Prefab final : public Asset {

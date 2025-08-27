@@ -2,6 +2,7 @@
 
 #include "yaml/include/yaml-cpp/yaml.h"
 #include "Interpolators.h"
+#include "scene/SerializationUtil.h"
 
 namespace ORNG {
 	template<typename T>

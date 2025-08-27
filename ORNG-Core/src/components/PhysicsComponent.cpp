@@ -1,13 +1,9 @@
 #include "pch/pch.h"
 #include "components/PhysicsComponent.h"
 #include "events/EventManager.h"
-#include "physics/Physics.h"
-#include "assets/PhysXMaterialAsset.h"
 #include "scene/SceneEntity.h"
 
 namespace ORNG {
-	using namespace physx;
-
 	void PhysicsComponent::UpdateGeometry(GeometryType type) {
 		m_geometry_type = type;
 		SendUpdateEvent();
@@ -26,59 +22,27 @@ namespace ORNG {
 
 
 	void PhysicsComponent::AddForce(glm::vec3 force) {
-		if (m_body_type == DYNAMIC)
-			((PxRigidDynamic*)p_rigid_actor)->addForce(PxVec3(force.x, force.y, force.z), PxForceMode::eIMPULSE);
 	}
 
 	void PhysicsComponent::ToggleGravity(bool on) {
-		if (m_body_type == DYNAMIC) {
-			((PxRigidDynamic*)p_rigid_actor)->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !on);
-		}
 	}
 
 	void PhysicsComponent::SetMass(float mass) {
-		if (m_body_type == DYNAMIC && mass >= 0.f)
-			((PxRigidDynamic*)p_rigid_actor)->setMass(mass);
 	}
 
 
 	void PhysicsComponent::SetVelocity(glm::vec3 v) {
-		if (m_body_type == DYNAMIC)
-			((PxRigidDynamic*)p_rigid_actor)->setLinearVelocity(PxVec3(v.x, v.y, v.z));
 	}
 
 	void PhysicsComponent::SetAngularVelocity(glm::vec3 v) {
-		if (m_body_type == DYNAMIC)
-			((PxRigidDynamic*)p_rigid_actor)->setAngularVelocity(PxVec3(v.x, v.y, v.z));
 	}
 
 	glm::vec3 PhysicsComponent::GetAngularVelocity() const {
-		if (m_body_type == DYNAMIC) {
-			auto vec = ((PxRigidDynamic*)p_rigid_actor)->getAngularVelocity();
-			return glm::vec3(vec.x, vec.y, vec.z);
-		}
-		else
-		{
-			return { 0, 0, 0 };
-		}
-	}
-
-
-	void PhysicsComponent::SetMaterial(PhysXMaterialAsset& material) {
-		p_material->p_material->release();
-		p_material = &material;
-		material.p_material->acquireReference();
-		SendUpdateEvent();
+		return { 0, 0, 0 };
 	}
 
 	glm::vec3 PhysicsComponent::GetVelocity() const {
-		if (m_body_type == DYNAMIC) {
-			auto vec = ((PxRigidDynamic*)p_rigid_actor)->getLinearVelocity();
-			return glm::vec3(vec.x, vec.y, vec.z);
-		}
-		else {
-			return { 0, 0, 0 };
-		}
+		return { 0, 0, 0 };
 	}
 
 	void PhysicsComponent::SendUpdateEvent() {
@@ -86,24 +50,7 @@ namespace ORNG {
 		Events::EventManager::DispatchEvent(phys_event);
 	}
 
-
-
 	void CharacterControllerComponent::Move(glm::vec3 disp, float minDist, float elapsedTime) {
-		p_controller->move(PxVec3(disp.x, disp.y, disp.z), minDist, elapsedTime, 0);
-
 		moved_during_frame = true;
-	}
-
-	void JointComponent::Joint::Break() {
-		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, p_a0->GetComponent<JointComponent>(), JointEventType::BREAK };
-		joint_event.p_data = this;
-		Events::EventManager::DispatchEvent(joint_event);
-	}
-
-	void JointComponent::Joint::Connect(JointComponent* p_target, bool use_stored_poses) {
-		Events::ECS_Event<JointComponent> joint_event{ Events::ECS_EventType::COMP_UPDATED, p_target, JointEventType::CONNECT };
-		auto connection_data = JointComponent::ConnectionData{p_a0, p_target, this, use_stored_poses};
-		joint_event.p_data = &connection_data;
-		Events::EventManager::DispatchEvent(joint_event);
 	}
 }

@@ -17,7 +17,6 @@
 #include "rendering/renderpasses/LightingPass.h"
 #include "rendering/renderpasses/TransparencyPass.h"
 #include "assets/Prefab.h"
-#include "assets/PhysXMaterialAsset.h"
 #include "components/PhysicsComponent.h"
 #include "assets/AssetManager.h"
 #include "core/Window.h"
@@ -27,7 +26,6 @@
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "core/GLStateManager.h"
-#include "physics/Physics.h"
 #include "components/ComponentSystems.h"
 
 using namespace ORNG;
@@ -189,9 +187,6 @@ void AssetManagerWindow::OnRenderUI() {
 	if (mp_selected_texture)
 		RenderTextureEditorSection();
 
-	if (mp_selected_physx_material)
-		RenderPhysXMaterialEditor();
-
 	for (int i = m_confirmation_window_stack.size() - 1; i >= 0; i--) {
 		RenderConfirmationWindow(m_confirmation_window_stack[i], i);
 	}
@@ -302,34 +297,6 @@ void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 	}
 
 }
-
-
-void AssetManagerWindow::RenderPhysXMaterial(PhysXMaterialAsset* p_material) {
-	AssetDisplaySpec spec;
-
-	unsigned using_count = 0;
-	for (auto [entity, comp] : mp_scene_context->m_registry.view<PhysicsComponent>().each()) {
-		if (comp.GetMaterial() == p_material)
-			using_count++;
-	}
-
-	spec.delete_confirmation_str = using_count == 0 ? "" : std::format("{} entities are using this.", using_count);
-
-	spec.on_drag = [p_material]() {
-		static PhysXMaterialAsset* p_dragged_material = nullptr;
-		p_dragged_material = p_material;
-		ImGui::SetDragDropPayload("PHYSX-MATERIAL", &p_dragged_material, sizeof(PhysXMaterialAsset*));
-		ImGui::EndDragDropSource();
-		};
-
-	spec.on_click = [this, p_material]() {
-		mp_selected_physx_material = p_material;
-		};
-	spec.p_tex = AssetManager::GetAsset<Texture2D>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE));
-
-	RenderBaseAsset(p_material, spec);
-}
-
 
 
 void AssetManagerWindow::RenderMeshAsset(MeshAsset* p_mesh_asset) {
@@ -524,8 +491,6 @@ void AssetManagerWindow::RenderAsset(Asset *p_asset) {
 		RenderPrefab(p_casted);
 	else if (auto* p_casted = dynamic_cast<Material*>(p_asset))
 		RenderMaterial(p_casted);
-	else if (auto* p_casted = dynamic_cast<PhysXMaterialAsset*>(p_asset))
-		RenderPhysXMaterial(p_casted);
 	else if (auto* p_casted = dynamic_cast<ScriptAsset*>(p_asset))
 		RenderScriptAsset(p_casted);
 	else if (auto* p_casted = dynamic_cast<SceneAsset*>(p_asset))
@@ -597,7 +562,6 @@ void AssetManagerWindow::RenderAddAssetPopup(bool open_condition) {
 		if (ImGui::Selectable("Script")) mp_active_add_asset_window = [this]{ if (RenderAddScriptAssetWindow()) mp_active_add_asset_window = nullptr;};
 		if (ImGui::Selectable("Prefab")) mp_active_add_asset_window = [this]{ if (RenderAddPrefabAssetWindow()) mp_active_add_asset_window = nullptr;};
 		if (ImGui::Selectable("Sound")) mp_active_add_asset_window = [this]{ if (RenderAddSoundAssetWindow()) mp_active_add_asset_window = nullptr;};
-		if (ImGui::Selectable("PhysX Material")) mp_active_add_asset_window = [this]{ if (RenderAddPhysxMaterialAssetWindow()) mp_active_add_asset_window = nullptr;};
 		if (ImGui::Selectable("Scene")) mp_active_add_asset_window = [this]{ if (RenderAddSceneAssetWindow()) mp_active_add_asset_window = nullptr;};
 
 		ImGui::EndPopup();
@@ -828,21 +792,6 @@ bool AssetManagerWindow::RenderAddScriptAssetWindow() {
 	return true;
 }
 
-bool AssetManagerWindow::RenderAddPhysxMaterialAssetWindow() {
-	AssetAddDisplaySpec spec{};
-
-	static std::string name = "New asset";
-	static std::string new_asset_fp;
-	const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".opmat");
-	if (!add || name.empty()) return false;
-
-	auto* p_new = new PhysXMaterialAsset{new_asset_fp};
-	p_new->p_material = Physics::GetPhysics()->createMaterial(0.75, 0.75, 0.6);
-	AssetManager::AddAsset(p_new);
-
-	return true;
-}
-
 bool AssetManagerWindow::RenderAddSoundAssetWindow() {
 	static std::string raw_sound_filepath;
 
@@ -1049,56 +998,6 @@ void AssetManagerWindow::CreateMaterialPreview(const Material* p_material) {
 	m_preview_render_graph.Execute();
 
 	glGenerateTextureMipmap(p_tex->GetTextureHandle());
-}
-
-
-
-void AssetManagerWindow::RenderPhysXMaterialEditor() {
-	if (!mp_selected_physx_material)
-		return;
-
-	static float df = 1.f;
-	static float sf = 1.f;
-	static float r = 1.f;
-
-	df = mp_selected_physx_material->p_material->getDynamicFriction();
-	sf = mp_selected_physx_material->p_material->getStaticFriction();
-	r = mp_selected_physx_material->p_material->getRestitution();
-
-	ImGui::SetNextWindowSize({ 600, 300 });
-
-	if (ImGui::Begin("PhysX material editor")) {
-		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-			// Deselect, close window
-			mp_selected_physx_material = nullptr;
-			ImGui::End();
-			return;
-		}
-
-		ImGui::PushItemWidth(300.0);
-		float avail = ImGui::GetContentRegionAvail().x;
-
-		ImGui::Text("Name: "); ImGui::SameLine(avail - 300.0);
-		ExtraUI::AlphaNumTextInput(mp_selected_physx_material->name);
-
-		ImGui::Text("Dynamic friction"); ImGui::SameLine(avail - 300.0);
-		if (ImGui::DragFloat("##df", &df)) {
-			mp_selected_physx_material->p_material->setDynamicFriction(df);
-		}
-
-		ImGui::Text("Static friction"); ImGui::SameLine(avail - 300.0);
-		if (ImGui::DragFloat("##sf", &sf)) {
-			mp_selected_physx_material->p_material->setStaticFriction(sf);
-		}
-
-		ImGui::Text("Restitution"); ImGui::SameLine(avail - 300.0);
-		if (ImGui::SliderFloat("##r", &r, 0.f, 1.f)) {
-			mp_selected_physx_material->p_material->setRestitution(r);
-		}
-
-		ImGui::PopItemWidth();
-	}
-	ImGui::End();
 }
 
 bool AssetManagerWindow::RenderMaterialEditorSection() {

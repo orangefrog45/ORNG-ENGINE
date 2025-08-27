@@ -1,11 +1,6 @@
 #pragma once
 #include "../util/UUID.h"
-#include "../util/Log.h"
 #include "util/util.h"
-
-namespace physx {
-	class PxMaterial;
-}
 
 namespace ORNG {
 	struct Asset {
@@ -24,12 +19,10 @@ namespace ORNG {
 		std::string filepath = "";
 		UUID<uint64_t> uuid;
 
-
-
 		template<typename S>
 		void serialize(S& s) {
 			s.object(uuid);
-			s.container1b(filepath, filepath.size());
+			s.text1b(filepath, filepath.size());
 		}
 	};
 

@@ -106,7 +106,6 @@ namespace ORNG {
 		void LoadMaterialAssetFromFile(const std::string& rel_path);
 		void LoadPrefabAssetFromFile(const std::string& rel_path);
 		void LoadScriptAssetFromFile(const std::string& rel_path);
-		void LoadPhysxAssetFromFile(const std::string& rel_path);
 		void LoadSceneAssetFromFile(const std::string& rel_path);
 
 		void SerializeSceneAsset(class SceneAsset& scene_asset, BufferSerializer& ser);
@@ -167,8 +166,6 @@ namespace ORNG {
 
 		void DeserializeMaterialAsset(Material& data, BufferDeserializer& des);
 
-		static void DeserializePhysxMaterialAsset(class PhysXMaterialAsset& data, BufferDeserializer& des);
-
 		template<std::derived_from<Asset> T>
 		void SerializeAssetToBinaryFile(T& asset, const std::string& filepath) {
 			/* Use a different temporary filepath for the serialized output as the previous binary file needs to be
@@ -211,9 +208,6 @@ namespace ORNG {
 			}
 			else if constexpr (std::is_same_v<T, Material>) {
 				DeserializeMaterialAsset(data, des);
-			}
-			else if constexpr (std::is_same_v<T, PhysXMaterialAsset>) {
-				DeserializePhysxMaterialAsset(data, des);
 			}
 			else if constexpr (std::is_same_v<T, Texture2D>) {
 				DeserializeTexture2D(data, *std::any_cast<std::vector<std::byte>*>(args), des);

@@ -402,7 +402,7 @@ namespace ORNG {
 		auto it = entity_node.begin();
 		// Skip the non-component fields
 		std::advance(it, 3);
-		for (it; it != entity_node.end(); it++) {
+		for (;it != entity_node.end(); it++) {
 			auto tag = it->first.as<std::string>();
 
 			if (deserializers.contains(tag)) deserializers[tag]();

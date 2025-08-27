@@ -1,5 +1,4 @@
 #pragma once
-#include "assets/PhysXMaterialAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/SceneAsset.h"
 #include "rendering/Textures.h"
@@ -123,7 +122,6 @@ namespace ORNG {
 		bool RenderAddMaterialAssetWindow();
 		bool RenderAddPrefabAssetWindow();
 		bool RenderAddScriptAssetWindow();
-		bool RenderAddPhysxMaterialAssetWindow();
 		bool RenderAddSoundAssetWindow();
 		bool RenderAddSceneAssetWindow();
 
@@ -136,14 +134,11 @@ namespace ORNG {
 
 		void RenderScriptAsset(ScriptAsset* p_asset);
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
-		void RenderPhysXMaterial(class PhysXMaterialAsset* p_material);
 		void RenderTexture(Texture2D* p_tex);
 		void RenderMaterial(Material* p_material);
 		void RenderPrefab(Prefab* p_prefab);
 		void RenderAudioAsset(SoundAsset* p_asset);
 		void RenderSceneAsset(SceneAsset* p_asset);
-
-		void RenderPhysXMaterialEditor();
 
 		void ProcessAssetDeletionQueue();
 
@@ -162,7 +157,6 @@ namespace ORNG {
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
 		Material* mp_selected_material = nullptr;
-		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
 		SceneAsset* mp_selected_scene = nullptr;
 
 		Scene* mp_scene_context = nullptr;

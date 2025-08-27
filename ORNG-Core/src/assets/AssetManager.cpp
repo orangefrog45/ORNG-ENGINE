@@ -1,11 +1,9 @@
 #include "pch/pch.h"
 #include "assets/AssetManager.h"
-#include "assets/PhysXMaterialAsset.h"
 #include "events/EventManager.h"
 #include "rendering/Textures.h"
 #include "rendering/MeshAsset.h"
 #include "core/GLStateManager.h"
-#include "physics/Physics.h" // for material initialization
 #include "rendering/EnvMapLoader.h"
 
 
@@ -79,14 +77,14 @@ namespace ORNG {
 
 	void AssetManager::LoadExternalBaseAssets(const std::string& project_dir) {
 		m_assets.erase(static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND));
-		mp_base_sound = std::make_unique<SoundAsset>(project_dir + "res\\core-res\\audio\\mouse-click.mp3");
+		mp_base_sound = std::make_unique<SoundAsset>(project_dir + "res/core-res/audio/mouse-click.mp3");
 		mp_base_sound->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::CLICK_SOUND));
-		mp_base_sound->source_filepath = project_dir + "res\\core-res\\audio\\mouse-click.mp3";
+		mp_base_sound->source_filepath = project_dir + "res/core-res/audio/mouse-click.mp3";
 		mp_base_sound->CreateSoundFromFile();
 		AddAsset(&*mp_base_sound);
 
 		m_assets.erase(static_cast<uint64_t>(BaseAssetIDs::SPHERE_MESH));
-		mp_base_sphere.release();
+		mp_base_sphere = nullptr;
 		mp_base_sphere = std::make_unique<MeshAsset>("res/meshes/sphere.obmesh");
 		serializer.DeserializeAssetBinary("res/core-res/meshes/sphere.obmesh", *mp_base_sphere);
 		mp_base_sphere->m_vao.FillBuffers();
@@ -96,7 +94,7 @@ namespace ORNG {
 		AddAsset(&*mp_base_sphere);
 
 		m_assets.erase(static_cast<uint64_t>(BaseAssetIDs::CUBE_MESH));
-		mp_base_cube.release();
+		mp_base_cube = nullptr;
 		mp_base_cube = std::make_unique<MeshAsset>("res/meshes/cube.obmesh");
 		serializer.DeserializeAssetBinary("res/core-res/meshes/cube.obmesh", *mp_base_cube);
 		mp_base_cube->m_vao.FillBuffers();
@@ -130,30 +128,19 @@ namespace ORNG {
 		AddAsset(&*mp_base_material);
 		AddAsset(&*mp_base_script);
 		AddAsset(&*mp_base_quad);
-
-		if (bool physics_module_active = Physics::GetPhysics()) {
-			auto* p_phys_mat = new PhysXMaterialAsset("BASE");
-			p_phys_mat->uuid = UUID<uint64_t>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL));
-			p_phys_mat->p_material = Physics::GetPhysics()->createMaterial(0.75f, 0.75f, 0.6f);
-			AddAsset(&*p_phys_mat);
-		}
-
 	}
 
 	void AssetManager::IOnShutdown() {
 		ClearAll();
 		auto& instance = Get();
 
-		instance.mp_base_material.release();
-		instance.mp_base_sound.release();
-		instance.mp_base_tex.release();
-		instance.mp_base_cube.release();
-		instance.mp_base_sphere.release();
-		instance.mp_base_quad.release();
-		instance.mp_base_script.release();
-
-		if (bool physics_module_active = Physics::GetPhysics())
-			DeleteAsset(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_PHYSX_MATERIAL));
+		instance.mp_base_material = nullptr;
+		instance.mp_base_sound = nullptr;
+		instance.mp_base_tex = nullptr;
+		instance.mp_base_cube = nullptr;
+		instance.mp_base_sphere = nullptr;
+		instance.mp_base_quad = nullptr;
+		instance.mp_base_script = nullptr;
 	};
 
 	void AssetManager::InitBase3DQuad() {
