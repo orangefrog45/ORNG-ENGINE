@@ -32,6 +32,7 @@ namespace ORNG {
 		static bool SwitchButton(const std::string& content, bool active, ImVec4 inactive_col, ImVec4 active_col);
 
 		static bool InputUint(const char* name, unsigned& val);
+		static bool InputUint8(const char* name, uint8_t& val);
 
 		static bool InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator);
 		static bool InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator);

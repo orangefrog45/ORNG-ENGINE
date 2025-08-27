@@ -1,7 +1,5 @@
 #pragma once
-#include <bitsery/bitsery.h>
 #include <bitsery/adapter/buffer.h>
-#include <bitsery/traits/string.h>
 
 namespace ORNG {
 	template<std::integral T>
@@ -10,9 +8,8 @@ namespace ORNG {
 	public:
 		friend class SceneSerializer;
 		UUID();
-		explicit UUID(T uuid) : m_uuid(uuid) {
-		}
-		UUID(const UUID&) { UUID(); }
+		explicit UUID(T uuid) : m_uuid(uuid) {};
+		UUID(const UUID& other) { UUID(other.m_uuid); }
 
 		explicit operator T() const { return m_uuid; }
 		T operator() () const { return m_uuid; };

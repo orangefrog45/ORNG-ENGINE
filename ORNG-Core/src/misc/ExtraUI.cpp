@@ -286,6 +286,14 @@ namespace ORNG {
 		}
 	}
 
+	bool ExtraUI::InputUint8(const char* name, uint8_t& val) {
+		int_storage.push_back(val);
+		if (ImGui::InputInt(name, &int_storage[int_storage.size() - 1]) && int_storage[int_storage.size() - 1] >= 0) {
+			val = int_storage[int_storage.size() - 1];
+			return true;
+		}
+	}
+
 	bool ExtraUI::SwitchButton(const std::string& content, bool active, ImVec4 inactive_col, ImVec4 active_col) {
 		bool state_before = active;
 		

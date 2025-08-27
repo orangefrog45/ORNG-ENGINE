@@ -104,9 +104,7 @@ namespace ORNG {
 		out << YAML::Key << "Pos" << YAML::Value << p_transform->GetPosition();
 		out << YAML::Key << "Scale" << YAML::Value << p_transform->GetScale();
 		out << YAML::Key << "Orientation" << YAML::Value << p_transform->GetOrientation();
-
 		out << YAML::Key << "Absolute" << YAML::Value << p_transform->m_is_absolute;
-
 		out << YAML::EndMap;
 
 		if (auto* p_mesh_comp = entity.GetComponent<MeshComponent>()) {

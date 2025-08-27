@@ -1,3 +1,4 @@
+#pragma once
 #include "rendering/Material.h"
 #include "events/Events.h"
 #include "scripting/ScriptingEngine.h"

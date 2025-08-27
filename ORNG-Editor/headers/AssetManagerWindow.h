@@ -178,7 +178,6 @@ namespace ORNG {
 
 		std::unique_ptr<Scene> mp_preview_scene = nullptr;
 
-
 		// Should always be equal to working directory but just to be safe track explicitly from EditorLayer
 		std::string* mp_active_project_dir = nullptr;
 

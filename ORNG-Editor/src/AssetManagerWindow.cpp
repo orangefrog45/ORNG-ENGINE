@@ -394,7 +394,6 @@ void AssetManagerWindow::RenderSceneAsset(SceneAsset* p_asset) {
 	RenderBaseAsset(p_asset, spec);
 }
 
-
 void AssetManagerWindow::RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec& display_spec) {
 	ImGui::PushID(p_asset);
 

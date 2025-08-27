@@ -21,22 +21,12 @@ if(MSVC)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    message(FATAL_ERROR "Compilation only supported with MSVC")
+#    message(FATAL_ERROR "Compilation only supported with MSVC")
 endif()
 
 set(ORNG_BUILD_CORE ON)
 add_subdirectory("ORNG-Core")
 add_subdirectory("ORNG-Editor")
 add_subdirectory("ORNG-Runtime")
-
-# EXTERNAL PROJECTS NOT IN ENGINE REPO - COMMENT OUT IF CAUSING ERRORS
-if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/Game")
-#project(FRACTAL_GAME)
-#project(HW_MONITOR)
-#project(PHYS_GAME)
-#add_subdirectory("Game")
-#add_subdirectory("HW-Monitor")
-#add_subdirectory("PhysicsGame")
-endif()
 
 
