@@ -17,7 +17,7 @@ namespace ORNG {
 		}
 
 		std::string filepath = "";
-		UUID<uint64_t> uuid;
+		UUID<uint64_t> uuid{};
 
 		template<typename S>
 		void serialize(S& s) {

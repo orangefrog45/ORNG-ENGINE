@@ -31,7 +31,6 @@ For scripts to be able to locate the correct binaries, your build paths must be 
 - Deferred physically-based 3D renderer
 - C++ scripting with hot reloading
 - VR rendering and interaction support via OpenXR in the editor and runtime
-- 3D physics using Nvidia Physx
 - Editor project serialization and full game runtime generation
 - Cascaded voxel cone traced global illumination
 - GPU-driven particle system

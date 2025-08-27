@@ -10,7 +10,7 @@ namespace ORNG {
 		InterpolatorV1(glm::vec2 t_min_max_x, glm::vec2 t_min_max_y, float p1_val, float p2_val) : x_min_max(t_min_max_x), y_min_max(t_min_max_y) {
 			AddPoint(t_min_max_x.x, p1_val);
 			AddPoint(t_min_max_x.y, p2_val);
-		};
+		}
 
 		float GetValue(float x);
 
@@ -20,7 +20,7 @@ namespace ORNG {
 
 		void RemovePoint(unsigned index);
 
-		[[nodiscard]] unsigned GetNbPoints() const noexcept { return (unsigned)points.size(); };
+		[[nodiscard]] unsigned GetNbPoints() const noexcept { return static_cast<unsigned>(points.size()); }
 
 		glm::vec2 GetPoint(unsigned index);
 

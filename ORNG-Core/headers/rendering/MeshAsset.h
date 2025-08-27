@@ -1,14 +1,21 @@
 #pragma once
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <assimp/postprocess.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "rendering/Material.h"
 #include "components/BoundingVolume.h"
 #include "VAO.h"
 #include "util/UUID.h"
 
-#define ORNG_MAX_MESH_INDICES 50'000'000
+constexpr unsigned ORNG_MAX_MESH_INDICES = 50'000'000;
 
 struct aiScene;
 struct aiMesh;

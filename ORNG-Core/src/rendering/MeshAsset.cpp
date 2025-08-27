@@ -1,11 +1,21 @@
 #include "pch/pch.h"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "rendering/MeshAsset.h"
 #include "util/util.h"
 #include "util/Log.h"
 #include "util/TimeStep.h"
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 
 using namespace ORNG;

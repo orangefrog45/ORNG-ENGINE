@@ -46,3 +46,6 @@
 [submodule "ORNG-Core/extern/VRlib"]
 	path = ORNG-Core/extern/VRlib
 	url = https://github.com/orangefrog45/VRlib
+[submodule "ORNG-Core/extern/jolt"]
+	path = ORNG-Core/extern/jolt
+	url = https://github.com/jrouwe/JoltPhysics

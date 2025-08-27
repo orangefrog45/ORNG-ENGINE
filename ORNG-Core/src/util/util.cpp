@@ -234,7 +234,6 @@ namespace ORNG {
 
 	bool WriteTextFile(const std::string& filepath, const std::string& content) {
 		std::ofstream out{ filepath };
-
 		if (!out.is_open()) {
 			ORNG_CORE_ERROR("Failed to open text file '{0}' for writing", filepath);
 			return false;
@@ -242,6 +241,8 @@ namespace ORNG {
 
 		out << content;
 		out.close();
+
+		return true;
 	}
 
 	bool WriteBinaryFile(const std::string& filepath, std::byte* p_data, size_t size) {
@@ -254,6 +255,8 @@ namespace ORNG {
 
 		out.write(reinterpret_cast<const char*>(p_data), size);
 		out.close();
+
+		return true;
 	}
 
 	std::string ReadTextFile(const std::string& filepath) {

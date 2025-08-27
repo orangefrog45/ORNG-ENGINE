@@ -7,10 +7,9 @@
 #include <fmod.hpp>
 #include <glfw/glfw3.h>
 #include <yaml/src/scanscalar.h>
-#include <yaml/include/yaml-cpp/yaml.h>
+#include <yaml-cpp/yaml.h>
 
 #include "EditorLayer.h"
-
 
 #include "components/systems/EnvMapSystem.h"
 #include "scene/SceneSerializer.h"
@@ -24,6 +23,7 @@
 #include "tracy/public/tracy/Tracy.hpp"
 #include "imgui/imgui_internal.h"
 #include "components/ComponentSystems.h"
+#include "rendering/renderpasses/BloomPass.h"
 #include "rendering/renderpasses/DepthPass.h"
 #include "rendering/renderpasses/GBufferPass.h"
 #include "rendering/renderpasses/LightingPass.h"
@@ -37,7 +37,7 @@
 #include "components/systems/SceneUBOSystem.h"
 
 #include "components/PhysicsComponent.h"
-#include "rendering/renderpasses/BloomPass.h"
+#include "components/systems/PhysicsSystem.h"
 
 #include "components/systems/VrSystem.h"
 #include "GLFW/glfw3native.h"
@@ -1085,8 +1085,13 @@ void EditorLayer::SaveProject() {
 	auto* p_scene_asset = AssetManager::GetAsset<SceneAsset>(SCENE->m_asset_uuid());
 	std::string write_path = p_scene_asset ? p_scene_asset->filepath : "res/scene_temp.oscene";
 	std::string serialized;
-	SceneSerializer::SerializeScene(*SCENE, serialized, true);
 
+	if (!p_scene_asset) {
+		SCENE->m_asset_uuid = UUID<uint64_t>{};
+		p_scene_asset = AssetManager::AddAsset(new SceneAsset{"res/scene_temp.oscene", SCENE->m_asset_uuid()});
+	}
+
+	SceneSerializer::SerializeScene(*SCENE, serialized, true);
 	WriteTextFile(write_path, serialized);
 
 	// Update scene asset contents
@@ -1291,6 +1296,7 @@ void EditorLayer::AddDefaultSceneSystems() {
 	SCENE->AddSystem(new PointlightSystem{ SCENE }, 3000);
 	SCENE->AddSystem(new SpotlightSystem{ SCENE }, 4000);
 	SCENE->AddSystem(new ParticleSystem{ SCENE }, 5000);
+	SCENE->AddSystem(new PhysicsSystem{ SCENE }, 6000);
 	SCENE->AddSystem(new TransformHierarchySystem{ SCENE }, 7000);
 	SCENE->AddSystem(new ScriptSystem{ SCENE }, 8000);
 	SCENE->AddSystem(new SceneUBOSystem{ SCENE }, 9000);
@@ -2379,7 +2385,6 @@ void EditorLayer::RenderPhysicsComponentEditor(PhysicsComponent* p_comp) {
 		if (ImGui::Checkbox("Trigger", &is_trigger)) {
 			p_comp->SetTrigger(is_trigger);
 		}
-
 
 		ImGui::TableNextColumn();
 		ImGui::SeparatorText("Material");

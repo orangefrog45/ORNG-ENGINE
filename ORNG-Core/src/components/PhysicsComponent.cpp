@@ -19,8 +19,6 @@ namespace ORNG {
 		SendUpdateEvent(); // Shape needs recreating
 	}
 
-
-
 	void PhysicsComponent::AddForce(glm::vec3 force) {
 	}
 

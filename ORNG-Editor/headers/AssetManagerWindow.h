@@ -187,7 +187,7 @@ namespace ORNG {
 	constexpr uint64_t ORNG_BASE_SCENE_UUID = 2392378246246826;
 
 	const std::string ORNG_BASE_SCENE_YAML = std::format(R"(Scene: Untitled scene
-SceneUUID: {}
+SceneUUID: 2392378246246826
 Entities:
   []
 DirLight:

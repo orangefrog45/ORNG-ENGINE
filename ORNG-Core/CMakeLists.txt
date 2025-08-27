@@ -69,6 +69,7 @@ set(ORNG_SCENE_SOURCES
 	src/components/managers/ScriptSystem.cpp
 	src/components/AudioComponent.cpp
 	src/components/PhysicsComponent.cpp
+	src/components/managers/PhysicsSystem.cpp
 	src/audio/AudioEngine.cpp
 )
 
@@ -126,6 +127,27 @@ else()
 	target_compile_definitions(ORNG_SCENE PRIVATE NDEBUG)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	target_compile_options(ORNG_CORE PRIVATE /W4 /WX)
+	target_compile_options(ORNG_RENDERING PRIVATE /W4 /WX)
+	target_compile_options(ORNG_UTIL PRIVATE /W4 /WX)
+	target_compile_options(ORNG_SCENE PRIVATE /W4 /WX)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	set(WARNING_FLAGS
+		-Werror
+		-Wall
+		-Wno-c++98-compat
+		-Wno-c++98-compat-pedantic
+		-Wno-c++98-c++11-compat-pedantic
+		-Wno-reserved-identifier
+	)
+
+	target_compile_options(ORNG_CORE PRIVATE ${WARNING_FLAGS})
+	target_compile_options(ORNG_RENDERING PRIVATE ${WARNING_FLAGS})
+	target_compile_options(ORNG_UTIL PRIVATE ${WARNING_FLAGS})
+	target_compile_options(ORNG_SCENE PRIVATE ${WARNING_FLAGS})
+endif()
+
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
 set(ASSIMP_WARNINGS_AS_ERRORS OFF)
@@ -136,6 +158,8 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/spdlog)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/imgui)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/yaml)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/VRlib)
+set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/jolt/Build)
 
 option(TRACY_ENABLE "" OFF)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/tracy)
@@ -164,6 +188,7 @@ set(ORNG_CORE_INCLUDE_DIRS
 	${CMAKE_CURRENT_LIST_DIR}/extern/bitsery/include
 	${CMAKE_CURRENT_LIST_DIR}/extern/implot
 	${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
+	${CMAKE_CURRENT_LIST_DIR}/extern/jolt
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
 	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
@@ -187,6 +212,7 @@ if (ORNG_BUILD_CORE)
 	${ASSIMP_LIBRARY}
 	Tracy::TracyClient
 	VR-CORE
+	Jolt
 	)
 	target_precompile_headers(ORNG_CORE PUBLIC headers/pch/pch.h)
 endif()
@@ -214,6 +240,7 @@ target_link_libraries(ORNG_SCENE PUBLIC
 	yaml-cpp
 	${YAML_CPP_LIBRARIES}
 	ORNG_UTIL
+	Jolt
 )
 
 # Link FMOD to ORNG_CORE

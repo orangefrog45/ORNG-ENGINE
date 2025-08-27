@@ -78,7 +78,7 @@ namespace ORNG {
 		}
 
 		// Allocates pool for component in main application instead of inside a script (needs to be called from main application)
-		// This allocation prevents crashes when the scripts memory is released
+		// This allocation prevents crashes when the scripts memory is released, really only something that can be an issue in the editor as scripts unload/reload.
 		template<std::derived_from<Component> T, typename... Args>
 		void RegisterComponent(Args&&... args) {
 			auto ent = m_registry.create();

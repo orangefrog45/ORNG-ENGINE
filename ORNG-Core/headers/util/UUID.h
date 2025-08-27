@@ -1,5 +1,12 @@
 #pragma once
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <bitsery/adapter/buffer.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 namespace ORNG {
 	template<std::integral T>
@@ -8,11 +15,11 @@ namespace ORNG {
 	public:
 		friend class SceneSerializer;
 		UUID();
-		explicit UUID(T uuid) : m_uuid(uuid) {};
+		explicit UUID(T uuid) : m_uuid(uuid) {}
 		UUID(const UUID& other) { UUID(other.m_uuid); }
 
 		explicit operator T() const { return m_uuid; }
-		T operator() () const { return m_uuid; };
+		T operator() () const { return m_uuid; }
 
 		template<typename S>
 		void serialize(S& s) {

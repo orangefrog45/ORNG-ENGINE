@@ -1,7 +1,10 @@
 #ifndef PHYSICSCOMPONENT_H
 #define PHYSICSCOMPONENT_H
 
+#include <Jolt/Jolt.h>
+
 #include "Component.h"
+#include "Jolt/Physics/Body/Body.h"
 #include "util/UUID.h"
 
 namespace ORNG {
@@ -12,6 +15,7 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class SceneSerializer;
 		friend class FixedJointComponent;
+		friend class PhysicsSystem;
 	public:
 		explicit PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
 		~PhysicsComponent() override = default;
@@ -43,6 +47,8 @@ namespace ORNG {
 
 		void SetTrigger(bool is_trigger);
 		bool IsTrigger() { return m_is_trigger; }
+
+		JPH::BodyID body_id{};
 	private:
 		void SendUpdateEvent();
 
@@ -50,8 +56,6 @@ namespace ORNG {
 		RigidBodyType m_body_type = STATIC;
 		bool m_is_trigger = false;
 	};
-
-
 
 	struct CharacterControllerComponent : public Component {
 	public:
