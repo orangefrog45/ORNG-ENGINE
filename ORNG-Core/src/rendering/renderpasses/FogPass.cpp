@@ -55,8 +55,8 @@ void FogPass::Init() {
 
 	// Fog texture
 	Texture2DSpec fog_overlay_spec = rgba16_spec;
-	fog_overlay_spec.width = glm::ceil(out_spec.width / 2.f);
-	fog_overlay_spec.height = glm::ceil(out_spec.height / 2.f);
+	fog_overlay_spec.width = static_cast<int>(glm::ceil(static_cast<float>(out_spec.width) / 2.f));
+	fog_overlay_spec.height = static_cast<int>(glm::ceil(static_cast<float>(out_spec.height) / 2.f));
 	fog_output_tex.SetSpec(fog_overlay_spec);
 };
 
@@ -76,22 +76,50 @@ void FogPass::DoPass() {
 	fog_shader.SetUniform("u_scattering_anisotropy", p_scene->post_processing.global_fog.scattering_anisotropy);
 	fog_shader.SetUniform("u_fog_colour", p_scene->post_processing.global_fog.colour);
 	fog_shader.SetUniform("u_step_count", p_scene->post_processing.global_fog.step_count);
-	fog_shader.SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));
+	fog_shader.SetUniform("u_time", FrameTiming::GetTotalElapsedTime());
 	fog_shader.SetUniform("u_emissive", p_scene->post_processing.global_fog.emissive_factor);
 
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, p_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);
 	auto& out_spec = mp_graph->GetData<Texture2D>("OutCol")->GetSpec();
 
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, fog_output_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	glDispatchCompute((GLuint)glm::ceil((float)out_spec.width / 16.f), (GLuint)glm::ceil((float)out_spec.height / 16.f), 1);
+	glBindImageTexture(
+		GL_StateManager::TextureUnitIndexes::COLOUR,
+		fog_output_tex.GetTextureHandle(),
+		0,
+		GL_FALSE,
+		0,
+		GL_WRITE_ONLY,
+		GL_RGBA16F
+	);
+
+	glDispatchCompute(
+		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 16.f)),
+		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 16.f)),
+		1
+	);
+
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	//Upsample fog texture
+	// Upsample fog texture
 	depth_aware_upsample_sv.Activate(0);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, fog_output_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3);
 
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, fog_blur_tex_1.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	glDispatchCompute((GLuint)glm::ceil((float)out_spec.width / 8.f), (GLuint)glm::ceil((float)out_spec.height / 8.f), 1);
+	glBindImageTexture(
+		GL_StateManager::TextureUnitIndexes::COLOUR,
+		fog_blur_tex_1.GetTextureHandle(),
+		0,
+		GL_FALSE,
+		0,
+		GL_WRITE_ONLY,
+		GL_RGBA16F
+	);
+
+	glDispatchCompute(
+		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 8.f)),
+		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 8.f)),
+		1
+	);
+
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	//blur fog texture
@@ -100,17 +128,45 @@ void FogPass::DoPass() {
 	for (int i = 0; i < 2; i++) {
 		blur_shader.SetUniform("u_horizontal", 1);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, fog_blur_tex_1.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3);
-		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, fog_blur_tex_2.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)out_spec.width / 8.f), (GLuint)glm::ceil((float)out_spec.height / 8.f), 1);
+
+		glBindImageTexture(
+			GL_StateManager::TextureUnitIndexes::COLOUR,
+			fog_blur_tex_2.GetTextureHandle(),
+			0,
+			GL_FALSE,
+			0,
+			GL_WRITE_ONLY,
+			GL_RGBA16F
+		);
+
+		glDispatchCompute(
+			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 8.f)),
+			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 8.f)),
+			1
+		);
+
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		blur_shader.SetUniform("u_horizontal", 0);
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, fog_blur_tex_2.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_3);
-		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, fog_blur_tex_1.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil((float)out_spec.width / 8.f), (GLuint)glm::ceil((float)out_spec.height / 8.f), 1);
+
+		glBindImageTexture(
+			GL_StateManager::TextureUnitIndexes::COLOUR,
+			fog_blur_tex_1.GetTextureHandle(),
+			0,
+			GL_FALSE,
+			0,
+			GL_WRITE_ONLY,
+			GL_RGBA16F
+		);
+
+		glDispatchCompute(
+			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 8.f)),
+			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 8.f)),
+			1
+		);
+
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 };
 
-void FogPass::Destroy() {
-};

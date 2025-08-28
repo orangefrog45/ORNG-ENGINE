@@ -12,7 +12,7 @@ namespace ORNG {
 		friend class TransparencyPass;
 	public:
 		explicit ParticleSystem(Scene* p_scene);
-		virtual ~ParticleSystem() = default;
+		~ParticleSystem() override = default;
 		void OnLoad() override;
 		void OnUnload() override;
 		void OnUpdate() override;
@@ -24,11 +24,7 @@ namespace ORNG {
 		void InitParticles(ParticleEmitterComponent* p_comp);
 		void OnEmitterUpdate(const Events::ECS_Event<ParticleEmitterComponent>& e_event);
 		void OnEmitterUpdate(ParticleEmitterComponent* p_comp);
-		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif = 0);
-
-		void InitBuffer(ParticleBufferComponent* p_comp);
-		void OnBufferDestroy(ParticleBufferComponent* p_comp);
-		void OnBufferUpdate(ParticleBufferComponent* p_comp);
+		void OnEmitterDestroy(ParticleEmitterComponent* p_comp, int dif = 0);
 
 		void OnEmitterVisualTypeChange(ParticleEmitterComponent* p_comp);
 
@@ -47,7 +43,7 @@ namespace ORNG {
 		std::vector<entt::entity> m_emitter_entities;
 
 		// Total particles belonging to emitters, does not include those belonging to ParticleBufferComponents which are stored separately
-		unsigned total_emitter_particles = 0;
+		int total_emitter_particles = 0;
 
 		SSBO<float> m_particle_ssbo{ false, 0 };
 		SSBO<float> m_emitter_ssbo{ false, GL_DYNAMIC_STORAGE_BIT };

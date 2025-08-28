@@ -6,8 +6,8 @@
 namespace ORNG {
 	class ScriptSystem : public ComponentSystem {
 	public:
-		explicit ScriptSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-		virtual ~ScriptSystem() = default;
+		explicit ScriptSystem(Scene* p_scene) : ComponentSystem(p_scene) {}
+		~ScriptSystem() override = default;
 
 		void OnLoad() final;
 

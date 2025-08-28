@@ -6,13 +6,11 @@
 namespace ORNG {
 	class FogPass : public Renderpass {
 	public:
-		FogPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Fog") {};
+		explicit FogPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Fog") {}
 
 		void Init() override;
 
 		void DoPass() override;
-
-		void Destroy() override;
 
 		Texture2D& GetFinalFogTex() {
 			return fog_blur_tex_1;

@@ -57,7 +57,7 @@ namespace ORNG {
 		}
 		else {
 			p_shader->SetUniform("u_material.displacement_scale", p_material->displacement_scale);
-			p_shader->SetUniform<unsigned int>("u_num_parallax_layers", p_material->parallax_layers);
+			p_shader->SetUniform("u_num_parallax_layers", static_cast<unsigned>(p_material->parallax_layers));
 			p_shader->SetUniform("u_displacement_sampler_active", 1);
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->displacement_texture->GetTextureHandle(), GL_StateManager::TextureUnits::DISPLACEMENT);
 		}
@@ -70,7 +70,7 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->emissive_texture->GetTextureHandle(), GL_StateManager::TextureUnits::EMISSIVE);
 		}
 
-		p_shader->SetUniform("u_material.flags", (unsigned)p_material->flags);
+		p_shader->SetUniform("u_material.flags", static_cast<unsigned>(p_material->flags));
 		p_shader->SetUniform("u_material.base_colour", p_material->base_colour);
 		p_shader->SetUniform("u_material.roughness", p_material->roughness);
 		p_shader->SetUniform("u_material.ao", p_material->ao);
@@ -156,14 +156,16 @@ namespace ORNG {
 		MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, bool allow_state_changes, GLenum primitive_type) {
 		GL_StateManager::BindSSBO(group->m_transform_ssbo.GetHandle(), 0);
 
-		DrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, group->GetRenderCount(), group->m_materials.data(), mat_flags, 
+		DrawMeshGBuffer(p_shader, group->m_mesh_asset, render_group, static_cast<int>(group->GetRenderCount()), group->m_materials.data(), mat_flags,
 			mat_flags_excluded, allow_state_changes, primitive_type);
 	}
 
 
 
-	void SceneRenderer::DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, 
+	void SceneRenderer::DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, int instances,
 		const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, bool allow_state_changes, GLenum primitive_type) {
+		DEBUG_ASSERT(instances >= 0);
+
 		for (unsigned int i = 0; i < p_mesh->m_submeshes.size(); i++) {
 			const Material* p_material = materials[p_mesh->m_submeshes[i].material_index];
 
@@ -176,7 +178,7 @@ namespace ORNG {
 
 			bool state_changed = allow_state_changes ? SetGL_StateFromMatFlags(p_material->flags) : false;
 
-			Renderer::DrawSubMeshInstanced(p_mesh, instances, i, primitive_type);
+			Renderer::DrawSubMeshInstanced(p_mesh, instances, static_cast<int>(i), primitive_type);
 
 			if (state_changed)
 				UndoGL_StateModificationsFromMatFlags(p_material->flags);
@@ -184,9 +186,6 @@ namespace ORNG {
 	}
 
 	
-
-
-
 	//void SceneRenderer::DrawTerrain(CameraComponent* p_cam, Scene* p_scene) {
 	//	std::vector<TerrainQuadtree*> node_array;
 
@@ -215,9 +214,4 @@ namespace ORNG {
 
 		return ret;
 	}
-
-
-
-
-
 }

@@ -121,7 +121,7 @@ void TransparencyPass::DoPass() {
 		for (auto [entity, emitter, res] : p_scene->GetRegistry().view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			transparency_shader_variants.SetUniform("u_transforstart_index", emitter.GetParticleStartIdx());
-			SceneRenderer::DrawMeshGBuffer(&transparency_shader_variants, res.p_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.materials[0],
+			SceneRenderer::DrawMeshGBuffer(&transparency_shader_variants, res.p_mesh, ALPHA_TESTED, static_cast<int>(emitter.GetNbParticles()), &res.materials[0],
 				ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID, true);
 		}
 
@@ -130,7 +130,7 @@ void TransparencyPass::DoPass() {
 		for (auto [entity, emitter, res] : p_scene->GetRegistry().view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			transparency_shader_variants.SetUniform("u_transforstart_index", emitter.GetParticleStartIdx());
-			SceneRenderer::DrawMeshGBuffer(&transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, emitter.GetNbParticles(), &res.p_material,
+			SceneRenderer::DrawMeshGBuffer(&transparency_shader_variants, p_quad_mesh, ALPHA_TESTED, static_cast<int>(emitter.GetNbParticles()), &res.p_material,
 				ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_INVALID, true);
 		}
 	}
@@ -156,5 +156,3 @@ void TransparencyPass::DoPass() {
 	glDepthFunc(GL_LEQUAL);
 };
 
-void TransparencyPass::Destroy() {
-};

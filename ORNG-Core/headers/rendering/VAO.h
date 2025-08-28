@@ -11,7 +11,6 @@ namespace ORNG {
 		std::vector<unsigned int> indices;
 	};
 
-
 	class BufferBase {
 		friend class VAO;
 	public:
@@ -27,7 +26,7 @@ namespace ORNG {
 
 		virtual size_t GetSizeCPU() = 0;
 
-		int GetGPU_BufferSize();
+		size_t GetGPU_BufferSize();
 
 		void SetFlags(GLbitfield flags) {
 			m_flags = flags;
@@ -83,7 +82,7 @@ namespace ORNG {
 	template<typename DataType>
 	class SSBO : public BufferBase {
 	public:
-		SSBO(bool is_mutable, GLbitfield flags) : BufferBase(GL_SHADER_STORAGE_BUFFER, is_mutable, flags) { };
+		SSBO(bool is_mutable, GLbitfield flags) : BufferBase(GL_SHADER_STORAGE_BUFFER, is_mutable, flags) { }
 
 		size_t GetSizeCPU() override { return data.size() * sizeof(DataType); }
 
@@ -94,7 +93,7 @@ namespace ORNG {
 
 	class UBO : public BufferBase {
 	public:
-		UBO(bool is_mutable, GLbitfield flags) : BufferBase(GL_UNIFORM_BUFFER, is_mutable, flags) { };
+		UBO(bool is_mutable, GLbitfield flags) : BufferBase(GL_UNIFORM_BUFFER, is_mutable, flags) { }
 
 		size_t GetSizeCPU() override { return data.size(); }
 
@@ -108,7 +107,7 @@ namespace ORNG {
 	class VertexBufferBase : public BufferBase {
 		friend class VAO;
 	public:
-		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER, true, 0) {};
+		VertexBufferBase() : BufferBase(GL_ARRAY_BUFFER, true, 0) {}
 
 		size_t GetSizeCPU() override = 0;
 
@@ -132,7 +131,7 @@ namespace ORNG {
 
 		std::vector<T> data;
 	private:
-		virtual void* GetDataPtr() {
+		void* GetDataPtr() override {
 			return static_cast<void*>(data.data());
 		}
 	};
@@ -152,7 +151,7 @@ namespace ORNG {
 		void* p_data = nullptr;
 		size_t size = 0;
 	private:
-		virtual void* GetDataPtr() {
+		void* GetDataPtr() override {
 			return p_data;
 		}
 	};
@@ -161,7 +160,7 @@ namespace ORNG {
 
 	class ElementBufferGL : public BufferBase {
 	public:
-		ElementBufferGL() : BufferBase(GL_ELEMENT_ARRAY_BUFFER, false, GL_DYNAMIC_STORAGE_BIT) { };
+		ElementBufferGL() : BufferBase(GL_ELEMENT_ARRAY_BUFFER, false, GL_DYNAMIC_STORAGE_BIT) { }
 		std::vector<uint32_t> indices;
 	};
 
@@ -185,7 +184,7 @@ namespace ORNG {
 	class VAO : public VAO_Base {
 	public:
 		void FillBuffers() override;
-		~VAO() {
+		~VAO() override {
 			for (auto it = m_buffers.begin(); it != m_buffers.end(); it++) {
 				delete it->second;
 				it = m_buffers.erase(it);
@@ -236,10 +235,10 @@ namespace ORNG {
 	public:
 		MeshVAO();
 
-		~MeshVAO();
+		~MeshVAO() override;
 
 		// Fill all buffers with data provided to vectors in class
-		void FillBuffers();
+		void FillBuffers() override;
 
 		VertexData3D vertex_data;
 

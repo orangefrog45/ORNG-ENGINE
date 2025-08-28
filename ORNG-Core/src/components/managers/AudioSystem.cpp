@@ -1,11 +1,17 @@
 #include "pch/pch.h"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <fmod.hpp>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "audio/AudioEngine.h"
 #include "assets/AssetManager.h"
 #include "components/systems/AudioSystem.h"
-
-#include <components/systems/CameraSystem.h>
-
+#include "components/systems/CameraSystem.h"
 #include "components/CameraComponent.h"
 #include "scene/SceneEntity.h"
 
@@ -66,8 +72,6 @@ namespace ORNG {
 
 
 	void AudioSystem::OnUpdate() {
-		auto& reg = mp_scene->GetRegistry();
-
 		if (auto* p_active_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera()) {
 			auto& transform = *p_active_cam->GetEntity()->GetComponent<TransformComponent>();
 			auto pos = transform.GetAbsPosition();
@@ -111,7 +115,7 @@ namespace ORNG {
 		auto* p_sound_comp = e_event.p_component;
 		switch (e_event.sub_event_type) {
 			using enum AudioComponent::AudioEventType;
-		case (uint32_t)PLAY:
+		case static_cast<uint32_t>(PLAY):
 		{
 			uint64_t uuid = *reinterpret_cast<uint64_t*>(e_event.p_data);
 			auto* p_asset = AssetManager::GetAsset<SoundAsset>(uuid);

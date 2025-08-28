@@ -13,7 +13,7 @@ namespace ORNG {
 	public:
 		EnvMapLoader() { Init(); }
 
-		bool LoadSkybox(const std::string& filepath, Skybox& skybox, unsigned int resolution, bool gen_ibl_textures);
+		bool LoadSkybox(const std::string& filepath, Skybox& skybox, int resolution, bool gen_ibl_textures);
 		void LoadBRDFConvolution(Texture2D& output_tex);
 	private:
 		void Init();
@@ -28,5 +28,4 @@ namespace ORNG {
 		Shader m_specular_prefilter_shader;
 		Shader m_diffuse_prefilter_shader;
 	};
-
 }

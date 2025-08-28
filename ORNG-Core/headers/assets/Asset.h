@@ -1,16 +1,13 @@
 #pragma once
 #include "../util/UUID.h"
-#include "../util/Log.h"
 #include "util/util.h"
-
-namespace physx {
-	class PxMaterial;
-}
 
 namespace ORNG {
 	struct Asset {
-		Asset(const std::string& t_filepath) : filepath(t_filepath) {};
-		Asset(const std::string& t_filepath, uint64_t _uuid) : filepath(t_filepath), uuid(_uuid) {};
+		Asset(const std::string& t_filepath) : filepath(t_filepath) {}
+		Asset(const std::string& t_filepath, uint64_t _uuid) : filepath(t_filepath), uuid(_uuid) {}
+		Asset(const Asset& other) = default;
+		Asset& operator=(const Asset& other) = default;
 		virtual ~Asset() = default;
 
 		bool operator == (const std::string& t_filepath) {
@@ -22,16 +19,12 @@ namespace ORNG {
 		}
 
 		std::string filepath = "";
-		UUID<uint64_t> uuid;
-
-
+		UUID<uint64_t> uuid{};
 
 		template<typename S>
 		void serialize(S& s) {
 			s.object(uuid);
-			s.container1b(filepath, filepath.size());
+			s.text1b(filepath, filepath.size());
 		}
 	};
-
-
 }

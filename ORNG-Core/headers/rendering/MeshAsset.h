@@ -1,14 +1,21 @@
 #pragma once
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
-#include <assimp/postprocess.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "rendering/Material.h"
 #include "components/BoundingVolume.h"
 #include "VAO.h"
 #include "util/UUID.h"
 
-#define ORNG_MAX_MESH_INDICES 50'000'000
+constexpr unsigned ORNG_MAX_MESH_INDICES = 50'000'000;
 
 struct aiScene;
 struct aiMesh;
@@ -23,7 +30,7 @@ namespace ORNG {
 
 	inline static constexpr unsigned INVALID_MATERIAL = 0xFFFFFFFF;
 	struct MeshEntry {
-		MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {};
+		MeshEntry() : num_indices(0), base_vertex(0), base_index(0), material_index(INVALID_MATERIAL) {}
 
 		unsigned int num_indices;
 		unsigned int base_vertex;
@@ -70,17 +77,15 @@ namespace ORNG {
 		friend class AssetSerializer;
 
 		MeshAsset() = delete;
-		MeshAsset(const std::string& filename) : Asset(filename) {};
-		MeshAsset(const std::string& filename, uint64_t t_uuid) : Asset(filename) { uuid = UUID(t_uuid); };
-		MeshAsset(const MeshAsset& other) = default;
-		virtual ~MeshAsset() = default;
+		MeshAsset(const std::string& filename) : Asset(filename) {}
+		~MeshAsset() override = default;
 
 		static std::optional<MeshLoadResult> LoadMeshDataFromFile(const std::string& raw_mesh_filepath);
 
 		// 'result.vertex_data' is moved during this function call, do not use it afterwards
 		void SetMeshData(MeshLoadResult& result);
 
-		bool GetLoadStatus() const { return m_is_loaded; };
+		bool GetLoadStatus() const { return m_is_loaded; }
 
 		unsigned int GetIndicesCount() const { return m_num_indices; }
 
@@ -105,7 +110,7 @@ namespace ORNG {
 		void serialize(S& s) {
 			s.object(m_vao);
 			s.object(m_aabb);
-			s.value4b((uint32_t)m_submeshes.size());
+			s.value4b(static_cast<uint32_t>(m_submeshes.size()));
 			for (auto& entry : m_submeshes) {
 				s.object(entry);
 			}
@@ -129,7 +134,7 @@ namespace ORNG {
 
 		static void InitAllMeshes(const aiScene* p_scene, MeshLoadResult& result);
 
-		static void InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_idx, unsigned current_vertex, MeshLoadResult& result);
+		static void InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_vertex, MeshLoadResult& result);
 
 		static void CountVerticesAndIndices(const aiScene* p_scene, unsigned int& num_verts, unsigned int& num_indices, MeshLoadResult& result);
 

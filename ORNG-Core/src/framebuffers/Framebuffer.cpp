@@ -9,7 +9,7 @@
 
 
 namespace ORNG {
-	Framebuffer::Framebuffer(unsigned int id, const char* name, bool scale_with_window) : m_name(name), m_framebuffer_id(id), m_scales_with_window(scale_with_window) {
+	Framebuffer::Framebuffer(unsigned int id, const char* name, bool scale_with_window) : m_framebuffer_id(id), m_name(name), m_scales_with_window(scale_with_window) {
 	}
 
 	void Framebuffer::Resize() {
@@ -18,7 +18,8 @@ namespace ORNG {
 
 		Bind();
 		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Window::GetWidth() * m_renderbuffer_screen_size_ratio.x, Window::GetHeight() * m_renderbuffer_screen_size_ratio.y);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, static_cast<int>(static_cast<float>(Window::GetWidth()) * m_renderbuffer_screen_size_ratio.x),
+			static_cast<int>(static_cast<float>(Window::GetHeight()) * m_renderbuffer_screen_size_ratio.y));
 
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
 	}
@@ -37,7 +38,7 @@ namespace ORNG {
 		glDrawBuffers(amount, buffers);
 	}
 
-	void Framebuffer::AddRenderbuffer(unsigned int width, unsigned int height) {
+	void Framebuffer::AddRenderbuffer(int width, int height) {
 		Bind();
 		glGenRenderbuffers(1, &m_rbo);
 		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
@@ -48,23 +49,20 @@ namespace ORNG {
 		m_renderbuffer_screen_size_ratio = glm::vec2(width / Window::GetWidth(), height / Window::GetHeight());
 	}
 
-	void Framebuffer::SetRenderBufferDimensions(unsigned int width, unsigned int height) {
+	void Framebuffer::SetRenderBufferDimensions(int width, int height) {
 		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
 	}
-
 
 	void Framebuffer::BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer) {
 		Bind();
 		glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, tex_ref, 0, layer);
 	}
 
-
 	void Framebuffer::BindTexture2D(unsigned int tex_ref, unsigned int attachment, unsigned int target, unsigned int mip_layer) {
 		Bind();
 		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, target, tex_ref, mip_layer);
 	}
-
 
 
 	void Framebuffer::Init() {
@@ -78,9 +76,6 @@ namespace ORNG {
 			ORNG_CORE_INFO("Framebuffer '{0}' initialized", m_name);
 		}*/
 	}
-
-
-
 
 	void Framebuffer::Bind() const {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);

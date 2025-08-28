@@ -52,11 +52,11 @@ namespace ORNG {
 	};
 
 	struct TimerObject {
-		explicit TimerObject(const char* name) : func_name(name) {};
+		explicit TimerObject(const char* name) : func_name(name) {}
 		TimerObject(const TimerObject&) = delete;
 		~TimerObject() {
 			if (ProfilingTimers::AreTimersEnabled() && ProfilingTimers::AreTimersReadyToUpdate()) {
-				double time_elapsed = (double)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - first_time).count();
+				double time_elapsed = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - first_time).count());
 				ProfilingTimers::StoreTimerData(std::format("{} - {}ms", func_name, time_elapsed / 1000.0));
 			}
 		}
@@ -71,7 +71,7 @@ namespace ORNG {
 				glGenQueries(1, &query);
 				glBeginQuery(GL_TIME_ELAPSED, query);
 			}
-		};
+		}
 
 		void ForceStartQuery() {
 			glGenQueries(1, &query);

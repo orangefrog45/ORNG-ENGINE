@@ -1,5 +1,4 @@
 #pragma once
-#include "assets/PhysXMaterialAsset.h"
 #include "assets/SoundAsset.h"
 #include "assets/SceneAsset.h"
 #include "rendering/Textures.h"
@@ -14,14 +13,14 @@ namespace ORNG {
 	struct Prefab;
 
 	struct ConfirmationWindowData {
-		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {};
+		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {}
 		std::string str;
 		std::function<void()> callback = nullptr;
 		std::function<void()> imgui_render = nullptr;
 	};
 
 	struct ErrorMessage {
-		ErrorMessage(const char* err, std::vector<std::string>& logs) : error(err), prev_logs(std::move(logs)) {};
+		ErrorMessage(const char* err, std::vector<std::string>& logs) : error(err), prev_logs(std::move(logs)) {}
 		std::string error;
 		std::vector<std::string> prev_logs;
 	};
@@ -53,7 +52,7 @@ namespace ORNG {
 	};
 
 	struct SwitchSceneEvent : Events::Event {
-		explicit SwitchSceneEvent(SceneAsset* _p_new) : p_new(_p_new) {};
+		explicit SwitchSceneEvent(SceneAsset* _p_new) : p_new(_p_new) {}
 		SceneAsset* p_new;
 	};
 
@@ -61,7 +60,7 @@ namespace ORNG {
 		friend class EditorLayer;
 	public:
 		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene, class EditorLayer* p_editor) :
-			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene), mp_editor(p_editor) {};
+			mp_scene_context(p_scene), mp_editor(p_editor), mp_active_project_dir(p_active_project_dir) {}
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
@@ -123,7 +122,6 @@ namespace ORNG {
 		bool RenderAddMaterialAssetWindow();
 		bool RenderAddPrefabAssetWindow();
 		bool RenderAddScriptAssetWindow();
-		bool RenderAddPhysxMaterialAssetWindow();
 		bool RenderAddSoundAssetWindow();
 		bool RenderAddSceneAssetWindow();
 
@@ -136,21 +134,18 @@ namespace ORNG {
 
 		void RenderScriptAsset(ScriptAsset* p_asset);
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
-		void RenderPhysXMaterial(class PhysXMaterialAsset* p_material);
 		void RenderTexture(Texture2D* p_tex);
 		void RenderMaterial(Material* p_material);
 		void RenderPrefab(Prefab* p_prefab);
 		void RenderAudioAsset(SoundAsset* p_asset);
 		void RenderSceneAsset(SceneAsset* p_asset);
 
-		void RenderPhysXMaterialEditor();
-
 		void ProcessAssetDeletionQueue();
 
 		void OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, const std::function<void()>& callback = nullptr);
 
 		ImVec2 image_button_size{ 125, 125};
-		unsigned column_count = 1;
+		int column_count = 1;
 
 		std::string m_current_content_dir = "res";
 
@@ -162,7 +157,6 @@ namespace ORNG {
 		Texture2DSpec m_current_2d_tex_spec;
 		Texture2D* mp_selected_texture = nullptr;
 		Material* mp_selected_material = nullptr;
-		PhysXMaterialAsset* mp_selected_physx_material = nullptr;
 		SceneAsset* mp_selected_scene = nullptr;
 
 		Scene* mp_scene_context = nullptr;
@@ -193,7 +187,7 @@ namespace ORNG {
 	constexpr uint64_t ORNG_BASE_SCENE_UUID = 2392378246246826;
 
 	const std::string ORNG_BASE_SCENE_YAML = std::format(R"(Scene: Untitled scene
-SceneUUID: {}
+SceneUUID: 2392378246246826
 Entities:
   []
 DirLight:

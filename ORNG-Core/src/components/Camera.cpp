@@ -5,7 +5,6 @@
 #include "core/Window.h"
 
 namespace ORNG {
-	inline static constexpr glm::vec3 CAM_TARGET_VEC{ 0.0, 0.0, -1.0 };
 	void CameraComponent::Update() {
 		UpdateFrustum();
 	}

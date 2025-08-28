@@ -1,45 +1,37 @@
 #include "pch/pch.h"
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-strict"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmicrosoft-cast"
+#endif
+
 #include "scripting/ScriptingEngine.h"
 #include "core/FrameTiming.h"
 #include "util/UUID.h"
-#include "scene/SceneSerializer.h"
 #include "imgui.h"
 
 // Below includes are for setting the singleton instances for scripts
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <jolt/Jolt.h>
+#include <jolt/Core/Core.h>
+#include <jolt/Core/Factory.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "assets/AssetManager.h"
 #include "core/Window.h"
 #include "core/GLStateManager.h"
-#include "core/FrameTiming.h"
 #include "rendering/Renderer.h"
 
-
 namespace ORNG {
-
-#ifdef _MSC_VER
-	std::string GetVS_InstallDir(const std::string& vswhere_path) {
-		FILE* pipe = _popen(std::string{ vswhere_path + " -latest -property installationPath" }.c_str(), "r");
-		if (pipe == nullptr) {
-			ORNG_CORE_CRITICAL("Failed to open pipe for vswhere.exe");
-			BREAKPOINT;
-		}
-
-		char buffer[128];
-		std::string result;
-		while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-			result += buffer;
-		}
-
-		_pclose(pipe);
-
-		// Remove trailing newline character if present
-		if (!result.empty() && result.back() == '\n') {
-			result.pop_back();
-		}
-		return result;
-	}
-#endif
-
-
 	void ScriptingEngine::ReplaceScriptCmakeEngineFilepaths(std::string& cmake_content) {
 		StringReplace(cmake_content, "REPLACE_ME_ENGINE_DEBUG_BINARY_DIR", "\"" + std::string{ ORNG_CORE_DEBUG_BINARY_DIR } + "\"");
 		StringReplace(cmake_content, "REPLACE_ME_ENGINE_RELEASE_BINARY_DIR", "\"" + std::string{ ORNG_CORE_RELEASE_BINARY_DIR } + "\"");
@@ -95,13 +87,16 @@ namespace ORNG {
 				StringReplace(command_append_content, "{1}", src_relative_filepath);
 				StringReplace(command_append_content, "{2}", class_name);
 				StringReplace(command_append_content, "{3}", src_relative_filepath_no_extension);
-				cmake_content.insert(cmake_content.begin() + cmake_script_append_location, command_append_content.begin(), command_append_content.end());
+
+				cmake_content.insert(cmake_content.begin() + static_cast<long long>(cmake_script_append_location),
+					command_append_content.begin(), command_append_content.end());
+
 				cmake_script_append_location += command_append_content.length();
 			}
 		}
 
 		target_str += ")";
-		cmake_content.insert(cmake_content.begin() + cmake_content.find("SCRIPT END") + 10, target_str.begin(), target_str.end());
+		cmake_content.insert(cmake_content.begin() + static_cast<long long>(cmake_content.find("SCRIPT END")) + 10, target_str.begin(), target_str.end());
 		cmake_content += "\n" + user_content;
 		WriteTextFile(dir + "/CMakeLists.txt", cmake_content);
 	}
@@ -171,9 +166,9 @@ namespace ORNG {
 	}
 
 	ScriptStatusQueryResults ScriptingEngine::GetScriptData(const std::string& script_filepath) {
-		for (int i = 0; i < sm_loaded_script_dll_handles.size(); i++) {
+		for (size_t i = 0; i < sm_loaded_script_dll_handles.size(); i++) {
 			if (PathEqualTo(script_filepath, sm_loaded_script_dll_handles[i].filepath))
-				return { true, i };
+				return { true, static_cast<int>(i) };
 		}
 
 		return { false, -1 };
@@ -183,26 +178,26 @@ namespace ORNG {
 	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& script_filepath, const std::string& script_name) {
 		// Load the generated dll
 		HMODULE script_dll = LoadLibrary(dll_path.c_str());
-		if (script_dll == NULL || script_dll == INVALID_HANDLE_VALUE) {
+		if (script_dll == nullptr || script_dll == INVALID_HANDLE_VALUE) {
 			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", dll_path);
 			return ScriptSymbols(script_name);
 		}
 		
 		ScriptSymbols symbols{ script_name };
 
-		symbols.CreateInstance = (InstanceCreator)(GetProcAddress(script_dll, "CreateInstance"));
-		symbols.DestroyInstance = (InstanceDestroyer)(GetProcAddress(script_dll, "DestroyInstance"));
-		ScriptGetUuidFunc GetUUID = (ScriptGetUuidFunc)GetProcAddress(script_dll, "GetUUID");
+		symbols.CreateInstance = reinterpret_cast<InstanceCreator>(GetProcAddress(script_dll, "CreateInstance"));
+		symbols.DestroyInstance = reinterpret_cast<InstanceDestroyer>(GetProcAddress(script_dll, "DestroyInstance"));
+		ScriptGetUuidFunc GetUUID = reinterpret_cast<ScriptGetUuidFunc>(GetProcAddress(script_dll, "GetUUID"));
 		symbols.uuid = GetUUID();
-		symbols.Unload = (UnloadFunc)(GetProcAddress(script_dll, "Unload"));
+		symbols.Unload = reinterpret_cast<UnloadFunc>(GetProcAddress(script_dll, "Unload"));
 		symbols.loaded = true;
 
-		SingletonPtrSetter singleton_setter = (SingletonPtrSetter)(GetProcAddress(script_dll, "SetSingletonPtrs"));
-		ImGuiContextSetter imgui_context_setter = (ImGuiContextSetter)(GetProcAddress(script_dll, "SetImGuiContext"));
+		SingletonPtrSetter singleton_setter = reinterpret_cast<SingletonPtrSetter>(GetProcAddress(script_dll, "SetSingletonPtrs"));
+		ImGuiContextSetter imgui_context_setter = reinterpret_cast<ImGuiContextSetter>(GetProcAddress(script_dll, "SetImGuiContext"));
 
 		// Set singletons so they're usable across the DLL boundary
 		singleton_setter(&Window::Get(), &FrameTiming::Get(), &Events::EventManager::Get(), &GL_StateManager::Get(), 
-			&AssetManager::Get(), &Renderer::Get(), &Log::GetCoreLogger(), &Log::GetRingbufferSink());
+			&AssetManager::Get(), &Renderer::Get(), &Log::GetCoreLogger(), &Log::GetRingbufferSink(), JPH::Factory::sInstance);
 
 		ImGuiMemAllocFunc imgui_malloc = nullptr;
 		ImGuiMemFreeFunc imgui_free = nullptr;
@@ -219,7 +214,7 @@ namespace ORNG {
 	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath) {
 		if (auto results = GetScriptData(filepath); results.is_loaded) {
 			ORNG_CORE_WARN("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
-			return sm_loaded_script_dll_handles[results.script_data_index].symbols;
+			return sm_loaded_script_dll_handles[static_cast<unsigned>(results.script_data_index)].symbols;
 		}
 
 		std::string filename = filepath.substr(filepath.find_last_of("/") + 1);
@@ -236,7 +231,7 @@ namespace ORNG {
 
 	bool ScriptingEngine::UnloadScriptDLL(const std::string& filepath) {
 		if (auto results = GetScriptData(filepath); results.is_loaded) {
-			auto& script_data = sm_loaded_script_dll_handles[results.script_data_index];
+			auto& script_data = sm_loaded_script_dll_handles[static_cast<unsigned>(results.script_data_index)];
 			script_data.symbols.Unload();
 			FreeLibrary(script_data.dll_handle);
 			sm_loaded_script_dll_handles.erase(sm_loaded_script_dll_handles.begin() + results.script_data_index);
@@ -248,3 +243,9 @@ namespace ORNG {
 		}
 	}
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#pragma clang diagnostic pop
+#endif

@@ -2,7 +2,6 @@
 #define EVENTS_H
 #include "components/Component.h"
 
-
 namespace ORNG {
 	class SceneEntity;
 
@@ -64,7 +63,7 @@ namespace ORNG::Events {
 
 	struct MouseEvent : public Event {
 		MouseEvent(MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos, std::any _data_payload = 0) :
-			mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos), data_payload(_data_payload) {};
+			mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos), data_payload(_data_payload) {}
 
 		MouseAction mouse_action;
 		MouseButton mouse_button;
@@ -75,7 +74,7 @@ namespace ORNG::Events {
 
 
 	struct KeyEvent : public Event {
-		KeyEvent(unsigned _key, uint8_t _event_type) : key(_key), event_type(_event_type) {};
+		KeyEvent(unsigned _key, uint8_t _event_type) : key(_key), event_type(_event_type) {}
 
 		unsigned int key;
 		uint8_t event_type; // will be InputType enum, can't declare as such due to circular include
@@ -101,7 +100,9 @@ namespace ORNG::Events {
 
 	template <std::derived_from<Component> T>
 	struct ECS_Event : public Event {
-		ECS_Event(ECS_EventType t_event_type, T* p_comp, uint8_t t_sub_event_type = UINT8_MAX) : event_type(t_event_type), sub_event_type(t_sub_event_type), p_component(p_comp) {};
+		ECS_Event(ECS_EventType t_event_type, T* p_comp, uint8_t t_sub_event_type = UINT8_MAX) : event_type(t_event_type),
+		sub_event_type(t_sub_event_type), p_component(p_comp) {}
+
 		ECS_EventType event_type;
 		uint8_t sub_event_type; // E.g a code for "Scaling transform" for a transform component update
 
@@ -117,6 +118,7 @@ namespace ORNG::Events {
 		friend class EventManager;
 		EventListener() = default;
 		EventListener(const EventListener&) = default;
+		EventListener& operator=(const EventListener&) = default;
 		~EventListener() { if (OnDestroy) OnDestroy(); }
 		std::function<void(const T&)> OnEvent = nullptr;
 
@@ -145,11 +147,10 @@ namespace ORNG::Events {
 	};
 
 	struct EditorEvent : public Event {
-		EditorEvent(EditorEventType type) : event_type(type) {};
+		EditorEvent(EditorEventType type) : event_type(type) {}
 		EditorEventType event_type;
 	};
 
 #endif
 }
-
 #endif

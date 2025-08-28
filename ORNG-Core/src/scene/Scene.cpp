@@ -33,7 +33,7 @@ namespace ORNG {
 	}
 
 	void Scene::Update(float ts) {
-		m_time_elapsed += ts;
+		m_time_elapsed += static_cast<double>(ts);
 
 		for (auto [p_system, _] : m_systems_with_priority) {
 			p_system->OnUpdate();
@@ -143,7 +143,7 @@ namespace ORNG {
 
 		std::vector<SceneEntity*> duplicates;
 	
-		for (int i = 0; i < group.size(); i++) {
+		for (size_t i = 0; i < group.size(); i++) {
 			auto& ent = DuplicateEntityAsPartOfGroup(*group[i], uuid_lookup);
 			if (auto* p_relationship = group[i]->GetComponent<RelationshipComponent>(); p_relationship->parent != entt::null) {
 				ent.SetParent(*GetEntity(p_relationship->parent));
@@ -212,8 +212,8 @@ namespace ORNG {
 			unsigned num_children_left = 0;
 			unsigned num_children_right = 0;
 
-			p_scene->GetEntity(id_left)->ForEachChildRecursive([&](entt::entity handle) {num_children_left++; });
-			p_scene->GetEntity(id_right)->ForEachChildRecursive([&](entt::entity handle) {num_children_right++; });
+			p_scene->GetEntity(id_left)->ForEachChildRecursive([&]([[maybe_unused]] entt::entity handle) {num_children_left++; });
+			p_scene->GetEntity(id_right)->ForEachChildRecursive([&]([[maybe_unused]] entt::entity handle) {num_children_right++; });
 
 			return descending ? num_children_left < num_children_right : num_children_left > num_children_right;
 
@@ -225,8 +225,8 @@ namespace ORNG {
 			unsigned num_children_left = 0;
 			unsigned num_children_right = 0;
 
-			p_ent_left->ForEachChildRecursive([&](entt::entity handle) {num_children_left++; });
-			p_ent_right->ForEachChildRecursive([&](entt::entity handle) {num_children_right++; });
+			p_ent_left->ForEachChildRecursive([&]([[maybe_unused]] entt::entity handle) {num_children_left++; });
+			p_ent_right->ForEachChildRecursive([&]([[maybe_unused]] entt::entity handle) {num_children_right++; });
 
 			return descending ? num_children_left < num_children_right : num_children_left > num_children_right;
 		});
@@ -260,7 +260,7 @@ namespace ORNG {
 			p_current_ent = ref.GetSrc();
 		}
 
-		for (int i = start_index; i < instructions.size(); i++) {
+		for (size_t i = start_index; i < instructions.size(); i++) {
 			if (p_current_ent == nullptr)
 				return p_current_ent;
 
@@ -317,10 +317,10 @@ namespace ORNG {
 
 		// This idx is how many layers up needed to move until common parent is found
 		if (p_highest_shared_parent) {
-			unsigned idx = VectorFindIndex(ordered_src_parents, p_highest_shared_parent) + 1;
+			size_t idx = VectorFindIndex(ordered_src_parents, p_highest_shared_parent) + 1;
 
 			// Get path relative to the first common parent
-			for (int i = 0; i < idx; i++) {
+			for (size_t i = 0; i < idx; i++) {
 				instructions.push_back("..");
 			}
 
@@ -381,7 +381,6 @@ namespace ORNG {
 		RegisterComponent<PointLightComponent>();
 		RegisterComponent<SpotLightComponent>();
 		RegisterComponent<ScriptComponent>();
-		RegisterComponent<DataComponent>();
 		RegisterComponent<CameraComponent>();
 		RegisterComponent<AudioComponent>();
 		RegisterComponent<ParticleEmitterComponent>();
@@ -453,5 +452,4 @@ namespace ORNG {
 
 		return *ent;
 	}
-
 }

@@ -37,10 +37,10 @@ namespace ORNG {
 		if (!comp->mp_mesh_asset)
 			return;
 
-		int group_index = -1;
+		size_t group_index = std::numeric_limits<size_t>::max();
 
 		// check if new entity can merge into already existing instance group
-		for (int i = 0; i < m_instance_groups.size(); i++) {
+		for (size_t i = 0; i < m_instance_groups.size(); i++) {
 			//if same data and material, can be combined so instancing is possible
 			if (m_instance_groups[i]->m_mesh_asset == comp->mp_mesh_asset
 				&& m_instance_groups[i]->m_materials == comp->m_materials) {
@@ -49,13 +49,13 @@ namespace ORNG {
 			}
 		}
 
-		if (group_index != -1) { // if instance group exists, place into
+		if (group_index != std::numeric_limits<size_t>::max()) { // if instance group exists, place into
 			// add mesh component's world transform into instance group for instanced rendering
 			MeshInstanceGroup* group = m_instance_groups[group_index];
 			group->AddInstance(comp->GetEntity());
 		}
 		else { //else if instance group doesn't exist but mesh data exists, create group with existing data
-			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, this, comp->m_materials, mp_scene->GetRegistry());
+			MeshInstanceGroup* group = new MeshInstanceGroup(comp->mp_mesh_asset, comp->m_materials, mp_scene->GetRegistry());
 			m_instance_groups.push_back(group);
 			group->AddInstance(comp->GetEntity());
 
@@ -79,19 +79,20 @@ namespace ORNG {
 	}
 
 	void MeshInstancingSystem::SortBillboardIntoInstanceGroup(BillboardComponent* p_comp) {
-		int group_index = -1;
+		size_t group_index = std::numeric_limits<size_t>::max();
 
-		for (int i = 0; i < m_billboard_instance_groups.size(); i++) {
+		for (size_t i = 0; i < m_billboard_instance_groups.size(); i++) {
 			if (m_billboard_instance_groups[i]->m_materials[0] == p_comp->p_material) {
 				group_index = i;
 			}
 		}
 
-		if (group_index != -1) {
+		if (group_index != std::numeric_limits<size_t>::max()) {
 			m_billboard_instance_groups[group_index]->AddInstance(p_comp->GetEntity());
 		}
 		else {
-			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::QUAD_MESH)), this, p_comp->p_material, mp_scene->GetRegistry());
+			auto* p_group = new MeshInstanceGroup(AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::QUAD_MESH)),
+				 p_comp->p_material, mp_scene->GetRegistry());
 			p_group->m_materials.push_back(p_comp->p_material);
 			m_billboard_instance_groups.push_back(p_group);
 			p_group->AddInstance(p_comp->GetEntity());
@@ -121,6 +122,8 @@ namespace ORNG {
 			switch (t_event.event_type) {
 			case Events::ECS_EventType::COMP_ADDED:
 				OnBillboardAdd(t_event.p_component);
+				break;
+			case Events::ECS_EventType::COMP_UPDATED:
 				break;
 			case Events::ECS_EventType::COMP_DELETED:
 				OnBillboardRemove(t_event.p_component);
@@ -232,8 +235,8 @@ namespace ORNG {
 
 		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };
 
-		for (int y = 0; y < 2; y++) {
-			for (int i = 0; i < groups[y]->size(); i++) {
+		for (size_t y = 0; y < 2; y++) {
+			for (size_t i = 0; i < groups[y]->size(); i++) {
 				MeshInstanceGroup* group = (*groups[y])[i];
 
 				if (group->m_mesh_asset == p_asset) {
@@ -243,7 +246,7 @@ namespace ORNG {
 					}
 
 					// Delete all mesh instance groups using the asset as they cannot function without it
-					m_instance_groups.erase(m_instance_groups.begin() + i);
+					m_instance_groups.erase(m_instance_groups.begin() + static_cast<long long>(i));
 					delete group;
 				}
 			}
@@ -251,17 +254,17 @@ namespace ORNG {
 	}
 
 	void MeshInstancingSystem::OnMaterialDeletion(Material* p_material) {
-		for (int i = 0; i < m_instance_groups.size(); i++) {
+		for (size_t i = 0; i < m_instance_groups.size(); i++) {
 			MeshInstanceGroup* group = m_instance_groups[i];
 
 			std::vector<unsigned int> material_indices;
 
 			// Replace material in group if it contains it
-			for (int y = 0; y < group->m_materials.size(); y++) {
+			for (size_t y = 0; y < group->m_materials.size(); y++) {
 				const Material*& p_group_mat = group->m_materials[y];
 				if (p_group_mat == p_material) {
 					p_group_mat = AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
-					material_indices.push_back(y);
+					material_indices.push_back(static_cast<unsigned>(y));
 				}
 			}
 
@@ -281,8 +284,8 @@ namespace ORNG {
 	void MeshInstancingSystem::OnUpdate() {
 		std::array<std::vector<MeshInstanceGroup*>*, 2> groups = { &m_instance_groups, &m_billboard_instance_groups };
 
-		for (int y = 0; y < 2; y++) {
-			for (int i = 0; i < groups[y]->size(); i++) {
+		for (size_t y = 0; y < 2; y++) {
+			for (size_t i = 0; i < groups[y]->size(); i++) {
 				auto* group = (*groups[y])[i];
 
 				group->ProcessUpdates();
@@ -290,7 +293,7 @@ namespace ORNG {
 				// Check if group should be deleted
 				if (group->m_instances.empty()) {
 					group->ProcessUpdates();
-					groups[y]->erase(groups[y]->begin() + i);
+					groups[y]->erase(groups[y]->begin() + static_cast<long long>(i));
 					delete group;
 					i--;
 				}

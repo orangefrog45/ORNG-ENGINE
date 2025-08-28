@@ -1,9 +1,8 @@
 #pragma once
 #include "Log.h"
 
-
-#define BREAKPOINT {ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();}
-#define ASSERT(x) if (!(x)) { ORNG_CORE_ERROR("Assertion failed '{0}' at '{1}', '{2}'", #x, FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();}
+#define BREAKPOINT do {ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();} while(false)
+#define ASSERT(x) do {if (!(x)) { ORNG_CORE_ERROR("Assertion failed '{0}' at '{1}', '{2}'", #x, FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();}} while(false)
 
 #ifdef NDEBUG
 #define DEBUG_ASSERT(x)
@@ -38,18 +37,6 @@ constexpr unsigned ORNG_MAX_NAME_SIZE = 500;
 
 
 namespace ORNG {
-
-	/* Type ID Stuff */
-	inline uint16_t type_id_seq = 0;
-	template< typename T > inline const uint16_t type_id = type_id_seq++;
-
-	template<typename T>
-	uint16_t GetTypeID() {
-		return type_id<T>;
-	}
-	/*----------------*/
-
-
 	namespace detail {
 		template<typename T>
 		concept HasConvertToBytesOverride = requires(T t) {
@@ -65,9 +52,7 @@ namespace ORNG {
 				std::memcpy(byte, &val, sizeof(T));
 				byte += sizeof(T);
 			}
-
 		}
-
 	}
 
 	template<typename T>
@@ -221,7 +206,7 @@ namespace ORNG {
 
 	template<typename T>
 	size_t VectorFindIndex(const std::vector<T>& v, const T& search_for) {
-		return std::distance(v.begin(), std::ranges::find(v, search_for));
+		return static_cast<size_t>(std::distance(v.begin(), std::ranges::find(v, search_for)));
 	}
 
 	template<typename T>
@@ -233,7 +218,7 @@ namespace ORNG {
 	}
 
 	template<typename Container>
-	requires(HasBegin<Container>, HasEnd<Container>, HasEraseMethod<Container>)
+	requires(HasBegin<Container> && HasEnd<Container> && HasEraseMethod<Container>)
 	void RemoveIfContains(Container container, typename Container::value_type find) {
 		auto it = std::ranges::find(container, find);
 		if (it != container.end()) {

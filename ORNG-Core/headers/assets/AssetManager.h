@@ -141,13 +141,13 @@ namespace ORNG {
 		// Clears all assets including base replacement ones
 		static void Shutdown() {
 			Get().IOnShutdown();
-		};
+		}
 
 		static void HandleAssetDeletion(Asset* p_asset);
 		static void HandleAssetAddition(Asset* p_asset);
 
 		// Deletes all assets
-		inline static void ClearAll() { Get().IClearAll(); };
+		inline static void ClearAll() { Get().IClearAll(); }
 
 		AssetSerializer serializer{ *this };
 	private:

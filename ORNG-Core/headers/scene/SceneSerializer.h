@@ -1,5 +1,12 @@
 #pragma once
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <bitsery/traits/vector.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include "util/UUID.h"
 #include "events/Events.h"
@@ -9,7 +16,6 @@ namespace YAML {
 	class Emitter;
 	class Node;
 }
-
 
 namespace ORNG {
 	class Scene;
@@ -34,19 +40,19 @@ namespace ORNG {
 
 		EntitySerializationEvent(SceneEntity* p_ent, YAML::Emitter* p_emitter) : event_type(Type::SERIALIZING), p_entity(p_ent) {
 			data.p_emitter = p_emitter;
-		};
+		}
 
 		EntitySerializationEvent(SceneEntity* p_ent, const YAML::Node* p_node) : event_type(Type::DESERIALIZING), p_entity(p_ent) {
 			data.p_node = p_node;
-		};
+		}
 
 		explicit EntitySerializationEvent(SceneEntity* p_ent) : event_type(Type::POST_DESERIALIZATION), p_entity(p_ent) {
 			data.p_emitter = nullptr;
-		};
+		}
 
 		EntitySerializationEvent(SceneEntity* p_ent, const std::unordered_map<uint64_t, uint64_t>* p_uuid_lookup) : event_type(Type::ENTITY_REFERENCE_REMAP), p_entity(p_ent) {
 			data.p_uuid_lookup = p_uuid_lookup;
-		};
+		}
 
 		SceneEntity* p_entity;
 
@@ -69,9 +75,9 @@ namespace ORNG {
 			DESERIALIZING
 		} event_type;
 
-		explicit SceneSerializationEvent(YAML::Emitter* p_emitter, Scene& _scene) : scene(_scene), event_type(Type::SERIALIZING) {data.p_emitter = p_emitter;}
+		explicit SceneSerializationEvent(YAML::Emitter* p_emitter, Scene& _scene) : event_type(Type::SERIALIZING), scene(_scene) {data.p_emitter = p_emitter;}
 
-		explicit SceneSerializationEvent(YAML::Node* p_node, Scene& _scene) : scene(_scene), event_type(Type::DESERIALIZING) {data.p_node = p_node;}
+		explicit SceneSerializationEvent(YAML::Node* p_node, Scene& _scene) : event_type(Type::DESERIALIZING), scene(_scene) {data.p_node = p_node;}
 
 		Scene& scene;
 
@@ -150,8 +156,6 @@ namespace ORNG {
 		void serialize(S& s, UUID<uint64_t>& o) {
 			s.value8b(o.m_uuid);
 		}
-
-	private:
 
 	};
 }

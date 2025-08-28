@@ -1,8 +1,6 @@
 #pragma once
 #include "core/Input.h"
 #include "events/EventManager.h"
-#include "GLFW/glfw3.h"
-#include "util/TimeStep.h"
 #include "util/util.h"
 
 struct GLFWwindow;
@@ -16,12 +14,9 @@ namespace ORNG {
 
 		static void Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized) {
 			Get().I_Init(initial_dimensions, name, initial_window_display_monitor_idx, iconified, decorated, maximized);
-		};
-
-		static void Shutdown() {
-			glfwDestroyWindow(mp_instance->p_window);
-			if (mp_instance) delete mp_instance;
 		}
+
+		static void Shutdown();
 
 		static Window& Get() {
 			DEBUG_ASSERT(mp_instance);
@@ -36,11 +31,11 @@ namespace ORNG {
 			Get().ISetWindowDimensions(width, height);
 		}
 
-		static unsigned int GetWidth() {
+		static int GetWidth() {
 			return Get().m_window_width;
 		}
 
-		static unsigned int GetHeight() {
+		static int GetHeight() {
 			return Get().m_window_height;
 		}
 
@@ -83,9 +78,7 @@ namespace ORNG {
 		inline static Window* mp_instance = nullptr;
 
 		GLFWwindow* p_window = nullptr;
-		unsigned int m_window_width = 0;
-		unsigned int m_window_height = 0;
-
+		int m_window_width = 0;
+		int m_window_height = 0;
 	};
-
 }

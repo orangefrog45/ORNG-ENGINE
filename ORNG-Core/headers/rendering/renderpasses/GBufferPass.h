@@ -7,13 +7,11 @@
 namespace ORNG {
 	class GBufferPass : public Renderpass {
 	public:
-		GBufferPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Gbuffer") {};
+		explicit GBufferPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Gbuffer") {}
 
 		void Init() override;
 
 		void DoPass() override;
-
-		void Destroy() override;
 
 		Texture2D normals{ "" };
 		Texture2D albedo{""};

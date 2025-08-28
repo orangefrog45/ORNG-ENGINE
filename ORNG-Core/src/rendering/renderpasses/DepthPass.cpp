@@ -24,9 +24,9 @@ void DepthPass::Init()
 {
 	sv.SetPath(GL_VERTEX_SHADER, "res/core-res/shaders/DepthVS.glsl");
 	sv.SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/DepthFS.glsl");
-	sv.AddVariant((unsigned)DepthSV::DIRECTIONAL, { "ORTHOGRAPHIC" }, { "u_alpha_test", "u_light_pv_matrix" });
-	sv.AddVariant((unsigned)DepthSV::SPOTLIGHT, { "PERSPECTIVE", "SPOTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos" });
-	sv.AddVariant((unsigned)DepthSV::POINTLIGHT, { "PERSPECTIVE", "POINTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos", "u_light_zfar" });
+	sv.AddVariant(static_cast<unsigned>(DepthSV::DIRECTIONAL), { "ORTHOGRAPHIC" }, { "u_alpha_test", "u_light_pv_matrix" });
+	sv.AddVariant(static_cast<unsigned>(DepthSV::SPOTLIGHT), { "PERSPECTIVE", "SPOTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos" });
+	sv.AddVariant(static_cast<unsigned>(DepthSV::POINTLIGHT), { "PERSPECTIVE", "POINTLIGHT" }, { "u_alpha_test", "u_light_pv_matrix", "u_light_pos", "u_light_zfar" });
 
 	p_scene = mp_graph->GetData<Scene>("Scene");
 	p_spotlight_system = &p_scene->GetSystem<SpotlightSystem>();
@@ -55,23 +55,23 @@ void DepthPass::DoPass()
 	if (p_scene->directional_light.shadows_enabled) {
 		// Render cascades
 		fb.Bind();
-		sv.Activate((unsigned)DepthSV::DIRECTIONAL);
-		for (int i = 0; i < 3; i++) {
+		sv.Activate(static_cast<unsigned>(DepthSV::DIRECTIONAL));
+		for (unsigned i = 0; i < 3; i++) {
 			glViewport(0, 0, DirectionalLight::SHADOW_RESOLUTION, DirectionalLight::SHADOW_RESOLUTION);
 			fb.BindTextureLayerToFBAttachment(directional_light_depth_tex.GetTextureHandle(), GL_DEPTH_ATTACHMENT, i);
 			GL_StateManager::ClearDepthBits();
 
 			sv.SetUniform("u_light_pv_matrix", p_scene->directional_light.GetLightSpaceMatrix(i));
-			DrawAllMeshesDepth(SOLID, p_scene);
+			DrawAllMeshesDepth(SOLID);
 		}
 	}
 
 	// Spotlights
 	glViewport(0, 0, SpotlightSystem::SPOTLIGHT_SHADOW_MAP_RES, SpotlightSystem::SPOTLIGHT_SHADOW_MAP_RES);
-	sv.Activate((unsigned)DepthSV::SPOTLIGHT);
+	sv.Activate(static_cast<unsigned>(DepthSV::SPOTLIGHT));
 	auto spotlights = p_scene->GetRegistry().view<SpotLightComponent, TransformComponent>();
 
-	int index = 0;
+	unsigned index = 0;
 	for (auto [entity, light, transform] : spotlights.each()) {
 		if (!light.shadows_enabled)
 			continue;
@@ -81,13 +81,13 @@ void DepthPass::DoPass()
 
 		sv.SetUniform("u_light_pv_matrix", light.GetLightSpaceTransform());
 		sv.SetUniform("u_light_pos", transform.GetAbsPosition());
-		DrawAllMeshesDepth(SOLID, p_scene);
+		DrawAllMeshesDepth(SOLID);
 	}
 
 	// Pointlights
 	index = 0;
 	glViewport(0, 0, PointlightSystem::POINTLIGHT_SHADOW_MAP_RES, PointlightSystem::POINTLIGHT_SHADOW_MAP_RES);
-	sv.Activate((unsigned)DepthSV::POINTLIGHT);
+	sv.Activate(static_cast<unsigned>(DepthSV::POINTLIGHT));
 	auto pointlights = p_scene->GetRegistry().view<PointLightComponent, TransformComponent>();
 
 	for (auto [entity, pointlight, transform] : pointlights.each()) {
@@ -110,24 +110,19 @@ void DepthPass::DoPass()
 		sv.SetUniform("u_light_zfar", pointlight.shadow_distance);
 
 		// Draw depth cubemap
-		for (int i = 0; i < 6; i++) {
+		for (unsigned i = 0; i < 6; i++) {
 			fb.BindTextureLayerToFBAttachment(p_pointlight_system->GetDepthTex().GetTextureHandle(), GL_DEPTH_ATTACHMENT, index * 6 + i);
 			GL_StateManager::ClearDepthBits();
 
 			sv.SetUniform("u_light_pv_matrix", capture_projection * capture_views[i]);
-			DrawAllMeshesDepth(SOLID, p_scene);
+			DrawAllMeshesDepth(SOLID);
 		}
 
 		index++;
 	}
 }
 
-void DepthPass::Destroy()
-{
-	directional_light_depth_tex.Unload();
-}
-
-void DepthPass::DrawAllMeshesDepth(RenderGroup render_group, Scene* p_scene) {
+void DepthPass::DrawAllMeshesDepth(RenderGroup render_group) {
 	for (const auto* group : p_scene->GetSystem<MeshInstancingSystem>().GetInstanceGroups()) {
 		GL_StateManager::BindSSBO(group->GetTransformSSBO().GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
@@ -150,7 +145,7 @@ void DepthPass::DrawAllMeshesDepth(RenderGroup render_group, Scene* p_scene) {
 
 			bool state_changed = SceneRenderer::SetGL_StateFromMatFlags(p_material->GetFlags());
 
-			Renderer::DrawSubMeshInstanced(group->GetMeshAsset(), group->GetRenderCount(), i, GL_TRIANGLES);
+			Renderer::DrawSubMeshInstanced(group->GetMeshAsset(), static_cast<int>(group->GetRenderCount()), static_cast<int>(i), GL_TRIANGLES);
 
 			if (state_changed)
 				SceneRenderer::UndoGL_StateModificationsFromMatFlags(p_material->GetFlags());

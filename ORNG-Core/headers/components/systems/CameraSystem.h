@@ -17,8 +17,9 @@ namespace ORNG {
 
 			m_event_listener.scene_id = GetSceneUUID();
 			Events::EventManager::RegisterListener(m_event_listener);
-		};
-		virtual ~CameraSystem() = default;
+		}
+
+		~CameraSystem() override = default;
 
 		void OnUpdate() override {
 			auto* p_active_cam = GetActiveCamera();
@@ -45,8 +46,8 @@ namespace ORNG {
 		CameraComponent* GetActiveCamera() {
 			auto& reg = mp_scene->GetRegistry();
 
-			if (reg.all_of<CameraComponent>((entt::entity)m_active_cam_entity_handle))
-				return &reg.get<CameraComponent>((entt::entity)m_active_cam_entity_handle);
+			if (reg.all_of<CameraComponent>(m_active_cam_entity_handle))
+				return &reg.get<CameraComponent>(m_active_cam_entity_handle);
 			else
 				return nullptr;
 		}

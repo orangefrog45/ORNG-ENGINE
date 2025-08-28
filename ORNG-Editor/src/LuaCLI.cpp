@@ -1,12 +1,13 @@
 #include "pch/pch.h"
+
+#include <imgui.h>
+#include <imgui/misc/cpp/imgui_stdlib.h>
+
 #include "LuaCLI.h"
-#include "imgui.h"
-#include "imgui/misc/cpp/imgui_stdlib.h"
 #include "core/Window.h"
 
 
 namespace ORNG {
-
 	void LuaCLI::Init() {
 
 		lua.new_usertype<glm::vec3>("vec3", sol::constructors<glm::vec3(float, float, float)>(),
@@ -66,7 +67,7 @@ namespace ORNG {
 			if (ImGui::BeginChild(1232, { 0, size.y * 0.7f }, true)) {
 				for (const auto& output : output_stack) {
 					ImGui::PushStyleColor(ImGuiCol_Text, output.is_error ? ImVec4{ 1, 0, 0, 1 } : ImVec4{ 1, 1, 1, 1 });
-					ImGui::Text(output.content.c_str());
+					ImGui::Text("%s", output.content.c_str());
 					ImGui::PopStyleColor();
 				}
 			}

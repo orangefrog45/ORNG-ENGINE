@@ -29,14 +29,14 @@ namespace ORNG {
 			s.value1b(srgb_space);
 		}
 
-		uint32_t internal_format;
+		int internal_format;
 		uint32_t format;
-		uint32_t min_filter;
-		uint32_t mag_filter;
-		uint32_t width = 1;
-		uint32_t height = 1;
+		int min_filter;
+		int mag_filter;
+		int width = 1;
+		int height = 1;
 
-		uint32_t wrap_params = GL_CLAMP_TO_EDGE;
+		int wrap_params = GL_CLAMP_TO_EDGE;
 		uint32_t storage_type;
 
 		uint8_t generate_mipmaps = false;
@@ -49,15 +49,17 @@ namespace ORNG {
 	public:
 		friend class Framebuffer;
 		TextureBase() = delete;
-		~TextureBase() override { Unload(); };
+		~TextureBase() override { Unload(); }
 
 		void Unload();
 		void GenerateMips();
-		[[nodiscard]] unsigned int GetTextureHandle() const noexcept { return m_texture_obj; }
-		[[nodiscard]] unsigned int GetTarget() const noexcept { return m_texture_target; }
+		[[nodiscard]] unsigned GetTextureHandle() const noexcept { return m_texture_obj; }
+		[[nodiscard]] unsigned GetTarget() const noexcept { return m_texture_target; }
 		[[nodiscard]] const std::string& GetName() const noexcept { return m_name; }
 
 		void SetName(const std::string& name) noexcept { m_name = name; }
+
+		void SetFilterAndWrapParams(bool is_3d, int min_filter, int mag_filter, int wrap_mode);
 
 		template <typename S>
 		void serialize(S& s) {
@@ -67,12 +69,12 @@ namespace ORNG {
 		}
 
 	protected:
-		bool LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		bool LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		TextureBase(unsigned int texture_target, const std::string& name);
-		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid);
-		uint32_t m_texture_target = 0;
-		uint32_t m_texture_obj = 0;
+		bool LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec);
+		bool LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec);
+		TextureBase(unsigned texture_target, const std::string& name);
+		TextureBase(unsigned texture_target, const std::string& name, uint64_t t_uuid);
+		unsigned m_texture_target = 0;
+		unsigned m_texture_obj = 0;
 
 		// When texture is bound, texture unit e.g GL_TEXTURE0 stored here
 		uint32_t m_binding_point = 0;
@@ -189,5 +191,4 @@ namespace ORNG {
 	private:
 		TextureCubemapArraySpec m_spec;
 	};
-
 }

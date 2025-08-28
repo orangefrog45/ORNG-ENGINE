@@ -93,7 +93,7 @@ namespace ORNG {
 
 	void SceneEntity::SetUUID(uint64_t new_uuid) {
 		uint64_t old_uuid = m_uuid();
-		m_uuid = UUID{ new_uuid };
+		m_uuid = UUID<uint64_t>{ new_uuid };
 		Events::EventManager::DispatchEvent(UUIDChangeEvent{ old_uuid, new_uuid });
 	}
 
@@ -122,6 +122,4 @@ namespace ORNG {
 			current_entity = next;
 		}
 	}
-
-
 }

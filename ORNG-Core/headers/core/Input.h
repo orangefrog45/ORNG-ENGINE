@@ -7,7 +7,7 @@ namespace ScriptInterface {
 
 
 namespace ORNG {
-	enum Key {
+	enum Key : uint16_t {
 		// Alphabet keys
 		A = 65,
 		B = 66,
@@ -99,7 +99,7 @@ namespace ORNG {
 
 		// Not case-sensitive
 		// Returns true if key has been pressed this frame or is being held down
-		bool IsKeyDown(unsigned key) {
+		bool IsKeyDown(int key) {
 			InputType state = m_key_states[static_cast<Key>(std::toupper(key))];
 			return (state != InputType::RELEASE);
 		}
@@ -112,7 +112,7 @@ namespace ORNG {
 
 		// Not case-sensitive
 		// Returns true only if key has been pressed this frame
-		bool IsKeyPressed(unsigned key) {
+		bool IsKeyPressed(int key) {
 			return m_key_states[static_cast<Key>(std::toupper(key))] == InputType::PRESS;
 		}
 

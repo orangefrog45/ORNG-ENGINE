@@ -1,6 +1,6 @@
 #include "RuntimeLayer.h"
 
-void main() {
+int main() {
 	ORNG::Application app;
 	ORNG::RuntimeLayer rt;
 
@@ -8,4 +8,6 @@ void main() {
 
 	app.layer_stack.PushLayer(&rt);
 	app.Init(app_data);
+
+	return 0;
 }

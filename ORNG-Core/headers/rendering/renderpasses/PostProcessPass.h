@@ -6,13 +6,11 @@
 namespace ORNG {
 	class PostProcessPass : public Renderpass {
 	public:
-		PostProcessPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Post process") {};
+		explicit PostProcessPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Post process") {}
 
 		void Init() override;
 
 		void DoPass() override;
-
-		void Destroy() override;
 
 		Texture2D* p_fog_tex = nullptr;
 

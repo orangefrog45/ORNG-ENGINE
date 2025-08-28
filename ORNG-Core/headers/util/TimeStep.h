@@ -11,10 +11,10 @@ namespace ORNG {
 			NANOSECONDS = 3
 		};
 
-		TimeStep(TimeUnits units) : m_units(units) {};
+		TimeStep(TimeUnits units) : m_units(units) {}
 
 		/* Set last time to current time */
-		void UpdateLastTime() { m_last_time = std::chrono::steady_clock::now(); };
+		void UpdateLastTime() { m_last_time = std::chrono::steady_clock::now(); }
 
 		long long GetTimeInterval() const;
 

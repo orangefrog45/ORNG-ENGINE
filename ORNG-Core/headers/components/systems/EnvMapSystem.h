@@ -9,8 +9,8 @@ namespace ORNG {
     // Handles loading, serialization, and deserialization of the scene skybox
     class EnvMapSystem : public ComponentSystem {
     public:
-        explicit EnvMapSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-        virtual ~EnvMapSystem() = default;
+        explicit EnvMapSystem(Scene* p_scene) : ComponentSystem(p_scene) {}
+        ~EnvMapSystem() override = default;
 
         void OnLoad() final;
 
@@ -18,7 +18,7 @@ namespace ORNG {
 
         inline static constexpr uint64_t GetSystemUUID() { return 89273647238766545; }
 
-        void LoadSkyboxFromHDRFile(const std::string& filepath, unsigned resolution);
+        void LoadSkyboxFromHDRFile(const std::string& filepath, int resolution);
 
         Skybox skybox;
     private:

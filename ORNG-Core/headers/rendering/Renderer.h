@@ -33,7 +33,7 @@ namespace ORNG {
 				mp_instance = new Renderer();
 				Get().I_Init();
 			}
-		};
+		}
 
 		static void Shutdown() {
 			if (mp_instance) delete mp_instance;
@@ -46,7 +46,7 @@ namespace ORNG {
 
 		static void DrawQuad() {
 			Get().IDrawQuad();
-		};
+		}
 
 		static void DrawScaledQuad(glm::vec2 min, glm::vec2 max) {
 			Get().IDrawScaledQuad(min, max);
@@ -54,7 +54,7 @@ namespace ORNG {
 
 		static void DrawCube() {
 			Get().IDrawUnitCube();
-		};
+		}
 
 		static void DrawSphere();
 
@@ -62,23 +62,23 @@ namespace ORNG {
 			Get().IDrawVAO_Elements(primitive_type, vao);
 		}
 
-		static void DrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count) {
+		static void DrawMeshInstanced(const MeshAsset* p_mesh, int instance_count) {
 			Get().IDrawMeshInstanced(p_mesh, instance_count);
 		}
 
-		static void DrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count) {
+		static void DrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, int instance_count) {
 			Get().IDrawVAO_ArraysInstanced(primitive_type, vao, instance_count);
 		}
 
-		inline static void DrawSubMesh(const MeshAsset* data, unsigned int submesh_index) {
+		inline static void DrawSubMesh(const MeshAsset* data, int submesh_index) {
 			Get().IDrawSubMesh(data, submesh_index);
 		}
 
-		inline static void DrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index, GLenum primitive_type) {
+		inline static void DrawSubMeshInstanced(const MeshAsset* mesh_data, int t_instances, int submesh_index, GLenum primitive_type) {
 			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index, primitive_type);
 		}
 
-		static void DrawVAOArrays(const VAO& vao, unsigned int num_indices, GLenum primitive_type) {
+		static void DrawVAOArrays(const VAO& vao, int num_indices, GLenum primitive_type) {
 			Get().IDrawVAOArrays(vao, num_indices, primitive_type);
 		}
 
@@ -107,14 +107,14 @@ namespace ORNG {
 		unsigned int m_draw_call_amount = 0;
 
 		Renderer() = default;
-		void IDrawVAOArrays(const VAO& vao, unsigned int indices_count, GLenum primitive_type);
+		void IDrawVAOArrays(const VAO& vao, int indices_count, GLenum primitive_type);
 		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
-		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);
-		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);
-		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index, GLenum primitive_type);
+		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, int instance_count);
+		void IDrawSubMesh(const MeshAsset* data, int submesh_index);
+		void IDrawSubMeshInstanced(const MeshAsset* mesh_data, int t_instances, int submesh_index, GLenum primitive_type);
 		void IDrawUnitCube() const;
 		void IDrawQuad() const;
-		void IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count);
+		void IDrawMeshInstanced(const MeshAsset* p_mesh, int instance_count);
 
 		std::unique_ptr<Quad> mp_quad = nullptr;
 		ShaderLibrary m_shader_library;

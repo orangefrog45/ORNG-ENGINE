@@ -13,6 +13,6 @@ namespace ORNG {
 	bool ParticleEmitterComponent::AreAnyEmittedParticlesAlive() {
 		// Would use scene time here but in the editor when the scene is paused this makes previewing particles a pain
 		float time_since_last_active = FrameTiming::GetTotalElapsedTime() - m_last_active_status_change_time;
-		return m_active || !m_active && time_since_last_active < m_particle_lifespan_ms;
+		return m_active || time_since_last_active < m_particle_lifespan_ms;
 	}
 }

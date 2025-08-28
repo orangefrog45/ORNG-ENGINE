@@ -27,7 +27,7 @@ namespace ORNG {
 
 
 
-	void PointlightSystem::WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, int& index) {
+	void PointlightSystem::WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, size_t& index) {
 		// - START colour
 		auto colour = light.colour;
 		output_vec[index++] = colour.x;
@@ -62,8 +62,8 @@ namespace ORNG {
 
 		constexpr unsigned int point_light_fs_num_float = 12; // amount of floats in pointlight struct in shaders
 
-		int num_shadowless = 0;
-		int num_shadow = 0;
+		unsigned num_shadowless = 0;
+		unsigned num_shadow = 0;
 		for (auto [entity, light] : view.each()) {
 			if (light.shadows_enabled)
 				num_shadow++;
@@ -85,7 +85,7 @@ namespace ORNG {
 
 		m_pointlight_ssbo.data.resize((num_shadowless + num_shadow) * point_light_fs_num_float);
 
-		int i = 0;
+		size_t i = 0;
 		for (auto [entity, light] : view.each()) {
 			WriteLightToVector(m_pointlight_ssbo.data, light, i);
 		}
@@ -95,12 +95,6 @@ namespace ORNG {
 		GL_StateManager::BindSSBO(m_pointlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::POINT_LIGHTS);
 	}
 
-
-
 	void PointlightSystem::OnUnload() {
 	}
-
-
-
-
 }

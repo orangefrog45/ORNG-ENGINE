@@ -1,28 +1,35 @@
 #include "pch/pch.h"
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <bitsery/adapter/stream.h>
+#include <bitsery/traits/string.h>
+#include <GLFW/glfw3.h> // For glfwmakecontextcurrent
+#include <yaml-cpp/yaml.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "assets/Prefab.h"
 #include "assets/AssetSerializer.h"
 #include "assets/AssetManager.h"
 #include "assets/SoundAsset.h"
 #include "core/GLStateManager.h"
 #include "core/Window.h" // For shared loading context
-#include "physics/Physics.h" // For initializing physx assets
-#include "assets/PhysXMaterialAsset.h"
 #include "assets/SceneAsset.h"
-
-#include <bitsery/adapter/stream.h>
-#include <GLFW/glfw3.h> // For glfwmakecontextcurrent
-#include <yaml-cpp/yaml.h>
 
 using namespace ORNG;
 
 constexpr size_t MAX_SCENE_YAML_SIZE = 100'000'000;
 
 void AssetSerializer::ProcessAssetQueues() {
-	for (int i = 0; i < m_mesh_loading_queue.size(); i++) {
+	for (size_t i = 0; i < m_mesh_loading_queue.size(); i++) {
 		[[unlikely]] if (m_mesh_loading_queue[i].wait_for(std::chrono::nanoseconds(1)) == std::future_status::ready) {
 			auto [result, p_mesh] = m_mesh_loading_queue[i].get();
 
-			m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + i);
+			m_mesh_loading_queue.erase(m_mesh_loading_queue.begin() + static_cast<long long>(i));
 			i--;
 
 			if (!result.has_value()) return;
@@ -101,7 +108,7 @@ void AssetSerializer::LoadMeshAssetIntoGL(MeshAsset* p_asset) {
 
 void AssetSerializer::LoadMeshAsset(MeshAsset* p_asset, const std::string& raw_mesh_filepath) {
 	m_mesh_loading_queue.emplace_back(std::async(std::launch::async, [p_asset, raw_mesh_filepath] {
-		return std::make_pair(std::move(MeshAsset::LoadMeshDataFromFile(raw_mesh_filepath)), p_asset);
+		return std::make_pair(MeshAsset::LoadMeshDataFromFile(raw_mesh_filepath), p_asset);
 	}));
 };
 
@@ -219,15 +226,6 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 		m_manager.AddAsset(p_mat);
 	}
 
-	for (uint32_t i = 0; i < num_phys_materials; i++) {
-		auto* p_mat = new PhysXMaterialAsset{""};
-
-		// Init material
-		p_mat->p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
-		DeserializePhysxMaterialAsset(*p_mat, des);
-		m_manager.AddAsset(p_mat);
-	}
-
 	for (uint32_t i = 0; i < num_scenes; i++) {
 		auto* p_scene = new SceneAsset{""};
 
@@ -236,7 +234,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 
 		try {
 			p_scene->node = YAML::Load(contents);
-			p_scene->uuid = UUID{p_scene->node["SceneUUID"].as<uint64_t>()};
+			p_scene->uuid = UUID<uint64_t>{p_scene->node["SceneUUID"].as<uint64_t>()};
 		} catch(std::exception& e) {
 			ORNG_CORE_ERROR("Failed to deserialize scene: '{}'", e.what());
 		}
@@ -254,27 +252,24 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	auto sound_view = std::vector<SoundAsset*>();
 	auto prefab_view = std::vector<Prefab*>();
 	auto mat_view = std::vector<Material*>();
-	auto phys_mat_view = std::vector<PhysXMaterialAsset*>();
 	auto scene_view = std::vector<SceneAsset*>();
 
 	for (auto& [uuid, p_asset] : m_manager.m_assets) {
 		if (p_asset->uuid() < static_cast<uint64_t>(BaseAssetIDs::NUM_BASE_ASSETS))
 			continue;
 
-		if (auto* p_casted = dynamic_cast<Texture2D*>(p_asset))
-			texture_view.push_back(p_casted);
-		else if (auto* p_casted = dynamic_cast<MeshAsset*>(p_asset))
-			mesh_view.push_back(p_casted);
-		else if (auto* p_casted = dynamic_cast<SoundAsset*>(p_asset))
-			sound_view.push_back(p_casted);
-		else if (auto* p_casted = dynamic_cast<Prefab*>(p_asset))
-			prefab_view.push_back(p_casted);
-		else if (auto* p_casted = dynamic_cast<Material*>(p_asset))
-			mat_view.push_back(p_casted);
-		else if (auto* p_casted = dynamic_cast<PhysXMaterialAsset*>(p_asset))
-			phys_mat_view.push_back(p_casted);
-		else if (auto* p_casted = dynamic_cast<SceneAsset*>(p_asset))
-			scene_view.push_back(p_casted);
+		if (auto* p_casted0 = dynamic_cast<Texture2D*>(p_asset))
+			texture_view.push_back(p_casted0);
+		else if (auto* p_casted1 = dynamic_cast<MeshAsset*>(p_asset))
+			mesh_view.push_back(p_casted1);
+		else if (auto* p_casted2 = dynamic_cast<SoundAsset*>(p_asset))
+			sound_view.push_back(p_casted2);
+		else if (auto* p_casted3 = dynamic_cast<Prefab*>(p_asset))
+			prefab_view.push_back(p_casted3);
+		else if (auto* p_casted4 = dynamic_cast<Material*>(p_asset))
+			mat_view.push_back(p_casted4);
+		else if (auto* p_casted5 = dynamic_cast<SceneAsset*>(p_asset))
+			scene_view.push_back(p_casted5);
 	}
 
 	// Begin layout with number of assets
@@ -283,7 +278,6 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	ser.value4b(static_cast<uint32_t>(sound_view.size()));
 	ser.value4b(static_cast<uint32_t>(prefab_view.size()));
 	ser.value4b(static_cast<uint32_t>(mat_view.size()));
-	ser.value4b(static_cast<uint32_t>(phys_mat_view.size()));
 	ser.value4b(static_cast<uint32_t>(scene_view.size()));
 
 	for (auto* p_texture : texture_view) {
@@ -301,9 +295,6 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	for (auto* p_mat : mat_view) {
 		ser.object(*p_mat);
 	}
-	for (auto* p_mat : phys_mat_view) {
-		ser.object(*p_mat);
-	}
 	for (auto* p_scene : scene_view) {
 		SerializeSceneAsset(*p_scene, ser);
 	}
@@ -313,11 +304,11 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 		ORNG_CORE_ERROR("Binary serialization error: Cannot open {0} for writing", output_path);
 		return;
 	}
-	s.write(reinterpret_cast<const char*>(ser_buffer.data()), ser_buffer.size());
+	s.write(reinterpret_cast<const char*>(ser_buffer.data()), static_cast<std::streamsize>(ser_buffer.size()));
 	s.close();
 }
 
-void AssetSerializer::SerializeAssets(const std::string& output_path) {
+void AssetSerializer::SerializeAssets() {
 	// Serialize all assets currently loaded into asset manager
 	// Meshes and prefabs are overlooked here as they are serialized automatically upon being loaded into the engine
 	// Scenes are also overlooked as they're explicitly serialized in the editor
@@ -331,10 +322,6 @@ void AssetSerializer::SerializeAssets(const std::string& output_path) {
 
 	for (auto* p_sound : m_manager.GetView<SoundAsset>()) {
 		SerializeAssetToBinaryFile(*p_sound, p_sound->filepath);
-	}
-
-	for (auto* p_mat : m_manager.GetView<PhysXMaterialAsset>()) {
-		SerializeAssetToBinaryFile(*p_mat, p_mat->filepath);
 	}
 }
 
@@ -366,8 +353,6 @@ void AssetSerializer::LoadAsset(const std::string& rel_path) {
 		LoadPrefabAssetFromFile(rel_path);
 	} else if (extension == ".cpp" || extension == ".dll") {
 		LoadScriptAssetFromFile(rel_path);
-	} else if (extension == ".opmat") {
-		LoadPhysxAssetFromFile(rel_path);
 	} else if (extension == ".oscene") {
 		LoadSceneAssetFromFile(rel_path);
 	}
@@ -452,17 +437,9 @@ void AssetSerializer::LoadScriptAssetFromFile(const std::string& rel_path) {
 
 	if (symbols.loaded) {
 		auto* p_script = new ScriptAsset{rel_path, symbols};
-		p_script->uuid = UUID{symbols.uuid};
+		p_script->uuid = UUID<uint64_t>{symbols.uuid};
 		m_manager.AddAsset(p_script);
 	}
-};
-
-void AssetSerializer::LoadPhysxAssetFromFile(const std::string& rel_path) {
-	auto* p_mat = new PhysXMaterialAsset{rel_path};
-	// Init material
-	p_mat->p_material = Physics::GetPhysics()->createMaterial(0.5, 0.5, 0.5);
-	DeserializeAssetBinary(rel_path, *p_mat);
-	m_manager.AddAsset(p_mat);
 };
 
 void AssetSerializer::LoadSceneAssetFromFile(const std::string &rel_path) {
@@ -471,7 +448,7 @@ void AssetSerializer::LoadSceneAssetFromFile(const std::string &rel_path) {
 
 	try {
 		p_scene->node = YAML::Load(yaml);
-		p_scene->uuid = UUID{p_scene->node["SceneUUID"].as<uint64_t>()};
+		p_scene->uuid = UUID<uint64_t>{p_scene->node["SceneUUID"].as<uint64_t>()};
 	} catch(std::exception& e) {
 		ORNG_CORE_ERROR("Failed to load scene asset from file: '{}'\n'{}'", rel_path, e.what());
 	}
@@ -550,23 +527,8 @@ void AssetSerializer::DeserializeMaterialAsset(Material& data, BufferDeserialize
 
 	uint32_t flags;
 	des.value4b(flags);
-	data.flags = (MaterialFlags)flags;
+	data.flags = static_cast<MaterialFlags>(flags);
 	des.value4b(data.displacement_scale);
 	des.value4b(data.alpha_cutoff);
-}
-
-void AssetSerializer::DeserializePhysxMaterialAsset(PhysXMaterialAsset& data, BufferDeserializer& des) {
-	des.object(data.uuid);
-	des.container1b(data.name, ORNG_MAX_FILEPATH_SIZE);
-
-	float sf, df, r;
-
-	des.value4b(sf);
-	des.value4b(df);
-	des.value4b(r);
-
-	data.p_material->setDynamicFriction(df);
-	data.p_material->setStaticFriction(sf);
-	data.p_material->setRestitution(r);
 }
 

@@ -8,13 +8,11 @@ namespace ORNG {
 	class VoxelPass : public Renderpass {
 		friend class LightingPass;
 	public:
-		VoxelPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Voxel") {};
+		explicit VoxelPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Voxel") {}
 
 		void Init() override;
 
 		void DoPass() override;
-
-		void Destroy() override;
 
 		std::tuple<bool, glm::vec3, glm::vec3> UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos, glm::vec3 voxel_aligned_cam_pos);
 	private:
@@ -22,7 +20,7 @@ namespace ORNG {
 
 		std::array<glm::vec3, 2> m_voxel_aligned_cam_positions;
 
-		glm::uvec2 m_render_dimensions{ 0, 0 };
+		glm::ivec2 m_render_dimensions{ 0, 0 };
 
 		Texture3D m_scene_voxel_tex_c0{ "scene voxel tex cascade 0" };
 		Texture3D m_scene_voxel_tex_c0_normals{ "scene voxel tex normals cascade 0" };

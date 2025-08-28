@@ -2,7 +2,7 @@
 #include "EditorLayer.h"
 
 
-void main() {
+int main() {
 	ORNG::Scene scene;
 
 	ORNG::EditorLayer editor_layer{&scene, "projects/base-project" };
@@ -12,4 +12,6 @@ void main() {
 
 	ORNG::ApplicationData data{};
 	application.Init(data);
+
+	return 0;
 }

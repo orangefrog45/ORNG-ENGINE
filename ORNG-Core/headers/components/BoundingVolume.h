@@ -4,13 +4,15 @@
 namespace ORNG {
 	struct BoundingVolume {
 		BoundingVolume() = default;
+		BoundingVolume(const BoundingVolume&) = default;
+		BoundingVolume& operator=(const BoundingVolume&) = default;
 		virtual ~BoundingVolume() = default;
 		virtual bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) const = 0;
 	};
 
 	struct AABB : public BoundingVolume {
 		AABB() = default;
-		AABB(glm::vec3 _extents) : extents(_extents) { };
+		AABB(glm::vec3 _extents) : extents(_extents) { }
 		glm::vec3 extents = { 0.f, 0.f, 0.f };
 		glm::vec3 center = { 0.f, 0.f, 0.f };
 
@@ -50,13 +52,13 @@ namespace ORNG {
 				);
 		}
 
-		bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) const {
+		bool IsOnFrustum(const ExtraMath::Frustum& cam_frustum) const override {
 			return (TestAABBPlane(*this, cam_frustum.top_plane) &&
 				TestAABBPlane(*this, cam_frustum.bottom_plane) &&
 				TestAABBPlane(*this, cam_frustum.left_plane) &&
 				TestAABBPlane(*this, cam_frustum.right_plane) &&
 				TestAABBPlane(*this, cam_frustum.near_plane) &&
 				TestAABBPlane(*this, cam_frustum.far_plane));
-		};
+		}
 	};
 }

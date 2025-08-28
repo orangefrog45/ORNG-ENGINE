@@ -21,7 +21,7 @@ namespace ORNG {
 			else {
 				mp_instance = new GL_StateManager();
 			}
-		};
+		}
 
 		static void InitGL() {
 			Get().I_InitGL();
@@ -69,9 +69,9 @@ namespace ORNG {
 		}
 
 		//Force mode will make the texture active even if it is bound to the specified unit already, use for tex parameter changes etc
-		inline static void BindTexture(int target, int texture, int tex_unit, bool force_mode = false) {
+		inline static void BindTexture(unsigned target, unsigned texture, unsigned tex_unit, bool force_mode = false) {
 			Get().IBindTexture(target, texture, tex_unit, force_mode);
-		};
+		}
 
 		// Returns the texture unit the texture is bound to if it is bound e.g GL_TEXTURE0, otherwise returns -1
 		inline static int IsTextureBound(unsigned tex_obj_handle) {
@@ -211,15 +211,15 @@ namespace ORNG {
 
 		void IDeleteBuffer(unsigned buffer_handle);
 
-		void IBindTexture(int target, int texture, int tex_unit, bool force_mode);
+		void IBindTexture(unsigned target, unsigned texture, unsigned tex_unit, bool force_mode);
 
 		inline static GL_StateManager* mp_instance = nullptr;
 
 		bool m_glew_initialized = false;
 
 		struct TextureBindData {
-			unsigned int tex_target = 0;
-			unsigned int tex_obj = 0;
+			unsigned tex_target = 0;
+			unsigned tex_obj = 0;
 		};
 
 		std::unordered_map<unsigned int, unsigned int> m_current_ssbo_bindings; // currently bound ssbo object (value) to binding index (key)

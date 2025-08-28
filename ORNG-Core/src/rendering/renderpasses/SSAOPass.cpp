@@ -41,5 +41,10 @@ void SSAOPass::DoPass() {
 	const auto& spec = ao_tex.GetSpec();
 	ssao_shader.ActivateProgram();
 	glBindImageTexture(1, ao_tex.GetTextureHandle(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	glDispatchCompute(ceil(spec.width / 8.f), ceil(spec.height / 8.f), 1);
+
+	GL_StateManager::DispatchCompute(
+		static_cast<int>(ceil(static_cast<float>(spec.width) / 8.f)),
+		static_cast<int>(ceil(static_cast<float>(spec.height) / 8.f)),
+		1
+	);
 }

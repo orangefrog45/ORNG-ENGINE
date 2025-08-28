@@ -1,12 +1,21 @@
 #pragma once
-#include "../rendering/Textures.h"
-#include "SoundAsset.h"
-#include "../rendering/Material.h"
-#include "../rendering/MeshAsset.h"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <bitsery/include/bitsery/serializer.h>
 #include <bitsery/include/bitsery/deserializer.h>
 #include <bitsery/include/bitsery/adapter/stream.h>
 #include <bitsery/include/bitsery/traits/vector.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#include "../rendering/Textures.h"
+#include "SoundAsset.h"
+#include "../rendering/Material.h"
+#include "../rendering/MeshAsset.h"
+
 
 struct GLFWwindow;
 
@@ -69,7 +78,7 @@ namespace ORNG {
 
 	class AssetSerializer {
 	public:
-		explicit AssetSerializer(AssetManager& manager) : m_manager(manager) {};
+		explicit AssetSerializer(AssetManager& manager) : m_manager(manager) {}
 
 		void Init();
 
@@ -86,8 +95,7 @@ namespace ORNG {
 
 		bool TryFetchRawSoundData(SoundAsset& sound, std::vector<std::byte>& output);
 
-		// Serializes all assets in manager to "output_path/res", output_path is typically a project directory
-		void SerializeAssets(const std::string& output_path);
+		void SerializeAssets();
 
 		// Adds asset to a loading queue and loads it asynchronously
 		void LoadMeshAsset(MeshAsset* p_asset, const std::string& raw_mesh_filepath);
@@ -106,7 +114,6 @@ namespace ORNG {
 		void LoadMaterialAssetFromFile(const std::string& rel_path);
 		void LoadPrefabAssetFromFile(const std::string& rel_path);
 		void LoadScriptAssetFromFile(const std::string& rel_path);
-		void LoadPhysxAssetFromFile(const std::string& rel_path);
 		void LoadSceneAssetFromFile(const std::string& rel_path);
 
 		void SerializeSceneAsset(class SceneAsset& scene_asset, BufferSerializer& ser);
@@ -157,7 +164,7 @@ namespace ORNG {
 			uint32_t size;
 			des.value4b(size);
 			mesh.m_submeshes.resize(size);
-			for (int i = 0; i < size; i++) {
+			for (uint32_t i = 0; i < size; i++) {
 				des.object(mesh.m_submeshes[i]);
 			}
 			des.value4b(mesh.m_num_materials);
@@ -166,8 +173,6 @@ namespace ORNG {
 		}
 
 		void DeserializeMaterialAsset(Material& data, BufferDeserializer& des);
-
-		static void DeserializePhysxMaterialAsset(class PhysXMaterialAsset& data, BufferDeserializer& des);
 
 		template<std::derived_from<Asset> T>
 		void SerializeAssetToBinaryFile(T& asset, const std::string& filepath) {
@@ -211,9 +216,6 @@ namespace ORNG {
 			}
 			else if constexpr (std::is_same_v<T, Material>) {
 				DeserializeMaterialAsset(data, des);
-			}
-			else if constexpr (std::is_same_v<T, PhysXMaterialAsset>) {
-				DeserializePhysxMaterialAsset(data, des);
 			}
 			else if constexpr (std::is_same_v<T, Texture2D>) {
 				DeserializeTexture2D(data, *std::any_cast<std::vector<std::byte>*>(args), des);

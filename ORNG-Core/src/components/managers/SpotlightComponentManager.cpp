@@ -5,9 +5,7 @@
 #include "core/GLStateManager.h"
 #include "components/systems/SpotlightSystem.h"
 
-
 namespace ORNG {
-
 	void SpotlightSystem::OnUnload() {
 	}
 
@@ -44,7 +42,7 @@ namespace ORNG {
 		return glm::mat4(light_perspective * spot_light_view);
 	}
 
-	void SpotlightSystem::WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index) {
+	void SpotlightSystem::WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, size_t& index) {
 		auto colour = light.colour;
 		output_vec[index++] = colour.x;
 		output_vec[index++] = colour.y;
@@ -133,7 +131,7 @@ namespace ORNG {
 		constexpr unsigned int spot_light_fs_num_float = 36; // amount of floats in spotlight struct in shaders
 		m_spotlight_ssbo.data.resize((num_shadow + num_shadowless) * spot_light_fs_num_float);
 
-		int index = 0;
+		size_t index = 0;
 		for (auto [entity, light] : view.each()) {
 			WriteLightToVector(m_spotlight_ssbo.data, light, index);
 		}
@@ -142,6 +140,4 @@ namespace ORNG {
 
 		GL_StateManager::BindSSBO(m_spotlight_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::SPOT_LIGHTS);
 	}
-
-
 }

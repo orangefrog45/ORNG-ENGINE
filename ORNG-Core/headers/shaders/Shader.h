@@ -15,7 +15,9 @@ namespace ORNG {
 		friend class ShaderVariants;
 
 		Shader() = default;
-		explicit Shader(const std::string& name) :  m_name(name) {};
+		explicit Shader(const std::string& name) :  m_name(name) {}
+		Shader& operator=(const Shader&) = delete;
+		Shader(const Shader&) = delete;
 		~Shader();
 
 		enum class ShaderType {
@@ -45,7 +47,7 @@ namespace ORNG {
 
 			if (handle != -1)
 				m_uniforms[name] = CreateUniform(name);
-		};
+		}
 
 		template<typename... Args>
 		requires((std::is_convertible_v<Args, std::string>), ...)
@@ -58,7 +60,7 @@ namespace ORNG {
 			for (auto& uname : names) {
 				AddUniform(uname);
 			}
-		};
+		}
 
 		template<typename T>
 		void SetUniform(const std::string& name, T value) {
@@ -103,7 +105,8 @@ namespace ORNG {
 			else {
 				ORNG_CORE_ERROR("Unsupported uniform type used in shader, uniform name: '{}', shader name '{}'", name, m_name);
 			}
-		};
+		}
+
 	private:
 		struct StageData {
 			StageData() = default;
@@ -119,7 +122,7 @@ namespace ORNG {
 		void UseShader(unsigned int& id, unsigned int program);
 
 		struct ParsedShaderData {
-			ParsedShaderData(std::string t_code, unsigned t_line_count) : shader_code(std::move(t_code)), line_count(t_line_count) {};
+			ParsedShaderData(std::string t_code, unsigned t_line_count) : shader_code(std::move(t_code)), line_count(t_line_count) {}
 			std::string shader_code;
 			unsigned line_count;
 		};
@@ -132,7 +135,7 @@ namespace ORNG {
 
 		unsigned int m_program_id = 0;
 		std::unordered_map<GLenum, StageData> m_stages;
-		std::unordered_map<std::string, unsigned int> m_uniforms;
+		std::unordered_map<std::string, int> m_uniforms;
 		std::vector<unsigned int> m_shader_handles;
 		std::string m_name = "Unnamed shader";
 
@@ -145,7 +148,7 @@ namespace ORNG {
 		friend class ShaderLibrary;
 	public:
 		ShaderVariants() = default;
-		ShaderVariants(const std::string& name) : m_name(name) { };
+		ShaderVariants(const std::string& name) : m_name(name) { }
 
 		void Activate(unsigned id) {
 			ASSERT(m_shaders.contains(id));

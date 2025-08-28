@@ -23,8 +23,8 @@ void LightingPass::Init() {
 	shader.Init();
 	shader.AddUniforms("u_ibl_active", "u_ssao_active");
 
-	if (auto* p_voxel_pass = mp_graph->GetRenderpass<VoxelPass>()) {
-		p_voxel_pass = p_voxel_pass;
+	if (auto* _p_voxel_pass = mp_graph->GetRenderpass<VoxelPass>()) {
+		this->p_voxel_pass = _p_voxel_pass;
 
 		cone_trace_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/ConeTraceCS.glsl");
 		cone_trace_shader.Init();
@@ -35,8 +35,8 @@ void LightingPass::Init() {
 		cone_trace_spec.format = GL_RGBA;
 		cone_trace_spec.internal_format = GL_RGBA16F;
 		cone_trace_spec.storage_type = GL_FLOAT;
-		cone_trace_spec.width = static_cast<uint32_t>(output_spec.width * 0.5);
-		cone_trace_spec.height = static_cast<uint32_t>(output_spec.height * 0.5);
+		cone_trace_spec.width = static_cast<int>(output_spec.width * 0.5);
+		cone_trace_spec.height = static_cast<int>(output_spec.height * 0.5);
 		cone_trace_accum_tex.SetSpec(cone_trace_spec);
 
 		depth_aware_upsample_sv.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/DepthAwareUpsampleCS.glsl");
@@ -61,6 +61,10 @@ void LightingPass::Init() {
 		p_pointlight_depth_tex = &p_scene->GetSystem<PointlightSystem>().GetDepthTex();
 
 };
+
+inline int Groups(int size, int group_size) {
+	return static_cast<int>(glm::ceil(static_cast<float>(size) / static_cast<float>(group_size)));
+}
 
 void LightingPass::DoPass() {
 	auto* p_output_tex = mp_graph->GetData<Texture2D>("OutCol");
@@ -98,10 +102,19 @@ void LightingPass::DoPass() {
 		shader.SetUniform("u_ibl_active", false);
 	}
 
-
 	auto& spec = p_output_tex->GetSpec();
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+
+	glBindImageTexture(
+	    GL_StateManager::TextureUnitIndexes::COLOUR,
+	    p_output_tex->GetTextureHandle(),
+	    0,
+	    GL_FALSE,
+	    0,
+	    GL_WRITE_ONLY,
+	    GL_RGBA16F
+	);
+
+	GL_StateManager::DispatchCompute(Groups(spec.width, 8), Groups(spec.height, 8), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
 	if (!p_voxel_pass) return;
@@ -115,17 +128,44 @@ void LightingPass::DoPass() {
 	// Cone trace at half res
 	glClearTexImage(cone_trace_accum_tex.GetTextureHandle(), 0, GL_RGBA, GL_FLOAT, nullptr);
 	cone_trace_shader.ActivateProgram();
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 16.f), (GLuint)glm::ceil((float)spec.height / 16.f), 1);
-	glBindImageTexture(7, cone_trace_accum_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
+	glBindImageTexture(
+	    GL_StateManager::TextureUnitIndexes::COLOUR,
+	    cone_trace_accum_tex.GetTextureHandle(),
+	    0,
+	    GL_FALSE,
+	    0,
+	    GL_WRITE_ONLY,
+	    GL_RGBA16F
+	);
+
+	GL_StateManager::DispatchCompute(Groups(spec.width, 16), Groups(spec.height, 16), 1);
+
+	glBindImageTexture(
+	    7,
+	    cone_trace_accum_tex.GetTextureHandle(),
+	    0,
+	    GL_FALSE,
+	    0,
+	    GL_WRITE_ONLY,
+	    GL_RGBA16F
+	);
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 	depth_aware_upsample_sv.Activate(0);
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
+
+	glBindImageTexture(
+	    GL_StateManager::TextureUnitIndexes::COLOUR,
+	    p_output_tex->GetTextureHandle(),
+	    0,
+	    GL_FALSE,
+	    0,
+	    GL_READ_WRITE,
+	    GL_RGBA16F
+	);
+
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, cone_trace_accum_tex.GetTextureHandle(), GL_TEXTURE23, false);
-	GL_StateManager::DispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+	GL_StateManager::DispatchCompute(Groups(spec.width, 8), Groups(spec.height, 8), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 };
 
-void LightingPass::Destroy() {
-};

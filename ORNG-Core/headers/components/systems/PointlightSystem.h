@@ -6,12 +6,12 @@
 namespace ORNG {
 	class PointlightSystem : public ComponentSystem {
 	public:
-		explicit PointlightSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-		virtual ~PointlightSystem() = default;
+		explicit PointlightSystem(Scene* p_scene) : ComponentSystem(p_scene) {}
+		~PointlightSystem() override = default;
 		void OnLoad() override;
 		void OnUpdate() override;
 		void OnUnload() override;
-		void WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, int& index);
+		void WriteLightToVector(std::vector<float>& output_vec, PointLightComponent& light, size_t& index);
 
 		// Checks if the depth map array needs to grow/shrink
 		void OnDepthMapUpdate();

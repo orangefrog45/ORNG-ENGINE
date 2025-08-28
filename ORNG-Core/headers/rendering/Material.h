@@ -42,24 +42,24 @@ namespace ORNG {
 		friend class AssetManager;
 		friend class AssetSerializer;
 	public:
-		explicit Material(Texture2D* p_base_colour_tex) : Asset(""), base_colour_texture(p_base_colour_tex) {};
+		explicit Material(Texture2D* p_base_colour_tex) : Asset(""), base_colour_texture(p_base_colour_tex) {}
 
 		// New material wont have a path until saved
-		Material() : Asset("") {};
+		Material() : Asset("") {}
 
 		// If being deserialized, provide filepath
-		explicit Material(const std::string& filepath) : Asset(filepath) {};
+		explicit Material(const std::string& _filepath) : Asset(_filepath) {}
 
 		// Set ID explicitly, this is only to be used in rare scenarios (e.g the base replacement material in-engine)
-		explicit Material(uint64_t id) : Asset("") { uuid = UUID<uint64_t>(id); };
-
+		explicit Material(uint64_t id) : Asset("", id) {}
 
 		Material(const Material& other) = default;
+		Material& operator=(const Material& other) = default;
 
 		template<typename S>
 		void serialize(S& s) {
 			s.object(base_colour);
-			s.value1b((uint8_t)render_group);
+			s.value1b(static_cast<uint8_t>(render_group));
 			s.value4b(roughness);
 			s.value4b(metallic);
 			s.value4b(ao);
@@ -77,32 +77,32 @@ namespace ORNG {
 			s.object(uuid);
 			s.object(spritesheet_data);
 
-			s.value4b((uint32_t)flags);
+			s.value4b(static_cast<uint32_t>(flags));
 			s.value4b(displacement_scale);
 			s.value4b(alpha_cutoff);
 		}
 
 		inline void FlipFlags(MaterialFlags _flags) {
-			flags = (MaterialFlags)(flags ^ _flags);
+			flags = static_cast<MaterialFlags>(flags ^ _flags);
 
 			if (flags != 0)
-				flags = (MaterialFlags)(flags & ~(ORNG_MatFlags_NONE));
+				flags = static_cast<MaterialFlags>(flags & ~(ORNG_MatFlags_NONE));
 			else
-				flags = (MaterialFlags)(flags | ORNG_MatFlags_NONE);
+				flags = static_cast<MaterialFlags>(flags | ORNG_MatFlags_NONE);
 		}
 
 		inline void RaiseFlags(MaterialFlags _flags) {
-			flags = (MaterialFlags)(flags | _flags);
+			flags = static_cast<MaterialFlags>(flags | _flags);
 
 			if (flags != 0)
-				flags = (MaterialFlags)(flags & ~(ORNG_MatFlags_NONE));
-		};
+				flags = static_cast<MaterialFlags>(flags & ~(ORNG_MatFlags_NONE));
+		}
 
 		inline void RemoveFlags(MaterialFlags _flags) {
-			flags = (MaterialFlags)(flags & ~_flags);
+			flags = static_cast<MaterialFlags>(flags & ~_flags);
 
 			if (flags == 0)
-				flags = (MaterialFlags)(flags | ORNG_MatFlags_NONE);
+				flags = static_cast<MaterialFlags>(flags | ORNG_MatFlags_NONE);
 		}
 
 		inline MaterialFlags GetFlags() const noexcept {
@@ -130,7 +130,7 @@ namespace ORNG {
 
 		SpriteSheetData spritesheet_data;
 
-		uint32_t parallax_layers = 24;
+		int parallax_layers = 24;
 		float displacement_scale = 0.05f;
 
 		glm::vec2 tile_scale{ 1.f, 1.f };

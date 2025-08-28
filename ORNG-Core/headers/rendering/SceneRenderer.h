@@ -10,7 +10,7 @@
 #endif
 
 // Material flags that can go through the normal gbuffer/shader pipeline with just the fragment/vertex (no tessellation) shaders
-#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
+#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS static_cast<ORNG::MaterialFlags>(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
 
 namespace ORNG {
 	class Scene;
@@ -24,7 +24,7 @@ namespace ORNG {
 		SceneRenderer() = default;
 		~SceneRenderer();
 
-		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, 
+		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, int instances,
 			const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, bool allow_state_changes,
 			GLenum primitive_type = GL_TRIANGLES);
 

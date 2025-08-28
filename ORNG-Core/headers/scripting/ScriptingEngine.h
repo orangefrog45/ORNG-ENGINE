@@ -13,9 +13,9 @@ namespace ORNG {
 		class EventManager;
 	}
 
-
 	struct ScriptData {
-		ScriptData(const std::string& _filepath, HMODULE _dll_handle, const ScriptSymbols& _symbols) : filepath(_filepath), dll_handle(_dll_handle), symbols(_symbols) {};
+		ScriptData(const std::string& _filepath, HMODULE _dll_handle, const ScriptSymbols& _symbols) : filepath(_filepath),
+			dll_handle(_dll_handle), symbols(_symbols) {}
 
 		std::string filepath;
 		HMODULE dll_handle;
@@ -24,7 +24,9 @@ namespace ORNG {
 
 	// Used as return value for IsScriptLoaded
 	struct ScriptStatusQueryResults {
-		ScriptStatusQueryResults(bool _is_loaded, int _script_data_index) : is_loaded(_is_loaded), script_data_index(_script_data_index) {};
+		ScriptStatusQueryResults(bool _is_loaded, int _script_data_index) : is_loaded(_is_loaded),
+			script_data_index(_script_data_index) {}
+
 		bool is_loaded;
 		int script_data_index;
 	};
@@ -56,13 +58,13 @@ namespace ORNG {
 	};
 
 	struct ScriptAsset : public Asset {
-		ScriptAsset(const std::string& cpp_filepath, ScriptSymbols& t_symbols) : Asset(cpp_filepath), symbols(t_symbols) { };
+		ScriptAsset(const std::string& cpp_filepath, ScriptSymbols& t_symbols) : Asset(cpp_filepath), symbols(t_symbols) {}
 
 		ScriptAsset(const std::string& cpp_filepath, bool immediately_load = true) : Asset(cpp_filepath), symbols("") {
 			symbols.script_name = ReplaceFileExtension(GetFilename(cpp_filepath), "");
 			if (immediately_load)
 				symbols = ScriptingEngine::GetSymbolsFromScriptCpp(cpp_filepath);
-		};
+		}
 
 		ScriptSymbols symbols;
 	};

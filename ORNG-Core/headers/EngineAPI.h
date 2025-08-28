@@ -14,4 +14,3 @@
 #include "core/Window.h"
 #include "core/GLStateManager.h"
 #include "core/FrameTiming.h"
-#include "physics/Physics.h"

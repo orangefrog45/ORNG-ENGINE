@@ -22,18 +22,18 @@ namespace ORNG {
 		friend class Scene;
 		friend class ::Instancer;
 	public:
-		virtual ~ScriptBase() {};
+		virtual ~ScriptBase() = default;
 
-		virtual void OnUpdate(float dt) {};
-		virtual void OnRender() {};
-		virtual void OnCreate() {};
-		virtual void OnDestroy() {};
-		virtual void OnCollide([[maybe_unused]] SceneEntity* p_hit) {};
-		virtual void OnTriggerEnter([[maybe_unused]] SceneEntity* p_entered) {};
-		virtual void OnTriggerLeave([[maybe_unused]] SceneEntity* p_left) {};
-		virtual void OnImGuiRender() {};
+		virtual void OnUpdate([[maybe_unused]] float dt) {}
+		virtual void OnRender() {}
+		virtual void OnCreate() {}
+		virtual void OnDestroy() {}
+		virtual void OnCollide([[maybe_unused]] SceneEntity* p_hit) {}
+		virtual void OnTriggerEnter([[maybe_unused]] SceneEntity* p_entered) {}
+		virtual void OnTriggerLeave([[maybe_unused]] SceneEntity* p_left) {}
+		virtual void OnImGuiRender() {}
 
-		SceneEntity* GetEntity() {
+		[[nodiscard]] SceneEntity* GetEntity() const {
 			return p_entity;
 		}
 
@@ -65,14 +65,14 @@ namespace ORNG {
 
 	typedef ScriptBase* (__cdecl* InstanceCreator)();
 	typedef void(__cdecl* InstanceDestroyer)(ScriptBase*);
-	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*, void*, void*);
+	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*, void*, void*, void*);
 	typedef void(__cdecl* ImGuiContextSetter)(void*, void*, void*);
 	typedef void(__cdecl* UnloadFunc)();
 	typedef uint64_t(__cdecl* ScriptGetUuidFunc)();
 
 	struct ScriptSymbols {
 		// Even if script fails to load, name must be preserved
-		ScriptSymbols(const std::string& _script_name) : script_name(_script_name) {};
+		ScriptSymbols(const std::string& _script_name) : script_name(_script_name) {}
 
 		bool loaded = false;
 		uint64_t uuid = INVALID_SCRIPT_UUID;

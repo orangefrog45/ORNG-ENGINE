@@ -10,13 +10,13 @@ namespace ORNG {
 	class MeshAsset;
 
 	struct InstanceData {
-		InstanceData(SceneEntity* entity, unsigned i) : p_entity(entity), index(i) {};
+		InstanceData(SceneEntity* entity, unsigned i) : p_entity(entity), index(i) {}
 		SceneEntity* p_entity = nullptr;
 		unsigned index = 0;
 	};
 
 	struct InstanceUpdateData {
-		InstanceUpdateData(SceneEntity* ent, const glm::mat4& transform) : p_entity(ent), new_transform(transform) {};
+		InstanceUpdateData(SceneEntity* ent, const glm::mat4& transform) : p_entity(ent), new_transform(transform) {}
 		SceneEntity* p_entity = nullptr;
 		glm::mat4 new_transform;
 	};
@@ -28,17 +28,17 @@ namespace ORNG {
 		friend class SceneRenderer;
 
 		// Constructor for mesh component instance groups
-		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const std::vector<const Material*>& materials, entt::registry& registry);
+		MeshInstanceGroup(MeshAsset* t_mesh_data, const std::vector<const Material*>& materials, entt::registry& registry);
 
 		// Constructor for billboard instance groups
-		MeshInstanceGroup(MeshAsset* t_mesh_data, MeshInstancingSystem* p_mcm, const Material* p_material, entt::registry& registry) :
+		MeshInstanceGroup(MeshAsset* t_mesh_data, const Material* p_material, entt::registry& registry) :
 			m_mesh_asset(t_mesh_data), m_registry(registry)
 		{
 			m_materials.push_back(p_material);
 			// Setup a transform matrix ssbo for this instance group
 			m_transform_ssbo.Init();
 			m_tombstone_limit = 250;
-		};
+		}
 
 		const SSBO<float>& GetTransformSSBO() const noexcept {
 			return m_transform_ssbo;
@@ -59,10 +59,10 @@ namespace ORNG {
 
 		MeshAsset* GetMeshAsset() const { return m_mesh_asset; }
 
-		unsigned GetInstanceCount() const { return (unsigned)m_instances.size(); }
+		unsigned GetInstanceCount() const { return static_cast<unsigned>(m_instances.size()); }
 
 		// Tombstones still need to be rendered invisibly, their transforms are all set to scale 0 so they only incur a cost at the vertex shader stage
-		unsigned GetRenderCount() const { return (unsigned)m_instances.size() + m_tombstone_count; }
+		unsigned GetRenderCount() const { return static_cast<unsigned>(m_instances.size()) + m_tombstone_count; }
 
 		const std::vector<const Material*>& GetMaterialIDs() const { return m_materials; }
 

@@ -1,8 +1,19 @@
 #include "pch/pch.h"
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundefined-func-template" // ImPlot causes this but it's harmless here
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <implot.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "util/ExtraUI.h"
 #include "util/util.h"
 #include "../extern/imgui/misc/cpp/imgui_stdlib.h"
-#include <implot.h>
 #include "util/Interpolators.h"
 
 namespace ORNG {
@@ -10,7 +21,7 @@ namespace ORNG {
 		ImGui::SeparatorText(name.c_str());
 		// Tooltip to reveal full name in case it overflows
 		if (ImGui::BeginItemTooltip()) {
-			ImGui::Text(name.c_str());
+			ImGui::Text("%s", name.c_str());
 			ImGui::EndTooltip();
 		}
 	}
@@ -18,8 +29,8 @@ namespace ORNG {
 
 	bool ExtraUI::CenteredImageButton(ImTextureID id, ImVec2 size) {
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0, 0));
-		float padding = (ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x - ImGui::GetStyle().ItemSpacing.x) / 2.0;
-		ImGui::Dummy(ImVec2(padding / 2.0, 0));
+		float padding = (ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x - ImGui::GetStyle().ItemSpacing.x) / 2.f;
+		ImGui::Dummy(ImVec2(padding / 2.f, 0));
 		ImGui::SameLine();
 
 		bool ret = ImGui::ImageButton(id, size, ImVec2(0, 1), ImVec2(1, 0));
@@ -29,8 +40,8 @@ namespace ORNG {
 
 	bool ExtraUI::CenteredSquareButton(const std::string& content, ImVec2 size) {
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0, 0));
-		float padding = (ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x - ImGui::GetStyle().ItemSpacing.x) / 2.0;
-		ImGui::Dummy(ImVec2(padding / 2.0, 0));
+		float padding = (ImGui::GetContentRegionAvail().x - size.x - ImGui::GetStyle().FramePadding.x - ImGui::GetStyle().ItemSpacing.x) / 2.f;
+		ImGui::Dummy(ImVec2(padding / 2.f, 0));
 		ImGui::SameLine();
 
 		bool ret = ImGui::Button(content.c_str(), size);
@@ -39,7 +50,7 @@ namespace ORNG {
 	}
 
 
-	void ExtraUI::ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback) {
+	void ExtraUI::ShowFileExplorer(wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback) {
 		// Create an OPENFILENAMEW structure
 		OPENFILENAMEW ofn;
 		wchar_t fileNames[MAX_PATH * 100] = { 0 };
@@ -57,13 +68,13 @@ namespace ORNG {
 		if (GetOpenFileNameW(&ofn))
 		{
 			// Process the selected files
-			std::wstring folderPath = fileNames;
+			std::wstring folder_path = fileNames;
 
 			// Get the length of the folder path
-			size_t folderPathLen = folderPath.length();
+			size_t folder_path_len = folder_path.length();
 
 			// Pointer to the first character after the folder path
-			wchar_t* currentFileName = fileNames + folderPathLen + 1;
+			wchar_t* currentFileName = fileNames + folder_path_len + 1;
 			bool single_file = currentFileName[0] == '\0';
 
 			int max_safety_iterations = 5000;
@@ -73,10 +84,8 @@ namespace ORNG {
 			{
 				i++;
 				// Construct the full file path
-				std::wstring filePath = single_file ? folderPath : folderPath + L"\\" + currentFileName;
-
-				std::string path_name = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(filePath);
-
+				std::filesystem::path file_path = single_file ? folder_path : folder_path + L"\\" + currentFileName;
+				auto path_name = file_path.generic_string();
 
 				// Reset path to stop relative paths breaking
 				std::filesystem::current_path(prev_path);
@@ -135,7 +144,7 @@ namespace ORNG {
 	bool ExtraUI::ShowColorVec3Editor(const char* name, glm::vec3& vec) {
 		bool ret = false;
 		ImGui::PushID(&vec);
-		ImGui::Text(name);
+		ImGui::Text("%s", name);
 		ImGui::PushItemWidth(100.f);
 
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "R");
@@ -169,7 +178,7 @@ namespace ORNG {
 		bool ret = false;
 		glm::vec3 vec_copy = vec;
 		ImGui::PushID(&vec);
-		ImGui::Text(name);
+		ImGui::Text("%s", name);
 		ImGui::SameLine();
 
 		ImGui::PushItemWidth(100.f);
@@ -210,7 +219,7 @@ namespace ORNG {
 		bool ret = false;
 		glm::vec4 vec_copy = vec;
 		ImGui::PushID(&vec);
-		ImGui::Text(name);
+		ImGui::Text("%s", name);
 		ImGui::PushItemWidth(100.f);
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
 		ImGui::SameLine();
@@ -255,11 +264,8 @@ namespace ORNG {
 		return ret;
 	}
 
-	int InputTextCallback(ImGuiInputTextCallbackData* data)
-	{
-		int iters = 0;
+	static int InputTextCallback(ImGuiInputTextCallbackData* data) {
 		if (std::isalnum(data->EventChar) == 0 && data->EventChar != '_' && data->EventChar != ' ') return 1;
-
 		return 0;
 	}
 
@@ -279,24 +285,32 @@ namespace ORNG {
 	}
 
 	bool ExtraUI::InputUint(const char* name, unsigned& val) {
-		int_storage.push_back(val);
+		if (val > std::numeric_limits<int>::max()) {
+			ORNG_CORE_ERROR("InputUint must be less than {}", static_cast<unsigned>(std::numeric_limits<int>::max()) + 1);
+		}
+
+		int_storage.push_back(static_cast<int>(val));
 		if (ImGui::InputInt(name, &int_storage[int_storage.size() - 1]) && int_storage[int_storage.size() - 1] >= 0) {
-			val = int_storage[int_storage.size() - 1];
+			val = static_cast<unsigned>(int_storage[int_storage.size() - 1]);
 			return true;
 		}
+
+		return false;
 	}
 
 	bool ExtraUI::InputUint8(const char* name, uint8_t& val) {
 		int_storage.push_back(val);
 		if (ImGui::InputInt(name, &int_storage[int_storage.size() - 1]) && int_storage[int_storage.size() - 1] >= 0) {
-			val = int_storage[int_storage.size() - 1];
+			val = static_cast<uint8_t>(int_storage[int_storage.size() - 1]);
 			return true;
 		}
+
+		return false;
 	}
 
-	bool ExtraUI::SwitchButton(const std::string& content, bool active, ImVec4 inactive_col, ImVec4 active_col) {
+	bool ExtraUI::SwitchButton(const std::string& content, bool active, ImVec4 active_col) {
 		bool state_before = active;
-		
+
 		if (state_before) {
 			ImGui::PushStyleColor(ImGuiCol_Border, active_col);
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2);
@@ -312,34 +326,36 @@ namespace ORNG {
 		return ret;
 	}
 
-	bool ExtraUI::InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator) {
+	bool ExtraUI::InterpolatorV1Graph(InterpolatorV1* p_interpolator) {
 		ImGui::PushID(p_interpolator);
 
 		bool ret = false;
 
-		ImPlot::SetNextAxesLimits(p_interpolator->x_min_max.x, p_interpolator->x_min_max.y, p_interpolator->y_min_max.x, p_interpolator->y_min_max.y);
-		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
+		ImPlot::SetNextAxesLimits(static_cast<double>(p_interpolator->x_min_max.x), static_cast<double>(p_interpolator->x_min_max.y),
+			static_cast<double>(p_interpolator->y_min_max.x), static_cast<double>(p_interpolator->y_min_max.y));
 
-			ORNG_CORE_TRACE("{0}", p_interpolator->GetValue(ImPlot::GetPlotMousePos().x));
+		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
+			ORNG_CORE_TRACE("{0}", p_interpolator->GetValue(static_cast<float>(ImPlot::GetPlotMousePos().x)));
 			if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(2) && !ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
 				auto pos = ImPlot::GetPlotMousePos();
-				p_interpolator->AddPoint(pos.x, pos.y);
+				p_interpolator->AddPoint(static_cast<float>(pos.x), static_cast<float>(pos.y));
 				ret = true;
 			}
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1, 0, 0, 1));
-			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y, p_interpolator->points.size(), 0, 0, sizeof(glm::vec2));
+			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y,
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec2));
 			ImPlot::PopStyleColor();
 
-
-			for (int i = 0; i < p_interpolator->points.size(); i++) {
-				double_storage[&p_interpolator->points[i].x] = p_interpolator->points[i].x;
-				double_storage[&p_interpolator->points[i].y] = p_interpolator->points[i].y;
+			for (size_t i = 0; i < p_interpolator->points.size(); i++) {
+				double_storage[&p_interpolator->points[i].x] = static_cast<double>(p_interpolator->points[i].x);
+				double_storage[&p_interpolator->points[i].y] = static_cast<double>(p_interpolator->points[i].y);
 
 				glm::vec2 v = p_interpolator->GetPoint(i);
-				if (ImPlot::DragPoint(i * 4, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].y], { 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y])) {
-					v.y = double_storage[&p_interpolator->points[i].y];
-					v.x = double_storage[&p_interpolator->points[i].x];
+				if (ImPlot::DragPoint(static_cast<int>(i) * 4, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].y],
+					{ 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y])) {
+					v.y = static_cast<float>(double_storage[&p_interpolator->points[i].y]);
+					v.x = static_cast<float>(double_storage[&p_interpolator->points[i].x]);
 					ret = true;
 				}
 
@@ -362,56 +378,71 @@ namespace ORNG {
 		return ret;
 	}
 
-	bool ExtraUI::InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator) {
+	bool ExtraUI::InterpolatorV3Graph(InterpolatorV3* p_interpolator) {
 		ImGui::PushID(p_interpolator);
 
 		bool ret = false;
 
-		ImPlot::SetNextAxesLimits(p_interpolator->x_min_max.x, p_interpolator->x_min_max.y, p_interpolator->yzw_min_max.x, p_interpolator->yzw_min_max.y);
-		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
+		ImPlot::SetNextAxesLimits(
+			static_cast<double>(p_interpolator->x_min_max.x),
+			static_cast<double>(p_interpolator->x_min_max.y),
+			static_cast<double>(p_interpolator->yzw_min_max.x),
+			static_cast<double>(p_interpolator->yzw_min_max.y)
+		);
 
+		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
 			if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(2) && !ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
 				auto pos = ImPlot::GetPlotMousePos();
-				p_interpolator->AddPoint(pos.x, glm::vec3(pos.y));
+				p_interpolator->AddPoint(static_cast<float>(pos.x), glm::vec3{static_cast<float>(pos.y)});
 				ret = true;
 			}
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1, 0, 0, 1));
-			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y, p_interpolator->points.size(), 0, 0, sizeof(glm::vec4));
+			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y,
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec4));
 			ImPlot::PopStyleColor();
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0, 1, 0, 1));
-			ImPlot::PlotLine("Y", &p_interpolator->points[0].x, &p_interpolator->points[0].z, p_interpolator->points.size(), 0, 0, sizeof(glm::vec4));
+			ImPlot::PlotLine("Y", &p_interpolator->points[0].x, &p_interpolator->points[0].z,
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec4));
 			ImPlot::PopStyleColor();
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0, 0, 1, 1));
-			ImPlot::PlotLine("Z", &p_interpolator->points[0].x, &p_interpolator->points[0].w, p_interpolator->points.size(), 0, 0, sizeof(glm::vec4));
+			ImPlot::PlotLine("Z", &p_interpolator->points[0].x, &p_interpolator->points[0].w,
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec4));
 			ImPlot::PopStyleColor();
 
-			for (int i = 0; i < p_interpolator->points.size(); i++) {
-				double_storage[&p_interpolator->points[i].x] = p_interpolator->points[i].x;
-				double_storage[&p_interpolator->points[i].y] = p_interpolator->points[i].y;
-				double_storage[&p_interpolator->points[i].z] = p_interpolator->points[i].z;
-				double_storage[&p_interpolator->points[i].w] = p_interpolator->points[i].w;
+			for (size_t i = 0; i < p_interpolator->points.size(); i++) {
+				double_storage[&p_interpolator->points[i].x] = static_cast<double>(p_interpolator->points[i].x);
+				double_storage[&p_interpolator->points[i].y] = static_cast<double>(p_interpolator->points[i].y);
+				double_storage[&p_interpolator->points[i].z] = static_cast<double>(p_interpolator->points[i].z);
+				double_storage[&p_interpolator->points[i].w] = static_cast<double>(p_interpolator->points[i].w);
 
 				glm::vec4 v = p_interpolator->GetPoint(i);
-				if (ImPlot::DragPoint(i * 4, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].y], { 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y])) {
-					v.y = double_storage[&p_interpolator->points[i].y];
-					v.x = double_storage[&p_interpolator->points[i].x];
+				if (ImPlot::DragPoint(static_cast<int>(i) * 4, &double_storage[&p_interpolator->points[i].x],
+					&double_storage[&p_interpolator->points[i].y], { 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y]))
+				{
+					v.y = static_cast<float>(double_storage[&p_interpolator->points[i].y]);
+					v.x = static_cast<float>(double_storage[&p_interpolator->points[i].x]);
 					ret = true;
 				}
 
-				if (ImPlot::DragPoint(i * 4 + 1, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].z], { 0, 1, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].z])) {
-					v.z = double_storage[&p_interpolator->points[i].z];
-					v.x = double_storage[&p_interpolator->points[i].x];
+				if (ImPlot::DragPoint(static_cast<int>(i) * 4 + 1, &double_storage[&p_interpolator->points[i].x],
+					&double_storage[&p_interpolator->points[i].z], { 0, 1, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].z]))
+				{
+					v.z = static_cast<float>(double_storage[&p_interpolator->points[i].z]);
+					v.x = static_cast<float>(double_storage[&p_interpolator->points[i].x]);
 					ret = true;
 				}
 
-				if (ImPlot::DragPoint(i * 4 + 2, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].w], { 0, 0, 1, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].w])) {
-					v.w = double_storage[&p_interpolator->points[i].w];
-					v.x = double_storage[&p_interpolator->points[i].x];
+				if (ImPlot::DragPoint(static_cast<int>(i) * 4 + 2, &double_storage[&p_interpolator->points[i].x],
+					&double_storage[&p_interpolator->points[i].w], { 0, 0, 1, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].w]))
+				{
+					v.w = static_cast<float>(double_storage[&p_interpolator->points[i].w]);
+					v.x = static_cast<float>(double_storage[&p_interpolator->points[i].x]);
 					ret = true;
 				}
+
 				p_interpolator->SetPoint(i, v);
 				
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle) && ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && (bool_storage[&p_interpolator->points[i].y] || bool_storage[&p_interpolator->points[i].z] || bool_storage[&p_interpolator->points[i].w])) {
@@ -443,7 +474,7 @@ namespace ORNG {
 		bool ret = false;
 		glm::vec2 vec_copy = vec;
 		ImGui::PushID(&vec);
-		ImGui::Text(name);
+		ImGui::Text("%s", name);
 		ImGui::PushItemWidth(100.f);
 		ImGui::TextColored(ImVec4(1, 0, 0, 1), "X");
 		ImGui::SameLine();
@@ -469,3 +500,7 @@ namespace ORNG {
 		return ret;
 	}
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

@@ -9,7 +9,7 @@ namespace ORNG {
 		//mp_system->OnDepthMapUpdate();
 	}
 
-	DirectionalLight::DirectionalLight() : BaseLight(0) {
+	DirectionalLight::DirectionalLight() : BaseLight(nullptr) {
 		colour = glm::vec3(0.922f, 0.985f, 0.875f) * 5.f;
 		shadows_enabled = true;
 	}

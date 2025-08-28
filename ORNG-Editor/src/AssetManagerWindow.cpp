@@ -1,12 +1,20 @@
 #include "pch/pch.h"
-#include <shellapi.h>
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <imgui.h>
+#include <Icons.h>
+#include <shellapi.h>
 #include <yaml-cpp/yaml.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include "AssetManagerWindow.h"
 
 #include "EditorLayer.h"
-#include "Icons.h"
 #include "components/systems/EnvMapSystem.h"
 #include "rendering/renderpasses/BloomPass.h"
 #include "rendering/renderpasses/DepthPass.h"
@@ -17,7 +25,6 @@
 #include "rendering/renderpasses/LightingPass.h"
 #include "rendering/renderpasses/TransparencyPass.h"
 #include "assets/Prefab.h"
-#include "assets/PhysXMaterialAsset.h"
 #include "components/PhysicsComponent.h"
 #include "assets/AssetManager.h"
 #include "core/Window.h"
@@ -27,7 +34,6 @@
 #include "scene/SceneSerializer.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "core/GLStateManager.h"
-#include "physics/Physics.h"
 #include "components/ComponentSystems.h"
 
 using namespace ORNG;
@@ -129,10 +135,15 @@ void AssetManagerWindow::OnMainRender() {
 void AssetManagerWindow::RenderConfirmationWindow(ConfirmationWindowData& data, int index) {
 	ImVec2 window_size{ 600, 200 };
 	ImGui::SetNextWindowSize(window_size);
-	ImGui::SetNextWindowPos(ImVec2((Window::GetWidth() - window_size.x) / 2.0, (Window::GetHeight() - window_size.y) / 2.0));
+
+	ImGui::SetNextWindowPos(ImVec2{
+		(static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f,
+		(static_cast<float>(Window::GetHeight()) - window_size.y) / 2.f
+	});
+
 	if (ImGui::Begin("Confirm")) {
 		ImGui::SeparatorText("Confirm");
-		ImGui::Text(data.str.c_str());
+		ImGui::Text("%s", data.str.c_str());
 
 		if (data.imgui_render) data.imgui_render();
 
@@ -189,11 +200,8 @@ void AssetManagerWindow::OnRenderUI() {
 	if (mp_selected_texture)
 		RenderTextureEditorSection();
 
-	if (mp_selected_physx_material)
-		RenderPhysXMaterialEditor();
-
-	for (int i = m_confirmation_window_stack.size() - 1; i >= 0; i--) {
-		RenderConfirmationWindow(m_confirmation_window_stack[i], i);
+	for (int i = static_cast<int>(m_confirmation_window_stack.size()) - 1; i >= 0; i--) {
+		RenderConfirmationWindow(m_confirmation_window_stack[static_cast<unsigned>(i)], i);
 	}
 }
 
@@ -249,7 +257,7 @@ void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 	AssetDisplaySpec spec;
 
 	unsigned using_count = 0;
-	for (const auto& [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
+	for (const auto [entity, script] : mp_scene_context->m_registry.view<ScriptComponent>().each()) {
 		if (script.GetSymbols() == &p_asset->symbols)
 			using_count++;
 	}
@@ -284,10 +292,10 @@ void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 		[this, p_asset]() {
 			UnloadScript(*p_asset);
 		}));
-	};
+	}
 
 	spec.popup_spec.options.push_back(std::make_pair("Edit",
-		[p_asset]() { ShellExecute(NULL, "open", p_asset->filepath.c_str(), NULL, NULL, SW_SHOWDEFAULT); }
+		[p_asset]() { ShellExecute(nullptr, "open", p_asset->filepath.c_str(), nullptr, nullptr, SW_SHOWDEFAULT); }
 	));
 
 	spec.p_tex = AssetManager::GetAsset<Texture2D>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE));
@@ -302,34 +310,6 @@ void AssetManagerWindow::RenderScriptAsset(ScriptAsset* p_asset) {
 	}
 
 }
-
-
-void AssetManagerWindow::RenderPhysXMaterial(PhysXMaterialAsset* p_material) {
-	AssetDisplaySpec spec;
-
-	unsigned using_count = 0;
-	for (auto [entity, comp] : mp_scene_context->m_registry.view<PhysicsComponent>().each()) {
-		if (comp.GetMaterial() == p_material)
-			using_count++;
-	}
-
-	spec.delete_confirmation_str = using_count == 0 ? "" : std::format("{} entities are using this.", using_count);
-
-	spec.on_drag = [p_material]() {
-		static PhysXMaterialAsset* p_dragged_material = nullptr;
-		p_dragged_material = p_material;
-		ImGui::SetDragDropPayload("PHYSX-MATERIAL", &p_dragged_material, sizeof(PhysXMaterialAsset*));
-		ImGui::EndDragDropSource();
-		};
-
-	spec.on_click = [this, p_material]() {
-		mp_selected_physx_material = p_material;
-		};
-	spec.p_tex = AssetManager::GetAsset<Texture2D>(static_cast<uint64_t>(BaseAssetIDs::WHITE_TEXTURE));
-
-	RenderBaseAsset(p_material, spec);
-}
-
 
 
 void AssetManagerWindow::RenderMeshAsset(MeshAsset* p_mesh_asset) {
@@ -380,7 +360,7 @@ void AssetManagerWindow::RenderSceneAsset(SceneAsset* p_asset) {
 	// Is scene active in the editor
 	const bool is_active = mp_editor->mp_scene_context->m_asset_uuid() == p_asset->uuid();
 	if (is_active) {
-		spec.popup_spec.options.emplace_back("Active", [this, p_asset]() {});
+		spec.popup_spec.options.emplace_back("Active", []() {});
 	} else {
 		spec.popup_spec.options.emplace_back("Make active", [this, p_asset]() {
 			PushConfirmationWindow("Make scene active? You will lose any unsaved changes on the current scene.", [p_asset]() {
@@ -399,9 +379,9 @@ void AssetManagerWindow::RenderBaseAsset(Asset* p_asset, const AssetDisplaySpec&
 
 	ExtraUI::NameWithTooltip(display_spec.override_name.empty() ? GetFilename(p_asset->filepath).c_str() : display_spec.override_name);
 
-	if (ExtraUI::CenteredImageButton(ImTextureID(display_spec.p_tex->GetTextureHandle()), image_button_size) && display_spec.on_click) {
+	if (ExtraUI::CenteredImageButton(reinterpret_cast<void*>(display_spec.p_tex->GetTextureHandle()), image_button_size) && display_spec.on_click) {
 		display_spec.on_click();
-	};
+	}
 
 	if (ImGui::BeginDragDropSource() && display_spec.on_drag) {
 		display_spec.on_drag();
@@ -514,28 +494,26 @@ void AssetManagerWindow::RenderPrefab(Prefab* p_prefab) {
 }
 
 void AssetManagerWindow::RenderAsset(Asset *p_asset) {
-	if (auto* p_casted = dynamic_cast<Texture2D*>(p_asset))
-		RenderTexture(p_casted);
-	else if (auto* p_casted = dynamic_cast<MeshAsset*>(p_asset))
-		RenderMeshAsset(p_casted);
-	else if (auto* p_casted = dynamic_cast<SoundAsset*>(p_asset))
-		RenderAudioAsset(p_casted);
-	else if (auto* p_casted = dynamic_cast<Prefab*>(p_asset))
-		RenderPrefab(p_casted);
-	else if (auto* p_casted = dynamic_cast<Material*>(p_asset))
-		RenderMaterial(p_casted);
-	else if (auto* p_casted = dynamic_cast<PhysXMaterialAsset*>(p_asset))
-		RenderPhysXMaterial(p_casted);
-	else if (auto* p_casted = dynamic_cast<ScriptAsset*>(p_asset))
-		RenderScriptAsset(p_casted);
-	else if (auto* p_casted = dynamic_cast<SceneAsset*>(p_asset))
-		RenderSceneAsset(p_casted);
+	if (auto* p_casted0 = dynamic_cast<Texture2D*>(p_asset))
+		RenderTexture(p_casted0);
+	else if (auto* p_casted1 = dynamic_cast<MeshAsset*>(p_asset))
+		RenderMeshAsset(p_casted1);
+	else if (auto* p_casted2 = dynamic_cast<SoundAsset*>(p_asset))
+		RenderAudioAsset(p_casted2);
+	else if (auto* p_casted3 = dynamic_cast<Prefab*>(p_asset))
+		RenderPrefab(p_casted3);
+	else if (auto* p_casted4 = dynamic_cast<Material*>(p_asset))
+		RenderMaterial(p_casted4);
+	else if (auto* p_casted5 = dynamic_cast<ScriptAsset*>(p_asset))
+		RenderScriptAsset(p_casted5);
+	else if (auto* p_casted6 = dynamic_cast<SceneAsset*>(p_asset))
+		RenderSceneAsset(p_casted6);
 }
 
 bool AssetManagerWindow::RenderDirectory(const std::filesystem::path& path, std::string& active_path) {
 	static bool ret = false;
 
-	ImGui::Text(path.filename().generic_string().c_str());
+	ImGui::Text("%s", path.filename().generic_string().c_str());
 	ImGui::Button(ICON_FA_FOLDER_CLOSED, image_button_size);
 
 	if (ExtraUI::RightClickPopup((std::string{"Directory settings"} + path.generic_string()).c_str())) {
@@ -597,7 +575,6 @@ void AssetManagerWindow::RenderAddAssetPopup(bool open_condition) {
 		if (ImGui::Selectable("Script")) mp_active_add_asset_window = [this]{ if (RenderAddScriptAssetWindow()) mp_active_add_asset_window = nullptr;};
 		if (ImGui::Selectable("Prefab")) mp_active_add_asset_window = [this]{ if (RenderAddPrefabAssetWindow()) mp_active_add_asset_window = nullptr;};
 		if (ImGui::Selectable("Sound")) mp_active_add_asset_window = [this]{ if (RenderAddSoundAssetWindow()) mp_active_add_asset_window = nullptr;};
-		if (ImGui::Selectable("PhysX Material")) mp_active_add_asset_window = [this]{ if (RenderAddPhysxMaterialAssetWindow()) mp_active_add_asset_window = nullptr;};
 		if (ImGui::Selectable("Scene")) mp_active_add_asset_window = [this]{ if (RenderAddSceneAssetWindow()) mp_active_add_asset_window = nullptr;};
 
 		ImGui::EndPopup();
@@ -609,7 +586,7 @@ void AssetManagerWindow::RenderAddAssetPopup(bool open_condition) {
 bool AssetManagerWindow::RenderBaseAddAssetWindow(const AssetAddDisplaySpec& display_spec, std::string& name, std::string& filepath, const std::string& extension) {
 	bool ret = false;
 	if (ImGui::Begin("Addasset", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::SeparatorText("Add asset"); ImGui::SameLine(); if (ImGui::Button("X")) {mp_active_add_asset_window = nullptr; return false; };
+		ImGui::SeparatorText("Add asset"); ImGui::SameLine(); if (ImGui::Button("X")) {mp_active_add_asset_window = nullptr; return false; }
 		ImGui::Text("Name: ");
 		ImGui::SameLine();
 		ExtraUI::AlphaNumTextInput(name);
@@ -641,16 +618,16 @@ bool AssetManagerWindow::RenderAddMeshAssetWindow() {
 	static std::string raw_mesh_filepath = "";
 
 	AssetAddDisplaySpec spec{};
-	spec.on_render = [this] {
-		ImGui::Text(std::format("Source: {}", raw_mesh_filepath).c_str());
+	spec.on_render = [] {
+		ImGui::Text("%s", std::format("Source: {}", raw_mesh_filepath).c_str());
 		if (ImGui::Button("Add mesh source file")) {
 			wchar_t valid_extensions[MAX_PATH] = L"Mesh Files: *.obj;*.fbx;*.glb;*.gltf\0*.obj;*.fbx;*.glb;*.gltf\0";
 
-			std::function<void(std::string)> success_callback = [this](std::string filepath) {
+			std::function<void(std::string)> success_callback = [](std::string filepath) {
 				raw_mesh_filepath = filepath;
 			};
 
-			ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			ExtraUI::ShowFileExplorer(valid_extensions, success_callback);
 		}
 	};
 
@@ -674,16 +651,16 @@ bool AssetManagerWindow::RenderAddTexture2DAssetWindow() {
 	static std::string raw_tex_filepath;
 
 	AssetAddDisplaySpec spec{};
-	spec.on_render = [this] {
-		ImGui::Text(std::format("Source: {}", raw_tex_filepath).c_str());
+	spec.on_render = [] {
+		ImGui::Text("%s", std::format("Source: {}", raw_tex_filepath).c_str());
 		if (ImGui::Button("Add texture source file")) {
 			wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
-			std::function<void(std::string)> success_callback = [this](std::string filepath) {
+			std::function<void(std::string)> success_callback = [](std::string filepath) {
 				raw_tex_filepath = filepath;
 			};
 
-			ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			ExtraUI::ShowFileExplorer(valid_extensions, success_callback);
 		}
 	};
 
@@ -727,12 +704,12 @@ bool AssetManagerWindow::RenderAddPrefabAssetWindow() {
 	static uint64_t prefab_entity_uuid = 0;
 
 	AssetAddDisplaySpec spec{};
-	spec.on_render = [this] {
+	spec.on_render = [] {
 		ImGui::Text("Drag and drop an entity into the area below");
 		ImGui::Button("Drop here!", {100, 200});
 		if (prefab_entity_uuid != 0) {
 			ImGui::SameLine();
-			ImGui::Text(std::format("Prefab entity UUID: {}", prefab_entity_uuid).c_str());
+			ImGui::Text("%s", std::format("Prefab entity UUID: {}", prefab_entity_uuid).c_str());
 		}
 
 		if (ImGui::BeginDragDropTarget()) {
@@ -828,35 +805,20 @@ bool AssetManagerWindow::RenderAddScriptAssetWindow() {
 	return true;
 }
 
-bool AssetManagerWindow::RenderAddPhysxMaterialAssetWindow() {
-	AssetAddDisplaySpec spec{};
-
-	static std::string name = "New asset";
-	static std::string new_asset_fp;
-	const bool add = RenderBaseAddAssetWindow(spec, name, new_asset_fp, ".opmat");
-	if (!add || name.empty()) return false;
-
-	auto* p_new = new PhysXMaterialAsset{new_asset_fp};
-	p_new->p_material = Physics::GetPhysics()->createMaterial(0.75, 0.75, 0.6);
-	AssetManager::AddAsset(p_new);
-
-	return true;
-}
-
 bool AssetManagerWindow::RenderAddSoundAssetWindow() {
 	static std::string raw_sound_filepath;
 
 	AssetAddDisplaySpec spec{};
-	spec.on_render = [this] {
-		ImGui::Text(std::format("Source: {}", raw_sound_filepath).c_str());
+	spec.on_render = [] {
+		ImGui::Text("%s", std::format("Source: {}", raw_sound_filepath).c_str());
 		if (ImGui::Button("Add audio source file")) {
 			wchar_t valid_extensions[MAX_PATH] = L"Audio Files: *.mp3;*.wav;\0*.mp3;*.wav;\0";
 
-			std::function<void(std::string)> success_callback = [this](std::string filepath) {
+			std::function<void(std::string)> success_callback = [](std::string filepath) {
 				raw_sound_filepath = filepath;
 			};
 
-			ExtraUI::ShowFileExplorer("", valid_extensions, success_callback);
+			ExtraUI::ShowFileExplorer(valid_extensions, success_callback);
 		}
 	};
 
@@ -895,7 +857,7 @@ bool AssetManagerWindow::RenderAddSceneAssetWindow() {
 
 void AssetManagerWindow::RenderMainAssetWindow() {
 	const int window_width = Window::GetWidth() - 650;
-	column_count = glm::max<int>(window_width / (image_button_size.x + 40), 1);
+	column_count = glm::max(window_width / (static_cast<int>(image_button_size.x) + 40), 1);
 
 	if (ImGui::Button(ICON_FA_ARROW_LEFT_LONG)) {
 		m_current_content_dir = m_current_content_dir.substr(0, m_current_content_dir.rfind('/'));
@@ -907,7 +869,7 @@ void AssetManagerWindow::RenderMainAssetWindow() {
 	auto path_directories = SplitString(m_current_content_dir, '/');
 	for (size_t i = 0; i < path_directories.size(); i++) {
 		ImGui::SameLine(0.f, i == 0 ? -1 : 0.f);
-		ImGui::Text((path_directories[i] + (i == path_directories.size() - 1 ? "" : " >> ")).c_str());
+		ImGui::Text("%s", (path_directories[i] + (i == path_directories.size() - 1 ? "" : " >> ")).c_str());
 
 		if (ImGui::IsItemClicked()) {
 			m_current_content_dir = "";
@@ -999,6 +961,9 @@ void AssetManagerWindow::OnProjectEvent(const Events::AssetEvent& t_event) {
 			m_materials_to_gen_previews.push_back(p_material);
 			break;
 		}
+		case Events::AssetEventType::TEXTURE_DELETED:
+		case Events::AssetEventType::TEXTURE_LOADED:
+			break;
 	}
 }
 
@@ -1051,56 +1016,6 @@ void AssetManagerWindow::CreateMaterialPreview(const Material* p_material) {
 	glGenerateTextureMipmap(p_tex->GetTextureHandle());
 }
 
-
-
-void AssetManagerWindow::RenderPhysXMaterialEditor() {
-	if (!mp_selected_physx_material)
-		return;
-
-	static float df = 1.f;
-	static float sf = 1.f;
-	static float r = 1.f;
-
-	df = mp_selected_physx_material->p_material->getDynamicFriction();
-	sf = mp_selected_physx_material->p_material->getStaticFriction();
-	r = mp_selected_physx_material->p_material->getRestitution();
-
-	ImGui::SetNextWindowSize({ 600, 300 });
-
-	if (ImGui::Begin("PhysX material editor")) {
-		if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(1)) {
-			// Deselect, close window
-			mp_selected_physx_material = nullptr;
-			ImGui::End();
-			return;
-		}
-
-		ImGui::PushItemWidth(300.0);
-		float avail = ImGui::GetContentRegionAvail().x;
-
-		ImGui::Text("Name: "); ImGui::SameLine(avail - 300.0);
-		ExtraUI::AlphaNumTextInput(mp_selected_physx_material->name);
-
-		ImGui::Text("Dynamic friction"); ImGui::SameLine(avail - 300.0);
-		if (ImGui::DragFloat("##df", &df)) {
-			mp_selected_physx_material->p_material->setDynamicFriction(df);
-		}
-
-		ImGui::Text("Static friction"); ImGui::SameLine(avail - 300.0);
-		if (ImGui::DragFloat("##sf", &sf)) {
-			mp_selected_physx_material->p_material->setStaticFriction(sf);
-		}
-
-		ImGui::Text("Restitution"); ImGui::SameLine(avail - 300.0);
-		if (ImGui::SliderFloat("##r", &r, 0.f, 1.f)) {
-			mp_selected_physx_material->p_material->setRestitution(r);
-		}
-
-		ImGui::PopItemWidth();
-	}
-	ImGui::End();
-}
-
 bool AssetManagerWindow::RenderMaterialEditorSection() {
 	bool ret = false;
 
@@ -1130,8 +1045,8 @@ bool AssetManagerWindow::RenderMaterialEditorSection() {
 		ImGui::Text("Colors");
 		ImGui::Spacing();
 		ret |= ExtraUI::ShowVec4Editor("Base color", mp_selected_material->base_colour);
-		if (mp_selected_material->base_colour.w < 0.0 || mp_selected_material->base_colour.w > 1.0)
-			mp_selected_material->base_colour.w = 1.0;
+		if (mp_selected_material->base_colour.w < 0.0f || mp_selected_material->base_colour.w > 1.0f)
+			mp_selected_material->base_colour.w = 1.0f;
 
 		if (!mp_selected_material->roughness_texture)
 			ret |= ImGui::SliderFloat("Roughness", &mp_selected_material->roughness, 0.f, 1.f);
@@ -1233,16 +1148,16 @@ bool AssetManagerWindow::RenderMaterialTexture(const char* name, Texture2D*& p_t
 	bool ret = false;
 	ImGui::PushID(p_tex);
 	if (p_tex) {
-		ImGui::Text(std::format("{} texture - {}", name, p_tex->GetName()).c_str());
-		if (ImGui::ImageButton(ImTextureID(p_tex->GetTextureHandle()), ImVec2(75, 75), ImVec2(0, 1), ImVec2(1, 0))) {
+		ImGui::Text("%s", std::format("{} texture - {}", name, p_tex->GetName()).c_str());
+		if (ImGui::ImageButton(ImTextureID{reinterpret_cast<void*>(p_tex->GetTextureHandle())}, ImVec2(75, 75), ImVec2(0, 1), ImVec2(1, 0))) {
 			mp_selected_texture = p_tex;
 			m_current_2d_tex_spec = p_tex->GetSpec();
 			ret = true;
-		};
+		}
 	}
 	else {
-		ImGui::Text(std::format("{} texture - NONE", name).c_str());
-		ret |= ImGui::ImageButton(ImTextureID(0), ImVec2(75, 75));
+		ImGui::Text("%s", std::format("{} texture - NONE", name).c_str());
+		ret |= ImGui::ImageButton(nullptr, ImVec2(75, 75));
 	}
 
 	if (ImGui::BeginDragDropTarget()) {
@@ -1279,11 +1194,11 @@ void AssetManagerWindow::RenderTextureEditorSection() {
 
 		if (ImGui::BeginTable("##t", 2)) {
 			ImGui::TableNextColumn();
-			ImGui::TextWrapped(mp_selected_texture->GetSpec().filepath.c_str());
+			ImGui::TextWrapped("%s", mp_selected_texture->GetSpec().filepath.c_str());
 			ImGui::Separator();
 
-			const char* wrap_modes[] = { "REPEAT", "CLAMP TO EDGE" };
-			const char* filter_modes[] = { "LINEAR", "NEAREST" };
+			constexpr std::array wrap_modes = { "REPEAT", "CLAMP TO EDGE" };
+			constexpr std::array filter_modes = { "LINEAR", "NEAREST" };
 			static int selected_wrap_mode = m_current_2d_tex_spec.wrap_params == GL_REPEAT ? 0 : 1;
 			static int selected_filter_mode = m_current_2d_tex_spec.mag_filter == GL_LINEAR ? 0 : 1;
 
@@ -1291,17 +1206,17 @@ void AssetManagerWindow::RenderTextureEditorSection() {
 
 			ImGui::Text("Wrap mode");
 			ImGui::SameLine();
-			ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes, IM_ARRAYSIZE(wrap_modes));
+			ImGui::Combo("##Wrap mode", &selected_wrap_mode, wrap_modes.data(), wrap_modes.size());
 			m_current_2d_tex_spec.wrap_params = selected_wrap_mode == 0 ? GL_REPEAT : GL_CLAMP_TO_EDGE;
 
 			ImGui::Text("Filtering");
 			ImGui::SameLine();
-			ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes, IM_ARRAYSIZE(filter_modes));
+			ImGui::Combo("##Filter mode", &selected_filter_mode, filter_modes.data(), filter_modes.size());
 			m_current_2d_tex_spec.mag_filter = selected_filter_mode == 0 ? GL_LINEAR : GL_NEAREST;
 			m_current_2d_tex_spec.min_filter = selected_filter_mode == 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST;
 
 			std::string mipmapped = std::format("Mipmaps: {}", mp_selected_texture->GetSpec().generate_mipmaps ? "true" : "false");
-			ImGui::Text(mipmapped.c_str());
+			ImGui::Text("%s", mipmapped.c_str());
 
 			m_current_2d_tex_spec.generate_mipmaps = true;
 
@@ -1312,7 +1227,7 @@ void AssetManagerWindow::RenderTextureEditorSection() {
 
 			ImGui::TableNextColumn();
 			float size = glm::min(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
-			ExtraUI::CenteredImageButton(ImTextureID(mp_selected_texture->GetTextureHandle()), ImVec2(size, size));
+			ExtraUI::CenteredImageButton(reinterpret_cast<void*>(mp_selected_texture->GetTextureHandle()), ImVec2(size, size));
 			ImGui::Spacing();
 			ImGui::EndTable();
 		}
@@ -1323,7 +1238,7 @@ window_end:
 }
 
 void AssetManagerWindow::OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, const std::function<void()>& callback) {
-	PushConfirmationWindow("Delete asset? " + confirmation_text, [=] {
+	PushConfirmationWindow("Delete asset? " + confirmation_text, [=, this] {
 		if (callback)
 			callback();
 

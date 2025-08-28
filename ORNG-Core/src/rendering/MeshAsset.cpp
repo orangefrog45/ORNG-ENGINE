@@ -1,11 +1,21 @@
 #include "pch/pch.h"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "rendering/MeshAsset.h"
 #include "util/util.h"
 #include "util/Log.h"
 #include "util/TimeStep.h"
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 
 using namespace ORNG;
@@ -78,18 +88,16 @@ void MeshAsset::CountVerticesAndIndices(const aiScene* pScene, unsigned int& num
 }
 
 void MeshAsset::InitAllMeshes(const aiScene* pScene, MeshLoadResult& result) {
-	unsigned current_idx = 0;
 	unsigned current_vertex = 0;
 
 	for (unsigned int i = 0; i < result.submeshes.size(); i++) {
 		const aiMesh* p_ai_mesh = pScene->mMeshes[i];
-		InitSingleMesh(p_ai_mesh, current_idx, current_vertex, result);
-		current_idx += p_ai_mesh->mNumFaces * 3;
+		InitSingleMesh(p_ai_mesh, current_vertex, result);
 		current_vertex += p_ai_mesh->mNumVertices;
 	}
 }
 
-void MeshAsset::InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_idx, unsigned current_vertex, MeshLoadResult& result) {
+void MeshAsset::InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_vertex, MeshLoadResult& result) {
 	const aiVector3D zero3D{ 0.0f, 0.0f, 0.0f };
 
 	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.positions.data()) + current_vertex * sizeof(glm::vec3),
@@ -144,8 +152,8 @@ LoadedMeshTexture* MeshAsset::CreateOrGetMaterialTexture(const std::string& dir,
 
 			if (auto* p_ai_tex = p_scene->GetEmbeddedTexture(path.C_Str())) {
 				int x, y, channels;
-				size_t size = glm::max(p_ai_tex->mHeight, 1u) * p_ai_tex->mWidth;
-				stbi_uc* p_data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(p_ai_tex->pcData), size, &x, &y, &channels, 0);
+				unsigned size = glm::max(p_ai_tex->mHeight, 1u) * p_ai_tex->mWidth;
+				stbi_uc* p_data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(p_ai_tex->pcData), static_cast<int>(size), &x, &y, &channels, 0);
 
 				success = static_cast<bool>(p_data);
 
@@ -168,14 +176,14 @@ LoadedMeshTexture* MeshAsset::CreateOrGetMaterialTexture(const std::string& dir,
 	}
 
 	result.textures.push_back(std::move(ret));
-	result.texture_name_lookup[path.C_Str()] = result.textures.size() - 1;
+	result.texture_name_lookup[path.C_Str()] = static_cast<unsigned>(result.textures.size() - 1);
 
 	return &result.textures[result.textures.size() - 1];
 }
 
 void MeshAsset::SetMeshData(MeshLoadResult& result) {
 	m_num_indices = result.num_indices;
-	m_num_materials = result.materials.size();
+	m_num_materials = static_cast<unsigned>(result.materials.size());
 
 	m_vao.vertex_data = std::move(result.vertex_data);
 	m_submeshes = result.submeshes;
