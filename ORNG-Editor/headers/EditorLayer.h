@@ -1,7 +1,16 @@
 #pragma once
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <../extern/imgui/imgui.h>
+#include <ImGuizmo.h>
+#include <VRlib/core/headers/VR.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "EngineAPI.h"
-#include "../extern/imgui/imgui.h"
-#include "ImGuizmo.h"
 #include "AssetManagerWindow.h"
 #include "scene/GridMesh.h"
 #include "Settings.h"
@@ -12,7 +21,6 @@
 #include "util/LoggerUI.h"
 #include "components/PhysicsComponent.h"
 #include "layers/RuntimeSettings.h"
-#include "VRlib/core/headers/VR.h"
 
 
 struct DragData {
@@ -31,7 +39,8 @@ namespace ORNG {
 	};
 
 	struct EntityNodeData {
-		EntityNodeData(EntityNodeEvent _event, ImVec2 _node_max, ImVec2 _node_min) : e_event(_event), node_screen_max(_node_max), node_screen_min(_node_min) {};
+		EntityNodeData(EntityNodeEvent _event, ImVec2 _node_max, ImVec2 _node_min) :
+			e_event(_event), node_screen_max(_node_max), node_screen_min(_node_min) {}
 		EntityNodeEvent e_event;
 
 		ImVec2 node_screen_max;
@@ -46,18 +55,19 @@ namespace ORNG {
 	class EditorLayer : public Layer {
 		friend class AssetManagerWindow;
 	public:
-		EditorLayer(Scene* p_scene, const std::string& start_filepath) : mp_scene_context(p_scene), m_start_filepath(start_filepath) { m_asset_manager_window.SetScene(p_scene); };
+		EditorLayer(Scene* p_scene, const std::string& start_filepath) :
+			mp_scene_context(p_scene), m_start_filepath(start_filepath) { m_asset_manager_window.SetScene(p_scene); }
 
 		void Init();
 
 		void SetScene(Scene* p_scene);
 
 	private:
-		void OnInit() override { Init(); };
+		void OnInit() override { Init(); }
 
 		void Update() override;
 
-		void OnImGuiRender() override { RenderUI(); };
+		void OnImGuiRender() override { RenderUI(); }
 
 		void OnRender() override;
 
@@ -198,8 +208,6 @@ namespace ORNG {
 
 		void RenderParticleBufferComponentEditor(class ParticleBufferComponent* p_comp);
 
-		void RenderEntityNodeRef(EntityNodeRef& ref);
-
 		/*
 			Project handling
 		*/
@@ -221,7 +229,7 @@ namespace ORNG {
 
 		void DeserializeProjectFromFile(const std::string& input_path);
 
-		void GenerateGameRuntimeSettings(const std::string& output_path, const class RuntimeSettings& settings);
+		void GenerateGameRuntimeSettings(const std::string& output_path, const RuntimeSettings& settings);
 
 		void SetActiveScene(SceneAsset& scene);
 
@@ -325,7 +333,7 @@ namespace ORNG {
 			static constexpr ImVec4 lighter_grey_color = ImVec4(0.2f, 0.2f, 0.2f, opacity);
 			static constexpr ImVec4 lightest_grey_color = ImVec4(0.3f, 0.3f, 0.3f, opacity);
 			static constexpr ImVec4 blue_col = ImVec4(0, 100, 255, 1);
-			static constexpr float toolbar_height = 40;
+			static constexpr int toolbar_height = 40;
 			glm::vec2 file_explorer_window_size = { 750, 750 };
 		};
 

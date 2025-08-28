@@ -78,8 +78,6 @@ namespace ORNG {
 
 		MeshAsset() = delete;
 		MeshAsset(const std::string& filename) : Asset(filename) {}
-		MeshAsset(const std::string& filename, uint64_t t_uuid) : Asset(filename, t_uuid) {}
-		MeshAsset(const MeshAsset& other) = default;
 		~MeshAsset() override = default;
 
 		static std::optional<MeshLoadResult> LoadMeshDataFromFile(const std::string& raw_mesh_filepath);

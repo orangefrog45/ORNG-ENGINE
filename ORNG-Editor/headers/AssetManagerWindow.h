@@ -13,14 +13,14 @@ namespace ORNG {
 	struct Prefab;
 
 	struct ConfirmationWindowData {
-		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {};
+		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {}
 		std::string str;
 		std::function<void()> callback = nullptr;
 		std::function<void()> imgui_render = nullptr;
 	};
 
 	struct ErrorMessage {
-		ErrorMessage(const char* err, std::vector<std::string>& logs) : error(err), prev_logs(std::move(logs)) {};
+		ErrorMessage(const char* err, std::vector<std::string>& logs) : error(err), prev_logs(std::move(logs)) {}
 		std::string error;
 		std::vector<std::string> prev_logs;
 	};
@@ -52,7 +52,7 @@ namespace ORNG {
 	};
 
 	struct SwitchSceneEvent : Events::Event {
-		explicit SwitchSceneEvent(SceneAsset* _p_new) : p_new(_p_new) {};
+		explicit SwitchSceneEvent(SceneAsset* _p_new) : p_new(_p_new) {}
 		SceneAsset* p_new;
 	};
 
@@ -60,7 +60,7 @@ namespace ORNG {
 		friend class EditorLayer;
 	public:
 		AssetManagerWindow(std::string* p_active_project_dir, Scene* p_scene, class EditorLayer* p_editor) :
-			mp_active_project_dir(p_active_project_dir), mp_scene_context(p_scene), mp_editor(p_editor) {};
+			mp_scene_context(p_scene), mp_editor(p_editor), mp_active_project_dir(p_active_project_dir) {}
 		// Renders previews, does not render the UI
 		void OnMainRender();
 		void OnRenderUI();
@@ -145,7 +145,7 @@ namespace ORNG {
 		void OnRequestDeleteAsset(Asset* p_asset, const std::string& confirmation_text, const std::function<void()>& callback = nullptr);
 
 		ImVec2 image_button_size{ 125, 125};
-		unsigned column_count = 1;
+		int column_count = 1;
 
 		std::string m_current_content_dir = "res";
 

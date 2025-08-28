@@ -18,6 +18,7 @@ src/main.cpp
 ${ORNG_EDITOR_SRC_FILES}
 )
 
+target_compile_options(ORNG_EDITOR PRIVATE ${ORNG_WARNING_FLAGS})
 
 set(ORNG_EDITOR_INCLUDE_DIRS 
 ${CMAKE_CURRENT_LIST_DIR}/headers

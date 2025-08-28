@@ -78,10 +78,10 @@ namespace ORNG {
 			m_output_fb.BindTexture2D(skybox.m_diffuse_prefilter_map->GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
 			GL_StateManager::DefaultClearBits();
 			Renderer::DrawCube();
-			float* pixels = new float[tex_spec.width * tex_spec.height * 3];
-			glReadPixels(0, 0, static_cast<int>(tex_spec.width), static_cast<int>(tex_spec.height), tex_spec.format, tex_spec.storage_type, pixels);
+			float* pixels = new float[static_cast<unsigned>(tex_spec.width * tex_spec.height) * 3];
+			glReadPixels(0, 0, tex_spec.width, tex_spec.height, tex_spec.format, tex_spec.storage_type, pixels);
 
-			if (!stbi_write_hdr(tex_spec.filepaths[i].c_str(), static_cast<int>(tex_spec.width), static_cast<int>(tex_spec.height), 3, pixels))
+			if (!stbi_write_hdr(tex_spec.filepaths[i].c_str(), tex_spec.width, tex_spec.height, 3, pixels))
 				ORNG_CORE_CRITICAL("Error writing environment map diffuse prefilter texture");
 
 			delete[] pixels;
@@ -129,8 +129,8 @@ namespace ORNG {
 		int height = 512;
 
 		Texture2DSpec spec;
-		spec.width = static_cast<uint32_t>(width);
-		spec.height = static_cast<uint32_t>(height);
+		spec.width = width;
+		spec.height = height;
 		spec.internal_format = GL_RG16F;
 		spec.format = GL_RG;
 		spec.storage_type = GL_FLOAT;
@@ -151,7 +151,7 @@ namespace ORNG {
 	}
 
 
-	bool EnvMapLoader::LoadSkybox(const std::string& filepath, Skybox& skybox, unsigned int resolution, bool gen_ibl_textures) {
+	bool EnvMapLoader::LoadSkybox(const std::string& filepath, Skybox& skybox, int resolution, bool gen_ibl_textures) {
 		Texture2DSpec hdr_spec;
 		hdr_spec.generate_mipmaps = false;
 		hdr_spec.internal_format = GL_RGB16F;

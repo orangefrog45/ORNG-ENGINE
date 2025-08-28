@@ -18,7 +18,7 @@ namespace ORNG {
 
         inline static constexpr uint64_t GetSystemUUID() { return 89273647238766545; }
 
-        void LoadSkyboxFromHDRFile(const std::string& filepath, unsigned resolution);
+        void LoadSkyboxFromHDRFile(const std::string& filepath, int resolution);
 
         Skybox skybox;
     private:

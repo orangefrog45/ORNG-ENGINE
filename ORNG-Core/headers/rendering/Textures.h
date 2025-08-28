@@ -29,14 +29,14 @@ namespace ORNG {
 			s.value1b(srgb_space);
 		}
 
-		uint32_t internal_format;
+		int internal_format;
 		uint32_t format;
-		uint32_t min_filter;
-		uint32_t mag_filter;
-		uint32_t width = 1;
-		uint32_t height = 1;
+		int min_filter;
+		int mag_filter;
+		int width = 1;
+		int height = 1;
 
-		uint32_t wrap_params = GL_CLAMP_TO_EDGE;
+		int wrap_params = GL_CLAMP_TO_EDGE;
 		uint32_t storage_type;
 
 		uint8_t generate_mipmaps = false;
@@ -58,6 +58,8 @@ namespace ORNG {
 		[[nodiscard]] const std::string& GetName() const noexcept { return m_name; }
 
 		void SetName(const std::string& name) noexcept { m_name = name; }
+
+		void SetFilterAndWrapParams(bool is_3d, int min_filter, int mag_filter, int wrap_mode);
 
 		template <typename S>
 		void serialize(S& s) {

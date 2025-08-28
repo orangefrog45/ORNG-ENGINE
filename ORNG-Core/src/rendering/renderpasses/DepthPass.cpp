@@ -145,7 +145,7 @@ void DepthPass::DrawAllMeshesDepth(RenderGroup render_group) {
 
 			bool state_changed = SceneRenderer::SetGL_StateFromMatFlags(p_material->GetFlags());
 
-			Renderer::DrawSubMeshInstanced(group->GetMeshAsset(), group->GetRenderCount(), i, GL_TRIANGLES);
+			Renderer::DrawSubMeshInstanced(group->GetMeshAsset(), static_cast<int>(group->GetRenderCount()), static_cast<int>(i), GL_TRIANGLES);
 
 			if (state_changed)
 				SceneRenderer::UndoGL_StateModificationsFromMatFlags(p_material->GetFlags());

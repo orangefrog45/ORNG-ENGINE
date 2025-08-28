@@ -16,8 +16,20 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-#    message(FATAL_ERROR "Compilation only supported with MSVC")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(ORNG_WARNING_FLAGS
+        -Werror
+        -Wall
+        -Wno-c++98-compat
+        -Wno-c++98-compat-pedantic
+        -Wno-c++98-c++11-compat-pedantic
+        -Wno-reserved-identifier
+        -Wno-switch-default
+        -Wno-global-constructors
+        -Wno-unused-macros
+        -Wno-exit-time-destructors
+        -Wno-unsafe-buffer-usage
+    )
 endif()
 
 set(ORNG_BUILD_CORE ON)

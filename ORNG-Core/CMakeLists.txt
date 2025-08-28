@@ -40,7 +40,6 @@ set(ORNG_RENDERING_SOURCES
 		src/components/managers/SpotlightComponentManager.cpp
 		src/components/managers/ParticleSystem.cpp
 		src/components/managers/SceneUBOSystem.cpp
-		src/components/managers/EnvMapSystem.cpp
 )
 
 set(ORNG_UTIL_SOURCES
@@ -84,11 +83,12 @@ set(ORNG_LIB_SOURCES
 	src/rendering/renderpasses/PostProcessPass.cpp
 
 	src/rendering/EnvMapLoader.cpp
+	src/components/managers/EnvMapSystem.cpp
 
     src/core/Application.cpp
     src/core/Window.cpp
     src/events/EventManager.cpp
-        src/layers/LayerStack.cpp
+	src/layers/LayerStack.cpp
     src/pch/pch.cpp
     src/rendering/SceneRenderer.cpp
     src/scene/GridMesh.cpp
@@ -128,24 +128,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	target_compile_options(ORNG_UTIL PRIVATE /W4 /WX)
 	target_compile_options(ORNG_SCENE PRIVATE /W4 /WX)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	set(WARNING_FLAGS
-		-Werror
-		-Wall
-		-Wno-c++98-compat
-		-Wno-c++98-compat-pedantic
-		-Wno-c++98-c++11-compat-pedantic
-		-Wno-reserved-identifier
-		-Wno-switch-default
-		-Wno-global-constructors
-		-Wno-unused-macros
-		-Wno-exit-time-destructors
-		-Wno-unsafe-buffer-usage
-	)
-
-	target_compile_options(ORNG_CORE PRIVATE ${WARNING_FLAGS})
-	target_compile_options(ORNG_RENDERING PRIVATE ${WARNING_FLAGS})
-	target_compile_options(ORNG_UTIL PRIVATE ${WARNING_FLAGS})
-	target_compile_options(ORNG_SCENE PRIVATE ${WARNING_FLAGS})
+	target_compile_options(ORNG_CORE PRIVATE ${ORNG_WARNING_FLAGS})
+	target_compile_options(ORNG_RENDERING PRIVATE ${ORNG_WARNING_FLAGS})
+	target_compile_options(ORNG_UTIL PRIVATE ${ORNG_WARNING_FLAGS})
+	target_compile_options(ORNG_SCENE PRIVATE ${ORNG_WARNING_FLAGS})
 endif()
 
 
@@ -215,6 +201,7 @@ if (ORNG_BUILD_CORE)
 	ORNG_UTIL
 	ORNG_SCENE
 	ImPlot
+	yaml-cpp
 	OpenGL::GL
 	glfw
 	libglew_shared

@@ -166,7 +166,7 @@ bool Texture2D::LoadFromBinary(std::byte* p_data, size_t size, bool is_decompres
 		return false;
 	}
 
-	unsigned internal_format = 0;
+	int internal_format = 0;
 	unsigned format = 0;
 
 	if (!is_float) {
@@ -206,9 +206,9 @@ bool Texture2D::LoadFromBinary(std::byte* p_data, size_t size, bool is_decompres
 
 	// Texture is expected to already be configured properly for the floating-point format
 	if (is_float)
-		glTexImage2D(m_texture_target, 0, static_cast<int>(m_spec.internal_format), width, height, 0, m_spec.format, GL_FLOAT, image_data);
+		glTexImage2D(m_texture_target, 0, m_spec.internal_format, width, height, 0, m_spec.format, GL_FLOAT, image_data);
 	else
-		glTexImage2D(m_texture_target, 0, static_cast<int>(internal_format), width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
+		glTexImage2D(m_texture_target, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, image_data);
 
 
 	if (m_spec.generate_mipmaps)
@@ -233,12 +233,7 @@ bool Texture2D::LoadFromFile() {
 	else
 		ret = LoadImageFile(m_spec.filepath, GL_TEXTURE_2D, static_cast<TextureBaseSpec*>(&m_spec));
 
-	int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-	glTexParameteri(m_texture_target, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-	glTexParameteri(m_texture_target, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_S, wrap_mode);
-	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_T, wrap_mode);
-
+	SetFilterAndWrapParams(false, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 	return ret;
 }
@@ -252,7 +247,7 @@ bool Texture2DArray::LoadFromFile() {
 	}
 
 	GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
-	glTexImage3D(m_texture_target, 0, static_cast<int>(m_spec.internal_format), m_spec.width, m_spec.height,
+	glTexImage3D(m_texture_target, 0, m_spec.internal_format, m_spec.width, m_spec.height,
 		m_spec.filepaths.size(), 0, m_spec.format, m_spec.storage_type, nullptr);
 
 	for (size_t i = 0; i < m_spec.filepaths.size(); i++) {
@@ -267,7 +262,7 @@ bool Texture2DArray::LoadFromFile() {
 			return false;
 		}
 
-		if (width != static_cast<int>(m_spec.width) || height != static_cast<int>(m_spec.height)) {
+		if (width != m_spec.width || height != m_spec.height) {
 			ORNG_CORE_ERROR("2D Texture loading error: width/height mismatch");
 			stbi_image_free(image_data);
 			return false;
@@ -278,17 +273,23 @@ bool Texture2DArray::LoadFromFile() {
 		stbi_image_free(image_data);
 	}
 
-	int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, wrap_mode);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, wrap_mode);
+	SetFilterAndWrapParams(false, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 	return true;
 }
 
 
 
+void TextureBase::SetFilterAndWrapParams(bool is_3d, int min_filter, int mag_filter, int wrap_mode) {
+	wrap_mode = wrap_mode == GL_NONE ? GL_REPEAT : wrap_mode;
+	glTexParameteri(m_texture_target, GL_TEXTURE_MIN_FILTER, min_filter == GL_NONE ? GL_NEAREST : min_filter);
+	glTexParameteri(m_texture_target, GL_TEXTURE_MAG_FILTER, mag_filter == GL_NONE ? GL_NEAREST : mag_filter);
+	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_S, wrap_mode);
+	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_R, wrap_mode);
+
+	if (is_3d)
+		glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_T, wrap_mode);
+}
 
 
 
@@ -300,12 +301,7 @@ bool TextureCubemap::LoadFromFile() {
 			LoadImageFile(m_spec.filepaths[i], GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, static_cast<TextureBaseSpec*>(&m_spec));
 	}
 
-	const int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, wrap_mode);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, wrap_mode);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrap_mode);
+	SetFilterAndWrapParams(true, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 	return true;
 }
@@ -319,14 +315,10 @@ bool Texture2D::SetSpec(const Texture2DSpec& spec) {
 		m_spec = spec;
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, m_texture_obj, GL_TEXTURE0, true);
 
-		int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_mode);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_mode);
+		SetFilterAndWrapParams(false, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 		if (m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE)
-			glTexImage2D(GL_TEXTURE_2D, 0, static_cast<int>(spec.internal_format), static_cast<int>(spec.width), static_cast<int>(spec.height), 0,
+			glTexImage2D(GL_TEXTURE_2D, 0, spec.internal_format, spec.width, spec.height, 0,
 				spec.format, spec.storage_type, nullptr);
 
 		if (m_spec.generate_mipmaps)
@@ -350,19 +342,15 @@ bool Texture2DArray::SetSpec(const Texture2DArraySpec& spec) {
 		m_spec = spec;
 		GL_StateManager::BindTexture(GL_TEXTURE_2D_ARRAY, m_texture_obj, GL_TEXTURE0, true);
 
-		int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, wrap_mode);
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, wrap_mode);
+		SetFilterAndWrapParams(false, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 		if (m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE)
-			glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, static_cast<int>(m_spec.internal_format), m_spec.width, m_spec.height,
+			glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, m_spec.internal_format, m_spec.width, m_spec.height,
 				m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
-
 
 		if (m_spec.generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
+
 		return true;
 	}
 	else {
@@ -378,20 +366,13 @@ bool Texture3D::SetSpec(const Texture3DSpec& spec) {
 		m_spec = spec;
 		GL_StateManager::BindTexture(GL_TEXTURE_3D, m_texture_obj, GL_TEXTURE0, true);
 
-		int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, wrap_mode);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, wrap_mode);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, wrap_mode);
+		SetFilterAndWrapParams(true, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 		if (m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE)
-			glTexImage3D(GL_TEXTURE_3D, 0, static_cast<int>(m_spec.internal_format), m_spec.width, m_spec.height, m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
-
+			glTexImage3D(GL_TEXTURE_3D, 0, m_spec.internal_format, m_spec.width, m_spec.height, m_spec.layer_count, 0, m_spec.format, m_spec.storage_type, nullptr);
 
 		if (m_spec.generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
-
 
 		return true;
 	}
@@ -411,16 +392,11 @@ bool TextureCubemap::SetSpec(const TextureCubemapSpec& spec) {
 		ASSERT(m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE);
 
 		for (unsigned int i = 0; i < 6; i++) {
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, static_cast<int>(spec.internal_format), static_cast<int>(spec.width),
-				static_cast<int>(spec.height), 0, spec.format, spec.storage_type, nullptr);
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, spec.internal_format, spec.width,
+				spec.height, 0, spec.format, spec.storage_type, nullptr);
 		}
 
-		const int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, wrap_mode);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, wrap_mode);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, wrap_mode);
+		SetFilterAndWrapParams(true, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 		if (m_spec.generate_mipmaps)
 			glGenerateMipmap(m_texture_target);
@@ -439,17 +415,11 @@ bool TextureCubemapArray::SetSpec(const TextureCubemapArraySpec& spec) {
 	m_spec = spec;
 	GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_texture_obj, GL_TEXTURE0, true);
 
-
 	ASSERT(m_spec.internal_format != GL_NONE && m_spec.format != GL_NONE);
 
 	glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, spec.internal_format, spec.width, spec.height, spec.layer_count * 6, 0, spec.format, spec.storage_type, nullptr);
 
-	int wrap_mode = m_spec.wrap_params == GL_NONE ? GL_REPEAT : static_cast<int>(m_spec.wrap_params);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, m_spec.min_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.min_filter));
-	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, m_spec.mag_filter == GL_NONE ? GL_NEAREST : static_cast<int>(m_spec.mag_filter));
-	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, wrap_mode);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, wrap_mode);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, wrap_mode);
+	SetFilterAndWrapParams(true, m_spec.min_filter, m_spec.mag_filter, m_spec.wrap_params);
 
 	if (m_spec.generate_mipmaps)
 		glGenerateMipmap(m_texture_target);
@@ -477,7 +447,7 @@ bool FullscreenTexture2D::SetSpec(const Texture2DSpec& spec) {
 }
 
 void FullscreenTexture2D::OnWindowResize(glm::uvec2 new_dim) {
-	m_spec.width = static_cast<uint32_t>(ceil(static_cast<float>(new_dim.x) * m_screen_size_ratio.x));
-	m_spec.height = static_cast<uint32_t>(ceil(static_cast<float>(new_dim.y) * m_screen_size_ratio.y));
+	m_spec.width = static_cast<int>(ceil(static_cast<float>(new_dim.x) * m_screen_size_ratio.x));
+	m_spec.height = static_cast<int>(ceil(static_cast<float>(new_dim.y) * m_screen_size_ratio.y));
 	SetSpec(m_spec);
 }

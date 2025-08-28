@@ -23,7 +23,7 @@ void EnvMapSystem::OnLoad() {
     Events::EventManager::RegisterListener(m_serialization_listener);
 }
 
-void EnvMapSystem::LoadSkyboxFromHDRFile(const std::string& filepath, unsigned resolution) {
+void EnvMapSystem::LoadSkyboxFromHDRFile(const std::string& filepath, int resolution) {
     if (!FileExists(filepath)) {
         ORNG_CORE_ERROR("Failed to load skybox from file '{}', file doesn't exist.", filepath);
         return;
@@ -38,7 +38,7 @@ void EnvMapSystem::LoadSkyboxFromHDRFile(const std::string& filepath, unsigned r
 void EnvMapSystem::DeserializeEnvMap(const SceneSerializationEvent& _event) {
     auto skybox_node = (*_event.data.p_node)["Skybox"];
     const auto using_env_map = skybox_node["IBL"].as<bool>();
-    const auto res = skybox_node["Resolution"].as<unsigned>();
+    const auto res = skybox_node["Resolution"].as<int>();
     skybox.m_hdr_tex_filepath = skybox_node["HDR filepath"].as<std::string>();
     skybox.m_resolution = res;
     skybox.using_env_map = using_env_map;

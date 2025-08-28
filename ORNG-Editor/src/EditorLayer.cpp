@@ -1,13 +1,22 @@
 #include "pch/pch.h"
 
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <../extern/Icons.h>
 #include <../extern/imgui/backends/imgui_impl_opengl3.h>
 #include <fmod.hpp>
-#include <glfw/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 #include <yaml/src/scanscalar.h>
 #include <yaml-cpp/yaml.h>
+#include <imgui/imgui_internal.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include "EditorLayer.h"
 
@@ -21,7 +30,6 @@
 #include "util/ExtraUI.h"
 #include "components/ParticleBufferComponent.h"
 #include "tracy/public/tracy/Tracy.hpp"
-#include "imgui/imgui_internal.h"
 #include "components/ComponentSystems.h"
 #include "rendering/renderpasses/BloomPass.h"
 #include "rendering/renderpasses/DepthPass.h"
@@ -40,17 +48,20 @@
 #include "components/systems/PhysicsSystem.h"
 
 #include "components/systems/VrSystem.h"
-#include "GLFW/glfw3native.h"
 #include "layers/RuntimeSettings.h"
 
-constexpr unsigned RIGHT_WINDOW_WIDTH = 650;
-constexpr unsigned BOTTOM_WINDOW_HEIGHT = 300;
+constexpr int RIGHT_WINDOW_WIDTH = 650;
+constexpr int BOTTOM_WINDOW_HEIGHT = 300;
 
 using namespace ORNG::Events;
 
 #define SCENE mp_scene_context
 
 using namespace ORNG;
+
+static ImVec2 ImVec2i(int x, int y) {
+	return ImVec2{static_cast<float>(x), static_cast<float>(y)};
+}
 
 void EditorLayer::Init() {
 	char buffer[ORNG_MAX_FILEPATH_SIZE];
@@ -67,7 +78,8 @@ void EditorLayer::Init() {
 
 	m_res.raymarch_shader.SetPath(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl");
 	m_res.raymarch_shader.SetPath(GL_FRAGMENT_SHADER, m_state.executable_directory + "/res/shaders/RaymarchFS.glsl");
-	m_res.raymarch_shader.AddVariant((unsigned)EditorResources::RaymarchSV::CAPSULE, { "CAPSULE" }, {"u_capsule_pos", "u_capsule_height", "u_capsule_radius"});
+	m_res.raymarch_shader.AddVariant(static_cast<unsigned>(EditorResources::RaymarchSV::CAPSULE), { "CAPSULE" },
+		{"u_capsule_pos", "u_capsule_height", "u_capsule_radius"});
 
 	m_res.grid_mesh = std::make_unique<GridMesh>();
 	m_res.grid_mesh->Init();
@@ -197,7 +209,7 @@ void EditorLayer::UpdateSceneDisplayRect() {
 	if (m_state.fullscreen_scene_display)
 		m_state.scene_display_rect = { ImVec2(Window::GetWidth(), Window::GetHeight() - m_res.toolbar_height) };
 	else
-		m_state.scene_display_rect = { ImVec2(Window::GetWidth() - (RIGHT_WINDOW_WIDTH), Window::GetHeight() - BOTTOM_WINDOW_HEIGHT - m_res.toolbar_height) };
+		m_state.scene_display_rect = { ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, Window::GetHeight() - BOTTOM_WINDOW_HEIGHT - m_res.toolbar_height) };
 
 	mp_editor_camera->GetComponent<CameraComponent>()->aspect_ratio = m_state.scene_display_rect.x / m_state.scene_display_rect.y;
 }
@@ -278,7 +290,7 @@ void EditorLayer::InitVrForSimulationMode() {
 	static vrlib::OpenXR_DebugLogFunc log_func = [](const std::string& log, unsigned level) {
 		switch(level) {
 			case 0:
-				ORNG_CORE_TRACE(log)
+				ORNG_CORE_TRACE(log);
 				break;
 			case 1:
 				ORNG_CORE_INFO(log);
@@ -302,8 +314,8 @@ void EditorLayer::InitVrForSimulationMode() {
 		m_res.vr_colour_render_texture_spec.mag_filter = GL_NEAREST;
 		m_res.vr_colour_render_texture_spec.min_filter = GL_NEAREST;
 		XrViewConfigurationView view = m_state.p_vr->GetViewConfigurationView(0);
-		m_res.vr_colour_render_texture_spec.width = view.recommendedImageRectWidth;
-		m_res.vr_colour_render_texture_spec.height = view.recommendedImageRectHeight;
+		m_res.vr_colour_render_texture_spec.width = static_cast<int>(view.recommendedImageRectWidth);
+		m_res.vr_colour_render_texture_spec.height = static_cast<int>(view.recommendedImageRectHeight);
 		m_res.vr_colour_render_texture_spec.wrap_params = GL_CLAMP_TO_EDGE;
 		m_res.p_vr_scene_display_texture = std::make_unique<Texture2D>("");
 		m_res.p_vr_scene_display_texture->SetSpec(m_res.vr_colour_render_texture_spec);
@@ -475,8 +487,7 @@ void EditorLayer::Update() {
 			m_state.p_vr->PollEvents();
 			XrSessionState session_state = m_state.p_vr->GetSessionState();
 
-			if (session_state == XR_SESSION_STATE_EXITING || session_state == XR_SESSION_STATE_LOSS_PENDING ||
-				session_state == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
+			if (session_state == XR_SESSION_STATE_EXITING || session_state == XR_SESSION_STATE_LOSS_PENDING) {
 				EndPlayScene();
 				SetVrMode(false);
 				ORNG_CORE_ERROR("VR mode exited due to instance loss or session exit.");
@@ -519,13 +530,11 @@ void EditorLayer::RenderToVrTargets() {
 	if (m_state.p_vr->ShouldRender(m_state.xr_frame_state)) {
 		auto targets = m_state.p_vr->AcquireColourAndDepthRenderTargets(m_state.xr_frame_state, render_layer_info);
 
-	    auto* p_cam = SCENE->GetSystem<ORNG::CameraSystem>().GetActiveCamera();
-        auto* p_cam_transform = p_cam->GetEntity()->GetComponent<ORNG::TransformComponent>();
 		auto& vr_system = SCENE->GetSystem<VrSystem>();
 
 		for (size_t i = 0; i < targets.size(); i++) {
 			if (vr_system.ShouldUseMatrices()) {
-				auto [view, proj] = vr_system.GetEyeMatrices(i);
+				auto [view, proj] = vr_system.GetEyeMatrices(static_cast<unsigned>(i));
 				SCENE->GetSystem<ORNG::SceneUBOSystem>().UpdateMatrixUBO(&proj, &view);
 			}
 
@@ -536,7 +545,7 @@ void EditorLayer::RenderToVrTargets() {
             ORNG::Renderer::GetShaderLibrary().GetQuadShader().ActivateProgram();
             glClearColor(1.f, 0.f, 0.f, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glViewport(0, 0, targets[i].resolution[0], targets[i].resolution[1]);
+            glViewport(0, 0, static_cast<int>(targets[i].resolution[0]), static_cast<int>(targets[i].resolution[1]));
             ORNG::Renderer::DrawQuad();
 
 			m_state.p_vr->ReleaseColourAndDepthRenderTargets(render_layer_info, targets[i]);
@@ -561,8 +570,11 @@ void EditorLayer::RenderToVrTargets() {
 	auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 	auto pos = p_transform->GetAbsPosition();
 
-	glm::vec3 min_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
-	glm::vec3 max_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), max, pos, p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
+	glm::vec3 min_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos,
+		p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
+
+	glm::vec3 max_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), max, pos,
+		p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
 
 	glm::vec3 near_min = pos + min_dir * p_cam->zNear;
 
@@ -572,8 +584,6 @@ void EditorLayer::RenderToVrTargets() {
 
 	glm::vec3 far_max = pos + max_dir * p_cam->zFar;
 
-
-	float ratio = (float)glm::abs(m_state.mouse_drag_data.start.x - m_state.mouse_drag_data.end.x) / glm::abs(m_state.mouse_drag_data.start.y - m_state.mouse_drag_data.end.y);
 	glm::vec3 far_middle = (glm::vec3(far_max) + glm::vec3(far_min)) * 0.5f;
 	glm::vec3 near_middle = (glm::vec3(near_max) + glm::vec3(near_min)) * 0.5f;
 	glm::vec3 target = glm::normalize(far_middle - near_middle);
@@ -634,21 +644,21 @@ void EditorLayer::UpdateEditorCam() {
 		glm::vec3 pos = p_transform->GetAbsPosition();
 		glm::vec3 movement_vec{ 0.0, 0.0, 0.0 };
 		float time_elapsed = FrameTiming::GetTimeStep();
-		movement_vec += p_transform->right * (float)Window::Get().input.IsKeyDown(Key::D) * time_elapsed * cam_speed;
-		movement_vec -= p_transform->right * (float)Window::Get().input.IsKeyDown(Key::A) * time_elapsed * cam_speed;
-		movement_vec += p_transform->forward * (float)Window::Get().input.IsKeyDown(Key::W) * time_elapsed * cam_speed;
-		movement_vec -= p_transform->forward * (float)Window::Get().input.IsKeyDown(Key::S) * time_elapsed * cam_speed;
-		movement_vec += glm::vec3(0, 1, 0) * (float)Window::Get().input.IsKeyDown(Key::E) * time_elapsed * cam_speed;
-		movement_vec -= glm::vec3(0, 1, 0) * (float)Window::Get().input.IsKeyDown(Key::Q) * time_elapsed * cam_speed;
+		movement_vec += p_transform->right * static_cast<float>(Window::Get().input.IsKeyDown(Key::D)) * time_elapsed * cam_speed;
+		movement_vec -= p_transform->right * static_cast<float>(Window::Get().input.IsKeyDown(Key::A)) * time_elapsed * cam_speed;
+		movement_vec += p_transform->forward * static_cast<float>(Window::Get().input.IsKeyDown(Key::W)) * time_elapsed * cam_speed;
+		movement_vec -= p_transform->forward * static_cast<float>(Window::Get().input.IsKeyDown(Key::S)) * time_elapsed * cam_speed;
+		movement_vec += glm::vec3(0, 1, 0) * static_cast<float>(Window::Get().input.IsKeyDown(Key::E)) * time_elapsed * cam_speed;
+		movement_vec -= glm::vec3(0, 1, 0) * static_cast<float>(Window::Get().input.IsKeyDown(Key::Q)) * time_elapsed * cam_speed;
 
 		if (Window::Get().input.IsKeyDown(Key::Space))
-			movement_vec *= 10.0;
+			movement_vec *= 10.0f;
 
 		if (Window::Get().input.IsKeyDown(Key::Shift))
-			movement_vec *= 100.0;
+			movement_vec *= 100.0f;
 
 		if (Window::Get().input.IsKeyDown(Key::LeftControl))
-			movement_vec *= 0.1;
+			movement_vec *= 0.1f;
 
 		p_transform->SetAbsolutePosition(pos + movement_vec);
 	}
@@ -673,7 +683,7 @@ void EditorLayer::UpdateEditorCam() {
 			p_transform->LookAt(p_transform->GetAbsPosition() + glm::normalize(rot_x));
 
 
-		Window::SetCursorPos(last_mouse_pos.x, last_mouse_pos.y);
+		Window::SetCursorPos(static_cast<int>(last_mouse_pos.x), static_cast<int>(last_mouse_pos.y));
 	}
 
 	p_cam->UpdateFrustum();
@@ -693,9 +703,10 @@ void EditorLayer::RenderSceneDisplayPanel() {
 	ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, m_res.toolbar_height)));
 	ImGui::SetNextWindowSize(m_state.scene_display_rect);
 
-	if (ImGui::Begin("Scene display overlay", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
+	if (ImGui::Begin("Scene display overlay", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | (ImGui::IsMouseDragging(0) ? 0 : ImGuiWindowFlags_NoInputs) | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground)) {
 		ImVec2 prev_curs_pos = ImGui::GetCursorPos();
-		ImGui::Image((ImTextureID)m_res.p_scene_display_texture->GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::Image(reinterpret_cast<void*>(m_res.p_scene_display_texture->GetTextureHandle()),
+			ImVec2{m_state.scene_display_rect.x, m_state.scene_display_rect.y}, ImVec2(0, 1), ImVec2(1, 0));
 		//ImGui::Image((ImTextureID)m_render_graph.GetRenderpass<SSAOPass>()->GetSSAOTex().GetTextureHandle(), ImVec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y), ImVec2(0, 1), ImVec2(1, 0));
 		ImGui::SetCursorPos(prev_curs_pos);
 		ImGui::Dummy(ImVec2(0, 5));
@@ -704,22 +715,22 @@ void EditorLayer::RenderSceneDisplayPanel() {
 		ImGui::InvisibleButton("##drag-drop-scene-target", ImVec2(m_state.scene_display_rect.x - 20, m_state.scene_display_rect.y - 20));
 
 		if (ImGui::BeginDragDropTarget()) {
-			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
+			if (ImGui::AcceptDragDropPayload("ENTITY")) {
 				/* Functionality handled externally */
 			}
-			else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
-				if (p_payload->DataSize == sizeof(MeshAsset*)) {
+			else if (const ImGuiPayload* p_mesh_payload = ImGui::AcceptDragDropPayload("MESH")) {
+				if (p_mesh_payload->DataSize == sizeof(MeshAsset*)) {
 					auto& ent = CreateEntityTracked("Mesh");
-					ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_payload->Data));
+					ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_mesh_payload->Data));
 					auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 					auto& mesh_aabb = ent.GetComponent<MeshComponent>()->GetMeshData()->m_aabb;
 					ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f));
 					SelectEntity(ent.GetUUID());
 				}
 			}
-			else if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
-				if (p_payload->DataSize == sizeof(Prefab*)) {
-					Prefab* prefab_data = (*static_cast<Prefab**>(p_payload->Data));
+			else if (const ImGuiPayload* p_prefab_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
+				if (p_prefab_payload->DataSize == sizeof(Prefab*)) {
+					Prefab* prefab_data = (*static_cast<Prefab**>(p_prefab_payload->Data));
 					auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefab(*prefab_data) : SCENE->InstantiatePrefab(*prefab_data, false);
 					auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 					glm::vec3 pos;
@@ -761,9 +772,11 @@ void EditorLayer::RenderUI() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 5);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
 
-	ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(Window::GetWidth() - RIGHT_WINDOW_WIDTH, m_res.toolbar_height)));
-	ImGui::SetNextWindowSize(ImVec2(RIGHT_WINDOW_WIDTH, Window::GetHeight() - m_res.toolbar_height));
-	if (ImGui::Begin("##right window", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+	ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos,
+		ImVec2{static_cast<float>(Window::GetWidth() - RIGHT_WINDOW_WIDTH), static_cast<float>(m_res.toolbar_height)}));
+
+	ImGui::SetNextWindowSize(ImVec2i(RIGHT_WINDOW_WIDTH, Window::GetHeight() - m_res.toolbar_height));
+	if (ImGui::Begin("##right window", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDecoration)) {
 		RenderSceneGraph();
 		DisplayEntityEditor();
@@ -781,10 +794,10 @@ void EditorLayer::RenderUI() {
 
 void EditorLayer::RenderBottomWindow() {
 	int window_width = Window::GetWidth() - 650;
-	ImGui::SetNextWindowSize(ImVec2(window_width, BOTTOM_WINDOW_HEIGHT));
-	ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0, Window::GetHeight() - BOTTOM_WINDOW_HEIGHT)));
+	ImGui::SetNextWindowSize(ImVec2{static_cast<float>(window_width), static_cast<float>(BOTTOM_WINDOW_HEIGHT)});
+	ImGui::SetNextWindowPos(AddImVec2(ImGui::GetMainViewport()->Pos, ImVec2(0.f, static_cast<float>(Window::GetHeight() - BOTTOM_WINDOW_HEIGHT))));
 
-	ImGui::Begin("##bottom", (bool*)0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration);
+	ImGui::Begin("##bottom", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration);
 	ImGui::BeginTabBar("#log-asset-selector");
 
 	if (ImGui::BeginTabItem("Console")) {
@@ -803,15 +816,14 @@ void EditorLayer::RenderBottomWindow() {
 
 void EditorLayer::RenderConsole() {
 	static unsigned last_num_logs_rendered = 0;
-	static float scroll_max_y = 0.f;
 
 	ImGui::SetWindowFontScale(0.85f);
 
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{ 0.2, 0.2, 0.2, 1.0 });
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4{ 0.2f, 0.2f, 0.2f, 1.0f });
 	if (ImGui::BeginChild("Logs", {ImGui::GetContentRegionMax().x, ImGui::GetContentRegionMax().y - 60 }, true)) {
 		unsigned current_num_logs_rendered = m_logger_ui.RenderLogContentsWithImGui();
 		// If scroll is already close to the bottom, make sure it stays locked to the bottom as more logs are added
-		if (current_num_logs_rendered != last_num_logs_rendered && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 100.0)
+		if (current_num_logs_rendered != last_num_logs_rendered && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 100.f)
 			ImGui::SetScrollHereY(1.f);
 
 		last_num_logs_rendered = current_num_logs_rendered;
@@ -910,7 +922,7 @@ void EditorLayer::RenderGeneralSettingsMenu() {
 
 				if (ImGui::Selectable(faces[i], &selected)) {
 					current_face = i;
-					m_state.general_settings.debug_render_settings.voxel_render_face = (VoxelRenderFace)(1 << i);
+					m_state.general_settings.debug_render_settings.voxel_render_face = static_cast<VoxelRenderFace>(1 << i);
 				}
 			}
 			ImGui::EndCombo();
@@ -928,7 +940,7 @@ void EditorLayer::RenderGeneralSettingsMenu() {
 
 void EditorLayer::RenderToolbar() {
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos);
-	ImGui::SetNextWindowSize(ImVec2(Window::GetWidth(), m_res.toolbar_height));
+	ImGui::SetNextWindowSize(ImVec2(static_cast<float>(Window::GetWidth()), static_cast<float>(m_res.toolbar_height)));
 
 	if (ImGui::Begin("##Toolbar", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNavInputs)) {
 		if (ImGui::Button("Files")) {
@@ -942,9 +954,9 @@ void EditorLayer::RenderToolbar() {
 			ImGui::PushID(1);
 			ImGui::SeparatorText("Files");
 			ImGui::PopID();
-			for (int i = 0; i < file_options.size(); i++) {
+			for (size_t i = 0; i < file_options.size(); i++) {
 				if (ImGui::Selectable(file_options[i].c_str()))
-					selected_component = i + 1;
+					selected_component = static_cast<int>(i) + 1;
 			}
 			ImGui::EndPopup();
 		}
@@ -983,7 +995,10 @@ void EditorLayer::RenderToolbar() {
 			BeginPlayScene();
 
 		ImGui::SameLine();
-		if (m_state.simulate_mode_active && ((!m_state.simulate_mode_paused && ImGui::Button((ICON_FA_PAUSE)) || (m_state.simulate_mode_paused && ImGui::Button((ICON_FA_ANGLES_UP)))))) {
+		if (m_state.simulate_mode_active &&
+			((!m_state.simulate_mode_paused && ImGui::Button(ICON_FA_PAUSE)) ||
+			(m_state.simulate_mode_paused && ImGui::Button(ICON_FA_ANGLES_UP)
+			))) {
 			m_state.simulate_mode_paused = !m_state.simulate_mode_paused;
 		}
 
@@ -996,7 +1011,7 @@ void EditorLayer::RenderToolbar() {
 		ImGui::SameLine();
 
 
-		if (!m_state.simulate_mode_active && ExtraUI::SwitchButton("VR", m_state.use_vr_in_simulation, m_res.lighter_grey_color, m_res.blue_col)) {
+		if (!m_state.simulate_mode_active && ExtraUI::SwitchButton("VR", m_state.use_vr_in_simulation, m_res.blue_col)) {
 			SetVrMode(!m_state.use_vr_in_simulation);
 		}
 		ImGui::SameLine();
@@ -1004,15 +1019,15 @@ void EditorLayer::RenderToolbar() {
 		// Transform gizmos
 		ImGui::Dummy({ 100, 0 });
 		ImGui::SameLine();
-		if (ExtraUI::SwitchButton(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT, m_state.current_gizmo_operation == ImGuizmo::TRANSLATE, m_res.lighter_grey_color, m_res.blue_col))
+		if (ExtraUI::SwitchButton(ICON_FA_ARROWS_UP_DOWN_LEFT_RIGHT, m_state.current_gizmo_operation == ImGuizmo::TRANSLATE, m_res.blue_col))
 			m_state.current_gizmo_operation = ImGuizmo::TRANSLATE;
 		ImGui::SameLine();
 
-		if (ExtraUI::SwitchButton(ICON_FA_COMPRESS, m_state.current_gizmo_operation == ImGuizmo::SCALE, m_res.lighter_grey_color, m_res.blue_col))
+		if (ExtraUI::SwitchButton(ICON_FA_COMPRESS, m_state.current_gizmo_operation == ImGuizmo::SCALE, m_res.blue_col))
 			m_state.current_gizmo_operation = ImGuizmo::SCALE;
 		ImGui::SameLine();
 
-		if (ExtraUI::SwitchButton(ICON_FA_ROTATE_RIGHT, m_state.current_gizmo_operation == ImGuizmo::ROTATE, m_res.lighter_grey_color, m_res.blue_col))
+		if (ExtraUI::SwitchButton(ICON_FA_ROTATE_RIGHT, m_state.current_gizmo_operation == ImGuizmo::ROTATE, m_res.blue_col))
 			m_state.current_gizmo_operation = ImGuizmo::ROTATE;
 		ImGui::SameLine();
 
@@ -1045,13 +1060,13 @@ void EditorLayer::RenderToolbar() {
 		ImGui::SameLine();
 		ImGui::Dummy({ 100, 0 });
 		ImGui::SameLine();
-		if (ExtraUI::SwitchButton(ICON_FA_DIAGRAM_PROJECT, m_state.general_settings.editor_window_settings.display_joint_maker, m_res.lighter_grey_color, m_res.blue_col)) {
+		if (ExtraUI::SwitchButton(ICON_FA_DIAGRAM_PROJECT, m_state.general_settings.editor_window_settings.display_joint_maker, m_res.blue_col)) {
 			m_state.general_settings.editor_window_settings.display_joint_maker = !m_state.general_settings.editor_window_settings.display_joint_maker;
 		}
 		ExtraUI::TooltipOnHover("Joint maker");
 		ImGui::SameLine();
 
-		if (ExtraUI::SwitchButton(ICON_FA_P, m_state.general_settings.debug_render_settings.render_physx_debug, m_res.lighter_grey_color, m_res.blue_col)) {
+		if (ExtraUI::SwitchButton(ICON_FA_P, m_state.general_settings.debug_render_settings.render_physx_debug, m_res.blue_col)) {
 			m_state.general_settings.debug_render_settings.render_physx_debug = !m_state.general_settings.debug_render_settings.render_physx_debug;
 		}
 		ExtraUI::TooltipOnHover("Debug physx rendering");
@@ -1076,12 +1091,12 @@ void EditorLayer::OpenLoadProjectMenu() {
 	std::function<void(std::string)> success_callback = [this](std::string filepath) {
 		MakeProjectActive(filepath.substr(0, filepath.find_last_of('\\')));
 	};
-	ExtraUI::ShowFileExplorer(m_state.executable_directory + "/projects", valid_extensions, success_callback);
+	ExtraUI::ShowFileExplorer(valid_extensions, success_callback);
 }
 
 void EditorLayer::SaveProject() {
 	std::string uuid_filepath{ "./res/scripts/includes/uuids.h" };
-	AssetManager::GetSerializer().SerializeAssets(m_state.current_project_directory);
+	AssetManager::GetSerializer().SerializeAssets();
 	auto* p_scene_asset = AssetManager::GetAsset<SceneAsset>(SCENE->m_asset_uuid());
 	std::string write_path = p_scene_asset ? p_scene_asset->filepath : "res/scene_temp.oscene";
 	std::string serialized;
@@ -1145,7 +1160,7 @@ void EditorLayer::BuildGameFromActiveProject() {
 
 void EditorLayer::RenderBuildMenu() {
 	ImVec2 window_size{600, 600};
-	ImVec2 window_pos{(Window::GetWidth() - window_size.x) / 2.f, (Window::GetWidth() - window_size.x) / 2.f};
+	ImVec2 window_pos{(static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f, (static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f};
 
 	if (ImGui::Begin("Build settings")) {
 		ImGui::Checkbox("VR runtime", &m_state.build_runtime_settings.use_vr);
@@ -1153,7 +1168,7 @@ void EditorLayer::RenderBuildMenu() {
 		auto* p_current_start_scene = AssetManager::GetAsset<SceneAsset>(m_state.build_runtime_settings.start_scene_uuid);
 		std::string start_scene_name = p_current_start_scene ? p_current_start_scene->node["Scene"].as<std::string>() : "NONE";
 
-		ImGui::Text(std::format("Start scene: {}", start_scene_name).c_str()); ImGui::SameLine(); ImGui::Button("Drop scene asset here");
+		ImGui::Text("%s", std::format("Start scene: {}", start_scene_name).c_str()); ImGui::SameLine(); ImGui::Button("Drop scene asset here");
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("SCENE ASSET")) {
 				if (p_payload->DataSize == sizeof(SceneAsset*)) {
@@ -1174,11 +1189,11 @@ void EditorLayer::RenderBuildMenu() {
 
 void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
 	ImGui::SetNextWindowSize(ImVec2(500, 200));
-	ImGui::SetNextWindowPos(ImVec2(Window::GetWidth() / 2 - 250, Window::GetHeight() / 2 - 100));
+	ImGui::SetNextWindowPos(ImVec2(static_cast<float>(Window::GetWidth() / 2 - 250), static_cast<float>(Window::GetHeight() / 2 - 100)));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
 	static std::string project_dir;
 
-	if (ImGui::Begin("##project gen", (bool*)0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar)) {
+	if (ImGui::Begin("##project gen", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar)) {
 		if (ImGui::IsMouseDoubleClicked(1)) // close window
 			selected_component_from_popup = 0;
 
@@ -1190,7 +1205,7 @@ void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
 
 		static std::string err_msg = "";
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
-		ImGui::TextWrapped(err_msg.c_str());
+		ImGui::TextWrapped("%s", err_msg.c_str());
 		ImGui::PopStyleColor();
 
 		if (ImGui::Button("Generate")) {
@@ -1208,7 +1223,7 @@ void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
 }
 
 // TEMPORARY - while stuff is actively changing here just refresh it automatically so I don't have to manually delete it each time
-void RefreshScriptIncludes() {
+static void RefreshScriptIncludes() {
 	FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptAPI.h", "./res/scripts/includes/ScriptAPI.h");
 	FileCopy(ORNG_CORE_MAIN_DIR "/headers/scripting/ScriptShared.h", "./res/scripts/includes/ScriptShared.h");
 }
@@ -1230,7 +1245,7 @@ void EditorLayer::SetActiveScene(SceneAsset& scene) {
 	if (!SceneSerializer::DeserializeScene(*SCENE, "", false, &scene.node)) {
 		ORNG_CORE_ERROR("Failed to set active scene, reverting back to previous scene.");
 		SCENE->UnloadScene();
-		SCENE->m_asset_uuid = UUID{before_uuid};
+		SCENE->m_asset_uuid = UUID<uint64_t>{before_uuid};
 		AddDefaultSceneSystems();
 		SCENE->LoadScene();
 		SceneSerializer::DeserializeScene(*SCENE, before, false);
@@ -1281,9 +1296,7 @@ bool EditorLayer::GenerateProject(const std::string& project_name, bool abs_path
 }
 
 
-
-
-bool EditorLayer::ValidateProjectDir(const std::string& dir_path) {
+bool EditorLayer::ValidateProjectDir([[maybe_unused]] const std::string& dir_path) {
 	// For now no extra validation is done
 	return true;
 }
@@ -1393,18 +1406,18 @@ void EditorLayer::DeserializeProjectFromFile(const std::string &input_path) {
 }
 
 void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
-	const char* names[13] = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard", "Particle buffer", "Character controller", "Joint"};
+	std::array names = { "Pointlight", "Spotlight", "Mesh", "Camera", "Physics", "Script", "Audio", "Vehicle", "Particle emitter", "Billboard", "Particle buffer", "Character controller", "Joint"};
 
 	if (trigger)
 		ImGui::OpenPopup("my_select_popup");
 
 	int selected_component = -1;
-	if (ImGui::BeginPopup("my_select_popup"))
-	{
+	if (ImGui::BeginPopup("my_select_popup")) {
 		ImGui::SeparatorText(p_entity ? "Add component" : "Create entity");
-		for (int i = 0; i < IM_ARRAYSIZE(names); i++)
+		for (size_t i = 0; i < names.size(); i++)
 			if (ImGui::Selectable(names[i]))
-				selected_component = i;
+				selected_component = static_cast<int>(i);
+
 		ImGui::EndPopup();
 	}
 
@@ -1458,9 +1471,9 @@ void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
 
 glm::vec2 EditorLayer::ConvertFullscreenMouseToDisplayMouse(glm::vec2 mouse_coords) {
 	// Transform mouse coordinates to full window space for the proper texture coordinates
-	mouse_coords.x *= (Window::GetWidth() / ((float)Window::GetWidth() - (RIGHT_WINDOW_WIDTH)));
+	mouse_coords.x *= (static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetWidth() - (RIGHT_WINDOW_WIDTH)));
 	mouse_coords.y -= m_res.toolbar_height;
-	mouse_coords.y *= (float)Window::GetHeight() / ((float)Window::GetHeight() - BOTTOM_WINDOW_HEIGHT - m_res.toolbar_height);
+	mouse_coords.y *= static_cast<float>(Window::GetHeight()) / static_cast<float>(Window::GetHeight() - BOTTOM_WINDOW_HEIGHT - m_res.toolbar_height);
 	return mouse_coords;
 }
 
@@ -1477,7 +1490,7 @@ void EditorLayer::DoPickingPass() {
 	for (auto [entity, mesh] : view.each()) {
 		//Split uint64 into two uint32's for texture storage
 		uint64_t full_id = mesh.GetEntityUUID();
-		glm::uvec3 id_vec{ (uint32_t)(full_id >> 32), (uint32_t)(full_id), UINT_MAX };
+		glm::uvec3 id_vec{ static_cast<uint32_t>(full_id >> 32), static_cast<uint32_t>(full_id), UINT_MAX };
 
 		m_res.picking_shader.SetUniform("comp_id", id_vec);
 		m_res.picking_shader.SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
@@ -1495,8 +1508,8 @@ void EditorLayer::DoPickingPass() {
 	}
 
 	uint32_t* pixels = new uint32_t[3];
-	glReadPixels(mouse_coords.x, Window::GetHeight() - mouse_coords.y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, pixels);
-	uint64_t current_entity_id = ((uint64_t)pixels[0] << 32) | pixels[1];
+	glReadPixels(static_cast<int>(mouse_coords.x), Window::GetHeight() - static_cast<int>(mouse_coords.y), 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, pixels);
+	uint64_t current_entity_id = (static_cast<uint64_t>(pixels[0]) << 32) | pixels[1];
 
 	if (!Window::Get().input.IsKeyDown(GLFW_KEY_LEFT_CONTROL))
 		m_state.selected_entity_ids.clear();
@@ -1574,7 +1587,7 @@ void EditorLayer::RenderGrid() {
 	GL_StateManager::BindSSBO(m_res.grid_mesh->m_transform_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::TRANSFORMS);
 
 	m_res.grid_shader.ActivateProgram();
-	Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_res.grid_mesh->m_vao, ceil(m_res.grid_mesh->grid_width / m_res.grid_mesh->grid_step) * 2);
+	Renderer::DrawVAO_ArraysInstanced(GL_LINES, m_res.grid_mesh->m_vao, static_cast<int>(ceil(m_res.grid_mesh->grid_width / m_res.grid_mesh->grid_step)) * 2);
 }
 
 
@@ -1584,7 +1597,7 @@ void EditorLayer::UpdateLuaEntityArray() {
 		entity_array = {}
 	)";
 
-	for (int i = 0; i < SCENE->m_entities.size(); i++) {
+	for (size_t i = 0; i < SCENE->m_entities.size(); i++) {
 		auto* p_ent = SCENE->m_entities[i];
 		auto* p_transform = p_ent->GetComponent<TransformComponent>();
 		auto* p_relation_comp = p_ent->GetComponent<RelationshipComponent>();
@@ -1593,7 +1606,9 @@ void EditorLayer::UpdateLuaEntityArray() {
 		auto scale = p_transform->GetScale();
 		auto rot = p_transform->GetOrientation();
 
-		std::string entity_push_script = std::format("entity_array[{0}] = entity.new(\"{1}\", {2}, vec3.new({3}, {4}, {5}),  vec3.new({6}, {7}, {8}), vec3.new({9}, {10}, {11}), {12})", i+1, p_ent->name, (unsigned)p_ent->GetEnttHandle(), pos.x, pos.y, pos.z, scale.x, scale.y, scale.z, rot.x, rot.y, rot.z, (unsigned)p_relation_comp->parent);
+		std::string entity_push_script = std::format("entity_array[{0}] = entity.new(\"{1}\", {2}, vec3.new({3}, {4}, {5}),  vec3.new({6}, {7}, {8}), vec3.new({9}, {10}, {11}), {12})",
+			i+1, p_ent->name, static_cast<unsigned>(p_ent->GetEnttHandle()), pos.x, pos.y, pos.z, scale.x, scale.y, scale.z, rot.x, rot.y, rot.z,
+			static_cast<unsigned>(p_relation_comp->parent));
 
 		m_lua_cli.GetLua().script(entity_push_script);
 	}
@@ -1611,20 +1626,21 @@ void EditorLayer::InitLua() {
 	auto& lua = m_lua_cli.GetLua();
 
 	lua.set_function("ORNG_select_entity", [this](unsigned handle) {
-		auto* p_ent = SCENE->GetEntity(entt::entity(handle));
+		auto* p_ent = SCENE->GetEntity(static_cast<entt::entity>(handle));
 		if (p_ent)
 			m_state.selected_entity_ids.push_back(p_ent->GetUUID());
 		});
 
 	lua.set_function("get_entity", [this](unsigned handle) -> LuaEntity {
-		auto* p_ent = SCENE->GetEntity(entt::entity(handle));
+		auto* p_ent = SCENE->GetEntity(static_cast<entt::entity>(handle));
 		if (!p_ent)
-			return LuaEntity{ "NULL", (unsigned)entt::null, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, (unsigned)entt::null };
+			return LuaEntity{ "NULL", static_cast<unsigned>(entt::null), {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, static_cast<unsigned>(entt::null) };
 
 		auto* p_transform = p_ent->GetComponent<TransformComponent>();
 		auto* p_relation_comp = p_ent->GetComponent<RelationshipComponent>();
 
-		return LuaEntity{ p_ent->name, (unsigned)p_ent->GetEnttHandle(), p_transform->GetPosition(), p_transform->GetScale(), p_transform->GetOrientation(), (unsigned)p_relation_comp->parent};
+		return LuaEntity{ p_ent->name, static_cast<unsigned>(p_ent->GetEnttHandle()), p_transform->GetPosition(),
+			p_transform->GetScale(), p_transform->GetOrientation(), static_cast<unsigned>(p_relation_comp->parent)};
 		});
 
 	lua.set_function("clear", [this] {
@@ -1674,19 +1690,19 @@ void EditorLayer::InitLua() {
 
 
 	std::function<void(glm::vec3)> p_translate_func = [this](glm::vec3 v) {
-		TRANSFORM_LUA_SKELETON(p_transform->SetPosition(p_transform->GetPosition() + v));
+		TRANSFORM_LUA_SKELETON(p_transform->SetPosition(p_transform->GetPosition() + v))
 		};
 
 	std::function<void(glm::vec3)> p_scale_func = [this](glm::vec3 v) {
-		TRANSFORM_LUA_SKELETON(p_transform->SetScale(p_transform->GetScale() * v));
+		TRANSFORM_LUA_SKELETON(p_transform->SetScale(p_transform->GetScale() * v))
 		};
 
 	std::function<void(glm::vec3, float)> p_rot_func = [this](glm::vec3 axis, float angle_degrees) {
-		TRANSFORM_LUA_SKELETON(p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation()))))));
+		TRANSFORM_LUA_SKELETON(p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation()))))))
 		};
 
 	std::function<void(glm::vec3)> p_move_to_func = [this](glm::vec3 pos) {
-		TRANSFORM_LUA_SKELETON(p_transform->SetAbsolutePosition(pos));
+		TRANSFORM_LUA_SKELETON(p_transform->SetAbsolutePosition(pos))
 		};
 
 	std::function<void(glm::vec3)> p_cam_move_to_func = [this](glm::vec3 pos) {
@@ -1698,7 +1714,7 @@ void EditorLayer::InitLua() {
 		TRANSFORM_LUA_SKELETON(
 			p_transform->SetAbsolutePosition(p_cam_transform->GetPosition());
 			p_transform->LookAt(p_cam_transform->GetPosition() + p_cam_transform->forward);
-		);
+		)
 		};
 
 
@@ -1708,7 +1724,7 @@ void EditorLayer::InitLua() {
 			glm::vec3 offset_pos = p_transform->GetAbsPosition() - pivot;
 			p_transform->SetAbsolutePosition(q * offset_pos + pivot);
 			p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))))
-			);
+			)
 		};
 
 #undef TRANSFORM_LUA_SKELETON
@@ -1728,7 +1744,7 @@ void EditorLayer::RenderSkyboxEditor() {
 		wchar_t valid_extensions[MAX_PATH] = L"Texture Files: *.png;*.jpg;*.jpeg;*.hdr\0*.png;*.jpg;*.jpeg;*.hdr\0";
 
 		static bool using_env_maps = true;
-		static unsigned resolution = 4096;
+		static int resolution = 4096;
 
 		auto& skybox = SCENE->GetSystem<EnvMapSystem>().skybox;
 		using_env_maps = skybox.using_env_map;
@@ -1747,16 +1763,17 @@ void EditorLayer::RenderSkyboxEditor() {
 			};
 
 		if (ImGui::Button("Load skybox texture")) {
-			ExtraUI::ShowFileExplorer("", valid_extensions, file_explorer_callback);
+			ExtraUI::ShowFileExplorer(valid_extensions, file_explorer_callback);
 		}
 		ImGui::SameLine();
 		ImGui::SmallButton("?");
+
 		if (ImGui::BeginItemTooltip()) {
 			ImGui::Text("Converts an equirectangular image into a cubemap for use in a skybox. For best results, use HDRI's!");
 			ImGui::EndTooltip();
 		}
 
-		ExtraUI::InputUint("Resolution", skybox.m_resolution);
+		ImGui::InputInt("Resolution", &skybox.m_resolution);
 
 		if (ImGui::Checkbox("Gen IBL textures", &using_env_maps) || ImGui::Button("Reload")) {
 			skybox.using_env_map = using_env_maps;
@@ -1783,10 +1800,10 @@ EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int
 	EntityNodeData ret{ EntityNodeEvent::E_NONE, {0, 0}, {0, 0} };
 
 	static std::string padding_str;
-	for (int i = 0; i < layer; i++) {
+	for (unsigned i = 0; i < layer; i++) {
 		padding_str += " |--|";
 	}
-	ImGui::Text(padding_str.c_str());
+	ImGui::Text("%s", padding_str.c_str());
 	padding_str.clear();
 	ImGui::SameLine();
 	// Setup display name with icons
@@ -1840,7 +1857,7 @@ EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int
 	}
 
 	if (ImGui::BeginDragDropTarget()) {
-		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("ENTITY")) {
+		if (ImGui::AcceptDragDropPayload("ENTITY")) {
 			/* Functionality handled externally */
 		}
 		ImGui::EndDragDropTarget();
@@ -1910,7 +1927,7 @@ EntityNodeData EditorLayer::RenderEntityNode(SceneEntity* p_entity, unsigned int
 
 
 void EditorLayer::RenderSceneGraph() {
-	if (ImGui::BeginChild("Scene graph", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
+	if (ImGui::BeginChild("Scene graph", { static_cast<float>(RIGHT_WINDOW_WIDTH), static_cast<float>(Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
 		ImGui::Text("Scene name:"); ImGui::SameLine(); ImGui::InputText("##scene-name-input", &SCENE->m_name);
 
 		// Click anywhere on window to deselect entity nodes
@@ -1931,8 +1948,8 @@ void EditorLayer::RenderSceneGraph() {
 
 			ImGui::SetNextWindowPos({ node_selection_box.min.x, node_selection_box.min.y });
 			ImGui::SetNextWindowSize({ node_selection_box.max.x - node_selection_box.min.x, node_selection_box.max.y - node_selection_box.min.y });
-			if (ImGui::Begin("##sel-box", (bool*)0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs)) {
-				ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 1, 0.1 });
+			if (ImGui::Begin("##sel-box", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs)) {
+				ImGui::PushStyleColor(ImGuiCol_Button, { 0.f, 0.f, 1.f, 0.1f });
 				ImGui::Button("##blue", { node_selection_box.max.x - node_selection_box.min.x,  node_selection_box.max.y - node_selection_box.min.y });
 				ImGui::PopStyleColor();
 			}
@@ -1957,7 +1974,7 @@ void EditorLayer::RenderSceneGraph() {
 
 			for (auto& entry : entity_graph) {
 				auto node_data = RenderEntityNode(entry.p_entity, entry.depth, node_selection_active, node_selection_box);
-				active_event = (EntityNodeEvent)(node_data.e_event | active_event);
+				active_event = static_cast<EntityNodeEvent>(node_data.e_event | active_event);
 			}
 		}
 		ImGui::PopStyleVar();
@@ -1969,7 +1986,7 @@ void EditorLayer::RenderSceneGraph() {
 		}
 		else if (active_event & EntityNodeEvent::E_DELETE) {
 			for (auto id : m_state.selected_entity_ids) {
-				if (auto* p_entity = SCENE->GetEntity(id))
+				if (SCENE->GetEntity(id))
 					DeleteEntitiesTracked(m_state.selected_entity_ids);
 			}
 		}
@@ -2006,7 +2023,7 @@ void RenderCompEditor(SceneEntity* p_entity, const std::string& comp_name, std::
 
 
 void EditorLayer::DisplayEntityEditor() {
-	if (ImGui::BeginChild("Entity editor", { RIGHT_WINDOW_WIDTH, (Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
+	if (ImGui::BeginChild("Entity editor", { static_cast<float>(RIGHT_WINDOW_WIDTH), static_cast<float>(Window::GetHeight() - m_res.toolbar_height) * 0.5f }, true)) {
 		if (m_state.general_settings.editor_window_settings.display_directional_light_editor)
 			RenderDirectionalLightEditor();
 		if (m_state.general_settings.editor_window_settings.display_global_fog_editor)
@@ -2034,7 +2051,7 @@ void EditorLayer::DisplayEntityEditor() {
 		RenderCreationWidget(entity, ImGui::Button("+"));
 		ImGui::PopFont();
 
-		RenderCompEditor<TransformComponent>(entity, "Transform component", [this](TransformComponent* p_comp) { RenderTransformComponentEditor(transforms); });
+		RenderCompEditor<TransformComponent>(entity, "Transform component", [this]([[maybe_unused]] TransformComponent* p_comp) { RenderTransformComponentEditor(transforms); });
 		RenderCompEditor<MeshComponent>(entity, "Mesh component", [this](MeshComponent* p_comp) { RenderMeshComponentEditor(p_comp); });
 		RenderCompEditor<PointLightComponent>(entity, "Pointlight component", [this](PointLightComponent* p_comp) { RenderPointlightEditor(p_comp); });
 		RenderCompEditor<SpotLightComponent>(entity, "Spotlight component", [this](SpotLightComponent* p_comp) { RenderSpotlightEditor(p_comp); });
@@ -2102,14 +2119,6 @@ void EditorLayer::RenderParticleBufferComponentEditor(ParticleBufferComponent* p
 
 }
 
-void EditorLayer::RenderEntityNodeRef(EntityNodeRef& ref) {
-	ImGui::PushID(&ref);
-
-	auto* p_ent = SCENE->TryFindEntity(ref);
-
-	ImGui::PopID();
-}
-
 void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent* p_comp) {
 	ImGui::PushID(p_comp);
 
@@ -2160,21 +2169,21 @@ void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent*
 	ImGui::SeparatorText("Modifiers");
 
 	if (ImGui::TreeNode("Colour over life")) {
-		if (ExtraUI::InterpolatorV3Graph("Colour over life", &p_comp->m_life_colour_interpolator))
+		if (ExtraUI::InterpolatorV3Graph(&p_comp->m_life_colour_interpolator))
 			p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
 
 		ImGui::TreePop();
 	}
 
 	if (ImGui::TreeNode("Alpha over life")) {
-		if (ExtraUI::InterpolatorV1Graph("Alpha over life", &p_comp->m_life_alpha_interpolator))
+		if (ExtraUI::InterpolatorV1Graph(&p_comp->m_life_alpha_interpolator))
 			p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
 
 		ImGui::TreePop();
 	}
 
 	if (ImGui::TreeNode("Scale over life")) {
-		if (ExtraUI::InterpolatorV3Graph("Scale over life", &p_comp->m_life_scale_interpolator))
+		if (ExtraUI::InterpolatorV3Graph(&p_comp->m_life_scale_interpolator))
 			p_comp->DispatchUpdateEvent(ParticleEmitterComponent::MODIFIERS_CHANGED);
 
 		ImGui::TreePop();
@@ -2206,7 +2215,7 @@ void EditorLayer::RenderParticleEmitterComponentEditor(ParticleEmitterComponent*
 
 	ImGui::Text("Nb. particles"); ImGui::SameLine();
 	static int n;
-	n = p_comp->m_num_particles;
+	n = static_cast<int>(p_comp->m_num_particles);
 	if (ImGui::DragInt("##np", &n) && n >= 0 && n <= 100'000) {
 		p_comp->SetNbParticles(n);
 	}
@@ -2281,10 +2290,17 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 	p_sound->p_sound->getLength(&total_length, FMOD_TIMEUNIT_MS);
 
 	ImGui::SetCursorPos(prev_curs_pos);
-	ExtraUI::ColoredButton("##playback position", m_res.orange_color_dark, ImVec2(playback_widget_width * ((float)position / (float)total_length), playback_widget_height));
+
+	ExtraUI::ColoredButton("##playback position", m_res.orange_color_dark,
+		ImVec2{
+			static_cast<float>(playback_widget_width) * (static_cast<float>(position) / static_cast<float>(total_length)),
+			static_cast<float>(playback_widget_height)
+		}
+	);
+
 	ImGui::PopStyleVar();
 	ImGui::SetCursorPos(prev_curs_pos);
-	ImGui::Text(std::format("{}:{}", (float)position / 1000.f, (float)total_length / 1000.f).c_str());
+	ImGui::Text("%s", std::format("{}:{}", static_cast<float>(position) / 1000.f, static_cast<float>(total_length) / 1000.f).c_str());
 	ImVec2 wp = ImGui::GetWindowPos();
 
 	static bool was_paused = true;
@@ -2307,7 +2323,10 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 			ImVec2 mouse_pos = ImGui::GetMousePos();
 			ImVec2 local_mouse{ mouse_pos.x - (wp.x + prev_curs_pos.x), mouse_pos.y - (wp.y + prev_curs_pos.y) };
 
-			p_audio->mp_channel->setPosition((unsigned)((local_mouse.x / playback_widget_width) * (float)total_length), FMOD_TIMEUNIT_MS);
+			p_audio->mp_channel->setPosition(
+				static_cast<unsigned>((local_mouse.x / static_cast<float>(playback_widget_width)) * static_cast<float>(total_length)),
+				FMOD_TIMEUNIT_MS
+			);
 		}
 	}
 	if (first_mouse_down && ImGui::IsMouseReleased(0)) {
@@ -2344,7 +2363,7 @@ void EditorLayer::RenderAudioComponentEditor(AudioComponent* p_audio) {
 		}
 	}
 
-	ImGui::Text(p_sound->filepath.substr(p_sound->filepath.rfind("/") + 1).c_str());
+	ImGui::Text("%s", p_sound->filepath.substr(p_sound->filepath.rfind("/") + 1).c_str());
 
 	ImGui::PopID(); // p_audio
 }
@@ -2477,11 +2496,10 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 				p_transform->SetAbsolutePosition(p_transform->GetAbsPosition() + delta_translation);
 				break;
 			case ImGuizmo::SCALE:
-			{
 				p_transform->SetScale(p_transform->m_scale * delta_scale);
 				break;
-			}
-			case ImGuizmo::ROTATE: // This will rotate multiple objects as one, using entity transform at m_state.selected_entity_ids[0] as origin
+			case ImGuizmo::ROTATE: {
+				// This will rotate multiple objects as one, using entity transform at m_state.selected_entity_ids[0] as origin
 				if (auto* p_parent_transform = p_transform->GetParent()) {
 					glm::vec3 s = p_parent_transform->GetAbsScale();
 					glm::mat4 rot = glm::mat4(glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)));
@@ -2503,6 +2521,24 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 				p_transform->SetAbsolutePosition(base_abs_translation + rotation_offset);
 				break;
 			}
+			case ImGuizmo::TRANSLATE_X:
+			case ImGuizmo::TRANSLATE_Y:
+			case ImGuizmo::TRANSLATE_Z:
+			case ImGuizmo::ROTATE_X:
+			case ImGuizmo::ROTATE_Y:
+			case ImGuizmo::ROTATE_Z:
+			case ImGuizmo::ROTATE_SCREEN:
+			case ImGuizmo::SCALE_X:
+			case ImGuizmo::SCALE_Y:
+			case ImGuizmo::SCALE_Z:
+			case ImGuizmo::BOUNDS:
+			case ImGuizmo::SCALE_XU:
+			case ImGuizmo::SCALE_YU:
+			case ImGuizmo::SCALE_ZU:
+			case ImGuizmo::SCALEU:
+			case ImGuizmo::UNIVERSAL:
+				break;
+			}
 		}
 
 		is_using = true;
@@ -2522,9 +2558,9 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 Material* EditorLayer::RenderMaterialComponent(const Material* p_material) {
 	Material* ret = nullptr;
 
-	if (ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMaterialPreviewTex(p_material)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0))) {
+	if (ImGui::ImageButton(reinterpret_cast<void*>(m_asset_manager_window.GetMaterialPreviewTex(p_material)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0))) {
 		m_asset_manager_window.SelectMaterial(AssetManager::GetAsset<Material>(p_material->uuid()));
-	};
+	}
 
 	if (ImGui::BeginDragDropTarget()) {
 		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MATERIAL")) {
@@ -2534,7 +2570,7 @@ Material* EditorLayer::RenderMaterialComponent(const Material* p_material) {
 		ImGui::EndDragDropTarget();
 	}
 
-	ImGui::Text(p_material->name.c_str());
+	ImGui::Text("%s", p_material->name.c_str());
 	return ret;
 }
 
@@ -2545,7 +2581,7 @@ void EditorLayer::RenderMeshWithMaterials(const MeshAsset* p_asset, std::vector<
 	ImGui::PushID(p_asset);
 
 	ImGui::SeparatorText("Mesh");
-	ImGui::ImageButton(ImTextureID(m_asset_manager_window.GetMeshPreviewTex(p_asset)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
+	ImGui::ImageButton(reinterpret_cast<void*>(m_asset_manager_window.GetMeshPreviewTex(p_asset)), ImVec2(100, 100), ImVec2(0, 1), ImVec2(1, 0));
 	if (ImGui::BeginDragDropTarget()) {
 		if (const ImGuiPayload* p_payload = ImGui::AcceptDragDropPayload("MESH")) {
 			if (p_payload->DataSize == sizeof(MeshAsset*)) {
@@ -2556,12 +2592,12 @@ void EditorLayer::RenderMeshWithMaterials(const MeshAsset* p_asset, std::vector<
 	}
 
 	ImGui::SeparatorText("Materials");
-	for (int i = 0; i < materials.size(); i++) {
+	for (size_t i = 0; i < materials.size(); i++) {
 		auto p_material = materials[i];
-		ImGui::PushID(i);
+		ImGui::PushID(static_cast<int>(i));
 
 		if (auto* p_new_material = RenderMaterialComponent(p_material)) {
-			OnMaterialDrop(i, p_new_material);
+			OnMaterialDrop(static_cast<unsigned>(i), p_new_material);
 		}
 
 		ImGui::PopID();

@@ -47,6 +47,6 @@ namespace ORNG {
 		static glm::mat4x4 Init3DTranslationTransform(float tranX, float tranY, float tranZ);
 
 		static glm::vec3 ScreenCoordsToRayDir(glm::mat4 proj_matrix, glm::vec2 coords, glm::vec3 cam_pos, glm::vec3 cam_forward,
-			glm::vec3 cam_up, unsigned int window_width, unsigned int window_height);
+			glm::vec3 cam_up, int window_width, int window_height);
 	};
 }

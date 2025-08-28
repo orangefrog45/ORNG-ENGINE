@@ -12,12 +12,12 @@ namespace ORNG {
             SetTrackedActions = [this](std::string_view profile_path, std::vector<vrlib::VrInput::RequestedTrackedAction>& actions) {
                 return m_vr.input.SetTrackedActions(profile_path, actions);
             };
-        };
+        }
 
-        virtual ~VrSystem() = default;
+        ~VrSystem() override = default;
 
         // Resets use_matrices flag
-        void OnUpdate() final { m_use_matrices = false;  };
+        void OnUpdate() final { m_use_matrices = false;  }
 
         // Sets matrices that will be used in the common scene UBO, should be updated each frame if rendering in VR
         // If none are provided, the normal camera matrices will be used for both eyes, which will look very wrong

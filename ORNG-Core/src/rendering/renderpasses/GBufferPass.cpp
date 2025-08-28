@@ -141,7 +141,7 @@ void GBufferPass::DoPass() {
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			sv.SetUniform("u_transform_start_index", emitter.GetParticleStartIdx());
-			SceneRenderer::DrawMeshGBuffer(&sv, res.p_mesh, SOLID, emitter.GetNbParticles(), &res.materials[0],
+			SceneRenderer::DrawMeshGBuffer(&sv, res.p_mesh, SOLID, static_cast<int>(emitter.GetNbParticles()), &res.materials[0],
 				ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED, true);
 		}
 
@@ -150,7 +150,7 @@ void GBufferPass::DoPass() {
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			sv.SetUniform("u_transform_start_index", emitter.GetParticleStartIdx());
-			SceneRenderer::DrawMeshGBuffer(&sv, p_quad_mesh, SOLID, emitter.GetNbParticles(), &res.p_material,
+			SceneRenderer::DrawMeshGBuffer(&sv, p_quad_mesh, SOLID, static_cast<int>(emitter.GetNbParticles()), &res.p_material,
 				ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED, true);
 		}
 	}

@@ -5,16 +5,18 @@
 
 namespace ORNG {
 	void EditorEventStack::Undo() {
-		if (m_events.empty() || m_active_index == m_events.size())
+		if (m_events.empty() || static_cast<size_t>(m_active_index) == m_events.size())
 			return;
 
-		auto& e = m_events[m_active_index];
+		ASSERT(m_active_index >= 0);
 
-		if (m_active_index < m_events.size())
+		auto& e = m_events[static_cast<unsigned>(m_active_index)];
+
+		if (static_cast<size_t>(m_active_index) < m_events.size())
 			m_active_index++;
 
 		if (e.event_type == ENTITY_CREATE) {
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 
 				auto& ent = *(*mp_scene_context)->GetEntity(e.affected_entities[i]);
 
@@ -25,7 +27,7 @@ namespace ORNG {
 		else if (e.event_type == TRANSFORM_UPDATE) {
 			bool empty_serialized_after = e.serialized_entities_after.empty();
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				auto& ent = *(*mp_scene_context)->GetEntity(e.affected_entities[i]);
 
 				if (empty_serialized_after)
@@ -34,18 +36,18 @@ namespace ORNG {
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_before[i], ent);
 			}
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
 		else if (e.event_type == ENTITY_DELETE) {
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				SceneSerializer::DeserializeEntityUUIDFromString(**mp_scene_context, e.serialized_entities_before[i]);
 			}
 
 			bool empty_serialized_after = e.serialized_entities_after.empty();
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				auto& ent = *(*mp_scene_context)->GetEntity(e.affected_entities[i]);
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_before[i], ent);
 
@@ -53,7 +55,7 @@ namespace ORNG {
 					e.serialized_entities_after.push_back(std::to_string(ent.GetUUID()));
 			}
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
@@ -63,36 +65,37 @@ namespace ORNG {
 			return;
 
 		m_active_index--;
+		ASSERT(m_active_index >= 0);
 
-		auto& e = m_events[m_active_index];
+		auto& e = m_events[static_cast<unsigned>(m_active_index)];
 
 		if (e.event_type == ENTITY_CREATE) {
-			for (int i = 0; i < e.affected_entities.size(); i++) {
-				auto& ent = SceneSerializer::DeserializeEntityUUIDFromString(**mp_scene_context, e.serialized_entities_before[i]);
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
+				SceneSerializer::DeserializeEntityUUIDFromString(**mp_scene_context, e.serialized_entities_before[i]);
 			}
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				auto& ent = *(*mp_scene_context)->GetEntity(e.affected_entities[i]);
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_before[i], ent);
 			}
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
 		else if (e.event_type == ENTITY_DELETE) {
-			for (int i = 0; i < e.serialized_entities_after.size(); i++) {
+			for (size_t i = 0; i < e.serialized_entities_after.size(); i++) {
 				auto& ent = *(*mp_scene_context)->GetEntity(std::stoull(e.serialized_entities_after[i]));
 				RemoveIfContains(*mp_editor_selected_entities, ent.GetUUID());
 				(*mp_scene_context)->DeleteEntity(&ent);
 			}
 		}
 		else if (e.event_type == TRANSFORM_UPDATE) {
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				SceneSerializer::DeserializeEntityFromString(**mp_scene_context, e.serialized_entities_after[i], *(*mp_scene_context)->GetEntity(e.affected_entities[i]));
 			}
 
-			for (int i = 0; i < e.affected_entities.size(); i++) {
+			for (size_t i = 0; i < e.affected_entities.size(); i++) {
 				Events::EventManager::DispatchEvent(EntitySerializationEvent{(*mp_scene_context)->GetEntity(e.affected_entities[i])});
 			}
 		}
@@ -120,5 +123,4 @@ namespace ORNG {
 		m_events.clear();
 		m_active_index = -1;
 	}
-
 }

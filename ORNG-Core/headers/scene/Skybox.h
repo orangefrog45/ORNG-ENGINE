@@ -29,7 +29,7 @@ namespace ORNG {
 			return m_hdr_tex_filepath;
 		}
 
-		[[nodiscard]] unsigned GetResolution() const noexcept {
+		[[nodiscard]] int GetResolution() const noexcept {
 			return m_resolution;
 		}
 
@@ -37,7 +37,7 @@ namespace ORNG {
 		bool using_env_map = false;
 	private:
 		std::string m_hdr_tex_filepath = "";
-		unsigned int m_resolution = 4096;
+		int m_resolution = 4096;
 
 		std::unique_ptr<TextureCubemap> m_diffuse_prefilter_map{ nullptr };
 		std::unique_ptr<TextureCubemap> m_specular_prefilter_map{ nullptr };

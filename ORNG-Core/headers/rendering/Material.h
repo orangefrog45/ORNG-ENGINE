@@ -54,6 +54,7 @@ namespace ORNG {
 		explicit Material(uint64_t id) : Asset("", id) {}
 
 		Material(const Material& other) = default;
+		Material& operator=(const Material& other) = default;
 
 		template<typename S>
 		void serialize(S& s) {
@@ -129,7 +130,7 @@ namespace ORNG {
 
 		SpriteSheetData spritesheet_data;
 
-		uint32_t parallax_layers = 24;
+		int parallax_layers = 24;
 		float displacement_scale = 0.05f;
 
 		glm::vec2 tile_scale{ 1.f, 1.f };

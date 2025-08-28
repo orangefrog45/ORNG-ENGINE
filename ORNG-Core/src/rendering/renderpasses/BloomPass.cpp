@@ -30,8 +30,8 @@ void BloomPass::Init() {
 	Texture2DSpec bloom_spec;
 	bloom_spec.format = GL_RGBA;
 	bloom_spec.internal_format = GL_RGBA16F;
-	bloom_spec.width = static_cast<unsigned>(ceil(static_cast<float>(input_spec.width) * 0.5f));
-	bloom_spec.height = static_cast<unsigned>(ceil(static_cast<float>(input_spec.height) * 0.5f));
+	bloom_spec.width = static_cast<int>(ceil(static_cast<float>(input_spec.width) * 0.5f));
+	bloom_spec.height = static_cast<int>(ceil(static_cast<float>(input_spec.height) * 0.5f));
 	bloom_spec.storage_type = GL_FLOAT;
 	bloom_spec.generate_mipmaps = true;
 	bloom_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;

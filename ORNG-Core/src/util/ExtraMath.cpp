@@ -133,7 +133,7 @@ glm::mat4x4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, floa
 }
 
 glm::vec3 ExtraMath::ScreenCoordsToRayDir(glm::mat4 proj_matrix, glm::vec2 coords, glm::vec3 cam_pos, glm::vec3 cam_forward,
-glm::vec3 cam_up, unsigned int window_width, unsigned int window_height) {
+	glm::vec3 cam_up, int window_width, int window_height) {
 	glm::vec2 norm = coords / glm::vec2(window_width, window_height);
 	glm::vec4 clipspace = glm::vec4(norm, 1.0, 1.0) * 2.f - 1.f;
 	glm::vec4 viewspace = glm::inverse(proj_matrix) * clipspace;

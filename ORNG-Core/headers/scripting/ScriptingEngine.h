@@ -13,7 +13,6 @@ namespace ORNG {
 		class EventManager;
 	}
 
-
 	struct ScriptData {
 		ScriptData(const std::string& _filepath, HMODULE _dll_handle, const ScriptSymbols& _symbols) : filepath(_filepath),
 			dll_handle(_dll_handle), symbols(_symbols) {}

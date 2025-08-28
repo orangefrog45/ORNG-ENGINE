@@ -35,8 +35,8 @@ void LightingPass::Init() {
 		cone_trace_spec.format = GL_RGBA;
 		cone_trace_spec.internal_format = GL_RGBA16F;
 		cone_trace_spec.storage_type = GL_FLOAT;
-		cone_trace_spec.width = static_cast<uint32_t>(output_spec.width * 0.5);
-		cone_trace_spec.height = static_cast<uint32_t>(output_spec.height * 0.5);
+		cone_trace_spec.width = static_cast<int>(output_spec.width * 0.5);
+		cone_trace_spec.height = static_cast<int>(output_spec.height * 0.5);
 		cone_trace_accum_tex.SetSpec(cone_trace_spec);
 
 		depth_aware_upsample_sv.SetPath(GL_COMPUTE_SHADER, "res/core-res/shaders/DepthAwareUpsampleCS.glsl");
@@ -62,7 +62,7 @@ void LightingPass::Init() {
 
 };
 
-inline int Groups(uint32_t size, int group_size) {
+inline int Groups(int size, int group_size) {
 	return static_cast<int>(glm::ceil(static_cast<float>(size) / static_cast<float>(group_size)));
 }
 

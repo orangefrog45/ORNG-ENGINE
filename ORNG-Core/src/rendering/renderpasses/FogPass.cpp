@@ -55,8 +55,8 @@ void FogPass::Init() {
 
 	// Fog texture
 	Texture2DSpec fog_overlay_spec = rgba16_spec;
-	fog_overlay_spec.width = static_cast<uint32_t>(glm::ceil(static_cast<float>(out_spec.width) / 2.f));
-	fog_overlay_spec.height = static_cast<uint32_t>(glm::ceil(static_cast<float>(out_spec.height) / 2.f));
+	fog_overlay_spec.width = static_cast<int>(glm::ceil(static_cast<float>(out_spec.width) / 2.f));
+	fog_overlay_spec.height = static_cast<int>(glm::ceil(static_cast<float>(out_spec.height) / 2.f));
 	fog_output_tex.SetSpec(fog_overlay_spec);
 };
 
@@ -76,7 +76,7 @@ void FogPass::DoPass() {
 	fog_shader.SetUniform("u_scattering_anisotropy", p_scene->post_processing.global_fog.scattering_anisotropy);
 	fog_shader.SetUniform("u_fog_colour", p_scene->post_processing.global_fog.colour);
 	fog_shader.SetUniform("u_step_count", p_scene->post_processing.global_fog.step_count);
-	fog_shader.SetUniform("u_time", static_cast<float>(FrameTiming::GetTotalElapsedTime()));
+	fog_shader.SetUniform("u_time", FrameTiming::GetTotalElapsedTime());
 	fog_shader.SetUniform("u_emissive", p_scene->post_processing.global_fog.emissive_factor);
 
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, p_depth_tex->GetTextureHandle(), GL_StateManager::TextureUnits::DEPTH, false);

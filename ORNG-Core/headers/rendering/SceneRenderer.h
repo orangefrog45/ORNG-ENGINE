@@ -24,7 +24,7 @@ namespace ORNG {
 		SceneRenderer() = default;
 		~SceneRenderer();
 
-		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, unsigned instances, 
+		static void DrawMeshGBuffer(ShaderVariants* p_shader, const MeshAsset* p_mesh, RenderGroup render_group, int instances,
 			const Material* const* materials, MaterialFlags mat_flags, MaterialFlags mat_flags_excluded, bool allow_state_changes,
 			GLenum primitive_type = GL_TRIANGLES);
 

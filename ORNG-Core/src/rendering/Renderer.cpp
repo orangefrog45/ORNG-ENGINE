@@ -76,7 +76,7 @@ namespace ORNG {
 	};
 
 
-	void Renderer::IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count) {
+	void Renderer::IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, int instance_count) {
 		GL_StateManager::BindVAO(vao.GetHandle());
 
 		glDrawArraysInstanced(primitive_type,
@@ -97,7 +97,9 @@ namespace ORNG {
 	}
 
 
-	void Renderer::IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count) {
+	void Renderer::IDrawMeshInstanced(const MeshAsset* p_mesh, int instance_count) {
+		DEBUG_ASSERT(instance_count >= 0);
+
 		GL_StateManager::BindVAO(p_mesh->m_vao.GetHandle());
 
 		for (size_t i = 0; i < p_mesh->m_submeshes.size(); i++) {
@@ -114,27 +116,33 @@ namespace ORNG {
 		}
 	}
 
-	void Renderer::IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index) {
+	void Renderer::IDrawSubMesh(const MeshAsset* data, int submesh_index) {
+		DEBUG_ASSERT(submesh_index >= 0);
+
 		GL_StateManager::BindVAO(data->m_vao.GetHandle());
 
+		unsigned i = static_cast<unsigned>(submesh_index);
 		glDrawElementsBaseVertex(GL_TRIANGLES,
-			data->m_submeshes[submesh_index].num_indices,
+			data->m_submeshes[i].num_indices,
 			GL_UNSIGNED_INT,
-			reinterpret_cast<void*>(sizeof(unsigned int) * data->m_submeshes[submesh_index].base_index),
-			data->m_submeshes[submesh_index].base_vertex);
+			reinterpret_cast<void*>(sizeof(unsigned int) * data->m_submeshes[i].base_index),
+			data->m_submeshes[i].base_vertex);
 
 		m_draw_call_amount++;
 	}
 
-	void Renderer::IDrawSubMeshInstanced(const MeshAsset* mesh_data, unsigned int t_instances, unsigned int submesh_index, GLenum primitive_type) {
+	void Renderer::IDrawSubMeshInstanced(const MeshAsset* mesh_data, int t_instances, int submesh_index, GLenum primitive_type) {
+		DEBUG_ASSERT(t_instances >= 0 && submesh_index >= 0);
+
 		GL_StateManager::BindVAO(mesh_data->m_vao.GetHandle());
 
+		unsigned i = static_cast<unsigned>(submesh_index);
 		glDrawElementsInstancedBaseVertex(primitive_type,
-			mesh_data->m_submeshes[submesh_index].num_indices,
+			mesh_data->m_submeshes[i].num_indices,
 			GL_UNSIGNED_INT,
-			reinterpret_cast<void*>(sizeof(unsigned int) * mesh_data->m_submeshes[submesh_index].base_index),
+			reinterpret_cast<void*>(sizeof(unsigned int) * mesh_data->m_submeshes[i].base_index),
 			t_instances,
-			mesh_data->m_submeshes[submesh_index].base_vertex);
+			mesh_data->m_submeshes[i].base_vertex);
 
 		m_draw_call_amount++;
 	}
