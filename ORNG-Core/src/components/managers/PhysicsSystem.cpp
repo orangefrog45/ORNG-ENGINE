@@ -87,7 +87,7 @@ void ORNG::PhysicsSystem::OnLoad() {
 	// number then these contacts will be ignored and bodies will start interpenetrating / fall through the world.
 	constexpr unsigned max_contact_constraints = max_bodies / 2;
 
-	m_physics_system.Init(max_bodies, num_body_mutexes, max_body_pairs, max_contact_constraints, m_broad_phase_layer_interface,
+	physics_system.Init(max_bodies, num_body_mutexes, max_body_pairs, max_contact_constraints, m_broad_phase_layer_interface,
 		m_object_vs_broadphase_layer_filter, m_object_vs_object_layer_filter);
 	
 	mp_scene->RegisterComponent<PhysicsComponent>();
@@ -207,7 +207,7 @@ void ORNG::PhysicsSystem::OnTransformEvent(const Events::ECS_Event<TransformComp
 		}
 
 		// TODO: Could batch these
-		BodyInterface& body_interface = m_physics_system.GetBodyInterface();
+		BodyInterface& body_interface = physics_system.GetBodyInterface();
 		body_interface.SetPositionAndRotation(p_phys_comp->body_id, GlmToJph(p_transform->GetAbsPosition()),
 			GlmToJph(p_transform->GetAbsOrientationQuat()), EActivation::Activate);
 	}
@@ -225,7 +225,7 @@ void ORNG::PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
 
 	// The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
 	// variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
-	BodyInterface& body_interface = m_physics_system.GetBodyInterface(); // TODO: Use non-locking variant
+	BodyInterface& body_interface = physics_system.GetBodyInterface(); // TODO: Use non-locking variant
 
 	if (!p_comp->body_id.IsInvalid()) {
 		body_interface.RemoveBody(p_comp->body_id);
@@ -256,7 +256,7 @@ void ORNG::PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
 	// Arbitrary threshold
 	// OptimizeBroadPhase is expensive so it shouldn't be done very frequently, just whenever a bunch of bodies are added or removed
 	if (num_body_events_since_last_broadphase_optimization > 50) {
-		m_physics_system.OptimizeBroadPhase();
+		physics_system.OptimizeBroadPhase();
 		num_body_events_since_last_broadphase_optimization = 0;
 	}
 }
@@ -269,7 +269,7 @@ void ORNG::PhysicsSystem::InitComponent(PhysicsComponent* p_comp) {
 void ORNG::PhysicsSystem::RemoveComponent(PhysicsComponent* p_comp) {
 	if (p_comp->body_id.IsInvalid()) return;
 
-	BodyInterface& body_interface = m_physics_system.GetBodyInterface(); // TODO: Use non-locking variant
+	BodyInterface& body_interface = physics_system.GetBodyInterface(); // TODO: Use non-locking variant
 	//delete body_interface.GetShape(p_comp->body_id).GetPtr();
 	body_interface.RemoveBody(p_comp->body_id);
 	body_interface.DestroyBody(p_comp->body_id);
@@ -290,13 +290,13 @@ void ORNG::PhysicsSystem::OnUpdate() {
 
 	int num_steps = static_cast<int>(ceil(m_accumulator / step_size));
 	float adjusted_step_size = m_accumulator / static_cast<float>(num_steps);
-	m_physics_system.Update(adjusted_step_size, num_steps, mp_temp_allocator.get(), mp_job_system.get());
+	physics_system.Update(adjusted_step_size, num_steps, mp_temp_allocator.get(), mp_job_system.get());
 
 	m_accumulator = 0.f;
 
-	BodyInterface& body_interface = m_physics_system.GetBodyInterface(); // TODO: Use non-locking variant
+	BodyInterface& body_interface = physics_system.GetBodyInterface(); // TODO: Use non-locking variant
 	BodyIDVector active_bodies;
-	m_physics_system.GetActiveBodies(EBodyType::RigidBody, active_bodies);
+	physics_system.GetActiveBodies(EBodyType::RigidBody, active_bodies);
 	for (const auto& body : active_bodies) {
 		Quat q;
 		Vec3 p;

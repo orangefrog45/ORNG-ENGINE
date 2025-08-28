@@ -15,11 +15,21 @@
 #include "imgui.h"
 
 // Below includes are for setting the singleton instances for scripts
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <jolt/Jolt.h>
+#include <jolt/Core/Core.h>
+#include <jolt/Core/Factory.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "assets/AssetManager.h"
 #include "core/Window.h"
 #include "core/GLStateManager.h"
 #include "rendering/Renderer.h"
-
 
 namespace ORNG {
 	void ScriptingEngine::ReplaceScriptCmakeEngineFilepaths(std::string& cmake_content) {
@@ -187,7 +197,7 @@ namespace ORNG {
 
 		// Set singletons so they're usable across the DLL boundary
 		singleton_setter(&Window::Get(), &FrameTiming::Get(), &Events::EventManager::Get(), &GL_StateManager::Get(), 
-			&AssetManager::Get(), &Renderer::Get(), &Log::GetCoreLogger(), &Log::GetRingbufferSink());
+			&AssetManager::Get(), &Renderer::Get(), &Log::GetCoreLogger(), &Log::GetRingbufferSink(), JPH::Factory::sInstance);
 
 		ImGuiMemAllocFunc imgui_malloc = nullptr;
 		ImGuiMemFreeFunc imgui_free = nullptr;

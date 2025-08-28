@@ -65,7 +65,7 @@ namespace ORNG {
 
 	typedef ScriptBase* (__cdecl* InstanceCreator)();
 	typedef void(__cdecl* InstanceDestroyer)(ScriptBase*);
-	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*, void*, void*);
+	typedef void(__cdecl* SingletonPtrSetter)(void*, void*, void*, void*, void*, void*, void*, void*, void*);
 	typedef void(__cdecl* ImGuiContextSetter)(void*, void*, void*);
 	typedef void(__cdecl* UnloadFunc)();
 	typedef uint64_t(__cdecl* ScriptGetUuidFunc)();

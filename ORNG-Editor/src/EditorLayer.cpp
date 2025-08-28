@@ -988,7 +988,7 @@ void EditorLayer::RenderToolbar() {
 			break;
 		}
 		default:
-			BREAKPOINT;
+			break;
 		}
 
 

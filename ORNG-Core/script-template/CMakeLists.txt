@@ -4,8 +4,13 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd /MP /bigobj" CACHE INTERNAL "" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /MP /O2" CACHE INTERNAL "" FORCE)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd /MP /bigobj" CACHE INTERNAL "" FORCE)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD /MP /O2" CACHE INTERNAL "" FORCE)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE INTERNAL "" FORCE)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3" CACHE INTERNAL "" FORCE)
+endif()
 
 project(SCRIPTS)
 add_compile_options(/Zi)
@@ -34,13 +39,11 @@ ${ENGINE_BASE_DIR}/ORNG-Core/extern/glew-cmake/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/imgui
 ${ENGINE_BASE_DIR}/ORNG-Core/headers
-${ENGINE_BASE_DIR}/ORNG-Core/extern/fastnoise2/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/yaml/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/plog/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/bitsery/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/implot
-${ENGINE_BASE_DIR}/extern/vcpkg/packages/physx_x64-windows/include/
-${ENGINE_BASE_DIR}/extern/vcpkg/packages/physx_x64-windows/include/physx
+${ENGINE_BASE_DIR}/ORNG-Core/extern/jolt
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/tracy/public/tracy
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/core/headers
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/include
@@ -50,28 +53,12 @@ ${CMAKE_CURRENT_LIST_DIR}/headers
 find_package(OpenGL REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-set(PHYSX_LIBS 
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysX_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXCommon_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXCooking_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXFoundation_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXVehicle_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXVehicle2_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/SceneQuery_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXCharacterKinematic_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/LowLevel_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/LowLevelAABB_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXExtensions_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/PhysXTask_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/lib/SimulationController_static_64.lib
-)
 
 set(SCRIPT_LIBS
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_COREd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTILd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENEd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERINGd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_PHYSICSd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-COREd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loaderd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imguid.lib
@@ -83,31 +70,14 @@ ${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/contrib/zlib/zlibstaticd.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/yaml/yaml-cppd.lib
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/fmod/api/core/lib/x64/fmodL_vc.lib
 ${YAML_CPP_LIBRARIES}
-${PHYSX_LIBS}
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/jolt/Build/Joltd.lib
 )
 else()
-set(PHYSX_LIBS 
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysX_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXCommon_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXCooking_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXFoundation_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXVehicle_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXVehicle2_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/SceneQuery_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXCharacterKinematic_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/LowLevel_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/LowLevelAABB_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXExtensions_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/PhysXTask_static_64.lib
-${ENGINE_BINARY_DIR}/vcpkg_installed/x64-windows/lib/SimulationController_static_64.lib
-)
-
 set(SCRIPT_LIBS
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTIL.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERING.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_PHYSICS.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loader.lib
 ${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imgui.lib
@@ -120,6 +90,7 @@ ${ENGINE_BINARY_DIR}/ORNG-Core/extern/yaml/yaml-cpp.lib
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/fmod/api/core/lib/x64/fmod_vc.lib
 ${YAML_CPP_LIBRARIES}
 ${PHYSX_LIBS}
+${ENGINE_BINARY_DIR}/ORNG-Core/extern/jolt/Build/Jolt.lib
 )
 endif()
 

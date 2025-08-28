@@ -127,6 +127,7 @@ namespace ORNG {
 		};
 
 		float step_size = 1.f / 90.f;
+		JPH::PhysicsSystem physics_system;
 	private:
 		void Tick();
 
@@ -157,8 +158,6 @@ namespace ORNG {
 		BPLayerInterfaceImpl m_broad_phase_layer_interface;
 		ObjectVsBroadPhaseLayerFilterImpl m_object_vs_broadphase_layer_filter;
 		ObjectLayerPairFilterImpl m_object_vs_object_layer_filter;
-
-		JPH::PhysicsSystem m_physics_system;
 
 		std::array<entt::connection, 8> m_connections;
 		Events::ECS_EventListener<PhysicsComponent> m_phys_listener;
