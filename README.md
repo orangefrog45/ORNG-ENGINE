@@ -31,6 +31,7 @@ For scripts to be able to locate the correct binaries, your build paths must be 
 - Deferred physically-based 3D renderer
 - C++ scripting with hot reloading
 - VR rendering and interaction support via OpenXR in the editor and runtime
+- Physics integration using the Jolt library
 - Editor project serialization and full game runtime generation
 - Cascaded voxel cone traced global illumination
 - GPU-driven particle system
