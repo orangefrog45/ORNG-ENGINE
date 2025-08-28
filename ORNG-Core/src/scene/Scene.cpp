@@ -444,7 +444,7 @@ namespace ORNG {
 		uuid = ent->GetUUID();
 		ent->name = name;
 		m_entities.push_back(ent);
-		DEBUG_ASSERT(!m_entity_uuid_lookup.contains(uuid))
+		DEBUG_ASSERT(!m_entity_uuid_lookup.contains(uuid));
 		m_entity_uuid_lookup[uuid] = ent;
 
 		// Entity initially has no parent so insert it here

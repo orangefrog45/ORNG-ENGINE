@@ -1621,8 +1621,6 @@ void EditorLayer::UpdateLuaEntityArray() {
 
 		m_lua_cli.GetLua().script(entity_push_script);
 	}
-
-
 }
 
 
