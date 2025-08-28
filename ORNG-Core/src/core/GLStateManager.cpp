@@ -3,7 +3,7 @@
 #include "util/Log.h"
 
 namespace ORNG {
-	void GL_StateManager::IBindTexture(int target, int texture, int tex_unit, bool force_mode) {
+	void GL_StateManager::IBindTexture(unsigned target, unsigned texture, unsigned tex_unit, bool force_mode) {
 		auto& tex_data = m_current_texture_bindings[tex_unit];
 
 		if (!force_mode && tex_data.tex_obj == texture && tex_data.tex_target == target)
@@ -27,7 +27,8 @@ namespace ORNG {
 	}
 
 
-	void GLAPIENTRY GL_LogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void*) {
+	static void GLAPIENTRY GL_LogMessage([[maybe_unused]] GLenum source, [[maybe_unused]] GLenum type,[[maybe_unused]]  GLuint id, GLenum severity,
+		[[maybe_unused]] GLsizei length, const GLchar* message, const void*) {
 		switch (severity)
 		{
 		case GL_DEBUG_SEVERITY_HIGH:

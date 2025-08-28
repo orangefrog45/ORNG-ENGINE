@@ -12,7 +12,9 @@ namespace ORNG {
 		friend class SceneRenderer;
 		friend class Scene;
 		friend class CameraSystem;
-		explicit CameraComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit CameraComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		CameraComponent& operator=(const CameraComponent&) = default;
+		CameraComponent(const CameraComponent&) = default;
 		~CameraComponent() override = default;
 
 		void Update();

@@ -56,8 +56,6 @@ void SceneUBOSystem::UpdateCommonUBO() {
 		zfar = p_cam->zFar;
 	}
 
-	glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + cam_fwd, cam_up);
-
 	// Any 0's are padding, all vec3 types are defined as vec4's in the shader for easier alignment.
 	ConvertToBytes(p_byte,
 		cam_pos, 0,
@@ -127,13 +125,13 @@ void SceneUBOSystem::UpdateGlobalLightingUBO() {
 		glm::vec3 light_dir = light.GetLightDirection();
 		light.m_light_space_matrices[0] = ExtraMath::CalculateLightSpaceMatrix(
 			glm::perspective(fov, p_cam->aspect_ratio, 0.1f, light.cascade_ranges[0]),
-			cam_view_matrix, light_dir, light.z_mults[0], (float)DirectionalLight::SHADOW_RESOLUTION);
+			cam_view_matrix, light_dir, light.z_mults[0], static_cast<float>(DirectionalLight::SHADOW_RESOLUTION));
 		light.m_light_space_matrices[1] = ExtraMath::CalculateLightSpaceMatrix(
 			glm::perspective(fov, p_cam->aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]),
-			cam_view_matrix, light_dir, light.z_mults[1], (float)DirectionalLight::SHADOW_RESOLUTION);
+			cam_view_matrix, light_dir, light.z_mults[1], static_cast<float>(DirectionalLight::SHADOW_RESOLUTION));
 		light.m_light_space_matrices[2] = ExtraMath::CalculateLightSpaceMatrix(
 			glm::perspective(fov, p_cam->aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]),
-			cam_view_matrix, light_dir, light.z_mults[2], (float)DirectionalLight::SHADOW_RESOLUTION);
+			cam_view_matrix, light_dir, light.z_mults[2], static_cast<float>(DirectionalLight::SHADOW_RESOLUTION));
 
 	}
 

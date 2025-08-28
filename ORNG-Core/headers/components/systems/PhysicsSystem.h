@@ -103,7 +103,7 @@ namespace ORNG {
 
 
 	struct PhysicsCollisionEvent : public Events::Event {
-		PhysicsCollisionEvent(SceneEntity* _p0, SceneEntity* _p1) : p0(_p0), p1(_p1) {};
+		PhysicsCollisionEvent(SceneEntity* _p0, SceneEntity* _p1) : p0(_p0), p1(_p1) {}
 		SceneEntity* p0 = nullptr;
 		SceneEntity* p1 = nullptr;
 	};
@@ -112,7 +112,7 @@ namespace ORNG {
 		friend class EditorLayer;
 	public:
 		explicit PhysicsSystem(Scene* p_scene);
-		virtual ~PhysicsSystem() = default;
+		~PhysicsSystem() override = default;
 
 		void OnUpdate() override;
 		void OnUnload() override;

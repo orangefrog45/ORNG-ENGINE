@@ -12,9 +12,9 @@ namespace ORNG {
 			return { points[0].y, points[0].z, points[0].w };
 		}
 
-		for (int i = 0; i < points.size(); i++) {
+		for (size_t i = 0; i < points.size(); i++) {
 			if (points[i].x > x) {
-				unsigned i_0 = glm::max(i - 1, 0);
+				unsigned i_0 = static_cast<unsigned>(glm::max(static_cast<int>(i) - 1, 0));
 
 				glm::vec3 p1 = { points[i_0].y, points[i_0].z, points[i_0].w };
 				glm::vec3 p2 = { points[i].y, points[i].z, points[i].w };
@@ -48,14 +48,14 @@ namespace ORNG {
 		SortPoints();
 	}
 
-	void InterpolatorV3::RemovePoint(unsigned index) {
+	void InterpolatorV3::RemovePoint(size_t index) {
 		if (points.size() == 2) // Must have minimum of 2 points to interpolate between
 			return;
 
-		points.erase(points.begin() + index);
+		points.erase(points.begin() + static_cast<int>(index));
 	}
 
-	void InterpolatorV3::SetPoint(unsigned index, const glm::vec4& v) {
+	void InterpolatorV3::SetPoint(size_t index, const glm::vec4& v) {
 		ASSERT(points.size() > index);
 
 		if (v.x < x_min_max.x || v.x > x_min_max.y) {
@@ -71,7 +71,7 @@ namespace ORNG {
 		points[index] = { glm::clamp(v.x, x_min_max.x, x_min_max.y), glm::clamp({v.y, v.z, v.w}, glm::vec3(yzw_min_max.x), glm::vec3(yzw_min_max.y)) };
 	}
 
-	void InterpolatorV1::SetPoint(unsigned index, glm::vec2 v) {
+	void InterpolatorV1::SetPoint(size_t index, glm::vec2 v) {
 		ASSERT(points.size() > index);
 
 		if (v.x < x_min_max.x || v.x > x_min_max.y) {
@@ -86,7 +86,7 @@ namespace ORNG {
 	}
 
 
-	glm::vec4 InterpolatorV3::GetPoint(unsigned index) {
+	glm::vec4 InterpolatorV3::GetPoint(size_t index) {
 		ASSERT(points.size() > index);
 		return points[index];
 	}
@@ -94,30 +94,30 @@ namespace ORNG {
 	void InterpolatorV1::ConvertSelfToBytes(std::byte*& p_byte) {
 		constexpr float s = std::numeric_limits<float>::lowest();
 
-		for (int i = 0; i < points.size(); i++) {
+		for (size_t i = 0; i < points.size(); i++) {
 			ConvertToBytes(p_byte, points[i]);
 		}
 
-		for (int i = points.size(); i < GPU_INTERPOLATOR_STRUCT_MAX_POINTS; i++) {
+		for (size_t i = points.size(); i < GPU_INTERPOLATOR_STRUCT_MAX_POINTS; i++) {
 			ConvertToBytes(p_byte, s); //padding
 			ConvertToBytes(p_byte, s); //padding
 		}
 
-		ConvertToBytes(p_byte, (unsigned)points.size(), scale);
+		ConvertToBytes(p_byte, static_cast<unsigned>(points.size()), scale);
 	}
 
 	void InterpolatorV3::ConvertSelfToBytes(std::byte*& p_byte) {
 		constexpr float s = std::numeric_limits<float>::lowest();
 
-		for (int i = 0; i < points.size(); i++) {
+		for (size_t i = 0; i < points.size(); i++) {
 			ConvertToBytes(p_byte, points[i]);
 		}
 
-		for (int i = points.size(); i < GPU_INTERPOLATOR_STRUCT_MAX_POINTS; i++) {
+		for (size_t i = points.size(); i < GPU_INTERPOLATOR_STRUCT_MAX_POINTS; i++) {
 			ConvertToBytes(p_byte, s, s, s, s); // padding
 		}
 
-		ConvertToBytes(p_byte, (unsigned)points.size(), scale);
+		ConvertToBytes(p_byte, static_cast<unsigned>(points.size()), scale);
 	}
 
 
@@ -129,9 +129,9 @@ namespace ORNG {
 			return points[0].y;
 		}
 
-		for (int i = 0; i < points.size(); i++) {
+		for (size_t i = 0; i < points.size(); i++) {
 			if (points[i].x > x) {
-				unsigned i_0 = glm::max(i - 1, 0);
+				unsigned i_0 = static_cast<unsigned>(glm::max(static_cast<int>(i) - 1, 0));
 
 				return glm::mix(
 					points[i_0].y,
@@ -162,16 +162,15 @@ namespace ORNG {
 		SortPoints();
 	}
 
-	glm::vec2 InterpolatorV1::GetPoint(unsigned index) {
+	glm::vec2 InterpolatorV1::GetPoint(size_t index) {
 		ASSERT(points.size() > index);
 		return points[index];
 	}
 
-
-	void InterpolatorV1::RemovePoint(unsigned index) {
+	void InterpolatorV1::RemovePoint(size_t index) {
 		if (points.size() == 2) // Must have minimum of 2 points to interpolate between
 			return;
 
-		points.erase(points.begin() + index);
+		points.erase(points.begin() + static_cast<int>(index));
 	}
 }

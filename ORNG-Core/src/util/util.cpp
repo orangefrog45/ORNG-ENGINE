@@ -150,11 +150,13 @@ namespace ORNG {
 		catch (std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::is_regular_file err with path '{0}', '{1}'", entry.path().string(), e.what());
 		}
+
+		return false;
 	}
 
 	std::string GetApplicationExecutableDirectory() {
 		char buffer[MAX_PATH];
-		GetModuleFileNameA(NULL, buffer, MAX_PATH);
+		GetModuleFileNameA(nullptr, buffer, MAX_PATH);
 
 		std::string directory = buffer;
 		directory = directory.substr(0, directory.find_last_of("\\"));
@@ -163,7 +165,7 @@ namespace ORNG {
 	}
 
 	std::string GetFileLastWriteTime(const std::string& filepath) {
-		std::string formatted = "";
+		std::string formatted;
 
 		try {
 			std::filesystem::file_time_type file_time = std::filesystem::last_write_time(filepath);
@@ -171,11 +173,16 @@ namespace ORNG {
 			std::time_t time = std::chrono::system_clock::to_time_t(sys_time);
 
 			char buffer[80];
-			std::tm* time_info = std::localtime(&time);
-			std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", time_info);
-			formatted = buffer;
+			std::tm time_info{};
+			if (localtime_s(&time_info, &time) == 0) {  // success
+				std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &time_info);
+				formatted = buffer;
+			}
+			else {
+				formatted = "Invalid time";
+			}
 		}
-		catch (std::exception& e) {
+		catch (const std::exception& e) {
 			ORNG_CORE_ERROR("std::filesystem::last_write_time error, '{0}'", e.what());
 		}
 
@@ -253,7 +260,7 @@ namespace ORNG {
 			return false;
 		}
 
-		out.write(reinterpret_cast<const char*>(p_data), size);
+		out.write(reinterpret_cast<const char*>(p_data), static_cast<long long>(size));
 		out.close();
 
 		return true;
@@ -286,7 +293,7 @@ namespace ORNG {
 
 		auto file_size = file.tellg();
 
-		output.resize(file_size);
+		output.resize(static_cast<size_t>(file_size));
 		file.seekg(0, std::ios::beg);
 
 		if (!file.read(reinterpret_cast<char*>(output.data()), file_size)) {
@@ -296,6 +303,4 @@ namespace ORNG {
 
 		return true;
 	}
-
-
 }

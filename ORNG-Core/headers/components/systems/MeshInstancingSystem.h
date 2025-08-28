@@ -10,7 +10,7 @@ namespace ORNG {
 	class MeshInstancingSystem : public ComponentSystem {
 	public:
 		explicit MeshInstancingSystem(Scene* p_scene);
-		virtual ~MeshInstancingSystem() = default;
+		~MeshInstancingSystem() override = default;
 		void SortMeshIntoInstanceGroup(MeshComponent* comp);
 		void OnLoad() override;
 		void OnUnload() override;

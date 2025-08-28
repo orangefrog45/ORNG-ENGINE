@@ -8,13 +8,11 @@ namespace ORNG {
 	// Currently relies on common_ubo to be set so should be used as part of the SceneRenderer (want to change this later)
 	class SSAOPass : public Renderpass {
 	public:
-		SSAOPass(class RenderGraph* p_graph) : Renderpass(p_graph, "SSAO") {};
+		explicit SSAOPass(class RenderGraph* p_graph) : Renderpass(p_graph, "SSAO") {}
 
 		void Init() override;
 
 		void DoPass() override;
-
-		void Destroy() override {};
 
 		inline const Texture2D& GetSSAOTex() noexcept {
 			return ao_tex;

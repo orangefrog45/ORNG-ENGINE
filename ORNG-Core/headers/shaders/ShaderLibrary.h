@@ -22,5 +22,4 @@ namespace ORNG {
 	private:
 		Shader m_quad_shader;
 	};
-
 }

@@ -33,7 +33,7 @@ namespace ORNG {
 				mp_instance = new Renderer();
 				Get().I_Init();
 			}
-		};
+		}
 
 		static void Shutdown() {
 			if (mp_instance) delete mp_instance;
@@ -46,7 +46,7 @@ namespace ORNG {
 
 		static void DrawQuad() {
 			Get().IDrawQuad();
-		};
+		}
 
 		static void DrawScaledQuad(glm::vec2 min, glm::vec2 max) {
 			Get().IDrawScaledQuad(min, max);
@@ -54,7 +54,7 @@ namespace ORNG {
 
 		static void DrawCube() {
 			Get().IDrawUnitCube();
-		};
+		}
 
 		static void DrawSphere();
 
@@ -78,7 +78,7 @@ namespace ORNG {
 			Get().IDrawSubMeshInstanced(mesh_data, t_instances, submesh_index, primitive_type);
 		}
 
-		static void DrawVAOArrays(const VAO& vao, unsigned int num_indices, GLenum primitive_type) {
+		static void DrawVAOArrays(const VAO& vao, int num_indices, GLenum primitive_type) {
 			Get().IDrawVAOArrays(vao, num_indices, primitive_type);
 		}
 
@@ -107,7 +107,7 @@ namespace ORNG {
 		unsigned int m_draw_call_amount = 0;
 
 		Renderer() = default;
-		void IDrawVAOArrays(const VAO& vao, unsigned int indices_count, GLenum primitive_type);
+		void IDrawVAOArrays(const VAO& vao, int indices_count, GLenum primitive_type);
 		void IDrawVAO_Elements(GLenum primitive_type, const MeshVAO& vao);
 		void IDrawVAO_ArraysInstanced(GLenum primitive_type, const MeshVAO& vao, unsigned int instance_count);
 		void IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index);

@@ -12,7 +12,8 @@ namespace ORNG {
 		mp_mesh_asset = p_asset;
 	};
 
-	MeshComponent::MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset, std::vector<const Material*>&& materials) : Component(p_entity), mp_mesh_asset(p_asset), m_materials(std::move(materials)) {}
+	MeshComponent::MeshComponent(SceneEntity* p_entity, MeshAsset* p_asset, std::vector<const Material*>&& materials) : Component(p_entity),
+	m_materials(std::move(materials)), mp_mesh_asset(p_asset) {}
 
 
 	void MeshComponent::SetMeshAsset(MeshAsset* p_asset) {

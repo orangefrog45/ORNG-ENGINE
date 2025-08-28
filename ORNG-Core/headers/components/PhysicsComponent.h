@@ -17,7 +17,9 @@ namespace ORNG {
 		friend class FixedJointComponent;
 		friend class PhysicsSystem;
 	public:
-		explicit PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit PhysicsComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		PhysicsComponent& operator=(const PhysicsComponent&) = default;
+		PhysicsComponent(const PhysicsComponent&) = default;
 		~PhysicsComponent() override = default;
 
 		enum GeometryType {
@@ -30,23 +32,14 @@ namespace ORNG {
 			DYNAMIC = 1,
 		};
 
-		PhysicsComponent(SceneEntity* p_entity, bool is_trigger, GeometryType geom_type, RigidBodyType body_type) : Component(p_entity), m_is_trigger(is_trigger),
-			m_geometry_type(geom_type), m_body_type(body_type) {};
-
-		void SetVelocity(glm::vec3 v);
-		void SetAngularVelocity(glm::vec3 v);
-		glm::vec3 GetVelocity() const;
-		glm::vec3 GetAngularVelocity() const;
-
-		void AddForce(glm::vec3 force);
-		void ToggleGravity(bool on);
-		void SetMass(float mass);
+		PhysicsComponent(SceneEntity* p_entity, bool is_trigger, GeometryType geom_type, RigidBodyType body_type) : Component(p_entity),
+			m_geometry_type(geom_type), m_body_type(body_type), m_is_trigger(is_trigger) {}
 
 		void UpdateGeometry(GeometryType type);
 		void SetBodyType(RigidBodyType type);
 
 		void SetTrigger(bool is_trigger);
-		bool IsTrigger() { return m_is_trigger; }
+		bool IsTrigger() const { return m_is_trigger; }
 
 		JPH::BodyID body_id{};
 	private:
@@ -60,11 +53,11 @@ namespace ORNG {
 	struct CharacterControllerComponent : public Component {
 	public:
 		friend class PhysicsSystem;
-		explicit CharacterControllerComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit CharacterControllerComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		CharacterControllerComponent& operator=(const CharacterControllerComponent&) = default;
+		CharacterControllerComponent(const CharacterControllerComponent&) = default;
+		~CharacterControllerComponent() override = default;
 
-		// Movement will update transform at the end of each frame and can be overwritten by calling functions like LookAt afterwards
-		// To avoid overwriting, ensure this is called AFTER any transform updates to the entity it is attached to
-		void Move(glm::vec3 disp, float minDist, float elapsedTime);
 		bool moved_during_frame = false;
 	};
 
@@ -74,9 +67,10 @@ namespace ORNG {
 	};
 
 	struct JointComponent final : Component {
-		explicit JointComponent(SceneEntity* p_ent) : Component(p_ent) {};
+		explicit JointComponent(SceneEntity* p_ent) : Component(p_ent) {}
+		JointComponent& operator=(const JointComponent&) = default;
+		JointComponent(const JointComponent&) = default;
 		~JointComponent() override = default;
-
 	};
 
 }

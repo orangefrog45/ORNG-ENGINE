@@ -14,7 +14,7 @@ namespace ORNG {
 		void Init();
 		void Bind() const;
 
-		void AddRenderbuffer(unsigned int width, unsigned int height);
+		void AddRenderbuffer(int width, int height);
 
 		void BindTextureLayerToFBAttachment(unsigned int tex_ref, unsigned int attachment, unsigned int layer);
 
@@ -24,7 +24,7 @@ namespace ORNG {
 
 		void EnableDrawBuffers(unsigned int amount, unsigned int buffers[]);
 
-		void SetRenderBufferDimensions(unsigned int width, unsigned int height);
+		void SetRenderBufferDimensions(int width, int height);
 
 		bool GetIsScalingWithWindow() const {
 			return m_scales_with_window;
@@ -40,5 +40,4 @@ namespace ORNG {
 		GLuint m_rbo = 0;
 		glm::vec2 m_renderbuffer_screen_size_ratio = glm::vec2(0);
 	};
-
 }

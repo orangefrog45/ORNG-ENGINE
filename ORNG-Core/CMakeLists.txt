@@ -46,10 +46,8 @@ set(ORNG_RENDERING_SOURCES
 set(ORNG_UTIL_SOURCES
 	src/util/ExtraMath.cpp
 	src/util/Log.cpp
-	src/util/Timers.cpp
-	src/util/TimeStep.cpp
-	src/util/UUID.cpp
-	src/util/util.cpp
+		src/util/TimeStep.cpp
+		src/util/util.cpp
 	src/misc/Interpolator.cpp
 )
 
@@ -90,15 +88,12 @@ set(ORNG_LIB_SOURCES
     src/core/Application.cpp
     src/core/Window.cpp
     src/events/EventManager.cpp
-    src/events/Events.cpp
-    src/layers/LayerStack.cpp
+        src/layers/LayerStack.cpp
     src/pch/pch.cpp
     src/rendering/SceneRenderer.cpp
     src/scene/GridMesh.cpp
 
     src/assets/AssetManager.cpp
-    extern/implot/implot.cpp
-    extern/implot/implot_items.cpp
     src/scripting/ScriptingEngine.cpp
     src/layers/ImGuiLayer.cpp
     src/assets/AssetsImpl.cpp
@@ -140,6 +135,11 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 		-Wno-c++98-compat-pedantic
 		-Wno-c++98-c++11-compat-pedantic
 		-Wno-reserved-identifier
+		-Wno-switch-default
+		-Wno-global-constructors
+		-Wno-unused-macros
+		-Wno-exit-time-destructors
+		-Wno-unsafe-buffer-usage
 	)
 
 	target_compile_options(ORNG_CORE PRIVATE ${WARNING_FLAGS})
@@ -161,14 +161,24 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/VRlib)
 set(USE_STATIC_MSVC_RUNTIME_LIBRARY OFF)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/jolt/Build)
 
+add_library(ImPlot STATIC
+	extern/implot/implot.cpp
+	extern/implot/implot_items.cpp
+)
+target_include_directories(ImPlot PUBLIC
+	extern/imgui
+	extern/glfw/include
+	extern
+)
+
 option(TRACY_ENABLE "" OFF)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/tracy)
 
 target_compile_options(glfw PRIVATE /MD$<$<CONFIG:Debug>:d>)
 
 target_include_directories(imgui PUBLIC 
-extern/imgui
-extern/glfw/include
+	extern/imgui
+	extern/glfw/include
 )
 
 find_package(OpenGL REQUIRED)
@@ -204,6 +214,7 @@ if (ORNG_BUILD_CORE)
 	ORNG_RENDERING
 	ORNG_UTIL
 	ORNG_SCENE
+	ImPlot
 	OpenGL::GL
 	glfw
 	libglew_shared

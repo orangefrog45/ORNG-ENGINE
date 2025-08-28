@@ -1,5 +1,13 @@
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <yaml-cpp/yaml.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "components/systems/EnvMapSystem.h"
-#include "yaml-cpp/yaml.h"
 
 using namespace ORNG;
 

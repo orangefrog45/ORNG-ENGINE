@@ -5,8 +5,8 @@
 namespace ORNG {
 	class SceneUBOSystem : public ComponentSystem {
 	public:
-		explicit SceneUBOSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-		virtual ~SceneUBOSystem() = default;
+		explicit SceneUBOSystem(Scene* p_scene) : ComponentSystem(p_scene) {}
+		~SceneUBOSystem() override = default;
 		void OnLoad() override;
 		void OnUpdate() override;
 		void OnUnload() override;

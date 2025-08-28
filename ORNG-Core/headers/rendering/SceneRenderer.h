@@ -10,7 +10,7 @@
 #endif
 
 // Material flags that can go through the normal gbuffer/shader pipeline with just the fragment/vertex (no tessellation) shaders
-#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS (ORNG::MaterialFlags)(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
+#define ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS static_cast<ORNG::MaterialFlags>(ORNG::ORNG_MatFlags_NONE | ORNG::ORNG_MatFlags_PARALLAX_MAP | ORNG::ORNG_MatFlags_DISABLE_BACKFACE_CULL | ORNG::ORNG_MatFlags_EMISSIVE)
 
 namespace ORNG {
 	class Scene;

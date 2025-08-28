@@ -7,14 +7,14 @@ namespace ORNG {
 	class MeshAsset;
 
 	struct ParticleMeshResources : public Component {
-		explicit ParticleMeshResources(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit ParticleMeshResources(SceneEntity* p_entity) : Component(p_entity) {}
 
 		MeshAsset* p_mesh = nullptr;
 		std::vector<const Material*> materials;
 	};
 
 	struct ParticleBillboardResources : public Component {
-		explicit ParticleBillboardResources(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit ParticleBillboardResources(SceneEntity* p_entity) : Component(p_entity) {}
 		Material* p_material = nullptr;
 	};
 
@@ -30,16 +30,18 @@ namespace ORNG {
 			MESH
 		};
 
-		explicit ParticleEmitterComponent(SceneEntity* p_entity) : Component(p_entity) { };
+		explicit ParticleEmitterComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		ParticleEmitterComponent& operator=(const ParticleEmitterComponent&) = delete;
+		ParticleEmitterComponent(const ParticleEmitterComponent&) = delete;
 		~ParticleEmitterComponent() override = default;
 
 		// Maximum of 100,000 particles per emitter
-		void SetNbParticles(unsigned num) {
+		void SetNbParticles(int num) {
 			if (num > 100'000)
 				throw std::exception("ParticleEmitterComponent::SetNbParticles failed, number provided larger than limit (100,000)");
 
-			int dif = num - m_num_particles;
-			m_num_particles = num;
+			int dif = num - static_cast<int>(m_num_particles);
+			m_num_particles = static_cast<unsigned>(num);
 
 			DispatchUpdateEvent(NB_PARTICLES_CHANGED, &dif);
 		}
@@ -166,6 +168,4 @@ namespace ORNG {
 		unsigned m_index = 0;
 		unsigned m_num_particles = BASE_NUM_PARTICLES;
 	};
-
-
 }

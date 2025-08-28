@@ -1,19 +1,25 @@
 #include "pch/pch.h"
 
-#include "rendering/Renderer.h"
 #include "core/Application.h"
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #include <imgui_internal.h>
+#include <GLFW/glfw3.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include "util/Log.h"
 #include "core/Window.h"
-#include "rendering/SceneRenderer.h"
 #include "core/GLStateManager.h"
 #include "events/EventManager.h"
 #include "core/FrameTiming.h"
 #include "assets/AssetManager.h"
 #include "audio/AudioEngine.h"
-#include <glfw/glfw3.h>
+#include "rendering/Renderer.h"
 #include "util/ExtraUI.h"
 
 using namespace ORNG;

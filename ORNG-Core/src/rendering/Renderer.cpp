@@ -18,7 +18,7 @@ namespace ORNG {
 		ORNG_CORE_INFO("Renderer initialized in {0}ms", time.GetTimeInterval());
 
 		static Events::EventListener<Events::EngineCoreEvent> listener;
-		listener.OnEvent = [](const Events::EngineCoreEvent& e_event) {
+		listener.OnEvent = []([[maybe_unused]] const Events::EngineCoreEvent& e_event) {
 			ResetDrawCallCounter();
 			};
 		Events::EventManager::RegisterListener(listener);
@@ -52,7 +52,7 @@ namespace ORNG {
 	}
 
 
-	void Renderer::IDrawVAOArrays(const VAO& vao, unsigned int num_indices, GLenum primitive_type) {
+	void Renderer::IDrawVAOArrays(const VAO& vao, int num_indices, GLenum primitive_type) {
 		GL_StateManager::BindVAO(vao.GetHandle());
 
 		glDrawArrays(primitive_type,
@@ -68,7 +68,7 @@ namespace ORNG {
 		GL_StateManager::BindVAO(vao.GetHandle());
 
 		glDrawElements(primitive_type,
-			vao.vertex_data.indices.size(),
+			static_cast<int>(vao.vertex_data.indices.size()),
 			GL_UNSIGNED_INT,
 			nullptr);
 
@@ -100,13 +100,13 @@ namespace ORNG {
 	void Renderer::IDrawMeshInstanced(const MeshAsset* p_mesh, unsigned int instance_count) {
 		GL_StateManager::BindVAO(p_mesh->m_vao.GetHandle());
 
-		for (int i = 0; i < p_mesh->m_submeshes.size(); i++) {
+		for (size_t i = 0; i < p_mesh->m_submeshes.size(); i++) {
 			GL_StateManager::BindVAO(p_mesh->m_vao.GetHandle());
 
 			glDrawElementsInstancedBaseVertex(GL_TRIANGLES,
 				p_mesh->m_submeshes[i].num_indices,
 				GL_UNSIGNED_INT,
-				(void*)(sizeof(unsigned int) * p_mesh->m_submeshes[i].base_index),
+				reinterpret_cast<void*>(sizeof(unsigned int) * p_mesh->m_submeshes[i].base_index),
 				instance_count,
 				p_mesh->m_submeshes[i].base_vertex);
 
@@ -117,11 +117,10 @@ namespace ORNG {
 	void Renderer::IDrawSubMesh(const MeshAsset* data, unsigned int submesh_index) {
 		GL_StateManager::BindVAO(data->m_vao.GetHandle());
 
-
 		glDrawElementsBaseVertex(GL_TRIANGLES,
 			data->m_submeshes[submesh_index].num_indices,
 			GL_UNSIGNED_INT,
-			(void*)(sizeof(unsigned int) * data->m_submeshes[submesh_index].base_index),
+			reinterpret_cast<void*>(sizeof(unsigned int) * data->m_submeshes[submesh_index].base_index),
 			data->m_submeshes[submesh_index].base_vertex);
 
 		m_draw_call_amount++;
@@ -133,7 +132,7 @@ namespace ORNG {
 		glDrawElementsInstancedBaseVertex(primitive_type,
 			mesh_data->m_submeshes[submesh_index].num_indices,
 			GL_UNSIGNED_INT,
-			(void*)(sizeof(unsigned int) * mesh_data->m_submeshes[submesh_index].base_index),
+			reinterpret_cast<void*>(sizeof(unsigned int) * mesh_data->m_submeshes[submesh_index].base_index),
 			t_instances,
 			mesh_data->m_submeshes[submesh_index].base_vertex);
 

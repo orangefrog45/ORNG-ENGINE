@@ -1,12 +1,13 @@
 #include "pch/pch.h"
 
-#include "util/util.h"
-#include "shaders/Shader.h"
-#include "util/Log.h"
 #include <regex>
-#include "core/GLStateManager.h"
 
+#include "core/GLStateManager.h"
 #include "rendering/Renderer.h"
+#include "shaders/Shader.h"
+#include "util/util.h"
+#include "util/Log.h"
+
 
 #define SHADER_DEBUG_MODE false
 
@@ -16,7 +17,7 @@ namespace ORNG {
 		glDeleteProgram(m_program_id);
 	}
 
-	void CheckIncludeTreeCircularIncludes(const std::string& filepath, std::vector<const std::string*>& include_tree) {
+	static void CheckIncludeTreeCircularIncludes(const std::string& filepath, std::vector<const std::string*>& include_tree) {
 		for (const auto* s : include_tree) {
 			if (*s == filepath) {
 				ORNG_CORE_ERROR("Circular include detected between shader files, include tree:");
@@ -28,7 +29,7 @@ namespace ORNG {
 		}
 	}
 
-	bool HeaderGuardTriggered(std::vector<std::string>& defines, const std::string& filepath) {
+	static bool HeaderGuardTriggered(std::vector<std::string>& defines, const std::string& filepath) {
 		std::string define = filepath;
 		define.erase(std::remove_if(define.begin(), define.end(), [](char c) { return !std::isalnum(c); }), define.end());
 		// Macro can't start with digits
@@ -47,7 +48,7 @@ namespace ORNG {
 	}
 
 
-	std::string FindShaderIncludePath(const std::string& filepath) {
+	static std::string FindShaderIncludePath(const std::string& filepath) {
 		std::string file_directory = GetFileDirectory(filepath) + "\\";
 		std::string filename = filepath.substr(file_directory.size());
 
@@ -90,7 +91,6 @@ namespace ORNG {
 				std::string include_fp = include_search_directory + line.substr(first, last - first);
 
 				if (std::string inc_fp = FindShaderIncludePath(include_fp); !inc_fp.empty()) {
-					unsigned before_include_line_count = line_count;
 					ParseShaderInclude(inc_fp, defines, stream, include_tree, line_count, shader_type);
 				}
 				else
@@ -140,7 +140,7 @@ namespace ORNG {
 		if (line_count == 0)
 			ss << "#line 1" << "\n";
 
-		for (int i = 0; i < defines.size(); i++) { // insert definitions
+		for (size_t i = 0; i < defines.size(); i++) { // insert definitions
 			const std::string& define = defines[i];
 			if (std::ranges::count(defines, define) > 1)
 				continue;
@@ -174,7 +174,7 @@ namespace ORNG {
 			}
 		}
 		include_tree.pop_back();
-		return ParsedShaderData{ std::move(ss.str()), line_count };
+		return ParsedShaderData{ ss.str(), line_count };
 	}
 
 	void Shader::AddStage(GLenum shader_type, const std::string& filepath, std::vector<std::string> defines) {
@@ -199,7 +199,7 @@ namespace ORNG {
 		if (define_insert_pos == std::string::npos)
 			define_insert_pos = 0;
 
-		for (int i = 0; i < defines.size(); i++) { // insert definitions
+		for (size_t i = 0; i < defines.size(); i++) { // insert definitions
 			const std::string& define = defines[i];
 
 			if (std::ranges::count(defines, define) > 1)
@@ -272,8 +272,8 @@ namespace ORNG {
 		if (result == GL_FALSE) {
 			int length;
 			glGetProgramiv(m_program_id, GL_INFO_LOG_LENGTH, &length);
-			char* message = (char*)_malloca(length * sizeof(char));
-			glGetProgramInfoLog(m_program_id, length, &length, message);
+			char* message = static_cast<char*>(_malloca(static_cast<unsigned long long>(length) * sizeof(char)));
+			glGetProgramInfoLog(static_cast<unsigned long long>(m_program_id), length, &length, message);
 
 			ORNG_CORE_ERROR("Failed to link program for shader '{0}' : '{1}", m_name, message);
 #if SHADER_DEBUG_MODE
@@ -324,7 +324,7 @@ namespace ORNG {
 		if (result == GL_FALSE) {
 			int length;
 			glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &length);
-			char* message = (char*)alloca(length * sizeof(char));
+			char* message = static_cast<char*>(alloca(static_cast<unsigned long long>(length) * sizeof(char)));
 			glGetShaderInfoLog(shader_id, length, &length, message);
 
 			std::string shader_type_name;
@@ -346,7 +346,7 @@ namespace ORNG {
 			std::sregex_iterator err_code_it(msg_copy.begin(), msg_copy.end(), error_code_pattern);
 			std::sregex_iterator err_code_end;
 
-			std::vector<unsigned> err_codes;
+			std::vector<int> err_codes;
 			while (err_code_it != err_code_end) {
 				err_codes.push_back(std::stoi((*err_code_it)[1]));
 				err_code_it++;
@@ -355,7 +355,7 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Failed to compile {0} shader '{1}': {2}", shader_type_name, m_name, message);
 			std::string formatted_src;
 			size_t pos = 0;
-			unsigned line_num = 0;
+			int line_num = 0;
 			while (pos != std::string::npos) {
 				auto next = source.find("\n", pos + 1);
 				if (next == std::string::npos)
@@ -373,7 +373,6 @@ namespace ORNG {
 		}
 	}
 
-
 	void Shader::UseShader(unsigned int& id, unsigned int program) {
 		glAttachShader(program, id);
 		glDeleteShader(id);
@@ -381,14 +380,14 @@ namespace ORNG {
 
 	Shader* ShaderVariants::AddVariant(unsigned id, const std::vector<std::string>& defines, const std::vector<std::string>& uniforms) {
 		ASSERT(!m_shaders.contains(id));
-		m_shaders[id] = Shader{ std::format("{} - Variant {}", m_name, id) };
+		Shader& shader = m_shaders.emplace(id, std::format("{} - Variant {}", m_name, id)).first->second;
 		for (auto& [type, path] : m_shader_paths) {
-			m_shaders[id].AddStage(type, path, defines);
+			shader.AddStage(type, path, defines);
 		}
 
-		m_shaders[id].Init();
-		m_shaders[id].AddUniforms(uniforms);
+		shader.Init();
+		shader.AddUniforms(uniforms);
 
-		return &m_shaders[id];
+		return &shader;
 	}
 }

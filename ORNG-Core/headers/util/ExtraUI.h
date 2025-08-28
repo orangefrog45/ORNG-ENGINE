@@ -15,7 +15,7 @@ namespace ORNG {
 		static void NameWithTooltip(const std::string& name);
 		static bool CenteredImageButton(ImTextureID id, ImVec2 size);
 		static bool CenteredSquareButton(const std::string& content, ImVec2 size);
-		static void ShowFileExplorer(const std::string& starting_path, wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback);
+		static void ShowFileExplorer(wchar_t extension_filter[], std::function<void(std::string)> valid_file_callback);
 		static bool H1TreeNode(const char* name);
 		static bool H2TreeNode(const char* name);
 		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
@@ -29,17 +29,17 @@ namespace ORNG {
 		static bool RightClickPopup(const char* id);
 
 		// Returns true if button clicked this frame
-		static bool SwitchButton(const std::string& content, bool active, ImVec4 inactive_col, ImVec4 active_col);
+		static bool SwitchButton(const std::string& content, bool active, ImVec4 active_col);
 
 		static bool InputUint(const char* name, unsigned& val);
 		static bool InputUint8(const char* name, uint8_t& val);
 
-		static bool InterpolatorV3Graph(const char* name, InterpolatorV3* p_interpolator);
-		static bool InterpolatorV1Graph(const char* name, InterpolatorV1* p_interpolator);
+		static bool InterpolatorV3Graph(InterpolatorV3* p_interpolator);
+		static bool InterpolatorV1Graph(InterpolatorV1* p_interpolator);
 
-		inline static void TooltipOnHover(const std::string& content) {
+		inline static void TooltipOnHover(const char* content) {
 			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				ImGui::SetTooltip(content.c_str());
+				ImGui::SetTooltip("%s", content);
 		}
 
 		template<IsVec2 T1, IsVec2 T2>

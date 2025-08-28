@@ -5,8 +5,8 @@ namespace ORNG {
 	class SpotlightSystem : public ComponentSystem {
 		friend class SceneRenderer;
 	public:
-		SpotlightSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-		virtual ~SpotlightSystem() = default;
+		SpotlightSystem(Scene* p_scene) : ComponentSystem(p_scene) {}
+		~SpotlightSystem() override = default;
 
 		void OnLoad() override;
 		void OnUpdate() override;
@@ -20,7 +20,7 @@ namespace ORNG {
 			return m_spotlight_depth_tex;
 		}
 	private:
-		void WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, int& index);
+		void WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, size_t& index);
 		Texture2DArray m_spotlight_depth_tex{"Spotlight depth"}; // Used for shadow maps
 		SSBO<float> m_spotlight_ssbo{ true, 0 };
 	};

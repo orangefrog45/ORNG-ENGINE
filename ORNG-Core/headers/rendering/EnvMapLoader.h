@@ -28,5 +28,4 @@ namespace ORNG {
 		Shader m_specular_prefilter_shader;
 		Shader m_diffuse_prefilter_shader;
 	};
-
 }

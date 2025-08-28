@@ -39,7 +39,7 @@ namespace ORNG {
 	}
 
 	std::vector<std::string> Log::GetLastLogs() {
-		return std::move(s_ringbuffer_sink->last_formatted(MAX_LOG_HISTORY));
+		return s_ringbuffer_sink->last_formatted(MAX_LOG_HISTORY);
 	}
 	
 	void Log::Flush() {
@@ -54,5 +54,4 @@ namespace ORNG {
 	{
 		Events::EventManager::DispatchEvent(LogEvent{type, GetLastLog() });
 	}
-
 }

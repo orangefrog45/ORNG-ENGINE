@@ -9,15 +9,13 @@ namespace ORNG {
 	class DepthPass : public Renderpass {
 		friend class LightingPass;
 	public:
-		DepthPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Depth") {};
+		explicit DepthPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Depth") {}
 
 		void Init() override;
 
 		void DoPass() override;
 
-		void Destroy() override;
-
-		void DrawAllMeshesDepth(RenderGroup render_group, Scene* p_scene);
+		void DrawAllMeshesDepth(RenderGroup render_group);
 
 		Texture2DArray directional_light_depth_tex{ "SR Directional depth array" };
 

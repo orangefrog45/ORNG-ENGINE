@@ -12,11 +12,13 @@ namespace ORNG {
 	class SceneEntity {
 	public:
 		SceneEntity() = delete;
-		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : mp_scene(scene), m_entt_handle(entt_handle), mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); };
-		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) : m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), m_scene_uuid(scene_uuid), mp_registry(p_reg) {
-			AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>();
-		};
+		SceneEntity(Scene* scene, entt::entity entt_handle, entt::registry* p_reg, uint64_t scene_uuid) : m_entt_handle(entt_handle), mp_scene(scene),
+			mp_registry(p_reg), m_scene_uuid(scene_uuid) { AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>(); }
 
+		SceneEntity(uint64_t t_id, entt::entity entt_handle, Scene* scene, entt::registry* p_reg, uint64_t scene_uuid) :
+			m_uuid(t_id), m_entt_handle(entt_handle), mp_scene(scene), mp_registry(p_reg), m_scene_uuid(scene_uuid) {
+			AddComponent<TransformComponent>(); AddComponent<RelationshipComponent>();
+		}
 
 		~SceneEntity() {
 			RemoveParent();
@@ -27,7 +29,7 @@ namespace ORNG {
 		T* AddComponent(Args&&... args) {
 			if (HasComponent<T>()) return GetComponent<T>(); 
 			return &mp_registry->emplace<T>(m_entt_handle, this, std::forward<Args>(args)...);
-		};
+		}
 
 		// Returns ptr to component or nullptr if no component was found
 		template<typename T, typename = std::enable_if_t<std::is_base_of_v<Component, T>>>
@@ -89,11 +91,11 @@ namespace ORNG {
 		// Returns a new duplicate entity in the scene
 		SceneEntity& Duplicate();
 
-		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); };
+		uint64_t GetUUID() const { return static_cast<uint64_t>(m_uuid); }
 
 		void SetUUID(uint64_t new_uuid);
 
-		entt::entity GetEnttHandle() const { return m_entt_handle; };
+		entt::entity GetEnttHandle() const { return m_entt_handle; }
 
 		std::string name = "Entity";
 	private:
@@ -107,8 +109,6 @@ namespace ORNG {
 		entt::registry* mp_registry = nullptr;
 		uint64_t m_scene_uuid; // Stored seperately for faster access
 };
-
-
 }
 
 #endif

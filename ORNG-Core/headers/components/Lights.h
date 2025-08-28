@@ -4,8 +4,10 @@
 
 namespace ORNG {
 	struct BaseLight : public Component {
-		virtual ~BaseLight() = default;
-		BaseLight(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit BaseLight(SceneEntity* p_entity) : Component(p_entity) {}
+		~BaseLight() override = default;
+		BaseLight& operator=(const BaseLight&) = default;
+		BaseLight(const BaseLight&) = default;
 
 		glm::vec3 colour = glm::vec3(1.0f, 1.0f, 1.0f);
 		bool shadows_enabled = false;
@@ -19,7 +21,7 @@ namespace ORNG {
 
 
 	struct PointLightComponent : public BaseLight {
-		PointLightComponent(SceneEntity* p_entity) : BaseLight(p_entity) { };
+		explicit PointLightComponent(SceneEntity* p_entity) : BaseLight(p_entity) {}
 
 		void SetShadowsEnabled(bool v);
 		float shadow_distance = 48.0f;
@@ -49,10 +51,10 @@ namespace ORNG {
 		friend class EditorLayer;
 		friend class SceneUBOSystem;
 		DirectionalLight();
-		auto GetLightDirection() const { return m_light_direction; };
+		auto GetLightDirection() const { return m_light_direction; }
 		void SetLightDirection(const glm::vec3& dir) { 
 			m_light_direction = glm::normalize(dir); 
-		};
+		}
 
 		const glm::mat4& GetLightSpaceMatrix(unsigned idx) const noexcept {
 			return m_light_space_matrices[idx];

@@ -32,16 +32,15 @@ namespace ORNG {
 	}
 
 
-	void key_callback([[maybe_unused]] GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, int mods)
-	{
+	static void key_callback([[maybe_unused]] GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) {
 		ASSERT(key >= 0);
 
 		switch (action) {
 		case GLFW_RELEASE:
-			Events::EventManager::DispatchEvent(Events::KeyEvent{ (unsigned)key, (uint8_t)InputType::RELEASE });
+			Events::EventManager::DispatchEvent(Events::KeyEvent{ static_cast<unsigned>(key), static_cast<uint8_t>(InputType::RELEASE) });
 			break;
 		case GLFW_PRESS:
-			Events::EventManager::DispatchEvent(Events::KeyEvent{ (unsigned)key, (uint8_t)InputType::PRESS });
+			Events::EventManager::DispatchEvent(Events::KeyEvent{ static_cast<unsigned>(key), static_cast<uint8_t>(InputType::PRESS) });
 			break;
 		case GLFW_REPEAT:
 			// "Hold" state tracked in input, not here
@@ -51,7 +50,7 @@ namespace ORNG {
 
 	static glm::ivec2 gs_mouse_coords;
 
-	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	static void MouseButtonCallback(GLFWwindow* window, int button, int action, [[maybe_unused]] int mods) {
 		double posx, posy;
 		glfwGetCursorPos(window, &posx, &posy);
 		Events::MouseEvent e_event{ static_cast<MouseAction>(action), static_cast<MouseButton>(button), glm::ivec2(floor(posx), floor(posy)), gs_mouse_coords };
@@ -61,7 +60,7 @@ namespace ORNG {
 		gs_mouse_coords = e_event.mouse_pos_new;
 	}
 
-	void CursorPosCallback(GLFWwindow* window, double xPos, double yPos) {
+	static void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double xPos, double yPos) {
 		Events::MouseEvent e_event{ MOVE, MouseButton::NONE, glm::ivec2(floor(xPos), floor(yPos)), gs_mouse_coords };
 
 		Events::EventManager::DispatchEvent(e_event);
@@ -110,7 +109,7 @@ namespace ORNG {
 			ORNG_CORE_ERROR("Initial window display monitor index too large, total monitors '{0}', received index '{1}'", count, initial_window_display_monitor_idx);
 			p_window = glfwCreateWindow(initial_dimensions.x, initial_dimensions.y, name, nullptr, nullptr);
 		}
-		glfwSetScrollCallback(p_window, [](GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
+		glfwSetScrollCallback(p_window, []([[maybe_unused]] GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
 		glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
 		glfwSetCursorPosCallback(p_window, CursorPosCallback);
 		glfwSetWindowSizeCallback(p_window, [](GLFWwindow*, int width, int height)
@@ -133,11 +132,15 @@ namespace ORNG {
 		glfwSwapInterval(0);
 		glfwSetInputMode(p_window, GLFW_STICKY_KEYS, GLFW_TRUE); // keys "stick" until they've been polled
 
-		// Set immediate opening colour to orange
-		glClearColor(0.3, 0.1, 0, 1);
+		glClearColor(0.0f, 0.0f, 0.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glfwSwapBuffers(p_window);
 
 		input.Init();
+	}
+
+	void Window::Shutdown() {
+		glfwDestroyWindow(mp_instance->p_window);
+		if (mp_instance) delete mp_instance;
 	}
 }

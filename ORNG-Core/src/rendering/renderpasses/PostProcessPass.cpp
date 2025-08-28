@@ -44,11 +44,22 @@ void PostProcessPass::DoPass() {
 	if (p_fog_tex)
 		GL_StateManager::BindTexture(GL_TEXTURE_2D, p_fog_tex->GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR_2, false);
 
-	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output_tex->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glDispatchCompute((GLuint)glm::ceil((float)spec.width / 8.f), (GLuint)glm::ceil((float)spec.height / 8.f), 1);
+	glBindImageTexture(
+		GL_StateManager::TextureUnitIndexes::COLOUR,
+		p_output_tex->GetTextureHandle(),
+		0,
+		GL_FALSE,
+		0,
+		GL_READ_WRITE,
+		GL_RGBA16F
+	);
+
+	glDispatchCompute(
+		static_cast<GLuint>(glm::ceil(static_cast<float>(spec.width) / 8.f)),
+		static_cast<GLuint>(glm::ceil(static_cast<float>(spec.height) / 8.f)),
+		1
+	);
+
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 };
 
-void PostProcessPass::Destroy() {
-
-};

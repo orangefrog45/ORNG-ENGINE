@@ -3,14 +3,7 @@
 #include "scene/GridMesh.h"
 #include "components/TransformComponent.h"
 
-static constexpr unsigned int WORLD_MAT_LOCATION_1 = 3;
-static constexpr unsigned int WORLD_MAT_LOCATION_2 = 4;
-static constexpr unsigned int WORLD_MAT_LOCATION_3 = 5;
-static constexpr unsigned int WORLD_MAT_LOCATION_4 = 6;
-
-
 namespace ORNG {
-
 	void GridMesh::CheckBoundary(glm::vec3 camera_pos) {
 		auto& transforms = m_transform_ssbo.data;
 		transforms.clear();
@@ -52,6 +45,4 @@ namespace ORNG {
 		CheckBoundary({ 1000, 0, 1000 });
 		CheckBoundary({ 0, 0, 0 });
 	}
-
-
 }

@@ -9,8 +9,8 @@ namespace ORNG {
     // Handles loading, serialization, and deserialization of the scene skybox
     class EnvMapSystem : public ComponentSystem {
     public:
-        explicit EnvMapSystem(Scene* p_scene) : ComponentSystem(p_scene) {};
-        virtual ~EnvMapSystem() = default;
+        explicit EnvMapSystem(Scene* p_scene) : ComponentSystem(p_scene) {}
+        ~EnvMapSystem() override = default;
 
         void OnLoad() final;
 

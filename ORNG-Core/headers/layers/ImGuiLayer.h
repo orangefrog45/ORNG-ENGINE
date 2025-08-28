@@ -4,6 +4,8 @@
 namespace ORNG {
 	class ImGuiLayer : public Layer {
 	public:
+		~ImGuiLayer() override = default;
+
 		void OnInit() override;
 		void OnShutdown() override;
 		void Update() override;

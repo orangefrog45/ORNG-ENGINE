@@ -7,7 +7,9 @@ namespace ORNG {
 
 	struct BillboardComponent final : public Component {
 		friend class MeshInstancingSystem;
-		explicit BillboardComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit BillboardComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		BillboardComponent& operator=(const BillboardComponent&) = default;
+		BillboardComponent(const BillboardComponent&) = default;
 		~BillboardComponent() override = default;
 
 		Material* p_material = nullptr;

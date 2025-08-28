@@ -85,24 +85,24 @@ void GBufferPass::Init() {
 	sv.SetPath(GL_FRAGMENT_SHADER, "res/core-res/shaders/GBufferFS.glsl");
 	{
 		using enum GBufferVariants;
-		sv.AddVariant((unsigned)TERRAIN, { "TERRAIN_MODE" }, gbuffer_uniforms);
-		sv.AddVariant((unsigned)MESH, {}, gbuffer_uniforms);
-		sv.AddVariant((unsigned)PARTICLE, { "PARTICLE" }, ptcl_uniforms);
-		sv.AddVariant((unsigned)SKYBOX, { "SKYBOX_MODE" }, {});
-		sv.AddVariant((unsigned)BILLBOARD, { "BILLBOARD" }, gbuffer_uniforms);
-		sv.AddVariant((unsigned)PARTICLE_BILLBOARD, { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
+		sv.AddVariant(static_cast<unsigned>(TERRAIN), { "TERRAIN_MODE" }, gbuffer_uniforms);
+		sv.AddVariant(static_cast<unsigned>(MESH), {}, gbuffer_uniforms);
+		sv.AddVariant(static_cast<unsigned>(PARTICLE), { "PARTICLE" }, ptcl_uniforms);
+		sv.AddVariant(static_cast<unsigned>(SKYBOX), { "SKYBOX_MODE" }, {});
+		sv.AddVariant(static_cast<unsigned>(BILLBOARD), { "BILLBOARD" }, gbuffer_uniforms);
+		sv.AddVariant(static_cast<unsigned>(PARTICLE_BILLBOARD), { "PARTICLE", "BILLBOARD" }, ptcl_uniforms);
 
 		std::vector<std::string> transform_uniforms = gbuffer_uniforms;
 		transform_uniforms.push_back("u_transform");
-		sv.AddVariant((unsigned)UNIFORM_TRANSFORM, { "UNIFORM_TRANSFORM" }, transform_uniforms);
-		sv.AddVariant((unsigned)DECAL, { "UNIFORM_TRANSFORM", "DECAL" }, transform_uniforms);
+		sv.AddVariant(static_cast<unsigned>(UNIFORM_TRANSFORM), { "UNIFORM_TRANSFORM" }, transform_uniforms);
+		sv.AddVariant(static_cast<unsigned>(DECAL), { "UNIFORM_TRANSFORM", "DECAL" }, transform_uniforms);
 	}
 }
 
 void GBufferPass::DoPass() {
 	ORNG_PROFILE_FUNC_GPU();
 	auto& out_spec = mp_graph->GetData<Texture2D>("OutCol")->GetSpec();
-	glViewport(0, 0, out_spec.width, out_spec.height);
+	glViewport(0, 0, static_cast<int>(out_spec.width), static_cast<int>(out_spec.height));
 
 	framebuffer.Bind();
 
@@ -121,7 +121,7 @@ void GBufferPass::DoPass() {
 		SceneRenderer::DrawInstanceGroupGBuffer(&displacement_sv, group, SOLID, ORNG_MatFlags_TESSELLATED, ORNG_MatFlags_INVALID, GL_PATCHES);
 	}
 
-	sv.Activate((unsigned)GBufferVariants::MESH);
+	sv.Activate(static_cast<unsigned>(GBufferVariants::MESH));
 	sv.SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 	//Draw all meshes in scene (instanced)
 	for (const auto* group : mesh_sys.GetInstanceGroups()) {
@@ -129,7 +129,7 @@ void GBufferPass::DoPass() {
 	}
 
 
-	sv.Activate((unsigned)GBufferVariants::BILLBOARD);
+	sv.Activate(static_cast<unsigned>(GBufferVariants::BILLBOARD));
 	for (const auto* group : mesh_sys.GetBillboardInstanceGroups()) {
 		SceneRenderer::DrawInstanceGroupGBuffer(&sv, group, SOLID, ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED, true);
 	}
@@ -137,7 +137,7 @@ void GBufferPass::DoPass() {
 	//RenderVehicles(mp_gbuffer_shader_mesh_bufferless, RenderGroup::SOLID);
 	if (mp_scene->HasSystem<ParticleSystem>()) {
 		GL_StateManager::BindSSBO(mp_scene->GetSystem<ParticleSystem>().m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
-		sv.Activate((unsigned)GBufferVariants::PARTICLE);
+		sv.Activate(static_cast<unsigned>(GBufferVariants::PARTICLE));
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleMeshResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
 			sv.SetUniform("u_transform_start_index", emitter.GetParticleStartIdx());
@@ -145,7 +145,7 @@ void GBufferPass::DoPass() {
 				ORNG_DEFAULT_VERT_FRAG_MAT_FLAGS, ORNG_MatFlags_TESSELLATED, true);
 		}
 
-		sv.Activate((unsigned)GBufferVariants::PARTICLE_BILLBOARD);
+		sv.Activate(static_cast<unsigned>(GBufferVariants::PARTICLE_BILLBOARD));
 		auto* p_quad_mesh = AssetManager::GetAsset<MeshAsset>(static_cast<uint64_t>(BaseAssetIDs::QUAD_MESH));
 		for (auto [entity, emitter, res] : mp_scene->GetRegistry().view<ParticleEmitterComponent, ParticleBillboardResources>().each()) {
 			if (!emitter.AreAnyEmittedParticlesAlive()) continue;
@@ -157,13 +157,13 @@ void GBufferPass::DoPass() {
 
 
 
-	sv.Activate((unsigned)GBufferVariants::UNIFORM_TRANSFORM);
+	sv.Activate(static_cast<unsigned>(GBufferVariants::UNIFORM_TRANSFORM));
 	//RenderVehicles(mp_sv, SOLID, mp_scene);
 
 
 	// Draw decals
 	glDisable(GL_DEPTH_TEST);
-	sv.Activate((unsigned)GBufferVariants::DECAL);
+	sv.Activate(static_cast<unsigned>(GBufferVariants::DECAL));
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, depth.GetTextureHandle(), GL_TEXTURE16);
 	for (auto [entity, decal, transform] : mp_scene->GetRegistry().view<DecalComponent, TransformComponent>().each()) {
 		// TODO: These should be sorted by material for minimal state changes, DecalSystem could handle this
@@ -177,7 +177,7 @@ void GBufferPass::DoPass() {
 	// Draw skybox
 	if (mp_scene->HasSystem<EnvMapSystem>()) {
 		auto& skybox = mp_scene->GetSystem<EnvMapSystem>().skybox;
-		sv.Activate((unsigned)GBufferVariants::SKYBOX);
+		sv.Activate(static_cast<unsigned>(GBufferVariants::SKYBOX));
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.GetSkyboxTexture().GetTextureHandle(),
 		GL_StateManager::TextureUnits::COLOUR_CUBEMAP, false);
 		glDisable(GL_CULL_FACE);
@@ -186,12 +186,4 @@ void GBufferPass::DoPass() {
 		glDepthFunc(GL_LESS);
 		glEnable(GL_CULL_FACE);
 	}
-}
-
-void GBufferPass::Destroy() {
-	normals.Unload();
-	albedo.Unload();
-	depth.Unload();
-	rma.Unload();
-	shader_ids.Unload();
 }

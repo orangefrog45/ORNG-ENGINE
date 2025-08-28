@@ -9,7 +9,6 @@ namespace ORNG {
 	public:
 		~RenderGraph() {
 			for (auto* p_pass : m_renderpasses) {
-				p_pass->Destroy();
 				delete p_pass;
 			}
 		}
@@ -30,7 +29,6 @@ namespace ORNG {
 		// Clears all renderpasses and data
 		void Reset() {
 			for (auto* p_pass : m_renderpasses) {
-				p_pass->Destroy();
 				delete p_pass;
 			}
 

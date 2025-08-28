@@ -1,6 +1,14 @@
 #pragma once
 
-#include "yaml/include/yaml-cpp/yaml.h"
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <yaml/include/yaml-cpp/yaml.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "Interpolators.h"
 #include "scene/SerializationUtil.h"
 
@@ -39,5 +47,4 @@ namespace ORNG {
 			interpolator.scale = interpolator_node["Scale"].as<float>();
 		}
 	};
-
 }

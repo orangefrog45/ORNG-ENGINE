@@ -9,7 +9,7 @@ namespace ORNG {
 
 	class BloomPass : public Renderpass {
 	public:
-		BloomPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Bloom") {};
+		explicit BloomPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Bloom") {}
 
 		void Init() override;
 
@@ -17,8 +17,6 @@ namespace ORNG {
 		// p_output - The texture that will have the bloom effect composited over it
 		// p_input can be p_output, resolutions must match
 		void DoPass() override;
-
-		void Destroy() override {};
 
 	private:
 		Texture2D bloom_tex{ "Bloom tex" };

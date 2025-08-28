@@ -47,10 +47,10 @@ namespace ORNG::Events {
 
 
 			// For safety, upon listener being destroyed the copy is too.
-			listener.OnDestroy = [&listener, entity] {
+			listener.OnDestroy = [entity] {
 				EventManager::DeregisterListener(entity);
 			};
-		};
+		}
 
 		template <std::derived_from<Component> T>
 		inline static void RegisterListener(ECS_EventListener<T>& listener) {
@@ -64,13 +64,13 @@ namespace ORNG::Events {
 			Get().m_listener_registry.emplace<ECS_EventListener<T>>(entity, listener);
 
 			// For safety, upon listener being destroyed the copy is too.
-			listener.OnDestroy = [&listener, entity] {
+			listener.OnDestroy = [entity] {
 				EventManager::DeregisterListener(entity);
 			};
-		};
+		}
 
 		static void DispatchEvent(const KeyEvent& t_event) {
-			for (auto [entity, listener] : Get().m_listener_registry.view<EventListener<Events::KeyEvent>>().each()) {
+			for (auto [entity, listener] : Get().m_listener_registry.view<EventListener<KeyEvent>>().each()) {
 				listener.OnEvent(t_event);
 			}
 		}
@@ -97,7 +97,7 @@ namespace ORNG::Events {
 		static void DeregisterListener(entt::entity entt_handle) {
 			if (Get().m_listener_registry.valid(entt_handle))
 				Get().m_listener_registry.destroy(entt_handle);
-		};
+		}
 
 		static void SetInstance(EventManager* p_instance) {
 			mp_instance = p_instance;

@@ -31,7 +31,9 @@ namespace ORNG {
 		friend class TransformHierarchySystem;
 		friend class PhysicsSystem;
 
-		explicit TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {};
+		explicit TransformComponent(SceneEntity* p_entity = nullptr) : Component(p_entity) {}
+		TransformComponent& operator=(const TransformComponent&) = default;
+		TransformComponent(const TransformComponent&) = default;
 		~TransformComponent() override = default;
 
 		void SetScale(float scaleX, float scaleY, float scaleZ) {
@@ -97,17 +99,17 @@ namespace ORNG {
 		inline void SetPosition(const glm::vec3 pos) {
 			m_pos = pos;
 			RebuildMatrix(UpdateType::TRANSLATION);
-		};
+		}
 
 		inline void SetScale(const glm::vec3 scale) {
 			m_scale = glm::max(scale, glm::vec3(0.001f));
 			RebuildMatrix(UpdateType::SCALE);
-		};
+		}
 
 		inline void SetOrientation(const glm::vec3 rot) {
 			m_orientation = glm::quat{glm::radians(rot)};
 			RebuildMatrix(UpdateType::ORIENTATION);
-		};
+		}
 
 		inline void SetAbsoluteMode(bool mode) {
 			m_is_absolute = mode;
@@ -128,11 +130,11 @@ namespace ORNG {
 
 		TransformComponent* GetParent();
 
-		const glm::mat4x4& GetMatrix() const { return m_transform; };
+		const glm::mat4x4& GetMatrix() const { return m_transform; }
 
-		glm::vec3 GetPosition() const { return m_pos; };
-		glm::vec3 GetScale() const { return m_scale; };
-		glm::vec3 GetOrientation() const { return glm::degrees(glm::eulerAngles(m_orientation)); };
+		glm::vec3 GetPosition() const { return m_pos; }
+		glm::vec3 GetScale() const { return m_scale; }
+		glm::vec3 GetOrientation() const { return glm::degrees(glm::eulerAngles(m_orientation)); }
 
 
 		enum UpdateType : uint8_t {

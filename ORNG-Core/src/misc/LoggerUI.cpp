@@ -31,10 +31,10 @@ unsigned LoggerUI::RenderLogContentsWithImGui() {
 			break;
 		}
 
-		ImGui::TextColored(col, log.content.c_str());
+		ImGui::TextColored(col, "%s", log.content.c_str());
 	}
 
-	return m_logs.size();
+	return static_cast<unsigned>(m_logs.size());
 }
 
 void LoggerUI::Shutdown() {

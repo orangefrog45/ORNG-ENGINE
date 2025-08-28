@@ -10,7 +10,9 @@ namespace ORNG {
 		friend class SceneSerializer;
 		friend class EditorLayer;
 	public:
-		explicit ParticleBufferComponent(SceneEntity* p_entity) : Component(p_entity) {};
+		explicit ParticleBufferComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		ParticleBufferComponent& operator=(const ParticleBufferComponent&) = default;
+		ParticleBufferComponent(const ParticleBufferComponent&) = default;
 		~ParticleBufferComponent() override = default;
 
 		uint32_t GetBufferID() {
@@ -45,5 +47,4 @@ namespace ORNG {
 		unsigned m_min_allocated_particles = 1'000'000;
 
 	};
-
 }

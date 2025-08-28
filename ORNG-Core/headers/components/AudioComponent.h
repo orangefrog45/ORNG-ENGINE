@@ -20,6 +20,8 @@ namespace ORNG {
 	public:
 		AudioComponent() = delete;
 		explicit AudioComponent(SceneEntity* p_entity);
+		AudioComponent& operator=(const AudioComponent&) = delete;
+		AudioComponent(const AudioComponent&) = delete;
 		~AudioComponent() override = default;
 
 		void SetSoundAssetUUID(uint64_t uuid) {
@@ -29,7 +31,7 @@ namespace ORNG {
 		void Play(uint64_t uuid = INVALID_SOUND_UUID);
 
 		struct AudioRange {
-			AudioRange(float t_min, float t_max) : min(t_min), max(t_max) {};
+			AudioRange(float t_min, float t_max) : min(t_min), max(t_max) {}
 			float min;
 			float max;
 		};

@@ -37,7 +37,7 @@ namespace ORNG {
 
 	void EnvMapLoader::ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
 		// Convert the HDR texture into a cubemap
-		unsigned int resolution = cubemap_output.GetSpec().width; // width/resolution always the the same
+		int resolution = static_cast<int>(cubemap_output.GetSpec().width); // width/resolution always the the same
 		m_output_fb.Bind();
 		m_hdr_converter_shader.ActivateProgram();
 		m_hdr_converter_shader.SetUniform("projection", proj_matrix);
@@ -60,8 +60,8 @@ namespace ORNG {
 		// Create diffuse prefilter cubemap
 		m_diffuse_prefilter_shader.ActivateProgram();
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
-		glViewport(0, 0, tex_spec.width, tex_spec.height);
-		m_output_fb.SetRenderBufferDimensions(tex_spec.width, tex_spec.height);
+		glViewport(0, 0, static_cast<int>(tex_spec.width), static_cast<int>(tex_spec.height));
+		m_output_fb.SetRenderBufferDimensions(static_cast<int>(tex_spec.width), static_cast<int>(tex_spec.height));
 		m_diffuse_prefilter_shader.SetUniform("projection", proj_matrix);
 
 		// Directory to save processed image files to so this doesn't have to happen every time the engine starts
@@ -79,9 +79,9 @@ namespace ORNG {
 			GL_StateManager::DefaultClearBits();
 			Renderer::DrawCube();
 			float* pixels = new float[tex_spec.width * tex_spec.height * 3];
-			glReadPixels(0, 0, tex_spec.width, tex_spec.height, tex_spec.format, tex_spec.storage_type, pixels);
+			glReadPixels(0, 0, static_cast<int>(tex_spec.width), static_cast<int>(tex_spec.height), tex_spec.format, tex_spec.storage_type, pixels);
 
-			if (!stbi_write_hdr(tex_spec.filepaths[i].c_str(), tex_spec.width, tex_spec.height, 3, pixels))
+			if (!stbi_write_hdr(tex_spec.filepaths[i].c_str(), static_cast<int>(tex_spec.width), static_cast<int>(tex_spec.height), 3, pixels))
 				ORNG_CORE_CRITICAL("Error writing environment map diffuse prefilter texture");
 
 			delete[] pixels;
@@ -100,8 +100,8 @@ namespace ORNG {
 		unsigned int max_mip_levels = 5;
 
 		for (unsigned int mip = 0; mip < max_mip_levels; mip++) {
-			unsigned int mip_width = (unsigned)(tex_spec.width * glm::pow(0.5, mip));
-			unsigned int mip_height = (unsigned)(tex_spec.height * glm::pow(0.5, mip));
+			int mip_width = static_cast<int>(tex_spec.width * glm::pow(0.5, mip));
+			int mip_height = static_cast<int>(tex_spec.height * glm::pow(0.5, mip));
 
 			m_output_fb.SetRenderBufferDimensions(mip_width, mip_height);
 			glViewport(0, 0, mip_width, mip_height);
@@ -125,9 +125,12 @@ namespace ORNG {
 
 
 	void EnvMapLoader::LoadBRDFConvolution(Texture2D& output_tex) {
+		int width = 512;
+		int height = 512;
+
 		Texture2DSpec spec;
-		spec.width = 512;
-		spec.height = 512;
+		spec.width = static_cast<uint32_t>(width);
+		spec.height = static_cast<uint32_t>(height);
 		spec.internal_format = GL_RG16F;
 		spec.format = GL_RG;
 		spec.storage_type = GL_FLOAT;
@@ -137,8 +140,8 @@ namespace ORNG {
 		output_tex.SetSpec(spec);
 
 		m_brdf_convolution_shader.ActivateProgram();
-		m_output_fb.SetRenderBufferDimensions(spec.width, spec.height);
-		glViewport(0, 0, spec.width, spec.height);
+		m_output_fb.SetRenderBufferDimensions(width, height);
+		glViewport(0, 0, width, height);
 		m_output_fb.BindTexture2D(output_tex.GetTextureHandle(), GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D);
 		GL_StateManager::DefaultClearBits();
 		Renderer::DrawQuad();

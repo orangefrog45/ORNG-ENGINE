@@ -6,13 +6,11 @@
 namespace ORNG {
 	class LightingPass : public Renderpass {
 	public:
-		LightingPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Lighting") {};
+		explicit LightingPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Lighting") {}
 
 		void Init() override;
 
 		void DoPass() override;
-
-		void Destroy() override;
 
 		class Scene* p_scene = nullptr;
 
@@ -32,7 +30,6 @@ namespace ORNG {
 
 		// nullptr if DepthPass not in render graph
 		class DepthPass* p_depth_pass = nullptr;
-
 
 		Texture2D* p_gbf_albedo_tex = nullptr;
 		Texture2D* p_gbf_normal_tex = nullptr;

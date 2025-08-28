@@ -5,7 +5,7 @@
 
 namespace ORNG {
 	struct Prefab final : public Asset {
-		explicit Prefab(const std::string& filepath) : Asset(filepath) {};
+		explicit Prefab(const std::string& _filepath) : Asset(_filepath) {}
 		~Prefab() override = default;
 
 		// Yaml string that can be deserialized into entity

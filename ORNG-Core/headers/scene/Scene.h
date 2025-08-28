@@ -1,12 +1,20 @@
 #pragma once
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <../extern/entt/EnttSingleInclude.h>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "scene/ScenePostProcessing.h"
-#include "../extern/entt/EnttSingleInclude.h"
 #include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"
 #include "components/Component.h"
 #include "components/Lights.h"
 #include "util/UUID.h"
-
 
 namespace ORNG {
 	struct Prefab;
@@ -14,7 +22,7 @@ namespace ORNG {
 	class ComponentSystem;
 
 	struct UUIDChangeEvent : public Events::Event {
-		UUIDChangeEvent(uint64_t _old, uint64_t _new) : old_uuid(_old), new_uuid(_new) {};
+		UUIDChangeEvent(uint64_t _old, uint64_t _new) : old_uuid(_old), new_uuid(_new) {}
 		uint64_t old_uuid;
 		uint64_t new_uuid;
 	};

@@ -9,8 +9,6 @@
 using namespace ORNG;
 
 void BloomPass::Init() {
-	auto& shader_library = Renderer::GetShaderLibrary();
-
 	bloom_downsample_shader.AddStage(GL_COMPUTE_SHADER, "res/core-res/shaders/BloomDownsampleCS.glsl");
 	bloom_downsample_shader.Init();
 	bloom_downsample_shader.AddUniform("u_mip_level");
@@ -32,8 +30,8 @@ void BloomPass::Init() {
 	Texture2DSpec bloom_spec;
 	bloom_spec.format = GL_RGBA;
 	bloom_spec.internal_format = GL_RGBA16F;
-	bloom_spec.width = (unsigned)ceil(input_spec.width * 0.5f);
-	bloom_spec.height = (unsigned)ceil(input_spec.height * 0.5f);
+	bloom_spec.width = static_cast<unsigned>(ceil(static_cast<float>(input_spec.width) * 0.5f));
+	bloom_spec.height = static_cast<unsigned>(ceil(static_cast<float>(input_spec.height) * 0.5f));
 	bloom_spec.storage_type = GL_FLOAT;
 	bloom_spec.generate_mipmaps = true;
 	bloom_spec.min_filter = GL_LINEAR_MIPMAP_LINEAR;
@@ -55,8 +53,8 @@ void BloomPass::DoPass() {
 	auto* p_input = mp_graph->GetData<Texture2D>("BloomInCol");
 
 	const auto& spec = p_input->GetSpec();
-	unsigned width = spec.width;
-	unsigned height = spec.height;
+	float width = static_cast<float>(spec.width);
+	float height = static_cast<float>(spec.height);
 
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, p_input->GetTextureHandle(), GL_TEXTURE1);
 	bloom_threshold_shader.ActivateProgram();
@@ -64,7 +62,13 @@ void BloomPass::DoPass() {
 	bloom_threshold_shader.SetUniform("u_knee", bloom_settings.knee);
 	// Isolate bright spots
 	glBindImageTexture(0, bloom_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-	glDispatchCompute((GLuint)glm::ceil((float)width / 16.f), (GLuint)glm::ceil((float)height / 16.f), 1);
+
+	GL_StateManager::DispatchCompute(
+		static_cast<int>(glm::ceil(width / 16.f)),
+		static_cast<int>(glm::ceil(height / 16.f)),
+		1
+	);
+
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	// Downsample passes
@@ -74,7 +78,13 @@ void BloomPass::DoPass() {
 	for (int i = 1; i < max_mip_layer + 1; i++) {
 		bloom_downsample_shader.SetUniform("u_mip_level", i);
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil(((float)width / 32.f) / (float)i), (GLuint)glm::ceil(((float)height / 32.f) / (float)i), 1);
+
+		GL_StateManager::DispatchCompute(
+			static_cast<int>(glm::ceil(width / 32.f / static_cast<float>(i))),
+			static_cast<int>(glm::ceil(height / 32.f / static_cast<float>(i))),
+			1
+		);
+
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
@@ -83,7 +93,13 @@ void BloomPass::DoPass() {
 	for (int i = max_mip_layer - 1; i >= 0; i--) {
 		bloom_upsample_shader.SetUniform("u_mip_level", i);
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-		glDispatchCompute((GLuint)glm::ceil(((float)width / 16.f) / (float)(i + 1)), (GLuint)glm::ceil(((float)height / 16.f) / (float)(i + 1)), 1);
+
+		GL_StateManager::DispatchCompute(
+			static_cast<int>(glm::ceil(width / 16.f / static_cast<float>(i + 1))),
+			static_cast<int>(glm::ceil(height / 16.f / static_cast<float>(i + 1))),
+			1
+		);
+
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 
@@ -91,6 +107,6 @@ void BloomPass::DoPass() {
 	composition_shader.SetUniform("u_bloom_intensity", bloom_settings.intensity);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output->GetTextureHandle(), GL_TEXTURE0, true);
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glDispatchCompute((GLuint)glm::ceil((float)width / 8.f), (GLuint)glm::ceil((float)height / 8.f), 1);
+	glDispatchCompute(static_cast<int>(glm::ceil(width / 8.f)), static_cast<int>(glm::ceil(height / 8.f)), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

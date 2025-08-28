@@ -12,10 +12,8 @@
 
 
 namespace ORNG {
-
 	constexpr unsigned particle_struct_size = sizeof(float) * 4 + sizeof(glm::vec4) * 4;
 	constexpr unsigned emitter_struct_size = sizeof(float) * 36 + InterpolatorV3::GPU_STRUCT_SIZE_BYTES * 2 + sizeof(float) * 6 + InterpolatorV1::GPU_STRUCT_SIZE_BYTES + sizeof(float) * 3;
-	constexpr unsigned particle_transform_size = sizeof(float) * 12;
 
 	inline static void OnParticleEmitterAdd(entt::registry& registry, entt::entity entity) {
 		ComponentSystem::DispatchComponentEvent<ParticleEmitterComponent>(registry, entity, Events::ECS_EventType::COMP_ADDED);
@@ -84,14 +82,16 @@ namespace ORNG {
 			};
 
 		m_particle_buffer_listener.scene_id = GetSceneUUID();
-		m_particle_buffer_listener.OnEvent = [this](const Events::ECS_Event<ParticleBufferComponent>& e_event) {
+		m_particle_buffer_listener.OnEvent = [](const Events::ECS_Event<ParticleBufferComponent>& e_event) {
 			switch (e_event.event_type) {
 				using enum Events::ECS_EventType;
 			case COMP_ADDED:
-				InitBuffer(e_event.p_component);
+				//InitBuffer(e_event.p_component);
 				break;
 			case COMP_UPDATED:
-				OnBufferUpdate(e_event.p_component);
+				//OnBufferUpdate(e_event.p_component);
+				break;
+			case COMP_DELETED:
 				break;
 			}
 			};
@@ -117,19 +117,16 @@ namespace ORNG {
 		Events::EventManager::RegisterListener(m_particle_buffer_listener);
 	}
 
-
-
-
 	void ParticleSystem::InitParticles(ParticleEmitterComponent* p_comp) {
 		GL_StateManager::BindSSBO(m_emitter_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_EMITTERS);
 		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 		m_particle_initializer_cs.Activate(ParticleCSVariants::DEFAULT);
 		m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index);
-		m_particle_initializer_cs.SetUniform<unsigned>("u_emitter_index", m_emitter_entities.size() - 1);
+		m_particle_initializer_cs.SetUniform("u_emitter_index", static_cast<unsigned>(m_emitter_entities.size() - 1));
 
 		if (p_comp->m_num_particles > 0) {
-			GL_StateManager::DispatchCompute(glm::ceil((float)p_comp->m_num_particles / 32.f), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(p_comp->m_num_particles) / 32.f)), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 	}
@@ -158,26 +155,24 @@ namespace ORNG {
 			p_comp->m_particle_start_index = 0;
 		}
 
-
 		m_emitter_entities.push_back(p_comp->GetEnttHandle());
-		p_comp->m_index = m_emitter_entities.size() - 1;
+		p_comp->m_index = static_cast<unsigned>(m_emitter_entities.size() - 1);
 
-		unsigned prev_total = total_emitter_particles;
 		total_emitter_particles += p_comp->m_num_particles;
 
-		if (m_particle_ssbo.GetGPU_BufferSize() <= total_emitter_particles * particle_struct_size ) {
-			const unsigned new_allocated_particles = glm::ceilMultiple(glm::max(total_emitter_particles * 3 / 2, 10000u), 64u);
+		if (m_particle_ssbo.GetGPU_BufferSize() <= static_cast<unsigned>(total_emitter_particles) * particle_struct_size ) {
+			const unsigned new_allocated_particles = glm::ceilMultiple(glm::max(static_cast<unsigned>(total_emitter_particles * 3 / 2), 10000u), 64u);
 			m_particle_ssbo.Resize(new_allocated_particles * particle_struct_size);
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
 			m_particle_initializer_cs.Activate(ParticleCSVariants::INITIALIZE_AS_DEAD);
 			m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
-			GL_StateManager::DispatchCompute(glm::ceil((new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f)), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 
 		if (m_emitter_ssbo.GetGPU_BufferSize() < m_emitter_entities.size() * emitter_struct_size) {
-			m_emitter_ssbo.Resize(glm::max<int>(m_emitter_entities.size() * 3 / 2, 10) * emitter_struct_size);
+			m_emitter_ssbo.Resize(glm::max(static_cast<unsigned>(m_emitter_entities.size() * 3u) / 2u, 10u) * emitter_struct_size);
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 		}
 
@@ -190,7 +185,6 @@ namespace ORNG {
 	void ParticleSystem::UpdateEmitterBufferAtIndex(unsigned index) {
 		auto& comp = mp_scene->GetRegistry().get<ParticleEmitterComponent>(m_emitter_entities[index]);
 		auto* p_transform = comp.GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 forward = p_transform->forward;
 
 		std::array<std::byte, emitter_struct_size> emitter_data;
 		std::byte* p_byte = &emitter_data[0];
@@ -267,26 +261,26 @@ namespace ORNG {
 
 
 
-	void ParticleSystem::OnEmitterDestroy(ParticleEmitterComponent* p_comp, unsigned dif) {
+	void ParticleSystem::OnEmitterDestroy(ParticleEmitterComponent* p_comp, int dif) {
 		// Dif != 0 if the component has not had all its particles allocated
-		int old_nb_particles = p_comp->m_num_particles - dif;
+		int old_nb_particles = static_cast<int>(p_comp->m_num_particles) - dif;
 		ASSERT(old_nb_particles >= 0);
 
-		int num_particles_to_decrement = (total_emitter_particles - (p_comp->m_particle_start_index + old_nb_particles));
+		int num_particles_to_decrement = (total_emitter_particles - (static_cast<int>(p_comp->m_particle_start_index) + old_nb_particles));
 		if (num_particles_to_decrement > 0) {
 			// Adjust emitter indices to account for deletion (handled in shader)
 			m_particle_initializer_cs.Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_PARTICLES);
 			m_particle_initializer_cs.SetUniform("u_emitter_index", p_comp->m_index);
 			m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
-			m_particle_initializer_cs.SetUniform<unsigned>("u_num_particles", num_particles_to_decrement);
-			GL_StateManager::DispatchCompute((int)glm::ceil(num_particles_to_decrement / 32.f), 1, 1);
+			m_particle_initializer_cs.SetUniform("u_num_particles", static_cast<unsigned>(num_particles_to_decrement));
+			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(num_particles_to_decrement) / 32.f)), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 
 		// Emitter "start indices" (where their particles start in the buffer) need to be modified to account for deletion
 		m_particle_initializer_cs.Activate(ParticleCSVariants::EMITTER_DELETE_DECREMENT_EMITTERS);
 		m_particle_initializer_cs.SetUniform("u_emitter_index", p_comp->m_index);
-		m_particle_initializer_cs.SetUniform<unsigned>("u_num_emitters", m_emitter_entities.size());
+		m_particle_initializer_cs.SetUniform("u_num_emitters", static_cast<unsigned>(m_emitter_entities.size()));
 		GL_StateManager::DispatchCompute(1, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -294,7 +288,7 @@ namespace ORNG {
 
 		for (auto i = it + 1; i < m_emitter_entities.end(); i++) {
 			auto& em = mp_scene->GetRegistry().get<ParticleEmitterComponent>(*i);
-			em.m_particle_start_index -= old_nb_particles;
+			em.m_particle_start_index -= static_cast<unsigned>(old_nb_particles);
 			em.m_index--;
 		}
 
@@ -302,7 +296,7 @@ namespace ORNG {
 		total_emitter_particles -= old_nb_particles;
 
 		m_emitter_ssbo.Erase(p_comp->m_index * emitter_struct_size, emitter_struct_size);
-		m_particle_ssbo.Erase(p_comp->m_particle_start_index * particle_struct_size, old_nb_particles * particle_struct_size);
+		m_particle_ssbo.Erase(p_comp->m_particle_start_index * particle_struct_size, static_cast<unsigned>(old_nb_particles) * particle_struct_size);
 		glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
 		GL_StateManager::BindSSBO(m_emitter_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLE_EMITTERS);
@@ -317,28 +311,6 @@ namespace ORNG {
 		for (auto& connection : m_connections) {
 			connection.release();
 		}
-
-		auto& shader_library = Renderer::GetShaderLibrary();
-	}
-
-	void ParticleSystem::InitBuffer(ParticleBufferComponent* p_comp) {
-		// p_comp->m_particle_ssbo_handle = UUID<uint64_t>()();
-		// auto& p_ssbo = m_particle_comp_ssbos[p_comp->m_particle_ssbo_handle];
-		// p_ssbo = std::make_unique<SSBO<float>>(true, 0);
-		// p_ssbo->Init();
-		// p_ssbo->Resize(p_comp->m_min_allocated_particles * particle_struct_size);
-		//
-		// glNamedBufferSubData(p_ssbo->GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
-		// glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
-	}
-
-	void ParticleSystem::OnBufferUpdate(ParticleBufferComponent* p_comp) {
-		// auto& p_ssbo = m_particle_comp_ssbos[p_comp->m_particle_ssbo_handle];
-		//
-		// p_ssbo->Resize(p_comp->m_min_allocated_particles * particle_struct_size);
-		//
-		// glNamedBufferSubData(p_ssbo->GetHandle(), 0, sizeof(unsigned), &p_comp->m_buffer_id);
-		// glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 	}
 
 	void ParticleSystem::OnUpdate() {
@@ -346,7 +318,7 @@ namespace ORNG {
 		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 		if (total_emitter_particles > 0)
-			GL_StateManager::DispatchCompute(glm::ceil(total_emitter_particles / 64.f), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(total_emitter_particles) / 64.f)), 1, 1);
 
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}

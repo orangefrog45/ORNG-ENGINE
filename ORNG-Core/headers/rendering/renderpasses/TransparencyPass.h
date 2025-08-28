@@ -7,14 +7,12 @@
 namespace ORNG {
 	class TransparencyPass : public Renderpass {
 	public:
-		TransparencyPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Transparency") {};
+		explicit TransparencyPass(class RenderGraph* p_graph) : Renderpass(p_graph, "Transparency") {}
 
 		void Init() override;
 
 		void DoPass() override;
 
-		void Destroy() override;
-		
 		Texture2D transparency_accum{ "" };
 		Texture2D transparency_revealage{""};
 

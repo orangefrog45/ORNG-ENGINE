@@ -5,33 +5,7 @@
 #include "events/EventManager.h"
 #include "scene/SceneEntity.h"
 
-
-
 namespace ORNG {
-	void TransformComponent2D::SetScale(float x, float y) {
-		m_scale.x = x;
-		m_scale.y = y;
-	}
-
-	void TransformComponent2D::SetOrientation(float rot) {
-		m_rotation = rot;
-	}
-
-	void TransformComponent2D::SetPosition(float x, float y) {
-		m_pos.x = x;
-		m_pos.y = y;
-	}
-
-	glm::mat3 TransformComponent2D::GetMatrix() const {
-		glm::mat3 rot_mat = ExtraMath::Init2DRotateTransform(m_rotation);
-		glm::mat3 trans_mat = ExtraMath::Init2DTranslationTransform(m_pos.x, m_pos.y);
-		glm::mat3 scale_mat = ExtraMath::Init2DScaleTransform(m_scale.x, m_scale.y);
-
-		return scale_mat * rot_mat * trans_mat;
-	}
-
-
-
 	void TransformComponent::UpdateAbsTransforms() {
 		TransformComponent* p_parent_transform = GetParent();
 
@@ -101,7 +75,7 @@ namespace ORNG {
 			glm::vec3 inv_scale{ p_s.y * p_s.z * inv_parent_scale_det, p_s.x * p_s.z * inv_parent_scale_det, p_s.y * p_s.x * inv_parent_scale_det };
 
 			m_transform = glm::mat4_cast(m_orientation);
-;
+
 			// Apply total_scale whilst undoing parent scaling transforms to prevent shearing
 			m_transform[0][0] *= total_scale.x * inv_scale.x;
 			m_transform[0][1] *= total_scale.x * inv_scale.y;

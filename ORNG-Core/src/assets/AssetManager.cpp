@@ -110,7 +110,7 @@ namespace ORNG {
 		
 		LoadExternalBaseAssets("");
 
-		mp_base_material = std::make_unique<Material>((uint64_t)static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
+		mp_base_material = std::make_unique<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		mp_base_material->name = "Base material";
 
 		auto symbols = ScriptSymbols("");
@@ -183,7 +183,7 @@ namespace ORNG {
 		entry.base_index = 0;
 		entry.base_vertex = 0;
 		entry.material_index = 0;
-		entry.num_indices = mp_base_quad->m_vao.vertex_data.indices.size();
+		entry.num_indices = static_cast<unsigned>(mp_base_quad->m_vao.vertex_data.indices.size());
 
 		mp_base_quad->m_submeshes.push_back(entry);
 		mp_base_quad->m_is_loaded = true;

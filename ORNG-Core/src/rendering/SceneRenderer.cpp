@@ -70,7 +70,7 @@ namespace ORNG {
 			GL_StateManager::BindTexture(GL_TEXTURE_2D, p_material->emissive_texture->GetTextureHandle(), GL_StateManager::TextureUnits::EMISSIVE);
 		}
 
-		p_shader->SetUniform("u_material.flags", (unsigned)p_material->flags);
+		p_shader->SetUniform("u_material.flags", static_cast<unsigned>(p_material->flags));
 		p_shader->SetUniform("u_material.base_colour", p_material->base_colour);
 		p_shader->SetUniform("u_material.roughness", p_material->roughness);
 		p_shader->SetUniform("u_material.ao", p_material->ao);
@@ -215,9 +215,4 @@ namespace ORNG {
 
 		return ret;
 	}
-
-
-
-
-
 }

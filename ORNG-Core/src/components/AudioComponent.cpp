@@ -1,12 +1,21 @@
 #include "pch/pch.h"
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+#include <fmod.hpp>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+
 #include "components/AudioComponent.h"
 #include "events/EventManager.h"
-#include <fmod.hpp>
 #include "audio/AudioEngine.h"
 
 
 namespace ORNG {
-
 	AudioComponent::AudioComponent(SceneEntity* p_entity) : Component(p_entity) { mode = FMOD_DEFAULT | FMOD_3D | FMOD_LOOP_OFF | FMOD_3D_LINEARROLLOFF; };
 
 	void AudioComponent::SetPitch(float p) {
@@ -31,12 +40,12 @@ namespace ORNG {
 
 	void AudioComponent::Set2D(bool b) {
 		if (b) {
-			mode = mode & ~FMOD_3D;
-			mode = mode | FMOD_2D;
+			mode = mode & ~uint32_t{FMOD_3D};
+			mode = mode | uint32_t{FMOD_2D};
 		}
 		else {
-			mode = mode & ~FMOD_2D;
-			mode = mode | FMOD_3D;
+			mode = mode & ~uint32_t{FMOD_2D};
+			mode = mode | uint32_t{FMOD_3D};
 		}
 
 		ORNG_CALL_FMOD(mp_channel->setMode(mode));
@@ -59,10 +68,10 @@ namespace ORNG {
 				ORNG_CORE_ERROR("AudioComponent::Play failed, component does not have a valid sound uuid");
 				return;
 			}
-			DispatchAudioEvent(&m_sound_asset_uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
+			DispatchAudioEvent(&m_sound_asset_uuid, Events::ECS_EventType::COMP_UPDATED, static_cast<uint32_t>(AudioEventType::PLAY));
 		}
 		else {
-			DispatchAudioEvent(&uuid, Events::ECS_EventType::COMP_UPDATED, (uint32_t)AudioEventType::PLAY);
+			DispatchAudioEvent(&uuid, Events::ECS_EventType::COMP_UPDATED, static_cast<uint32_t>(AudioEventType::PLAY));
 			m_sound_asset_uuid = uuid;
 		}
 	}

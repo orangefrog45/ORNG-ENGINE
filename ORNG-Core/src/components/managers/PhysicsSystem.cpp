@@ -146,7 +146,7 @@ void ORNG::PhysicsSystem::InitListeners() {
 		case COMP_DELETED:
 			RemoveComponent(t_event.p_component);
 			break;
-		};
+		}
 	};
 
 	// Transform update listener
@@ -242,7 +242,7 @@ void ORNG::PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
 
 		p_comp->body_id = body_interface.CreateAndAddBody(sphere_settings, EActivation::Activate);
 	} else if (p_comp->m_geometry_type == PhysicsComponent::BOX) {
-		BoxShapeSettings box_shape_settings{Vec3{100.f, 100.f, 100.f}};
+		BoxShapeSettings box_shape_settings{Vec3{scaled_extents.x, scaled_extents.y, scaled_extents.z}};
 		ShapeSettings::ShapeResult box_shape_result;
 		BodyCreationSettings box_settings{new BoxShape{box_shape_settings, box_shape_result},
 			GlmToJph(transform.GetAbsPosition()), GlmToJph(transform.GetAbsOrientationQuat()), motion_type, layer};
@@ -283,13 +283,12 @@ void ORNG::PhysicsSystem::OnUpdate() {
 		return;
 
 	ORNG_PROFILE_FUNC();
-	auto& reg = mp_scene->GetRegistry();
 	float ts = FrameTiming::GetTimeStep();
 
 	m_accumulator += ts * 0.001f;
 	if (m_accumulator < step_size) return;
 
-	int num_steps = ceil(m_accumulator / step_size);
+	int num_steps = static_cast<int>(ceil(m_accumulator / step_size));
 	float adjusted_step_size = m_accumulator / static_cast<float>(num_steps);
 	m_physics_system.Update(adjusted_step_size, num_steps, mp_temp_allocator.get(), mp_job_system.get());
 
@@ -314,8 +313,8 @@ void ORNG::PhysicsSystem::OnUpdate() {
 }
 
 void ORNG::PhysicsSystem::Tick() {
-	auto& reg = mp_scene->GetRegistry();
-	float ts = FrameTiming::GetTimeStep();
+	//auto& reg = mp_scene->GetRegistry();
+	//float ts = FrameTiming::GetTimeStep();
 
 	// TODO: Update scene, then update all component transforms and collision callbacks
 

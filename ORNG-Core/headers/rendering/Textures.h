@@ -49,12 +49,12 @@ namespace ORNG {
 	public:
 		friend class Framebuffer;
 		TextureBase() = delete;
-		~TextureBase() override { Unload(); };
+		~TextureBase() override { Unload(); }
 
 		void Unload();
 		void GenerateMips();
-		[[nodiscard]] unsigned int GetTextureHandle() const noexcept { return m_texture_obj; }
-		[[nodiscard]] unsigned int GetTarget() const noexcept { return m_texture_target; }
+		[[nodiscard]] unsigned GetTextureHandle() const noexcept { return m_texture_obj; }
+		[[nodiscard]] unsigned GetTarget() const noexcept { return m_texture_target; }
 		[[nodiscard]] const std::string& GetName() const noexcept { return m_name; }
 
 		void SetName(const std::string& name) noexcept { m_name = name; }
@@ -67,12 +67,12 @@ namespace ORNG {
 		}
 
 	protected:
-		bool LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		bool LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec, unsigned int layer = 0);
-		TextureBase(unsigned int texture_target, const std::string& name);
-		TextureBase(unsigned int texture_target, const std::string& name, uint64_t t_uuid);
-		uint32_t m_texture_target = 0;
-		uint32_t m_texture_obj = 0;
+		bool LoadFloatImageFile(const std::string& filepath, unsigned int target, const TextureBaseSpec* base_spec);
+		bool LoadImageFile(const std::string& filepath, unsigned int  target, const TextureBaseSpec* base_spec);
+		TextureBase(unsigned texture_target, const std::string& name);
+		TextureBase(unsigned texture_target, const std::string& name, uint64_t t_uuid);
+		unsigned m_texture_target = 0;
+		unsigned m_texture_obj = 0;
 
 		// When texture is bound, texture unit e.g GL_TEXTURE0 stored here
 		uint32_t m_binding_point = 0;
@@ -189,5 +189,4 @@ namespace ORNG {
 	private:
 		TextureCubemapArraySpec m_spec;
 	};
-
 }

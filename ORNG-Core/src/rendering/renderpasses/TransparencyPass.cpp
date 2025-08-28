@@ -156,5 +156,3 @@ void TransparencyPass::DoPass() {
 	glDepthFunc(GL_LEQUAL);
 };
 
-void TransparencyPass::Destroy() {
-};

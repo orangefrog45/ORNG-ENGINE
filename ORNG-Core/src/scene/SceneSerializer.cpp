@@ -188,7 +188,7 @@ namespace ORNG {
 			Out(out, "Nb. particles", p_emitter->GetNbParticles());
 			Out(out, "Lifespan", p_emitter->GetParticleLifespan());
 			Out(out, "Spawn delay", p_emitter->GetSpawnDelay());
-			Out(out, "Type", (unsigned)p_emitter->GetType());
+			Out(out, "Type", static_cast<unsigned>(p_emitter->GetType()));
 			Out(out, "Acceleration", p_emitter->GetAcceleration());
 			Out(out, "Active", p_emitter->IsActive());
 
@@ -311,13 +311,13 @@ namespace ORNG {
 			std::vector<uint64_t> material_ids = materials.as<std::vector<uint64_t>>();
 			p_res->materials.resize(p_res->p_mesh->m_num_materials);
 
-			for (int i = 0; i < p_res->materials.size(); i++) {
+			for (size_t i = 0; i < p_res->materials.size(); i++) {
 				auto* p_mat = AssetManager::GetAsset<Material>(material_ids[i]);
 				p_res->materials[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 			}
 		}
 
-		int dif = p_emitter->m_num_particles - ParticleEmitterComponent::BASE_NUM_PARTICLES;
+		int dif = static_cast<int>(p_emitter->m_num_particles) - ParticleEmitterComponent::BASE_NUM_PARTICLES;
 		p_emitter->DispatchUpdateEvent(ParticleEmitterComponent::FULL_UPDATE, &dif);
 	}
 
@@ -368,7 +368,7 @@ namespace ORNG {
 		std::vector<const Material*> material_vec;
 		material_vec.resize(materials.size());
 
-		for (int i = 0; i < materials.size(); i++) { 
+		for (size_t i = 0; i < materials.size(); i++) {
 			auto* p_mat = AssetManager::GetAsset<Material>(materials[i].as<uint64_t>());
 			material_vec[i] = p_mat ? p_mat : AssetManager::GetAsset<Material>(static_cast<uint64_t>(BaseAssetIDs::DEFAULT_MATERIAL));
 		}
@@ -558,7 +558,7 @@ namespace ORNG {
 		ORNG_CORE_TRACE("Deserializing scene '{0}'", scene_name);
 
 		scene.m_name = scene_name;
-		scene.m_asset_uuid = UUID{data["SceneUUID"].as<uint64_t>()};
+		scene.m_asset_uuid = UUID<uint64_t>{data["SceneUUID"].as<uint64_t>()};
 
 		const auto& entities = data["Entities"];
 		//Create entities in first pass so they can be linked as parent/children in 2nd pass

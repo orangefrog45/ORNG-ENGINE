@@ -11,6 +11,8 @@ namespace ORNG {
 		friend class AssetManagerWindow;
 	public:
 		explicit ScriptComponent(SceneEntity* p_entity) : Component(p_entity) {}
+		ScriptComponent& operator=(const ScriptComponent&) = default;
+		ScriptComponent(const ScriptComponent&) = default;
 		~ScriptComponent() override = default;
 
 		void SetSymbols(const ScriptSymbols* t_symbols);
