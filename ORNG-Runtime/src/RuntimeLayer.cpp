@@ -1,12 +1,17 @@
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
-#include <glfw/glfw3.h>
-#include <glfw/glfw3native.h>
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+#include <yaml-cpp/yaml.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include "../headers/RuntimeLayer.h"
-
-#include <components/systems/EnvMapSystem.h>
-#include <yaml-cpp/yaml.h>
 
 #include "assets/AssetManager.h"
 #include "assets/SceneAsset.h"
@@ -19,6 +24,7 @@
 #include "rendering/renderpasses/TransparencyPass.h"
 #include "rendering/renderpasses/PostProcessPass.h"
 
+#include "components/systems/EnvMapSystem.h"
 #include "components/systems/PhysicsSystem.h"
 #include "components/ComponentSystems.h"
 #include "components/systems/VrSystem.h"
@@ -109,7 +115,7 @@ void RuntimeLayer::InitVR() {
 	static vrlib::OpenXR_DebugLogFunc log_func = [](const std::string& log, unsigned level) {
 		switch(level) {
 			case 0:
-				ORNG_CORE_TRACE(log)
+				ORNG_CORE_TRACE(log);
 				break;
 			case 1:
 				ORNG_CORE_INFO(log);
@@ -168,8 +174,7 @@ void RuntimeLayer::Update() {
 		mp_vr->PollEvents();
 		XrSessionState session_state = mp_vr->GetSessionState();
 
-		if (session_state == XR_SESSION_STATE_EXITING || session_state == XR_SESSION_STATE_LOSS_PENDING ||
-			session_state == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
+		if (session_state == XR_SESSION_STATE_EXITING || session_state == XR_SESSION_STATE_LOSS_PENDING) {
 			ORNG_CORE_ERROR("Runtime exited due to VR instance loss or session exit.");
 			Events::EventManager::DispatchEvent(Events::EngineCoreEvent{.event_type = Events::EngineCoreEvent::REQUEST_TERMINATE});
 			} else {

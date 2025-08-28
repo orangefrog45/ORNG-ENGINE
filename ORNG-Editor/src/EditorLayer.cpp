@@ -246,8 +246,8 @@ void EditorLayer::EndPlayScene() {
 	m_state.selected_entity_ids.clear();
 
 	auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
-	glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
-	glm::vec3 look_at_pos = cam_pos + p_cam_transform->forward;
+	const glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
+	const glm::vec3 look_at_pos = cam_pos + p_cam_transform->forward;
 
 	mp_editor_camera = nullptr;
 
@@ -301,6 +301,8 @@ void EditorLayer::InitVrForSimulationMode() {
 			case 3:
 				ORNG_CORE_ERROR(log);
 				break;
+			default:
+				BREAKPOINT;
 		}
 	};
 
@@ -985,6 +987,8 @@ void EditorLayer::RenderToolbar() {
 			selected_component = 0;
 			break;
 		}
+		default:
+			BREAKPOINT;
 		}
 
 
@@ -1159,8 +1163,8 @@ void EditorLayer::BuildGameFromActiveProject() {
 }
 
 void EditorLayer::RenderBuildMenu() {
-	ImVec2 window_size{600, 600};
-	ImVec2 window_pos{(static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f, (static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f};
+	//ImVec2 window_size{600, 600};
+	//ImVec2 window_pos{(static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f, (static_cast<float>(Window::GetWidth()) - window_size.x) / 2.f};
 
 	if (ImGui::Begin("Build settings")) {
 		ImGui::Checkbox("VR runtime", &m_state.build_runtime_settings.use_vr);
@@ -1464,6 +1468,8 @@ void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
 	case 12:
 		entity->AddComponent<JointComponent>();
 		break;
+	default:
+		BREAKPOINT;
 	}
 }
 
