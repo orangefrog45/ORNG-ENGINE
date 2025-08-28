@@ -1,11 +1,10 @@
 #pragma once
-#define FASTNOISE_STATIC_LIB
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN
 #else
 #define FUNC_NAME __PRETTY_FUNCTION__
 #endif
-#define ORNG_ENABLE_TRACY_PROFILE
+//#define ORNG_ENABLE_TRACY_PROFILE
 
 #define NO_INLINE __declspec(noinline)
 
@@ -19,7 +18,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_RADIANS
 
-//#include <PxPhysXConfig.h>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
 #include <glm/glm/gtx/matrix_major_storage.hpp>

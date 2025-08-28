@@ -248,7 +248,7 @@ bool Texture2DArray::LoadFromFile() {
 
 	GL_StateManager::BindTexture(m_texture_target, m_texture_obj, GL_TEXTURE0, true);
 	glTexImage3D(m_texture_target, 0, m_spec.internal_format, m_spec.width, m_spec.height,
-		m_spec.filepaths.size(), 0, m_spec.format, m_spec.storage_type, nullptr);
+		static_cast<GLsizei>(m_spec.filepaths.size()), 0, m_spec.format, m_spec.storage_type, nullptr);
 
 	for (size_t i = 0; i < m_spec.filepaths.size(); i++) {
 		int width = 0;
@@ -268,7 +268,7 @@ bool Texture2DArray::LoadFromFile() {
 			return false;
 		}
 
-		glTexSubImage3D(m_texture_target, 0, 0, 0, i, width, height, 1, m_spec.format, m_spec.storage_type, image_data);
+		glTexSubImage3D(m_texture_target, 0, 0, 0, static_cast<GLint>(i), width, height, 1, m_spec.format, m_spec.storage_type, image_data);
 
 		stbi_image_free(image_data);
 	}

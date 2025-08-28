@@ -1,11 +1,16 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
+#elif defined(MSVC)
+#pragma warning( push )
+#pragma warning( disable : 4505 ) // 'FMOD_ErrorString': unreferenced function with internal linkage has been removed
 #endif
 #include <fmod.hpp>
 #include <combaseapi.h>
 #ifdef __clang__
 #pragma clang diagnostic pop
+#elif defined(MSVC)
+#pragma warning( pop )
 #endif
 
 #include "pch/pch.h"

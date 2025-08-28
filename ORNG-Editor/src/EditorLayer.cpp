@@ -3,6 +3,9 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
+#elif defined(MSVC)
+#pragma warning( push )
+#pragma warning( disable : 4312 ) // 'reinterpret_cast': conversion from 'unsigned int' to 'void *' of greater size
 #endif
 #include <../extern/Icons.h>
 #include <../extern/imgui/backends/imgui_impl_opengl3.h>
@@ -2888,3 +2891,7 @@ void EditorLayer::SetScene(Scene* p_scene) {
 	mp_scene_context = p_scene;
 	m_asset_manager_window.SetScene(p_scene);
 }
+
+#if defined(MSVC)
+#pragma warning( pop )
+#endif

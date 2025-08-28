@@ -7,6 +7,9 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
+#elif defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning( disable : 4244 ) // 'argument': conversion from 'int' to 'short', possible loss of data
 #endif
 
 #include <stb/stb_image.h>
@@ -14,5 +17,7 @@
 
 #ifdef __clang__
 #pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning( pop )
 #endif
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.28)
 
 # This exposes the following targets:
 # ORNG_CORE - contains entire ORNG library, this requires ORNG_BUILD_CORE to be ON, and physx to be installed via vcpkg and available to link to (see how physx is used in this file)
@@ -122,18 +122,6 @@ else()
 	target_compile_definitions(ORNG_SCENE PRIVATE NDEBUG)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	target_compile_options(ORNG_CORE PRIVATE /W4 /WX)
-	target_compile_options(ORNG_RENDERING PRIVATE /W4 /WX)
-	target_compile_options(ORNG_UTIL PRIVATE /W4 /WX)
-	target_compile_options(ORNG_SCENE PRIVATE /W4 /WX)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	target_compile_options(ORNG_CORE PRIVATE ${ORNG_WARNING_FLAGS})
-	target_compile_options(ORNG_RENDERING PRIVATE ${ORNG_WARNING_FLAGS})
-	target_compile_options(ORNG_UTIL PRIVATE ${ORNG_WARNING_FLAGS})
-	target_compile_options(ORNG_SCENE PRIVATE ${ORNG_WARNING_FLAGS})
-endif()
-
 
 set(ASSIMP_BUILD_STATIC_LIB ON)
 set(ASSIMP_WARNINGS_AS_ERRORS OFF)
@@ -213,6 +201,13 @@ if (ORNG_BUILD_CORE)
 	Jolt
 	)
 	target_precompile_headers(ORNG_CORE PUBLIC headers/pch/pch.h)
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC|Clang")
+	target_compile_options(ORNG_CORE PRIVATE ${ORNG_WARNING_FLAGS})
+	target_compile_options(ORNG_RENDERING PRIVATE ${ORNG_WARNING_FLAGS})
+	target_compile_options(ORNG_UTIL PRIVATE ${ORNG_WARNING_FLAGS})
+	target_compile_options(ORNG_SCENE PRIVATE ${ORNG_WARNING_FLAGS})
 endif()
 
 target_include_directories(ORNG_RENDERING PUBLIC ${ORNG_CORE_INCLUDE_DIRS})

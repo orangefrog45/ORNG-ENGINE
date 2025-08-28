@@ -285,7 +285,7 @@ namespace ORNG {
 	}
 
 	bool ExtraUI::InputUint(const char* name, unsigned& val) {
-		if (val > std::numeric_limits<int>::max()) {
+		if (val > static_cast<unsigned>(std::numeric_limits<int>::max())) {
 			ORNG_CORE_ERROR("InputUint must be less than {}", static_cast<unsigned>(std::numeric_limits<int>::max()) + 1);
 		}
 

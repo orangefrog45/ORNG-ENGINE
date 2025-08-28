@@ -5,6 +5,11 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
+#elif defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning( disable : 4996 ) // 'fmt::v9::detail::arg_mapper<fmt::v9::detail::parse_format_specs::context>::map': was declared deprecated
+#pragma warning( push )
+#pragma warning( disable : 4459 ) // declaration of 'uint' hides global declaration
 #endif
 #include <spdlog/logger.h>
 #include <spdlog/sinks/ringbuffer_sink.h>
@@ -12,6 +17,9 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #ifdef __clang__
 #pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning( pop )
+#pragma warning( pop )
 #endif
 
 #include "events/Events.h"

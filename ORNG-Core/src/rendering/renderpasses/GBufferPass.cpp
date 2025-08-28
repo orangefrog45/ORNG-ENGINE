@@ -118,7 +118,7 @@ void GBufferPass::DoPass() {
 	displacement_sv.SetUniform("u_bloom_threshold", mp_scene->post_processing.bloom.threshold);
 	glPatchParameteri(GL_PATCH_VERTICES, 3);
 	for (const auto* group : mesh_sys.GetInstanceGroups()) {
-		SceneRenderer::DrawInstanceGroupGBuffer(&displacement_sv, group, SOLID, ORNG_MatFlags_TESSELLATED, ORNG_MatFlags_INVALID, GL_PATCHES);
+		SceneRenderer::DrawInstanceGroupGBuffer(&displacement_sv, group, SOLID, ORNG_MatFlags_TESSELLATED, ORNG_MatFlags_INVALID, true, GL_PATCHES);
 	}
 
 	sv.Activate(static_cast<unsigned>(GBufferVariants::MESH));

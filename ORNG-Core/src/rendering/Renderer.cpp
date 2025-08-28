@@ -81,7 +81,7 @@ namespace ORNG {
 
 		glDrawArraysInstanced(primitive_type,
 			0,
-			vao.vertex_data.positions.size() / 3,
+			static_cast<GLsizei>(vao.vertex_data.positions.size()) / 3,
 			instance_count
 		);
 

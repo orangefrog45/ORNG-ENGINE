@@ -143,11 +143,11 @@ m_flags(flags), m_is_mutable(is_mutable) {  };
 
 	MeshVAO::MeshVAO() {
 		Init();
-		glCreateBuffers(m_buffers.size(), &m_buffers[0]);
+		glCreateBuffers(static_cast<GLsizei>(m_buffers.size()), &m_buffers[0]);
 	};
 
 	MeshVAO::~MeshVAO() {
-		glDeleteBuffers(m_buffers.size(), &m_buffers[0]);
+		glDeleteBuffers(static_cast<GLsizei>(m_buffers.size()), &m_buffers[0]);
 	};
 
 	void MeshVAO::FillBuffers() {

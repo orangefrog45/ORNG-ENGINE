@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.28)
 
 project(ORNG_EDITOR)
 
@@ -18,7 +18,8 @@ src/main.cpp
 ${ORNG_EDITOR_SRC_FILES}
 )
 
-target_compile_options(ORNG_EDITOR PRIVATE ${ORNG_WARNING_FLAGS})
+target_compile_options(ORNG_EDITOR PRIVATE ${ORNG_WARNING_FLAGS} /wd4652) # Ignore precompiled header warning level mismatch
+target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 
 set(ORNG_EDITOR_INCLUDE_DIRS 
 ${CMAKE_CURRENT_LIST_DIR}/headers
@@ -60,7 +61,6 @@ ORNG_CORE
 ${ORNG_EDITOR_LIBS}
 )
 
-target_precompile_headers(ORNG_EDITOR REUSE_FROM ORNG_CORE)
 #Get res folder with shaders etc
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")
 file(COPY ${CMAKE_CURRENT_BINARY_DIR}/../ORNG-Core/res DESTINATION "${CMAKE_BINARY_DIR}/ORNG-Editor/")

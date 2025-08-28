@@ -2,6 +2,8 @@
 
 #include "util/TimeStep.h"
 
+#include "util/util.h"
+
 using namespace ORNG;
 
 long long TimeStep::GetTimeInterval() const {
@@ -15,4 +17,7 @@ long long TimeStep::GetTimeInterval() const {
 	case TimeUnits::NANOSECONDS:
 		return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - m_last_time).count();
 	}
+
+	BREAKPOINT;
+	return 0;
 }
