@@ -325,7 +325,7 @@ namespace ORNG {
 		auto* p_transform = entity.GetComponent<TransformComponent>();
 		p_transform->m_pos = node["Pos"].as<glm::vec3>();
 		p_transform->m_scale = node["Scale"].as<glm::vec3>();
-		p_transform->m_orientation = node["Orientation"].as<glm::vec3>();
+		p_transform->m_orientation = glm::quat{glm::radians(node["Orientation"].as<glm::vec3>())};
 		p_transform->m_is_absolute = node["Absolute"].as<bool>();
 		p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 	}
