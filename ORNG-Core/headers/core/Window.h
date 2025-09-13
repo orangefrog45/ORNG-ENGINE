@@ -63,6 +63,17 @@ namespace ORNG {
 			return Get().input;
 		}
 
+		enum class CursorStyle {
+			ARROW,
+			I_BEAM,
+			VRESIZE,
+			HRESIZE,
+			HAND,
+			NUM_CURSORS
+		};
+
+		static void SetCursorStyle(CursorStyle style);
+
 		Input input;
 	private:
 		void I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized);

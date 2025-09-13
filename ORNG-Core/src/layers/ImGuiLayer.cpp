@@ -98,6 +98,27 @@ namespace ORNG {
 		if (m_render_debug)
 			RenderDebug();
 
+		Window::CursorStyle cursor_style = Window::CursorStyle::ARROW;
+		ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+		switch (imgui_cursor) {
+			case ImGuiMouseCursor_TextInput:
+				cursor_style = Window::CursorStyle::I_BEAM;
+				break;
+			case ImGuiMouseCursor_ResizeNS:
+				cursor_style = Window::CursorStyle::VRESIZE;
+				break;
+			case ImGuiMouseCursor_ResizeEW:
+				cursor_style = Window::CursorStyle::HRESIZE;
+				break;
+			case ImGuiMouseCursor_Hand:
+				cursor_style = Window::CursorStyle::HAND;
+				break;
+			default:
+				break;
+		}
+
+		Window::SetCursorStyle(cursor_style);
+
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	}
