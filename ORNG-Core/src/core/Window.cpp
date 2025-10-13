@@ -75,8 +75,6 @@ void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); gs_
 
 void Window::IUpdate() {
 	input.OnUpdate();
-	m_scroll_data.active = false;
-	m_scroll_data.offset = { 0,0 };
 }
 
 void Window::SetCursorStyle(CursorStyle style) {
@@ -126,7 +124,11 @@ void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial
 		ORNG_CORE_ERROR("Initial window display monitor index too large, total monitors '{0}', received index '{1}'", count, initial_window_display_monitor_idx);
 		p_window = glfwCreateWindow(initial_dimensions.x, initial_dimensions.y, name, nullptr, nullptr);
 	}
-	glfwSetScrollCallback(p_window, []([[maybe_unused]] GLFWwindow* window, double xoffset, double yoffset) {Window::SetScrollActive(glm::vec2(xoffset, yoffset)); });
+	glfwSetScrollCallback(p_window, []([[maybe_unused]] GLFWwindow* window, double xoffset, double yoffset) {
+		auto& input =  Window::Get().input;
+		input.m_scroll_data.active = true;
+		input.m_scroll_data.offset = {xoffset, yoffset};
+	});
 	glfwSetMouseButtonCallback(p_window, MouseButtonCallback);
 	glfwSetCursorPosCallback(p_window, CursorPosCallback);
 	glfwSetWindowSizeCallback(p_window, [](GLFWwindow*, int width, int height)

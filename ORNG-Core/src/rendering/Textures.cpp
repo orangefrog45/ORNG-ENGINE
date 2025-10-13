@@ -285,10 +285,10 @@ void TextureBase::SetFilterAndWrapParams(bool is_3d, int min_filter, int mag_fil
 	glTexParameteri(m_texture_target, GL_TEXTURE_MIN_FILTER, min_filter == GL_NONE ? GL_NEAREST : min_filter);
 	glTexParameteri(m_texture_target, GL_TEXTURE_MAG_FILTER, mag_filter == GL_NONE ? GL_NEAREST : mag_filter);
 	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_S, wrap_mode);
-	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_R, wrap_mode);
+	glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_T, wrap_mode);
 
 	if (is_3d)
-		glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_T, wrap_mode);
+		glTexParameteri(m_texture_target, GL_TEXTURE_WRAP_R, wrap_mode);
 }
 
 

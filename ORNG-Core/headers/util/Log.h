@@ -29,17 +29,17 @@ std::string Format(const T&);
 
 template<>
 inline std::string Format<glm::vec4>(const glm::vec4& v) {
-	return std::format("[{}, {}, {}, {}]", v.x, v.y, v.z, v.w);
+	return std::format("[{:.4f}, {:.4f}, {:.4f}, {:.4f}]", v.x, v.y, v.z, v.w);
 }
 
 template<>
 inline std::string Format<glm::vec3>(const glm::vec3& v) {
-	return std::format("[{}, {}, {}]", v.x, v.y, v.z);
+	return std::format("[{:.4f}, {:.4f}, {:.4f}]", v.x, v.y, v.z);
 }
 
 template<>
 inline std::string Format<glm::vec2>(const glm::vec2& v) {
-	return std::format("[{}, {}]", v.x, v.y);
+	return std::format("[{:.4f}, {:.4f}]", v.x, v.y);
 }
 
 namespace ORNG {

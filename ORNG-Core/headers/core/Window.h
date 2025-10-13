@@ -45,19 +45,9 @@ namespace ORNG {
 
 		static void SetCursorVisible(bool visible);
 
-		static void SetScrollActive(glm::vec2 offset) {
-			Get().m_scroll_data.active = true;
-			Get().m_scroll_data.offset = offset;
-		}
-
 		static void Update() {
 			Get().IUpdate();
 		}
-
-		struct ScrollData {
-			bool active = false;
-			glm::vec2 offset = { 0, 0 };
-		};
 
 		inline static Input& GetInput() noexcept {
 			return Get().input;
@@ -83,8 +73,6 @@ namespace ORNG {
 		void ISetCursorPos(int x, int y);
 
 		void IUpdate();
-
-		ScrollData m_scroll_data;
 
 		inline static Window* mp_instance = nullptr;
 

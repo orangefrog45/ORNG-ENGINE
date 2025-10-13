@@ -89,7 +89,17 @@ namespace ORNG {
 
 	class Input {
 		friend class ScriptInterface::Input;
+		friend class Window;
 	public:
+		struct ScrollData {
+			bool active = false;
+			glm::vec2 offset = { 0, 0 };
+		};
+
+		ScrollData GetScrollState() {
+			return m_scroll_data;
+		}
+
 		// Not case-sensitive
 		// Returns true if key has been pressed this frame or is being held down
 		bool IsKeyDown(Key key) {
@@ -157,6 +167,9 @@ namespace ORNG {
 		}
 
 		void OnUpdate() {
+			m_scroll_data.active = false;
+			m_scroll_data.offset = { 0,0 };
+
 			m_last_mouse_position = m_mouse_position;
 			// Press state only valid for one frame, then the key is considered "held"
 			for (auto& [key, v] : m_key_states) {
@@ -171,6 +184,8 @@ namespace ORNG {
 		}
 
 	private:
+		ScrollData m_scroll_data;
+
 		glm::ivec2 m_mouse_position{ 0, 0 };
 		glm::ivec2 m_last_mouse_position{ 0, 0 };
 
