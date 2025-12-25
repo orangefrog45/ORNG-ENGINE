@@ -33,8 +33,7 @@
 
 namespace ORNG {
 	void ScriptingEngine::ReplaceScriptCmakeEngineFilepaths(std::string& cmake_content) {
-		StringReplace(cmake_content, "REPLACE_ME_ENGINE_DEBUG_BINARY_DIR", "\"" + std::string{ ORNG_CORE_DEBUG_BINARY_DIR } + "\"");
-		StringReplace(cmake_content, "REPLACE_ME_ENGINE_RELEASE_BINARY_DIR", "\"" + std::string{ ORNG_CORE_RELEASE_BINARY_DIR } + "\"");
+		StringReplace(cmake_content, "REPLACE_ME_ENGINE_BINARY_DIR", "\"" + std::string{ ORNG_CORE_LIB_DIR } + "\"");
 		StringReplace(cmake_content, "REPLACE_ME_ENGINE_BASE_DIR", "\"" + std::string{ ORNG_CORE_MAIN_DIR } + "/..\"");
 	}
 

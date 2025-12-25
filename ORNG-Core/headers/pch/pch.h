@@ -1,13 +1,13 @@
 #pragma once
-#ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN
-#else
+#ifndef _MSC_VER
 #define FUNC_NAME __PRETTY_FUNCTION__
 #endif
 //#define ORNG_ENABLE_TRACY_PROFILE
 
 #define NO_INLINE __declspec(noinline)
 
+#define NOMINMAX
 #include <Windows.h>
 #include <commdlg.h>
 #include <locale>

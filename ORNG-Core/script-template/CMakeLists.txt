@@ -16,11 +16,7 @@ project(SCRIPTS)
 add_compile_options(/Zi)
 set(ENGINE_BASE_DIR REPLACE_ME_ENGINE_BASE_DIR) # changed in engine
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_DEBUG_BINARY_DIR) # changed in engine
-else()
-set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_RELEASE_BINARY_DIR) # changed in engine
-endif()
+set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_BINARY_DIR) # changed in engine
 
 if (NOT EXISTS ${ENGINE_BINARY_DIR})
     message(FATAL_ERROR "ORNG CMake binary directory can't be found at: '${ENGINE_BINARY_DIR}', make sure the ORNG build directory is 'ORNG_ROOT_DIRECTORY/out/debug'
@@ -33,7 +29,7 @@ set(SCRIPT_INCLUDE_DIRS
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/spdlog/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/build/include
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/include
+${ENGINE_BINARY_DIR}/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glfw/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glew-cmake/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern
@@ -55,42 +51,42 @@ find_package(OpenGL REQUIRED)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 set(SCRIPT_LIBS
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_COREd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTILd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENEd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERINGd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-COREd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loaderd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imguid.lib
+${ENGINE_BINARY_DIR}/ORNG_COREd.lib
+${ENGINE_BINARY_DIR}/ORNG_UTILd.lib
+${ENGINE_BINARY_DIR}/ORNG_SCENEd.lib
+${ENGINE_BINARY_DIR}/ORNG_RENDERINGd.lib
+${ENGINE_BINARY_DIR}/extern/VRlib/core/VR-COREd.lib
+${ENGINE_BINARY_DIR}/extern/VRlib/extern/OpenXR/src/loader/openxr_loaderd.lib
+${ENGINE_BINARY_DIR}/extern/imgui/imguid.lib
 OpenGL::GL
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/glfw/src/glfw3.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/glew-cmake/lib/glew-sharedd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/lib/assimp-vc143-mtd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/contrib/zlib/zlibstaticd.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/yaml/yaml-cppd.lib
+${ENGINE_BINARY_DIR}/extern/glfw/src/glfw3.lib
+${ENGINE_BINARY_DIR}/extern/glew-cmake/lib/glew-sharedd.lib
+${ENGINE_BINARY_DIR}/extern/assimp/lib/assimp-vc143-mtd.lib
+${ENGINE_BINARY_DIR}/extern/assimp/contrib/zlib/zlibstaticd.lib
+${ENGINE_BINARY_DIR}/extern/yaml/yaml-cppd.lib
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/fmod/api/core/lib/x64/fmodL_vc.lib
 ${YAML_CPP_LIBRARIES}
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/jolt/Build/Joltd.lib
+${ENGINE_BINARY_DIR}/extern/jolt/Build/Joltd.lib
 )
 else()
 set(SCRIPT_LIBS
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_CORE.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_UTIL.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_SCENE.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/ORNG_RENDERING.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/core/VR-CORE.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/src/loader/openxr_loader.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/imgui/imgui.lib
+${ENGINE_BINARY_DIR}/ORNG_CORE.lib
+${ENGINE_BINARY_DIR}/ORNG_UTIL.lib
+${ENGINE_BINARY_DIR}/ORNG_SCENE.lib
+${ENGINE_BINARY_DIR}/ORNG_RENDERING.lib
+${ENGINE_BINARY_DIR}/extern/VRlib/core/VR-CORE.lib
+${ENGINE_BINARY_DIR}/extern/VRlib/extern/OpenXR/src/loader/openxr_loader.lib
+${ENGINE_BINARY_DIR}/extern/imgui/imgui.lib
 OpenGL::GL
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/glfw/src/glfw3.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/glew-cmake/lib/glew-shared.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/lib/assimp-vc143-mt.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/assimp/contrib/zlib/zlibstatic.lib
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/yaml/yaml-cpp.lib
+${ENGINE_BINARY_DIR}/extern/glfw/src/glfw3.lib
+${ENGINE_BINARY_DIR}/extern/glew-cmake/lib/glew-shared.lib
+${ENGINE_BINARY_DIR}/extern/assimp/lib/assimp-vc143-mt.lib
+${ENGINE_BINARY_DIR}/extern/assimp/contrib/zlib/zlibstatic.lib
+${ENGINE_BINARY_DIR}/extern/yaml/yaml-cpp.lib
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/fmod/api/core/lib/x64/fmod_vc.lib
 ${YAML_CPP_LIBRARIES}
 ${PHYSX_LIBS}
-${ENGINE_BINARY_DIR}/ORNG-Core/extern/jolt/Build/Jolt.lib
+${ENGINE_BINARY_DIR}/extern/jolt/Build/Jolt.lib
 )
 endif()
 
