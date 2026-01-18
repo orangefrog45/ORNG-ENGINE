@@ -17,6 +17,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_SWIZZLE
 
 #include <glm/glm/glm.hpp>
 #include <glm/glm/gtx/transform.hpp>
@@ -40,6 +41,9 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <set>
+#include <unordered_set>
+#include <deque>
 #include <string>
 #include <array>
 #include <variant>

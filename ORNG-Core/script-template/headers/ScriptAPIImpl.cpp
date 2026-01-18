@@ -15,8 +15,8 @@
 extern "C" {
 	// Connect main application's singletons with dll
 	__declspec(dllexport) void SetSingletonPtrs(void* p_window, void* p_frametiming, void* p_event_manager,
-		void* p_gl_manager, void* p_asset_manager, void* p_renderer, void* p_logger, void* p_ringbuffer_sink, void* p_phys_factory) {
-		ORNG::Log::InitFrom(*static_cast<std::shared_ptr<spdlog::logger>*>(p_logger), *static_cast<std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt>*>(p_ringbuffer_sink));
+		void* p_gl_manager, void* p_asset_manager, void* p_renderer, void* p_logs, void* p_log_file, void* p_phys_factory) {
+		ORNG::Logger::InitFrom(static_cast<std::deque<ORNG::LogEvent>*>(p_logs), static_cast<std::ofstream*>(p_log_file));
 		ORNG::Window::InitInstance(static_cast<ORNG::Window*>(p_window));
 		ORNG::FrameTiming::Init(static_cast<ORNG::FrameTiming*>(p_frametiming));
 		ORNG::Events::EventManager::SetInstance(static_cast<ORNG::Events::EventManager*>(p_event_manager));

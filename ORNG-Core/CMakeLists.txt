@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 # This exposes the following targets:
-# ORNG_CORE - contains entire ORNG library, this requires ORNG_BUILD_CORE to be ON, and physx to be installed via vcpkg and available to link to (see how physx is used in this file)
+# ORNG_CORE - contains entire ORNG library, this requires ORNG_BUILD_CORE to be ON
 # ORNG_RENDERING - contains all OpenGL rendering functionality
 # ORNG_SCENE - contains all scene functionality
 # ORNG_UTIL - contains utility functionality
@@ -128,7 +128,6 @@ set(ASSIMP_WARNINGS_AS_ERRORS OFF)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/glfw)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/glew-cmake)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/assimp)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/spdlog)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/imgui)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/yaml)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/extern/VRlib)
@@ -158,7 +157,6 @@ target_include_directories(imgui PUBLIC
 find_package(OpenGL REQUIRED)
 
 set(ORNG_CORE_INCLUDE_DIRS
-	${CMAKE_CURRENT_LIST_DIR}/extern/spdlog/include
 	${CMAKE_CURRENT_LIST_DIR}/extern/assimp/include
 	${CMAKE_CURRENT_LIST_DIR}/extern/assimp/build/include
 	${CMAKE_CURRENT_LIST_DIR}/extern/glfw/include
@@ -173,6 +171,7 @@ set(ORNG_CORE_INCLUDE_DIRS
 	${CMAKE_CURRENT_LIST_DIR}/extern/implot
 	${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
 	${CMAKE_CURRENT_LIST_DIR}/extern/jolt
+	${CMAKE_CURRENT_LIST_DIR}/extern/entt/src
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
 	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
@@ -181,6 +180,8 @@ set(ORNG_CORE_INCLUDE_DIRS
 	CACHE STRING "" FORCE
 )
 
+set(ORNG_PCH_HEADER ${CMAKE_CURRENT_LIST_DIR}/headers/pch/pch.h CACHE STRING "")
+set(ORNG_PCH_CPP ${CMAKE_CURRENT_LIST_DIR}/src/pch/pch.cpp CACHE STRING "")
 
 if (ORNG_BUILD_CORE)
 	target_include_directories(ORNG_CORE PUBLIC ${ORNG_CORE_INCLUDE_DIRS})
@@ -194,13 +195,13 @@ if (ORNG_BUILD_CORE)
 	glfw
 	libglew_shared
 	assimp
-	spdlog::spdlog_header_only
 	${ASSIMP_LIBRARY}
 	Tracy::TracyClient
 	VR-CORE
 	Jolt
 	)
-	target_precompile_headers(ORNG_CORE PUBLIC headers/pch/pch.h)
+
+	target_precompile_headers(ORNG_CORE PUBLIC ${ORNG_PCH_HEADER})
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC|Clang")
@@ -225,7 +226,6 @@ target_link_libraries(ORNG_RENDERING PUBLIC
 )
 
 target_link_libraries(ORNG_UTIL PUBLIC
-	spdlog::spdlog_header_only
 	Tracy::TracyClient
 )
 
@@ -246,8 +246,8 @@ endif()
 target_link_libraries(ORNG_SCENE PUBLIC ${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/lib/x64/fmod$<$<CONFIG:Debug>:L>_vc.lib)
 target_include_directories(ORNG_SCENE PUBLIC "${CMAKE_CURRENT_LIST_DIR}/extern/fmod/api/core/inc")
 
-target_precompile_headers(ORNG_RENDERING PUBLIC headers/pch/pch.h)
-target_precompile_headers(ORNG_UTIL PUBLIC headers/pch/pch.h)
+target_precompile_headers(ORNG_RENDERING PUBLIC ${ORNG_PCH_HEADER})
+target_precompile_headers(ORNG_UTIL PUBLIC ${ORNG_PCH_HEADER})
 
 # Required binaries for engine
 if (CMAKE_BUILD_TYPE MATCHES Debug)

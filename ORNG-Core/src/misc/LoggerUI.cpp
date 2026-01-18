@@ -14,19 +14,19 @@ unsigned LoggerUI::RenderLogContentsWithImGui() {
 	for (const auto& log : m_logs) {
 		ImVec4 col;
 		switch (log.type) {
-		case LogEvent::Type::L_TRACE:
+		case LogType::L_TRACE:
 			col = ImVec4{ 1.f, 1.f, 1.f, 1.f };
 			break;
-		case LogEvent::Type::L_INFO:
+		case LogType::L_INFO:
 			col = ImVec4{ 0.2f, 1.f, 0.2f, 1.f };
 			break;
-		case LogEvent::Type::L_WARN:
+		case LogType::L_WARN:
 			col = ImVec4{ 1.f, 1.f, 0.2f, 1.f };
 			break;
-		case LogEvent::Type::L_ERROR:
+		case LogType::L_ERROR:
 			col = ImVec4{ 1.f, 0.2f, 0.2f, 1.f };
 			break;
-		case LogEvent::Type::L_CRITICAL:
+		case LogType::L_CRITICAL:
 			col = ImVec4{ 1.f, 0.2f, 0.2f, 1.f };
 			break;
 		}
@@ -41,7 +41,7 @@ void LoggerUI::Shutdown() {
 	Events::EventManager::DeregisterListener(m_log_listener.GetRegisterID());
 }
 
-void LoggerUI::AddLog(const std::string& content, LogEvent::Type type) {
+void LoggerUI::AddLog(const std::string& content, LogType type) {
 	m_logs.push_back(LoggerUI::LogEntry{ .content = content, .type = type });
 }
 

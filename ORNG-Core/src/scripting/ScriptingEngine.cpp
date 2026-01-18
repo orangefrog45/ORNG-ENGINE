@@ -196,7 +196,7 @@ namespace ORNG {
 
 		// Set singletons so they're usable across the DLL boundary
 		singleton_setter(&Window::Get(), &FrameTiming::Get(), &Events::EventManager::Get(), &GL_StateManager::Get(), 
-			&AssetManager::Get(), &Renderer::Get(), &Log::GetCoreLogger(), &Log::GetRingbufferSink(), JPH::Factory::sInstance);
+			&AssetManager::Get(), &Renderer::Get(), Logger::GetLogs(), Logger::GetLogFile(), JPH::Factory::sInstance);
 
 		ImGuiMemAllocFunc imgui_malloc = nullptr;
 		ImGuiMemFreeFunc imgui_free = nullptr;

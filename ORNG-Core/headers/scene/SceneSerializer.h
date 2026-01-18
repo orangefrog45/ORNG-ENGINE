@@ -20,12 +20,6 @@ namespace YAML {
 namespace ORNG {
 	class Scene;
 	class SceneEntity;
-	class VAO;
-	class Texture2D;
-	struct VertexData3D;
-	struct TextureFileData;
-	class MeshAsset;
-	class MeshComponent;
 	struct Prefab;
 
 	struct EntitySerializationEvent : public Events::Event {

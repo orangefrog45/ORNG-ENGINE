@@ -1,57 +1,72 @@
 #include "pch/pch.h"
 #include "events/EventManager.h"
 
-
 #include "util/Log.h"
 
-
 namespace ORNG {
-	std::shared_ptr<spdlog::logger> Log::s_core_logger = nullptr;
-	std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> Log::s_ringbuffer_sink = nullptr;
-	std::shared_ptr<spdlog::sinks::basic_file_sink_mt> Log::s_file_sink = nullptr;
-
-	// How many logged messages are saved and stored in memory that can be retrieved by the program
-	constexpr int MAX_LOG_HISTORY = 20;
-
-	void Log::Init() {
-		// Clear log file
-		std::ofstream("log.txt", std::ios::trunc);
-
-		s_ringbuffer_sink = std::make_shared<spdlog::sinks::ringbuffer_sink_mt>(MAX_LOG_HISTORY);
-		s_file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("log.txt");
-
-		std::vector<spdlog::sink_ptr> sinks;
-		s_ringbuffer_sink->set_pattern("%^[%T] %n: %v%$");
-		sinks.push_back(s_ringbuffer_sink);
-		sinks.push_back(s_file_sink);
-
-		auto color_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		color_sink->set_pattern("%^[%T] %n: %v%$");
-		sinks.push_back(color_sink);
-
-		s_core_logger = std::make_shared<spdlog::logger>("ORNG", sinks.begin(), sinks.end());
-		s_core_logger->set_level(spdlog::level::trace);
+	void Logger::Init() {
+		m_log_file = new std::ofstream("log.txt", std::ios::trunc);
+		m_logs = new std::deque<LogEvent>();
 	}
 
-	std::string Log::GetLastLog() {
-		auto last_formatted = s_ringbuffer_sink->last_formatted(1);
-		return last_formatted.empty() ? "" : last_formatted[0];
+	void Logger::InitFrom(std::deque<LogEvent>* logs, std::ofstream* log_file) {
+		m_logs = logs;
+		m_log_file = log_file;
 	}
 
-	std::vector<std::string> Log::GetLastLogs() {
-		return s_ringbuffer_sink->last_formatted(MAX_LOG_HISTORY);
-	}
-	
-	void Log::Flush() {
-		GetCoreLogger()->flush();
+	std::string Logger::GetLastLog() {
+		return m_logs->empty() ? "" : (*m_logs)[m_logs->size() - 1].content;
 	}
 
-	std::shared_ptr<spdlog::logger>& Log::GetCoreLogger() {
-		return s_core_logger;
+	void Logger::OnLog(LogType type) {
+		Events::EventManager::DispatchEvent(LogEvent{type, GetLastLog()});
 	}
 
-	void Log::OnLog(LogEvent::Type type)
-	{
-		Events::EventManager::DispatchEvent(LogEvent{type, GetLastLog() });
+	inline std::string GetTimestamp() {
+		auto now = std::chrono::system_clock::now();
+		auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+		std::ostringstream ss;
+		ss << std::put_time(std::localtime(&in_time_t), "%H:%M:%S");
+		return ss.str();
 	}
+
+	const char* Logger::GetLogColour(LogType type) {
+		switch(type) {
+			case LogType::L_TRACE:    return "\033[0m"; // default
+			case LogType::L_INFO:     return "\033[92m"; // green
+			case LogType::L_WARN:     return "\033[93m"; // yellow
+			case LogType::L_ERROR:    return "\033[91m"; // red
+			case LogType::L_CRITICAL: return "\033[41;97m"; // red background, white text
+			default:                  return "\033[0m";  // reset
+		}
+	}
+
+	std::string Logger::GetLogFormatStr(LogType type) {
+		std::stringstream ss;
+		ss << '[' << GetTimestamp() << "][CORE]";
+
+		switch (type) {
+			case LogType::L_TRACE:
+				ss << "[TRC]";
+				break;
+			case LogType::L_INFO:
+				ss << "[INF]";
+				break;
+			case LogType::L_WARN:
+				ss << "[WRN]";
+				break;
+			case LogType::L_ERROR:
+				ss << "[ERR]";
+				break;
+			case LogType::L_CRITICAL:
+				ss << "[CRT]";
+				break;
+		}
+
+		ss << " ";
+
+		return ss.str();
+	}
+
 }

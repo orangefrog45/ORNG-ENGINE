@@ -4,10 +4,11 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 #endif
-#include "entt/EnttSingleInclude.h"
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+
+#include "entt/entity/entity.hpp"
 
 namespace ORNG {
 	class SceneEntity;

@@ -2,25 +2,7 @@
 #ifndef LOG_H
 #define LOG_H
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Weverything"
-#elif defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning( disable : 4996 ) // 'fmt::v9::detail::arg_mapper<fmt::v9::detail::parse_format_specs::context>::map': was declared deprecated
-#pragma warning( push )
-#pragma warning( disable : 4459 ) // declaration of 'uint' hides global declaration
-#endif
-#include <spdlog/logger.h>
-#include <spdlog/sinks/ringbuffer_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#ifdef __clang__
-#pragma clang diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning( pop )
-#pragma warning( pop )
-#endif
+#include <iostream>
 
 #include "events/Events.h"
 
@@ -43,46 +25,74 @@ inline std::string Format<glm::vec2>(const glm::vec2& v) {
 }
 
 namespace ORNG {
-	struct LogEvent : public Events::Event {
-		enum class Type {
-			L_TRACE,
-			L_INFO,
-			L_WARN,
-			L_ERROR,
-			L_CRITICAL
-		} type;
+	enum class LogType {
+		L_TRACE,
+		L_INFO,
+		L_WARN,
+		L_ERROR,
+		L_CRITICAL
+	};
 
-		LogEvent(Type _type, const std::string& _content) : type(_type), content(_content) {}
+	struct LogEvent : public Events::Event {
+		LogEvent(LogType _type, const std::string& _content) : type(_type), content(_content) {}
+		LogType type;
 		const std::string& content;
 	};
 
-	class Log { 
+	class Logger {
 	public:
 		static void Init();
-		static void InitFrom(std::shared_ptr<spdlog::logger> p_core_logger, std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> p_ringbuffer_sink) {
-			s_core_logger = p_core_logger;
-			s_ringbuffer_sink = p_ringbuffer_sink;
+		static void InitFrom(std::deque<LogEvent>* logs, std::ofstream* log_file);
+
+		static std::string GetLastLog();
+		static void OnLog(LogType type);
+
+		template<typename... Args>
+		static void Log(LogType type, std::string_view fmt, Args&&... args) {
+			std::string msg = std::vformat(fmt, std::make_format_args(args...));
+			Log(type, msg);
 		}
 
-		static void Flush();
-		static std::string GetLastLog();
-		static std::vector<std::string> GetLastLogs();
-		static std::shared_ptr<spdlog::logger>& GetCoreLogger();
-		static auto& GetRingbufferSink() { return s_ringbuffer_sink; }
-		static void OnLog(LogEvent::Type type);
+		template<typename T>
+		static void Log(LogType type, T s) {
+			std::string str = GetLogFormatStr(type) + std::format("{}", s);
+
+			// Everything is flushed immediately for crash safety
+			std::cout << GetLogColour(type) << str << "\033[0m\n" << std::flush;
+			(*m_log_file) << str << "\n";
+
+			m_logs->emplace_back(type, str);
+
+			if (m_logs->size() > 500)
+				m_logs->pop_front();
+
+			m_log_file->flush();
+
+			OnLog(type);
+		}
+
+		static auto GetLogs() {
+			return m_logs;
+		}
+
+		static auto GetLogFile() {
+			return m_log_file;
+		}
+
 	private:
-		static std::shared_ptr<spdlog::logger> s_core_logger;
-		static std::shared_ptr<spdlog::sinks::ringbuffer_sink_mt> s_ringbuffer_sink;
-		static std::shared_ptr<spdlog::sinks::basic_file_sink_mt> s_file_sink;
+		static std::string GetLogFormatStr(LogType type);
+		static const char* GetLogColour(LogType type);
+
+		inline static std::deque<LogEvent>* m_logs;
+		inline static std::ofstream* m_log_file;
 	};
 
 }
 
-
-#define ORNG_CORE_TRACE(...) do {ORNG::Log::GetCoreLogger()->trace(__VA_ARGS__); ORNG::Log::OnLog(ORNG::LogEvent::Type::L_TRACE); } while(false)
-#define ORNG_CORE_INFO(...) do {ORNG::Log::GetCoreLogger()->info(__VA_ARGS__); ORNG::Log::OnLog(ORNG::LogEvent::Type::L_INFO); } while(false)
-#define ORNG_CORE_WARN(...) do {ORNG::Log::GetCoreLogger()->warn(__VA_ARGS__); ORNG::Log::OnLog(ORNG::LogEvent::Type::L_WARN); } while(false)
-#define ORNG_CORE_ERROR(...) do {ORNG::Log::GetCoreLogger()->error(__VA_ARGS__); ORNG::Log::OnLog(ORNG::LogEvent::Type::L_ERROR); } while(false)
-#define ORNG_CORE_CRITICAL(...) do {ORNG::Log::GetCoreLogger()->critical(__VA_ARGS__); ORNG::Log::Flush(); ORNG::Log::OnLog(ORNG::LogEvent::Type::L_CRITICAL); } while(false)
+#define ORNG_CORE_TRACE(...) do {ORNG::Logger::Log(ORNG::LogType::L_TRACE, __VA_ARGS__); } while(false)
+#define ORNG_CORE_INFO(...) do {ORNG::Logger::Log(ORNG::LogType::L_INFO, __VA_ARGS__); } while(false)
+#define ORNG_CORE_WARN(...) do {ORNG::Logger::Log(ORNG::LogType::L_WARN, __VA_ARGS__); } while(false)
+#define ORNG_CORE_ERROR(...) do {ORNG::Logger::Log(ORNG::LogType::L_ERROR, __VA_ARGS__); } while(false)
+#define ORNG_CORE_CRITICAL(...) do {ORNG::Logger::Log(ORNG::LogType::L_CRITICAL, __VA_ARGS__); BREAKPOINT; } while(false)
 
 #endif

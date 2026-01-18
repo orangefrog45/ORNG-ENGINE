@@ -47,26 +47,35 @@ void Application::Init(const ApplicationData& data) {
 		exit(1);
 	}
 
-	Log::Init();
-
+	Logger::Init();
 	Events::EventManager::Init();
+
 	FrameTiming::Init();
+
+	ORNG_CORE_INFO("Initializing Window");
 	Window::InitInstance();
 	Window::Init(data.initial_window_dimensions, data.window_name,  data.initial_window_display_monitor_idx,
 		data.window_iconified, data.window_decorated, data.start_maximized);
 	GLFWwindow* window = Window::GetGLFWwindow();
+
+	ORNG_CORE_INFO("Initializing GL_StateManager");
 	GL_StateManager::Init();
 	GL_StateManager::InitGlew();
 	layer_stack.m_imgui_layer.OnInit();
 	GL_StateManager::InitGL();
 
-	if (!(data.disabled_modules & ApplicationModulesFlags::AUDIO))
+	if (!(data.disabled_modules & ApplicationModulesFlags::AUDIO)) {
+		ORNG_CORE_INFO("Initializing AudioEngine");
 		AudioEngine::Init();
+	}
 
+	ORNG_CORE_INFO("Initializing Renderer");
 	Renderer::Init();
 
-	if (!(data.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER))
+	if (!(data.disabled_modules & ApplicationModulesFlags::ASSET_MANAGER)) {
+		ORNG_CORE_INFO("Initializing AssetManager");
 		AssetManager::Init();
+	}
 
 #ifdef ORNG_ENABLE_TRACY_PROFILE
 	TracyGpuContext(Window::GetGLFWwindow());

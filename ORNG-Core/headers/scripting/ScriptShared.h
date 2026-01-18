@@ -2,7 +2,6 @@
 
 #ifndef SCRIPT_SHARED_H
 #define SCRIPT_SHARED_H
-#include "entt/EnttSingleInclude.h"
 #include <iostream>
 
 class Instancer;

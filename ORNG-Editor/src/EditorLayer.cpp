@@ -845,9 +845,9 @@ void EditorLayer::RenderConsole() {
 	ImGui::PopItemWidth();
 	if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
 		auto result = m_lua_cli.Execute(lua_cmd);
-		m_logger_ui.AddLog("> " + result.content, LogEvent::Type::L_TRACE);
+		m_logger_ui.AddLog("> " + result.content, LogType::L_TRACE);
 		if (result.is_error) {
-			m_logger_ui.AddLog(result.content, LogEvent::Type::L_ERROR);
+			m_logger_ui.AddLog(result.content, LogType::L_ERROR);
 		}
 
 		lua_cmd.clear();
@@ -1221,7 +1221,7 @@ void EditorLayer::RenderProjectGenerator(int& selected_component_from_popup) {
 				selected_component_from_popup = 0;
 			}
 			else {
-				err_msg = Log::GetLastLog();
+				err_msg = Logger::GetLastLog();
 			}
 		}
 	}

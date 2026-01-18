@@ -26,14 +26,14 @@ namespace ORNG {
 		// Create the main system object.
 		if (result != FMOD_OK)
 		{
-			ORNG_CORE_ERROR("FMOD error! ({0}) {1}\n", result, FMOD_ErrorString(result));
+			ORNG_CORE_ERROR("FMOD error! {}\n", FMOD_ErrorString(result));
 			exit(-1);
 		}
 
 		result = mp_system->init(512, FMOD_INIT_3D_RIGHTHANDED, nullptr);    // Initialize FMOD.
 		if (result != FMOD_OK)
 		{
-			ORNG_CORE_ERROR("FMOD error! ({0}) {1}\n", result, FMOD_ErrorString(result));
+			ORNG_CORE_ERROR("FMOD error! {}\n", FMOD_ErrorString(result));
 			exit(-1);
 		}
 

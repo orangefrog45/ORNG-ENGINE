@@ -16,9 +16,6 @@
 [submodule "ORNG-Editor/extern/imguizmo"]
 	path = ORNG-Editor/extern/imguizmo
 	url = https://github.com/orangefrog45/ImGuizmo
-[submodule "ORNG-Core/extern/spdlog"]
-	path = ORNG-Core/extern/spdlog
-	url = https://github.com/gabime/spdlog
 [submodule "ORNG-Core/extern/stb"]
 	path = ORNG-Core/extern/stb
 	url = https://github.com/nothings/stb
@@ -49,3 +46,6 @@
 [submodule "ORNG-Core/extern/jolt"]
 	path = ORNG-Core/extern/jolt
 	url = https://github.com/jrouwe/JoltPhysics
+[submodule "ORNG-Core/extern/entt"]
+	path = ORNG-Core/extern/entt
+	url = https://github.com/skypjack/entt

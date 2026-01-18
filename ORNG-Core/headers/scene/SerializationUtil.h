@@ -8,6 +8,8 @@
 #pragma clang diagnostic pop
 #endif
 
+#include "util/Log.h"
+
 namespace YAML {
     template<>
     struct convert<glm::vec3> {
@@ -97,4 +99,14 @@ inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2 v) {
 template<typename T>
 inline void Out(YAML::Emitter& out, const std::string& key, const T& v) {
     out << YAML::Key << key << YAML::Value << v;
+}
+
+template<typename T>
+static T SafeRead(const YAML::Node& node, const std::string& key, T default_value) {
+	try {
+	    return node[key].as<T>();
+	} catch (std::exception& e) {
+	    ORNG_CORE_WARN("YAML error reading key '{}':", key, e.what());
+	    return default_value;
+	}
 }

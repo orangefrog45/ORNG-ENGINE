@@ -3,12 +3,12 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
 #endif
-#include <../extern/entt/EnttSingleInclude.h>
-
+#include <entt/entity/registry.hpp>
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
+#include "util/util.h"
 #include "scene/ScenePostProcessing.h"
 #include "scene/EntityNodeRef.h"
 #include "events/EventManager.h"

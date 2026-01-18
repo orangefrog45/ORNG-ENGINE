@@ -2,8 +2,7 @@
 #define EVENTMANAGER_H
 
 #include "util/Log.h"
-#include "util/util.h"
-#include "../extern/entt/EnttSingleInclude.h"
+#include "entt/entity/registry.hpp"
 #include "events/Events.h"
 
 
@@ -14,7 +13,6 @@ namespace ORNG {
 }
 
 namespace ORNG::Events {
-
 	class EventManager {
 	public:
 		~EventManager() {

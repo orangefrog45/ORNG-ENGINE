@@ -62,14 +62,13 @@ namespace ORNG::Events {
 
 
 	struct MouseEvent : public Event {
-		MouseEvent(MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos, std::any _data_payload = 0) :
-			mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos), data_payload(_data_payload) {}
+		MouseEvent(MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos) :
+			mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos) {}
 
 		MouseAction mouse_action;
 		MouseButton mouse_button;
 		glm::ivec2 mouse_pos_new;
 		glm::ivec2 mouse_pos_old;
-		std::any data_payload;
 	};
 
 

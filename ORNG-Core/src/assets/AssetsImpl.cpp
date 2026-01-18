@@ -17,7 +17,7 @@
 
 namespace ORNG {
 	void SoundAsset::CreateSoundFromFile() {
-		if (auto result = AudioEngine::GetSystem()->createSound(source_filepath.c_str(),  FMOD_3D | FMOD_LOOP_OFF, nullptr, &p_sound); result != FMOD_OK) {
+		if (auto result = AudioEngine::GetSystem()->createSound(source_filepath.c_str(), FMOD_3D | FMOD_LOOP_OFF, nullptr, &p_sound); result != FMOD_OK) {
 			ORNG_CORE_ERROR("Error loading sound: '{0}', '{1}'", source_filepath, FMOD_ErrorString(result));
 		}
 	}

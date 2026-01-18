@@ -1,8 +1,8 @@
 #pragma once
 #include "Log.h"
 
-#define BREAKPOINT do {ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();} while(false)
-#define ASSERT(x) do {if (!(x)) { ORNG_CORE_ERROR("Assertion failed '{0}' at '{1}', '{2}'", #x, FUNC_NAME, __LINE__); ORNG::Log::Flush(); __debugbreak();}} while(false)
+#define BREAKPOINT do {ORNG_CORE_ERROR("Breakpoint hit at '{0}', '{1}'", FUNC_NAME, __LINE__); __debugbreak();} while(false)
+#define ASSERT(x) do {if (!(x)) { ORNG_CORE_ERROR("Assertion failed '{0}' at '{1}', '{2}'", #x, FUNC_NAME, __LINE__); __debugbreak();}} while(false)
 
 #ifdef NDEBUG
 #define DEBUG_ASSERT(x)

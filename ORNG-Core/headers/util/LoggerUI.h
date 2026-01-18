@@ -16,7 +16,7 @@ namespace ORNG {
 			m_logs.clear();
 		}
 
-		void AddLog(const std::string& content, LogEvent::Type type);
+		void AddLog(const std::string& content, LogType type);
 
 		void Shutdown();
 	private:
@@ -24,7 +24,7 @@ namespace ORNG {
 
 		struct LogEntry {
 			std::string content;
-			LogEvent::Type type;
+			LogType type;
 		};
 
 		std::vector<LogEntry> m_logs;
