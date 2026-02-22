@@ -45,8 +45,8 @@ set(ORNG_RENDERING_SOURCES
 set(ORNG_UTIL_SOURCES
 	src/util/ExtraMath.cpp
 	src/util/Log.cpp
-		src/util/TimeStep.cpp
-		src/util/util.cpp
+	src/util/TimeStep.cpp
+	src/util/util.cpp
 	src/misc/Interpolator.cpp
 )
 

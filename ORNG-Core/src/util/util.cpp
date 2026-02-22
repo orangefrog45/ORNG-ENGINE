@@ -72,6 +72,17 @@ namespace ORNG {
 		return num_replacements;
 	}
 
+	unsigned StringCountAllInstancesOf(const std::string& input, const std::string& text_to_count) {
+		unsigned count = 0;
+		size_t pos = input.find(text_to_count, 0);
+
+		while (pos < input.size() && pos != std::string::npos) {
+			pos = input.find(text_to_count, pos + text_to_count.size());
+			count++;
+		}
+
+		return count;
+	}
 
 	void Create_Directory(const std::string& path) {
 		try {

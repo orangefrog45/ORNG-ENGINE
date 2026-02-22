@@ -34,6 +34,28 @@ namespace YAML {
     };
 
     template<>
+    struct convert<glm::ivec3> {
+        static Node encode(const glm::ivec3& rhs) {
+            Node node;
+            node.push_back(rhs.x);
+            node.push_back(rhs.y);
+            node.push_back(rhs.z);
+            return node;
+        }
+
+        static bool decode(const Node& node, glm::ivec3& rhs) {
+            if (!node.IsSequence() || node.size() != 3) {
+                return false;
+            }
+
+            rhs.x = node[0].as<int>();
+            rhs.y = node[1].as<int>();
+            rhs.z = node[2].as<int>();
+            return true;
+        }
+    };
+
+    template<>
     struct convert<glm::vec4> {
         static Node encode(const glm::vec4& rhs) {
             Node node;
@@ -79,6 +101,12 @@ namespace YAML {
 }
 
 inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
+    out << YAML::Flow;
+    out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+    return out;
+}
+
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::ivec3& v) {
     out << YAML::Flow;
     out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
     return out;

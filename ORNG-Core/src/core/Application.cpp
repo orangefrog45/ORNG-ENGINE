@@ -47,8 +47,8 @@ void Application::Init(const ApplicationData& data) {
 		exit(1);
 	}
 
-	Logger::Init();
 	Events::EventManager::Init();
+	Logger::Init();
 
 	FrameTiming::Init();
 

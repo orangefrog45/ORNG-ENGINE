@@ -48,3 +48,4 @@
 #include <array>
 #include <variant>
 #include <deque>
+#include <span>

@@ -58,6 +58,7 @@ namespace ORNG {
 			std::string str = GetLogFormatStr(type) + std::format("{}", s);
 
 			// Everything is flushed immediately for crash safety
+			std::scoped_lock lock(m_log_mutex);
 			std::cout << GetLogColour(type) << str << "\033[0m\n" << std::flush;
 			(*m_log_file) << str << "\n";
 
@@ -85,6 +86,9 @@ namespace ORNG {
 
 		inline static std::deque<LogEvent>* m_logs;
 		inline static std::ofstream* m_log_file;
+
+		// TODO: this needs to be sent to scripts
+		inline static std::mutex m_log_mutex;
 	};
 
 }

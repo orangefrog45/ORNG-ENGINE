@@ -166,6 +166,9 @@ namespace ORNG {
 	// Modifies "input" string directly, returns number of replacement operations
 	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements = std::numeric_limits<unsigned>::max());
 
+	// Returns the number of occurences of "text_to_count" in input
+	unsigned StringCountAllInstancesOf(const std::string& input, const std::string& text_to_count);
+
 	// Copies raw bytes of types into array of std::byte, this will increment the ptr provided by sizeof(T)
 	template<typename... Args>
 	void ConvertToBytes(std::byte*& byte, Args&&... args) {

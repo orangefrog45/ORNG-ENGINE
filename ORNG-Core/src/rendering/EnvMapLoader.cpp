@@ -86,6 +86,7 @@ namespace ORNG {
 
 			delete[] pixels;
 		}
+
 		skybox.m_diffuse_prefilter_map->LoadFromFile();
 		skybox.m_diffuse_prefilter_map->GenerateMips();
 	}

@@ -7,6 +7,8 @@ namespace ORNG {
 	void Logger::Init() {
 		m_log_file = new std::ofstream("log.txt", std::ios::trunc);
 		m_logs = new std::deque<LogEvent>();
+
+		ORNG_CORE_INFO("Logger initialized");
 	}
 
 	void Logger::InitFrom(std::deque<LogEvent>* logs, std::ofstream* log_file) {
