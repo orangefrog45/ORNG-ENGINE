@@ -143,7 +143,17 @@ namespace ORNG {
 			StringReplace(no_extension_path_alt, "debug", "release");
 #endif
 			FileDelete(dll_path);
-			TryFileDelete(dll_path + ".shadow.dll");
+			
+			// Delete any shadow copies
+			std::string dll_dir = GetFileDirectory(dll_path);
+			std::string dll_name = GetFilename(dll_path);
+			for (auto& entry : std::filesystem::directory_iterator{ dll_dir }) {
+				std::string entry_path = entry.path().generic_string();
+				if (entry_path.find(dll_path + ".shadow_") != std::string::npos || entry_path.find(".shadow_") != std::string::npos && entry_path.ends_with(".dll")) {
+					TryFileDelete(entry_path);
+				}
+			}
+
 			std::array<std::string, 2> no_extension_paths = {no_extension_path, no_extension_path_alt};
 			for (size_t i = 0; i < no_extension_paths.size(); i++) {
 				TryFileDelete(no_extension_paths[i] + ".metadata");
@@ -179,9 +189,39 @@ namespace ORNG {
 		std::string load_path = dll_path;
 		std::string shadow_path = "";
 
+		// So for whatever reason, pdb files will be locked in non-debug builds
+		// even after successfully unloading the dll. It seems the debugger process
+		// won't release it. The only way to fix this and allow recompilation to
+		// work is to delete the pdb file before ever loading the dll so it doesn't
+		// get stuck in the debugger. This means no debugging scripts outside of debug
+		// builds, but there seems to be literally no other solution to this problem.
+#ifndef ORNG_DEBUG
+		TryFileDelete(ReplaceFileExtension(dll_path, ".pdb"));
+#endif
+
+		// The shadow dll here is just a copy of the original dll that needs
+		// to be loaded. Again, the debugger doesn't release these (even in debug
+		// here), so the copy gets loaded and lingers around for the duration of
+		// the editor application.
 #ifdef ORNG_EDITOR_LAYER
-		shadow_path = dll_path + ".shadow.dll";
-		if (FileCopy(dll_path, shadow_path)) {
+		static unsigned shadow_count = 0;
+		shadow_path = dll_path + ".shadow_" + std::to_string(shadow_count) + ".dll";
+		shadow_count++;
+
+		// Try copying several times with a delay
+		// When a script auto-reloads, it can detect a change in the DLL before
+		// the build process is done using it, so this can initially fail. This
+		// gives the build process enough time to release the file.
+		bool copied = false;
+		for (int i = 0; i < 5; i++) {
+			if (FileCopy(dll_path, shadow_path)) {
+				copied = true;
+				break;
+			}
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+		}
+
+		if (copied) {
 			load_path = shadow_path;
 		}
 		else {
@@ -191,9 +231,10 @@ namespace ORNG {
 #endif
 
 		// Load the generated dll
-		HMODULE script_dll = LoadLibrary(load_path.c_str());
+		std::string absolute_path = std::filesystem::absolute(load_path).string();
+		HMODULE script_dll = LoadLibrary(absolute_path.c_str());
 		if (script_dll == nullptr || script_dll == INVALID_HANDLE_VALUE) {
-			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", load_path);
+			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}' (absolute: {1})", load_path, absolute_path);
 			if (!shadow_path.empty()) TryFileDelete(shadow_path);
 			return ScriptSymbols(script_name);
 		}
@@ -228,8 +269,7 @@ namespace ORNG {
 
 	ScriptSymbols ScriptingEngine::GetSymbolsFromScriptCpp(const std::string& filepath) {
 		if (auto results = GetScriptData(filepath); results.is_loaded) {
-			ORNG_CORE_WARN("Attempted to get symbols from a script that is already loaded in the engine - filepath: '{0}'", filepath);
-			return sm_loaded_script_dll_handles[static_cast<unsigned>(results.script_data_index)].symbols;
+			UnloadScriptDLL(filepath);
 		}
 
 		std::string filename = filepath.substr(filepath.find_last_of("/") + 1);
@@ -246,12 +286,12 @@ namespace ORNG {
 		if (auto results = GetScriptData(filepath); results.is_loaded) {
 			auto& script_data = sm_loaded_script_dll_handles[static_cast<unsigned>(results.script_data_index)];
 			script_data.symbols.Unload();
-
-			while (FreeLibrary(script_data.dll_handle)) {
-				// Keep freeing until the reference count is 0
-			}
+			
+			// Free the library until the reference count is 0
+			while (FreeLibrary(script_data.dll_handle)) {}
 
 			if (!script_data.shadow_path.empty()) {
+				// We don't ASSERT here because the debugger might still be holding the file, but we try to delete it
 				TryFileDelete(script_data.shadow_path);
 			}
 
