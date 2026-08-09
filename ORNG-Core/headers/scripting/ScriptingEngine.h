@@ -14,12 +14,13 @@ namespace ORNG {
 	}
 
 	struct ScriptData {
-		ScriptData(const std::string& _filepath, HMODULE _dll_handle, const ScriptSymbols& _symbols) : filepath(_filepath),
-			dll_handle(_dll_handle), symbols(_symbols) {}
+		ScriptData(const std::string& _filepath, HMODULE _dll_handle, const ScriptSymbols& _symbols, const std::string& _shadow_path = "") : filepath(_filepath),
+			dll_handle(_dll_handle), symbols(_symbols), shadow_path(_shadow_path) {}
 
 		std::string filepath;
 		HMODULE dll_handle;
 		ScriptSymbols symbols;
+		std::string shadow_path;
 	};
 
 	// Used as return value for IsScriptLoaded

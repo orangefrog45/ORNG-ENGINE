@@ -155,18 +155,27 @@ namespace ORNG {
 
 
 	template<typename T>
-	bool VectorContains(const std::vector<T>& vec, const T& value) {
+	bool VectorContains(const std::vector<T>& vec, const T& value, int* p_idx = nullptr) {
 		if (vec.empty())
 			return false;
 
-		return std::ranges::find(vec, value) != vec.end();
+		auto it = std::ranges::find(vec, value);
+		if (it == vec.end()) {
+			if (p_idx) *p_idx = -1;
+			return false;
+		} else {
+			if (p_idx) *p_idx = (int)(it - vec.begin());
+			return true;
+		}
 	}
 
 	// Replaces all instances of "text_to_replace" with "replacement_text"
 	// Modifies "input" string directly, returns number of replacement operations
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements = std::numeric_limits<unsigned>::max());
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace,
+		const std::string& replacement_text, unsigned max_replacements = std::numeric_limits<unsigned>::max(),
+		size_t start = 0);
 
-	// Returns the number of occurences of "text_to_count" in input
+	// Returns the number of occurrences of "text_to_count" in input
 	unsigned StringCountAllInstancesOf(const std::string& input, const std::string& text_to_count);
 
 	// Copies raw bytes of types into array of std::byte, this will increment the ptr provided by sizeof(T)

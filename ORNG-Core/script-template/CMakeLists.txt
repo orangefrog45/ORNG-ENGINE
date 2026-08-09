@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD REPLACE_ME_CXX_STANDARD)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -13,15 +13,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 endif()
 
 project(SCRIPTS)
-add_compile_options(/Zi)
+#add_compile_options(/Zi)
 set(ENGINE_BASE_DIR REPLACE_ME_ENGINE_BASE_DIR) # changed in engine
 
 set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_BINARY_DIR) # changed in engine
-
-if (NOT EXISTS ${ENGINE_BINARY_DIR})
-    message(FATAL_ERROR "ORNG CMake binary directory can't be found at: '${ENGINE_BINARY_DIR}', make sure the ORNG build directory is 'ORNG_ROOT_DIRECTORY/out/debug'
-	and 'ORNG_ROOT_DIRECTORY/out/release' for debug and release builds respectively.")
-endif()
 
 set(CMAKE_DEBUG_POSTFIX "")
 
@@ -29,10 +24,10 @@ set(SCRIPT_INCLUDE_DIRS
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/spdlog/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/build/include
-${ENGINE_BINARY_DIR}/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glfw/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glew-cmake/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern
+${ENGINE_BASE_DIR}/ORNG-Core/extern/entt/src
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/imgui
 ${ENGINE_BASE_DIR}/ORNG-Core/headers
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/yaml/include
@@ -43,6 +38,7 @@ ${ENGINE_BASE_DIR}/ORNG-Core/extern/jolt
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/tracy/public/tracy
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/core/headers
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/VRlib/extern/OpenXR/include
+${ENGINE_BINARY_DIR}/extern/assimp/include
 ${CMAKE_CURRENT_LIST_DIR}/headers
 )
 
@@ -51,6 +47,7 @@ find_package(OpenGL REQUIRED)
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 set(SCRIPT_LIBS
+OpenGL::GL
 ${ENGINE_BINARY_DIR}/ORNG_COREd.lib
 ${ENGINE_BINARY_DIR}/ORNG_UTILd.lib
 ${ENGINE_BINARY_DIR}/ORNG_SCENEd.lib
@@ -58,18 +55,18 @@ ${ENGINE_BINARY_DIR}/ORNG_RENDERINGd.lib
 ${ENGINE_BINARY_DIR}/extern/VRlib/core/VR-COREd.lib
 ${ENGINE_BINARY_DIR}/extern/VRlib/extern/OpenXR/src/loader/openxr_loaderd.lib
 ${ENGINE_BINARY_DIR}/extern/imgui/imguid.lib
-OpenGL::GL
 ${ENGINE_BINARY_DIR}/extern/glfw/src/glfw3.lib
 ${ENGINE_BINARY_DIR}/extern/glew-cmake/lib/glew-sharedd.lib
 ${ENGINE_BINARY_DIR}/extern/assimp/lib/assimp-vc143-mtd.lib
 ${ENGINE_BINARY_DIR}/extern/assimp/contrib/zlib/zlibstaticd.lib
 ${ENGINE_BINARY_DIR}/extern/yaml/yaml-cppd.lib
+${ENGINE_BINARY_DIR}/extern/jolt/Build/Joltd.lib
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/fmod/api/core/lib/x64/fmodL_vc.lib
 ${YAML_CPP_LIBRARIES}
-${ENGINE_BINARY_DIR}/extern/jolt/Build/Joltd.lib
 )
 else()
 set(SCRIPT_LIBS
+OpenGL::GL
 ${ENGINE_BINARY_DIR}/ORNG_CORE.lib
 ${ENGINE_BINARY_DIR}/ORNG_UTIL.lib
 ${ENGINE_BINARY_DIR}/ORNG_SCENE.lib
@@ -77,28 +74,23 @@ ${ENGINE_BINARY_DIR}/ORNG_RENDERING.lib
 ${ENGINE_BINARY_DIR}/extern/VRlib/core/VR-CORE.lib
 ${ENGINE_BINARY_DIR}/extern/VRlib/extern/OpenXR/src/loader/openxr_loader.lib
 ${ENGINE_BINARY_DIR}/extern/imgui/imgui.lib
-OpenGL::GL
 ${ENGINE_BINARY_DIR}/extern/glfw/src/glfw3.lib
 ${ENGINE_BINARY_DIR}/extern/glew-cmake/lib/glew-shared.lib
 ${ENGINE_BINARY_DIR}/extern/assimp/lib/assimp-vc143-mt.lib
 ${ENGINE_BINARY_DIR}/extern/assimp/contrib/zlib/zlibstatic.lib
 ${ENGINE_BINARY_DIR}/extern/yaml/yaml-cpp.lib
+${ENGINE_BINARY_DIR}/extern/jolt/Build/Jolt.lib
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/fmod/api/core/lib/x64/fmod_vc.lib
 ${YAML_CPP_LIBRARIES}
 ${PHYSX_LIBS}
-${ENGINE_BINARY_DIR}/extern/jolt/Build/Jolt.lib
 )
 endif()
-
-# DO NOT MODIFY OR DELETE THIS LINE - these are variables that allow compiling scripts with extra c++ files, you can modify the below lines - EXTRA CPPS START
-
-#E&CE DO NOT MODIFY OR DELETE THIS LINE - EXTRA CPPS END
-
-
 
 # DO NOT MODIFY OR DELETE THIS LINE - SCRIPT START
 
 # DO NOT MODIFY OR DELETE THIS LINE - SCRIPT END
+
+target_precompile_headers(${SCRIPT_TARGETS} PUBLIC ${ENGINE_BASE_DIR}/ORNG-Core/headers/pch/pch.h)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 add_compile_definitions(_DEBUG)

@@ -58,8 +58,9 @@ namespace ORNG {
 		}
 	}
 
-	unsigned StringReplace(std::string& input, const std::string& text_to_replace, const std::string& replacement_text, unsigned max_replacements) {
-		size_t pos = input.find(text_to_replace, 0);
+	unsigned StringReplace(std::string& input, const std::string& text_to_replace,
+		const std::string& replacement_text, unsigned max_replacements, size_t start) {
+		size_t pos = input.find(text_to_replace, start);
 		unsigned num_replacements = 0;
 
 		while (pos < input.size() && pos != std::string::npos && num_replacements < max_replacements) {

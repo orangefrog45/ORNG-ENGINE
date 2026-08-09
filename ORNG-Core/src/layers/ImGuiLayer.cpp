@@ -77,13 +77,13 @@ namespace ORNG {
 				index = (index + 1) % 1000;
 			}
 			ImGui::Checkbox("Paused", &graph_paused);
-			ImPlot::SetNextAxesLimits(0, 1000, 0, 120);
-			if (ImPlot::BeginPlot("p", ImVec2(1000, 150), ImPlotFlags_NoFrame | ImPlotFlags_NoTitle)) {
-				ImPlot::SetupAxis(ImAxis_Y1);
-				ImPlot::SetupAxisScale(ImAxis_Y1, 1);
-				ImPlot::PlotLine("Frametime*10", x_data.data(), frametimes.data(), 1000);
-				ImPlot::EndPlot();
-			}
+			// ImPlot::SetNextAxesLimits(0, 1000, 0, 120);
+			// if (ImPlot::BeginPlot("p", ImVec2(1000, 150), ImPlotFlags_NoFrame | ImPlotFlags_NoTitle)) {
+			// 	ImPlot::SetupAxis(ImAxis_Y1);
+			// 	ImPlot::SetupAxisScale(ImAxis_Y1, 1);
+			// 	ImPlot::PlotLine("Frametime*10", x_data.data(), frametimes.data(), 1000);
+			// 	ImPlot::EndPlot();
+			// }
 
 			ImGui::AlignTextToFramePadding();
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", static_cast<double>(1000.0f / ImGui::GetIO().Framerate),

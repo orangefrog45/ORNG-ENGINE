@@ -2,8 +2,6 @@
 #ifndef LOG_H
 #define LOG_H
 
-#include <iostream>
-
 #include "events/Events.h"
 
 template<typename T>
@@ -58,7 +56,7 @@ namespace ORNG {
 			std::string str = GetLogFormatStr(type) + std::format("{}", s);
 
 			// Everything is flushed immediately for crash safety
-			std::scoped_lock lock(m_log_mutex);
+			std::scoped_lock<std::mutex> lock(m_log_mutex);
 			std::cout << GetLogColour(type) << str << "\033[0m\n" << std::flush;
 			(*m_log_file) << str << "\n";
 
@@ -84,8 +82,8 @@ namespace ORNG {
 		static std::string GetLogFormatStr(LogType type);
 		static const char* GetLogColour(LogType type);
 
-		inline static std::deque<LogEvent>* m_logs;
-		inline static std::ofstream* m_log_file;
+		inline static std::deque<LogEvent>* m_logs = nullptr;
+		inline static std::ofstream* m_log_file = nullptr;
 
 		// TODO: this needs to be sent to scripts
 		inline static std::mutex m_log_mutex;
@@ -97,6 +95,6 @@ namespace ORNG {
 #define ORNG_CORE_INFO(...) do {ORNG::Logger::Log(ORNG::LogType::L_INFO, __VA_ARGS__); } while(false)
 #define ORNG_CORE_WARN(...) do {ORNG::Logger::Log(ORNG::LogType::L_WARN, __VA_ARGS__); } while(false)
 #define ORNG_CORE_ERROR(...) do {ORNG::Logger::Log(ORNG::LogType::L_ERROR, __VA_ARGS__); } while(false)
-#define ORNG_CORE_CRITICAL(...) do {ORNG::Logger::Log(ORNG::LogType::L_CRITICAL, __VA_ARGS__); BREAKPOINT; } while(false)
+#define ORNG_CORE_CRITICAL(...) do {ORNG::Logger::Log(ORNG::LogType::L_CRITICAL, __VA_ARGS__); __debugbreak(); } while(false)
 
 #endif

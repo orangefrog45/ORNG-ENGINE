@@ -1,8 +1,18 @@
 #ifndef EVENTMANAGER_H
 #define EVENTMANAGER_H
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#endif
+
+#include <entt/entity/registry.hpp>
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "util/Log.h"
-#include "entt/entity/registry.hpp"
 #include "events/Events.h"
 
 
@@ -115,4 +125,6 @@ namespace ORNG::Events {
 
 }
 
+
 #endif
+

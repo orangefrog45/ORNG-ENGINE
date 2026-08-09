@@ -420,16 +420,16 @@ void AssetSerializer::LoadScriptAssetFromFile(const std::string& rel_path) {
 #ifndef ORNG_EDITOR_LAYER
 	if (GetFileExtension(rel_path) != ".dll") return;
 #ifdef NDEBUG
-	if (path_string.find("debug") != std::string::npos)
+	if (rel_path.find("debug") != std::string::npos)
 		return;
 #else
-	if (path_string.find("release") != std::string::npos)
+	if (rel_path.find("release") != std::string::npos)
 		return;
 #endif
-	std::string dll_path = "./" + path_string.substr(path_string.rfind("res/scripts"));
-	std::string rel_path = "./res/scripts/src/" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
+	std::string dll_path = "./" + rel_path.substr(rel_path.rfind("res/scripts"));
+	std::string script_filepath = "./res/scripts/src/" + ReplaceFileExtension(GetFilename(dll_path), ".cpp");
 
-	ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, rel_path, ReplaceFileExtension(GetFilename(rel_path), ""));
+	ScriptSymbols symbols = ScriptingEngine::LoadScriptDll(dll_path, script_filepath, ReplaceFileExtension(GetFilename(script_filepath), ""));
 #else
 	if (GetFileExtension(rel_path) != ".cpp" || rel_path.find("scripts/src/") == std::string::npos) return;
 	ScriptSymbols symbols = ScriptingEngine::GetSymbolsFromScriptCpp(rel_path);

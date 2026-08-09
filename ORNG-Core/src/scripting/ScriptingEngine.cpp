@@ -11,7 +11,6 @@
 
 #include "scripting/ScriptingEngine.h"
 #include "core/FrameTiming.h"
-#include "util/UUID.h"
 #include "imgui.h"
 
 // Below includes are for setting the singleton instances for scripts
@@ -27,14 +26,23 @@
 #endif
 
 #include "assets/AssetManager.h"
-#include "core/Window.h"
 #include "core/GLStateManager.h"
+#include "core/Window.h"
 #include "rendering/Renderer.h"
 
 namespace ORNG {
 	void ScriptingEngine::ReplaceScriptCmakeEngineFilepaths(std::string& cmake_content) {
 		StringReplace(cmake_content, "REPLACE_ME_ENGINE_BINARY_DIR", "\"" + std::string{ ORNG_CORE_LIB_DIR } + "\"");
 		StringReplace(cmake_content, "REPLACE_ME_ENGINE_BASE_DIR", "\"" + std::string{ ORNG_CORE_MAIN_DIR } + "/..\"");
+
+		std::string standard = "20";
+		if (__cplusplus >= 202302L) standard = "23";
+		else if (__cplusplus >= 202002L) standard = "20";
+		else if (__cplusplus >= 201703L) standard = "17";
+		else if (__cplusplus >= 201402L) standard = "14";
+		else if (__cplusplus >= 201103L) standard = "11";
+
+		StringReplace(cmake_content, "REPLACE_ME_CXX_STANDARD", standard);
 	}
 
 	void ScriptingEngine::UpdateScriptCmakeProject(const std::string& dir) {
@@ -46,17 +54,16 @@ namespace ORNG {
 		std::string existing_cmake_content = ReadTextFile(dir + "/CMakeLists.txt");
 		std::string user_content = existing_cmake_content.substr(existing_cmake_content.find("USER STUFF BELOW") + 16);
 
-		// Update engine directories for includes/libraries in Cmake file
+		// Update engine directories for includes/libraries in CMake file
 		ReplaceScriptCmakeEngineFilepaths(cmake_content);
 
 		{ // Copy over extra cpps section
 			size_t extra_cpps_start_pos = existing_cmake_content.find("EXTRA CPPS START") + 16;
 			std::string extra_cpps = existing_cmake_content.substr(extra_cpps_start_pos, existing_cmake_content.find("#E&CE") - extra_cpps_start_pos);
-			ORNG_CORE_CRITICAL(cmake_content.find("EXTRA CPPS START"));
 			cmake_content.insert(cmake_content.find("EXTRA CPPS START") + 16, extra_cpps);
 		}
 
-		// Insert commands to compile scripts into Cmake file
+		// Insert commands to compile scripts into CMake file
 		size_t cmake_script_append_location = cmake_content.find("SCRIPT START\n") + 13;
 		std::string target_str = "\nset(SCRIPT_TARGETS ";
 		std::string script_src_directory = dir + "/src";
@@ -67,13 +74,6 @@ namespace ORNG {
 				std::string src_relative_filepath_no_extension = filename;
 				std::string class_name = GetFilename(filename);
 				StringReplace(filename, "/", "_");
-
-				// Create ExtraCpps variable for file if not found
-				// if (cmake_content.find(filename + "_ExtraCpps") == std::string::npos) {
-				// 	std::string var = "set(" + filename + "_ExtraCpps )\n";
-				// 	cmake_content.insert(cmake_content.find("#E&CE") - 1, var);
-				// 	cmake_script_append_location += var.length();
-				// }
 
 				target_str += " " + filename;
 				std::string command_append_content = 
@@ -143,6 +143,7 @@ namespace ORNG {
 			StringReplace(no_extension_path_alt, "debug", "release");
 #endif
 			FileDelete(dll_path);
+			TryFileDelete(dll_path + ".shadow.dll");
 			std::array<std::string, 2> no_extension_paths = {no_extension_path, no_extension_path_alt};
 			for (size_t i = 0; i < no_extension_paths.size(); i++) {
 				TryFileDelete(no_extension_paths[i] + ".metadata");
@@ -166,7 +167,7 @@ namespace ORNG {
 
 	ScriptStatusQueryResults ScriptingEngine::GetScriptData(const std::string& script_filepath) {
 		for (size_t i = 0; i < sm_loaded_script_dll_handles.size(); i++) {
-			if (PathEqualTo(script_filepath, sm_loaded_script_dll_handles[i].filepath))
+			if (PathEqualTo(script_filepath, sm_loaded_script_dll_handles[i].filepath) || PathEqualTo(script_filepath, sm_loaded_script_dll_handles[i].shadow_path))
 				return { true, static_cast<int>(i) };
 		}
 
@@ -175,10 +176,25 @@ namespace ORNG {
 
 
 	ScriptSymbols ScriptingEngine::LoadScriptDll(const std::string& dll_path, const std::string& script_filepath, const std::string& script_name) {
+		std::string load_path = dll_path;
+		std::string shadow_path = "";
+
+#ifdef ORNG_EDITOR_LAYER
+		shadow_path = dll_path + ".shadow.dll";
+		if (FileCopy(dll_path, shadow_path)) {
+			load_path = shadow_path;
+		}
+		else {
+			ORNG_CORE_ERROR("Failed to create shadow copy for script DLL at '{0}'", dll_path);
+			shadow_path = "";
+		}
+#endif
+
 		// Load the generated dll
-		HMODULE script_dll = LoadLibrary(dll_path.c_str());
+		HMODULE script_dll = LoadLibrary(load_path.c_str());
 		if (script_dll == nullptr || script_dll == INVALID_HANDLE_VALUE) {
-			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", dll_path);
+			ORNG_CORE_ERROR("Script DLL failed to load or not found at '{0}'", load_path);
+			if (!shadow_path.empty()) TryFileDelete(shadow_path);
 			return ScriptSymbols(script_name);
 		}
 		
@@ -205,7 +221,7 @@ namespace ORNG {
 		imgui_context_setter(ImGui::GetCurrentContext(), imgui_malloc, imgui_free);
 
 		// Keep record of loaded DLLs
-		sm_loaded_script_dll_handles.push_back({ script_filepath, script_dll, symbols });
+		sm_loaded_script_dll_handles.push_back({ script_filepath, script_dll, symbols, shadow_path });
 
 		return symbols;
 	}
@@ -218,11 +234,9 @@ namespace ORNG {
 
 		std::string filename = filepath.substr(filepath.find_last_of("/") + 1);
 		std::string filename_no_ext = filename.substr(0, filename.find_last_of("."));
-		std::string file_dir = filepath.substr(0, filepath.find_last_of("/") + 1);
-		std::string relative_path = "./" + filepath.substr(filepath.rfind("res/scripts"));
 		std::string dll_path = GetDllPathFromScriptCpp(filepath);
 
-		ScriptSymbols symbols{ LoadScriptDll(dll_path, relative_path, filename_no_ext) };
+		ScriptSymbols symbols{ LoadScriptDll(dll_path, filepath, filename_no_ext) };
 
 		return symbols;
 	}
@@ -232,7 +246,15 @@ namespace ORNG {
 		if (auto results = GetScriptData(filepath); results.is_loaded) {
 			auto& script_data = sm_loaded_script_dll_handles[static_cast<unsigned>(results.script_data_index)];
 			script_data.symbols.Unload();
-			FreeLibrary(script_data.dll_handle);
+
+			while (FreeLibrary(script_data.dll_handle)) {
+				// Keep freeing until the reference count is 0
+			}
+
+			if (!script_data.shadow_path.empty()) {
+				TryFileDelete(script_data.shadow_path);
+			}
+
 			sm_loaded_script_dll_handles.erase(sm_loaded_script_dll_handles.begin() + results.script_data_index);
 			return true;
 		}
