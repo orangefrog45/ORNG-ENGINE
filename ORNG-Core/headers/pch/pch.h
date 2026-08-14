@@ -14,15 +14,7 @@
 #include <codecvt>
 
 #include <GL/glew.h>
-
-#define GLM_ENABLE_EXPERIMENTAL
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_SWIZZLE
-
-#include <glm/glm/glm.hpp>
-#include <glm/glm/gtx/transform.hpp>
-#include <glm/glm/gtx/matrix_major_storage.hpp>
-#include <glm/glm/gtc/quaternion.hpp>
+#include <lml/core.h>
 #include <stb/stb_image.h>
 
 #include <any>

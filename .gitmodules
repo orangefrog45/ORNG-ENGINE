@@ -49,3 +49,6 @@
 [submodule "ORNG-Core/extern/entt"]
 	path = ORNG-Core/extern/entt
 	url = https://github.com/skypjack/entt
+[submodule "ORNG-Core/extern/lml"]
+	path = ORNG-Core/extern/lml
+	url = https://github.com/orangefrog45/lml

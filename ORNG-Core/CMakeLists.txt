@@ -172,6 +172,7 @@ set(ORNG_CORE_INCLUDE_DIRS
 	${CMAKE_CURRENT_LIST_DIR}/extern/tracy/public/tracy
 	${CMAKE_CURRENT_LIST_DIR}/extern/jolt
 	${CMAKE_CURRENT_LIST_DIR}/extern/entt/src
+	${CMAKE_CURRENT_LIST_DIR}/extern/lml/include
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include
 	${CMAKE_CURRENT_LIST_DIR}/../vcpkg_installed/x64-windows/include/physx
 	${CMAKE_CURRENT_BINARY_DIR}/../vcpkg_installed/x64-windows/include
@@ -279,13 +280,11 @@ if (ORNG_BUILD_CORE)
 	target_compile_definitions(ORNG_CORE PUBLIC
 	ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
 	ORNG_CORE_LIB_DIR="${CMAKE_CURRENT_BINARY_DIR}"
-	GLM_ENABLE_EXPERIMENTAL
 	)
 endif()
 
 target_compile_definitions(ORNG_RENDERING PUBLIC
 	ORNG_CORE_MAIN_DIR="${CMAKE_CURRENT_LIST_DIR}"
-	GLM_ENABLE_EXPERIMENTAL
 )
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/res/ DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/res/core-res")
