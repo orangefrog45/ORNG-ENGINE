@@ -55,8 +55,8 @@ void FogPass::Init() {
 
 	// Fog texture
 	Texture2DSpec fog_overlay_spec = rgba16_spec;
-	fog_overlay_spec.width = static_cast<int>(glm::ceil(static_cast<float>(out_spec.width) / 2.f));
-	fog_overlay_spec.height = static_cast<int>(glm::ceil(static_cast<float>(out_spec.height) / 2.f));
+	fog_overlay_spec.width = static_cast<int>(lml::ceil(static_cast<float>(out_spec.width) / 2.f));
+	fog_overlay_spec.height = static_cast<int>(lml::ceil(static_cast<float>(out_spec.height) / 2.f));
 	fog_output_tex.SetSpec(fog_overlay_spec);
 };
 
@@ -93,8 +93,8 @@ void FogPass::DoPass() {
 	);
 
 	glDispatchCompute(
-		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 16.f)),
-		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 16.f)),
+		static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.width) / 16.f)),
+		static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.height) / 16.f)),
 		1
 	);
 
@@ -115,8 +115,8 @@ void FogPass::DoPass() {
 	);
 
 	glDispatchCompute(
-		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 8.f)),
-		static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 8.f)),
+		static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.width) / 8.f)),
+		static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.height) / 8.f)),
 		1
 	);
 
@@ -140,8 +140,8 @@ void FogPass::DoPass() {
 		);
 
 		glDispatchCompute(
-			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 8.f)),
-			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 8.f)),
+			static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.width) / 8.f)),
+			static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.height) / 8.f)),
 			1
 		);
 
@@ -161,8 +161,8 @@ void FogPass::DoPass() {
 		);
 
 		glDispatchCompute(
-			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.width) / 8.f)),
-			static_cast<GLuint>(glm::ceil(static_cast<float>(out_spec.height) / 8.f)),
+			static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.width) / 8.f)),
+			static_cast<GLuint>(lml::ceil(static_cast<float>(out_spec.height) / 8.f)),
 			1
 		);
 

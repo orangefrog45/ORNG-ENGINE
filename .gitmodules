@@ -7,9 +7,6 @@
 [submodule "ORNG-Core/extern/glew-cmake"]
 	path = ORNG-Core/extern/glew-cmake
 	url = https://github.com/Perlmint/glew-cmake
-[submodule "ORNG-Core/extern/glm"]
-	path = ORNG-Core/extern/glm
-	url = https://github.com/g-truc/glm
 [submodule "ORNG-Core/extern/yaml"]
 	path = ORNG-Core/extern/yaml
 	url = https://github.com/jbeder/yaml-cpp

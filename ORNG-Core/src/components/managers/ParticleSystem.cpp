@@ -8,11 +8,8 @@
 #include "core/FrameTiming.h"
 #include "components/systems/ParticleSystem.h"
 
-#include <glm/glm/gtc/round.hpp>
-
-
 namespace ORNG {
-	constexpr unsigned particle_struct_size = sizeof(float) * 4 + sizeof(glm::vec4) * 4;
+	constexpr unsigned particle_struct_size = sizeof(float) * 4 + sizeof(lml::vec4) * 4;
 	constexpr unsigned emitter_struct_size = sizeof(float) * 36 + InterpolatorV3::GPU_STRUCT_SIZE_BYTES * 2 + sizeof(float) * 6 + InterpolatorV1::GPU_STRUCT_SIZE_BYTES + sizeof(float) * 3;
 
 	inline static void OnParticleEmitterAdd(entt::registry& registry, entt::entity entity) {
@@ -126,7 +123,7 @@ namespace ORNG {
 		m_particle_initializer_cs.SetUniform("u_emitter_index", static_cast<unsigned>(m_emitter_entities.size() - 1));
 
 		if (p_comp->m_num_particles > 0) {
-			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(p_comp->m_num_particles) / 32.f)), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(lml::ceil(static_cast<float>(p_comp->m_num_particles) / 32.f)), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 	}
@@ -161,18 +158,18 @@ namespace ORNG {
 		total_emitter_particles += p_comp->m_num_particles;
 
 		if (m_particle_ssbo.GetGPU_BufferSize() <= static_cast<unsigned>(total_emitter_particles) * particle_struct_size ) {
-			const unsigned new_allocated_particles = glm::ceilMultiple(glm::max(static_cast<unsigned>(total_emitter_particles * 3 / 2), 10000u), 64u);
+			const unsigned new_allocated_particles = lml::ceilMultiple(lml::max(static_cast<unsigned>(total_emitter_particles * 3 / 2), 10000u), 64u);
 			m_particle_ssbo.Resize(new_allocated_particles * particle_struct_size);
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
 			m_particle_initializer_cs.Activate(ParticleCSVariants::INITIALIZE_AS_DEAD);
 			m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
-			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f)), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(lml::ceil(static_cast<float>(new_allocated_particles - (p_comp->m_particle_start_index + p_comp->m_num_particles)) / 32.f)), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 
 		if (m_emitter_ssbo.GetGPU_BufferSize() < m_emitter_entities.size() * emitter_struct_size) {
-			m_emitter_ssbo.Resize(glm::max(static_cast<unsigned>(m_emitter_entities.size() * 3u) / 2u, 10u) * emitter_struct_size);
+			m_emitter_ssbo.Resize(lml::max(static_cast<unsigned>(m_emitter_entities.size() * 3u) / 2u, 10u) * emitter_struct_size);
 			glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 		}
 
@@ -193,9 +190,9 @@ namespace ORNG {
 			p_transform->GetAbsPosition(), 0.0f,
 			comp.m_particle_start_index, 
 			comp.m_num_particles, 
-			comp.m_spread * 2.0f * glm::pi<float>(),
+			comp.m_spread * 2.0f * lml::pi<float>(),
 			comp.m_velocity_min_max_scalar.x,
-			glm::mat4_cast(p_transform->GetAbsOrientationQuat()),
+			lml::mat4_cast(p_transform->GetAbsOrientationQuat()),
 			comp.m_spawn_extents,
 			comp.m_velocity_min_max_scalar.y,
 			comp.m_particle_lifespan_ms, 
@@ -273,7 +270,7 @@ namespace ORNG {
 			m_particle_initializer_cs.SetUniform("u_emitter_index", p_comp->m_index);
 			m_particle_initializer_cs.SetUniform("u_start_index", p_comp->m_particle_start_index + p_comp->m_num_particles);
 			m_particle_initializer_cs.SetUniform("u_num_particles", static_cast<unsigned>(num_particles_to_decrement));
-			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(num_particles_to_decrement) / 32.f)), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(lml::ceil(static_cast<float>(num_particles_to_decrement) / 32.f)), 1, 1);
 			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 		}
 
@@ -318,7 +315,7 @@ namespace ORNG {
 		GL_StateManager::BindSSBO(m_particle_ssbo.GetHandle(), GL_StateManager::SSBO_BindingPoints::PARTICLES);
 
 		if (total_emitter_particles > 0)
-			GL_StateManager::DispatchCompute(static_cast<int>(glm::ceil(static_cast<float>(total_emitter_particles) / 64.f)), 1, 1);
+			GL_StateManager::DispatchCompute(static_cast<int>(lml::ceil(static_cast<float>(total_emitter_particles) / 64.f)), 1, 1);
 
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}

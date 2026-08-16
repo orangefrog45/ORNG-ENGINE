@@ -10,13 +10,13 @@
 namespace ORNG {
 	void LuaCLI::Init() {
 
-		lua.new_usertype<glm::vec3>("vec3", sol::constructors<glm::vec3(float, float, float)>(),
-			"x", &glm::vec3::x,
-			"y", &glm::vec3::y,
-			"z", &glm::vec3::z
+		lua.new_usertype<lml::vec3>("vec3", sol::constructors<lml::vec3(float, float, float)>(),
+			"x", &lml::vec3::x,
+			"y", &lml::vec3::y,
+			"z", &lml::vec3::z
 		);
 
-		lua.new_usertype<LuaEntity>("entity", sol::constructors<LuaEntity(std::string, unsigned, glm::vec3, glm::vec3, glm::vec3, unsigned)>(),
+		lua.new_usertype<LuaEntity>("entity", sol::constructors<LuaEntity(std::string, unsigned, lml::vec3, lml::vec3, lml::vec3, unsigned)>(),
 			"entt_handle", &LuaEntity::entity_handle,
 			"parent_handle", &LuaEntity::parent_handle,
 			"name", &LuaEntity::name,

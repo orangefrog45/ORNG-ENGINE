@@ -12,7 +12,7 @@ namespace ORNG {
 		// Clears all timer data, should be called each frame
 		static void UpdateTimers(double timestep) {
 			static double cooldown = 0;
-			cooldown -= glm::min(timestep, cooldown);
+			cooldown -= lml::min(timestep, cooldown);
 
 			if (cooldown > 0.01) {
 				Get().m_timers_should_update = false;

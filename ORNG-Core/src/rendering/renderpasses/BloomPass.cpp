@@ -44,7 +44,7 @@ void BloomPass::Init() {
 void BloomPass::DoPass() {
 	{
 		const auto& bloom_spec = bloom_tex.GetSpec();
-		glm::vec4 clear_val{ 0.f };
+		lml::vec4 clear_val{ 0.f };
 		glClearTexSubImage(bloom_tex.GetTextureHandle(), 0, 0, 0, 0, bloom_spec.width, bloom_spec.height, 1, GL_RGBA, GL_FLOAT, &clear_val);
 	}
 
@@ -64,8 +64,8 @@ void BloomPass::DoPass() {
 	glBindImageTexture(0, bloom_tex.GetTextureHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 
 	GL_StateManager::DispatchCompute(
-		static_cast<int>(glm::ceil(width / 16.f)),
-		static_cast<int>(glm::ceil(height / 16.f)),
+		static_cast<int>(lml::ceil(width / 16.f)),
+		static_cast<int>(lml::ceil(height / 16.f)),
 		1
 	);
 
@@ -80,8 +80,8 @@ void BloomPass::DoPass() {
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 		GL_StateManager::DispatchCompute(
-			static_cast<int>(glm::ceil(width / 32.f / static_cast<float>(i))),
-			static_cast<int>(glm::ceil(height / 32.f / static_cast<float>(i))),
+			static_cast<int>(lml::ceil(width / 32.f / static_cast<float>(i))),
+			static_cast<int>(lml::ceil(height / 32.f / static_cast<float>(i))),
 			1
 		);
 
@@ -95,8 +95,8 @@ void BloomPass::DoPass() {
 		glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, bloom_tex.GetTextureHandle(), i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 		GL_StateManager::DispatchCompute(
-			static_cast<int>(glm::ceil(width / 16.f / static_cast<float>(i + 1))),
-			static_cast<int>(glm::ceil(height / 16.f / static_cast<float>(i + 1))),
+			static_cast<int>(lml::ceil(width / 16.f / static_cast<float>(i + 1))),
+			static_cast<int>(lml::ceil(height / 16.f / static_cast<float>(i + 1))),
 			1
 		);
 
@@ -107,6 +107,6 @@ void BloomPass::DoPass() {
 	composition_shader.SetUniform("u_bloom_intensity", bloom_settings.intensity);
 	GL_StateManager::BindTexture(GL_TEXTURE_2D, p_output->GetTextureHandle(), GL_TEXTURE0, true);
 	glBindImageTexture(GL_StateManager::TextureUnitIndexes::COLOUR, p_output->GetTextureHandle(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-	glDispatchCompute(static_cast<int>(glm::ceil(width / 8.f)), static_cast<int>(glm::ceil(height / 8.f)), 1);
+	glDispatchCompute(static_cast<int>(lml::ceil(width / 8.f)), static_cast<int>(lml::ceil(height / 8.f)), 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

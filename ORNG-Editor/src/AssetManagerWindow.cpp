@@ -860,7 +860,7 @@ bool AssetManagerWindow::RenderAddSceneAssetWindow() {
 
 void AssetManagerWindow::RenderMainAssetWindow() {
 	const int window_width = Window::GetWidth() - 650;
-	column_count = glm::max(window_width / (static_cast<int>(image_button_size.x) + 40), 1);
+	column_count = lml::max(window_width / (static_cast<int>(image_button_size.x) + 40), 1);
 
 	if (ImGui::Button(ICON_FA_ARROW_LEFT_LONG)) {
 		m_current_content_dir = m_current_content_dir.substr(0, m_current_content_dir.rfind('/'));
@@ -978,9 +978,9 @@ void AssetManagerWindow::CreateMeshPreview(MeshAsset* p_asset) {
 	m_mesh_preview_textures[p_asset] = p_tex;
 
 	// Scale mesh so it always fits in camera frustum
-	glm::vec3 extents = p_asset->GetAABB().extents;
-	float largest_extent = glm::max(glm::max(extents.x, extents.y), extents.z);
-	glm::vec3 scale_factor = glm::vec3(1.0, 1.0, 1.0) / largest_extent;
+	lml::vec3 extents = p_asset->GetAABB().extents;
+	float largest_extent = lml::max(lml::max(extents.x, extents.y), extents.z);
+	lml::vec3 scale_factor = lml::vec3(1.0, 1.0, 1.0) / largest_extent;
 
 	mp_preview_scene->GetSystem<SceneUBOSystem>().OnUpdate();
 
@@ -1229,7 +1229,7 @@ void AssetManagerWindow::RenderTextureEditorSection() {
 			}
 
 			ImGui::TableNextColumn();
-			float size = glm::min(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+			float size = lml::min(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
 			ExtraUI::CenteredImageButton(reinterpret_cast<void*>(mp_selected_texture->GetTextureHandle()), ImVec2(size, size));
 			ImGui::Spacing();
 			ImGui::EndTable();

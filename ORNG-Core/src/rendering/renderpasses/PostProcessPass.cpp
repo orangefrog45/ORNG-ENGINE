@@ -55,8 +55,8 @@ void PostProcessPass::DoPass() {
 	);
 
 	glDispatchCompute(
-		static_cast<GLuint>(glm::ceil(static_cast<float>(spec.width) / 8.f)),
-		static_cast<GLuint>(glm::ceil(static_cast<float>(spec.height) / 8.f)),
+		static_cast<GLuint>(lml::ceil(static_cast<float>(spec.width) / 8.f)),
+		static_cast<GLuint>(lml::ceil(static_cast<float>(spec.height) / 8.f)),
 		1
 	);
 

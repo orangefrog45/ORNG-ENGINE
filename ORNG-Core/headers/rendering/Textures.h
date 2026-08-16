@@ -144,7 +144,7 @@ namespace ORNG {
 	class FullscreenTexture2D final : public Texture2D {
 	public:
 		// screen_size_ratio - this texture will be resized to (new_window_dimensions * screen_size_ratio), should be 1 if the texture needs to match window size.
-		explicit FullscreenTexture2D(glm::vec2 screen_size_ratio = {1, 1});
+		explicit FullscreenTexture2D(lml::vec2 screen_size_ratio = {1, 1});
 
 		// spec.width and spec.height WILL BE USED, they should match the window dimensions if needed.
 		bool SetSpec(const Texture2DSpec& spec) final;
@@ -152,9 +152,9 @@ namespace ORNG {
 		// A callback that is invoked immediately after this texture resizes
 		std::function<void()> OnResize = nullptr;
 	private:
-		void OnWindowResize(glm::uvec2 new_dim);
+		void OnWindowResize(lml::uvec2 new_dim);
 
-		glm::vec2 m_screen_size_ratio;
+		lml::vec2 m_screen_size_ratio;
 		Events::EventListener<Events::WindowEvent> m_window_event_listener;
 	};
 

@@ -100,21 +100,21 @@ void MeshAsset::InitAllMeshes(const aiScene* pScene, MeshLoadResult& result) {
 void MeshAsset::InitSingleMesh(const aiMesh* p_ai_mesh, unsigned current_vertex, MeshLoadResult& result) {
 	const aiVector3D zero3D{ 0.0f, 0.0f, 0.0f };
 
-	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.positions.data()) + current_vertex * sizeof(glm::vec3),
-		p_ai_mesh->mVertices, p_ai_mesh->mNumVertices * sizeof(glm::vec3));
-	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.normals.data()) + current_vertex * sizeof(glm::vec3),
-		p_ai_mesh->mNormals, p_ai_mesh->mNumVertices * sizeof(glm::vec3));
-	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.tangents.data()) + current_vertex * sizeof(glm::vec3),
-		p_ai_mesh->mTangents, p_ai_mesh->mNumVertices * sizeof(glm::vec3));
+	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.positions.data()) + current_vertex * sizeof(lml::vec3),
+		p_ai_mesh->mVertices, p_ai_mesh->mNumVertices * sizeof(lml::vec3));
+	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.normals.data()) + current_vertex * sizeof(lml::vec3),
+		p_ai_mesh->mNormals, p_ai_mesh->mNumVertices * sizeof(lml::vec3));
+	memcpy(reinterpret_cast<std::byte*>(result.vertex_data.tangents.data()) + current_vertex * sizeof(lml::vec3),
+		p_ai_mesh->mTangents, p_ai_mesh->mNumVertices * sizeof(lml::vec3));
 
 	for (unsigned int i = 0; i < p_ai_mesh->mNumVertices; i++) {
 		const aiVector3D& pos = p_ai_mesh->mVertices[i];
 		const aiVector3D& tex_coord = p_ai_mesh->HasTextureCoords(0) ? p_ai_mesh->mTextureCoords[0][i] : zero3D;
 
 		// AABB generation
-		result.aabb.extents.x = glm::max(result.aabb.extents.x, abs(pos.x));
-		result.aabb.extents.y = glm::max(result.aabb.extents.y, abs(pos.y));
-		result.aabb.extents.z = glm::max(result.aabb.extents.z, abs(pos.z));
+		result.aabb.extents.x = lml::max(result.aabb.extents.x, abs(pos.x));
+		result.aabb.extents.y = lml::max(result.aabb.extents.y, abs(pos.y));
+		result.aabb.extents.z = lml::max(result.aabb.extents.z, abs(pos.z));
 
 		result.vertex_data.tex_coords.push_back(tex_coord.x);
 		result.vertex_data.tex_coords.push_back(tex_coord.y);
@@ -152,7 +152,7 @@ LoadedMeshTexture* MeshAsset::CreateOrGetMaterialTexture(const std::string& dir,
 
 			if (auto* p_ai_tex = p_scene->GetEmbeddedTexture(path.C_Str())) {
 				int x, y, channels;
-				unsigned size = glm::max(p_ai_tex->mHeight, 1u) * p_ai_tex->mWidth;
+				unsigned size = lml::max(p_ai_tex->mHeight, 1u) * p_ai_tex->mWidth;
 				stbi_uc* p_data = stbi_load_from_memory(reinterpret_cast<stbi_uc*>(p_ai_tex->pcData), static_cast<int>(size), &x, &y, &channels, 0);
 
 				success = static_cast<bool>(p_data);

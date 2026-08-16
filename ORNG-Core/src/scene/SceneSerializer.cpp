@@ -231,7 +231,7 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializePointlightComp(const YAML::Node& light_node, SceneEntity& entity) {
 		auto* p_pointlight_comp = entity.AddComponent<PointLightComponent>();
-		p_pointlight_comp->colour = light_node["Colour"].as<glm::vec3>();
+		p_pointlight_comp->colour = light_node["Colour"].as<lml::vec3>();
 		p_pointlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
 		p_pointlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
 		p_pointlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
@@ -241,7 +241,7 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeSpotlightComp(const YAML::Node& light_node, SceneEntity& entity) {
 		auto* p_spotlight_comp = entity.AddComponent<SpotLightComponent>();
-		p_spotlight_comp->colour = light_node["Colour"].as<glm::vec3>();
+		p_spotlight_comp->colour = light_node["Colour"].as<lml::vec3>();
 		p_spotlight_comp->attenuation.constant = light_node["AttenConstant"].as<float>();
 		p_spotlight_comp->attenuation.linear = light_node["AttenLinear"].as<float>();
 		p_spotlight_comp->attenuation.exp = light_node["AttenExp"].as<float>();
@@ -286,12 +286,12 @@ namespace ORNG {
 	void SceneSerializer::DeserializeParticleEmitterComp(const YAML::Node& emitter_node, SceneEntity& entity) {
 		auto* p_emitter = entity.AddComponent<ParticleEmitterComponent>();
 		p_emitter->m_spread = emitter_node["Spread"].as<float>();
-		p_emitter->m_spawn_extents = emitter_node["Spawn extents"].as<glm::vec3>();
-		p_emitter->m_velocity_min_max_scalar = emitter_node["Velocity range"].as<glm::vec2>();
+		p_emitter->m_spawn_extents = emitter_node["Spawn extents"].as<lml::vec3>();
+		p_emitter->m_velocity_min_max_scalar = emitter_node["Velocity range"].as<lml::vec2>();
 		p_emitter->m_num_particles = emitter_node["Nb. particles"].as<unsigned>();
 		p_emitter->m_particle_lifespan_ms = emitter_node["Lifespan"].as<float>();
 		p_emitter->m_particle_spawn_delay_ms = emitter_node["Spawn delay"].as<float>();
-		p_emitter->acceleration = emitter_node["Acceleration"].as<glm::vec3>();
+		p_emitter->acceleration = emitter_node["Acceleration"].as<lml::vec3>();
 		p_emitter->m_active = emitter_node["Active"].as<bool>();
 		p_emitter->SetType(static_cast<ParticleEmitterComponent::EmitterType>(emitter_node["Type"].as<unsigned>()));
 
@@ -323,9 +323,9 @@ namespace ORNG {
 
 	void SceneSerializer::DeserializeTransformComp(const YAML::Node& node, SceneEntity& entity) {
 		auto* p_transform = entity.GetComponent<TransformComponent>();
-		p_transform->m_pos = node["Pos"].as<glm::vec3>();
-		p_transform->m_scale = node["Scale"].as<glm::vec3>();
-		p_transform->m_orientation = glm::quat{glm::radians(node["Orientation"].as<glm::vec3>())};
+		p_transform->m_pos = node["Pos"].as<lml::vec3>();
+		p_transform->m_scale = node["Scale"].as<lml::vec3>();
+		p_transform->m_orientation = lml::quat{lml::radians(node["Orientation"].as<lml::vec3>())};
 		p_transform->m_is_absolute = node["Absolute"].as<bool>();
 		p_transform->RebuildMatrix(TransformComponent::UpdateType::ALL);
 	}
@@ -499,8 +499,8 @@ namespace ORNG {
 		out << YAML::Key << "Shadows" << YAML::Value << scene.directional_light.shadows_enabled;
 		out << YAML::Key << "Colour" << YAML::Value << scene.directional_light.colour;
 		out << YAML::Key << "Direction" << YAML::Value << scene.directional_light.GetLightDirection();
-		out << YAML::Key << "CascadeRanges" << YAML::Value << glm::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
-		out << YAML::Key << "Zmults" << YAML::Value << glm::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
+		out << YAML::Key << "CascadeRanges" << YAML::Value << lml::vec3(scene.directional_light.cascade_ranges[0], scene.directional_light.cascade_ranges[1], scene.directional_light.cascade_ranges[2]);
+		out << YAML::Key << "Zmults" << YAML::Value << lml::vec3(scene.directional_light.z_mults[0], scene.directional_light.z_mults[1], scene.directional_light.z_mults[2]);
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Fog" << YAML::BeginMap;
@@ -577,12 +577,12 @@ namespace ORNG {
 		// Directional light
 		{
 			const auto& dir_light = data["DirLight"];
-			scene.directional_light.colour = dir_light["Colour"].as<glm::vec3>();
+			scene.directional_light.colour = dir_light["Colour"].as<lml::vec3>();
 			scene.directional_light.shadows_enabled = dir_light["Shadows"].as<bool>();
-			scene.directional_light.SetLightDirection(dir_light["Direction"].as<glm::vec3>());
-			glm::vec3 cascade_ranges = dir_light["CascadeRanges"].as<glm::vec3>();
+			scene.directional_light.SetLightDirection(dir_light["Direction"].as<lml::vec3>());
+			lml::vec3 cascade_ranges = dir_light["CascadeRanges"].as<lml::vec3>();
 			scene.directional_light.cascade_ranges = std::array<float, 3>{cascade_ranges.x, cascade_ranges.y, cascade_ranges.z};
-			glm::vec3 zmults = dir_light["Zmults"].as<glm::vec3>();
+			lml::vec3 zmults = dir_light["Zmults"].as<lml::vec3>();
 			scene.directional_light.z_mults = std::array<float, 3>{zmults.x, zmults.y, zmults.z};
 		}
 
@@ -602,7 +602,7 @@ namespace ORNG {
 			scene.post_processing.global_fog.scattering_coef = fog["Scattering"].as<float>();
 			scene.post_processing.global_fog.scattering_anisotropy = fog["Anisotropy"].as<float>();
 			scene.post_processing.global_fog.emissive_factor = fog["Emission"].as<float>();
-			scene.post_processing.global_fog.colour = fog["Colour"].as<glm::vec3>();
+			scene.post_processing.global_fog.colour = fog["Colour"].as<lml::vec3>();
 			scene.post_processing.global_fog.step_count = fog["Steps"].as<int>();
 		}
 

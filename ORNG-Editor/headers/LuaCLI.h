@@ -12,16 +12,16 @@
 
 namespace ORNG {
 	struct LuaEntity {
-		LuaEntity(std::string_view _name, unsigned _entity_handle, glm::vec3 _pos, glm::vec3 _scale, glm::vec3 _orientation, unsigned _parent_handle) :
+		LuaEntity(std::string_view _name, unsigned _entity_handle, lml::vec3 _pos, lml::vec3 _scale, lml::vec3 _orientation, unsigned _parent_handle) :
 			name(_name), entity_handle(_entity_handle), parent_handle(_parent_handle), pos(_pos), scale(_scale), orientation(_orientation) {}
 
 		std::string name;
 		unsigned entity_handle;
 		unsigned parent_handle;
 
-		glm::vec3 pos;
-		glm::vec3 scale;
-		glm::vec3 orientation;
+		lml::vec3 pos;
+		lml::vec3 scale;
+		lml::vec3 orientation;
 	};
 
 	class LuaCLI {
@@ -40,8 +40,8 @@ namespace ORNG {
 
 		std::vector<std::function<void()>> input_callbacks;
 
-		glm::vec2 render_pos{ 0, 0 };
-		glm::vec2 size{ 0, 0 };
+		lml::vec2 render_pos{ 0, 0 };
+		lml::vec2 size{ 0, 0 };
 	private:
 		sol::state lua;
 	};

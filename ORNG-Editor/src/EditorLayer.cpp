@@ -76,7 +76,7 @@ void EditorLayer::Init() {
 	InitLua();
 	m_logger_ui.Init();
 
-	m_res.line_vao.AddBuffer<VertexBufferGL<glm::vec3>>(0, GL_FLOAT, 3, GL_STREAM_DRAW);
+	m_res.line_vao.AddBuffer<VertexBufferGL<lml::vec3>>(0, GL_FLOAT, 3, GL_STREAM_DRAW);
 	m_res.line_vao.Init();
 
 	m_res.raymarch_shader.SetPath(GL_VERTEX_SHADER, m_state.executable_directory + "/res/core-res/shaders/QuadVS.glsl");
@@ -249,8 +249,8 @@ void EditorLayer::EndPlayScene() {
 	m_state.selected_entity_ids.clear();
 
 	auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
-	const glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
-	const glm::vec3 look_at_pos = cam_pos + p_cam_transform->forward;
+	const lml::vec3 cam_pos = p_cam_transform->GetAbsPosition();
+	const lml::vec3 look_at_pos = cam_pos + p_cam_transform->forward;
 
 	mp_editor_camera = nullptr;
 
@@ -449,7 +449,7 @@ void EditorLayer::PollKeybinds() {
 			if (length(offset) < 0.001f)
 				offset = { 1, 0, 0 };
 
-			p_editor_cam_transform->SetAbsolutePosition(pos - glm::normalize(offset) * 3.f);
+			p_editor_cam_transform->SetAbsolutePosition(pos - lml::normalize(offset) * 3.f);
 			p_editor_cam_transform->LookAt(pos);
 		}
 
@@ -567,42 +567,42 @@ void EditorLayer::RenderToVrTargets() {
 	void EditorLayer::MultiSelectDisplay() {
 	m_state.selected_entity_ids.clear();
 
-	glm::vec2 min = { glm::min(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), glm::min(Window::GetHeight() - m_state.mouse_drag_data.start.y,  Window::GetHeight() - m_state.mouse_drag_data.end.y) };
-	glm::vec2 max = { glm::max(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), glm::max(Window::GetHeight() - m_state.mouse_drag_data.start.y, Window::GetHeight() - m_state.mouse_drag_data.end.y) };
-	glm::vec2 n = glm::vec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y);
+	lml::vec2 min = { lml::min(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), lml::min(Window::GetHeight() - m_state.mouse_drag_data.start.y,  Window::GetHeight() - m_state.mouse_drag_data.end.y) };
+	lml::vec2 max = { lml::max(m_state.mouse_drag_data.start.x,  m_state.mouse_drag_data.end.x), lml::max(Window::GetHeight() - m_state.mouse_drag_data.start.y, Window::GetHeight() - m_state.mouse_drag_data.end.y) };
+	lml::vec2 n = lml::vec2(m_state.scene_display_rect.x, m_state.scene_display_rect.y);
 
 	auto* p_cam = SCENE->GetSystem<CameraSystem>().GetActiveCamera();
 	auto* p_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 	auto pos = p_transform->GetAbsPosition();
 
-	glm::vec3 min_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos,
+	lml::vec3 min_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), min, pos,
 		p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
 
-	glm::vec3 max_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), max, pos,
+	lml::vec3 max_dir = ExtraMath::ScreenCoordsToRayDir(p_cam->GetProjectionMatrix(), max, pos,
 		p_transform->forward, p_transform->up, Window::GetWidth(), Window::GetHeight());
 
-	glm::vec3 near_min = pos + min_dir * p_cam->zNear;
+	lml::vec3 near_min = pos + min_dir * p_cam->zNear;
 
-	glm::vec3 far_min = pos + min_dir * p_cam->zFar;
+	lml::vec3 far_min = pos + min_dir * p_cam->zFar;
 
-	glm::vec3 near_max = pos + max_dir * p_cam->zNear;
+	lml::vec3 near_max = pos + max_dir * p_cam->zNear;
 
-	glm::vec3 far_max = pos + max_dir * p_cam->zFar;
+	lml::vec3 far_max = pos + max_dir * p_cam->zFar;
 
-	glm::vec3 far_middle = (glm::vec3(far_max) + glm::vec3(far_min)) * 0.5f;
-	glm::vec3 near_middle = (glm::vec3(near_max) + glm::vec3(near_min)) * 0.5f;
-	glm::vec3 target = glm::normalize(far_middle - near_middle);
-	glm::vec3 right = p_transform->right;
+	lml::vec3 far_middle = (lml::vec3(far_max) + lml::vec3(far_min)) * 0.5f;
+	lml::vec3 near_middle = (lml::vec3(near_max) + lml::vec3(near_min)) * 0.5f;
+	lml::vec3 target = lml::normalize(far_middle - near_middle);
+	lml::vec3 right = p_transform->right;
 
-	glm::vec3 up = glm::normalize(glm::cross(right, target));
+	lml::vec3 up = lml::normalize(lml::cross(right, target));
 
-	ExtraMath::Plane t = { glm::cross(right, pos - far_max), pos };
+	ExtraMath::Plane t = { lml::cross(right, pos - far_max), pos };
 
-	ExtraMath::Plane b = { glm::cross(right, far_min - pos), pos };
+	ExtraMath::Plane b = { lml::cross(right, far_min - pos), pos };
 
-	ExtraMath::Plane l = { glm::cross(up, pos - far_min), pos };
+	ExtraMath::Plane l = { lml::cross(up, pos - far_min), pos };
 
-	ExtraMath::Plane r = { glm::cross(up, far_max - pos), pos };
+	ExtraMath::Plane r = { lml::cross(up, far_max - pos), pos };
 
 	ExtraMath::Plane ne = { target, pos + target * p_cam->zNear };
 
@@ -646,15 +646,15 @@ void EditorLayer::UpdateEditorCam() {
 	p_cam->aspect_ratio = m_state.scene_display_rect.x / m_state.scene_display_rect.y;
 	// Camera movement
 	if (ImGui::IsMouseDown(1)) {
-		glm::vec3 pos = p_transform->GetAbsPosition();
-		glm::vec3 movement_vec{ 0.0, 0.0, 0.0 };
+		lml::vec3 pos = p_transform->GetAbsPosition();
+		lml::vec3 movement_vec{ 0.0, 0.0, 0.0 };
 		float time_elapsed = FrameTiming::GetTimeStep();
 		movement_vec += p_transform->right * static_cast<float>(Window::Get().input.IsKeyDown(Key::D)) * time_elapsed * cam_speed;
 		movement_vec -= p_transform->right * static_cast<float>(Window::Get().input.IsKeyDown(Key::A)) * time_elapsed * cam_speed;
 		movement_vec += p_transform->forward * static_cast<float>(Window::Get().input.IsKeyDown(Key::W)) * time_elapsed * cam_speed;
 		movement_vec -= p_transform->forward * static_cast<float>(Window::Get().input.IsKeyDown(Key::S)) * time_elapsed * cam_speed;
-		movement_vec += glm::vec3(0, 1, 0) * static_cast<float>(Window::Get().input.IsKeyDown(Key::E)) * time_elapsed * cam_speed;
-		movement_vec -= glm::vec3(0, 1, 0) * static_cast<float>(Window::Get().input.IsKeyDown(Key::Q)) * time_elapsed * cam_speed;
+		movement_vec += lml::vec3(0, 1, 0) * static_cast<float>(Window::Get().input.IsKeyDown(Key::E)) * time_elapsed * cam_speed;
+		movement_vec -= lml::vec3(0, 1, 0) * static_cast<float>(Window::Get().input.IsKeyDown(Key::Q)) * time_elapsed * cam_speed;
 
 		if (Window::Get().input.IsKeyDown(Key::Space))
 			movement_vec *= 10.0f;
@@ -669,23 +669,23 @@ void EditorLayer::UpdateEditorCam() {
 	}
 
 	// Camera rotation
-	static glm::vec2 last_mouse_pos;
+	static lml::vec2 last_mouse_pos;
 	if (ImGui::IsMouseClicked(1))
 		last_mouse_pos = Window::Get().input.GetMousePos();
 
 	if (ImGui::IsMouseDown(1)) {
 		float rotation_speed = 0.005f;
-		glm::vec2 mouse_coords = Window::Get().input.GetMousePos();
-		glm::vec2 mouse_delta = -glm::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
+		lml::vec2 mouse_coords = Window::Get().input.GetMousePos();
+		lml::vec2 mouse_delta = -lml::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
 
-		glm::vec3 rot_x = glm::rotate(mouse_delta.x * rotation_speed, glm::vec3(0.0, 1.0, 0.0)) * glm::vec4(p_transform->forward, 0);
-		glm::fvec3 rot_y = glm::rotate(mouse_delta.y * rotation_speed, p_transform->right) * glm::vec4(rot_x, 0);
+		lml::vec3 rot_x = lml::angleAxis(mouse_delta.x * rotation_speed, lml::vec3(0.0, 1.0, 0.0)) * p_transform->forward;
+		lml::vec3 rot_y = lml::angleAxis(mouse_delta.y * rotation_speed, p_transform->right) * rot_x;
 
 
 		if (rot_y.y <= 0.997f && rot_y.y >= -0.997f)
-			p_transform->LookAt(p_transform->GetAbsPosition() + glm::normalize(rot_y));
+			p_transform->LookAt(p_transform->GetAbsPosition() + lml::normalize(rot_y));
 		else
-			p_transform->LookAt(p_transform->GetAbsPosition() + glm::normalize(rot_x));
+			p_transform->LookAt(p_transform->GetAbsPosition() + lml::normalize(rot_x));
 
 
 		Window::SetCursorPos(static_cast<int>(last_mouse_pos.x), static_cast<int>(last_mouse_pos.y));
@@ -729,7 +729,7 @@ void EditorLayer::RenderSceneDisplayPanel() {
 					ent.AddComponent<MeshComponent>(*static_cast<MeshAsset**>(p_mesh_payload->Data));
 					auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 					auto& mesh_aabb = ent.GetComponent<MeshComponent>()->GetMeshData()->m_aabb;
-					ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f));
+					ent.GetComponent<TransformComponent>()->SetAbsolutePosition(p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (lml::max(lml::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f));
 					SelectEntity(ent.GetUUID());
 				}
 			}
@@ -738,10 +738,10 @@ void EditorLayer::RenderSceneDisplayPanel() {
 					Prefab* prefab_data = (*static_cast<Prefab**>(p_prefab_payload->Data));
 					auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefab(*prefab_data) : SCENE->InstantiatePrefab(*prefab_data, false);
 					auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
-					glm::vec3 pos;
+					lml::vec3 pos;
 					if (auto* p_mesh = ent.GetComponent<MeshComponent>()) {
 						auto& mesh_aabb = p_mesh->GetMeshData()->m_aabb;
-						pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (glm::max(glm::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f);
+						pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * (lml::max(lml::max(mesh_aabb.extents.x, mesh_aabb.extents.y), mesh_aabb.extents.z) + 5.f);
 					}
 					else {
 						pos = p_cam_transform->GetAbsPosition() + p_cam_transform->forward * 5.f;
@@ -875,9 +875,9 @@ void EditorLayer::RenderDisplayWindow() {
 	if (ImGui::IsMouseDragging(0) && !ImGui::GetIO().WantCaptureMouse) {
 		glDisable(GL_DEPTH_TEST);
 		m_res.quad_col_shader.ActivateProgram();
-		m_res.quad_col_shader.SetUniform("u_colour", glm::vec4(0, 0, 1, 0.1));
-		glm::vec2 w = { Window::GetWidth(), Window::GetHeight() };
-		Renderer::DrawScaledQuad((glm::vec2(m_state.mouse_drag_data.start.x, Window::GetHeight() - m_state.mouse_drag_data.start.y) / w) * 2.f - 1.f, (glm::vec2(m_state.mouse_drag_data.end.x, Window::GetHeight() - m_state.mouse_drag_data.end.y) / w) * 2.f - 1.f);
+		m_res.quad_col_shader.SetUniform("u_colour", lml::vec4(0, 0, 1, 0.1));
+		lml::vec2 w = { Window::GetWidth(), Window::GetHeight() };
+		Renderer::DrawScaledQuad((lml::vec2(m_state.mouse_drag_data.start.x, Window::GetHeight() - m_state.mouse_drag_data.start.y) / w) * 2.f - 1.f, (lml::vec2(m_state.mouse_drag_data.end.x, Window::GetHeight() - m_state.mouse_drag_data.end.y) / w) * 2.f - 1.f);
 		glEnable(GL_DEPTH_TEST);
 	}
 
@@ -1344,7 +1344,7 @@ bool EditorLayer::MakeProjectActive(const std::string& folder_path) {
 
 		m_state.selected_entity_ids.clear();
 
-		glm::vec3 cam_pos = mp_editor_camera ? mp_editor_camera->GetComponent<TransformComponent>()->GetAbsPosition() : glm::vec3{0, 0, 0};
+		lml::vec3 cam_pos = mp_editor_camera ? mp_editor_camera->GetComponent<TransformComponent>()->GetAbsPosition() : lml::vec3{0, 0, 0};
 		mp_editor_camera = nullptr; // Delete explicitly here to properly remove it from the scene before unloading
 
 		if (SCENE->m_is_loaded)
@@ -1404,8 +1404,8 @@ void EditorLayer::DeserializeProjectFromFile(const std::string &input_path) {
 	}
 
 	auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
-	const auto pos = node["CamPos"].as<glm::vec3>();
-	const auto fwd = node["CamFwd"].as<glm::vec3>();
+	const auto pos = node["CamPos"].as<lml::vec3>();
+	const auto fwd = node["CamFwd"].as<lml::vec3>();
 	p_cam_transform->SetAbsolutePosition(pos);
 	p_cam_transform->LookAt(pos + fwd);
 
@@ -1478,7 +1478,7 @@ void EditorLayer::RenderCreationWidget(SceneEntity* p_entity, bool trigger) {
 
 
 
-glm::vec2 EditorLayer::ConvertFullscreenMouseToDisplayMouse(glm::vec2 mouse_coords) {
+lml::vec2 EditorLayer::ConvertFullscreenMouseToDisplayMouse(lml::vec2 mouse_coords) {
 	// Transform mouse coordinates to full window space for the proper texture coordinates
 	mouse_coords.x *= (static_cast<float>(Window::GetWidth()) / static_cast<float>(Window::GetWidth() - (RIGHT_WINDOW_WIDTH)));
 	mouse_coords.y -= m_res.toolbar_height;
@@ -1499,7 +1499,7 @@ void EditorLayer::DoPickingPass() {
 	for (auto [entity, mesh] : view.each()) {
 		//Split uint64 into two uint32's for texture storage
 		uint64_t full_id = mesh.GetEntityUUID();
-		glm::uvec3 id_vec{ static_cast<uint32_t>(full_id >> 32), static_cast<uint32_t>(full_id), UINT_MAX };
+		lml::uvec3 id_vec{ static_cast<uint32_t>(full_id >> 32), static_cast<uint32_t>(full_id), UINT_MAX };
 
 		m_res.picking_shader.SetUniform("comp_id", id_vec);
 		m_res.picking_shader.SetUniform("transform", mesh.GetEntity()->GetComponent<TransformComponent>()->GetMatrix());
@@ -1507,9 +1507,9 @@ void EditorLayer::DoPickingPass() {
 		Renderer::DrawMeshInstanced(mesh.GetMeshData(), 1);
 	}
 
-	glm::vec2 mouse_coords = glm::min(
-		glm::max(glm::vec2(Window::Get().input.GetMousePos()), glm::vec2(1, 1)),
-		glm::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1)
+	lml::vec2 mouse_coords = lml::min(
+		lml::max(lml::vec2(Window::Get().input.GetMousePos()), lml::vec2(1, 1)),
+		lml::vec2(Window::GetWidth() - 1, Window::GetHeight() - 1)
 	);
 
 	if (!m_state.fullscreen_scene_display) {
@@ -1552,7 +1552,7 @@ void EditorLayer::DoSelectedEntityHighlightPass() {
 
 	glDisable(GL_DEPTH_TEST);
 	m_res.highlight_shader.ActivateProgram();
-	m_res.highlight_shader.SetUniform("u_colour", glm::vec4(0.0, 1, 0, 0));
+	m_res.highlight_shader.SetUniform("u_colour", lml::vec4(0.0, 1, 0, 0));
 
 	for (auto id : m_state.selected_entity_ids) {
 		auto* current_entity = SCENE->GetEntity(id);
@@ -1572,7 +1572,7 @@ void EditorLayer::DoSelectedEntityHighlightPass() {
 
 	for (auto id : m_state.selected_entity_ids) {
 		auto* current_entity = SCENE->GetEntity(id);
-		m_res.highlight_shader.SetUniform("u_colour", glm::vec4(1.0, 0.2, 0, 1));
+		m_res.highlight_shader.SetUniform("u_colour", lml::vec4(1.0, 0.2, 0, 1));
 
 		if (!current_entity || !current_entity->HasComponent<MeshComponent>())
 			continue;
@@ -1696,23 +1696,23 @@ void EditorLayer::InitLua() {
 	m_event_stack.PushEvent(e); \
 
 
-	std::function<void(glm::vec3)> p_translate_func = [this](glm::vec3 v) {
+	std::function<void(lml::vec3)> p_translate_func = [this](lml::vec3 v) {
 		TRANSFORM_LUA_SKELETON(p_transform->SetPosition(p_transform->GetPosition() + v))
 		};
 
-	std::function<void(glm::vec3)> p_scale_func = [this](glm::vec3 v) {
+	std::function<void(lml::vec3)> p_scale_func = [this](lml::vec3 v) {
 		TRANSFORM_LUA_SKELETON(p_transform->SetScale(p_transform->GetScale() * v))
 		};
 
-	std::function<void(glm::vec3, float)> p_rot_func = [this](glm::vec3 axis, float angle_degrees) {
-		TRANSFORM_LUA_SKELETON(p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation()))))))
+	std::function<void(lml::vec3, float)> p_rot_func = [this](lml::vec3 axis, float angle_degrees) {
+		TRANSFORM_LUA_SKELETON(p_transform->SetOrientation(lml::degrees(lml::eulerAngles(lml::angleAxis(lml::radians(angle_degrees), axis) * lml::quat(lml::radians(p_transform->GetOrientation()))))))
 		};
 
-	std::function<void(glm::vec3)> p_move_to_func = [this](glm::vec3 pos) {
+	std::function<void(lml::vec3)> p_move_to_func = [this](lml::vec3 pos) {
 		TRANSFORM_LUA_SKELETON(p_transform->SetAbsolutePosition(pos))
 		};
 
-	std::function<void(glm::vec3)> p_cam_move_to_func = [this](glm::vec3 pos) {
+	std::function<void(lml::vec3)> p_cam_move_to_func = [this](lml::vec3 pos) {
 		mp_editor_camera->GetComponent<TransformComponent>()->SetPosition(pos);
 		};
 
@@ -1725,12 +1725,12 @@ void EditorLayer::InitLua() {
 		};
 
 
-	std::function<void(glm::vec3, float, glm::vec3)> p_rot_about_point_func = [this](glm::vec3 axis, float angle_degrees, glm::vec3 pivot) {
+	std::function<void(lml::vec3, float, lml::vec3)> p_rot_about_point_func = [this](lml::vec3 axis, float angle_degrees, lml::vec3 pivot) {
 		TRANSFORM_LUA_SKELETON(
-			glm::quat q = glm::angleAxis(glm::radians(angle_degrees), axis);
-			glm::vec3 offset_pos = p_transform->GetAbsPosition() - pivot;
+			lml::quat q = lml::angleAxis(lml::radians(angle_degrees), axis);
+			lml::vec3 offset_pos = p_transform->GetAbsPosition() - pivot;
 			p_transform->SetAbsolutePosition(q * offset_pos + pivot);
-			p_transform->SetOrientation(glm::degrees(glm::eulerAngles(glm::angleAxis(glm::radians(angle_degrees), axis) * glm::quat(glm::radians(p_transform->GetOrientation())))))
+			p_transform->SetOrientation(lml::degrees(lml::eulerAngles(lml::angleAxis(lml::radians(angle_degrees), axis) * lml::quat(lml::radians(p_transform->GetOrientation())))))
 			)
 		};
 
@@ -1950,8 +1950,8 @@ void EditorLayer::RenderSceneGraph() {
 		if (node_selection_active) {
 			auto start_pos = ImGui::GetIO().MouseClickedPos[2];
 			auto end_pos = ImGui::GetIO().MousePos;
-			node_selection_box.min = glm::vec2(glm::min(start_pos.x, end_pos.x), glm::min(start_pos.y, end_pos.y));
-			node_selection_box.max = glm::vec2(glm::max(start_pos.x, end_pos.x), glm::max(start_pos.y, end_pos.y));
+			node_selection_box.min = lml::vec2(lml::min(start_pos.x, end_pos.x), lml::min(start_pos.y, end_pos.y));
+			node_selection_box.max = lml::vec2(lml::max(start_pos.x, end_pos.x), lml::max(start_pos.y, end_pos.y));
 
 			ImGui::SetNextWindowPos({ node_selection_box.min.x, node_selection_box.min.y });
 			ImGui::SetNextWindowSize({ node_selection_box.max.x - node_selection_box.min.x, node_selection_box.max.y - node_selection_box.min.y });
@@ -2069,9 +2069,9 @@ void EditorLayer::DisplayEntityEditor() {
 		RenderCompEditor<ParticleEmitterComponent>(entity, "Particle emitter component", [this](ParticleEmitterComponent* p_comp) { RenderParticleEmitterComponentEditor(p_comp); });
 		RenderCompEditor<ParticleBufferComponent>(entity, "Particle buffer component", [this](ParticleBufferComponent* p_comp) { RenderParticleBufferComponentEditor(p_comp); });
 
-		glm::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
-		glm::vec2 button_size = { 200, 50 };
-		glm::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
+		lml::vec2 window_size = { ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
+		lml::vec2 button_size = { 200, 50 };
+		lml::vec2 padding_size = { (window_size.x / 2.f) - button_size.x / 2.f, 50.f };
 		ImGui::Dummy(ImVec2(padding_size.x, padding_size.y));
 	}
 
@@ -2433,9 +2433,9 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 		transforms[0]->SetAbsoluteMode(absolute_mode);
 	}
 
-	glm::vec3 matrix_translation = transforms[0]->m_pos;
-	glm::vec3 matrix_rotation = transforms[0]->GetOrientation();
-	glm::vec3 matrix_scale = transforms[0]->m_scale;
+	lml::vec3 matrix_translation = transforms[0]->m_pos;
+	lml::vec3 matrix_rotation = transforms[0]->GetOrientation();
+	lml::vec3 matrix_scale = transforms[0]->m_scale;
 
 	// UI section
 	if (ExtraUI::ShowVec3Editor("T", matrix_translation))
@@ -2461,16 +2461,16 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 	if (m_state.selection_mode != SelectionMode::ENTITY)
 		return;
 
-	glm::mat4 current_operation_matrix = transforms[0]->GetMatrix();
+	lml::mat4 current_operation_matrix = transforms[0]->GetMatrix();
 
 	CameraComponent* p_cam = SCENE->GetSystem<CameraSystem>().GetActiveCamera();
 	auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-	glm::vec3 cam_pos = p_cam_transform->GetAbsPosition();
-	glm::mat4 view_mat = glm::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
+	lml::vec3 cam_pos = p_cam_transform->GetAbsPosition();
+	lml::mat4 view_mat = lml::lookAt(cam_pos, cam_pos + p_cam_transform->forward, p_cam_transform->up);
 
-	glm::mat4 delta_matrix;
+	lml::mat4 delta_matrix;
 	ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-	static glm::vec3 snap = glm::vec3(0.01f);
+	static lml::vec3 snap = lml::vec3(0.01f);
 
 	static bool is_using = false;
 	static bool mouse_down = false;
@@ -2489,13 +2489,13 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 		ImGuizmo::DecomposeMatrixToComponents(&delta_matrix[0][0], &matrix_translation[0], &matrix_rotation[0], &matrix_scale[0]);
 
 		// The origin of the transform (rotate about this point)
-		glm::vec3 base_abs_translation = transforms[0]->GetAbsPosition();
+		lml::vec3 base_abs_translation = transforms[0]->GetAbsPosition();
 
-		glm::vec3 delta_translation = matrix_translation;
-		glm::vec3 delta_scale = matrix_scale;
-		glm::vec3 delta_rotation = matrix_rotation;
+		lml::vec3 delta_translation = matrix_translation;
+		lml::vec3 delta_scale = matrix_scale;
+		lml::vec3 delta_rotation = matrix_rotation;
 
-		static std::vector<glm::vec3> scale_dividers;
+		static std::vector<lml::vec3> scale_dividers;
 
 		for (auto* p_transform : transforms) {
 			switch (m_state.current_gizmo_operation) {
@@ -2508,23 +2508,23 @@ void EditorLayer::RenderTransformComponentEditor(std::vector<TransformComponent*
 			case ImGuizmo::ROTATE: {
 				// This will rotate multiple objects as one, using entity transform at m_state.selected_entity_ids[0] as origin
 				if (auto* p_parent_transform = p_transform->GetParent()) {
-					glm::vec3 s = p_parent_transform->GetAbsScale();
-					glm::mat4 rot = glm::mat4(glm::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)));
+					lml::vec3 s = p_parent_transform->GetAbsScale();
+					lml::mat4 rot = lml::mat4(lml::inverse(ExtraMath::Init3DScaleTransform(s.x, s.y, s.z)));
 					rot[3][3] = 1.0;
 
-					glm::mat3 to_parent_space = p_parent_transform->GetMatrix() * rot;
-					glm::vec3 local_rot = glm::inverse(to_parent_space) * glm::vec4(delta_rotation, 0.0);
-					glm::vec3 total = glm::eulerAngles(glm::quat(glm::radians(local_rot)) * p_transform->m_orientation);
-					p_transform->SetOrientation(glm::degrees(total));
+					lml::mat3 to_parent_space = p_parent_transform->GetMatrix() * rot;
+					lml::vec3 local_rot = lml::inverse(to_parent_space) * delta_rotation;
+					lml::vec3 total = lml::eulerAngles(lml::quat(lml::radians(local_rot)) * p_transform->m_orientation);
+					p_transform->SetOrientation(lml::degrees(total));
 				}
 				else {
-					auto orientation = glm::degrees(glm::eulerAngles(glm::quat(glm::radians(delta_rotation)) * p_transform->m_orientation));
+					auto orientation = lml::degrees(lml::eulerAngles(lml::quat(lml::radians(delta_rotation)) * p_transform->m_orientation));
 					p_transform->SetOrientation(orientation.x, orientation.y, orientation.z);
 				}
 
-				glm::vec3 abs_translation = p_transform->GetAbsPosition();
-				glm::vec3 transformed_pos = abs_translation - base_abs_translation;
-				glm::vec3 rotation_offset = glm::mat3(ExtraMath::Init3DRotateTransform(delta_rotation.x, delta_rotation.y, delta_rotation.z)) * transformed_pos; // rotate around transformed origin
+				lml::vec3 abs_translation = p_transform->GetAbsPosition();
+				lml::vec3 transformed_pos = abs_translation - base_abs_translation;
+				lml::vec3 rotation_offset = lml::mat3(ExtraMath::Init3DRotateTransform(delta_rotation.x, delta_rotation.y, delta_rotation.z)) * transformed_pos; // rotate around transformed origin
 				p_transform->SetAbsolutePosition(base_abs_translation + rotation_offset);
 				break;
 			}
@@ -2634,7 +2634,7 @@ void EditorLayer::RenderMeshComponentEditor(MeshComponent* comp) {
 
 
 void EditorLayer::RenderSpotlightEditor(SpotLightComponent* light) {
-	float aperture = glm::degrees(acosf(light->m_aperture));
+	float aperture = lml::degrees(acosf(light->m_aperture));
 
 	ImGui::PushItemWidth(200.f);
 	ImGui::SliderFloat("constant", &light->attenuation.constant, 0.0f, 1.0f);
@@ -2692,8 +2692,8 @@ void EditorLayer::RenderDirectionalLightEditor() {
 	if (ExtraUI::H1TreeNode("Directional light")) {
 		ImGui::Text("DIR LIGHT CONTROLS");
 
-		static glm::vec3 light_dir = SCENE->directional_light.m_light_direction;
-		static glm::vec3 light_colour = SCENE->directional_light.colour;
+		static lml::vec3 light_dir = SCENE->directional_light.m_light_direction;
+		static lml::vec3 light_colour = SCENE->directional_light.colour;
 
 		ImGui::SliderFloat("X", &light_dir.x, -1.f, 1.f);
 		ImGui::SliderFloat("Y", &light_dir.y, -1.f, 1.f);
@@ -2714,7 +2714,7 @@ void EditorLayer::RenderDirectionalLightEditor() {
 
 		ImGui::Checkbox("Shadows", &SCENE->directional_light.shadows_enabled);
 
-		SCENE->directional_light.colour = glm::vec3(light_colour.x, light_colour.y, light_colour.z);
+		SCENE->directional_light.colour = lml::vec3(light_colour.x, light_colour.y, light_colour.z);
 		SCENE->directional_light.SetLightDirection(light_dir);
 	}
 }

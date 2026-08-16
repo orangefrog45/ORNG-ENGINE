@@ -104,7 +104,7 @@ namespace ORNG {
 	void EditorEventStack::PushEvent(const EditorEntityEvent& e) {
 
 		if (m_active_index != 0)
-			m_events.erase(m_events.begin(), m_events.begin() + glm::max(m_active_index, 0));
+			m_events.erase(m_events.begin(), m_events.begin() + lml::max(m_active_index, 0));
 
 		m_events.push_front(e);
 

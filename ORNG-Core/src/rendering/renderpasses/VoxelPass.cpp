@@ -115,7 +115,7 @@
 //
 // void VoxelPass::DoPass() {
 // 	const unsigned active_cascade_idx = FrameTiming::GetFrameCount() % 2;
-// 	const glm::vec3 cam_pos = mp_scene->GetSystem<CameraSystem>().GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
+// 	const lml::vec3 cam_pos = mp_scene->GetSystem<CameraSystem>().GetActiveCamera()->GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
 //
 // 	switch (active_cascade_idx) {
 // 	case 0:
@@ -165,17 +165,17 @@
 // 	m_scene_voxelization_shader.SetUniform("u_voxel_size", voxel_size);
 // 	m_scene_voxelization_shader.SetUniform("u_cascade_idx", active_cascade_idx);
 //
-// 	const glm::mat4 proj = glm::ortho(
+// 	const lml::mat4 proj = lml::ortho(
 // 		-half_cascade_width * voxel_size, half_cascade_width * voxel_size,
 // 		-half_cascade_width * voxel_size, half_cascade_width * voxel_size,
 // 		voxel_size,
 // 		static_cast<float>(cascade_width) * voxel_size
 // 	);
 //
-// 	std::array<glm::mat4, 3> matrices = {
-// 		glm::lookAt(cam_pos + glm::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}),
-// 		glm::lookAt(cam_pos + glm::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}),
-// 		glm::lookAt(cam_pos + glm::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0})
+// 	std::array<lml::mat4, 3> matrices = {
+// 		lml::lookAt(cam_pos + lml::vec3(half_cascade_width * voxel_size, 0, 0), cam_pos, {0, 1, 0}),
+// 		lml::lookAt(cam_pos + lml::vec3(0, half_cascade_width * voxel_size, 0), cam_pos, {0, 0, 1}),
+// 		lml::lookAt(cam_pos + lml::vec3(0, 0, half_cascade_width * voxel_size), cam_pos, {0, 1, 0})
 // 	};
 //
 // 	// Draw scene into voxel textures
@@ -216,7 +216,7 @@
 // 		m_3d_mipmap_shader.SetUniform("u_mip_level", i);
 // 		glBindImageTexture(0, cascade_mips.GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 //
-// 		int group_dim = (int)glm::ceil((cascade_width / voxel_mip_ratio / (i + 1)) / 4.f);
+// 		int group_dim = (int)lml::ceil((cascade_width / voxel_mip_ratio / (i + 1)) / 4.f);
 // 		GL_StateManager::DispatchCompute(group_dim, group_dim, group_dim);
 // 		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 // 	}
@@ -227,7 +227,7 @@
 // }
 //
 // void VoxelPass::AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex,
-// 	glm::ivec3 delta_tex_coords, unsigned tex_size) {
+// 	lml::ivec3 delta_tex_coords, unsigned tex_size) {
 // 	glClearTexImage(intermediate_copy_tex.GetTextureHandle(), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 // 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 //
@@ -246,21 +246,21 @@
 // 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 // }
 //
-// std::tuple<bool, glm::vec3, glm::vec3> VoxelPass::UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos,
-// 	glm::vec3 voxel_aligned_cam_pos) {
-// 	auto new_pos = glm::roundMultiple(unaligned_cam_pos, glm::vec3(alignment));
-// 	glm::bvec3 res = glm::epsilonEqual(new_pos, voxel_aligned_cam_pos, 0.015f);
-// 	bool aligned_pos_moved = !glm::all(res);
+// std::tuple<bool, lml::vec3, lml::vec3> VoxelPass::UpdateVoxelAlignedCameraPos(float alignment, lml::vec3 unaligned_cam_pos,
+// 	lml::vec3 voxel_aligned_cam_pos) {
+// 	auto new_pos = lml::roundMultiple(unaligned_cam_pos, lml::vec3(alignment));
+// 	lml::bvec3 res = lml::epsilonEqual(new_pos, voxel_aligned_cam_pos, 0.015f);
+// 	bool aligned_pos_moved = !lml::all(res);
 //
 // 	// Camera update will have shifted texture by 64 voxels as the camera position is rounded to 64 voxels (this aligns it with the highest mip to remove artifacts)
 // 	if (aligned_pos_moved) {
-// 		glm::ivec3 delta_tex_coords = glm::ivec3((unsigned)(!res.x) * 64, (unsigned)(!res.y) * 64, (unsigned)(!res.z) * 64)
-// 			* glm::ivec3(new_pos.x < voxel_aligned_cam_pos.x ? -1 : 1, new_pos.y < voxel_aligned_cam_pos.y ? -1 : 1, new_pos.z < voxel_aligned_cam_pos.z ? -1 : 1);
+// 		lml::ivec3 delta_tex_coords = lml::ivec3((unsigned)(!res.x) * 64, (unsigned)(!res.y) * 64, (unsigned)(!res.z) * 64)
+// 			* lml::ivec3(new_pos.x < voxel_aligned_cam_pos.x ? -1 : 1, new_pos.y < voxel_aligned_cam_pos.y ? -1 : 1, new_pos.z < voxel_aligned_cam_pos.z ? -1 : 1);
 //
 //
 // 		return std::make_tuple(aligned_pos_moved, new_pos, delta_tex_coords);
 // 	}
 //
-// 	return std::make_tuple(aligned_pos_moved, new_pos, glm::vec3{ 0, 0, 0 });
+// 	return std::make_tuple(aligned_pos_moved, new_pos, lml::vec3{ 0, 0, 0 });
 // }
 //

@@ -14,13 +14,13 @@ namespace ORNG {
 
 		void DoPass() override;
 
-		std::tuple<bool, glm::vec3, glm::vec3> UpdateVoxelAlignedCameraPos(float alignment, glm::vec3 unaligned_cam_pos, glm::vec3 voxel_aligned_cam_pos);
+		std::tuple<bool, lml::vec3, lml::vec3> UpdateVoxelAlignedCameraPos(float alignment, lml::vec3 unaligned_cam_pos, lml::vec3 voxel_aligned_cam_pos);
 	private:
-		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, glm::ivec3 delta_tex_coords, unsigned tex_size);
+		void AdjustVoxelGridForCameraMovement(Texture3D& voxel_luminance_tex, Texture3D& intermediate_copy_tex, lml::ivec3 delta_tex_coords, unsigned tex_size);
 
-		std::array<glm::vec3, 2> m_voxel_aligned_cam_positions;
+		std::array<lml::vec3, 2> m_voxel_aligned_cam_positions;
 
-		glm::ivec2 m_render_dimensions{ 0, 0 };
+		lml::ivec2 m_render_dimensions{ 0, 0 };
 
 		Texture3D m_scene_voxel_tex_c0{ "scene voxel tex cascade 0" };
 		Texture3D m_scene_voxel_tex_c0_normals{ "scene voxel tex normals cascade 0" };

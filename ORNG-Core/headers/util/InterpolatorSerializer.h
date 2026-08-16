@@ -39,9 +39,9 @@ namespace ORNG {
 
 			for (auto point : point_node) {
 				if constexpr (std::is_same_v<T, InterpolatorV3>)
-					interpolator.points.push_back(point.as<glm::vec4>());
+					interpolator.points.push_back(point.as<lml::vec4>());
 				else
-					interpolator.points.push_back(point.as<glm::vec2>());
+					interpolator.points.push_back(point.as<lml::vec2>());
 			}
 
 			interpolator.scale = interpolator_node["Scale"].as<float>();

@@ -24,8 +24,8 @@ void Window::ISetWindowDimensions(int width, int height) {
 
 	Events::WindowEvent window_event;
 	window_event.event_type = Events::WindowEvent::WINDOW_RESIZE;
-	window_event.old_window_size = glm::vec2(m_window_width, m_window_height);
-	window_event.new_window_size = glm::vec2(width, height);
+	window_event.old_window_size = lml::vec2(m_window_width, m_window_height);
+	window_event.new_window_size = lml::vec2(width, height);
 	m_window_width = width;
 	m_window_height = height;
 
@@ -51,12 +51,12 @@ static void key_callback([[maybe_unused]] GLFWwindow* window, int key, [[maybe_u
 	}
 }
 
-static glm::ivec2 gs_mouse_coords;
+static lml::ivec2 gs_mouse_coords;
 
 static void MouseButtonCallback(GLFWwindow* window, int button, int action, [[maybe_unused]] int mods) {
 	double posx, posy;
 	glfwGetCursorPos(window, &posx, &posy);
-	Events::MouseEvent e_event{ static_cast<MouseAction>(action), static_cast<MouseButton>(button), glm::ivec2(floor(posx), floor(posy)), gs_mouse_coords };
+	Events::MouseEvent e_event{ static_cast<MouseAction>(action), static_cast<MouseButton>(button), lml::ivec2(floor(posx), floor(posy)), gs_mouse_coords };
 
 	Events::EventManager::DispatchEvent(e_event);
 
@@ -64,7 +64,7 @@ static void MouseButtonCallback(GLFWwindow* window, int button, int action, [[ma
 }
 
 static void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double xPos, double yPos) {
-	Events::MouseEvent e_event{ MOVE, MouseButton::NONE, glm::ivec2(floor(xPos), floor(yPos)), gs_mouse_coords };
+	Events::MouseEvent e_event{ MOVE, MouseButton::NONE, lml::ivec2(floor(xPos), floor(yPos)), gs_mouse_coords };
 
 	Events::EventManager::DispatchEvent(e_event);
 
@@ -95,7 +95,7 @@ void Window::SetCursorVisible(bool visible) {
 	glfwSetInputMode(Get().p_window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
 }
 
-void Window::I_Init(glm::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized) {
+void Window::I_Init(lml::ivec2 initial_dimensions, const char* name, int initial_window_display_monitor_idx, bool iconified, bool decorated, bool maximized) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

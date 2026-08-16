@@ -24,8 +24,8 @@
 
 
 struct DragData {
-	glm::ivec2 start{ 0, 0 };
-	glm::ivec2 end{0, 0};
+	lml::ivec2 start{ 0, 0 };
+	lml::ivec2 end{0, 0};
 };
 
 #define SCENE (*mp_scene_context)
@@ -241,7 +241,7 @@ namespace ORNG {
 
 		void UpdateEditorCam(); // Movement
 
-		glm::vec2 ConvertFullscreenMouseToDisplayMouse(glm::vec2 mouse_coords);
+		lml::vec2 ConvertFullscreenMouseToDisplayMouse(lml::vec2 mouse_coords);
 
 		/*
 			State/resources
@@ -334,7 +334,7 @@ namespace ORNG {
 			static constexpr ImVec4 lightest_grey_color = ImVec4(0.3f, 0.3f, 0.3f, opacity);
 			static constexpr ImVec4 blue_col = ImVec4(0, 100, 255, 1);
 			static constexpr int toolbar_height = 40;
-			glm::vec2 file_explorer_window_size = { 750, 750 };
+			lml::vec2 file_explorer_window_size = { 750, 750 };
 		};
 
 		EditorState m_state;

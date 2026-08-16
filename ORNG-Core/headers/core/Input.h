@@ -93,7 +93,7 @@ namespace ORNG {
 	public:
 		struct ScrollData {
 			bool active = false;
-			glm::vec2 offset = { 0, 0 };
+			lml::vec2 offset = { 0, 0 };
 		};
 
 		ScrollData GetScrollState() {
@@ -142,7 +142,7 @@ namespace ORNG {
 			return m_mouse_states[static_cast<MouseButton>(btn)] == InputType::PRESS;
 		}
 
-		glm::ivec2 GetMousePos() {
+		lml::ivec2 GetMousePos() {
 			return m_mouse_position;
 		}
 
@@ -162,7 +162,7 @@ namespace ORNG {
 			Events::EventManager::RegisterListener(m_mouse_listener);
 		}
 
-		glm::vec2 GetMouseDelta() {
+		lml::vec2 GetMouseDelta() {
 			return m_mouse_position - m_last_mouse_position;
 		}
 
@@ -186,8 +186,8 @@ namespace ORNG {
 	private:
 		ScrollData m_scroll_data;
 
-		glm::ivec2 m_mouse_position{ 0, 0 };
-		glm::ivec2 m_last_mouse_position{ 0, 0 };
+		lml::ivec2 m_mouse_position{ 0, 0 };
+		lml::ivec2 m_last_mouse_position{ 0, 0 };
 
 		std::unordered_map<Key, InputType> m_key_states;
 		std::unordered_map<MouseButton, InputType> m_mouse_states;

@@ -12,9 +12,9 @@ namespace ORNG {
 
 	struct AABB : public BoundingVolume {
 		AABB() = default;
-		AABB(glm::vec3 _extents) : extents(_extents) { }
-		glm::vec3 extents = { 0.f, 0.f, 0.f };
-		glm::vec3 center = { 0.f, 0.f, 0.f };
+		AABB(lml::vec3 _extents) : extents(_extents) { }
+		lml::vec3 extents = { 0.f, 0.f, 0.f };
+		lml::vec3 center = { 0.f, 0.f, 0.f };
 
 		/* Will return true if the box is on or in front of the plane */
 		static bool TestAABBPlane(const AABB& box, const ExtraMath::Plane& p) {
@@ -23,7 +23,7 @@ namespace ORNG {
 			return -radius <= p.GetSignedDistanceToPlane(box.center);
 		}
 
-		static bool AABBPointIntersectionTest(const AABB& box, glm::vec3 point) {
+		static bool AABBPointIntersectionTest(const AABB& box, lml::vec3 point) {
 			auto min = box.center - box.extents;
 			auto max = box.center + box.extents;
 			return (

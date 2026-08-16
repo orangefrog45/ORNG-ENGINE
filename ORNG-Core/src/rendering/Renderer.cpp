@@ -32,7 +32,7 @@ void Renderer::IDrawQuad() const {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void Renderer::IDrawScaledQuad(glm::vec2 min, glm::vec2 max) {
+void Renderer::IDrawScaledQuad(lml::vec2 min, lml::vec2 max) {
 	glDisable(GL_CULL_FACE);
 	mp_quad->SetVertices(min, max);
 	GL_StateManager::BindVAO(mp_quad->m_vao->GetHandle());

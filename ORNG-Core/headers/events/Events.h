@@ -56,19 +56,19 @@ namespace ORNG::Events {
 			WINDOW_RESIZE,
 		} event_type;
 
-		glm::ivec2 old_window_size;
-		glm::ivec2 new_window_size;
+		lml::ivec2 old_window_size;
+		lml::ivec2 new_window_size;
 	};
 
 
 	struct MouseEvent : public Event {
-		MouseEvent(MouseAction _action, MouseButton _button, glm::ivec2 _new_cursor_pos, glm::ivec2 _old_cursor_pos) :
+		MouseEvent(MouseAction _action, MouseButton _button, lml::ivec2 _new_cursor_pos, lml::ivec2 _old_cursor_pos) :
 			mouse_action(_action), mouse_button(_button), mouse_pos_new(_new_cursor_pos), mouse_pos_old(_old_cursor_pos) {}
 
 		MouseAction mouse_action;
 		MouseButton mouse_button;
-		glm::ivec2 mouse_pos_new;
-		glm::ivec2 mouse_pos_old;
+		lml::ivec2 mouse_pos_new;
+		lml::ivec2 mouse_pos_old;
 	};
 
 

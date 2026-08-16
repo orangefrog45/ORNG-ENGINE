@@ -4,14 +4,14 @@
 #include "components/TransformComponent.h"
 
 namespace ORNG {
-	void GridMesh::CheckBoundary(glm::vec3 camera_pos) {
+	void GridMesh::CheckBoundary(lml::vec3 camera_pos) {
 		auto& transforms = m_transform_ssbo.data;
 		transforms.clear();
 
 		if (abs(camera_pos.x - m_center.x) > grid_width / 5.f || abs(camera_pos.z - m_center.y) > grid_width / 5.f) {
 
-			float rounded_z = glm::round(camera_pos.z / 100.f) * 100.f;
-			float rounded_x = glm::round(camera_pos.x / 100.f) * 100.f;
+			float rounded_z = lml::round(camera_pos.z / 100.f) * 100.f;
+			float rounded_x = lml::round(camera_pos.x / 100.f) * 100.f;
 			m_center.x = rounded_x;
 			m_center.y = rounded_z;
 

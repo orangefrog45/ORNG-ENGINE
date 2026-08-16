@@ -31,15 +31,15 @@ namespace ORNG {
 		m_spotlight_depth_tex.SetSpec(spotlight_depth_spec);
 	}
 
-	static glm::mat4 CalculateLightSpaceTransform(SpotLightComponent& light) {
+	static lml::mat4 CalculateLightSpaceTransform(SpotLightComponent& light) {
 		float z_near = 0.01f;
 		float z_far = light.shadow_distance;
-		glm::mat4 light_perspective = glm::perspective(glm::degrees(acosf(light.GetAperture())), 1.0f, z_near, z_far);
-		glm::vec3 pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
-		glm::vec3 light_dir = light.GetEntity()->GetComponent<TransformComponent>()->forward;
-		glm::mat4 spot_light_view = glm::lookAt(pos, pos + light_dir, glm::vec3(0.0f, 1.0f, 0.0f));
+		lml::mat4 light_perspective = lml::perspective(lml::degrees(acosf(light.GetAperture())), 1.0f, z_near, z_far);
+		lml::vec3 pos = light.GetEntity()->GetComponent<TransformComponent>()->GetAbsPosition();
+		lml::vec3 light_dir = light.GetEntity()->GetComponent<TransformComponent>()->forward;
+		lml::mat4 spot_light_view = lml::lookAt(pos, pos + light_dir, lml::vec3(0.0f, 1.0f, 0.0f));
 
-		return glm::mat4(light_perspective * spot_light_view);
+		return lml::mat4(light_perspective * spot_light_view);
 	}
 
 	void SpotlightSystem::WriteLightToVector(std::vector<float>& output_vec, SpotLightComponent& light, size_t& index) {
@@ -61,7 +61,7 @@ namespace ORNG {
 		output_vec[index++] = dir.z;
 		output_vec[index++] = 0; // padding
 		//48 - END DIR, START LIGHT TRANSFORM MAT
-		glm::mat4 mat = CalculateLightSpaceTransform(light);
+		lml::mat4 mat = CalculateLightSpaceTransform(light);
 		light.m_light_transform_matrix = mat;
 		output_vec[index++] = mat[0][0];
 		output_vec[index++] = mat[0][1];

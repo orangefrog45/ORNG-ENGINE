@@ -63,7 +63,7 @@ void LightingPass::Init() {
 };
 
 inline int Groups(int size, int group_size) {
-	return static_cast<int>(glm::ceil(static_cast<float>(size) / static_cast<float>(group_size)));
+	return static_cast<int>(lml::ceil(static_cast<float>(size) / static_cast<float>(group_size)));
 }
 
 void LightingPass::DoPass() {

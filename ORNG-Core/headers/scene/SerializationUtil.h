@@ -12,8 +12,8 @@
 
 namespace YAML {
     template<>
-    struct convert<glm::vec3> {
-        static Node encode(const glm::vec3& rhs) {
+    struct convert<lml::vec3> {
+        static Node encode(const lml::vec3& rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -21,7 +21,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, glm::vec3& rhs) {
+        static bool decode(const Node& node, lml::vec3& rhs) {
             if (!node.IsSequence() || node.size() != 3) {
                 return false;
             }
@@ -34,8 +34,8 @@ namespace YAML {
     };
 
     template<>
-    struct convert<glm::ivec3> {
-        static Node encode(const glm::ivec3& rhs) {
+    struct convert<lml::ivec3> {
+        static Node encode(const lml::ivec3& rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -43,7 +43,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, glm::ivec3& rhs) {
+        static bool decode(const Node& node, lml::ivec3& rhs) {
             if (!node.IsSequence() || node.size() != 3) {
                 return false;
             }
@@ -56,8 +56,8 @@ namespace YAML {
     };
 
     template<>
-    struct convert<glm::vec4> {
-        static Node encode(const glm::vec4& rhs) {
+    struct convert<lml::vec4> {
+        static Node encode(const lml::vec4& rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -66,7 +66,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, glm::vec4& rhs) {
+        static bool decode(const Node& node, lml::vec4& rhs) {
             if (!node.IsSequence() || node.size() != 4) {
                 return false;
             }
@@ -80,15 +80,15 @@ namespace YAML {
     };
 
     template<>
-    struct convert<glm::vec2> {
-        static Node encode(const glm::vec2& rhs) {
+    struct convert<lml::vec2> {
+        static Node encode(const lml::vec2& rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
             return node;
         }
 
-        static bool decode(const Node& node, glm::vec2& rhs) {
+        static bool decode(const Node& node, lml::vec2& rhs) {
             if (!node.IsSequence() || node.size() != 2) {
                 return false;
             }
@@ -100,25 +100,25 @@ namespace YAML {
     };
 }
 
-inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::vec3& v) {
     out << YAML::Flow;
     out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
     return out;
 }
 
-inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::ivec3& v) {
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::ivec3& v) {
     out << YAML::Flow;
     out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
     return out;
 }
 
-inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4 v) {
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::vec4 v) {
     out << YAML::Flow;
     out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
     return out;
 }
 
-inline YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec2 v) {
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::vec2 v) {
     out << YAML::Flow;
     out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
     return out;

@@ -100,7 +100,7 @@ void TransparencyPass::DoPass() {
 	glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR); // revealage blend target
 	glBlendEquation(GL_FUNC_ADD);
 
-	static auto filler_0 = glm::vec4(0); static auto filler_1 = glm::vec4(1);
+	static auto filler_0 = lml::vec4(0); static auto filler_1 = lml::vec4(1);
 	glClearBufferfv(GL_COLOR, 0, &filler_0[0]);
 	glClearBufferfv(GL_COLOR, 1, &filler_1[0]);
 

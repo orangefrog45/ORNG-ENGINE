@@ -21,7 +21,7 @@ namespace ORNG {
 
         // Sets matrices that will be used in the common scene UBO, should be updated each frame if rendering in VR
         // If none are provided, the normal camera matrices will be used for both eyes, which will look very wrong
-        void SetMatrices(unsigned eye_idx, const glm::mat4& view, const glm::mat4& proj) {
+        void SetMatrices(unsigned eye_idx, const lml::mat4& view, const lml::mat4& proj) {
             m_matrices[eye_idx].first = view;
             m_matrices[eye_idx].second = proj;
             m_use_matrices = true;
@@ -35,7 +35,7 @@ namespace ORNG {
             return m_vr;
         }
 
-        [[nodiscard]] const std::pair<glm::mat4, glm::mat4>& GetEyeMatrices(unsigned eye_idx) const noexcept {
+        [[nodiscard]] const std::pair<lml::mat4, lml::mat4>& GetEyeMatrices(unsigned eye_idx) const noexcept {
             ASSERT(eye_idx < 2);
             return m_matrices[eye_idx];
         }
@@ -52,6 +52,6 @@ namespace ORNG {
         // pair.second = projection matrix
         // [0] = left eye
         // [1] = right eye
-        std::array<std::pair<glm::mat4, glm::mat4>, 2> m_matrices;
+        std::array<std::pair<lml::mat4, lml::mat4>, 2> m_matrices;
     };
 }

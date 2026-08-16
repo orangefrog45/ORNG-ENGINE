@@ -89,7 +89,7 @@ m_flags(flags), m_is_mutable(is_mutable) {  };
 
 	void BufferBase::Resize(size_t size_bytes) {
 		GLuint buf = GL_StateManager::GenBuffer();
-		size_bytes = glm::max(size_bytes, size_t{8});
+		size_bytes = lml::max(size_bytes, size_t{8});
 
 		if (m_is_mutable)
 			glNamedBufferData(buf, size_bytes, nullptr, draw_type);
@@ -129,7 +129,7 @@ m_flags(flags), m_is_mutable(is_mutable) {  };
 		if (m_is_mutable)
 			glNamedBufferData(buf, buffer_size - static_cast<int>(erase_size), nullptr, draw_type);
 		else
-			glNamedBufferStorage(buf, glm::max(static_cast<int>(erase_size), 64), nullptr, m_flags);
+			glNamedBufferStorage(buf, lml::max(static_cast<int>(erase_size), 64), nullptr, m_flags);
 
 
 		glCopyNamedBufferSubData(m_ogl_handle, buf, 0, 0, start);

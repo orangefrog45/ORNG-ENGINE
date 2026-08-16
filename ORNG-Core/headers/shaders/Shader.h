@@ -75,31 +75,31 @@ namespace ORNG {
 			else if constexpr (std::is_same<T, int>::value || std::is_same<T, bool>::value) {
 				glUniform1i(m_uniforms[name], value);
 			}
-			else if constexpr (std::is_same<T, glm::vec3>::value) {
+			else if constexpr (std::is_same<T, lml::vec3>::value) {
 				glUniform3f(m_uniforms[name], value.x, value.y, value.z);
 			}
-			else if constexpr (std::is_same<T, glm::vec2>::value) {
+			else if constexpr (std::is_same<T, lml::vec2>::value) {
 				glUniform2f(m_uniforms[name], value.x, value.y);
 			}
-			else if constexpr (std::is_same<T, glm::mat4>::value) {
+			else if constexpr (std::is_same<T, lml::mat4>::value) {
 				glUniformMatrix4fv(m_uniforms[name], 1, GL_FALSE, &value[0][0]);
 			}
-			else if constexpr (std::is_same<T, glm::mat3>::value) {
+			else if constexpr (std::is_same<T, lml::mat3>::value) {
 				glUniformMatrix3fv(m_uniforms[name], 1, GL_FALSE, &value[0][0]);
 			}
 			else if constexpr (std::is_same<T, unsigned int>::value || std::is_same<T, uint32_t>::value) {
 				glUniform1ui(m_uniforms[name], value);
 			}
-			else if constexpr (std::is_same<T, glm::vec4>::value) {
+			else if constexpr (std::is_same<T, lml::vec4>::value) {
 				glUniform4f(m_uniforms[name], value.x, value.y, value.z, value.w);
 			}
-			else if constexpr (std::is_same<T, glm::uvec2>::value) {
+			else if constexpr (std::is_same<T, lml::uvec2>::value) {
 				glUniform2ui(m_uniforms[name], value.x, value.y);
 			}
-			else if constexpr (std::is_same<T, glm::uvec3>::value) {
+			else if constexpr (std::is_same<T, lml::uvec3>::value) {
 				glUniform3ui(m_uniforms[name], value.x, value.y, value.z);
 			}
-			else if constexpr (std::is_same<T, glm::ivec3>::value) {
+			else if constexpr (std::is_same<T, lml::ivec3>::value) {
 				glUniform3i(m_uniforms[name], value.x, value.y, value.z);
 			}
 			else {

@@ -26,7 +26,7 @@ namespace ORNG {
 			BREAKPOINT;
 		}
 
-		const PxU32 num_threads = glm::max((int)std::thread::hardware_concurrency() - 2, 1);
+		const PxU32 num_threads = lml::max((int)std::thread::hardware_concurrency() - 2, 1);
 		mp_dispatcher = PxDefaultCpuDispatcherCreate(num_threads);
 
 		if (!PxInitExtensions(*mp_physics, nullptr)) {

@@ -18,9 +18,9 @@ namespace ORNG {
 	private:
 		void Init();
 
-		void LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
-		void GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
-		void ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix);
+		void LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<lml::mat4, 6>& view_matrices, const lml::mat4& proj_matrix);
+		void GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<lml::mat4, 6>& view_matrices, const lml::mat4& proj_matrix);
+		void ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<lml::mat4, 6>& view_matrices, const lml::mat4& proj_matrix);
 
 		Framebuffer m_output_fb;
 		Shader m_hdr_converter_shader;

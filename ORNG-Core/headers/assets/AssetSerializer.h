@@ -22,14 +22,14 @@ struct GLFWwindow;
 namespace bitsery {
 	using namespace ORNG;
 	template <typename S>
-	void serialize(S& s, glm::vec3& o) {
+	void serialize(S& s, lml::vec3& o) {
 		s.value4b(o.x);
 		s.value4b(o.y);
 		s.value4b(o.z);
 	}
 
 	template <typename S>
-	void serialize(S& s, glm::vec4& o) {
+	void serialize(S& s, lml::vec4& o) {
 		s.value4b(o.x);
 		s.value4b(o.y);
 		s.value4b(o.z);
@@ -37,7 +37,7 @@ namespace bitsery {
 	}
 
 	template<typename S>
-	void serialize(S& s, glm::vec2& v) {
+	void serialize(S& s, lml::vec2& v) {
 		s.value4b(v.x);
 		s.value4b(v.y);
 	}

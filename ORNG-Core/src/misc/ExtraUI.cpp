@@ -141,7 +141,7 @@ namespace ORNG {
 	}
 
 
-	bool ExtraUI::ShowColorVec3Editor(const char* name, glm::vec3& vec) {
+	bool ExtraUI::ShowColorVec3Editor(const char* name, lml::vec3& vec) {
 		bool ret = false;
 		ImGui::PushID(&vec);
 		ImGui::Text("%s", name);
@@ -174,9 +174,9 @@ namespace ORNG {
 	}
 
 
-	bool ExtraUI::ShowVec3Editor(const char* name, glm::vec3& vec, float min, float max) {
+	bool ExtraUI::ShowVec3Editor(const char* name, lml::vec3& vec, float min, float max) {
 		bool ret = false;
-		glm::vec3 vec_copy = vec;
+		lml::vec3 vec_copy = vec;
 		ImGui::PushID(&vec);
 		ImGui::Text("%s", name);
 		ImGui::SameLine();
@@ -215,9 +215,9 @@ namespace ORNG {
 		return ret;
 	}
 
-	bool ExtraUI::ShowVec4Editor(const char* name, glm::vec4& vec, float min, float max) {
+	bool ExtraUI::ShowVec4Editor(const char* name, lml::vec4& vec, float min, float max) {
 		bool ret = false;
-		glm::vec4 vec_copy = vec;
+		lml::vec4 vec_copy = vec;
 		ImGui::PushID(&vec);
 		ImGui::Text("%s", name);
 		ImGui::PushItemWidth(100.f);
@@ -344,14 +344,14 @@ namespace ORNG {
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1, 0, 0, 1));
 			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y,
-				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec2));
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(lml::vec2));
 			ImPlot::PopStyleColor();
 
 			for (size_t i = 0; i < p_interpolator->points.size(); i++) {
 				double_storage[&p_interpolator->points[i].x] = static_cast<double>(p_interpolator->points[i].x);
 				double_storage[&p_interpolator->points[i].y] = static_cast<double>(p_interpolator->points[i].y);
 
-				glm::vec2 v = p_interpolator->GetPoint(i);
+				lml::vec2 v = p_interpolator->GetPoint(i);
 				if (ImPlot::DragPoint(static_cast<int>(i) * 4, &double_storage[&p_interpolator->points[i].x], &double_storage[&p_interpolator->points[i].y],
 					{ 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y])) {
 					v.y = static_cast<float>(double_storage[&p_interpolator->points[i].y]);
@@ -393,23 +393,23 @@ namespace ORNG {
 		if (ImPlot::BeginPlot("##p", ImVec2(500, 150), ImPlotFlags_NoTitle)) {
 			if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(2) && !ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
 				auto pos = ImPlot::GetPlotMousePos();
-				p_interpolator->AddPoint(static_cast<float>(pos.x), glm::vec3{static_cast<float>(pos.y)});
+				p_interpolator->AddPoint(static_cast<float>(pos.x), lml::vec3{static_cast<float>(pos.y)});
 				ret = true;
 			}
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1, 0, 0, 1));
 			ImPlot::PlotLine("X", &p_interpolator->points[0].x, &p_interpolator->points[0].y,
-				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec4));
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(lml::vec4));
 			ImPlot::PopStyleColor();
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0, 1, 0, 1));
 			ImPlot::PlotLine("Y", &p_interpolator->points[0].x, &p_interpolator->points[0].z,
-				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec4));
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(lml::vec4));
 			ImPlot::PopStyleColor();
 
 			ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0, 0, 1, 1));
 			ImPlot::PlotLine("Z", &p_interpolator->points[0].x, &p_interpolator->points[0].w,
-				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(glm::vec4));
+				static_cast<int>(p_interpolator->points.size()), 0, 0, sizeof(lml::vec4));
 			ImPlot::PopStyleColor();
 
 			for (size_t i = 0; i < p_interpolator->points.size(); i++) {
@@ -418,7 +418,7 @@ namespace ORNG {
 				double_storage[&p_interpolator->points[i].z] = static_cast<double>(p_interpolator->points[i].z);
 				double_storage[&p_interpolator->points[i].w] = static_cast<double>(p_interpolator->points[i].w);
 
-				glm::vec4 v = p_interpolator->GetPoint(i);
+				lml::vec4 v = p_interpolator->GetPoint(i);
 				if (ImPlot::DragPoint(static_cast<int>(i) * 4, &double_storage[&p_interpolator->points[i].x],
 					&double_storage[&p_interpolator->points[i].y], { 1, 0, 0, 1 }, 4.f, 0, nullptr, &bool_storage[&p_interpolator->points[i].y]))
 				{
@@ -470,9 +470,9 @@ namespace ORNG {
 		return ret;
 	}
 
-	bool ExtraUI::ShowVec2Editor(const char* name, glm::vec2& vec, float min, float max) {
+	bool ExtraUI::ShowVec2Editor(const char* name, lml::vec2& vec, float min, float max) {
 		bool ret = false;
-		glm::vec2 vec_copy = vec;
+		lml::vec2 vec_copy = vec;
 		ImGui::PushID(&vec);
 		ImGui::Text("%s", name);
 		ImGui::PushItemWidth(100.f);

@@ -5,7 +5,7 @@
 struct GLFWwindow;
 namespace ORNG {
 	template<typename T>
-	concept IsVec2 = std::is_same_v<T, ImVec2> || std::is_same_v<T, glm::vec2>;
+	concept IsVec2 = std::is_same_v<T, ImVec2> || std::is_same_v<T, lml::vec2>;
 
 	class InterpolatorV3;
 	class InterpolatorV1;
@@ -21,10 +21,10 @@ namespace ORNG {
 		static bool ClampedFloatInput(const char* name, float* p_val, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		// Creates an empty imgui tree node
 		static bool EmptyTreeNode(const char* name);
-		static bool ShowColorVec3Editor(const char* name, glm::vec3& vec);
-		static bool ShowVec4Editor(const char* name, glm::vec4& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
-		static bool ShowVec3Editor(const char* name, glm::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
-		static bool ShowVec2Editor(const char* name, glm::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
+		static bool ShowColorVec3Editor(const char* name, lml::vec3& vec);
+		static bool ShowVec4Editor(const char* name, lml::vec4& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
+		static bool ShowVec3Editor(const char* name, lml::vec3& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
+		static bool ShowVec2Editor(const char* name, lml::vec2& vec, float min = std::numeric_limits<float>::lowest(), float max = std::numeric_limits<float>::max());
 		static bool ColoredButton(const char* content, ImVec4 col, ImVec2 size = { 0, 0 });
 		static bool RightClickPopup(const char* id);
 

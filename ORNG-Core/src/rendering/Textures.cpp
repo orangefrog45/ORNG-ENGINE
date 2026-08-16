@@ -428,7 +428,7 @@ bool TextureCubemapArray::SetSpec(const TextureCubemapArraySpec& spec) {
 	return true;
 }
 
-FullscreenTexture2D::FullscreenTexture2D(glm::vec2 screen_size_ratio) : Texture2D(""), m_screen_size_ratio(screen_size_ratio) {
+FullscreenTexture2D::FullscreenTexture2D(lml::vec2 screen_size_ratio) : Texture2D(""), m_screen_size_ratio(screen_size_ratio) {
 	m_window_event_listener.OnEvent = [this](const Events::WindowEvent& _event) {
 		if (_event.event_type == Events::WindowEvent::EventType::WINDOW_RESIZE) {
 			OnWindowResize(_event.new_window_size);
@@ -446,7 +446,7 @@ bool FullscreenTexture2D::SetSpec(const Texture2DSpec& spec) {
 	return result;
 }
 
-void FullscreenTexture2D::OnWindowResize(glm::uvec2 new_dim) {
+void FullscreenTexture2D::OnWindowResize(lml::uvec2 new_dim) {
 	m_spec.width = static_cast<int>(ceil(static_cast<float>(new_dim.x) * m_screen_size_ratio.x));
 	m_spec.height = static_cast<int>(ceil(static_cast<float>(new_dim.y) * m_screen_size_ratio.y));
 	SetSpec(m_spec);

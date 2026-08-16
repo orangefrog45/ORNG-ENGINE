@@ -36,11 +36,11 @@ void SceneUBOSystem::UpdateCommonUBO() {
 	std::byte* p_byte = data.data();
 
 	auto* p_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
-	glm::vec3 cam_pos{0.f, 0.f, 0.f};
-	glm::vec3 cam_fwd{0.f, 0.f, -1.f};
-	glm::vec3 cam_right{1.f, 0.f, 0.f};
-	glm::vec3 cam_up{0.f, 1.f, 0.f};
-	glm::mat4 proj_mat = glm::identity<glm::mat4>();
+	lml::vec3 cam_pos{0.f, 0.f, 0.f};
+	lml::vec3 cam_fwd{0.f, 0.f, -1.f};
+	lml::vec3 cam_right{1.f, 0.f, 0.f};
+	lml::vec3 cam_up{0.f, 1.f, 0.f};
+	lml::mat4 proj_mat = lml::identity<lml::mat4>();
 	float znear = 0.01f;
 	float zfar = 1000.f;
 
@@ -82,19 +82,19 @@ void SceneUBOSystem::UpdateCommonUBO() {
 
 }
 
-void SceneUBOSystem::UpdateVoxelAlignedPositions(const std::array<glm::vec3, 2>& positions) {
-	m_common_ubo.BufferSubData(4 * sizeof(glm::vec4), sizeof(positions), reinterpret_cast<const std::byte*>(positions.data()));
+void SceneUBOSystem::UpdateVoxelAlignedPositions(const std::array<lml::vec3, 2>& positions) {
+	m_common_ubo.BufferSubData(4 * sizeof(lml::vec4), sizeof(positions), reinterpret_cast<const std::byte*>(positions.data()));
 }
 
-void SceneUBOSystem::UpdateMatrixUBO(glm::mat4* p_proj, glm::mat4* p_view) {
+void SceneUBOSystem::UpdateMatrixUBO(lml::mat4* p_proj, lml::mat4* p_view) {
 	auto* p_cam = mp_scene->GetSystem<CameraSystem>().GetActiveCamera();
 	if (!p_cam && (!p_proj || !p_view)) return;
 	auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
 
-	glm::mat4 proj = p_proj ? *p_proj : p_cam->GetProjectionMatrix();
-	glm::mat4 view = p_view ? *p_view : glm::lookAt(p_cam_transform->GetPosition(), p_cam_transform->GetPosition() + p_cam_transform->forward, glm::vec3{ 0, 1, 0 });
+	lml::mat4 proj = p_proj ? *p_proj : p_cam->GetProjectionMatrix();
+	lml::mat4 view = p_view ? *p_view : lml::lookAt(p_cam_transform->GetPosition(), p_cam_transform->GetPosition() + p_cam_transform->forward, lml::vec3{ 0, 1, 0 });
 
-	glm::mat4 proj_view = proj * view;
+	lml::mat4 proj_view = proj * view;
 	std::array<std::byte, m_matrix_ubo_size> matrices;
 	std::byte* p_byte = matrices.data();
 
@@ -102,9 +102,9 @@ void SceneUBOSystem::UpdateMatrixUBO(glm::mat4* p_proj, glm::mat4* p_view) {
 		proj,
 		view,
 		proj_view,
-		glm::inverse(proj),
-		glm::inverse(view),
-		glm::inverse(proj_view)
+		lml::inverse(proj),
+		lml::inverse(view),
+		lml::inverse(proj_view)
 	);
 
 	m_matrix_ubo.BufferSubData(0, m_matrix_ubo_size, matrices.data());
@@ -118,19 +118,19 @@ void SceneUBOSystem::UpdateGlobalLightingUBO() {
 	auto* p_cam = mp_scene->HasSystem<CameraSystem>() ? mp_scene->GetSystem<CameraSystem>().GetActiveCamera() : nullptr;
 	if (p_cam) {
 		auto* p_cam_transform = p_cam->GetEntity()->GetComponent<TransformComponent>();
-		glm::vec3 pos = p_cam_transform->GetAbsPosition();
-		glm::mat4 cam_view_matrix = glm::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
-		const float fov = glm::radians(p_cam->fov / 2.f);
+		lml::vec3 pos = p_cam_transform->GetAbsPosition();
+		lml::mat4 cam_view_matrix = lml::lookAt(pos, pos + p_cam_transform->forward, p_cam_transform->up);
+		const float fov = lml::radians(p_cam->fov / 2.f);
 
-		glm::vec3 light_dir = light.GetLightDirection();
+		lml::vec3 light_dir = light.GetLightDirection();
 		light.m_light_space_matrices[0] = ExtraMath::CalculateLightSpaceMatrix(
-			glm::perspective(fov, p_cam->aspect_ratio, 0.1f, light.cascade_ranges[0]),
+			lml::perspective(fov, p_cam->aspect_ratio, 0.1f, light.cascade_ranges[0]),
 			cam_view_matrix, light_dir, light.z_mults[0], static_cast<float>(DirectionalLight::SHADOW_RESOLUTION));
 		light.m_light_space_matrices[1] = ExtraMath::CalculateLightSpaceMatrix(
-			glm::perspective(fov, p_cam->aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]),
+			lml::perspective(fov, p_cam->aspect_ratio, light.cascade_ranges[0] - 2.f, light.cascade_ranges[1]),
 			cam_view_matrix, light_dir, light.z_mults[1], static_cast<float>(DirectionalLight::SHADOW_RESOLUTION));
 		light.m_light_space_matrices[2] = ExtraMath::CalculateLightSpaceMatrix(
-			glm::perspective(fov, p_cam->aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]),
+			lml::perspective(fov, p_cam->aspect_ratio, light.cascade_ranges[1] - 2.f, light.cascade_ranges[2]),
 			cam_view_matrix, light_dir, light.z_mults[2], static_cast<float>(DirectionalLight::SHADOW_RESOLUTION));
 
 	}

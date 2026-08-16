@@ -16,9 +16,9 @@ namespace ORNG {
 	};
 
 	struct InstanceUpdateData {
-		InstanceUpdateData(SceneEntity* ent, const glm::mat4& transform) : p_entity(ent), new_transform(transform) {}
+		InstanceUpdateData(SceneEntity* ent, const lml::mat4& transform) : p_entity(ent), new_transform(transform) {}
 		SceneEntity* p_entity = nullptr;
-		glm::mat4 new_transform;
+		lml::mat4 new_transform;
 	};
 
 	class MeshInstanceGroup {

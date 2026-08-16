@@ -46,7 +46,7 @@ namespace ORNG {
 
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
 
-		m_renderbuffer_screen_size_ratio = glm::vec2(width / Window::GetWidth(), height / Window::GetHeight());
+		m_renderbuffer_screen_size_ratio = lml::vec2(width / Window::GetWidth(), height / Window::GetHeight());
 	}
 
 	void Framebuffer::SetRenderBufferDimensions(int width, int height) {

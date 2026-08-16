@@ -111,7 +111,7 @@ namespace ORNG {
 
 		RenderGroup render_group = SOLID;
 
-		glm::vec4 base_colour = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		lml::vec4 base_colour = lml::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		float roughness = 0.2f;
 		float metallic = 0.0f;
@@ -133,7 +133,7 @@ namespace ORNG {
 		int parallax_layers = 24;
 		float displacement_scale = 0.05f;
 
-		glm::vec2 tile_scale{ 1.f, 1.f };
+		lml::vec2 tile_scale{ 1.f, 1.f };
 
 		std::string name = "Unnamed material";
 

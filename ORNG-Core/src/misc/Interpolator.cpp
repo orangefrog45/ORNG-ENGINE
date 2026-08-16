@@ -4,7 +4,7 @@
 
 namespace ORNG {
 
-	glm::vec3 InterpolatorV3::GetValue(float x) {
+	lml::vec3 InterpolatorV3::GetValue(float x) {
 		if (points.empty())
 			return { 0, 0, 0 };
 
@@ -14,11 +14,11 @@ namespace ORNG {
 
 		for (size_t i = 0; i < points.size(); i++) {
 			if (points[i].x > x) {
-				unsigned i_0 = static_cast<unsigned>(glm::max(static_cast<int>(i) - 1, 0));
+				unsigned i_0 = static_cast<unsigned>(lml::max(static_cast<int>(i) - 1, 0));
 
-				glm::vec3 p1 = { points[i_0].y, points[i_0].z, points[i_0].w };
-				glm::vec3 p2 = { points[i].y, points[i].z, points[i].w };
-				return glm::mix(
+				lml::vec3 p1 = { points[i_0].y, points[i_0].z, points[i_0].w };
+				lml::vec3 p2 = { points[i].y, points[i].z, points[i].w };
+				return lml::mix(
 					p1,
 					p2,
 					(x - points[i_0].x) / (points[i].x - points[i_0].x)
@@ -30,7 +30,7 @@ namespace ORNG {
 	}
 
 
-	void InterpolatorV3::AddPoint(float x, glm::vec3 v) {
+	void InterpolatorV3::AddPoint(float x, lml::vec3 v) {
 		if (points.size() >= GPU_INTERPOLATOR_STRUCT_MAX_POINTS)
 			return;
 
@@ -44,7 +44,7 @@ namespace ORNG {
 			}
 		}
 
-		points.push_back({ glm::clamp(x, x_min_max.x, x_min_max.y), glm::clamp(v, glm::vec3(yzw_min_max.x), glm::vec3(yzw_min_max.y)) });
+		points.push_back(lml::vec4(lml::clamp(x, x_min_max.x, x_min_max.y), lml::clamp(v, lml::vec3(yzw_min_max.x), lml::vec3(yzw_min_max.y))));
 		SortPoints();
 	}
 
@@ -55,7 +55,7 @@ namespace ORNG {
 		points.erase(points.begin() + static_cast<int>(index));
 	}
 
-	void InterpolatorV3::SetPoint(size_t index, const glm::vec4& v) {
+	void InterpolatorV3::SetPoint(size_t index, const lml::vec4& v) {
 		ASSERT(points.size() > index);
 
 		if (v.x < x_min_max.x || v.x > x_min_max.y) {
@@ -68,10 +68,10 @@ namespace ORNG {
 			}
 		}
 
-		points[index] = { glm::clamp(v.x, x_min_max.x, x_min_max.y), glm::clamp({v.y, v.z, v.w}, glm::vec3(yzw_min_max.x), glm::vec3(yzw_min_max.y)) };
+		points[index] = lml::vec4(lml::clamp(v.x, x_min_max.x, x_min_max.y), lml::clamp(lml::vec3(v.y, v.z, v.w), lml::vec3(yzw_min_max.x), lml::vec3(yzw_min_max.y)));
 	}
 
-	void InterpolatorV1::SetPoint(size_t index, glm::vec2 v) {
+	void InterpolatorV1::SetPoint(size_t index, lml::vec2 v) {
 		ASSERT(points.size() > index);
 
 		if (v.x < x_min_max.x || v.x > x_min_max.y) {
@@ -82,11 +82,11 @@ namespace ORNG {
 			ORNG_CORE_ERROR("InterpolatorV1 error setting point, value out of range, using bound value instead");
 		}
 
-		points[index] = { glm::clamp(v.x, x_min_max.x, x_min_max.y), glm::clamp(v.y, y_min_max.x, y_min_max.y) };
+		points[index] = { lml::clamp(v.x, x_min_max.x, x_min_max.y), lml::clamp(v.y, y_min_max.x, y_min_max.y) };
 	}
 
 
-	glm::vec4 InterpolatorV3::GetPoint(size_t index) {
+	lml::vec4 InterpolatorV3::GetPoint(size_t index) {
 		ASSERT(points.size() > index);
 		return points[index];
 	}
@@ -131,9 +131,9 @@ namespace ORNG {
 
 		for (size_t i = 0; i < points.size(); i++) {
 			if (points[i].x > x) {
-				unsigned i_0 = static_cast<unsigned>(glm::max(static_cast<int>(i) - 1, 0));
+				unsigned i_0 = static_cast<unsigned>(lml::max(static_cast<int>(i) - 1, 0));
 
-				return glm::mix(
+				return lml::mix(
 					points[i_0].y,
 					points[i].y,
 					(x - points[i_0].x) / (points[i].x - points[i_0].x)
@@ -158,11 +158,11 @@ namespace ORNG {
 			}
 		}
 
-		points.push_back({ glm::clamp(x, x_min_max.x, x_min_max.y), glm::clamp(v, y_min_max.x, y_min_max.y) });
+		points.push_back({ lml::clamp(x, x_min_max.x, x_min_max.y), lml::clamp(v, y_min_max.x, y_min_max.y) });
 		SortPoints();
 	}
 
-	glm::vec2 InterpolatorV1::GetPoint(size_t index) {
+	lml::vec2 InterpolatorV1::GetPoint(size_t index) {
 		ASSERT(points.size() > index);
 		return points[index];
 	}

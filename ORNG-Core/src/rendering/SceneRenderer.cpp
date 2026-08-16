@@ -118,7 +118,7 @@ namespace ORNG {
 			vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getShapes(&shapes[0], 5);
 			auto pose = vehicle.m_vehicle.mPhysXState.physxActor.rigidBody->getGlobalPose();
 
-			glm::mat4 b_scale = ExtraMath::Init3DScaleTransform(vehicle.body_scale.x, vehicle.body_scale.y, vehicle.body_scale.z);
+			lml::mat4 b_scale = ExtraMath::Init3DScaleTransform(vehicle.body_scale.x, vehicle.body_scale.y, vehicle.body_scale.z);
 			for (unsigned int i = 0; i < vehicle.p_body_mesh->m_submeshes.size(); i++) {
 				const Material* p_material = vehicle.m_body_materials[vehicle.p_body_mesh->m_submeshes[i].material_index];
 
@@ -132,7 +132,7 @@ namespace ORNG {
 				Renderer::DrawSubMesh(vehicle.p_body_mesh, i);
 			}
 
-			glm::mat4 w_scale = ExtraMath::Init3DScaleTransform(vehicle.wheel_scale.x, vehicle.wheel_scale.y, vehicle.wheel_scale.z);
+			lml::mat4 w_scale = ExtraMath::Init3DScaleTransform(vehicle.wheel_scale.x, vehicle.wheel_scale.y, vehicle.wheel_scale.z);
 			for (unsigned int wheel = 0; wheel < 4; wheel++) {
 				for (unsigned int i = 0; i < vehicle.p_wheel_mesh->m_submeshes.size(); i++) {
 					const Material* p_material = vehicle.m_wheel_materials[vehicle.p_wheel_mesh->m_submeshes[i].material_index];

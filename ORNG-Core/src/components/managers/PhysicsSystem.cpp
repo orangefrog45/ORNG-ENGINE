@@ -10,8 +10,6 @@
 #include "assets/AssetManager.h"
 #include "events/EventManager.h"
 #include "core/FrameTiming.h"
-#include "glm/glm/gtc/quaternion.hpp"
-#include "glm/glm/gtc/round.hpp"
 #include "Jolt/RegisterTypes.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Collision/Shape/BoxShape.h"
@@ -49,11 +47,11 @@ inline static void OnJointDestroy(entt::registry& registry, entt::entity entity)
 	ComponentSystem::DispatchComponentEvent<JointComponent>(registry, entity, Events::ECS_EventType::COMP_DELETED);
 }
 
-inline static Vec3 GlmToJph(const glm::vec3& v) {
+inline static Vec3 GlmToJph(const lml::vec3& v) {
 	return Vec3{v.x, v.y, v.z};
 }
 
-inline static Quat GlmToJph(const glm::quat& q) {
+inline static Quat GlmToJph(const lml::quat& q) {
 	return Quat{q.x, q.y, q.z, q.w};
 }
 
@@ -218,10 +216,10 @@ void ORNG::PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
 
 	auto* p_mesh_comp = p_comp->GetEntity()->GetComponent<MeshComponent>();
 	TransformComponent& transform = *p_comp->GetEntity()->GetComponent<TransformComponent>();
-	const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(glm::vec3(1.f));
+	const AABB& aabb = p_mesh_comp ? p_mesh_comp->GetMeshData()->GetAABB() : AABB(lml::vec3(1.f));
 
-	glm::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
-	glm::vec3 scaled_extents = aabb.extents * scale_factor;
+	lml::vec3 scale_factor = p_comp->GetEntity()->GetComponent<TransformComponent>()->GetAbsScale();
+	lml::vec3 scaled_extents = aabb.extents * scale_factor;
 
 	// The main way to interact with the bodies in the physics system is through the body interface. There is a locking and a non-locking
 	// variant of this. We're going to use the locking version (even though we're not planning to access bodies from multiple threads)
@@ -237,7 +235,7 @@ void ORNG::PhysicsSystem::UpdateComponentState(PhysicsComponent* p_comp) {
 	ObjectLayer layer = p_comp->m_body_type == PhysicsComponent::STATIC ? Layers::NON_MOVING : Layers::MOVING;
 
 	if (p_comp->m_geometry_type == PhysicsComponent::SPHERE) {
-		BodyCreationSettings sphere_settings{new SphereShape{glm::max(glm::max(scale_factor.x, scale_factor.y), scale_factor.z)},
+		BodyCreationSettings sphere_settings{new SphereShape{lml::max(lml::max(scale_factor.x, scale_factor.y), scale_factor.z)},
 			GlmToJph(transform.GetAbsPosition()), GlmToJph(transform.GetAbsOrientationQuat()), motion_type, layer};
 
 		p_comp->body_id = body_interface.CreateAndAddBody(sphere_settings, EActivation::Activate);
@@ -305,8 +303,8 @@ void ORNG::PhysicsSystem::OnUpdate() {
 		auto* p_ent = reinterpret_cast<SceneEntity*>(body_interface.GetUserData(body));
 		TransformComponent& transform = *p_ent->GetComponent<TransformComponent>();
 		mp_currently_updating_transform = &transform; // Set this so it's ignored by the transform event callbacks while being updated
-		transform.SetAbsolutePosition(glm::vec3{p.GetX(), p.GetY(), p.GetZ()});
-		transform.SetAbsOrientationQuat(glm::quat{q.GetW(), q.GetX(), q.GetY(), q.GetZ()});
+		transform.SetAbsolutePosition(lml::vec3{p.GetX(), p.GetY(), p.GetZ()});
+		transform.SetAbsOrientationQuat(lml::quat{q.GetW(), q.GetX(), q.GetY(), q.GetZ()});
 	}
 
 	mp_currently_updating_transform = nullptr;

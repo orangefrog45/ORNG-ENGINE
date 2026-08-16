@@ -93,17 +93,17 @@ void DepthPass::DoPass()
 	for (auto [entity, pointlight, transform] : pointlights.each()) {
 		if (!pointlight.shadows_enabled)
 			continue;
-		glm::mat4 capture_projection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, pointlight.shadow_distance);
-		glm::vec3 light_pos = transform.GetAbsPosition();
+		lml::mat4 capture_projection = lml::perspective(lml::radians(90.0f), 1.0f, 0.1f, pointlight.shadow_distance);
+		lml::vec3 light_pos = transform.GetAbsPosition();
 
-		std::array<glm::mat4, 6> capture_views =
+		std::array<lml::mat4, 6> capture_views =
 		{
-		   glm::lookAt(light_pos, light_pos + glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		   glm::lookAt(light_pos, light_pos + glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-		   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-		   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		   glm::lookAt(light_pos, light_pos + glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+		   lml::lookAt(light_pos, light_pos + lml::vec3(1.0f,  0.0f,  0.0f), lml::vec3(0.0f, -1.0f,  0.0f)),
+		   lml::lookAt(light_pos, light_pos + lml::vec3(-1.0f,  0.0f,  0.0f), lml::vec3(0.0f, -1.0f,  0.0f)),
+		   lml::lookAt(light_pos, light_pos + lml::vec3(0.0f,  1.0f,  0.0f), lml::vec3(0.0f,  0.0f,  1.0f)),
+		   lml::lookAt(light_pos, light_pos + lml::vec3(0.0f, -1.0f,  0.0f), lml::vec3(0.0f,  0.0f, -1.0f)),
+		   lml::lookAt(light_pos, light_pos + lml::vec3(0.0f,  0.0f,  1.0f), lml::vec3(0.0f, -1.0f,  0.0f)),
+		   lml::lookAt(light_pos, light_pos + lml::vec3(0.0f,  0.0f, -1.0f), lml::vec3(0.0f, -1.0f,  0.0f))
 		};
 
 		sv.SetUniform("u_light_pos", light_pos);

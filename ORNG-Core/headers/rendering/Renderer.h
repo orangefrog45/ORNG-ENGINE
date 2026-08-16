@@ -10,13 +10,13 @@ namespace ORNG {
 	class MeshAsset;
 
 	struct Line {
-		glm::vec3 p1;
-		glm::vec3 p2;
-		glm::vec3 col;
+		lml::vec3 p1;
+		lml::vec3 p2;
+		lml::vec3 col;
 	};
 
 	struct Point {
-		glm::vec3 p;
+		lml::vec3 p;
 	};
 
 	class Renderer {
@@ -48,7 +48,7 @@ namespace ORNG {
 			Get().IDrawQuad();
 		}
 
-		static void DrawScaledQuad(glm::vec2 min, glm::vec2 max) {
+		static void DrawScaledQuad(lml::vec2 min, lml::vec2 max) {
 			Get().IDrawScaledQuad(min, max);
 		}
 
@@ -102,7 +102,7 @@ namespace ORNG {
 
 		void I_Init();
 
-		void IDrawScaledQuad(glm::vec2 min, glm::vec2 max);
+		void IDrawScaledQuad(lml::vec2 min, lml::vec2 max);
 
 		unsigned int m_draw_call_amount = 0;
 

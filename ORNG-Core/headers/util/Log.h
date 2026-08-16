@@ -8,17 +8,17 @@ template<typename T>
 std::string Format(const T&);
 
 template<>
-inline std::string Format<glm::vec4>(const glm::vec4& v) {
+inline std::string Format<lml::vec4>(const lml::vec4& v) {
 	return std::format("[{:.4f}, {:.4f}, {:.4f}, {:.4f}]", v.x, v.y, v.z, v.w);
 }
 
 template<>
-inline std::string Format<glm::vec3>(const glm::vec3& v) {
+inline std::string Format<lml::vec3>(const lml::vec3& v) {
 	return std::format("[{:.4f}, {:.4f}, {:.4f}]", v.x, v.y, v.z);
 }
 
 template<>
-inline std::string Format<glm::vec2>(const glm::vec2& v) {
+inline std::string Format<lml::vec2>(const lml::vec2& v) {
 	return std::format("[{:.4f}, {:.4f}]", v.x, v.y);
 }
 

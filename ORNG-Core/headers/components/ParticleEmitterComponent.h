@@ -50,21 +50,21 @@ namespace ORNG {
 			return m_num_particles;
 		}
 
-		void SetSpawnExtents(glm::vec3 extents) {
+		void SetSpawnExtents(lml::vec3 extents) {
 			m_spawn_extents = extents;
 			DispatchUpdateEvent();
 		}
 
-		[[nodiscard]] glm::vec3 GetSpawnExtents() const noexcept {
+		[[nodiscard]] lml::vec3 GetSpawnExtents() const noexcept {
 			return m_spawn_extents;
 		}
 
-		void SetVelocityScale(glm::vec2 min_max) {
+		void SetVelocityScale(lml::vec2 min_max) {
 			m_velocity_min_max_scalar = min_max;
 			DispatchUpdateEvent();
 		}
 
-		[[nodiscard]] glm::vec2 GetVelocityScale() const noexcept {
+		[[nodiscard]] lml::vec2 GetVelocityScale() const noexcept {
 			return m_velocity_min_max_scalar;
 		}
 
@@ -104,12 +104,12 @@ namespace ORNG {
 			return m_active;
 		}
 
-		void SetAcceleration(glm::vec3 a) {
+		void SetAcceleration(lml::vec3 a) {
 			acceleration = a;
 			DispatchUpdateEvent();
 		}
 
-		[[nodiscard]] glm::vec3 GetAcceleration() const noexcept {
+		[[nodiscard]] lml::vec3 GetAcceleration() const noexcept {
 			return acceleration;
 		}
 
@@ -147,9 +147,9 @@ namespace ORNG {
 		void DispatchUpdateEvent(EmitterSubEvent se = DEFAULT, void* data_payload = nullptr);
 		// User-configurable parameters
 
-		glm::vec3 acceleration = { 0, 0, 0 };
-		glm::vec3 m_spawn_extents = glm::vec3(50, 0, 50);
-		glm::vec2 m_velocity_min_max_scalar = { 0.1, 50.0 };
+		lml::vec3 acceleration = { 0, 0, 0 };
+		lml::vec3 m_spawn_extents = lml::vec3(50, 0, 50);
+		lml::vec2 m_velocity_min_max_scalar = { 0.1, 50.0 };
 		float m_particle_lifespan_ms = 1000.f;
 		float m_particle_spawn_delay_ms = 1000.f / 64.f;
 		float m_spread = 1.0; // 1 = 360 degree spread, 0 = no spread

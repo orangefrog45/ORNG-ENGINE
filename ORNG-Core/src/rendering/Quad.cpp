@@ -31,11 +31,11 @@ namespace ORNG {
 		m_vao->FillBuffers();
 	}
 
-	void Quad::SetVertices(glm::vec2 min, glm::vec2 max) {
+	void Quad::SetVertices(lml::vec2 min, lml::vec2 max) {
 		ASSERT(m_vao);
 		auto* p_position_buffer = m_vao->GetBuffer<VertexBufferGL<float>>(0);
-		glm::vec2 tl = { min.x, max.y };
-		glm::vec2 br = { max.x, min.y };
+		lml::vec2 tl = { min.x, max.y };
+		lml::vec2 br = { max.x, min.y };
 
 		p_position_buffer->data = {
 			min.x, min.y,

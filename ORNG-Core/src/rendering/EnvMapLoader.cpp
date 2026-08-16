@@ -35,7 +35,7 @@ namespace ORNG {
 		m_brdf_convolution_shader.Init();
 	}
 
-	void EnvMapLoader::ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
+	void EnvMapLoader::ConvertHDR_ToSkybox(Texture2D& hdr_tex, TextureCubemap& cubemap_output, const std::array<lml::mat4, 6>& view_matrices, const lml::mat4& proj_matrix) {
 		// Convert the HDR texture into a cubemap
 		int resolution = static_cast<int>(cubemap_output.GetSpec().width); // width/resolution always the the same
 		m_output_fb.Bind();
@@ -56,7 +56,7 @@ namespace ORNG {
 
 
 
-	void EnvMapLoader::LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
+	void EnvMapLoader::LoadDiffusePrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<lml::mat4, 6>& view_matrices, const lml::mat4& proj_matrix) {
 		// Create diffuse prefilter cubemap
 		m_diffuse_prefilter_shader.ActivateProgram();
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
@@ -93,7 +93,7 @@ namespace ORNG {
 
 
 
-	void EnvMapLoader::GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<glm::mat4, 6>& view_matrices, const glm::mat4& proj_matrix) {
+	void EnvMapLoader::GenSpecularPrefilter(Skybox& skybox, const TextureCubemapSpec& tex_spec, const std::array<lml::mat4, 6>& view_matrices, const lml::mat4& proj_matrix) {
 		m_specular_prefilter_shader.ActivateProgram();
 		m_specular_prefilter_shader.SetUniform("projection", proj_matrix);
 		GL_StateManager::BindTexture(GL_TEXTURE_CUBE_MAP, skybox.m_skybox_tex.GetTextureHandle(), GL_StateManager::TextureUnits::COLOUR);
@@ -101,8 +101,8 @@ namespace ORNG {
 		unsigned int max_mip_levels = 5;
 
 		for (unsigned int mip = 0; mip < max_mip_levels; mip++) {
-			int mip_width = static_cast<int>(tex_spec.width * glm::pow(0.5, mip));
-			int mip_height = static_cast<int>(tex_spec.height * glm::pow(0.5, mip));
+			int mip_width = static_cast<int>(tex_spec.width * lml::pow(0.5, (double)mip));
+			int mip_height = static_cast<int>(tex_spec.height * lml::pow(0.5, (double)mip));
 
 			m_output_fb.SetRenderBufferDimensions(mip_width, mip_height);
 			glViewport(0, 0, mip_width, mip_height);
@@ -204,15 +204,15 @@ namespace ORNG {
 		skybox.m_skybox_tex.SetSpec(hdr_cubemap_spec);
 
 		// Matrices for rendering the different cube faces
-		glm::mat4 cube_proj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-		std::array<glm::mat4, 6> cube_view_mats =
+		lml::mat4 cube_proj = lml::perspective(lml::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		std::array<lml::mat4, 6> cube_view_mats =
 		{
-		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+		   lml::lookAt(lml::vec3(0.0f, 0.0f, 0.0f), lml::vec3(1.0f,  0.0f,  0.0f), lml::vec3(0.0f, -1.0f,  0.0f)),
+		   lml::lookAt(lml::vec3(0.0f, 0.0f, 0.0f), lml::vec3(-1.0f,  0.0f,  0.0f), lml::vec3(0.0f, -1.0f,  0.0f)),
+		   lml::lookAt(lml::vec3(0.0f, 0.0f, 0.0f), lml::vec3(0.0f,  1.0f,  0.0f), lml::vec3(0.0f,  0.0f,  1.0f)),
+		   lml::lookAt(lml::vec3(0.0f, 0.0f, 0.0f), lml::vec3(0.0f, -1.0f,  0.0f), lml::vec3(0.0f,  0.0f, -1.0f)),
+		   lml::lookAt(lml::vec3(0.0f, 0.0f, 0.0f), lml::vec3(0.0f,  0.0f,  1.0f), lml::vec3(0.0f, -1.0f,  0.0f)),
+		   lml::lookAt(lml::vec3(0.0f, 0.0f, 0.0f), lml::vec3(0.0f,  0.0f, -1.0f), lml::vec3(0.0f, -1.0f,  0.0f))
 		};
 
 

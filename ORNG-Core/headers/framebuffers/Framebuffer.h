@@ -38,6 +38,6 @@ namespace ORNG {
 
 		GLuint m_fbo = 0;
 		GLuint m_rbo = 0;
-		glm::vec2 m_renderbuffer_screen_size_ratio = glm::vec2(0);
+		lml::vec2 m_renderbuffer_screen_size_ratio = lml::vec2(0);
 	};
 }
