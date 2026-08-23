@@ -98,6 +98,72 @@ namespace YAML {
             return true;
         }
     };
+
+    template<>
+    struct convert<lml::uvec2> {
+        static Node encode(const lml::uvec2& rhs) {
+            Node node;
+            node.push_back(rhs.x);
+            node.push_back(rhs.y);
+            return node;
+        }
+
+        static bool decode(const Node& node, lml::uvec2& rhs) {
+            if (!node.IsSequence() || node.size() != 2) {
+                return false;
+            }
+
+            rhs.x = node[0].as<uint32_t>();
+            rhs.y = node[1].as<uint32_t>();
+            return true;
+        }
+    };
+
+    template<>
+    struct convert<lml::uvec3> {
+        static Node encode(const lml::uvec3& rhs) {
+            Node node;
+            node.push_back(rhs.x);
+            node.push_back(rhs.y);
+            node.push_back(rhs.z);
+            return node;
+        }
+
+        static bool decode(const Node& node, lml::uvec3& rhs) {
+            if (!node.IsSequence() || node.size() != 3) {
+                return false;
+            }
+
+            rhs.x = node[0].as<uint32_t>();
+            rhs.y = node[1].as<uint32_t>();
+            rhs.z = node[2].as<uint32_t>();
+            return true;
+        }
+    };
+
+    template<>
+    struct convert<lml::uvec4> {
+        static Node encode(const lml::uvec4& rhs) {
+            Node node;
+            node.push_back(rhs.x);
+            node.push_back(rhs.y);
+            node.push_back(rhs.z);
+            node.push_back(rhs.w);
+            return node;
+        }
+
+        static bool decode(const Node& node, lml::uvec4& rhs) {
+            if (!node.IsSequence() || node.size() != 4) {
+                return false;
+            }
+
+            rhs.x = node[0].as<uint32_t>();
+            rhs.y = node[1].as<uint32_t>();
+            rhs.z = node[2].as<uint32_t>();
+            rhs.w = node[3].as<uint32_t>();
+            return true;
+        }
+    };
 }
 
 inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::vec3& v) {
@@ -121,6 +187,24 @@ inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::vec4 v) {
 inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::vec2 v) {
     out << YAML::Flow;
     out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
+    return out;
+}
+
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::uvec2& v) {
+    out << YAML::Flow;
+    out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
+    return out;
+}
+
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::uvec3& v) {
+    out << YAML::Flow;
+    out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+    return out;
+}
+
+inline YAML::Emitter& operator<<(YAML::Emitter& out, const lml::uvec4& v) {
+    out << YAML::Flow;
+    out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
     return out;
 }
 
