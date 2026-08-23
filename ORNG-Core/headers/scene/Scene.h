@@ -17,7 +17,7 @@
 #include "util/UUID.h"
 
 namespace ORNG {
-	struct Prefab;
+	struct PrefabAsset;
 	class SceneEntity;
 	class ComponentSystem;
 
@@ -130,7 +130,7 @@ namespace ORNG {
 
 		// Instantiates prefab
 		// call_on_create will call the OnCreate function of any script components attached to the prefab or its child entities if true
-		SceneEntity& InstantiatePrefab(const Prefab& prefab, bool call_on_create = true);
+		SceneEntity& InstantiatePrefab(const PrefabAsset& prefab, bool call_on_create = true);
 
 		SceneEntity* InstantiatePrefab(uint64_t prefab_uuid, bool call_on_create = true);
 

@@ -10,7 +10,7 @@ namespace ORNG {
 	class MeshAsset;
 	class Material;
 	struct ScriptAsset;
-	struct Prefab;
+	struct PrefabAsset;
 
 	struct ConfirmationWindowData {
 		ConfirmationWindowData(const std::string t_str, std::function<void()> t_callback) : str(t_str), callback(t_callback) {}
@@ -136,7 +136,7 @@ namespace ORNG {
 		void RenderMeshAsset(MeshAsset* p_mesh_asset);
 		void RenderTexture(Texture2D* p_tex);
 		void RenderMaterial(Material* p_material);
-		void RenderPrefab(Prefab* p_prefab);
+		void RenderPrefabAsset(PrefabAsset* p_prefab);
 		void RenderAudioAsset(SoundAsset* p_asset);
 		void RenderSceneAsset(SceneAsset* p_asset);
 

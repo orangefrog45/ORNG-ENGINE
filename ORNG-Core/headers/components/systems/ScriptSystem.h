@@ -22,7 +22,7 @@ namespace ORNG {
 
 		inline static void OnScriptDestroy(entt::registry& registry, entt::entity entity) {
 			auto& script = registry.get<ScriptComponent>(entity);
-			if (script.GetSymbols()->loaded)
+			if (script.GetSymbols() && script.GetSymbols()->loaded)
 				if (script.p_instance) script.GetSymbols()->DestroyInstance(script.p_instance);
 		}
 

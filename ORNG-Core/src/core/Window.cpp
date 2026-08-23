@@ -71,7 +71,12 @@ static void CursorPosCallback([[maybe_unused]] GLFWwindow* window, double xPos, 
 	gs_mouse_coords = e_event.mouse_pos_new;
 }
 
-void Window::ISetCursorPos(int x, int y) { glfwSetCursorPos(p_window, x, y); gs_mouse_coords = { x, y }; }
+void Window::ISetCursorPos(int x, int y) {
+	glfwSetCursorPos(p_window, x, y);
+	gs_mouse_coords = { x, y };
+	input.m_mouse_position = { x, y };
+	input.m_last_mouse_position = { x, y };
+}
 
 void Window::IUpdate() {
 	input.OnUpdate();

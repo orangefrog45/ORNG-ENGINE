@@ -14,19 +14,19 @@ endif()
 
 project(SCRIPTS)
 #add_compile_options(/Zi)
-set(ENGINE_BASE_DIR REPLACE_ME_ENGINE_BASE_DIR) # changed in engine
 
-set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_BINARY_DIR) # changed in engine
-
+set(ENGINE_BASE_DIR REPLACE_ME_ENGINE_BASE_DIR)
+set(ENGINE_BINARY_DIR REPLACE_ME_ENGINE_BINARY_DIR)
 set(CMAKE_DEBUG_POSTFIX "")
 
 set(SCRIPT_INCLUDE_DIRS
+${ENGINE_BASE_DIR}/ORNG-Core/extern
+${ENGINE_BASE_DIR}/ORNG-Core/extern/lml/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/spdlog/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/assimp/build/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glfw/include
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/glew-cmake/include
-${ENGINE_BASE_DIR}/ORNG-Core/extern
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/entt/src
 ${ENGINE_BASE_DIR}/ORNG-Core/extern/imgui
 ${ENGINE_BASE_DIR}/ORNG-Core/headers
@@ -45,7 +45,6 @@ ${CMAKE_CURRENT_LIST_DIR}/headers
 find_package(OpenGL REQUIRED)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-
 set(SCRIPT_LIBS
 OpenGL::GL
 ${ENGINE_BINARY_DIR}/ORNG_COREd.lib
@@ -86,9 +85,27 @@ ${PHYSX_LIBS}
 )
 endif()
 
-# DO NOT MODIFY OR DELETE THIS LINE - SCRIPT START
+set(CORE_SRC headers/ScriptAPIImpl.cpp instancers/ScriptInstancer.cpp)
 
-# DO NOT MODIFY OR DELETE THIS LINE - SCRIPT END
+#S - SV
+
+#E - SV
+
+#S - US0
+# Put any extra functionality here
+
+#E - US0
+
+
+#S - SL
+
+#E - SL
+
+
+#S - US1
+# Put any extra functionality here
+
+#E - US1
 
 target_precompile_headers(${SCRIPT_TARGETS} PUBLIC ${ENGINE_BASE_DIR}/ORNG-Core/headers/pch/pch.h)
 
@@ -108,4 +125,7 @@ RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/bin/release"
 )
 endif()
 
-# DO NOT MODIFY OR DELETE THIS LINE - USER STUFF BELOW
+#S - US2
+# Put any extra functionality here
+
+#E - US2

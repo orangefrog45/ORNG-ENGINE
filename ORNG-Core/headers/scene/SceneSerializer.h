@@ -20,7 +20,7 @@ namespace YAML {
 namespace ORNG {
 	class Scene;
 	class SceneEntity;
-	struct Prefab;
+	struct PrefabAsset;
 
 	struct EntitySerializationEvent : public Events::Event {
 		enum class Type {
@@ -111,7 +111,7 @@ namespace ORNG {
 		static void DeserializeEntityFromString(Scene& scene, const std::string& str, SceneEntity& entity, bool ignore_parent = false);
 
 		// Entities created by this function
-		static std::vector<SceneEntity*> DeserializePrefab(Scene& scene, const Prefab& prefab);
+		static std::vector<SceneEntity*> DeserializePrefab(Scene& scene, const PrefabAsset& prefab);
 
 		// Any entities which have components that reference other entities via UUID (e.g joints) have these references switched to point to an entity in the lookup map if a valid UUID mapping exists for it
 		// Any references that point to entities not contained in the lookup map will not be affected

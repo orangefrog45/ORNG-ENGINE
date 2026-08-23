@@ -36,11 +36,17 @@ namespace ORNG {
 		StringReplace(cmake_content, "REPLACE_ME_ENGINE_BASE_DIR", "\"" + std::string{ ORNG_CORE_MAIN_DIR } + "/..\"");
 
 		std::string standard = "20";
-		if (__cplusplus >= 202302L) standard = "23";
-		else if (__cplusplus >= 202002L) standard = "20";
-		else if (__cplusplus >= 201703L) standard = "17";
-		else if (__cplusplus >= 201402L) standard = "14";
-		else if (__cplusplus >= 201103L) standard = "11";
+#ifdef _MSVC_LANG
+		auto cpp_ver = _MSVC_LANG;
+#else
+		auto cpp_ver = __cplusplus;
+#endif
+
+		if (cpp_ver >= 202302L) standard = "23";
+		else if (cpp_ver >= 202002L) standard = "20";
+		else if (cpp_ver >= 201703L) standard = "17";
+		else if (cpp_ver >= 201402L) standard = "14";
+		else if (cpp_ver >= 201103L) standard = "11";
 
 		StringReplace(cmake_content, "REPLACE_ME_CXX_STANDARD", standard);
 	}
@@ -52,20 +58,37 @@ namespace ORNG {
 
 		std::string cmake_content = ReadTextFile(ORNG_CORE_MAIN_DIR "/script-template/CMakeLists.txt");
 		std::string existing_cmake_content = ReadTextFile(dir + "/CMakeLists.txt");
-		std::string user_content = existing_cmake_content.substr(existing_cmake_content.find("USER STUFF BELOW") + 16);
 
 		// Update engine directories for includes/libraries in CMake file
 		ReplaceScriptCmakeEngineFilepaths(cmake_content);
 
-		{ // Copy over extra cpps section
-			size_t extra_cpps_start_pos = existing_cmake_content.find("EXTRA CPPS START") + 16;
-			std::string extra_cpps = existing_cmake_content.substr(extra_cpps_start_pos, existing_cmake_content.find("#E&CE") - extra_cpps_start_pos);
-			cmake_content.insert(cmake_content.find("EXTRA CPPS START") + 16, extra_cpps);
-		}
+		auto replace_user_section = [&](const std::string& section_name) {
+			std::string start_tag = "#S - " + section_name;
+			std::string end_tag = "#E - " + section_name;
+			size_t start_pos = existing_cmake_content.find(start_tag);
+			size_t end_pos = existing_cmake_content.find(end_tag);
+
+			if (start_pos != std::string::npos && end_pos != std::string::npos && end_pos > start_pos) {
+				start_pos += start_tag.length();
+				std::string content = existing_cmake_content.substr(start_pos, end_pos - start_pos);
+
+				size_t new_start_pos = cmake_content.find(start_tag);
+				size_t new_end_pos = cmake_content.find(end_tag);
+				if (new_start_pos != std::string::npos && new_end_pos != std::string::npos && new_end_pos > new_start_pos) {
+					new_start_pos += start_tag.length();
+					cmake_content.replace(new_start_pos, new_end_pos - new_start_pos, content);
+				}
+			}
+		};
+
+		replace_user_section("US0");
+		replace_user_section("US1");
+		replace_user_section("US2");
 
 		// Insert commands to compile scripts into CMake file
-		size_t cmake_script_append_location = cmake_content.find("SCRIPT START\n") + 13;
-		std::string target_str = "\nset(SCRIPT_TARGETS ";
+		std::string script_vars = "";
+		std::string script_cmds = "";
+		std::string target_names = "";
 		std::string script_src_directory = dir + "/src";
 		for (auto& entry : std::filesystem::recursive_directory_iterator{ script_src_directory }) {
 			if (auto path = entry.path().generic_string(); path.ends_with(".cpp")) {
@@ -75,28 +98,46 @@ namespace ORNG {
 				std::string class_name = GetFilename(filename);
 				StringReplace(filename, "/", "_");
 
-				target_str += " " + filename;
-				std::string command_append_content = 
-					R"(add_library({0} SHARED src/{1} headers/ScriptAPIImpl.cpp instancers/ScriptInstancer.cpp ${{0}_ExtraCpps})
-						target_include_directories({0} PUBLIC ${SCRIPT_INCLUDE_DIRS})
-						target_link_libraries({0} PUBLIC ${SCRIPT_LIBS})
-						target_compile_definitions({0} PUBLIC ORNG_CLASS={2} SCRIPT_CLASS_HEADER_PATH="{3}.h")
+				target_names += " " + filename;
+				std::string var_append_content =
+					R"(set({0}_SRC src/{1} ${CORE_SRC})
+set({0}_INCLUDES ${SCRIPT_INCLUDE_DIRS})
+set({0}_LIBS ${SCRIPT_LIBS})
+set({0}_COMPILE_DEFS ORNG_CLASS={2} SCRIPT_CLASS_HEADER_PATH="{3}.h")
 )";
-				StringReplace(command_append_content, "{0}", filename);
-				StringReplace(command_append_content, "{1}", src_relative_filepath);
-				StringReplace(command_append_content, "{2}", class_name);
-				StringReplace(command_append_content, "{3}", src_relative_filepath_no_extension);
 
-				cmake_content.insert(cmake_content.begin() + static_cast<long long>(cmake_script_append_location),
-					command_append_content.begin(), command_append_content.end());
+				std::string cmd_append_content =
+					R"(add_library({0} SHARED ${{0}_SRC})
+target_include_directories({0} PUBLIC ${{0}_INCLUDES})
+target_link_libraries({0} PUBLIC ${{0}_LIBS})
+target_compile_definitions({0} PUBLIC ${{0}_COMPILE_DEFS})
+)";
+				StringReplace(var_append_content, "{0}", filename);
+				StringReplace(var_append_content, "{1}", src_relative_filepath);
+				StringReplace(var_append_content, "{2}", class_name);
+				StringReplace(var_append_content, "{3}", src_relative_filepath_no_extension);
 
-				cmake_script_append_location += command_append_content.length();
+				StringReplace(cmd_append_content, "{0}", filename);
+
+				script_vars += var_append_content + "\n";
+				script_cmds += cmd_append_content + "\n";
 			}
 		}
 
-		target_str += ")";
-		cmake_content.insert(cmake_content.begin() + static_cast<long long>(cmake_content.find("SCRIPT END")) + 10, target_str.begin(), target_str.end());
-		cmake_content += "\n" + user_content;
+		size_t sv_start = cmake_content.find("#S - SV");
+		size_t sv_end = cmake_content.find("#E - SV");
+		if (sv_start != std::string::npos && sv_end != std::string::npos) {
+			std::string injection = "#S - SV\n" + script_vars;
+			cmake_content.replace(sv_start, sv_end - sv_start, injection);
+		}
+
+		size_t sl_start = cmake_content.find("#S - SL");
+		size_t sl_end = cmake_content.find("#E - SL");
+		if (sl_start != std::string::npos && sl_end != std::string::npos) {
+			std::string injection = "#S - SL\nset(SCRIPT_TARGETS" + target_names + ")\n\n" + script_cmds;
+			cmake_content.replace(sl_start, sl_end - sl_start, injection);
+		}
+
 		WriteTextFile(dir + "/CMakeLists.txt", cmake_content);
 	}
 

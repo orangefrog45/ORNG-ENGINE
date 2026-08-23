@@ -27,7 +27,7 @@
 #include "rendering/renderpasses/GBufferPass.h"
 #include "rendering/renderpasses/LightingPass.h"
 #include "rendering/renderpasses/TransparencyPass.h"
-#include "assets/Prefab.h"
+#include "assets/PrefabAsset.h"
 #include "components/PhysicsComponent.h"
 #include "assets/AssetManager.h"
 #include "core/Window.h"
@@ -219,7 +219,7 @@ bool AssetManagerWindow::CreateAndSerializePrefab(SceneEntity& entity, const std
 
 	Scene::SortEntitiesNumParents(entities, false);
 
-	Prefab* prefab = AssetManager::AddAsset(new Prefab(fp));
+	PrefabAsset* prefab = AssetManager::AddAsset(new PrefabAsset(fp));
 	if (uuid != 0) prefab->uuid = UUID<uint64_t>{ uuid };
 
 	prefab->serialized_content = SceneSerializer::SerializeEntityArrayIntoString(entities);
@@ -481,13 +481,13 @@ void AssetManagerWindow::RenderAudioAsset(SoundAsset* p_asset) {
 	RenderBaseAsset(p_asset, spec);
 }
 
-void AssetManagerWindow::RenderPrefab(Prefab* p_prefab) {
+void AssetManagerWindow::RenderPrefabAsset(PrefabAsset* p_prefab) {
 	AssetDisplaySpec spec;
 
 	spec.on_drag = [p_prefab]() {
-		static Prefab* p_dragged_prefab = nullptr;
+		static PrefabAsset* p_dragged_prefab = nullptr;
 		p_dragged_prefab = p_prefab;
-		ImGui::SetDragDropPayload("PREFAB", &p_dragged_prefab, sizeof(Prefab*));
+		ImGui::SetDragDropPayload("PREFAB", &p_dragged_prefab, sizeof(PrefabAsset*));
 		ImGui::EndDragDropSource();
 		};
 
@@ -503,8 +503,8 @@ void AssetManagerWindow::RenderAsset(Asset *p_asset) {
 		RenderMeshAsset(p_casted1);
 	else if (auto* p_casted2 = dynamic_cast<SoundAsset*>(p_asset))
 		RenderAudioAsset(p_casted2);
-	else if (auto* p_casted3 = dynamic_cast<Prefab*>(p_asset))
-		RenderPrefab(p_casted3);
+	else if (auto* p_casted3 = dynamic_cast<PrefabAsset*>(p_asset))
+		RenderPrefabAsset(p_casted3);
 	else if (auto* p_casted4 = dynamic_cast<Material*>(p_asset))
 		RenderMaterial(p_casted4);
 	else if (auto* p_casted5 = dynamic_cast<ScriptAsset*>(p_asset))

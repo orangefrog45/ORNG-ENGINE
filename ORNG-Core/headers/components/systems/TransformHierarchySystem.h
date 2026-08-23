@@ -18,7 +18,7 @@ namespace ORNG {
 		inline static constexpr uint64_t GetSystemUUID() { return 934898474626; }
 
 	private:
-		void UpdateChildTransforms(const Events::ECS_Event<TransformComponent>&);
+		void UpdateChildTransforms(entt::entity parent_handle, TransformComponent::UpdateType type);
 		Events::ECS_EventListener<TransformComponent> m_transform_event_listener;
 	};
 }

@@ -4,9 +4,9 @@
 #include <bitsery/traits/string.h>
 
 namespace ORNG {
-	struct Prefab final : public Asset {
-		explicit Prefab(const std::string& _filepath) : Asset(_filepath) {}
-		~Prefab() override = default;
+	struct PrefabAsset final : public Asset {
+		explicit PrefabAsset(const std::string& _filepath) : Asset(_filepath) {}
+		~PrefabAsset() override = default;
 
 		// Yaml string that can be deserialized into entity
 		std::string serialized_content;

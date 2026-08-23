@@ -12,7 +12,7 @@
 #pragma clang diagnostic pop
 #endif
 
-#include "assets/Prefab.h"
+#include "assets/PrefabAsset.h"
 #include "assets/AssetSerializer.h"
 #include "assets/AssetManager.h"
 #include "assets/SoundAsset.h"
@@ -212,7 +212,7 @@ void AssetSerializer::DeserializeAssetsFromBinaryPackage(const std::string& pack
 	}
 
 	for (uint32_t i = 0; i < num_prefabs; i++) {
-		auto* p_prefab = new Prefab{""};
+		auto* p_prefab = new PrefabAsset{""};
 
 		des.object(*p_prefab);
 		p_prefab->node = YAML::Load(p_prefab->serialized_content);
@@ -250,7 +250,7 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 	auto texture_view = std::vector<Texture2D*>();
 	auto mesh_view = std::vector<MeshAsset*>();
 	auto sound_view = std::vector<SoundAsset*>();
-	auto prefab_view = std::vector<Prefab*>();
+	auto prefab_view = std::vector<PrefabAsset*>();
 	auto mat_view = std::vector<Material*>();
 	auto scene_view = std::vector<SceneAsset*>();
 
@@ -264,7 +264,7 @@ void AssetSerializer::CreateBinaryAssetPackage(const std::string& output_path) {
 			mesh_view.push_back(p_casted1);
 		else if (auto* p_casted2 = dynamic_cast<SoundAsset*>(p_asset))
 			sound_view.push_back(p_casted2);
-		else if (auto* p_casted3 = dynamic_cast<Prefab*>(p_asset))
+		else if (auto* p_casted3 = dynamic_cast<PrefabAsset*>(p_asset))
 			prefab_view.push_back(p_casted3);
 		else if (auto* p_casted4 = dynamic_cast<Material*>(p_asset))
 			mat_view.push_back(p_casted4);
@@ -403,7 +403,7 @@ void AssetSerializer::LoadMaterialAssetFromFile(const std::string& rel_path) {
 };
 
 void AssetSerializer::LoadPrefabAssetFromFile(const std::string& rel_path) {
-	auto* p_prefab = new Prefab{rel_path};
+	auto* p_prefab = new PrefabAsset{rel_path};
 	DeserializeAssetBinary(rel_path, *p_prefab);
 	p_prefab->filepath = rel_path;
 	m_manager.AddAsset(p_prefab);

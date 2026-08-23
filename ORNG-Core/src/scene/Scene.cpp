@@ -1,6 +1,6 @@
 
 #include "pch/pch.h"
-#include "assets/Prefab.h"
+#include "assets/PrefabAsset.h"
 #include "util/TimeStep.h"
 #include "scene/Scene.h"
 #include "util/util.h"
@@ -118,7 +118,7 @@ namespace ORNG {
 			return p_transform->GetEntity();
 	}
 
-	SceneEntity& Scene::InstantiatePrefab(const Prefab& prefab, bool call_on_create) {
+	SceneEntity& Scene::InstantiatePrefab(const PrefabAsset& prefab, bool call_on_create) {
 		auto vec = SceneSerializer::DeserializePrefab(*this, prefab);
 		
 		if (call_on_create) {
@@ -132,7 +132,7 @@ namespace ORNG {
 	}
 
 	SceneEntity* Scene::InstantiatePrefab(uint64_t prefab_uuid, bool call_on_create) {
-		Prefab* p_prefab = AssetManager::GetAsset<Prefab>(prefab_uuid);
+		PrefabAsset* p_prefab = AssetManager::GetAsset<PrefabAsset>(prefab_uuid);
 		return p_prefab ? &InstantiatePrefab(*p_prefab, call_on_create) : nullptr;
 	}
 

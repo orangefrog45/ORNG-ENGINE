@@ -669,26 +669,18 @@ void EditorLayer::UpdateEditorCam() {
 	}
 
 	// Camera rotation
-	static lml::vec2 last_mouse_pos;
-	if (ImGui::IsMouseClicked(1))
-		last_mouse_pos = Window::Get().input.GetMousePos();
-
 	if (ImGui::IsMouseDown(1)) {
 		float rotation_speed = 0.005f;
-		lml::vec2 mouse_coords = Window::Get().input.GetMousePos();
-		lml::vec2 mouse_delta = -lml::vec2(mouse_coords.x - last_mouse_pos.x, mouse_coords.y - last_mouse_pos.y);
+		lml::ivec2 mouse_delta = Window::Get().input.GetMouseDelta();
 
-		lml::vec3 rot_x = lml::angleAxis(mouse_delta.x * rotation_speed, lml::vec3(0.0, 1.0, 0.0)) * p_transform->forward;
-		lml::vec3 rot_y = lml::angleAxis(mouse_delta.y * rotation_speed, p_transform->right) * rot_x;
+		lml::quat current_orientation = p_transform->GetAbsOrientationQuat();
+		lml::quat yaw = lml::angleAxis(-mouse_delta.x * rotation_speed, lml::vec3(0, 1, 0));
+		lml::quat pitch = lml::angleAxis(-mouse_delta.y * rotation_speed, lml::vec3(1, 0, 0));
 
+		p_transform->SetAbsOrientationQuat(yaw * current_orientation * pitch);
 
-		if (rot_y.y <= 0.997f && rot_y.y >= -0.997f)
-			p_transform->LookAt(p_transform->GetAbsPosition() + lml::normalize(rot_y));
-		else
-			p_transform->LookAt(p_transform->GetAbsPosition() + lml::normalize(rot_x));
-
-
-		Window::SetCursorPos(static_cast<int>(last_mouse_pos.x), static_cast<int>(last_mouse_pos.y));
+		auto mouse_pos = Window::Get().input.GetMousePos();
+		Window::SetCursorPos(static_cast<int>(mouse_pos.x - mouse_delta.x), static_cast<int>(mouse_pos.y - mouse_delta.y));
 	}
 
 	p_cam->UpdateFrustum();
@@ -734,8 +726,8 @@ void EditorLayer::RenderSceneDisplayPanel() {
 				}
 			}
 			else if (const ImGuiPayload* p_prefab_payload = ImGui::AcceptDragDropPayload("PREFAB")) {
-				if (p_prefab_payload->DataSize == sizeof(Prefab*)) {
-					Prefab* prefab_data = (*static_cast<Prefab**>(p_prefab_payload->Data));
+				if (p_prefab_payload->DataSize == sizeof(PrefabAsset*)) {
+					PrefabAsset* prefab_data = (*static_cast<PrefabAsset**>(p_prefab_payload->Data));
 					auto& ent = m_state.simulate_mode_active ? SCENE->InstantiatePrefab(*prefab_data) : SCENE->InstantiatePrefab(*prefab_data, false);
 					auto* p_cam_transform = mp_editor_camera->GetComponent<TransformComponent>();
 					lml::vec3 pos;
@@ -910,7 +902,7 @@ void EditorLayer::RenderGeneralSettingsMenu() {
 		ImGui::SliderFloat("##exposure", &mp_editor_camera->GetComponent<CameraComponent>()->exposure, 0.f, 10.f);
 
 		ImGui::SeparatorText("Debug rendering");
-		ImGui::Checkbox("Render physx debug", &m_state.general_settings.debug_render_settings.render_physx_debug);
+		ImGui::Checkbox("Render physx debug", &m_state.general_settings.debug_render_settings.render_physics_debug);
 		ImGui::Checkbox("Wireframe mode", &m_state.general_settings.debug_render_settings.render_wireframe);
 		ImGui::Checkbox("Render meshes", &m_state.general_settings.debug_render_settings.render_meshes);
 		static int voxel_mip = 0;
@@ -1073,8 +1065,8 @@ void EditorLayer::RenderToolbar() {
 		ExtraUI::TooltipOnHover("Joint maker");
 		ImGui::SameLine();
 
-		if (ExtraUI::SwitchButton(ICON_FA_P, m_state.general_settings.debug_render_settings.render_physx_debug, m_res.blue_col)) {
-			m_state.general_settings.debug_render_settings.render_physx_debug = !m_state.general_settings.debug_render_settings.render_physx_debug;
+		if (ExtraUI::SwitchButton(ICON_FA_P, m_state.general_settings.debug_render_settings.render_physics_debug, m_res.blue_col)) {
+			m_state.general_settings.debug_render_settings.render_physics_debug = !m_state.general_settings.debug_render_settings.render_physics_debug;
 		}
 		ExtraUI::TooltipOnHover("Debug physx rendering");
 		ImGui::SameLine();

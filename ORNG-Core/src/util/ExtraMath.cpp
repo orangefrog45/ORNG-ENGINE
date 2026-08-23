@@ -77,8 +77,7 @@ lml::mat4 ExtraMath::CalculateLightSpaceMatrix(const lml::mat4& proj, const lml:
 	return dir_light_space_matrix;
 }
 
-std::array<lml::vec4, 8> ExtraMath::GetFrustumCornersWorldSpace(const lml::mat4& proj, const lml::mat4& view)
-{
+std::array<lml::vec4, 8> ExtraMath::GetFrustumCornersWorldSpace(const lml::mat4& proj, const lml::mat4& view) {
 	std::array<lml::vec4, 8> corners;
 	unsigned int index = 0;
 
@@ -104,30 +103,6 @@ std::array<lml::vec4, 8> ExtraMath::GetFrustumCornersWorldSpace(const lml::mat4&
 	}
 
 	return corners;
-}
-
-lml::mat3 ExtraMath::Init3DRotateTransform(float rotX, float rotY, float rotZ) {
-	lml::quat quat(lml::radians(lml::vec3(rotX, rotY, rotZ)));
-	return lml::mat3_cast(quat);
-}
-
-lml::mat3 ExtraMath::Init3DScaleTransform(float scaleX, float scaleY, float scaleZ) {
-	return lml::mat3{
-		scaleX, 0.0f, 0.0f,
-		0.0f, scaleY, 0.0f,
-		0.0f, 0.0f, scaleZ,
-	};
-}
-
-lml::mat4 ExtraMath::Init3DTranslationTransform(float tranX, float tranY, float tranZ) {
-	lml::mat4 translationMatrix(
-		1.f, 0.f, 0.f, 0.f,
-		0.0f, 1.0f, 0.0f, 0.f,
-		0.0f, 0.0f, 1.0f, 0.f,
-		tranX, tranY, tranZ, 1.0f
-	);
-
-	return translationMatrix;
 }
 
 lml::vec3 ExtraMath::ScreenCoordsToRayDir(lml::mat4 proj_matrix, lml::vec2 coords, lml::vec3 cam_pos, lml::vec3 cam_forward,

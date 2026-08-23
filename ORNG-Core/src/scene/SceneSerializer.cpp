@@ -7,7 +7,7 @@
 #include "scene/SceneEntity.h"
 #include "assets/AssetManager.h"
 #include "util/InterpolatorSerializer.h"
-#include "assets/Prefab.h"
+#include "assets/PrefabAsset.h"
 #include "assets/SceneAsset.h"
 #include "scene/SerializationUtil.h"
 
@@ -45,7 +45,7 @@ namespace ORNG {
 		return scene.CreateEntity(data["Name"].as<std::string>(), data["Entity"].as<uint64_t>());
 	}
 
-	std::vector<SceneEntity*> SceneSerializer::DeserializePrefab(Scene& scene, const Prefab& prefab) {
+	std::vector<SceneEntity*> SceneSerializer::DeserializePrefab(Scene& scene, const PrefabAsset& prefab) {
 		ORNG_TRACY_PROFILE;
 
 		const YAML::Node& data = prefab.node;
@@ -453,7 +453,7 @@ namespace ORNG {
 		}
 
 		fout << "namespace Prefabs {\n";
-		for (auto* p_prefab : AssetManager::GetView<Prefab>()) {
+		for (auto* p_prefab : AssetManager::GetView<PrefabAsset>()) {
 			std::string prefab_name = p_prefab->filepath.substr(p_prefab->filepath.rfind("\\") + 1);
 			prefab_name = prefab_name.substr(0, prefab_name.find(".opfb"));
 			std::ranges::for_each(prefab_name, [](char& c) {if (std::isalnum(c) == 0) c = '_'; });

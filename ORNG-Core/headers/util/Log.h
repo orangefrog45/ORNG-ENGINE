@@ -2,6 +2,11 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include <format>
+#include <deque>
+#include <mutex>
+#include <iostream>
+
 #include "events/Events.h"
 
 template<typename T>

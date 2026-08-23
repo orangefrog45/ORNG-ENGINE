@@ -42,9 +42,6 @@ namespace ORNG {
 			lml::vec3 axis, float angle);
 
 		static std::array<lml::vec4, 8> GetFrustumCornersWorldSpace(const lml::mat4& proj, const lml::mat4& view);
-		static lml::mat3 Init3DRotateTransform(float rotX, float rotY, float rotZ);
-		static lml::mat3 Init3DScaleTransform(float scaleX, float scaleY, float scaleZ);
-		static lml::mat4 Init3DTranslationTransform(float tranX, float tranY, float tranZ);
 
 		static lml::vec3 ScreenCoordsToRayDir(lml::mat4 proj_matrix, lml::vec2 coords, lml::vec3 cam_pos, lml::vec3 cam_forward,
 			lml::vec3 cam_up, int window_width, int window_height);
